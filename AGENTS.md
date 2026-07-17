@@ -18,6 +18,8 @@ configured, not directly controlled. All current names — including the
 project name itself — are provisional.
 
 The full vision is in [`docs/GAME_VISION.md`](docs/GAME_VISION.md). The
+living direction and alignment criteria are in
+[`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md). The
 acknowledged design lineage is in
 [`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md). The initial
 architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -77,6 +79,7 @@ world-of-goses/
 ├── .gitignore
 ├── docs/
 │   ├── GAME_VISION.md
+│   ├── PRODUCT_DIRECTION.md
 │   ├── ARCHITECTURE.md
 │   ├── ART_PIPELINE.md
 │   └── DESIGN_INFLUENCES.md

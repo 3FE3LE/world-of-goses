@@ -39,6 +39,8 @@ unless that authority has been explicitly delegated through institutions or
 protocols.
 
 The full design vision is documented in [`docs/GAME_VISION.md`](docs/GAME_VISION.md).
+The living product-direction and alignment criteria are documented in
+[`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
 The acknowledged design lineage is documented in
 [`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md).
 
@@ -153,6 +155,7 @@ world-of-goses/
 ├── .gitignore
 ├── docs/
 │   ├── GAME_VISION.md
+│   ├── PRODUCT_DIRECTION.md
 │   ├── ARCHITECTURE.md
 │   ├── ART_PIPELINE.md
 │   └── DESIGN_INFLUENCES.md
