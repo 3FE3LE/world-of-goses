@@ -1,0 +1,26 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+# Godot
+game/.godot/
+game/.mono/
+game/bin/
+game/obj/
+
+# .NET
+**/bin/
+**/obj/
+
+# VS Code local
+.vscode/
+*.user
+*.suo
+
+# Operating systems
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Pixelorama recovery/temp
+*.tmp
+*.autosave

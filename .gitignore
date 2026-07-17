@@ -1,0 +1,99 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# World of Goses — root .gitignore
+#
+# Rules are grouped by category. Keep the file short and explicit.
+# If a rule is not obvious, leave a one-line comment.
+# Do not add broad ignore patterns without a concrete need.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Godot engine cache and import state ─────────────────────────────────────
+# IMPORTANT: `project.godot` (the file) MUST stay tracked.
+# The `.godot/` directory (with the trailing slash) is auto-generated cache.
+/.godot/
+/android/
+/android_build/
+/*.translation
+
+# Godot per-user editor metadata
+/.import/
+/.imported/
+
+# Mono / .NET integration cache (Godot)
+.mono/
+mono_crash.*.json
+
+# ── .NET / C# build outputs ─────────────────────────────────────────────────
+# Source files (.cs, .csproj, .sln) MUST stay tracked.
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/*.userprefs
+
+# ── Export and build artifacts ──────────────────────────────────────────────
+# Anything produced by `godot --export-*` or platform packagers.
+/build/
+/exports/
+*.pck
+*.zip
+*.exe
+*.dll
+*.pdb
+*.so
+*.dylib
+*.app/
+
+# ── Local IDE / editor configuration ────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Temporary and recovery files ────────────────────────────────────────────
+*.tmp
+*.temp
+*.autosave
+*.bak
+*.orig
+*.rej
+
+# ── Operating system files ──────────────────────────────────────────────────
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+Icon?
+Icon
+desktop.ini
+
+# ── Local secrets and environment files ─────────────────────────────────────
+# Never commit credentials, tokens, signing keys, or machine-specific paths.
+.env
+.env.*
+*.local
+secrets/
+api_keys.txt
+*.keystore
+*.jks
+keystore.properties
+
+# ── Godot import scratch (per-file) ─────────────────────────────────────────
+# These are generated next to imported assets. Safe to ignore.
+
+# ── Logs ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Coverage and test outputs ───────────────────────────────────────────────
+coverage/
+*.coverage
+TestResults/

@@ -1,0 +1,23 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "World of Goses", "World of Goses.csproj", "{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorldofGoses.Tests", "..\tests\WorldofGoses.Tests\WorldofGoses.Tests.csproj", "{A8E5B3C7-1F2D-4E6A-9B0C-2D3E4F5A6B7C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{68205BFA-E1F4-47CA-BBB5-9B9F6F35B377}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{A8E5B3C7-1F2D-4E6A-9B0C-2D3E4F5A6B7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8E5B3C7-1F2D-4E6A-9B0C-2D3E4F5A6B7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal

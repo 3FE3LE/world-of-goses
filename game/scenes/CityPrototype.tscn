@@ -1,0 +1,128 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/CityPrototype.cs" id="1_root"]
+[ext_resource type="Script" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
+[ext_resource type="Script" path="res://scripts/CityMacroView.cs" id="3_macro"]
+[ext_resource type="Script" path="res://scripts/BuildingPlot.cs" id="4_plot"]
+[ext_resource type="Script" path="res://scripts/MacroCitizenActivity.cs" id="5_activity"]
+[ext_resource type="Script" path="res://scripts/CityStatusPanel.cs" id="6_status"]
+[ext_resource type="Script" path="res://scripts/BuildingDetailView.cs" id="7_detail"]
+[ext_resource type="Script" path="res://scripts/VisibleWorkerSlots.cs" id="8_slots"]
+[ext_resource type="Script" path="res://scripts/AssignmentPanel.cs" id="9_assign"]
+[ext_resource type="Script" path="res://scripts/ProductionPanel.cs" id="10_prod"]
+
+[node name="CityPrototype" type="Node"]
+script = ExtResource("1_root")
+
+[node name="CityWorldController" type="Node" parent="."]
+script = ExtResource("2_ctrl")
+
+[node name="CityMacroView" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("3_macro")
+
+[node name="Background" type="ColorRect" parent="CityMacroView"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.42, 0.55, 0.36, 1)
+mouse_filter = 2
+
+[node name="MacroCitizenActivity" type="Node2D" parent="CityMacroView"]
+script = ExtResource("5_activity")
+
+[node name="MacroHint" type="Label" parent="CityMacroView"]
+offset_left = 220.0
+offset_top = 310.0
+offset_right = 642.0
+offset_bottom = 334.0
+text = "Click a building to manage its workers"
+horizontal_alignment = 1
+
+[node name="OfflineReportLabel" type="Label" parent="CityMacroView"]
+anchor_right = 1.0
+offset_top = 40.0
+offset_bottom = 64.0
+text = ""
+horizontal_alignment = 1
+visible = false
+
+[node name="QuarryPlot" type="Control" parent="CityMacroView"]
+offset_left = 220.0
+offset_top = 110.0
+offset_right = 412.0
+offset_bottom = 302.0
+script = ExtResource("4_plot")
+BuildingIdValue = 1
+BuildingNameValue = "Quarry"
+BuildingTooltip = "Click to enter quarry"
+
+[node name="FarmPlot" type="Control" parent="CityMacroView"]
+offset_left = 450.0
+offset_top = 110.0
+offset_right = 642.0
+offset_bottom = 302.0
+script = ExtResource("4_plot")
+BuildingIdValue = 2
+BuildingNameValue = "Farm"
+BuildingTooltip = "Click to enter farm"
+
+[node name="CityStatusPanel" type="PanelContainer" parent="CityMacroView"]
+anchor_right = 1.0
+offset_bottom = 32.0
+script = ExtResource("6_status")
+
+[node name="BuildingDetailView" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+script = ExtResource("7_detail")
+
+[node name="DetailBackground" type="ColorRect" parent="BuildingDetailView"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.2, 0.24, 0.3, 1)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="BuildingDetailView"]
+anchor_right = 1.0
+offset_bottom = 32.0
+text = "Building"
+horizontal_alignment = 1
+
+[node name="VisibleWorkerSlots" type="Control" parent="BuildingDetailView"]
+offset_left = 80.0
+offset_top = 120.0
+offset_right = 560.0
+offset_bottom = 260.0
+script = ExtResource("8_slots")
+
+[node name="AssignmentPanel" type="PanelContainer" parent="BuildingDetailView"]
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -240.0
+offset_top = 40.0
+offset_right = 0.0
+offset_bottom = -90.0
+script = ExtResource("9_assign")
+
+[node name="ProductionPanel" type="PanelContainer" parent="BuildingDetailView"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -180.0
+offset_right = -260.0
+script = ExtResource("10_prod")
+
+[node name="BackButton" type="Button" parent="BuildingDetailView"]
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -120.0
+offset_top = 8.0
+offset_right = -16.0
+offset_bottom = 40.0
+tooltip_text = "Return to the city view"
+text = "Back to city"
