@@ -12,6 +12,34 @@ namespace WorldofGoses.Tests;
 public class CityWorldTests
 {
     [Fact]
+    public void AdvanceWorldProductionTick_AdvancesEveryAuthorizedBuildingOnce()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+
+        world.AdvanceWorldProductionTick();
+
+        Assert.Equal(1, world.CurrentTick);
+        Assert.True(quarry.Stock > 0);
+        Assert.True(farm.Stock > 0);
+    }
+
+    [Fact]
+    public void AdvanceWorldProductionTick_RespectsIndependentBuildingPolicies()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+        quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
+
+        world.AdvanceWorldProductionTick();
+
+        Assert.Equal(0, quarry.Stock);
+        Assert.True(farm.Stock > 0);
+    }
+
+    [Fact]
     public void FreshWorld_HasPrimaryBuildingAndAvailableCitizens()
     {
         var world = new CityWorld();

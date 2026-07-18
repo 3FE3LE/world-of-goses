@@ -247,10 +247,26 @@ public sealed class CityWorld
         {
             return 0;
         }
-
         _tick++;
+        return ProduceBuildingTick(building);
+    }
+
+    public void AdvanceWorldProductionTick()
+    {
+        _tick++;
+        foreach (var building in _buildings.Values)
+        {
+            ProduceBuildingTick(building);
+        }
+    }
+
+    private int ProduceBuildingTick(Building building)
+    {
+        if (!building.CanProduce) return 0;
+
         int produced = BuildingProductionCalculator.ProductionPerTick(building, _citizens);
-        int added = building.AddStock(produced);
+        int roomToTarget = building.TargetStock - building.Stock;
+        int added = building.AddStock(Math.Min(produced, roomToTarget));
 
         // Award a small, deterministic experience bump to every
         // assigned worker, in the building's own competency.
@@ -263,8 +279,19 @@ public sealed class CityWorld
             }
         }
 
-        RaiseBuildingChanged(buildingId);
+        RaiseBuildingChanged(building.Id);
         return added;
+    }
+
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock)
+    {
+        if (!_buildings.TryGetValue(buildingId, out var building))
+        {
+            return;
+        }
+
+        building.ConfigureProductionPolicy(enabled, targetStock);
+        RaiseBuildingChanged(buildingId);
     }
 
     /// <summary>
@@ -278,9 +305,15 @@ public sealed class CityWorld
     public void AdvanceTicks(BuildingId buildingId, int tickCount)
     {
         if (tickCount <= 0) return;
+        _tick += tickCount;
+        AdvanceBuildingTicks(buildingId, tickCount);
+    }
+
+    internal void AdvanceBuildingTicks(BuildingId buildingId, int tickCount)
+    {
+        if (tickCount <= 0) return;
         if (!_buildings.TryGetValue(buildingId, out var building)) return;
 
-        _tick += tickCount;
         var competency = building.ProducedCompetencyId;
         foreach (var citizenId in building.AssignedCitizenIds)
         {
@@ -290,6 +323,11 @@ public sealed class CityWorld
             }
         }
         RaiseBuildingChanged(buildingId);
+    }
+
+    internal void AdvanceWorldClock(int tickCount)
+    {
+        if (tickCount > 0) _tick += tickCount;
     }
 
     /// <summary>
@@ -341,7 +379,9 @@ public sealed class CityWorld
                 storageCapacity: bs.StorageCapacity,
                 resourceLabel: string.IsNullOrEmpty(bs.ResourceLabel) ? "Resource" : bs.ResourceLabel,
                 resourceUnit: string.IsNullOrEmpty(bs.ResourceUnit) ? "units" : bs.ResourceUnit,
-                initialStock: bs.Stock);
+                initialStock: bs.Stock,
+                productionEnabled: bs.ProductionEnabled,
+                targetStock: bs.TargetStock ?? bs.StorageCapacity);
             _buildings[building.Id] = building;
 
             foreach (var cid in bs.AssignedCitizenIds)

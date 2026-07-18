@@ -189,4 +189,24 @@ public class BuildingTests
         var b = NewBuilding();
         Assert.False(b.TryConsumeStock(-1));
     }
+
+    [Fact]
+    public void ConfigureProductionPolicy_UpdatesAuthorizationAndTarget()
+    {
+        var building = NewBuilding(storageCapacity: 20);
+
+        building.ConfigureProductionPolicy(enabled: false, targetStock: 7);
+
+        Assert.False(building.ProductionEnabled);
+        Assert.Equal(7, building.TargetStock);
+        Assert.False(building.CanProduce);
+    }
+
+    [Fact]
+    public void ConfigureProductionPolicy_TargetOutsideStorage_Throws()
+    {
+        var building = NewBuilding(storageCapacity: 20);
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => building.ConfigureProductionPolicy(enabled: true, targetStock: 21));
+    }
 }

@@ -21,5 +21,7 @@ public sealed class BuildingSave
     public int BaseProductionPerWorker { get; set; }
     public int StorageCapacity { get; set; }
     public int Stock { get; set; }
+    public bool ProductionEnabled { get; set; } = true;
+    public int? TargetStock { get; set; }
     public List<int> AssignedCitizenIds { get; set; } = new();
 }

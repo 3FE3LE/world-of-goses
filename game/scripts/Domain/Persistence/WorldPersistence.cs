@@ -69,6 +69,8 @@ public static class WorldPersistence
                 BaseProductionPerWorker = building.BaseProductionPerWorker,
                 StorageCapacity = building.StorageCapacity,
                 Stock = building.Stock,
+                ProductionEnabled = building.ProductionEnabled,
+                TargetStock = building.TargetStock,
                 AssignedCitizenIds = new List<int>(building.AssignedCitizenIds.Count),
             };
             foreach (var cid in building.AssignedCitizenIds)
@@ -182,6 +184,11 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException(
                     $"Building {b.Id}: Stock ({b.Stock}) exceeds StorageCapacity ({b.StorageCapacity}).");
+            }
+            if (b.TargetStock < 0 || b.TargetStock > b.StorageCapacity)
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: TargetStock must be between 0 and StorageCapacity.");
             }
             if (b.AssignedCitizenIds is null)
             {

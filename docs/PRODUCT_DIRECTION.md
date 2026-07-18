@@ -175,6 +175,12 @@ player configures stock goals and priorities, production and consumption
 interact, operations stop for explicit causes, time advances consistently, and
 the return report leads to a new decision.
 
+The first two steps are now implemented: each building has a persistent
+production authorization and stock target, and one shared world-time path
+advances every authorized building both live and during offline catch-up. The
+next step is to introduce one understandable cross-resource dependency and
+surface its stopping cause without expanding into a generic economy framework.
+
 The exact resource costs, time scale, policies, and UI layout are intentionally
 open. They should be chosen through implementation and play rather than treated
 as commitments in this guide.

@@ -20,6 +20,8 @@ project name itself — are provisional.
 The full vision is in [`docs/GAME_VISION.md`](docs/GAME_VISION.md). The
 living direction and alignment criteria are in
 [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md). The
+current implementation handoff and next starting point are in
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md). The
 acknowledged design lineage is in
 [`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md). The initial
 architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -80,6 +82,7 @@ world-of-goses/
 ├── docs/
 │   ├── GAME_VISION.md
 │   ├── PRODUCT_DIRECTION.md
+│   ├── CURRENT_STATUS.md
 │   ├── ARCHITECTURE.md
 │   ├── ART_PIPELINE.md
 │   └── DESIGN_INFLUENCES.md

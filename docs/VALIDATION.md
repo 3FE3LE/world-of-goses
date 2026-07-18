@@ -37,6 +37,8 @@ violating any architecture rule:
 | Offline progression (catch-up while away) | ✅ done | `OfflineProgression` with 7-day cap, tick arithmetic, experience carries even after storage fills |
 | Auto-save (timer + window-close) | ✅ done | `_Process` interval (10 s default, tunable), `_Notification` window-close hook. **No manual Save button** — saving is silent, per the `no progress loss` principle |
 | Validation on load | ✅ done | `WorldPersistence.Validate` checks schema, ranges, IDs, collections and bidirectional assignment consistency before restore |
+| Persistent production authorization | ✅ first step | Each building persists an enabled state and target stock; manual, live and offline production stop when policy blocks work or the target is reached |
+| Shared world advancement | ✅ done | One live world tick and offline catch-up process every authorized building while advancing the world clock once |
 
 ---
 
@@ -50,7 +52,7 @@ violating any architecture rule:
 | Godot representation | ✅ `game/scripts/*.cs` (presentation scripts) + `game/scenes/*.tscn` |
 | Assets | ⚠️ placeholders only — final art pending Slice 7 |
 | Local persistence | ✅ implemented (`game/scripts/Domain/Persistence/`) |
-| Tests | ✅ `tests/WorldofGoses.Tests/` — **100 / 100 passing** at this snapshot |
+| Tests | ✅ `tests/WorldofGoses.Tests/` — **108 / 108 passing** at this snapshot |
 
 ### 3.2 The Godot/.NET boundary (§5)
 
@@ -81,7 +83,7 @@ violating any architecture rule:
 
 ### 3.6 "Domain is not presentation" (§9.13)
 
-✅ Holds. Domain types (`Building`, `Citizen`, `CityWorld`, `OfflineProgression`, `WorldPersistence`) compile and run without any Godot binary. Tests prove this (100 / 100 passing without Godot loaded).
+✅ Holds. Domain types (`Building`, `Citizen`, `CityWorld`, `OfflineProgression`, `WorldPersistence`) compile and run without any Godot binary. Tests prove this (108 / 108 passing without Godot loaded).
 
 ---
 
@@ -256,7 +258,7 @@ but are worth knowing:
 | GAME_VISION §7 (production & storage) | ⚠️ basic ticking only; no chains / materials |
 | GAME_VISION §8 (persistent time) | ⚠️ save/load/elapsed ✅; causal report ⚠️ basic |
 | GAME_VISION §9 (design principles) | ✅ 13 / 14 fully held; 1 partial (unlocks — none exist yet) |
-| Tests | 100 / 100 passing |
+| Tests | 108 / 108 passing |
 | Build | clean, 0 warnings, 0 errors |
 
 **Net read:** the slice is *vertically complete* against the

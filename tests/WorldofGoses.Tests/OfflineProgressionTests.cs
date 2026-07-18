@@ -7,6 +7,35 @@ namespace WorldofGoses.Tests;
 public class OfflineProgressionTests
 {
     [Fact]
+    public void ApplyAll_AdvancesQuarryAndFarmDuringAbsence()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: 5);
+
+        Assert.True(report.HadProgression);
+        Assert.True(quarry.Stock > 0);
+        Assert.True(farm.Stock > 0);
+        Assert.Equal(5, world.CurrentTick);
+    }
+
+    [Fact]
+    public void ApplyAll_RespectsEachBuildingsPolicy()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+
+        OfflineProgression.ApplyAll(world, ticksToApply: 5);
+
+        Assert.True(quarry.Stock > 0);
+        Assert.Equal(0, farm.Stock);
+    }
+
+    [Fact]
     public void ComputeTicks_ZeroElapsed_IsZero()
     {
         var now = new DateTimeOffset(2026, 7, 17, 12, 0, 0, TimeSpan.Zero);
@@ -122,7 +151,7 @@ public class OfflineProgressionTests
     }
 
     [Fact]
-    public void Apply_ManyTicks_StockClampsAtCapacity_ButExperienceStillTicks()
+    public void Apply_ManyTicks_StopsAtTargetWithoutPhantomExperienceOrWaste()
     {
         var world = new CityWorld();
         var buildingId = world.PrimaryBuilding.Id;
@@ -132,11 +161,11 @@ public class OfflineProgressionTests
 
         var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 100);
 
-        Assert.Equal(100, report.TicksApplied);
+        Assert.True(report.TicksApplied < 100);
         Assert.Equal(stoneCap, world.PrimaryBuilding.Stock);
         Assert.Equal(stoneCap, report.StockAdded);
-        Assert.True(report.StockWasted > 0);
-        Assert.Equal(branExpBefore + 100, bran.GetExperience(CompetencyId.Mining));
+        Assert.Equal(0, report.StockWasted);
+        Assert.Equal(branExpBefore + report.TicksApplied, bran.GetExperience(CompetencyId.Mining));
     }
 
     [Fact]
@@ -157,7 +186,22 @@ public class OfflineProgressionTests
         var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 60, tickRateHz: 1.0);
         Assert.Equal(60.0, report.SimulatedTime.TotalSeconds);
 
-        var report2 = OfflineProgression.Apply(world, buildingId, ticksToApply: 60, tickRateHz: 2.0);
+        var secondWorld = new CityWorld();
+        var report2 = OfflineProgression.Apply(
+            secondWorld, secondWorld.PrimaryBuilding.Id, ticksToApply: 60, tickRateHz: 2.0);
         Assert.Equal(30.0, report2.SimulatedTime.TotalSeconds);
+    }
+
+    [Fact]
+    public void Apply_DisabledPolicy_DoesNotProduce()
+    {
+        var world = new CityWorld();
+        var building = world.PrimaryBuilding;
+        building.ConfigureProductionPolicy(enabled: false, targetStock: building.StorageCapacity);
+
+        var report = OfflineProgression.Apply(world, building.Id, ticksToApply: 60);
+
+        Assert.False(report.HadProgression);
+        Assert.Equal(0, building.Stock);
     }
 }

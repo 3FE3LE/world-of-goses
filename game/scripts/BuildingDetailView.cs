@@ -41,6 +41,7 @@ public partial class BuildingDetailView : Control
         _assignmentPanel.AssignRequested += OnAssignRequested;
         _assignmentPanel.UnassignRequested += OnUnassignRequested;
         _productionPanel.AdvanceRequested += OnAdvanceRequested;
+        _productionPanel.PolicyChangeRequested += OnPolicyChangeRequested;
         _backButton.Pressed += OnBackPressed;
 
         _controller.BuildingStateChanged += OnBuildingStateChanged;
@@ -57,7 +58,11 @@ public partial class BuildingDetailView : Control
             _assignmentPanel.AssignRequested -= OnAssignRequested;
             _assignmentPanel.UnassignRequested -= OnUnassignRequested;
         }
-        if (_productionPanel is not null) _productionPanel.AdvanceRequested -= OnAdvanceRequested;
+        if (_productionPanel is not null)
+        {
+            _productionPanel.AdvanceRequested -= OnAdvanceRequested;
+            _productionPanel.PolicyChangeRequested -= OnPolicyChangeRequested;
+        }
         if (_controller is not null)
         {
             _controller.BuildingStateChanged -= OnBuildingStateChanged;
@@ -114,6 +119,9 @@ public partial class BuildingDetailView : Control
 
     private void OnAdvanceRequested() =>
         _controller.AdvanceProduction(_currentBuilding);
+
+    private void OnPolicyChangeRequested(bool enabled, int targetStock) =>
+        _controller.ConfigureProductionPolicy(_currentBuilding, enabled, targetStock);
 
     private void OnBackPressed()
     {

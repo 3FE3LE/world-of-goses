@@ -58,6 +58,20 @@ public class WorldPersistenceTests
     }
 
     [Fact]
+    public void Roundtrip_PreservesProductionPolicyIncludingZeroTarget()
+    {
+        var world = new CityWorld();
+        world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, targetStock: 0);
+
+        var save = WorldPersistence.Capture(world);
+        var restored = CityWorld.FromSave(
+            WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
+
+        Assert.False(restored.PrimaryBuilding.ProductionEnabled);
+        Assert.Equal(0, restored.PrimaryBuilding.TargetStock);
+    }
+
+    [Fact]
     public void Capture_StampsCurrentSchemaVersion()
     {
         var save = WorldPersistence.Capture(new CityWorld());
@@ -431,6 +445,8 @@ public class WorldPersistenceTests
             Assert.Equal(em.WorkerCapacity, am.WorkerCapacity);
             Assert.Equal(em.StorageCapacity, am.StorageCapacity);
             Assert.Equal(em.Stock, am.Stock);
+            Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
+            Assert.Equal(em.TargetStock, am.TargetStock);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 
@@ -465,6 +481,8 @@ public class WorldPersistenceTests
             Assert.Equal(em.WorkerCapacity, am.WorkerCapacity);
             Assert.Equal(em.StorageCapacity, am.StorageCapacity);
             Assert.Equal(em.Stock, am.Stock);
+            Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
+            Assert.Equal(em.TargetStock, am.TargetStock);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 

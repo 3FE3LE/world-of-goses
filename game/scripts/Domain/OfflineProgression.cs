@@ -75,21 +75,63 @@ public static class OfflineProgression
         int ticksToApply,
         double tickRateHz = DefaultTickRateHz)
     {
+        var report = ApplyBuilding(world, buildingId, ticksToApply, tickRateHz);
+        world.AdvanceWorldClock(ticksToApply);
+        return report;
+    }
+
+    public static OfflineProgressionReport ApplyAll(
+        CityWorld world,
+        int ticksToApply,
+        double tickRateHz = DefaultTickRateHz)
+    {
+        if (ticksToApply <= 0) return OfflineProgressionReport.None;
+
+        int stockAdded = 0;
+        int activeTicks = 0;
+        foreach (var buildingId in world.Buildings.Keys)
+        {
+            var report = ApplyBuilding(world, buildingId, ticksToApply, tickRateHz);
+            stockAdded += report.StockAdded;
+            activeTicks += report.TicksApplied;
+        }
+
+        world.AdvanceWorldClock(ticksToApply);
+        if (stockAdded == 0) return OfflineProgressionReport.None;
+
+        return new OfflineProgressionReport(
+            ticksApplied: activeTicks,
+            stockAdded: stockAdded,
+            stockWasted: 0,
+            simulatedTime: TimeSpan.FromSeconds(ticksToApply / tickRateHz));
+    }
+
+    private static OfflineProgressionReport ApplyBuilding(
+        CityWorld world,
+        BuildingId buildingId,
+        int ticksToApply,
+        double tickRateHz)
+    {
         if (ticksToApply <= 0) return OfflineProgressionReport.None;
 
         var building = world.GetBuilding(buildingId);
         if (building is null) return OfflineProgressionReport.None;
+        if (!building.CanProduce) return OfflineProgressionReport.None;
 
         var producedPerTick = BuildingProductionCalculator.ProductionPerTick(building, world.Citizens);
-        var totalProduced = producedPerTick * ticksToApply;
-        var totalAdded = building.AddStock(totalProduced);
-        world.AdvanceTicks(buildingId, ticksToApply);
+        if (producedPerTick <= 0) return OfflineProgressionReport.None;
+
+        int roomToTarget = building.TargetStock - building.Stock;
+        int ticksUntilTarget = (roomToTarget + producedPerTick - 1) / producedPerTick;
+        int activeTicks = Math.Min(ticksToApply, ticksUntilTarget);
+        int totalAdded = building.AddStock(Math.Min(producedPerTick * activeTicks, roomToTarget));
+        world.AdvanceBuildingTicks(buildingId, activeTicks);
         var simulatedTime = TimeSpan.FromSeconds(ticksToApply / tickRateHz);
 
         return new OfflineProgressionReport(
-            ticksApplied: ticksToApply,
+            ticksApplied: activeTicks,
             stockAdded: totalAdded,
-            stockWasted: totalProduced - totalAdded,
+            stockWasted: 0,
             simulatedTime: simulatedTime);
     }
 }

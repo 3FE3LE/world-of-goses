@@ -1,7 +1,8 @@
 # World of Goses
 
-> **Status:** very early pre-production. Repository structure, tooling and
-> foundational documentation only. No gameplay systems are implemented yet.
+> **Status:** early playable prototype. The current slice includes a persistent
+> two-building city, citizen assignment, production authorization, shared
+> live/offline advancement, local saves, and domain tests.
 
 A persistent pixel-art desktop game about a single living city. The world
 continues advancing while the game is closed, and the player guides its
@@ -14,14 +15,14 @@ directly controlling every action.
 
 This repository currently contains:
 
-- The Godot `.NET` project skeleton in `game/`.
+- A playable Godot `.NET` prototype in `game/`.
 - The `art/` source and export directories for pixel art.
-- The `docs/` design and architecture documents.
+- Domain and persistence tests under `tests/`.
+- Design, architecture, validation, direction, and status documents in `docs/`.
 - The `README.md`, `AGENTS.md`, and `.gitignore` at the repository root.
 
-It does **not** yet contain playable systems, scenes with logic, art assets, or
-local persistence. The current priority is structure, documentation, and a
-verifiable build.
+The current implementation handoff and next recommended slice are maintained in
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
 
 ## 2. Game vision
 
@@ -41,6 +42,8 @@ protocols.
 The full design vision is documented in [`docs/GAME_VISION.md`](docs/GAME_VISION.md).
 The living product-direction and alignment criteria are documented in
 [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
+The current implementation status and next starting point are documented in
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
 The acknowledged design lineage is documented in
 [`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md).
 
@@ -156,6 +159,7 @@ world-of-goses/
 ├── docs/
 │   ├── GAME_VISION.md
 │   ├── PRODUCT_DIRECTION.md
+│   ├── CURRENT_STATUS.md
 │   ├── ARCHITECTURE.md
 │   ├── ART_PIPELINE.md
 │   └── DESIGN_INFLUENCES.md
@@ -268,7 +272,8 @@ re-architecting.
 
 Items 1–6 and 8 are **complete**. The current slice validates the
 macro↔detail transition, worker visibility, assign/remove, heterogeneous
-buildings, persistence, offline progression, and a 100-test xUnit suite.
+buildings, persistence, shared live/offline world advancement, persistent
+production targets, and a 108-test xUnit suite.
 
 This list is not a contract. Items may be reordered, dropped, or expanded as
 the prototype teaches us what the project actually needs.

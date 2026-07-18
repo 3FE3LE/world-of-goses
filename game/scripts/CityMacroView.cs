@@ -104,9 +104,8 @@ public partial class CityMacroView : Control
         var time = FormatSimulatedTime(r.SimulatedTime);
         return
             $"Welcome back · {time} simulated · " +
-            $"+{r.TicksApplied} ticks · " +
-            $"+{r.StockAdded} stock mined · " +
-            $"+{r.TicksApplied} exp per assigned worker";
+            $"{r.TicksApplied} authorized production ticks · " +
+            $"+{r.StockAdded} total stock";
     }
 
     private static string FormatSimulatedTime(TimeSpan ts)

@@ -34,6 +34,8 @@ public sealed class Building
     public int BaseProductionPerWorker { get; }
     public int StorageCapacity { get; }
     public int Stock { get; private set; }
+    public bool ProductionEnabled { get; private set; }
+    public int TargetStock { get; private set; }
 
     public string ResourceLabel { get; }
     public string ResourceUnit { get; }
@@ -54,7 +56,9 @@ public sealed class Building
         int storageCapacity,
         string resourceLabel,
         string resourceUnit,
-        int initialStock = 0)
+        int initialStock = 0,
+        bool productionEnabled = true,
+        int? targetStock = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(workerCapacity);
         ArgumentOutOfRangeException.ThrowIfNegative(visualCapacity);
@@ -63,6 +67,11 @@ public sealed class Building
         if (initialStock < 0 || initialStock > storageCapacity)
         {
             throw new ArgumentOutOfRangeException(nameof(initialStock));
+        }
+        int resolvedTargetStock = targetStock ?? storageCapacity;
+        if (resolvedTargetStock < 0 || resolvedTargetStock > storageCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetStock));
         }
 
         Id = id;
@@ -77,6 +86,8 @@ public sealed class Building
         ResourceLabel = resourceLabel;
         ResourceUnit = resourceUnit;
         Stock = initialStock;
+        ProductionEnabled = productionEnabled;
+        TargetStock = resolvedTargetStock;
     }
 
     /// <summary>
@@ -94,6 +105,20 @@ public sealed class Building
 
     public bool IsAssigned(CitizenId citizenId) =>
         _assigned.Contains(citizenId);
+
+    public bool CanProduce =>
+        ProductionEnabled && AssignedCount > 0 && Stock < TargetStock;
+
+    public void ConfigureProductionPolicy(bool enabled, int targetStock)
+    {
+        if (targetStock < 0 || targetStock > StorageCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetStock));
+        }
+
+        ProductionEnabled = enabled;
+        TargetStock = targetStock;
+    }
 
     internal AssignmentResult TryAssign(CitizenId citizenId)
     {

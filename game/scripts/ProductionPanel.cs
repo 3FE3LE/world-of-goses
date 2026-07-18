@@ -11,6 +11,7 @@ namespace WorldofGoses;
 public partial class ProductionPanel : PanelContainer
 {
     [Signal] public delegate void AdvanceRequestedEventHandler();
+    [Signal] public delegate void PolicyChangeRequestedEventHandler(bool enabled, int targetStock);
 
     private Label _titleLabel = null!;
     private Label _stockLabel = null!;
@@ -18,6 +19,10 @@ public partial class ProductionPanel : PanelContainer
     private Label _helperLabel = null!;
     private ProgressBar _stockBar = null!;
     private Button _advanceButton = null!;
+    private CheckButton _enabledToggle = null!;
+    private SpinBox _targetStockInput = null!;
+    private Label _policyStateLabel = null!;
+    private bool _refreshing;
 
     public override void _Ready()
     {
@@ -46,6 +51,29 @@ public partial class ProductionPanel : PanelContainer
         _rateLabel = new Label { Text = "Rate: 0 / tick" };
         root.AddChild(_rateLabel);
 
+        root.AddChild(new HSeparator());
+        root.AddChild(new Label { Text = "Production policy" });
+
+        _enabledToggle = new CheckButton { Text = "Authorize production", ButtonPressed = true };
+        _enabledToggle.Toggled += OnPolicyInputChanged;
+        root.AddChild(_enabledToggle);
+
+        var targetRow = new HBoxContainer();
+        targetRow.AddChild(new Label { Text = "Stop at stock:" });
+        _targetStockInput = new SpinBox
+        {
+            MinValue = 0,
+            Step = 1,
+            Rounded = true,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _targetStockInput.ValueChanged += _ => OnPolicyInputChanged(_enabledToggle.ButtonPressed);
+        targetRow.AddChild(_targetStockInput);
+        root.AddChild(targetRow);
+
+        _policyStateLabel = new Label();
+        root.AddChild(_policyStateLabel);
+
         _advanceButton = new Button { Text = "Advance production" };
         _advanceButton.Pressed += () => EmitSignal(SignalName.AdvanceRequested);
         root.AddChild(_advanceButton);
@@ -71,5 +99,28 @@ public partial class ProductionPanel : PanelContainer
         int rate = controller.CurrentProductionRate(building.Id);
         _rateLabel.Text = $"Rate: {rate} {building.ResourceUnit} / tick ({building.AssignedCount} workers)";
         _helperLabel.Text = $"Click 'Advance production' to add {building.ResourceUnit}.";
+
+        _refreshing = true;
+        _enabledToggle.ButtonPressed = building.ProductionEnabled;
+        _targetStockInput.MaxValue = building.StorageCapacity;
+        _targetStockInput.Value = building.TargetStock;
+        _refreshing = false;
+
+        _policyStateLabel.Text = DescribePolicyState(building);
+        _advanceButton.Disabled = !building.CanProduce;
+    }
+
+    private void OnPolicyInputChanged(bool enabled)
+    {
+        if (_refreshing) return;
+        EmitSignal(SignalName.PolicyChangeRequested, enabled, (int)_targetStockInput.Value);
+    }
+
+    private static string DescribePolicyState(Building building)
+    {
+        if (!building.ProductionEnabled) return "Paused by player policy";
+        if (building.AssignedCount == 0) return "Blocked: no assigned workers";
+        if (building.Stock >= building.TargetStock) return "Waiting: stock target reached";
+        return $"Authorized until {building.TargetStock} {building.ResourceUnit}";
     }
 }

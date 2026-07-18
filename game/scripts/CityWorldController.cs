@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
@@ -40,6 +39,9 @@ public partial class CityWorldController : Node
     public double AutoSaveIntervalSeconds { get; set; } = 10.0;
 
     private double _autoSaveTimer;
+    private double _simulationTimer;
+
+    public double SimulationTickIntervalSeconds { get; set; } = 1.0;
 
     public enum Selection
     {
@@ -66,6 +68,8 @@ public partial class CityWorldController : Node
 
     public override void _Process(double delta)
     {
+        AdvanceLiveSimulation(delta);
+
         if (!PersistenceEnabled) return;
         if (AutoSaveIntervalSeconds <= 0) return;
         _autoSaveTimer += delta;
@@ -73,6 +77,21 @@ public partial class CityWorldController : Node
         {
             _autoSaveTimer = 0;
             TryAutoSave();
+        }
+    }
+
+    private void AdvanceLiveSimulation(double delta)
+    {
+        if (SimulationTickIntervalSeconds <= 0) return;
+
+        _simulationTimer += delta;
+        int ticksDue = (int)(_simulationTimer / SimulationTickIntervalSeconds);
+        if (ticksDue <= 0) return;
+
+        _simulationTimer -= ticksDue * SimulationTickIntervalSeconds;
+        for (int i = 0; i < ticksDue; i++)
+        {
+            _world.AdvanceWorldProductionTick();
         }
     }
 
@@ -162,6 +181,9 @@ public partial class CityWorldController : Node
 
     public int AdvanceProduction(BuildingId buildingId) => _world.AdvanceProduction(buildingId);
 
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock) =>
+        _world.ConfigureProductionPolicy(buildingId, enabled, targetStock);
+
     private void TryLoadFromDisk()
     {
         // Single source: the primary slot. The legacy single-file
@@ -205,8 +227,7 @@ public partial class CityWorldController : Node
             // PrimaryBuilding.
             if (_world.Buildings.Count > 0)
             {
-                var firstId = _world.Buildings.Keys.First();
-                LastOfflineReport = OfflineProgression.Apply(_world, firstId, ticks);
+                LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
 
                 if (LastOfflineReport.HadProgression)
                 {
