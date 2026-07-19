@@ -84,6 +84,25 @@ public sealed class CityWorld
             resourceUnit: "food");
         _buildings[farmId] = farm;
 
+        // Home: where citizens go at night to rest. Non-producing,
+        // non-upkeep-consuming. Capacity matches population so every
+        // citizen has a place to rest.
+        var homeId = new BuildingId(3);
+        var home = new Building(
+            id: homeId,
+            displayName: "Home",
+            kind: BuildingKind.Home,
+            producedResourceType: ResourceType.Stone, // placeholder, ignored
+            producedCompetencyId: CompetencyId.Mining, // placeholder, ignored
+            workerCapacity: 5,
+            visualCapacity: 5,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            resourceLabel: "Rest",
+            resourceUnit: "rest",
+            productionEnabled: false);
+        _buildings[homeId] = home;
+
         var minerA = new Citizen(new CitizenId(1), "Bran", appearanceSeed: 11);
         minerA.AddExperience(CompetencyId.Mining, 3);
         _citizens[minerA.Id] = minerA;
@@ -105,6 +124,14 @@ public sealed class CityWorld
         PreAssign(quarry, quarryId, minerA);
         PreAssign(quarry, quarryId, minerB);
         PreAssign(farm, farmId, farmerA);
+
+        // Game starts at tick 0 (daytime). Assigned citizens are
+        // physically at their workplace; unassigned are at home.
+        minerA.SetLocation(CitizenLocation.AtWork);
+        minerB.SetLocation(CitizenLocation.AtWork);
+        farmerA.SetLocation(CitizenLocation.AtWork);
+        availableA.SetLocation(CitizenLocation.AtHome);
+        availableB.SetLocation(CitizenLocation.AtHome);
     }
 
     private void PreAssign(Building building, BuildingId buildingId, Citizen citizen)
@@ -130,6 +157,80 @@ public sealed class CityWorld
 
     public Building? GetBuilding(BuildingId id) =>
         _buildings.TryGetValue(id, out var building) ? building : null;
+
+    /// <summary>
+    /// Aggregate food available across every Farm-kind building.
+    /// Thin facade today; replaceable by a real shared inventory
+    /// without touching <see cref="Building"/> or its callers.
+    /// </summary>
+    public int FoodStock
+    {
+        get
+        {
+            int total = 0;
+            foreach (var b in _buildings.Values)
+            {
+                if (b.Kind == BuildingKind.Farm) total += b.Stock;
+            }
+            return total;
+        }
+    }
+
+    /// <summary>Aggregate food capacity across every Farm-kind building.</summary>
+    public int MaxFoodStock
+    {
+        get
+        {
+            int total = 0;
+            foreach (var b in _buildings.Values)
+            {
+                if (b.Kind == BuildingKind.Farm) total += b.StorageCapacity;
+            }
+            return total;
+        }
+    }
+
+    /// <summary>
+    /// Adds food across Farm-kind buildings in deterministic insertion
+    /// order until capacity absorbs the request. Returns the amount
+    /// actually deposited.
+    /// </summary>
+    public int DepositFood(int amount)
+    {
+        if (amount <= 0) return 0;
+        int remaining = amount;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.Kind != BuildingKind.Farm) continue;
+            int added = b.AddStock(remaining);
+            remaining -= added;
+            if (remaining == 0) break;
+        }
+        return amount - remaining;
+    }
+
+    /// <summary>
+    /// Atomically removes <paramref name="amount"/> food from Farm-kind
+    /// buildings. Returns <c>false</c> (and leaves state untouched)
+    /// when there is not enough food.
+    /// </summary>
+    public bool TryConsumeFood(int amount)
+    {
+        if (amount <= 0) return amount == 0;
+        if (FoodStock < amount) return false;
+
+        int remaining = amount;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.Kind != BuildingKind.Farm || remaining == 0) continue;
+            int take = b.Stock < remaining ? b.Stock : remaining;
+            if (b.TryConsumeStock(take))
+            {
+                remaining -= take;
+            }
+        }
+        return remaining == 0;
+    }
 
     /// <summary>
     /// Returns the first building in the world. Convenience helper
@@ -239,7 +340,9 @@ public sealed class CityWorld
     /// Advances the world by one tick and credits the building
     /// with its current production. Returns the amount of stock
     /// actually added (storage capacity can absorb less than
-    /// produced when stock is near full).
+    /// produced when stock is near full). Day/night agnostic —
+    /// callers that want the full world tick should use
+    /// <see cref="AdvanceWorldTick"/>.
     /// </summary>
     public int AdvanceProduction(BuildingId buildingId)
     {
@@ -248,39 +351,275 @@ public sealed class CityWorld
             return 0;
         }
         _tick++;
-        return ProduceBuildingTick(building);
+        int added = SimulateBuildingTick(building);
+        if (added > 0
+            || building.StopCause == ProductionStopCause.WorkersExhausted)
+        {
+            RaiseBuildingChanged(building.Id);
+        }
+        return added;
     }
 
-    public void AdvanceWorldProductionTick()
+    /// <summary>
+    /// One world tick. Canonical order: clock advance → mobilisation
+    /// at day/night boundary → upkeep → per-building behavior
+    /// (day: produce; night: rest). Buffs decrement at the end so a
+    /// citizen who eats this tick gets the bonus applied to this
+    /// same tick.
+    /// </summary>
+    public void AdvanceWorldTick()
     {
+        int previousTick = _tick;
         _tick++;
+        DetectAndApplyMobilisation(previousTick, _tick);
+        ApplyUpkeep();
         foreach (var building in _buildings.Values)
         {
-            ProduceBuildingTick(building);
+            building.LastTickProduction = 0;
+            if (GameClock.IsDaytime(_tick))
+            {
+                int added = SimulateBuildingTick(building);
+                if (added > 0
+                    || building.StopCause == ProductionStopCause.WorkersExhausted)
+                {
+                    RaiseBuildingChanged(building.Id);
+                }
+            }
+            else
+            {
+                ApplyNightRest(building);
+            }
+        }
+        DecrementAllWellFed();
+    }
+
+    /// <summary>
+    /// Compares day/night state before and after the tick and
+    /// moves citizens to the right place when the boundary
+    /// crosses. Called once per world tick from
+    /// <see cref="AdvanceWorldTick"/>.
+    /// </summary>
+    private void DetectAndApplyMobilisation(int previousTick, int currentTick)
+    {
+        bool wasDay = GameClock.IsDaytime(previousTick);
+        bool isDay = GameClock.IsDaytime(currentTick);
+        if (wasDay && !isDay)
+        {
+            MobiliseForNight();
+        }
+        else if (!wasDay && isDay)
+        {
+            MobiliseForDay();
         }
     }
 
-    private int ProduceBuildingTick(Building building)
+    /// <summary>
+    /// All citizens go to the Home at night — assigned workers
+    /// leave their production building to rest; idle citizens stay
+    /// at home (they never left). Called on the day→night boundary.
+    /// </summary>
+    private void MobiliseForNight()
     {
-        if (!building.CanProduce) return 0;
+        foreach (var citizen in _citizens.Values)
+        {
+            citizen.SetLocation(CitizenLocation.AtHome);
+        }
+        // The Home building's slot rendering reads CitizenLocation
+        // directly; nothing else needs to fire here. UI listeners
+        // re-render via the regular BuildingChanged signals that
+        // follow in this tick.
+    }
 
-        int produced = BuildingProductionCalculator.ProductionPerTick(building, _citizens);
+    /// <summary>
+    /// Assigned citizens return to their production building;
+    /// unassigned citizens stay at home. Called on the night→day
+    /// boundary.
+    /// </summary>
+    private void MobiliseForDay()
+    {
+        foreach (var citizen in _citizens.Values)
+        {
+            citizen.SetLocation(citizen.CurrentAssignment.HasValue
+                ? CitizenLocation.AtWork
+                : CitizenLocation.AtHome);
+        }
+    }
+
+    /// <summary>
+    /// Citizens physically visible at this building right now.
+    /// For production buildings: assigned citizens whose
+    /// <see cref="Citizen.CurrentLocation"/> is
+    /// <see cref="CitizenLocation.AtWork"/>. For Home: every
+    /// citizen whose location is
+    /// <see cref="CitizenLocation.AtHome"/>.
+    /// </summary>
+    public IReadOnlyList<CitizenId> GetCurrentlyVisibleOccupants(Building building)
+    {
+        var ids = new List<CitizenId>();
+        if (building.Kind == BuildingKind.Home)
+        {
+            foreach (var citizen in _citizens.Values)
+            {
+                if (citizen.CurrentLocation == CitizenLocation.AtHome)
+                {
+                    ids.Add(citizen.Id);
+                }
+            }
+        }
+        else
+        {
+            foreach (var citizenId in building.AssignedCitizenIds)
+            {
+                if (_citizens.TryGetValue(citizenId, out var citizen)
+                    && citizen.CurrentLocation == CitizenLocation.AtWork)
+                {
+                    ids.Add(citizen.Id);
+                }
+            }
+        }
+        return ids;
+    }
+
+    /// <summary>
+    /// First Home building in the world, or null if the city has
+    /// none. Citizens are mobilised here at night; the UI uses it
+    /// as the resting location. Seam: future slices with multiple
+    /// homes may return the closest or the one with capacity.
+    /// </summary>
+    public Building? PrimaryHome
+    {
+        get
+        {
+            foreach (var building in _buildings.Values)
+            {
+                if (building.Kind == BuildingKind.Home) return building;
+            }
+            return null;
+        }
+    }
+
+    private void ApplyUpkeep()
+    {
+        int toConsume = Upkeep.StonePerTick(_citizens.Count);
+        for (int i = 0; i < toConsume; i++)
+        {
+            bool consumed = false;
+            foreach (var building in _buildings.Values)
+            {
+                if (building.Kind != BuildingKind.Quarry) continue;
+                if (building.TryConsumeStock(1))
+                {
+                    consumed = true;
+                    break;
+                }
+            }
+            if (!consumed) break; // no stone left anywhere
+        }
+    }
+
+    private void ApplyNightRest(Building building)
+    {
+        ApplyFoodAndRegen(building);
+        building.StopCause = ProductionStopCause.Night;
+        RaiseBuildingChanged(building.Id);
+    }
+
+    private void DecrementAllWellFed()
+    {
+        foreach (var citizen in _citizens.Values)
+        {
+            citizen.AdvanceWellFedTick();
+        }
+    }
+
+    /// <summary>
+    /// One building tick in isolation. Performs eat / passive
+    /// regen (buff-aware) / cost / contributing / produce /
+    /// experience, sets the building's
+    /// <see cref="Building.StopCause"/>, and returns the stock
+    /// added. Does not raise <see cref="BuildingChanged"/> —
+    /// callers decide whether to notify the UI.
+    /// </summary>
+    internal int SimulateBuildingTick(Building building)
+    {
+        if (!building.CanProduce)
+        {
+            building.StopCause = ResolveStopCauseWhenNotProducing(building);
+            return 0;
+        }
+
+        ApplyFoodAndRegen(building);
+        ApplyStaminaCost(building);
+
+        var contributing = new List<Citizen>();
+        foreach (var citizenId in building.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out var citizen)
+                && citizen.CurrentStamina > 0)
+            {
+                contributing.Add(citizen);
+            }
+        }
+
+        if (contributing.Count == 0)
+        {
+            building.StopCause = ProductionStopCause.WorkersExhausted;
+            return 0;
+        }
+
+        int produced = BuildingProductionCalculator.ProductionPerTick(contributing, building);
         int roomToTarget = building.TargetStock - building.Stock;
         int added = building.AddStock(Math.Min(produced, roomToTarget));
+        building.LastTickProduction = added;
 
-        // Award a small, deterministic experience bump to every
-        // assigned worker, in the building's own competency.
         var competency = building.ProducedCompetencyId;
+        foreach (var citizen in contributing)
+        {
+            citizen.AddExperience(competency, 1);
+        }
+
+        building.StopCause = building.Stock >= building.TargetStock
+            ? ProductionStopCause.TargetReached
+            : ProductionStopCause.Authorized;
+        return added;
+    }
+
+    private static ProductionStopCause ResolveStopCauseWhenNotProducing(Building building)
+    {
+        if (!building.ProductionEnabled) return ProductionStopCause.Paused;
+        if (building.AssignedCount == 0) return ProductionStopCause.NoWorkers;
+        return ProductionStopCause.TargetReached;
+    }
+
+    private void ApplyFoodAndRegen(Building building)
+    {
+        foreach (var citizenId in building.AssignedCitizenIds)
+        {
+            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
+
+            // Eat if the citizen has room to grow and the city has food.
+            if (citizen.CurrentStamina < citizen.MaxStamina
+                && TryConsumeFood(StaminaRules.FoodConsumedPerRegen))
+            {
+                int restored = StaminaRules.RegenFromFood(StaminaRules.FoodConsumedPerRegen, citizen);
+                citizen.RestoreStamina(restored);
+                citizen.RefreshWellFedBuff();
+            }
+
+            // Passive + (optional) buff regen, always applied.
+            citizen.RestoreStamina(citizen.RegenPerTick());
+        }
+    }
+
+    private void ApplyStaminaCost(Building building)
+    {
         foreach (var citizenId in building.AssignedCitizenIds)
         {
             if (_citizens.TryGetValue(citizenId, out var citizen))
             {
-                citizen.AddExperience(competency, 1);
+                citizen.ConsumeStamina(StaminaRules.CostForWorker(citizen, building.Kind));
             }
         }
-
-        RaiseBuildingChanged(building.Id);
-        return added;
     }
 
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock)
@@ -291,37 +630,6 @@ public sealed class CityWorld
         }
 
         building.ConfigureProductionPolicy(enabled, targetStock);
-        RaiseBuildingChanged(buildingId);
-    }
-
-    /// <summary>
-    /// Batched version of <see cref="AdvanceProduction"/> for
-    /// offline catch-up: the per-tick production rate is constant
-    /// (worker assignment, competencies, base rate all fixed
-    /// during a single offline tick batch), so we just multiply
-    /// the rate by <paramref name="tickCount"/> and grant
-    /// experience once per tick.
-    /// </summary>
-    public void AdvanceTicks(BuildingId buildingId, int tickCount)
-    {
-        if (tickCount <= 0) return;
-        _tick += tickCount;
-        AdvanceBuildingTicks(buildingId, tickCount);
-    }
-
-    internal void AdvanceBuildingTicks(BuildingId buildingId, int tickCount)
-    {
-        if (tickCount <= 0) return;
-        if (!_buildings.TryGetValue(buildingId, out var building)) return;
-
-        var competency = building.ProducedCompetencyId;
-        foreach (var citizenId in building.AssignedCitizenIds)
-        {
-            if (_citizens.TryGetValue(citizenId, out var citizen))
-            {
-                citizen.AddExperience(competency, tickCount);
-            }
-        }
         RaiseBuildingChanged(buildingId);
     }
 
@@ -393,7 +701,17 @@ public sealed class CityWorld
 
         foreach (var cs in save.Citizens)
         {
-            var citizen = new Citizen(new CitizenId(cs.Id), cs.Name, cs.AppearanceSeed);
+            // Old saves (no StaminaMax) restore to full stamina;
+            // new saves (StaminaMax present) restore the saved current.
+            int? maxStamina = cs.StaminaMax;
+            int? initialStamina = maxStamina.HasValue ? cs.StaminaCurrent : (int?)null;
+            var citizen = new Citizen(
+                new CitizenId(cs.Id),
+                cs.Name,
+                cs.AppearanceSeed,
+                initialStamina: initialStamina,
+                maxStamina: maxStamina,
+                initialWellFedTicks: cs.WellFedRemainingTicks);
             if (cs.CurrentAssignment.HasValue)
             {
                 citizen.AssignTo(new BuildingId(cs.CurrentAssignment.Value));
@@ -410,6 +728,22 @@ public sealed class CityWorld
             }
 
             _citizens[citizen.Id] = citizen;
+        }
+
+        // Citizens are constructed with CurrentLocation = AtHome
+        // (the default). If the saved tick is mid-cycle — neither
+        // exactly at a sunrise nor a sunset — the next mobilisation
+        // wouldn't fire until the clock crosses the boundary, leaving
+        // everyone visibly at home even though the time-of-day is
+        // daytime. Seed the initial location from the saved tick so
+        // the visualisation matches reality from the very first frame.
+        if (GameClock.IsDaytime(_tick))
+        {
+            MobiliseForDay();
+        }
+        else
+        {
+            MobiliseForNight();
         }
     }
 

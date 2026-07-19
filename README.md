@@ -1,8 +1,10 @@
 # World of Goses
 
 > **Status:** early playable prototype. The current slice includes a persistent
-> two-building city, citizen assignment, production authorization, shared
-> live/offline advancement, local saves, and domain tests.
+> three-building city (Quarry, Farm, Home), citizen assignment, stamina-gated
+> production, a day/night cycle with passive upkeep and a WellFed stamina
+> buff, citizen mobilisation between work and rest at sunrise/sunset, shared
+> live/offline advancement, local saves, and 189 domain tests.
 
 A persistent pixel-art desktop game about a single living city. The world
 continues advancing while the game is closed, and the player guides its
@@ -246,15 +248,29 @@ slice that may evolve into the full game.
 
 The current slice demonstrates:
 
-- A macro city view with selectable Quarry and Farm placeholders and a
+- A macro city view with selectable Quarry, Farm, and Home plots and a
   small amount of decorative citizen activity.
 - A detailed building view with a configurable visual worker limit and
-  visible worker entry / exit transitions.
-- Individual citizen records shared between the two views. A citizen
-  is the only person entity in the domain: roles, competencies,
-  recognitions, and hero status are attached concepts, not subclasses.
-- Worker assignment and removal, with a deterministic production
-  counter that responds to the current assignment.
+  visible worker entry / exit transitions. Home hides the assignment
+  and production panels; production buildings hide them at night.
+- Individual citizen records shared between the views. A citizen is the
+  only person entity in the domain: roles, competencies, recognitions,
+  and hero status are attached concepts, not subclasses. Each citizen
+  carries `CurrentStamina`, a `WellFedRemainingTicks` buff counter, and
+  a `CurrentLocation` (`AtWork` / `AtHome`).
+- Worker assignment and removal, with a deterministic production counter
+  that responds to the current assignment.
+- Stamina-gated production: workers pay a per-tick cost, eat food for
+  regen, and stop contributing when stamina runs out (the building sets
+  `ProductionStopCause.WorkersExhausted`).
+- A shared world clock at 1 Hz with a day/night cycle (1 real hour = 1
+  in-game day). The status strip reports time-of-day, upkeep, and the
+  live split of citizens at work versus at home.
+- Passive city upkeep that drains stone from Quarry-kind buildings at a
+  rate scaled by population.
+- Citizen mobilisation: at sunset every citizen moves to Home; at
+  sunrise assigned citizens return to their production building. The
+  Home slot stage renders every resting citizen.
 
 The architecture establishes three conceptual visual scales — macro,
 building-detail, and expedition-detail — although only the first two
@@ -270,10 +286,11 @@ re-architecting.
 
 ## 14. Short initial roadmap
 
-Items 1–6 and 8 are **complete**. The current slice validates the
-macro↔detail transition, worker visibility, assign/remove, heterogeneous
-buildings, persistence, shared live/offline world advancement, persistent
-production targets, and a 108-test xUnit suite.
+Items 1–6 and 8 are **complete**, plus four follow-up slices that landed
+on top: stamina-gated production, day/night cycle + passive upkeep +
+WellFed buff, citizen mobilisation with a Home building, and a fix that
+initialises mobilisation from `Restore` so loaded saves render the right
+slots on the first frame. The current xUnit suite is 189 tests.
 
 This list is not a contract. Items may be reordered, dropped, or expanded as
 the prototype teaches us what the project actually needs.
@@ -295,6 +312,17 @@ the prototype teaches us what the project actually needs.
    `BuildingPlot` and `VisibleWorkerSlot` without re-anchoring.
 8. ✅ **End-to-end validation** — Run the prototype against the acceptance
    criteria of `docs/GAME_VISION.md`; flag any drift.
+9. ✅ **Stamina-gated production (Slice D)** — `Citizen.Stamina`,
+   per-tick cost, food-driven regen, `WorkersExhausted` cause. Quarry
+   and Farm both consume stamina.
+10. ✅ **Day, Night, and Upkeep (Slice E)** — Shared world clock at 1 Hz,
+    day/night cycle, passive stone upkeep scaled by population, WellFed
+    stamina buff that decays per tick and resets when the citizen eats.
+11. ✅ **Citizen Mobilisation (Slice F)** — `Citizen.CurrentLocation` is
+    separate from `CurrentAssignment`. Sunset moves everyone to Home;
+    sunrise returns assigned citizens to work. Save restore seeds the
+    initial location from the loaded tick so the visualisation matches
+    the clock on the first frame after a load.
 
 ## 15. Provisional names
 

@@ -89,20 +89,22 @@ public partial class BuildingDetailView : Control
         // in the detail view even when its visual asset is similar.
         _title.Text = building.FullDisplayLabel;
 
-        var visibleIds = BuildVisibleList(building);
+        var visibleIds = _controller.World.GetCurrentlyVisibleOccupants(building);
         _slots.Render(visibleIds, building, _controller.Citizens());
+
+        // Home is a non-production building: no assignment, no
+        // production panel. Hide them so the detail view shows
+        // only the slots stage (the "resting" list).
+        bool isHome = building.Kind == BuildingKind.Home;
+        _assignmentPanel.Visible = !isHome;
+        _productionPanel.Visible = !isHome;
+        if (isHome)
+        {
+            return;
+        }
+
         _assignmentPanel.Refresh(building, _controller);
         _productionPanel.Refresh(building, _controller);
-    }
-
-    private static IReadOnlyList<CitizenId> BuildVisibleList(Building building)
-    {
-        var ids = new List<CitizenId>(building.AssignedCitizenIds.Count);
-        for (int i = 0; i < building.VisibleWorkerCount; i++)
-        {
-            ids.Add(building.AssignedCitizenIds[i]);
-        }
-        return ids;
     }
 
     private void OnSlotCitizenClicked(int citizenIdValue) =>

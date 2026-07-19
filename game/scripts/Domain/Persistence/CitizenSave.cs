@@ -16,4 +16,25 @@ public sealed class CitizenSave
     public int? CurrentAssignment { get; set; }
     public List<CompetencySave> Competencies { get; set; } = new();
     public List<RoleSave> Roles { get; set; } = new();
+
+    /// <summary>
+    /// Current stamina for this citizen. Old saves (no
+    /// <see cref="StaminaMax"/>) deserialize as 0; the restore path
+    /// resolves that to a full stamina bar.
+    /// </summary>
+    public int StaminaCurrent { get; set; }
+
+    /// <summary>
+    /// Maximum stamina. <c>null</c> on old saves so the loader can
+    /// detect them and use the prototype default.
+    /// </summary>
+    public int? StaminaMax { get; set; }
+
+    /// <summary>
+    /// Remaining ticks of the WellFed stamina-regen buff. Old
+    /// saves (no field) deserialize as 0 — the citizen starts
+    /// unbuffed, which is the natural state for a citizen that
+    /// hasn't eaten since load.
+    /// </summary>
+    public int WellFedRemainingTicks { get; set; }
 }

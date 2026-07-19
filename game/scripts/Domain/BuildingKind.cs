@@ -15,4 +15,5 @@ public enum BuildingKind
     Farm = 1,
     Smithy = 2,
     PotionLab = 3,
+    Home = 4,
 }

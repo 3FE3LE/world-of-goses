@@ -11,9 +11,12 @@ namespace WorldofGoses.Domain;
 /// at load time.
 ///
 /// One production tick advances the world's tick counter by 1,
-/// credits the building's storage with the current rate (clamped
-/// to capacity), and grants +1 experience to every assigned
-/// worker in the building's <see cref="Building.ProducedCompetencyId"/>.
+/// drains passive upkeep, decrements buff timers, runs day/night
+/// behaviour per building (day: produce; night: rest), and (during
+/// the day) credits each building's storage with its current rate
+/// (clamped to target stock). Granting experience to contributing
+/// workers happens inside the same path so live and offline
+/// produce identical stamina, food, and stock effects.
 /// </summary>
 public static class OfflineProgression
 {
@@ -55,19 +58,11 @@ public static class OfflineProgression
     }
 
     /// <summary>
-    /// Applies <paramref name="ticksToApply"/> production ticks to
-    /// the given building on the given world, returning a report
-    /// describing what actually happened. Negative or zero ticks is
-    /// a no-op.
-    ///
-    /// The production rate is constant during offline catch-up
-    /// (worker assignment, base rate, and competencies don't change
-    /// in this window), so the rate is computed once and
-    /// multiplied. Experience grants are batched through
-    /// <see cref="CityWorld.AdvanceTicks"/>. Worst case (7-day cap,
-    /// 1 Hz) drops from ~1.8 M rate recomputations + ~3.6 M
-    /// experience writes to a single rate call + N experience
-    /// grants.
+    /// Applies <paramref name="ticksToApply"/> ticks to the world
+    /// for the given building. Each tick is a full world tick
+    /// (upkeep + buff decrement + day/night branching), so the
+    /// <paramref name="buildingId"/> parameter only controls which
+    /// building's production drives the report.
     /// </summary>
     public static OfflineProgressionReport Apply(
         CityWorld world,
@@ -76,7 +71,9 @@ public static class OfflineProgression
         double tickRateHz = DefaultTickRateHz)
     {
         var report = ApplyBuilding(world, buildingId, ticksToApply, tickRateHz);
-        world.AdvanceWorldClock(ticksToApply);
+        // World clock is already advanced inside AdvanceWorldTick;
+        // nothing else to do here.
+        _ = tickRateHz; // accepted for API symmetry with ApplyAll
         return report;
     }
 
@@ -88,24 +85,37 @@ public static class OfflineProgression
         if (ticksToApply <= 0) return OfflineProgressionReport.None;
 
         int stockAdded = 0;
-        int activeTicks = 0;
-        foreach (var buildingId in world.Buildings.Keys)
+        int lastActiveTicks = 0;
+        for (int t = 0; t < ticksToApply; t++)
         {
-            var report = ApplyBuilding(world, buildingId, ticksToApply, tickRateHz);
-            stockAdded += report.StockAdded;
-            activeTicks += report.TicksApplied;
+            world.AdvanceWorldTick();
+            bool anyProduced = false;
+            foreach (var building in world.Buildings.Values)
+            {
+                if (building.LastTickProduction > 0)
+                {
+                    stockAdded += building.LastTickProduction;
+                    anyProduced = true;
+                }
+            }
+            if (anyProduced) lastActiveTicks = t + 1;
         }
 
-        world.AdvanceWorldClock(ticksToApply);
         if (stockAdded == 0) return OfflineProgressionReport.None;
 
         return new OfflineProgressionReport(
-            ticksApplied: activeTicks,
+            ticksApplied: lastActiveTicks,
             stockAdded: stockAdded,
             stockWasted: 0,
             simulatedTime: TimeSpan.FromSeconds(ticksToApply / tickRateHz));
     }
 
+    /// <summary>
+    /// Per-tick loop on a single building. Tracks the building's
+    /// own <c>LastTickProduction</c>; breaks when production stops
+    /// (target reached with no upkeep headroom, or workers
+    /// exhausted). The world clock is advanced inside each tick.
+    /// </summary>
     private static OfflineProgressionReport ApplyBuilding(
         CityWorld world,
         BuildingId buildingId,
@@ -116,21 +126,34 @@ public static class OfflineProgression
 
         var building = world.GetBuilding(buildingId);
         if (building is null) return OfflineProgressionReport.None;
-        if (!building.CanProduce) return OfflineProgressionReport.None;
 
-        var producedPerTick = BuildingProductionCalculator.ProductionPerTick(building, world.Citizens);
-        if (producedPerTick <= 0) return OfflineProgressionReport.None;
+        var initialRate = BuildingProductionCalculator.ProductionPerTick(building, world.Citizens);
+        if (initialRate <= 0) return OfflineProgressionReport.None;
 
-        int roomToTarget = building.TargetStock - building.Stock;
-        int ticksUntilTarget = (roomToTarget + producedPerTick - 1) / producedPerTick;
-        int activeTicks = Math.Min(ticksToApply, ticksUntilTarget);
-        int totalAdded = building.AddStock(Math.Min(producedPerTick * activeTicks, roomToTarget));
-        world.AdvanceBuildingTicks(buildingId, activeTicks);
+        int stockAdded = 0;
+        int ticksApplied = 0;
+        for (int t = 0; t < ticksToApply; t++)
+        {
+            world.AdvanceWorldTick();
+            int produced = building.LastTickProduction;
+            if (produced > 0)
+            {
+                stockAdded += produced;
+                ticksApplied++;
+                if (building.Stock >= building.TargetStock) break;
+            }
+            else
+            {
+                // Nothing added this tick (night, exhausted, paused,
+                // full + upkeep making no headroom). Stop counting.
+                break;
+            }
+        }
+
         var simulatedTime = TimeSpan.FromSeconds(ticksToApply / tickRateHz);
-
         return new OfflineProgressionReport(
-            ticksApplied: activeTicks,
-            stockAdded: totalAdded,
+            ticksApplied: ticksApplied,
+            stockAdded: stockAdded,
             stockWasted: 0,
             simulatedTime: simulatedTime);
     }

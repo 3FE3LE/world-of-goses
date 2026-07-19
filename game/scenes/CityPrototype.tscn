@@ -32,13 +32,15 @@ mouse_filter = 2
 [node name="MacroCitizenActivity" type="Node2D" parent="CityMacroView"]
 script = ExtResource("5_activity")
 
-[node name="MacroHint" type="Label" parent="CityMacroView"]
-offset_left = 220.0
-offset_top = 310.0
-offset_right = 642.0
-offset_bottom = 334.0
-text = "Click a building to manage its workers"
-horizontal_alignment = 1
+[node name="HomePlot" type="Control" parent="CityMacroView"]
+offset_left = 335.0
+offset_top = 340.0
+offset_right = 527.0
+offset_bottom = 532.0
+script = ExtResource("4_plot")
+BuildingIdValue = 3
+BuildingNameValue = "Home"
+BuildingTooltip = "Click to see who is resting"
 
 [node name="OfflineReportLabel" type="Label" parent="CityMacroView"]
 anchor_right = 1.0

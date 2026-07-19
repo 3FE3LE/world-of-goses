@@ -109,6 +109,24 @@ public sealed class Building
     public bool CanProduce =>
         ProductionEnabled && AssignedCount > 0 && Stock < TargetStock;
 
+    /// <summary>
+    /// Reason the building produced zero (or no attempt was made) on
+    /// the last tick. Set by <see cref="CityWorld"/> after each tick;
+    /// the presentation layer reads it to explain state. Defaults to
+    /// <see cref="ProductionStopCause.NoWorkers"/> until the first
+    /// tick runs, which overwrites it.
+    /// </summary>
+    public ProductionStopCause StopCause { get; internal set; } = ProductionStopCause.NoWorkers;
+
+    /// <summary>
+    /// How many stone (or food) units this building actually added
+    /// to storage on the most recent tick. Zero on nights, on
+    /// non-productive days, or when production was capped at zero
+    /// by room. Used by <see cref="OfflineProgression"/> to track
+    /// per-tick production without diffing stock around upkeep.
+    /// </summary>
+    public int LastTickProduction { get; internal set; }
+
     public void ConfigureProductionPolicy(bool enabled, int targetStock)
     {
         if (targetStock < 0 || targetStock > StorageCapacity)

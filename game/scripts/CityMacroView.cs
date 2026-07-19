@@ -16,6 +16,7 @@ public partial class CityMacroView : Control
 {
     [Export] public NodePath QuarryPlotPath { get; set; } = "QuarryPlot";
     [Export] public NodePath FarmPlotPath { get; set; } = "FarmPlot";
+    [Export] public NodePath HomePlotPath { get; set; } = "HomePlot";
     [Export] public NodePath ActivityPath { get; set; } = "MacroCitizenActivity";
     [Export] public NodePath StatusPanelPath { get; set; } = "CityStatusPanel";
     [Export] public NodePath DetailViewPath { get; set; } = "../BuildingDetailView";
@@ -24,6 +25,7 @@ public partial class CityMacroView : Control
     private CityWorldController _controller = null!;
     private BuildingPlot _quarryPlot = null!;
     private BuildingPlot _farmPlot = null!;
+    private BuildingPlot _homePlot = null!;
     private MacroCitizenActivity _activity = null!;
     private CityStatusPanel _statusPanel = null!;
     private BuildingDetailView _detailView = null!;
@@ -34,6 +36,7 @@ public partial class CityMacroView : Control
         _controller = GetParent().GetNode<CityWorldController>("CityWorldController");
         _quarryPlot = GetNode<BuildingPlot>(QuarryPlotPath);
         _farmPlot = GetNode<BuildingPlot>(FarmPlotPath);
+        _homePlot = GetNode<BuildingPlot>(HomePlotPath);
         _activity = GetNode<MacroCitizenActivity>(ActivityPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
         _detailView = GetNode<BuildingDetailView>(DetailViewPath);
@@ -41,7 +44,9 @@ public partial class CityMacroView : Control
 
         _quarryPlot.BuildingClicked += OnBuildingClicked;
         _farmPlot.BuildingClicked += OnBuildingClicked;
+        _homePlot.BuildingClicked += OnBuildingClicked;
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
+        _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.SelectionChanged += OnSelectionChanged;
 
         _statusPanel.Refresh(_controller);
@@ -58,9 +63,11 @@ public partial class CityMacroView : Control
     {
         if (_quarryPlot is not null) _quarryPlot.BuildingClicked -= OnBuildingClicked;
         if (_farmPlot is not null) _farmPlot.BuildingClicked -= OnBuildingClicked;
+        if (_homePlot is not null) _homePlot.BuildingClicked -= OnBuildingClicked;
         if (_controller is not null)
         {
             _controller.BuildingStateChanged -= OnAnyBuildingStateChanged;
+            _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
             _controller.SelectionChanged -= OnSelectionChanged;
         }
     }
@@ -76,6 +83,9 @@ public partial class CityMacroView : Control
     }
 
     private void OnAnyBuildingStateChanged(int buildingId) =>
+        _statusPanel.Refresh(_controller);
+
+    private void OnWorldTickAdvanced(int tick) =>
         _statusPanel.Refresh(_controller);
 
     private void OnSelectionChanged(int selectionState)

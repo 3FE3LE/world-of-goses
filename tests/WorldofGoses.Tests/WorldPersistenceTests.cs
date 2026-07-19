@@ -17,7 +17,7 @@ public class WorldPersistenceTests
         var save = WorldPersistence.Capture(world);
 
         Assert.Equal(5, save.Citizens.Count);
-        Assert.Equal(2, save.Buildings.Count);
+        Assert.Equal(3, save.Buildings.Count);
         Assert.Equal(0, save.CurrentTick);
     }
 
@@ -416,6 +416,83 @@ public class WorldPersistenceTests
         {
             if (Directory.Exists(slotsDir)) Directory.Delete(slotsDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Roundtrip_PreservesStaminaCurrentAndMax()
+    {
+        var world = new CityWorld();
+        var bran = world.GetCitizen(new CitizenId(1))!;
+        bran.ConsumeStamina(40); // -> 60 / 100
+        var branBeforeStamina = bran.CurrentStamina;
+        var branBeforeMax = bran.MaxStamina;
+
+        var save = WorldPersistence.Capture(world);
+        var json = WorldPersistence.SerializeToJson(save);
+        var restored = CityWorld.FromSave(
+            WorldPersistence.DeserializeFromJson(json));
+
+        var restoredBran = restored.GetCitizen(bran.Id)!;
+        Assert.Equal(branBeforeStamina, restoredBran.CurrentStamina);
+        Assert.Equal(branBeforeMax, restoredBran.MaxStamina);
+    }
+
+    [Fact]
+    public void Roundtrip_OldSaveWithoutStamina_RestoresFullStamina()
+    {
+        // Legacy shape: no StaminaCurrent / StaminaMax. The loader
+        // must default every citizen to MaxStamina without throwing.
+        var json = @"{
+  ""LastSeenAtUnixMillis"": 0,
+  ""CurrentTick"": 0,
+  ""Buildings"": [
+    { ""Id"": 1, ""DisplayName"": ""Legacy"",
+      ""WorkerCapacity"": 6, ""VisualCapacity"": 3,
+      ""BaseProductionPerWorker"": 1, ""StorageCapacity"": 20,
+      ""Stock"": 0, ""AssignedCitizenIds"": [] }
+  ],
+  ""Citizens"": [
+    { ""Id"": 1, ""Name"": ""OldBran"", ""AppearanceSeed"": 1 }
+  ]
+}";
+        var save = WorldPersistence.DeserializeFromJson(json);
+        WorldPersistence.Validate(save);
+        var world = CityWorld.FromSave(save);
+
+        var bran = world.GetCitizen(new CitizenId(1))!;
+        Assert.Equal(bran.MaxStamina, bran.CurrentStamina);
+        Assert.Equal(StaminaRules.MaxStamina, bran.MaxStamina);
+    }
+
+    [Fact]
+    public void Validate_NegativeStaminaCurrent_Throws()
+    {
+        var save = WorldPersistence.Capture(new CityWorld());
+        save.Citizens[0].StaminaCurrent = -1;
+        Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
+    }
+
+    [Fact]
+    public void Validate_StaminaCurrentExceedsStaminaMax_Throws()
+    {
+        var save = WorldPersistence.Capture(new CityWorld());
+        save.Citizens[0].StaminaMax = 50;
+        save.Citizens[0].StaminaCurrent = 51;
+        Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
+    }
+
+    [Fact]
+    public void Validate_NullStaminaMax_IsAllowed()
+    {
+        // Old saves have StaminaCurrent = 0 (default int) and
+        // StaminaMax = null. Validation must accept that.
+        var save = WorldPersistence.Capture(new CityWorld());
+        foreach (var c in save.Citizens)
+        {
+            c.StaminaMax = null;
+            c.StaminaCurrent = 0;
+        }
+        WorldPersistence.Validate(save);
     }
 
     private static string NewTempDir()

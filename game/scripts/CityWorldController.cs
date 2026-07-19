@@ -31,6 +31,15 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void CitizenAssignmentRejectedEventHandler(int reason);
 
+    /// <summary>
+    /// Fires once per world tick (after <see cref="CityWorld.AdvanceWorldTick"/>).
+    /// Used by UI listeners that need to reflect time-of-day or
+    /// cumulative counters that change every tick, not only when
+    /// production happens.
+    /// </summary>
+    [Signal]
+    public delegate void WorldTickAdvancedEventHandler(int tick);
+
     private readonly CityWorld _world = new();
 
     /// <summary>
@@ -91,7 +100,8 @@ public partial class CityWorldController : Node
         _simulationTimer -= ticksDue * SimulationTickIntervalSeconds;
         for (int i = 0; i < ticksDue; i++)
         {
-            _world.AdvanceWorldProductionTick();
+            _world.AdvanceWorldTick();
+            EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
         }
     }
 

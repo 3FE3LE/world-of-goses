@@ -12,13 +12,13 @@ namespace WorldofGoses.Tests;
 public class CityWorldTests
 {
     [Fact]
-    public void AdvanceWorldProductionTick_AdvancesEveryAuthorizedBuildingOnce()
+    public void AdvanceWorldTick_AdvancesEveryAuthorizedBuildingOnce()
     {
         var world = new CityWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
-        world.AdvanceWorldProductionTick();
+        world.AdvanceWorldTick();
 
         Assert.Equal(1, world.CurrentTick);
         Assert.True(quarry.Stock > 0);
@@ -26,14 +26,14 @@ public class CityWorldTests
     }
 
     [Fact]
-    public void AdvanceWorldProductionTick_RespectsIndependentBuildingPolicies()
+    public void AdvanceWorldTick_RespectsIndependentBuildingPolicies()
     {
         var world = new CityWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
         quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
 
-        world.AdvanceWorldProductionTick();
+        world.AdvanceWorldTick();
 
         Assert.Equal(0, quarry.Stock);
         Assert.True(farm.Stock > 0);
@@ -48,14 +48,15 @@ public class CityWorldTests
     }
 
     [Fact]
-    public void Seed_HasQuarryAndFarm()
+    public void Seed_HasQuarryAndFarmAndHome()
     {
         var world = new CityWorld();
-        Assert.Equal(2, world.Buildings.Count);
+        Assert.Equal(3, world.Buildings.Count);
 
         var kinds = world.Buildings.Values.Select(b => b.Kind).ToHashSet();
         Assert.Contains(BuildingKind.Quarry, kinds);
         Assert.Contains(BuildingKind.Farm, kinds);
+        Assert.Contains(BuildingKind.Home, kinds);
     }
 
     [Fact]

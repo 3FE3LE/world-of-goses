@@ -25,6 +25,21 @@ public static class BuildingProductionCalculator
         return total;
     }
 
+    /// <summary>
+    /// Production rate from a precomputed contributing set (e.g.
+    /// assigned workers that still have stamina). Used by the world
+    /// tick so exhausted workers do not contribute.
+    /// </summary>
+    public static int ProductionPerTick(IReadOnlyList<Citizen> contributing, Building building)
+    {
+        int total = 0;
+        foreach (var citizen in contributing)
+        {
+            total += WorkerContribution(citizen, building.ProducedCompetencyId, building.BaseProductionPerWorker);
+        }
+        return total;
+    }
+
     public static int WorkerContribution(Citizen citizen, CompetencyId competency, int baseProductionPerWorker)
     {
         int experience = citizen.GetExperience(competency);

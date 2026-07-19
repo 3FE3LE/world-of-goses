@@ -118,8 +118,11 @@ public partial class ProductionPanel : PanelContainer
 
     private static string DescribePolicyState(Building building)
     {
+        if (building.StopCause == ProductionStopCause.Night) return "Workers resting (night)";
         if (!building.ProductionEnabled) return "Paused by player policy";
         if (building.AssignedCount == 0) return "Blocked: no assigned workers";
+        if (building.StopCause == ProductionStopCause.WorkersExhausted)
+            return "Blocked: workers exhausted";
         if (building.Stock >= building.TargetStock) return "Waiting: stock target reached";
         return $"Authorized until {building.TargetStock} {building.ResourceUnit}";
     }

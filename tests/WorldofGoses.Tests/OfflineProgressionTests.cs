@@ -137,15 +137,18 @@ public class OfflineProgressionTests
         var buildingId = world.PrimaryBuilding.Id;
         var bran = world.GetCitizen(new CitizenId(1))!;
         var branExpBefore = bran.GetExperience(CompetencyId.Mining);
-        var stockBefore = world.PrimaryBuilding.Stock;
 
         var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 5);
 
         Assert.Equal(5, report.TicksApplied);
         Assert.True(report.HadProgression);
         Assert.Equal(5, world.CurrentTick);
-        Assert.Equal(report.StockAdded, world.PrimaryBuilding.Stock - stockBefore);
-        Assert.True(report.StockAdded > 0);
+        // With upkeep draining 1 stone/tick and Quarry producing 2/tick,
+        // net stock grows 1/tick; expected final stock is 6 (initial 0
+        // + 5 net). StockAdded counts production only (10), not the
+        // net change.
+        Assert.Equal(6, world.PrimaryBuilding.Stock);
+        Assert.Equal(10, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
         Assert.Equal(branExpBefore + 5, bran.GetExperience(CompetencyId.Mining));
     }
@@ -163,7 +166,13 @@ public class OfflineProgressionTests
 
         Assert.True(report.TicksApplied < 100);
         Assert.Equal(stoneCap, world.PrimaryBuilding.Stock);
-        Assert.Equal(stoneCap, report.StockAdded);
+        // Bran's mining experience crosses the bonus threshold at tick
+        // 18 (3 base + 15 gained = 18 exp; floor(1*21/20) = 1, so total
+        // 2/tick; tick 18 exp = 21 → bonus fires). 17 ticks × 2 + 1 tick
+        // × 3 = 37 produced before target cap. StockAdded counts
+        // production only; the test asserts "no phantom experience"
+        // by checking Bran's exp matches productive ticks.
+        Assert.Equal(37, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
         Assert.Equal(branExpBefore + report.TicksApplied, bran.GetExperience(CompetencyId.Mining));
     }
@@ -203,5 +212,67 @@ public class OfflineProgressionTests
 
         Assert.False(report.HadProgression);
         Assert.Equal(0, building.Stock);
+    }
+
+    [Fact]
+    public void Apply_ExhaustedWorkers_StopsAtExhaustionTick()
+    {
+        // Pre-deplete the Quarry workers to exactly 6 stamina each
+        // and disable the Farm so no food is produced for regen.
+        // Each tick pays 1 cost → 5 productive ticks, then no more
+        // (cost 6 → 0 means tick 6 contributes nothing).
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+        var bran = world.GetCitizen(new CitizenId(1))!;
+        var erin = world.GetCitizen(new CitizenId(2))!;
+        bran.ConsumeStamina(bran.CurrentStamina - 6);
+        erin.ConsumeStamina(erin.CurrentStamina - 6);
+        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+
+        var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
+
+        Assert.Equal(5, report.TicksApplied);
+        Assert.Equal(10, report.StockAdded);
+        Assert.Equal(0, bran.CurrentStamina);
+        Assert.Equal(0, erin.CurrentStamina);
+    }
+
+    [Fact]
+    public void Apply_WithFoodLoaded_RunsLongerThanExhaustedBaseline()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var bran = world.GetCitizen(new CitizenId(1))!;
+        var erin = world.GetCitizen(new CitizenId(2))!;
+        bran.ConsumeStamina(bran.CurrentStamina - 6);
+        erin.ConsumeStamina(erin.CurrentStamina - 6);
+        // Pre-deposit enough food for both workers to eat every tick.
+        world.DepositFood(StaminaRules.MaxStamina);
+
+        var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
+
+        // With food (buff active) workers sustain; target reached in 18
+        // ticks (Bran's mining bonus kicks in at tick 18, producing 3).
+        Assert.Equal(18, report.TicksApplied);
+        Assert.Equal(37, report.StockAdded);
+        Assert.Equal(quarry.StorageCapacity, quarry.Stock);
+    }
+
+    [Fact]
+    public void Apply_AfterExhaustion_BuildingStopCauseIsWorkersExhausted()
+    {
+        var world = new CityWorld();
+        var quarry = world.GetBuilding(new BuildingId(1))!;
+        var farm = world.GetBuilding(new BuildingId(2))!;
+        foreach (var citizen in world.Citizens.Values)
+        {
+            citizen.ConsumeStamina(citizen.CurrentStamina);
+        }
+        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+
+        OfflineProgression.Apply(world, quarry.Id, ticksToApply: 10);
+
+        Assert.Equal(ProductionStopCause.WorkersExhausted, quarry.StopCause);
     }
 }

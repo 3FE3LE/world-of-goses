@@ -88,6 +88,9 @@ public static class WorldPersistence
                 Name = citizen.Name,
                 AppearanceSeed = citizen.AppearanceSeed,
                 CurrentAssignment = citizen.CurrentAssignment?.Value,
+                StaminaCurrent = citizen.CurrentStamina,
+                StaminaMax = citizen.MaxStamina,
+                WellFedRemainingTicks = citizen.WellFedRemainingTicks,
             };
             foreach (var entry in citizen.Competencies.Values)
             {
@@ -227,6 +230,29 @@ public static class WorldPersistence
             if (c.Roles.Any(role => role is null || string.IsNullOrWhiteSpace(role.Id)))
             {
                 throw new InvalidOperationException($"Citizen {c.Id}: invalid role entry.");
+            }
+            if (c.StaminaCurrent < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id}: StaminaCurrent is negative ({c.StaminaCurrent}).");
+            }
+            if (c.StaminaMax is int smax)
+            {
+                if (smax <= 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Citizen {c.Id}: StaminaMax must be positive (got {smax}).");
+                }
+                if (c.StaminaCurrent > smax)
+                {
+                    throw new InvalidOperationException(
+                        $"Citizen {c.Id}: StaminaCurrent ({c.StaminaCurrent}) exceeds StaminaMax ({smax}).");
+                }
+            }
+            if (c.WellFedRemainingTicks < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id}: WellFedRemainingTicks is negative ({c.WellFedRemainingTicks}).");
             }
         }
 
