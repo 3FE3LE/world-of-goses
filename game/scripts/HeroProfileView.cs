@@ -115,7 +115,7 @@ public partial class HeroProfileView : Control
 
         CitizenProfile profile = hero.Profile;
         LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
-        AddHeading($"{hero.Name} · {lineage.DisplayName}");
+        AddHeroName($"{hero.Name} · {lineage.DisplayName}");
         AddBody("Role: Hero");
         AddBody(lineage.Summary);
         AddBody(lineage.LearningApproach);
@@ -143,8 +143,10 @@ public partial class HeroProfileView : Control
         AddBody($"Spiritual posture: {ProfileCatalog.DisplayName(profile.SpiritualPosture)}");
 
         AddHeading("Current condition");
-        AddBody($"Stamina: {hero.CurrentStamina}/{hero.MaxStamina}");
-        AddBody($"Location: {(hero.CurrentLocation == CitizenLocation.AtHome ? "At home" : "At work")}");
+        AddIconBody(IconPaths.Heart, $"Stamina: {hero.CurrentStamina}/{hero.MaxStamina}");
+        AddIconBody(
+            hero.CurrentLocation == CitizenLocation.AtHome ? IconPaths.House : IconPaths.Building,
+            hero.CurrentLocation == CitizenLocation.AtHome ? "At home" : "At work");
     }
 
     private void AddHeading(string text)
@@ -153,6 +155,43 @@ public partial class HeroProfileView : Control
         label.ThemeTypeVariation = "PanelTitle";
         label.AddThemeFontSizeOverride("font_size", 26);
         _content.AddChild(label);
+    }
+
+    /// <summary>
+    /// The hero's name is the page's primary subject and follows the
+    /// bible's <c>ScreenTitle</c> tier (Geist Pixel, 36 px) rather than
+    /// the panel-heading tier used by section labels below it. Preceded
+    /// by a <c>user</c> icon so the page topic reads at a glance even
+    /// when the text is partially scrolled. The 10-px gap keeps the
+    /// glyph and the label distinct. The icon is tinted with the
+    /// active linaje's accent.
+    /// </summary>
+    private void AddHeroName(string text)
+    {
+        var row = new HBoxContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+        };
+        row.AddThemeConstantOverride("separation", 10);
+        _content.AddChild(row);
+
+        var icon = new TextureRect
+        {
+            Texture = ResourceLoader.Load<Texture2D>(IconPaths.User),
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            CustomMinimumSize = new Vector2(32, 32),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = LineageThemeRegistry.IconAccent,
+        };
+        row.AddChild(icon);
+
+        var label = new Label { Text = text };
+        label.ThemeTypeVariation = "ScreenTitle";
+        label.AddThemeFontSizeOverride("font_size", 36);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        row.AddChild(label);
     }
 
     private void AddBody(string text)
@@ -165,6 +204,46 @@ public partial class HeroProfileView : Control
         };
         label.ThemeTypeVariation = "BodyText";
         _content.AddChild(label);
+    }
+
+    /// <summary>
+    /// Body row with a leading icon. Used for status lines where the
+    /// icon conveys the category at a glance (stamina = heart,
+    /// location = house/building). The 10-px gap keeps the glyph
+    /// distinct from the text. The icon is tinted with the active
+    /// linaje's accent.
+    /// </summary>
+    private void AddIconBody(string iconPath, string text)
+    {
+        var row = new HBoxContainer
+        {
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        row.AddThemeConstantOverride("separation", 10);
+        _content.AddChild(row);
+
+        var icon = new TextureRect
+        {
+            Texture = ResourceLoader.Load<Texture2D>(iconPath),
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            CustomMinimumSize = new Vector2(20, 20),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Modulate = LineageThemeRegistry.IconAccent,
+        };
+        row.AddChild(icon);
+
+        var label = new Label
+        {
+            Text = text,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        label.ThemeTypeVariation = "BodyText";
+        row.AddChild(label);
     }
 
     private void OnSelectionChanged(int selectionState)

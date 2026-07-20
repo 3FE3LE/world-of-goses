@@ -37,6 +37,38 @@ public class ConstructionTickTests
         Assert.Equal(ConstructionAuthorizationOutcome.AlreadyAuthorized, world.TryAuthorizeBasicShelter().Outcome);
     }
 
+    [Theory]
+    [InlineData(ConstructionKind.Farm, BuildingKind.Farm, ConstructionRules.FarmRequiredWork)]
+    [InlineData(ConstructionKind.Quarry, BuildingKind.Quarry, ConstructionRules.QuarryRequiredWork)]
+    public void Authorize_ProductiveBuilding_CreatesTypedPhasedProject(
+        ConstructionKind kind,
+        BuildingKind resultingKind,
+        int requiredWork)
+    {
+        var world = TestHelpers.NewProductionWorld();
+
+        var result = world.TryAuthorizeConstruction(kind);
+
+        Assert.True(result.IsSuccess);
+        var project = FirstProject(world);
+        Assert.Equal(kind, project.Kind);
+        Assert.Equal(resultingKind, project.ResultingKind);
+        Assert.Equal(requiredWork, project.RequiredWork);
+        Assert.Equal(ConstructionVisualPhase.Planned,
+            ConstructionRules.PhaseFor(project.Progress, project.RequiredWork));
+    }
+
+    [Fact]
+    public void Authorize_ProductiveBuildingBeforeShelter_Fails()
+    {
+        var world = TestHelpers.NewHeroWorld();
+
+        var result = world.TryAuthorizeConstruction(ConstructionKind.Farm);
+
+        Assert.Equal(ConstructionAuthorizationOutcome.HomeRequired, result.Outcome);
+        Assert.Empty(world.Projects);
+    }
+
     [Fact]
     public void Assign_RespectsProjectCapacity()
     {
@@ -106,6 +138,31 @@ public class ConstructionTickTests
     }
 
     [Fact]
+    public void AssignedContributor_ProducesVisibleProgressWithinOneRuntimeInterval()
+    {
+        var world = TestHelpers.NewConstructionWorld();
+        var project = FirstProject(world);
+        int changes = 0;
+        world.ProjectChanged += (_, args) =>
+        {
+            if (args.BuildingId == project.Id) changes++;
+        };
+        Assert.True(world.TryAssignToProject(project.Id, world.Hero!.Id).IsSuccess);
+        changes = 0;
+
+        for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++)
+        {
+            world.AdvanceWorldTick();
+        }
+
+        Assert.True(project.Progress > 0);
+        Assert.True(project.LastTickProgressAdded > 0);
+        Assert.True(changes > 0);
+        Assert.Contains(world.Log.Events,
+            evt => evt.Kind == WorldEventKind.ProjectProgressed && evt.SubjectName == project.DisplayName);
+    }
+
+    [Fact]
     public void Pause_StopsProgress_AndKeepsValue()
     {
         var world = TestHelpers.NewConstructionWorld();
@@ -126,6 +183,7 @@ public class ConstructionTickTests
         var hero = world.Hero!;
         world.TryAssignToProject(project.Id, hero.Id);
         hero.ConsumeStamina(50);
+        world.SetProjectEnabled(project.Id, false);
 
         for (int i = 0; i < GameClock.DayTicks + 5; i++) world.AdvanceWorldTick();
         Assert.Equal(ConstructionStopCause.Night, project.StopCause);
@@ -167,7 +225,7 @@ public class ConstructionTickTests
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
         world.TryAssignToProject(project.Id, world.Hero!.Id);
-        for (int i = 0; i < GameClock.TicksPerInGameDay; i++) world.AdvanceWorldTick();
+        for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++) world.AdvanceWorldTick();
 
         var save = WorldPersistence.Capture(world);
         WorldPersistence.Validate(save);

@@ -20,6 +20,7 @@ public sealed class CityWorld
     private readonly Dictionary<CitizenId, Citizen> _citizens = new();
     private readonly Dictionary<BuildingId, Building> _buildings = new();
     private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
+    private readonly WorldEventLog _log = new();
     private int _tick;
     private int _nextProjectId = 1;
 
@@ -32,6 +33,9 @@ public sealed class CityWorld
     public IReadOnlyDictionary<CitizenId, Citizen> Citizens => _citizens;
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
+
+    /// <summary>Read-only view of the chronological event log.</summary>
+    public WorldEventLog Log => _log;
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
     public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
@@ -398,6 +402,14 @@ public sealed class CityWorld
     /// existing building or citizen.
     /// </summary>
     public ConstructionAuthorizationResult TryAuthorizeBasicShelter()
+        => TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+
+    /// <summary>
+    /// Authorises one worksite at a time. Productive buildings become
+    /// available after the founding shelter exists; every kind uses
+    /// the same phased progress model with its own work requirement.
+    /// </summary>
+    public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
     {
         if (Hero is null)
         {
@@ -407,24 +419,33 @@ public sealed class CityWorld
         {
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.AlreadyAuthorized);
         }
+        bool hasHome = false;
         foreach (var building in _buildings.Values)
         {
             if (building.Kind == BuildingKind.Home)
             {
-                return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeAlreadyBuilt);
+                hasHome = true;
+                if (kind == ConstructionKind.BasicShelter)
+                {
+                    return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeAlreadyBuilt);
+                }
             }
         }
-        if (_citizens.Count > 1)
+        if (kind == ConstructionKind.BasicShelter && _citizens.Count > 1)
         {
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.WorldNotEmpty);
         }
+        if (kind != ConstructionKind.BasicShelter && !hasHome)
+        {
+            return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeRequired);
+        }
 
-        var projectId = new BuildingId(_nextProjectId++);
+        var projectId = NextAvailableProjectId();
         var project = new ConstructionProject(
             id: projectId,
-            kind: ConstructionKind.BasicShelter,
-            displayName: "Basic Shelter",
-            requiredWork: ConstructionRules.RequiredWork,
+            kind: kind,
+            displayName: ConstructionRules.DisplayNameFor(kind),
+            requiredWork: ConstructionRules.RequiredWorkFor(kind),
             workerCapacity: ConstructionRules.WorkerCapacity,
             enabled: true)
         {
@@ -433,6 +454,17 @@ public sealed class CityWorld
         RegisterProject(project);
         RaiseProjectChanged(projectId);
         return ConstructionAuthorizationResult.Success(projectId);
+    }
+
+    private BuildingId NextAvailableProjectId()
+    {
+        var candidate = new BuildingId(_nextProjectId);
+        while (_buildings.ContainsKey(candidate) || _projects.ContainsKey(candidate))
+        {
+            candidate = new BuildingId(++_nextProjectId);
+        }
+        _nextProjectId++;
+        return candidate;
     }
 
     /// <summary>Toggles whether the project continues to accumulate work.</summary>
@@ -479,7 +511,12 @@ public sealed class CityWorld
     {
         int previousTick = _tick;
         _tick++;
-        DetectAndApplyMobilisation(previousTick, _tick);
+        bool dayChanged = DetectAndApplyMobilisation(previousTick, _tick);
+        if (dayChanged)
+        {
+            if (GameClock.IsDaytime(_tick)) _log.Record(_tick, WorldEventKind.DayBegan, "Sun");
+            else _log.Record(_tick, WorldEventKind.NightBegan, "Sun");
+        }
         ApplyUpkeep();
         foreach (var building in _buildings.Values)
         {
@@ -487,6 +524,18 @@ public sealed class CityWorld
             if (GameClock.IsDaytime(_tick))
             {
                 int added = SimulateBuildingTick(building);
+                if (added > 0)
+                {
+                    _log.Record(_tick, WorldEventKind.StockProduced, building.DisplayName, added);
+                }
+                if (building.StopCause == ProductionStopCause.WorkersExhausted)
+                {
+                    _log.Record(_tick, WorldEventKind.WorkersExhausted, building.DisplayName);
+                }
+                if (building.Stock >= building.TargetStock && building.TargetStock > 0)
+                {
+                    _log.Record(_tick, WorldEventKind.StockCapped, building.DisplayName);
+                }
                 if (added > 0
                     || building.StopCause == ProductionStopCause.WorkersExhausted)
                 {
@@ -504,10 +553,22 @@ public sealed class CityWorld
         int completed = 0;
         foreach (var project in _projects.Values)
         {
+            int previousProgress = project.Progress;
+            ConstructionStopCause previousStopCause = project.StopCause;
             project.LastTickProgressAdded = 0;
             if (GameClock.IsDaytime(_tick))
             {
                 SimulateProjectTick(project, isWorkInterval);
+                if (project.LastTickProgressAdded > 0)
+                {
+                    _log.Record(_tick, WorldEventKind.ProjectProgressed,
+                        project.DisplayName, project.LastTickProgressAdded);
+                }
+                if (project.Progress != previousProgress
+                    || project.StopCause != previousStopCause)
+                {
+                    RaiseProjectChanged(project.Id);
+                }
             }
             else
             {
@@ -551,20 +612,25 @@ public sealed class CityWorld
     /// Compares day/night state before and after the tick and
     /// moves citizens to the right place when the boundary
     /// crosses. Called once per world tick from
-    /// <see cref="AdvanceWorldTick"/>.
+    /// <see cref="AdvanceWorldTick"/>. Returns <c>true</c> when the
+    /// day/night state actually changed so the caller can emit the
+    /// corresponding log event without re-deriving the comparison.
     /// </summary>
-    private void DetectAndApplyMobilisation(int previousTick, int currentTick)
+    private bool DetectAndApplyMobilisation(int previousTick, int currentTick)
     {
         bool wasDay = GameClock.IsDaytime(previousTick);
         bool isDay = GameClock.IsDaytime(currentTick);
         if (wasDay && !isDay)
         {
             MobiliseForNight();
+            return true;
         }
         else if (!wasDay && isDay)
         {
             MobiliseForDay();
+            return true;
         }
+        return false;
     }
 
     /// <summary>
@@ -853,7 +919,50 @@ public sealed class CityWorld
         if (!_projects.TryGetValue(projectId, out var project)) return;
         var contributorIds = new List<CitizenId>(project.AssignedCitizenIds);
 
-        var home = new Building(
+        var building = CreateCompletedBuilding(project);
+
+        RegisterBuilding(building);
+        RaiseBuildingChanged(building.Id);
+        _log.Record(_tick, WorldEventKind.ProjectCompleted, project.DisplayName);
+        _log.Record(_tick, WorldEventKind.BuildingCreated, building.DisplayName);
+
+        foreach (var cid in contributorIds)
+        {
+            project.TryUnassign(cid);
+            if (_citizens.TryGetValue(cid, out var c)) c.ClearAssignment();
+        }
+
+        _projects.Remove(projectId);
+        RaiseProjectChanged(projectId);
+    }
+
+    private static Building CreateCompletedBuilding(ConstructionProject project) => project.Kind switch
+    {
+        ConstructionKind.Farm => new Building(
+            id: project.Id,
+            displayName: project.DisplayName,
+            kind: BuildingKind.Farm,
+            producedResourceType: ResourceType.Food,
+            producedCompetencyId: CompetencyId.Farming,
+            workerCapacity: 5,
+            visualCapacity: 5,
+            baseProductionPerWorker: 1,
+            storageCapacity: 20,
+            resourceLabel: "Food",
+            resourceUnit: "food"),
+        ConstructionKind.Quarry => new Building(
+            id: project.Id,
+            displayName: project.DisplayName,
+            kind: BuildingKind.Quarry,
+            producedResourceType: ResourceType.Stone,
+            producedCompetencyId: CompetencyId.Mining,
+            workerCapacity: 6,
+            visualCapacity: 3,
+            baseProductionPerWorker: 2,
+            storageCapacity: 20,
+            resourceLabel: "Stone",
+            resourceUnit: "stone"),
+        _ => new Building(
             id: project.Id,
             displayName: project.DisplayName,
             kind: BuildingKind.Home,
@@ -865,20 +974,8 @@ public sealed class CityWorld
             storageCapacity: 0,
             resourceLabel: "Rest",
             resourceUnit: "rest",
-            productionEnabled: false);
-
-        RegisterBuilding(home);
-        RaiseBuildingChanged(home.Id);
-
-        foreach (var cid in contributorIds)
-        {
-            project.TryUnassign(cid);
-            if (_citizens.TryGetValue(cid, out var c)) c.ClearAssignment();
-        }
-
-        _projects.Remove(projectId);
-        RaiseProjectChanged(projectId);
-    }
+            productionEnabled: false),
+    };
 
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock)
     {
@@ -943,6 +1040,7 @@ public sealed class CityWorld
         _citizens.Clear();
         _buildings.Clear();
         _projects.Clear();
+        _log.Clear();
         _nextProjectId = 1;
         _tick = save.CurrentTick;
 

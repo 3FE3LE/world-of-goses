@@ -41,15 +41,28 @@ training. It does not make sovereign decisions that belong to the player
 unless that authority has been explicitly delegated through institutions or
 protocols.
 
-The full design vision is documented in [`docs/GAME_VISION.md`](docs/GAME_VISION.md).
-The living product-direction and alignment criteria are documented in
-[`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
-The current implementation status and next starting point are documented in
+The full design vision, principles, pillars, lineages, audio and
+visual identities are documented in the design bible at
+[`docs/world-of-goses-design-bible/`](docs/world-of-goses-design-bible/README.md).
+The bible is the **single source of truth** for *what the game is*;
+do not duplicate its content into other docs.
+
+The **process guide** for how to validate, sequence, and review slices
+is in [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
+The current implementation status and next starting point are in
 [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
-The acknowledged design lineage is documented in
-[`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md).
-The canonical eight-lineage and professional-affinity contract is documented in
-[`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`](docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md).
+The implementation architecture is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The pixel-art file flow is in [`docs/ART_PIPELINE.md`](docs/ART_PIPELINE.md).
+The honest cross-check against the bible is in
+[`docs/VALIDATION.md`](docs/VALIDATION.md).
+A single map of every doc lives in
+[`docs/README.md`](docs/README.md).
+
+`docs/GAME_VISION.md`, `docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`,
+and `docs/DESIGN_INFLUENCES.md` are **pointer files** that map their old
+sections to the bible. They are kept only because `AGENTS.md` and
+historical commit messages cite them.
 
 ## 3. Gameplay pillars
 
@@ -161,12 +174,16 @@ world-of-goses/
 ├── README.md
 ├── .gitignore
 ├── docs/
-│   ├── GAME_VISION.md
-│   ├── PRODUCT_DIRECTION.md
-│   ├── CURRENT_STATUS.md
-│   ├── ARCHITECTURE.md
-│   ├── DESIGN_INFLUENCES.md
-│   └── LINEAGES_AND_PROFESSIONAL_AFFINITIES.md
+│   ├── README.md                                  # consolidated doc index
+│   ├── CURRENT_STATUS.md                          # current slice, next proof
+│   ├── ARCHITECTURE.md                            # engine/domain boundary
+│   ├── ART_PIPELINE.md                            # Pixelorama → PNG → Godot
+│   ├── VALIDATION.md                              # cross-check vs bible
+│   ├── PRODUCT_DIRECTION.md                       # process guide
+│   ├── GAME_VISION.md                             # pointer → bible
+│   ├── LINEAGES_AND_PROFESSIONAL_AFFINITIES.md    # pointer → bible
+│   ├── DESIGN_INFLUENCES.md                       # pointer + audit trail
+│   └── world-of-goses-design-bible/               # canonical design source
 ├── art/
 │   ├── source/
 │   │   ├── characters/
@@ -281,13 +298,22 @@ re-architecting.
 
 ## 14. Short initial roadmap
 
-Items 1–6 and 8 are **complete**, plus four follow-up slices that landed
+Items 1–6, 7 and 8 are **complete**, plus four follow-up slices that landed
 on top: stamina-gated production, day/night cycle + passive upkeep +
 WellFed buff, citizen mobilisation with a Home building, and a fix that
 initialises mobilisation from `Restore` so loaded saves render the right
 slots on the first frame. Hero onboarding, first construction, lineage theming,
 and UI validation now sit on top of those systems. The current xUnit suite is
 232 tests. The former Quarry/Farm/Home startup data is explicit test data only.
+
+**Slice 7 (First MVP pixel art).** Three placeholder PNGs
+(`home_idle.png`, `quarry_idle.png`, `farm_idle.png`) now live in
+`art/exports/buildings/` and `game/assets/buildings/`. The C#
+`BuildingArt` catalog is the single source of truth that maps each
+`BuildingKind` to its texture path and canvas size; replacing the
+PNGs with the real Pixelorama sources later does not change any
+scene. The old `building_placeholder.png` and `worker_placeholder.png`
+were removed.
 
 This list is not a contract. Items may be reordered, dropped, or expanded as
 the prototype teaches us what the project actually needs.
@@ -301,14 +327,20 @@ the prototype teaches us what the project actually needs.
 5. ✅ **Offline progression (Slice B)** — Track `lastSeenAt`; on launch,
    advance the world by N ticks equal to elapsed time (capped). Tests:
    tick arithmetic, production accumulates, experience carries. This is
-   the **defining** feature of the game per `docs/GAME_VISION.md`.
+   the **defining** feature of the game per the design bible's
+   *Persistencia* section.
 6. ✅ **Multi-building expansion (Slice C)** — Quarry and Farm use distinct
    resource and competency data; the macro view selects either building.
-7. **First MVP pixel art** — Replace `building_placeholder.png` and
+7. ✅ **First MVP pixel art** — Replace `building_placeholder.png` and
    `worker_placeholder.png` with the first Pixelorama batch. Slot into
-   `BuildingPlot` and `VisibleWorkerSlot` without re-anchoring.
+   `BuildingPlot` and `VisibleWorkerSlot` without re-anchoring. The
+   first three building PNGs (`home_idle`, `quarry_idle`, `farm_idle`)
+   are in place; the worker sprite is intentionally absent until a
+   real `worker.pxo` lands, and `VisibleWorkerSlot` renders empty
+   instead of crashing.
 8. ✅ **End-to-end validation** — Run the prototype against the acceptance
-   criteria of `docs/GAME_VISION.md`; flag any drift.
+   criteria of the design bible (`docs/world-of-goses-design-bible/`);
+   `docs/VALIDATION.md` flags any drift.
 9. ✅ **Stamina-gated production (Slice D)** — `Citizen.Stamina`,
    per-tick cost, food-driven regen, `WorkersExhausted` cause. Quarry
    and Farm both consume stamina.
@@ -327,8 +359,12 @@ The canonical entry point is a complete onboarding profile for one hero. The
 profile stores lineage, personal aptitudes, professional affinities, elemental
 affinity, combat preferences, traits, political orientation, and spiritual
 posture. The eight lineages influence learning context qualitatively; they do
-not block professions or add automatic production bonuses. See
-[`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`](docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md).
+not block professions or add automatic production bonuses. The full lineage
+contract, twelve-family vocabulary, five layers of competence, and data and
+balance rules live in the design bible at
+[`docs/world-of-goses-design-bible/06_LINEAGES.md`](docs/world-of-goses-design-bible/06_LINEAGES.md)
+and
+[`docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`](docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md).
 
 Schema v2 rejects the retired v1 startup data during onboarding. After the
 player confirms a hero, the slot is replaced atomically and the old snapshot is

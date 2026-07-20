@@ -1,18 +1,22 @@
 #!/usr/bin/env node
-// Generates the first batch of placeholder pixel art for the World of
-// Goses prototype. The PNGs are intentionally simple silhouettes that
-// respect the canvas sizes declared in
-// game/scripts/PresentationConstants.cs so they can replace the
-// current ColorRect placeholders without re-anchoring the layout.
+// OBSOLETE — kept for historical reference only.
 //
-// Usage: node art/export_placeholder_art.js
+// This script used to generate the first batch of placeholder pixel
+// art for the World of Goses prototype. The PNGs it produced
+// (`worker_placeholder.png` and `mine_placeholder.png`) have been
+// removed; they were replaced by hand-authored placeholders for the
+// Home, Quarry, and Farm building PNGs that now live in
+// `art/exports/buildings/`.
 //
-// Outputs:
-//   art/exports/characters/worker_placeholder.png        (64 x 96)
-//   art/exports/buildings/mine_placeholder.png           (192 x 192)
+// Running this script will overwrite nothing important (those files
+// no longer exist), but it will recreate the obsolete PNGs at
+// incompatible canvas sizes. Do not run it. Delete this file once
+// the team is confident no agent or CI will resurrect it.
 //
-// The exported PNGs are placeholders. A real artist will replace them
-// by authoring Pixelorama sources under art/source/characters/ and
+// If you genuinely need to regenerate placeholder PNGs, write a new
+// script that emits them into the current canonical paths
+// (`art/exports/buildings/home_idle.png`, `quarry_idle.png`,
+// `farm_idle.png`) and update `game/scripts/BuildingArt.cs` to match.
 // art/source/buildings/ and re-exporting at the same dimensions.
 
 'use strict';

@@ -5,6 +5,15 @@
 > the code will be written against. It does not commit to systems that
 > are not yet validated by a prototype.
 
+The conceptual design bible lives at
+[`docs/world-of-goses-design-bible/`](world-of-goses-design-bible/README.md);
+[`world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md)
+holds the engine-neutral stack, scene map, and roadmap questions that
+this implementation-aware file answers for the Godot + C# stack. When
+the two disagree on a folder or a boundary, this file wins for the
+code that exists today; the bible wins for *what the game must
+eventually be*.
+
 ---
 
 ## 1. Goals of the initial architecture
@@ -61,10 +70,16 @@ world-of-goses/
 ├── README.md
 ├── .gitignore
 ├── docs/
-│   ├── GAME_VISION.md
-│   ├── ARCHITECTURE.md
-│   ├── ART_PIPELINE.md
-│   └── DESIGN_INFLUENCES.md
+│   ├── README.md                                  # consolidated doc index
+│   ├── CURRENT_STATUS.md                          # current slice, next proof
+│   ├── ARCHITECTURE.md                            # this file
+│   ├── ART_PIPELINE.md                            # Pixelorama → PNG → Godot
+│   ├── VALIDATION.md                              # cross-check vs bible
+│   ├── PRODUCT_DIRECTION.md                       # process guide
+│   ├── GAME_VISION.md                             # pointer → bible
+│   ├── LINEAGES_AND_PROFESSIONAL_AFFINITIES.md    # pointer → bible
+│   ├── DESIGN_INFLUENCES.md                       # pointer + audit trail
+│   └── world-of-goses-design-bible/               # canonical design source
 ├── art/
 │   ├── source/        # Pixelorama sources
 │   │   ├── characters/

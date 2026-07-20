@@ -29,6 +29,16 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void BuildingStateChangedEventHandler(int buildingId);
 
+    /// <summary>
+    /// Fired by <see cref="SelectBuilding"/> together with
+    /// <see cref="SelectionChanged"/> so the detail view can open
+    /// directly on the right building. <see cref="SelectionChanged"/>
+    /// alone carries only the enum value and would leave the detail
+    /// view with no way to know which building to show.
+    /// </summary>
+    [Signal]
+    public delegate void BuildingSelectedEventHandler(int buildingId);
+
     [Signal]
     public delegate void CitizenAssignmentRejectedEventHandler(int reason);
 
@@ -161,6 +171,7 @@ public partial class CityWorldController : Node
     {
         if (_world.GetBuilding(buildingId) is null) return false;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.BuildingDetail);
+        EmitSignal(SignalName.BuildingSelected, buildingId.Value);
         EmitSignal(SignalName.BuildingStateChanged, buildingId.Value);
         return true;
     }
@@ -246,8 +257,11 @@ public partial class CityWorldController : Node
     }
 
     public ConstructionAuthorizationResult TryAuthorizeBasicShelter()
+        => TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+
+    public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
     {
-        var result = _world.TryAuthorizeBasicShelter();
+        var result = _world.TryAuthorizeConstruction(kind);
         if (result.IsSuccess && result.ProjectId.HasValue)
         {
             SaveNow();

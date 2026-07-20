@@ -57,6 +57,54 @@ public static class LineageThemeRegistry
         ["theryn"] = "res://assets/ui/lineages/theryn/panel/panel.stylebox.tres",
     };
 
+    /// <summary>
+    /// Icon accent colour per lineage. Returned to <c>CanvasItem.Modulate</c>
+    /// so white-filled SVG icons take the linaje's tone without changing
+    /// geometry. Keep these muted so they read as accents rather than
+    /// full backgrounds; saturation is intentional. The fallback
+    /// matches the project default cream so unknown lineages never
+    /// produce a black icon.
+    /// </summary>
+    public static readonly Color DefaultIconAccent = new(0.95f, 0.92f, 0.83f);
+
+    private static readonly Dictionary<string, Color> IconAccentByLineage = new(StringComparer.Ordinal)
+    {
+        // Stone and copper for Ardhen (memory, effort, repair).
+        ["ardhen"] = new(0.72f, 0.54f, 0.31f),
+        // Soft teal for Eirune (water, growth, symbiosis).
+        ["eirune"] = new(0.31f, 0.62f, 0.56f),
+        // Blue-grey for Kovari (modular, mechanical, repair).
+        ["kovari"] = new(0.42f, 0.54f, 0.68f),
+        // Muted purple for Myrven (layers, performance, mediation).
+        ["myrven"] = new(0.54f, 0.42f, 0.65f),
+        // Sand and khaki for Vaelun (route, signal, refuge).
+        ["vaelun"] = new(0.77f, 0.66f, 0.40f),
+        // Muted gold for Orveth (contract, reserve, exchange).
+        ["orveth"] = new(0.77f, 0.63f, 0.25f),
+        // Pale blue for Caelith (node, synthesis, diagnosis).
+        ["caelith"] = new(0.48f, 0.72f, 0.85f),
+        // Soft red for Theryn (pulse, empathy, ceremony).
+        ["theryn"] = new(0.77f, 0.42f, 0.42f),
+    };
+
+    /// <summary>Returns the icon accent colour for the active lineage.</summary>
+    public static Color IconAccent
+    {
+        get
+        {
+            if (IconAccentByLineage.TryGetValue(_activeLineage, out var accent)) return accent;
+            return DefaultIconAccent;
+        }
+    }
+
+    /// <summary>Variant of <see cref="IconAccent"/> that pins the lineage explicitly.</summary>
+    public static Color GetIconAccent(string lineage)
+    {
+        string normalised = (lineage ?? string.Empty).ToLowerInvariant();
+        if (IconAccentByLineage.TryGetValue(normalised, out var accent)) return accent;
+        return DefaultIconAccent;
+    }
+
     private static readonly Dictionary<string, StyleBoxTexture> Cache = new(StringComparer.Ordinal);
 
     private static string _activeLineage = SystemDefaultLineage;

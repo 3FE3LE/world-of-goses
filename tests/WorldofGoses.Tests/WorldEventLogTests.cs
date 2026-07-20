@@ -1,0 +1,179 @@
+using WorldofGoses.Domain;
+using WorldofGoses.Domain.Persistence;
+using Xunit;
+
+namespace WorldofGoses.Tests;
+
+/// <summary>
+/// Tests for the event-log slice. Covers <see cref="WorldEventLog"/>
+/// in isolation, integration with <see cref="CityWorld.AdvanceWorldTick"/>,
+/// and the aggregate derivation in <see cref="OfflineProgression.ApplyAll"/>.
+/// </summary>
+public class WorldEventLogTests
+{
+    // ---------------- WorldEventLog ----------------
+
+    [Fact]
+    public void WorldEventLog_Record_AssignsSequentialIds()
+    {
+        var log = new WorldEventLog();
+        var first = log.Record(1, WorldEventKind.StockProduced, "Quarry", 5);
+        var second = log.Record(2, WorldEventKind.StockCapped, "Quarry");
+
+        Assert.Equal(new WorldEventId(1), first.Id);
+        Assert.Equal(new WorldEventId(2), second.Id);
+        Assert.Equal(2, log.Events.Count);
+    }
+
+    [Fact]
+    public void WorldEventLog_Clear_ResetsState()
+    {
+        var log = new WorldEventLog();
+        log.Record(1, WorldEventKind.DayBegan, "Sun");
+        log.Record(2, WorldEventKind.NightBegan, "Sun");
+
+        log.Clear();
+
+        Assert.Empty(log.Events);
+        // Next id must restart at 1 so post-restore events keep a
+        // deterministic numbering within the new world session.
+        var fresh = log.Record(3, WorldEventKind.StockProduced, "Farm", 2);
+        Assert.Equal(new WorldEventId(1), fresh.Id);
+    }
+
+    [Fact]
+    public void WorldEventLog_Record_BuildsHumanSummary()
+    {
+        var log = new WorldEventLog();
+        var evt = log.Record(7, WorldEventKind.StockProduced, "Quarry", 4);
+        Assert.Equal("Quarry produced +4", evt.Summary);
+    }
+
+    [Fact]
+    public void WorldEventLog_Record_DayNightSummaries()
+    {
+        var log = new WorldEventLog();
+        Assert.Equal("Sun rose — workers mobilised to their stations",
+            log.Record(1, WorldEventKind.DayBegan, "Sun").Summary);
+        Assert.Equal("Sun set — workers returned home to rest",
+            log.Record(2, WorldEventKind.NightBegan, "Sun").Summary);
+    }
+
+    [Fact]
+    public void WorldEvent_IconPath_KnownKind_ReturnsResPath()
+    {
+        var log = new WorldEventLog();
+        var produced = log.Record(1, WorldEventKind.StockProduced, "Q", 1);
+        var day = log.Record(2, WorldEventKind.DayBegan, "Sun");
+        Assert.Equal("res://assets/ui/icons/24/coin.svg", produced.IconPath);
+        Assert.Equal("res://assets/ui/icons/24/sun.svg", day.IconPath);
+    }
+
+    // ---------------- CityWorld integration ----------------
+
+    [Fact]
+    public void CityWorld_AdvanceWorldTick_RecordsProductionEvents()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        for (int i = 0; i < 6; i++) world.AdvanceWorldTick();
+
+        bool sawProduction = false;
+        foreach (var evt in world.Log.Events)
+        {
+            if (evt.Kind == WorldEventKind.StockProduced)
+            {
+                sawProduction = true;
+                Assert.True(evt.Amount > 0);
+                Assert.False(string.IsNullOrEmpty(evt.SubjectName));
+                break;
+            }
+        }
+        Assert.True(sawProduction,
+            "expected at least one StockProduced event within the first 6 day-ticks");
+    }
+
+    [Fact]
+    public void CityWorld_AdvanceWorldTick_LogPreservesChronologicalOrder()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        for (int i = 0; i < 8; i++) world.AdvanceWorldTick();
+
+        var log = world.Log.Events;
+        for (int i = 1; i < log.Count; i++)
+        {
+            Assert.True(log[i].Tick >= log[i - 1].Tick,
+                $"event {log[i].Id} (tick {log[i].Tick}) is out of order with previous (tick {log[i - 1].Tick})");
+        }
+    }
+
+    [Fact]
+    public void CityWorld_Restore_ClearsLog()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        for (int i = 0; i < 3; i++) world.AdvanceWorldTick();
+        Assert.NotEmpty(world.Log.Events);
+
+        world.Restore(WorldPersistence.Capture(world));
+
+        Assert.Empty(world.Log.Events);
+    }
+
+    // ---------------- OfflineProgression derivation ----------------
+
+    [Fact]
+    public void OfflineProgression_ApplyAll_ReturnsEventsRecordedDuringBatch()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: 12);
+
+        Assert.True(report.HadProgression);
+        Assert.NotEmpty(report.Events);
+
+        // Every event in the report must have a tick that lies
+        // within the simulated window.
+        foreach (var evt in report.Events)
+        {
+            Assert.InRange(evt.Tick, 1, 12);
+        }
+    }
+
+    [Fact]
+    public void OfflineProgression_ApplyAll_ZeroEvents_ReturnsNone()
+    {
+        var world = new CityWorld();
+        // No hero, no buildings, no projects → idle fast-forward.
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: 5);
+        Assert.False(report.HadProgression);
+    }
+
+    [Fact]
+    public void OfflineProgression_ApplyAll_SecondCallDoesNotReplayPreviousEvents()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        var first = OfflineProgression.ApplyAll(world, ticksToApply: 6);
+        Assert.NotEmpty(first.Events);
+
+        var second = OfflineProgression.ApplyAll(world, ticksToApply: 6);
+
+        // The second batch should return only events recorded after
+        // the first batch — never the events from the first call.
+        foreach (var evt in second.Events)
+        {
+            Assert.True(evt.Tick > 6,
+                $"event at tick {evt.Tick} leaked from the first batch");
+        }
+    }
+
+    [Fact]
+    public void OfflineProgression_ApplyAll_StockEventsMatchStockAdded()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: 12);
+        int logged = 0;
+        foreach (var evt in report.Events)
+        {
+            if (evt.Kind == WorldEventKind.StockProduced) logged += evt.Amount;
+        }
+        Assert.Equal(report.StockAdded, logged);
+    }
+}

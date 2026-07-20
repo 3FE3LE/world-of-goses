@@ -4,13 +4,12 @@ using WorldofGoses.Domain;
 namespace WorldofGoses;
 
 /// <summary>
-/// Single worker placeholder inside the building detail view. The
-/// slot has no domain knowledge: it holds a citizen identifier and
-/// a display name and plays a short entry or exit animation when
-/// configured.
+/// One visible citizen inside the building detail view. It resolves
+/// the citizen's imported LPC scene through <see cref="CharacterVisualRegistry"/>
+/// and plays presentation-only entry, idle, and exit motion.
 ///
 /// Visual proportions match <see cref="PresentationConstants"/> so the
-/// final art replaces a 64×96 canvas without re-anchoring the layout.
+/// imported LPC art uses one unscaled 128×128 cell.
 ///
 /// Initialization-order note: slots are created by code in
 /// <see cref="VisibleWorkerSlots.Render"/> via <c>new VisibleWorkerSlot()</c>.
@@ -26,16 +25,7 @@ public partial class VisibleWorkerSlot : Control
     [Signal] public delegate void CitizenActivatedEventHandler(int citizenId);
 
     private const string AnimEntry = "entry";
-    private const string AnimWork = "work";
     private const string AnimExit = "exit";
-
-    /// <summary>
-    /// Path to the placeholder worker sprite. Real art lands here as
-    /// side-facing frames; the slot's animations stay on the container
-    /// Control so the sprite can be swapped without re-authoring them.
-    /// </summary>
-    [Export] public string WorkerSpritePath { get; set; } =
-        "res://assets/characters/worker_placeholder.png";
 
     // Field initializer so Configure() can set Text before _Ready().
     private readonly Label _nameLabel = new()
@@ -44,9 +34,12 @@ public partial class VisibleWorkerSlot : Control
         Size = new Vector2(PresentationConstants.DetailedCitizenWidth, 18),
         HorizontalAlignment = HorizontalAlignment.Center,
         MouseFilter = Control.MouseFilterEnum.Ignore,
+        ThemeTypeVariation = "BodySmall",
     };
 
-    private TextureRect _sprite = null!;
+    private LineageId _lineage = LineageId.Ardhen;
+    private CharacterBodyVariant _bodyVariant;
+    private LineageSpritePlayer _sprite = null!;
     private Button _hitArea = null!;
     private AnimationPlayer _animationPlayer = null!;
     private AnimationLibrary _library = null!;
@@ -60,17 +53,16 @@ public partial class VisibleWorkerSlot : Control
             PresentationConstants.DetailedCitizenWidth,
             PresentationConstants.DetailedCitizenHeight);
 
-        _sprite = new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(WorkerSpritePath),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            Size = new Vector2(
-                PresentationConstants.DetailedCitizenWidth,
-                PresentationConstants.DetailedCitizenHeight),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
+        PackedScene visualScene = CharacterVisualRegistry.LoadScene(_lineage, _bodyVariant);
+        _sprite = visualScene.Instantiate<LineageSpritePlayer>();
+        _sprite.Position = new Vector2(
+            PresentationConstants.DetailedCitizenWidth / 2,
+            126);
         AddChild(_sprite);
+        // The imported scene has autoplay metadata; select the resting
+        // animation only after it enters the tree so autoplay cannot
+        // replace this explicit building-state choice.
+        _sprite.PlayIdle(Vector2.Down);
 
         AddChild(_nameLabel);
 
@@ -95,7 +87,6 @@ public partial class VisibleWorkerSlot : Control
         AddChild(_animationPlayer);
         _library = new AnimationLibrary();
         _library.AddAnimation(AnimEntry, BuildEntryAnimation());
-        _library.AddAnimation(AnimWork, BuildWorkAnimation());
         _library.AddAnimation(AnimExit, BuildExitAnimation());
         _animationPlayer.AddAnimationLibrary("", _library);
 
@@ -103,10 +94,12 @@ public partial class VisibleWorkerSlot : Control
         _animationPlayer.Play(AnimEntry);
     }
 
-    public void Configure(CitizenId citizenId, string displayName)
+    public void Configure(Citizen citizen)
     {
-        CitizenId = citizenId;
-        _nameLabel.Text = displayName;
+        CitizenId = citizen.Id;
+        _lineage = citizen.Profile.Lineage;
+        _bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(citizen.AppearanceSeed);
+        _nameLabel.Text = citizen.Name;
     }
 
     /// <summary>
@@ -137,10 +130,8 @@ public partial class VisibleWorkerSlot : Control
             return;
         }
 
-        if (name == AnimEntry)
-        {
-            _animationPlayer.Play(AnimWork);
-        }
+        // Entry ends at the resting position. The LPC SpriteFrames
+        // continue their own idle loop without procedural locomotion.
     }
 
     private static Animation BuildEntryAnimation()
@@ -157,32 +148,7 @@ public partial class VisibleWorkerSlot : Control
         entry.TrackInsertKey(posTrack, 0.4, new Vector2(0, 0), 0);
         entry.TrackSetInterpolationType(posTrack, Animation.InterpolationType.Cubic);
 
-        int scaleTrack = entry.AddTrack(Animation.TrackType.Value);
-        entry.TrackSetPath(scaleTrack, ".:scale");
-        entry.TrackInsertKey(scaleTrack, 0.0, new Vector2(0.7f, 0.7f), 0);
-        entry.TrackInsertKey(scaleTrack, 0.4, new Vector2(1f, 1f), 0);
-        entry.TrackSetInterpolationType(scaleTrack, Animation.InterpolationType.Cubic);
-
         return entry;
-    }
-
-    private static Animation BuildWorkAnimation()
-    {
-        var work = new Animation
-        {
-            Length = 0.8f,
-            Step = 0.05f,
-            LoopMode = Animation.LoopModeEnum.Linear,
-        };
-
-        int workTrack = work.AddTrack(Animation.TrackType.Value);
-        work.TrackSetPath(workTrack, ".:position");
-        work.TrackInsertKey(workTrack, 0.0, new Vector2(0, 0), 0);
-        work.TrackInsertKey(workTrack, 0.4, new Vector2(0, -3), 0);
-        work.TrackInsertKey(workTrack, 0.8, new Vector2(0, 0), 0);
-        work.TrackSetInterpolationType(workTrack, Animation.InterpolationType.Cubic);
-
-        return work;
     }
 
     private static Animation BuildExitAnimation()
@@ -198,12 +164,6 @@ public partial class VisibleWorkerSlot : Control
         exit.TrackInsertKey(posTrack, 0.0, new Vector2(0, 0), 0);
         exit.TrackInsertKey(posTrack, 0.35, new Vector2(0, 24), 0);
         exit.TrackSetInterpolationType(posTrack, Animation.InterpolationType.Cubic);
-
-        int scaleTrack = exit.AddTrack(Animation.TrackType.Value);
-        exit.TrackSetPath(scaleTrack, ".:scale");
-        exit.TrackInsertKey(scaleTrack, 0.0, new Vector2(1f, 1f), 0);
-        exit.TrackInsertKey(scaleTrack, 0.35, new Vector2(0.6f, 0.6f), 0);
-        exit.TrackSetInterpolationType(scaleTrack, Animation.InterpolationType.Cubic);
 
         return exit;
     }

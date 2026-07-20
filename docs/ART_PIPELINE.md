@@ -5,6 +5,21 @@
 > naming conventions, and the responsibilities of each tool in the
 > pipeline.
 
+This file owns the **mechanics** of the pipeline: where files live,
+how they are named, what each tool does. The visual direction,
+typography hierarchy, three visual scales, Sixteen Pixel Perfect
+configuration, and per-lineage visual identity live in
+[`docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`](world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md).
+The typography sizes and Theme variations live in
+[`art/world-of-goses-typography-guideline.md`](../art/world-of-goses-typography-guideline.md).
+The iconography rules (Kenney UI vs Pixelarticons vs project-owned icons)
+live in
+[`art/world-of-goses-iconography-guideline.md`](../art/world-of-goses-iconography-guideline.md).
+
+When this file and the bible disagree on a file path, naming pattern,
+or import setting, this file wins. When they disagree on the look,
+the typography, or what counts as identity vs chrome, the bible wins.
+
 ---
 
 ## 1. The pipeline
@@ -76,6 +91,19 @@ three.
 - **Generated cache:** `.import/` and `.godot/` are ignored. The PNG
   (and any intentional `.import` file) is the committed source of
   truth.
+
+### 5.1 Universal LPC lineage characters
+
+The detailed lineage character set lives at
+`game/assets/characters/lineages/<lineage>/<male|female>/`. It contains
+16 Godot scenes backed by `SpriteFrames` resources and 128 × 128 cells
+for `idle`, `walk`, and `slash` in four directions. Runtime selection is
+centralised in `game/scripts/visual/CharacterVisualRegistry.cs`; animation
+selection is owned by `LineageSpritePlayer.cs`.
+
+These characters use Universal LPC body bases and require attribution.
+Preserve `docs/LICENSING_AND_ATTRIBUTION.md`, `docs/licenses/`,
+`docs/LINEAGE_DESIGN_MATRIX.md`, and `docs/MANIFEST.json` in distributions.
 
 ## 6. Naming conventions
 

@@ -1,0 +1,41 @@
+{
+  "lineage": "Theryn",
+  "lineage_key": "theryn",
+  "body_variant": "male",
+  "principle": "Vínculo e intensidad compartida",
+  "visual_translation": "ondas, pulsos, círculos y memoria colectiva",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "source": "Official Universal LPC body bases with original World of Goses overlays",
+  "slash_source": "Original 128x128 composite using LPC-derived poses",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

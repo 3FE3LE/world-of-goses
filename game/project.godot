@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 LineageThemeSignals="*res://scripts/LineageThemeSignals.cs"
+CursorController="*res://scripts/CursorController.cs"
 
 [display]
 
@@ -26,13 +27,13 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
-[gui]
-
-theme/custom="res://assets/ui/default_theme.tres"
-
 [dotnet]
 
 project/assembly_name="World of Goses"
+
+[gui]
+
+theme/custom="res://assets/ui/default_theme.tres"
 
 [physics]
 
@@ -40,8 +41,7 @@ project/assembly_name="World of Goses"
 
 [rendering]
 
-rendering_device/driver.windows="d3d12"
 textures/canvas_textures/default_texture_filter=0
-textures/default_filters/use_nearest_mipmap_filter=false
+rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"

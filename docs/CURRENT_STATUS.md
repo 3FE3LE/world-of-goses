@@ -1,8 +1,21 @@
 # Current Project Status
 
 > Practical handoff for the next development session. Read this after
-> `GAME_VISION.md` and `PRODUCT_DIRECTION.md` to understand the implemented
-> founding-hero slice and the next decision.
+> the design bible (`docs/world-of-goses-design-bible/`) and
+> `PRODUCT_DIRECTION.md` to understand the implemented founding-hero
+> slice and the next decision.
+
+## 0. Document map
+
+This file lives in the implementation-aware doc set under `docs/`.
+The companion conceptual design bible lives at
+[`docs/world-of-goses-design-bible/`](world-of-goses-design-bible/README.md).
+A consolidated index of both sets is in [`docs/README.md`](README.md).
+
+The bible is the source of truth for *what the game is*; this file
+is the source of truth for *what the code does today*. When the two
+disagree on a design question, the bible wins; when they disagree on
+what ships next, this file wins.
 
 ---
 
@@ -30,11 +43,12 @@ A fresh `CityWorld` contains no citizens and no buildings. The player completes 
 
 Completing the flow creates exactly one `Citizen` with the `Hero` role, full stamina, no assignment, and `AtHome` location. The hero profile is visible in a responsive read-only profile screen. The macro view shows one real citizen marker and a clear `No buildings yet` state; it does not create a Home, Quarry, Farm, or any other building implicitly.
 
-The eight lineage definitions are canonical in
-`LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`. In this slice they are qualitative
-identity metadata. They do not block professions, establish permanent ceilings,
-or grant automatic production bonuses. Practical experience and future
-education/skill systems must outweigh birth over time.
+The eight lineage definitions are canonical in the design bible at
+[`world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md).
+In this slice they are qualitative identity metadata. They do not block
+professions, establish permanent ceilings, or grant automatic production
+bonuses. Practical experience and future education/skill systems must
+outweigh birth over time.
 
 ## 3. First authorised construction
 
@@ -133,11 +147,19 @@ There is no linter or CI configured yet. Do not install global tools.
 
 ## 11. Design record
 
-The full lineage and professional-affinity contract is in
-`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`; design-influence boundaries
-remain in `docs/DESIGN_INFLUENCES.md`.
+The eight lineages and the professional-affinity contract are owned
+by the design bible at
+[`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md)
+and
+[`docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`](world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md).
+`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md` and
+`docs/DESIGN_INFLUENCES.md` are pointer files now; the design content
+moved to the bible. The IP-boundary rules remain documented in the
+bible at
+[`docs/world-of-goses-design-bible/01_GAME_VISION.md`](world-of-goses-design-bible/01_GAME_VISION.md)
+§ *Frontera de inspiración e IP*.
 
-The next session should begin by reading both documents before adding any
+The next session should begin by reading the bible before adding any
 lineage mechanic or building seed.
 
 ## 12. Verification history
@@ -176,6 +198,42 @@ These are open design questions, not permission to reintroduce a starter seed.
 - Lineage themes: `game/scripts/LineageThemeRegistry.cs`, `game/assets/ui/lineages/`
 - Main scene: `game/scenes/CityPrototype.tscn`
 - Tests: `tests/WorldofGoses.Tests/`
-- Canonical lineage design: `docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`
+- Canonical lineage design: [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md)
+- Building art catalog: `game/scripts/BuildingArt.cs` — single source of truth that maps every `BuildingKind` to its `res://` texture path and canvas size.
+
+## 15. First MVP pixel art (slice 7 — landed)
+
+Three placeholder PNGs now anchor the macro city view at the agreed canvas sizes and replace the previous generic `building_placeholder.png`:
+
+| Subject | PNG (in `art/exports/buildings/` and `game/assets/buildings/`) | Canvas    | `BuildingKind`            |
+| ------- | -------------------------------------------------------------- | --------- | ------------------------- |
+| Home    | `home_idle.png`                                                | 64 × 64   | `Home` (Basic Shelter)    |
+| Quarry  | `quarry_idle.png`                                              | 128 × 128 | `Quarry`                  |
+| Farm    | `farm_idle.png`                                                | 128 × 128 | `Farm`                    |
+
+The catalog lives at `game/scripts/BuildingArt.cs`. `BuildingPlot` defaults to the quarry texture; scenes can override the path via the inspector or by calling `BuildingArt.GetTexturePath(kind)`. The three PNGs currently have **no Pixelorama source** — `art/source/buildings/README.md` documents what `.pxo` files must replace them with, at the same canvas sizes so layout code does not need to re-anchor.
+
+`Smithy` and `PotionLab` still have no art at any level. `BuildingArt.GetTexturePath` returns `null` for them; rendering code must handle the missing case rather than crash.
+
+## 16. Worker sprite (slice 7 — deferred)
+
+The previous `worker_placeholder.png` was removed. `VisibleWorkerSlot.WorkerSpritePath` is now an empty default; when empty, the slot renders without a sprite instead of crashing the loader. A real `worker.pxo` lands when a character art slice ships; the canvas target (64 × 96) and frame vocabulary are recorded in `art/source/characters/README.md`.
+
+## 17. Visual and audio lineage identity
+
+The eight lineages now have a documented **visual identity** (per-lineage architectural silhouettes, materials, and UI tokens) and a documented **audio identity** (per-lineage timbral family and rhythmic character):
+
+- Visual: [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md) § *Architecture* per lineage; condensed in [`08_VISUAL_UI_AND_ASSET_GUIDELINES.md`](world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md) § *Identidad resumida*.
+- Audio: [`docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md`](world-of-goses-design-bible/09_AUDIO_GUIDELINES.md) § *Identidad por linaje*.
+
+These identities are not yet encoded in the project (the three placeholder PNGs are culture-neutral); they are documented so the next character and building art slices know what each lineage should look and sound like.
+
+## 18. Outstanding open questions
+
+The design bible maintains an explicit list of decisions still pending. They are not gaps in the slice — they are gaps in the game:
+
+See [`docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md) § *Preguntas abiertas* for the canonical list (cosmology, environmental axis name, time scale, combat elements, weapon families, ageing, migration, cultural mixing, politics, economy, population capacity, music, first biome, first systemic conflict).
+
+The local ranking of those questions by immediate leverage lives in [`VALIDATION.md`](VALIDATION.md) § *Outstanding gaps*.
 
 Keep documentation and code aligned as construction prerequisites deepen.

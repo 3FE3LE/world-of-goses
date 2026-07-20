@@ -42,9 +42,11 @@ public partial class ProductionPanel : PanelContainer
             Text = "Production",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
+        _titleLabel.ThemeTypeVariation = "PanelTitle";
         root.AddChild(_titleLabel);
 
         _stockLabel = new Label { Text = "Stock: 0 / 0" };
+        _stockLabel.ThemeTypeVariation = "NumericText";
         root.AddChild(_stockLabel);
 
         _stockBar = new ProgressBar
@@ -57,17 +59,23 @@ public partial class ProductionPanel : PanelContainer
         root.AddChild(_stockBar);
 
         _rateLabel = new Label { Text = "Rate: 0 / tick" };
+        _rateLabel.ThemeTypeVariation = "NumericText";
         root.AddChild(_rateLabel);
 
         root.AddChild(new HSeparator());
-        root.AddChild(new Label { Text = "Production policy" });
+        var policyHeader = new Label { Text = "Production policy" };
+        policyHeader.ThemeTypeVariation = "SectionTitle";
+        root.AddChild(policyHeader);
 
         _enabledToggle = new CheckButton { Text = "Authorize production", ButtonPressed = true };
+        _enabledToggle.ThemeTypeVariation = "BodyText";
         _enabledToggle.Toggled += OnPolicyInputChanged;
         root.AddChild(_enabledToggle);
 
         var targetRow = new HBoxContainer();
-        targetRow.AddChild(new Label { Text = "Stop at stock:" });
+        var stopAtLabel = new Label { Text = "Stop at stock:" };
+        stopAtLabel.ThemeTypeVariation = "BodyText";
+        targetRow.AddChild(stopAtLabel);
         _targetStockInput = new SpinBox
         {
             MinValue = 0,
@@ -80,9 +88,11 @@ public partial class ProductionPanel : PanelContainer
         root.AddChild(targetRow);
 
         _policyStateLabel = new Label();
+        _policyStateLabel.ThemeTypeVariation = "BodySmall";
         root.AddChild(_policyStateLabel);
 
         _advanceButton = new Button { Text = "Advance production" };
+        _advanceButton.ThemeTypeVariation = "ButtonPrimary";
         _advanceButton.Pressed += () => EmitSignal(SignalName.AdvanceRequested);
         root.AddChild(_advanceButton);
 
@@ -92,6 +102,7 @@ public partial class ProductionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
             Modulate = new Color(1, 1, 1, 0.7f),
         };
+        _helperLabel.ThemeTypeVariation = "BodySmall";
         root.AddChild(_helperLabel);
     }
 

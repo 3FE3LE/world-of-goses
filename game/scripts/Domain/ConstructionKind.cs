@@ -10,4 +10,6 @@ namespace WorldofGoses.Domain;
 public enum ConstructionKind
 {
     BasicShelter = 0,
+    Farm = 1,
+    Quarry = 2,
 }

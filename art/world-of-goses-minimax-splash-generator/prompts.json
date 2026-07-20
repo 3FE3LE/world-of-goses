@@ -1,0 +1,131 @@
+{
+  "schema_version": 6,
+  "settings": {
+    "model": "image-01",
+    "width": 640,
+    "height": 800,
+    "n": 1,
+    "prompt_optimizer": false,
+    "response_format": "base64",
+    "timeout_seconds": 300,
+    "style_reference": "style_reference.png",
+    "reference_canvas_size": 512,
+    "reference_max_width": 380,
+    "reference_max_height": 460,
+    "pair_consistency": {
+      "enabled": true,
+      "female_reference_mode": "male_only_else_base"
+    },
+    "pixel_postprocess": {
+      "enabled": true,
+      "native_width": 160,
+      "native_height": 200,
+      "output_width": 640,
+      "output_height": 800,
+      "palette_colors": 32,
+      "autocontrast": true,
+      "contrast": 1.1,
+      "sharpness": 1.15
+    }
+  },
+  "base_prompt": "Create a NEW full-body 2D anime pixel-art character, about 20 years old. Use the reference only for its visual style, proportions, pixel density and framing, never its identity. Follow the requested skin tone, eye color, hair color, hairstyle and tattoos exactly; make them visibly distinct. Medieval or pre-industrial fantasy only. Use a subtle non-flat pixel texture behind the character, built from 2-4 lineage palette colors and its cultural motif; no detailed scene.",
+  "negative_prompt": "No copied face, default repeated hairstyle, wrong skin or eye color, old or child face, white/checkerboard/flat background, modern or futuristic gear, guns, sci-fi armor, cyberpunk, realism, painting, blur, cropped body, 3D, text, UI, logo or watermark.",
+  "characters": {
+    "ardhen_male": {
+      "lineage": "ardhen",
+      "gender": "male",
+      "seed": 2607202901,
+      "prompt": "Ardhen man: tan skin; dark-hazel eyes; short chestnut hair with rough side part. Basalt tunic, slate vest, copper buckles, belt, wraps, boots, masonry hammer. Angular stone-line tattoos on forearms. Sturdy and dependable. Background texture: stone grain, supports and copper seams. Palette: basalt, slate, copper, ochre, quarry beige."
+    },
+    "ardhen_female": {
+      "lineage": "ardhen",
+      "gender": "female",
+      "seed": 2607202902,
+      "prompt": "Ardhen woman: bronze skin; warm-brown eyes; long dark-umber hair in a low braided ponytail with loose side locks. Slate jerkin, beige sleeves, copper details, work belt, rope or brace tool, boots. Geometric quarry tattoos on shoulder and forearm. Resilient. Background texture: stone grain and copper seams. Palette: slate, charcoal, copper, amber, quarry beige."
+    },
+    "eirune_male": {
+      "lineage": "eirune",
+      "gender": "male",
+      "seed": 2607202903,
+      "prompt": "Eirune man: olive skin; teal-green eyes; medium moss-brown wavy hair. Layered healer-gardener tunic, woven plant motifs, herb satchel and medicinal sprigs. Vine tattoos along neck and arm. Gentle and observant. Background texture: fibers, leaves, cells and water ripples. Palette: moss, jade, aquamarine, clay, ivory, plum."
+    },
+    "eirune_female": {
+      "lineage": "eirune",
+      "gender": "female",
+      "seed": 2607202904,
+      "prompt": "Eirune woman: light-olive skin; bright-turquoise eyes; deep-brown crown braid with long braided tail and leaf cords. Soft herbalist layers, vine embroidery, pouches and herb vial. Botanical tattoos on collarbone and hands. Serene. Background texture: fibers, leaves and water cells. Palette: leaf green, teal, aquamarine, terracotta, ivory, purple."
+    },
+    "kovari_male": {
+      "lineage": "kovari",
+      "gender": "male",
+      "seed": 2607202905,
+      "prompt": "Kovari man: fair skin; steel-gray eyes; short black uneven undercut. Charcoal medieval tinkerer jacket, leather tool belt, gloves, brass buckles, tongs or wrench. Small repair-symbol tattoos and soot marks. Clever; strictly non-sci-fi. Background texture: rivets, leather patches and hammered metal. Palette: charcoal, iron, brass, oxidized teal, muted orange, cream."
+    },
+    "kovari_female": {
+      "lineage": "kovari",
+      "gender": "female",
+      "seed": 2607202906,
+      "prompt": "Kovari woman: peach-light skin; amber eyes; dark-auburn asymmetrical bob with one braided side. Graphite craftswoman coat, tool belt, gloves, brass fasteners and hand tools. Artisan glyph tattoos on fingers and temple. Inventive; strictly non-sci-fi. Background texture: rivets and hammered metal. Palette: graphite, steel, brass, turquoise, orange, bone."
+    },
+    "myrven_male": {
+      "lineage": "myrven",
+      "gender": "male",
+      "seed": 2607202907,
+      "prompt": "Myrven man: fair skin; wine-brown eyes; plum-black shoulder-length hair swept behind one ear. Layered diplomatic coat, sash, theatrical trims, seal and folded letter. Fine ceremonial face marking beneath one eye. Charismatic. Background texture: layered fabric, frames and partial reveals. Palette: ink violet, burgundy, rose, pearl, dark teal, charcoal."
+    },
+    "myrven_female": {
+      "lineage": "myrven",
+      "gender": "female",
+      "seed": 2607202908,
+      "prompt": "Myrven woman: pale skin; gray-violet eyes; long wine-red hair in a high looped ponytail with ribbon. Graceful layered diplomatic attire, seal badge and elegant practical shoes. Delicate mirrored tattoos at temples and wrists. Perceptive. Background texture: curtains and overlapping frames. Palette: ink purple, wine, old rose, pearl, teal, charcoal."
+    },
+    "vaelun_male": {
+      "lineage": "vaelun",
+      "gender": "male",
+      "seed": 2607202909,
+      "prompt": "Vaelun man: sun-tanned skin; blue-gray eyes; windswept dark-brown medium hair. Indigo traveler tunic, scarf, light cloak, map satchel, route staff and travel boots. Path-glyph tattoos on neck and forearm. Adventurous. Background texture: map lines, routes and wind marks. Palette: indigo, sand, teal, rust, pale sky, road brown."
+    },
+    "vaelun_female": {
+      "lineage": "vaelun",
+      "gender": "female",
+      "seed": 2607202910,
+      "prompt": "Vaelun woman: golden sun-kissed skin; green-blue eyes; black hair in two long travel braids under a head scarf. Layered pathfinder clothes, light cloak, map pouch, compass charm and boots. Route tattoos around one arm. Capable. Background texture: map lines and crossing routes. Palette: indigo, sand, turquoise, terracotta, sky, leather."
+    },
+    "orveth_male": {
+      "lineage": "orveth",
+      "gender": "male",
+      "seed": 2607202911,
+      "prompt": "Orveth man: medium-brown skin; deep-brown eyes; neat black hair combed back. Layered merchant vest and tunic, sash, ledger pouch, tokens and contract roll. Trade-guild tally tattoos on one hand. Reliable. Background texture: parchment, seals, measured units and symmetry. Palette: deep green, burgundy, brass, parchment, dark wood, cream."
+    },
+    "orveth_female": {
+      "lineage": "orveth",
+      "gender": "female",
+      "seed": 2607202912,
+      "prompt": "Orveth woman: warm-medium skin; honey-gold eyes; dark hair in a braided crown bun. Commerce dress-tunic, brass details, record pouch, inventory token and boots. Guild seal tattoo behind ear and on wrist. Efficient. Background texture: parchment, seals and balanced patterns. Palette: forest green, wine, brass, parchment, walnut, ivory."
+    },
+    "caelith_male": {
+      "lineage": "caelith",
+      "gender": "male",
+      "seed": 2607202913,
+      "prompt": "Caelith man: cool fair skin; pale-blue eyes; blue-black curly hair with shaved temple. Layered scholar coat, chart pouch, lens, notes and geometric trim. Star-chart tattoos along temple and hand. Curious. Background texture: grids, nodes and physical diagrams, no holograms. Palette: midnight blue, violet, cyan, silver, parchment, charcoal."
+    },
+    "caelith_female": {
+      "lineage": "caelith",
+      "gender": "female",
+      "seed": 2607202914,
+      "prompt": "Caelith woman: fair skin; silver-gray eyes; very dark-blue hair in a high braided bun with straight fringe. Observatory attire, measuring plate, diagram pouch and geometric trims. Celestial tattoos across shoulder and fingers. Insightful. Background texture: grids, stars and connected nodes. Palette: night blue, violet, cyan, silver, parchment, ink gray."
+    },
+    "theryn_male": {
+      "lineage": "theryn",
+      "gender": "male",
+      "seed": 2607202915,
+      "prompt": "Theryn man: amber-brown skin; near-black eyes; thick dark curls with shaved sides. Communal tunic with wave trims, sash, small drum and boots. Bold rhythmic wave tattoos across arms. Brave and protective. Background texture: pulses, circles and woven waves. Palette: crimson, plum, amber, deep blue, cream, charcoal."
+    },
+    "theryn_female": {
+      "lineage": "theryn",
+      "gender": "female",
+      "seed": 2607202916,
+      "prompt": "Theryn woman: cinnamon skin; bright-brown eyes; plum-tinted hair in a long voluminous side braid. Protective community attire, wave motifs, wrap, ceremonial token and boots. Ceremonial pulse tattoos on face and shoulders. Warm and strong. Background texture: waves, pulses and circles. Palette: crimson, plum, amber, blue, cream, wine gray."
+    }
+  }
+}

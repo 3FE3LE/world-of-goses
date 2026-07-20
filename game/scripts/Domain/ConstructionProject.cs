@@ -55,6 +55,21 @@ public sealed class ConstructionProject
         return false;
     }
 
+    /// <summary>
+    /// The <see cref="BuildingKind"/> this project produces on
+    /// completion. The mapping is owned by the domain so the
+    /// presentation layer never has to translate construction kinds
+    /// into building kinds on its own. Adding a new
+    /// <see cref="ConstructionKind"/> requires updating this switch.
+    /// </summary>
+    public BuildingKind ResultingKind => Kind switch
+    {
+        ConstructionKind.BasicShelter => BuildingKind.Home,
+        ConstructionKind.Farm => BuildingKind.Farm,
+        ConstructionKind.Quarry => BuildingKind.Quarry,
+        _ => BuildingKind.Home,
+    };
+
     internal bool TryAssign(CitizenId citizenId)
     {
         if (IsAssigned(citizenId)) return false;

@@ -1,4 +1,4 @@
-# Validation: end-to-end against GAME_VISION and ARCHITECTURE
+# Validation: end-to-end against the design bible
 
 > Snapshot of how the current slice holds up against the project's
 > own documents. Written as part of Slice 8 (end-to-end validation).
@@ -6,6 +6,13 @@
 > an honest cross-check of what code exists today against what was
 > promised. Markers: ✅ implemented · ⚠️ partial / shape only ·
 > ❌ missing / out of scope.
+
+This snapshot measures the code against the **canonical design source**
+— the design bible at
+[`world-of-goses-design-bible/`](world-of-goses-design-bible/README.md).
+The §2 table below cites the vision chapter (§01) and the nine-pillar
+chapter (§02); §4 cites specific sections of the bible. When a future
+pillar or lineage lands in code, this file should grow a row for it.
 
 ---
 
@@ -88,7 +95,7 @@ violating any architecture rule:
 
 ---
 
-## 4. GAME_VISION alignment (`docs/GAME_VISION.md`)
+## 4. Bible alignment
 
 ### 4.1 Main fantasy (§1)
 
@@ -255,6 +262,7 @@ but are worth knowing:
 | GAME_VISION §7 (production & storage) | ⚠️ basic ticking only; no chains / materials |
 | GAME_VISION §8 (persistent time) | ⚠️ save/load/elapsed ✅; causal report ⚠️ basic |
 | GAME_VISION §9 (design principles) | ✅ 13 / 14 fully held; 1 partial (unlocks — none exist yet) |
+| Slice 7 — First MVP pixel art | ✅ done — Home (64×64), Quarry (128×128), Farm (128×128) placeholders wired through `BuildingArt`; old generic `building_placeholder.png` and `worker_placeholder.png` removed |
 | Tests | 232 / 232 passing |
 | Build | clean, 0 warnings, 0 errors |
 

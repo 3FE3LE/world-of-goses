@@ -17,14 +17,23 @@ dimensions, not a single overall level. Expeditions are automatic and
 configured, not directly controlled. All current names — including the
 project name itself — are provisional.
 
-The full vision is in [`docs/GAME_VISION.md`](docs/GAME_VISION.md). The
-living direction and alignment criteria are in
-[`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md). The
-current implementation handoff and next starting point are in
+The canonical design source — fantasy, principles, pillars,
+lineages, audio identity, visual direction — is the design bible at
+[`docs/world-of-goses-design-bible/`](docs/world-of-goses-design-bible/README.md).
+Every old section that used to live in `docs/GAME_VISION.md`,
+`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`, or
+`docs/DESIGN_INFLUENCES.md` moved there. Those three files are now
+**pointers**; do not add design content to them, add it to the bible.
+
+The **process guide** for how to validate, sequence, and review
+slices is in [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
+The current implementation handoff and next starting point are in
 [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md). The
-acknowledged design lineage is in
-[`docs/DESIGN_INFLUENCES.md`](docs/DESIGN_INFLUENCES.md). The initial
-architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+implementation architecture is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). The pixel-art file
+flow is in [`docs/ART_PIPELINE.md`](docs/ART_PIPELINE.md). A
+single map of every doc lives in
+[`docs/README.md`](docs/README.md).
 
 ## 2. Current architecture
 
@@ -80,12 +89,26 @@ world-of-goses/
 ├── README.md
 ├── .gitignore
 ├── docs/
-│   ├── GAME_VISION.md
-│   ├── PRODUCT_DIRECTION.md
-│   ├── CURRENT_STATUS.md
-│   ├── ARCHITECTURE.md
-│   ├── ART_PIPELINE.md
-│   └── DESIGN_INFLUENCES.md
+│   ├── README.md                                  # consolidated doc index
+│   ├── CURRENT_STATUS.md                          # current slice, next proof
+│   ├── ARCHITECTURE.md                            # engine/domain boundary
+│   ├── ART_PIPELINE.md                            # Pixelorama → PNG → Godot
+│   ├── VALIDATION.md                              # cross-check vs bible
+│   ├── PRODUCT_DIRECTION.md                       # process guide
+│   ├── GAME_VISION.md                             # pointer → bible
+│   ├── LINEAGES_AND_PROFESSIONAL_AFFINITIES.md    # pointer → bible
+│   ├── DESIGN_INFLUENCES.md                       # pointer + audit trail
+│   └── world-of-goses-design-bible/               # canonical design source
+│       ├── 01_GAME_VISION.md
+│       ├── 02_CORE_GAMEPLAY_PILLARS.md
+│       ├── 03_CITY_TERRITORY_AND_GROWTH.md
+│       ├── 04_CITIZENS_PROFESSIONS_AND_HEROES.md
+│       ├── 05_EXPEDITIONS.md
+│       ├── 06_LINEAGES.md
+│       ├── 07_ONBOARDING_AND_FOUNDER.md
+│       ├── 08_VISUAL_UI_AND_ASSET_GUIDELINES.md
+│       ├── 09_AUDIO_GUIDELINES.md
+│       └── 10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md
 ├── art/
 │   ├── source/        # Pixelorama .pxo / .pxm, references
 │   │   ├── characters/

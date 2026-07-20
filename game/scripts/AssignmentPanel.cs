@@ -40,20 +40,26 @@ public partial class AssignmentPanel : PanelContainer
             Text = "Workers",
             HorizontalAlignment = HorizontalAlignment.Center,
         };
+        header.ThemeTypeVariation = "PanelTitle";
         _root.AddChild(header);
 
         _summary = new Label { Text = "" };
+        _summary.ThemeTypeVariation = "BodySmall";
         _root.AddChild(_summary);
 
         _root.AddChild(new HSeparator());
 
-        _root.AddChild(new Label { Text = "Assigned" });
+        var assignedHeader = new Label { Text = "Assigned" };
+        assignedHeader.ThemeTypeVariation = "SectionTitle";
+        _root.AddChild(assignedHeader);
         _assignedList = new VBoxContainer();
         _root.AddChild(_assignedList);
 
         _root.AddChild(new HSeparator());
 
-        _root.AddChild(new Label { Text = "Available" });
+        var availableHeader = new Label { Text = "Available" };
+        availableHeader.ThemeTypeVariation = "SectionTitle";
+        _root.AddChild(availableHeader);
         _availableList = new VBoxContainer();
         _root.AddChild(_availableList);
     }
@@ -85,7 +91,9 @@ public partial class AssignmentPanel : PanelContainer
 
         if (building.AssignedCount == 0)
         {
-            _assignedList.AddChild(new Label { Text = "(no workers)" });
+            var empty = new Label { Text = "(no workers)" };
+            empty.ThemeTypeVariation = "BodySmall";
+            _assignedList.AddChild(empty);
             return;
         }
 
@@ -111,7 +119,9 @@ public partial class AssignmentPanel : PanelContainer
         var available = controller.AvailableCitizens();
         if (available.Count == 0)
         {
-            _availableList.AddChild(new Label { Text = "(no free citizens)" });
+            var empty = new Label { Text = "(no free citizens)" };
+            empty.ThemeTypeVariation = "BodySmall";
+            _availableList.AddChild(empty);
             return;
         }
 
@@ -131,12 +141,14 @@ public partial class AssignmentPanel : PanelContainer
     {
         var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, RowHeight) };
         var label = new Label { Text = name, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        label.ThemeTypeVariation = "BodyText";
         row.AddChild(label);
         var button = new Button
         {
             Text = actionLabel,
             Name = "Button",
             TooltipText = actionTooltip,
+            ThemeTypeVariation = "ButtonText",
         };
         row.AddChild(button);
         return row;

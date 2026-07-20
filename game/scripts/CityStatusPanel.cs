@@ -7,91 +7,143 @@ using WorldofGoses.Domain;
 namespace WorldofGoses;
 
 /// <summary>
-/// Top-of-screen status strip in the macro view. Shows stock and
-/// staffing for every building plus the citizens who remain free.
+/// Top-of-screen status strip. Renders the city's headline state as
+/// a horizontal row of icon-plus-label pairs (day/night, mobilisation,
+/// per-building summary, free citizens) separated by thin gaps.
 ///
-/// The visual styling (font sizes, panel borders, colours) comes from
-/// the project's default theme; this class only renders the textual
-/// summary in a single label that wraps when the window is narrow.
+/// Each pair is built with <see cref="IconChip"/>, a tiny helper that
+/// keeps the icon-on-the-left layout consistent across the strip and
+/// guarantees integer pixel positions for the pixel-art pipeline.
+/// Text styling comes from the project's default theme (BodySmall);
+/// icons come from <see cref="IconPaths"/>.
 /// </summary>
 public partial class CityStatusPanel : PanelContainer
 {
+    private const int ChipGap = 18;
+
     private LineageThemeSignals? _themeSignals;
-    private readonly Label _label = new()
-    {
-        Text = "",
-        HorizontalAlignment = HorizontalAlignment.Center,
-        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        ThemeTypeVariation = "BodySmall",
-    };
+    private HBoxContainer _row = null!;
 
     public override void _Ready()
     {
-        AddChild(_label);
+        EnsureBuilt();
+    }
+
+    /// <summary>
+    /// Creates the row and wires subscriptions the first time it runs.
+    /// Safe to call multiple times — idempotent. Exists so that an
+    /// early <see cref="Refresh"/> from a sibling that was instantiated
+    /// before us (e.g. <c>CityMacroView</c>) doesn't crash on a null
+    /// <c>_row</c>.
+    /// </summary>
+    private void EnsureBuilt()
+    {
+        if (_row is not null) return;
+
+        _row = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _row.AddThemeConstantOverride("separation", ChipGap);
+        AddChild(_row);
+
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
         if (_themeSignals is not null)
         {
             _themeSignals.LineageChanged += OnLineageChanged;
         }
+        LineageThemeRegistry.ActiveLineageChanged += OnLineageAccentChanged;
     }
 
     public override void _ExitTree()
     {
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
+        LineageThemeRegistry.ActiveLineageChanged -= OnLineageAccentChanged;
     }
 
     private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
         "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
+    private void OnLineageAccentChanged(string lineage) => ReapplyAccent();
+
+    /// <summary>
+    /// Walks every chip currently in the row and re-tints its leading
+    /// icon with the active linaje's accent. Called once on _Ready and
+    /// again whenever the linaje changes via <c>LineageThemeSignals</c>.
+    /// </summary>
+    private void ReapplyAccent()
+    {
+        if (_row is null) return;
+        var accent = LineageThemeRegistry.IconAccent;
+        foreach (var child in _row.GetChildren())
+        {
+            if (child is HBoxContainer chip)
+            {
+                TintTextureRects(chip, accent);
+            }
+        }
+    }
+
+    private static void TintTextureRects(Node root, Color accent)
+    {
+        foreach (var child in root.GetChildren())
+        {
+            if (child is TextureRect icon) icon.Modulate = accent;
+            TintTextureRects(child, accent);
+        }
+    }
+
     public void Refresh(CityWorldController controller)
     {
-        var parts = new List<string>();
-        IReadOnlyDictionary<CitizenId, Citizen> citizens = controller.Citizens();
-        var free = new List<string>();
-        foreach (var citizen in citizens.Values)
+        EnsureBuilt();
+        foreach (var child in _row.GetChildren())
         {
-            if (!citizen.CurrentAssignment.HasValue) free.Add(citizen.Name);
+            child.QueueFree();
         }
 
-        parts.Add(DescribeClock(controller));
+        BuildClockChip(controller);
+        BuildUpkeepChip(controller);
+        BuildMobilisationChip(controller.Citizens());
 
-        string upkeep = DescribeUpkeep(controller);
-        if (upkeep.Length > 0) parts.Add(upkeep);
-        parts.Add(DescribeMobilisation(citizens));
-
-        if (controller.World.Projects.Count > 0)
+        foreach (var project in controller.World.Projects.Values)
         {
-            foreach (var project in controller.World.Projects.Values)
-            {
-                parts.Add(DescribeProject(project));
-            }
+            BuildProjectChip(project);
         }
 
         foreach (var building in controller.World.Buildings.Values)
         {
-            parts.Add(
-                $"{building.DisplayName}: {building.Stock}/{building.StorageCapacity} " +
-                $"{building.ResourceUnit} · {building.AssignedCount}/{building.WorkerCapacity} workers" +
-                DescribeStopCause(building));
+            BuildBuildingChip(building);
         }
 
-        parts.Add(
-            $"Free: {(free.Count == 0 ? "none" : string.Join(", ", free))}");
+        BuildFreeCitizensChip(controller);
 
         if (controller.World.Buildings.Count == 0 && controller.World.Projects.Count == 0)
         {
-            string heroName = controller.HeroOrNull()?.Name ?? "not established";
-            _label.Text = string.Join("  |  ", parts)
-                + "  |  Hero: " + heroName
-                + "  |  No buildings yet";
-            return;
+            BuildHeroChip(controller);
+            BuildEmptyStateChip();
         }
-
-        _label.Text = string.Join("  |  ", parts);
     }
 
-    private static string DescribeMobilisation(IReadOnlyDictionary<CitizenId, Citizen> citizens)
+    private void BuildClockChip(CityWorldController controller)
+    {
+        int tick = controller.World.CurrentTick;
+        bool day = GameClock.IsDaytime(tick);
+        int dayNumber = GameClock.DayNumber(tick);
+        int hour = (int)(GameClock.DayFraction(tick) * 24);
+        string iconPath = day ? IconPaths.Sun : IconPaths.Moon;
+        _row.AddChild(new IconChip(iconPath, $"Day {dayNumber} · {hour:D2}:00"));
+    }
+
+    private void BuildUpkeepChip(CityWorldController controller)
+    {
+        int rate = Upkeep.StonePerTick(controller.Citizens().Count);
+        if (rate <= 0) return;
+        _row.AddChild(new IconChip(IconPaths.Coin, $"-{rate} stone/tick"));
+    }
+
+    private void BuildMobilisationChip(IReadOnlyDictionary<CitizenId, Citizen> citizens)
     {
         int atWork = 0;
         int atHome = 0;
@@ -100,42 +152,110 @@ public partial class CityStatusPanel : PanelContainer
             if (citizen.CurrentLocation == CitizenLocation.AtWork) atWork++;
             else atHome++;
         }
-        return $"At work: {atWork} · At home: {atHome}";
+        _row.AddChild(new IconChip(IconPaths.User, $"{atWork} at work · {atHome} at home"));
     }
 
-    private static string DescribeStopCause(Building building) => building.StopCause switch
-    {
-        ProductionStopCause.Paused => " · ⏸ paused",
-        ProductionStopCause.TargetReached => " · ✓ full",
-        ProductionStopCause.WorkersExhausted => " · ⏸ exhausted",
-        ProductionStopCause.NoWorkers => " · ⚠ no workers",
-        ProductionStopCause.Night => " · 🌙 night",
-        _ => string.Empty,
-    };
-
-    private static string DescribeClock(CityWorldController controller)
-    {
-        int tick = controller.World.CurrentTick;
-        bool day = GameClock.IsDaytime(tick);
-        int dayNumber = GameClock.DayNumber(tick);
-        int hour = (int)(GameClock.DayFraction(tick) * 24);
-        string emoji = day ? "☀" : "🌙";
-        return $"Day {dayNumber} · {hour:D2}:00 {emoji}";
-    }
-
-    private static string DescribeUpkeep(CityWorldController controller)
-    {
-        int rate = Upkeep.StonePerTick(controller.Citizens().Count);
-        if (rate <= 0) return string.Empty;
-        return $"Upkeep: -{rate} stone/tick";
-    }
-
-    private static string DescribeProject(ConstructionProject project)
+    private void BuildProjectChip(ConstructionProject project)
     {
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
-        return $"Project: {project.DisplayName} {project.Progress}/{project.RequiredWork} " +
-            $"({ConstructionRules.Describe(phase)}) · " +
-            $"{project.AssignedCount}/{project.WorkerCapacity} workers" +
-            (project.Enabled ? string.Empty : " · ⏸ paused");
+        string label = $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
+            $"({ConstructionRules.Describe(phase)}) · {project.AssignedCount}/{project.WorkerCapacity}";
+        if (!project.Enabled) label += " · paused";
+        _row.AddChild(new IconChip(IconPaths.Building, label));
+    }
+
+    private void BuildBuildingChip(Building building)
+    {
+        string label = $"{building.DisplayName}: {building.Stock}/{building.StorageCapacity} " +
+            $"{building.ResourceUnit} · {building.AssignedCount}/{building.WorkerCapacity} workers" +
+            StopCauseSuffix(building);
+        _row.AddChild(new IconChip(IconPaths.House, label));
+    }
+
+    private void BuildFreeCitizensChip(CityWorldController controller)
+    {
+        var freeNames = new List<string>();
+        foreach (var citizen in controller.Citizens().Values)
+        {
+            if (!citizen.CurrentAssignment.HasValue) freeNames.Add(citizen.Name);
+        }
+        string label = freeNames.Count == 0 ? "no free citizens" : string.Join(", ", freeNames);
+        _row.AddChild(new IconChip(IconPaths.User, $"Free: {label}"));
+    }
+
+    private void BuildHeroChip(CityWorldController controller)
+    {
+        string heroName = controller.HeroOrNull()?.Name ?? "not established";
+        _row.AddChild(new IconChip(IconPaths.User, $"Hero: {heroName}"));
+    }
+
+    private void BuildEmptyStateChip()
+    {
+        _row.AddChild(new IconChip(IconPaths.House, "No buildings yet"));
+    }
+
+    private static string StopCauseSuffix(Building building) => building.StopCause switch
+    {
+        ProductionStopCause.Paused => " · paused",
+        ProductionStopCause.TargetReached => " · full",
+        ProductionStopCause.WorkersExhausted => " · exhausted",
+        ProductionStopCause.NoWorkers => " · no workers",
+        ProductionStopCause.Night => " · night",
+        _ => string.Empty,
+    };
+}
+
+/// <summary>
+/// One icon-plus-text pair used in <see cref="CityStatusPanel"/>.
+/// Compact helper that keeps the icon-on-the-left layout consistent
+/// across the strip; intentionally not a Control so it inlines
+/// without its own panel chrome. Icons ship with a white SVG fill
+/// and are tinted at construction time with the active linaje's
+/// accent; the parent <see cref="CityStatusPanel"/> re-tints every
+/// chip when the linaje changes so the entire strip stays coherent.
+/// </summary>
+public partial class IconChip : HBoxContainer
+{
+    private const int IconTextGap = 8;
+    private const int IconSize = 14;
+    private const int ChipHeight = 24;
+
+    public IconChip(string iconPath, string text)
+    {
+        MouseFilter = MouseFilterEnum.Ignore;
+        SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        CustomMinimumSize = new Vector2(0, ChipHeight);
+        AddThemeConstantOverride("separation", IconTextGap);
+
+        var iconCell = new MarginContainer
+        {
+            CustomMinimumSize = new Vector2(IconSize, ChipHeight),
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        iconCell.AddThemeConstantOverride("margin_top", 3);
+        AddChild(iconCell);
+
+        var icon = new TextureRect
+        {
+            Texture = ResourceLoader.Load<Texture2D>(iconPath),
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            CustomMinimumSize = new Vector2(IconSize, IconSize),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Modulate = LineageThemeRegistry.IconAccent,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        };
+        iconCell.AddChild(icon);
+
+        var label = new Label
+        {
+            Text = text,
+            ThemeTypeVariation = "BodySmall",
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        AddChild(label);
     }
 }

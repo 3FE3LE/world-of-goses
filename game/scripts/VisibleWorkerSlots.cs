@@ -53,7 +53,7 @@ public partial class VisibleWorkerSlots : Control
             slot.Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,
                 PresentationConstants.DetailedCitizenHeight);
-            slot.Configure(citizenId, citizen.Name);
+            slot.Configure(citizen);
             slot.CitizenActivated += id => EmitSignal(SignalName.CitizenClicked, id);
             slot.AddToGroup(PresentationConstants.GroupVisibleWorkerSlot);
             AddChild(slot);

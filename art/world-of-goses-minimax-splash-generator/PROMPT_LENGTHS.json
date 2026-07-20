@@ -1,0 +1,82 @@
+{
+  "ardhen_male": {
+    "normal": 1090,
+    "paired": 1292,
+    "fallback": 1165
+  },
+  "ardhen_female": {
+    "normal": 1118,
+    "paired": 1320,
+    "fallback": 1193
+  },
+  "eirune_male": {
+    "normal": 1079,
+    "paired": 1281,
+    "fallback": 1154
+  },
+  "eirune_female": {
+    "normal": 1104,
+    "paired": 1306,
+    "fallback": 1179
+  },
+  "kovari_male": {
+    "normal": 1123,
+    "paired": 1325,
+    "fallback": 1198
+  },
+  "kovari_female": {
+    "normal": 1111,
+    "paired": 1313,
+    "fallback": 1186
+  },
+  "myrven_male": {
+    "normal": 1110,
+    "paired": 1312,
+    "fallback": 1185
+  },
+  "myrven_female": {
+    "normal": 1106,
+    "paired": 1308,
+    "fallback": 1181
+  },
+  "vaelun_male": {
+    "normal": 1084,
+    "paired": 1286,
+    "fallback": 1159
+  },
+  "vaelun_female": {
+    "normal": 1094,
+    "paired": 1296,
+    "fallback": 1169
+  },
+  "orveth_male": {
+    "normal": 1094,
+    "paired": 1296,
+    "fallback": 1169
+  },
+  "orveth_female": {
+    "normal": 1092,
+    "paired": 1294,
+    "fallback": 1167
+  },
+  "caelith_male": {
+    "normal": 1097,
+    "paired": 1299,
+    "fallback": 1172
+  },
+  "caelith_female": {
+    "normal": 1112,
+    "paired": 1314,
+    "fallback": 1187
+  },
+  "theryn_male": {
+    "normal": 1072,
+    "paired": 1274,
+    "fallback": 1147
+  },
+  "theryn_female": {
+    "normal": 1096,
+    "paired": 1298,
+    "fallback": 1171
+  }
+}

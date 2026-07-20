@@ -14,7 +14,7 @@ namespace WorldofGoses;
 /// </summary>
 public partial class ConstructionPanel : PanelContainer
 {
-    [Signal] public delegate void AuthorizeRequestedEventHandler();
+    [Signal] public delegate void AuthorizeRequestedEventHandler(int constructionKind);
     [Signal] public delegate void PauseRequestedEventHandler();
     [Signal] public delegate void ResumeRequestedEventHandler();
     [Signal] public delegate void ViewHeroRequestedEventHandler();
@@ -38,11 +38,13 @@ public partial class ConstructionPanel : PanelContainer
     private Label _contributors = null!;
     private VBoxContainer _assignList = null!;
     private VBoxContainer _availableList = null!;
-    private Button _authorizeButton = null!;
-    private Button _pauseButton = null!;
-    private Button _resumeButton = null!;
-    private Button _viewHeroButton = null!;
-    private Button _viewBuildingButton = null!;
+    private IconButton _authorizeButton = null!;
+    private IconButton _farmButton = null!;
+    private IconButton _quarryButton = null!;
+    private IconButton _pauseButton = null!;
+    private IconButton _resumeButton = null!;
+    private IconButton _viewHeroButton = null!;
+    private IconButton _viewBuildingButton = null!;
     private Label _errorLabel = null!;
     private Button _primaryFocus = null!;
     private LineageThemeSignals? _themeSignals;
@@ -56,7 +58,7 @@ public partial class ConstructionPanel : PanelContainer
             return;
         }
         _controller = controllerNode;
-        AuthorizeRequested += () => _controller.TryAuthorizeBasicShelter();
+        AuthorizeRequested += kind => _controller.TryAuthorizeConstruction((ConstructionKind)kind);
         PauseRequested += () => OnPauseResume(true);
         ResumeRequested += () => OnPauseResume(false);
         ViewHeroRequested += () => _controller.SelectHero();
@@ -210,12 +212,40 @@ public partial class ConstructionPanel : PanelContainer
         footer.AddThemeConstantOverride("separation", 8);
         shell.AddChild(footer);
 
-        _authorizeButton = NewFooterButton("Authorize Basic Shelter", "ButtonPrimary");
-        _pauseButton = NewFooterButton("Pause", "ButtonText");
-        _resumeButton = NewFooterButton("Resume", "ButtonText");
-        _viewHeroButton = NewFooterButton("View hero", "ButtonText");
-        _viewBuildingButton = NewFooterButton("View shelter", "ButtonPrimary");
-        _authorizeButton.Pressed += () => EmitSignal(SignalName.AuthorizeRequested);
+        _authorizeButton = NewFooterButton(
+            iconPath: IconPaths.Check,
+            label: "Authorize Basic Shelter",
+            variation: "ButtonPrimary");
+        _farmButton = NewFooterButton(
+            iconPath: IconPaths.Leaf,
+            label: "Build Farm",
+            variation: "ButtonPrimary");
+        _quarryButton = NewFooterButton(
+            iconPath: IconPaths.Building,
+            label: "Build Quarry",
+            variation: "ButtonPrimary");
+        _pauseButton = NewFooterButton(
+            iconPath: IconPaths.Pause,
+            label: "Pause",
+            variation: "ButtonText");
+        _resumeButton = NewFooterButton(
+            iconPath: IconPaths.Play,
+            label: "Resume",
+            variation: "ButtonText");
+        _viewHeroButton = NewFooterButton(
+            iconPath: IconPaths.User,
+            label: "View hero",
+            variation: "ButtonText");
+        _viewBuildingButton = NewFooterButton(
+            iconPath: IconPaths.House,
+            label: "View shelter",
+            variation: "ButtonPrimary");
+        _authorizeButton.Pressed += () => EmitSignal(
+            SignalName.AuthorizeRequested, (int)ConstructionKind.BasicShelter);
+        _farmButton.Pressed += () => EmitSignal(
+            SignalName.AuthorizeRequested, (int)ConstructionKind.Farm);
+        _quarryButton.Pressed += () => EmitSignal(
+            SignalName.AuthorizeRequested, (int)ConstructionKind.Quarry);
         _pauseButton.Pressed += () => EmitSignal(SignalName.PauseRequested);
         _resumeButton.Pressed += () => EmitSignal(SignalName.ResumeRequested);
         _viewHeroButton.Pressed += () => EmitSignal(SignalName.ViewHeroRequested);
@@ -231,16 +261,19 @@ public partial class ConstructionPanel : PanelContainer
         footer.AddChild(_pauseButton);
         footer.AddChild(_resumeButton);
         footer.AddChild(_authorizeButton);
+        footer.AddChild(_farmButton);
+        footer.AddChild(_quarryButton);
         footer.AddChild(_viewBuildingButton);
 
         _primaryFocus = _authorizeButton;
     }
 
-    private static Button NewFooterButton(string text, string variation) => new()
+    private static IconButton NewFooterButton(string iconPath, string label, string variation) => new()
     {
-        Text = text,
+        IconPath = iconPath,
+        Label = label,
         ThemeTypeVariation = variation,
-        CustomMinimumSize = new Vector2(160, 44),
+        CustomMinimumSize = new Vector2(180, 44),
         FocusMode = FocusModeEnum.All,
     };
 
@@ -260,13 +293,9 @@ public partial class ConstructionPanel : PanelContainer
         if (_controller is null) return;
         _errorLabel.Text = string.Empty;
         var world = _controller.World;
-        if (world.Hero is null || world.Projects.Count == 0 && world.Buildings.Count == 0)
+        if (world.Projects.Count == 0)
         {
             _mode = Mode.Blueprint;
-        }
-        else if (world.Projects.Count == 0)
-        {
-            _mode = Mode.Completed;
         }
         else
         {
@@ -294,8 +323,11 @@ public partial class ConstructionPanel : PanelContainer
 
     private void RenderBlueprint(CityWorld world)
     {
-        _title.Text = "Build the first shelter";
-        _description.Text = "Authorise the Basic Shelter — a modest dwelling for the first citizens.";
+        bool hasHome = world.Buildings.Values.Any(building => building.Kind == BuildingKind.Home);
+        _title.Text = hasHome ? "Choose the next construction" : "Build the first shelter";
+        _description.Text = hasHome
+            ? "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
+            : "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction.";
         _phaseLabel.Visible = false;
         _progress.Visible = false;
         _statusLabel.Visible = false;
@@ -304,13 +336,17 @@ public partial class ConstructionPanel : PanelContainer
         _availableList.Visible = false;
         _errorLabel.Visible = false;
         bool canAuthorise = world.Hero is not null && world.Projects.Count == 0;
-        _authorizeButton.Visible = true;
+        _authorizeButton.Visible = !hasHome;
         _authorizeButton.Disabled = !canAuthorise;
+        _farmButton.Visible = hasHome;
+        _farmButton.Disabled = !canAuthorise;
+        _quarryButton.Visible = hasHome;
+        _quarryButton.Disabled = !canAuthorise;
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _viewBuildingButton.Visible = false;
         _viewHeroButton.Visible = world.Hero is not null;
-        _primaryFocus = _authorizeButton;
+        _primaryFocus = hasHome ? _farmButton : _authorizeButton;
         _primaryFocus.GrabFocus();
     }
 
@@ -323,7 +359,9 @@ public partial class ConstructionPanel : PanelContainer
             return;
         }
         _title.Text = project.DisplayName;
-        _description.Text = "Construction in progress. Pause anytime; work resumes with the contributors available.";
+        _description.Text = project.AssignedCount == 0
+            ? "Assign at least one available citizen below. Construction cannot advance without contributors."
+            : $"Contributors add work every {ConstructionRules.WorkIntervalTicks} seconds while the project is active.";
         _phaseLabel.Visible = true;
         _progress.Visible = true;
         _statusLabel.Visible = true;
@@ -345,6 +383,8 @@ public partial class ConstructionPanel : PanelContainer
         PopulateAvailable(project);
 
         _authorizeButton.Visible = false;
+        _farmButton.Visible = false;
+        _quarryButton.Visible = false;
         _viewBuildingButton.Visible = false;
         _pauseButton.Visible = project.Enabled;
         _resumeButton.Visible = !project.Enabled;
@@ -381,6 +421,8 @@ public partial class ConstructionPanel : PanelContainer
         _availableList.Visible = false;
         _errorLabel.Visible = false;
         _authorizeButton.Visible = false;
+        _farmButton.Visible = false;
+        _quarryButton.Visible = false;
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _viewHeroButton.Visible = true;
@@ -486,7 +528,8 @@ public partial class ConstructionPanel : PanelContainer
 
     private static string DescribeProjectStatus(ConstructionProject project) => project.StopCause switch
     {
-        ConstructionStopCause.Authorized => "Authorized — work in progress",
+        ConstructionStopCause.Authorized =>
+            $"Active — next contribution on a {ConstructionRules.WorkIntervalTicks}-tick interval",
         ConstructionStopCause.Paused => "Paused by the player",
         ConstructionStopCause.NoWorkers => "Waiting for contributors",
         ConstructionStopCause.WorkersExhausted => "Waiting: contributors exhausted",

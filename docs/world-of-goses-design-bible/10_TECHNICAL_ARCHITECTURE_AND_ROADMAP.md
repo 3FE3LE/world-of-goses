@@ -1,0 +1,183 @@
+# Arquitectura técnica y roadmap
+
+## Stack
+
+- Godot .NET.
+- C#.
+- Windows como entorno inicial.
+- VS Code.
+- Pixelorama.
+- Sixteen Pixel Perfect.
+- Backend externo solo cuando exista una necesidad validada.
+
+## Separación
+
+```text
+Dominio
+Decide qué ocurre y por qué
+
+Aplicación
+Orquesta casos de uso
+
+Presentación Godot
+Muestra estado e interacción
+
+Assets
+Definen apariencia y sonido
+```
+
+El dominio no depende de nodos, sprites, animaciones, cámaras, frame rate, input ni rutas de assets.
+
+## Representaciones
+
+```text
+Citizen
+Dato persistente
+
+MacroCitizenDot
+Representación urbana
+
+CitizenDetailedView
+Representación de edificio
+
+ExpeditionMemberView
+Representación completa
+```
+
+## Simulación
+
+Evitar:
+
+- Actualización de cada ciudadano en `_Process`.
+- Simular cada segundo offline.
+- Un nodo por habitante.
+- Pathfinding para población no visible.
+- Estado mutable global.
+- Event bus prematuro.
+- Dependencias innecesarias.
+
+Favorecer eventos discretos, cálculos por lote, datos compactos y estado bajo demanda.
+
+## Escenas sugeridas
+
+```text
+scenes/
+├── city/
+│   ├── CityMacroView.tscn
+│   ├── PlotView.tscn
+│   └── MacroCitizenDot.tscn
+├── buildings/
+│   ├── BuildingDetailView.tscn
+│   ├── MineDetailView.tscn
+│   ├── FarmDetailView.tscn
+│   └── HospitalDetailView.tscn
+├── citizens/
+│   ├── CitizenDetailedView.tscn
+│   └── CitizenPortraitView.tscn
+├── expeditions/
+│   ├── ExpeditionView.tscn
+│   ├── ExpeditionMemberView.tscn
+│   └── ExpeditionSegmentView.tscn
+└── ui/
+```
+
+## Pixel perfect
+
+- Resolución lógica: 1280 × 720.
+- Filtro nearest.
+- Posiciones enteras.
+- Escala entera.
+- Sin coordenadas fraccionarias para bordes.
+
+## Guardado
+
+Todavía no está fijado.
+
+Primera opción: guardado local estructurado, versionado de esquema, migraciones, snapshots y registro de eventos importantes.
+
+Postgres no se justifica para el primer prototipo.
+
+## Primer slice
+
+```text
+Ciudad macro
+→ mina seleccionable
+→ escena detallada
+→ ciudadanos asignados
+→ producción
+→ UI temática
+→ audio básico
+```
+
+### Contenido
+
+- Asentamiento central.
+- Mina.
+- Granja.
+- Actividad macro.
+- Panel superior.
+- Menú lateral.
+- Tema de un linaje.
+- Dos trabajadores iniciales.
+- Asignación y remoción.
+- Producción y almacenamiento.
+- Bloqueos visibles.
+
+## Segundo slice
+
+```text
+salida
+→ caminar
+→ enemigo
+→ combate automático
+→ destino
+→ regreso
+```
+
+Usar un ciudadano existente convertido en héroe.
+
+## Orden sugerido
+
+1. Ciudad macro y selección.
+2. Escena de mina.
+3. Asignación.
+4. Producción.
+5. Afinidad y experiencia.
+6. Almacenamiento y bloqueos.
+7. Tema visual.
+8. Audio básico.
+9. Parcela bloqueada.
+10. Expedición.
+11. Desbloqueo.
+12. Retorno herido.
+13. Tratamiento.
+14. Guardado.
+15. Progreso offline.
+
+## Guardarraíles
+
+- No convertir la ciudad en un colony simulator tradicional.
+- No separar héroes y habitantes.
+- No convertir linajes en clases profesionales.
+- No convertir el eje ambiental en moralidad binaria.
+- No convertir el fundador en destino permanente.
+- No confundir placeholders con dirección artística final.
+- No optimizar antes de medir.
+- No añadir datos que no permitan una decisión o comuniquen una consecuencia.
+
+## Preguntas abiertas
+
+- Cosmología común.
+- Nombre del eje ambiental.
+- Escala temporal.
+- Elementos de combate.
+- Familias de armas.
+- Experiencia y envejecimiento.
+- Migración.
+- Mezcla cultural.
+- Política.
+- Economía.
+- Capacidad poblacional.
+- Música.
+- Primer bioma.
+- Primer conflicto sistémico.

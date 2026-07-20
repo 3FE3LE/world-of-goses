@@ -25,11 +25,19 @@ public enum ConstructionVisualPhase
 /// </summary>
 public static class ConstructionRules
 {
-    /// <summary>Ticks between work intervals inside a single in-game day.</summary>
-    public const int WorkIntervalTicks = 600;
+    /// <summary>
+    /// Ticks between visible work contributions. At the runtime's
+    /// default 1 Hz rate this gives feedback every ten seconds, fast
+    /// enough to validate phases while still batching construction.
+    /// </summary>
+    public const int WorkIntervalTicks = 10;
 
     /// <summary>Total work required to finish the first Basic Shelter.</summary>
     public const int RequiredWork = 720;
+
+    public const int FarmRequiredWork = 960;
+
+    public const int QuarryRequiredWork = 1200;
 
     /// <summary>Maximum simultaneous contributors on the worksite.</summary>
     public const int WorkerCapacity = 4;
@@ -66,6 +74,22 @@ public static class ConstructionRules
 
     /// <summary>Stamina cost per interval for a single contributor.</summary>
     public static int StaminaCostPerWorkInterval() => CostPerWorkInterval;
+
+    public static int RequiredWorkFor(ConstructionKind kind) => kind switch
+    {
+        ConstructionKind.BasicShelter => RequiredWork,
+        ConstructionKind.Farm => FarmRequiredWork,
+        ConstructionKind.Quarry => QuarryRequiredWork,
+        _ => RequiredWork,
+    };
+
+    public static string DisplayNameFor(ConstructionKind kind) => kind switch
+    {
+        ConstructionKind.BasicShelter => "Basic Shelter",
+        ConstructionKind.Farm => "Farm",
+        ConstructionKind.Quarry => "Quarry",
+        _ => "Construction",
+    };
 
     /// <summary>Cap-aware competency bonus for a given accumulated experience value.</summary>
     public static int CompetencyBonusAt(int experience)

@@ -8,4 +8,5 @@ public enum ConstructionAuthorizationOutcome
     AlreadyAuthorized = 2,
     HomeAlreadyBuilt = 3,
     WorldNotEmpty = 4,
+    HomeRequired = 5,
 }

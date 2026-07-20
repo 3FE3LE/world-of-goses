@@ -17,6 +17,7 @@ public partial class BuildingDetailView : Control
     [Export] public NodePath BackButtonPath { get; set; } = "BackButton";
     [Export] public NodePath TitlePath { get; set; } = "Title";
     [Export] public NodePath MacroViewPath { get; set; } = "../CityMacroView";
+    [Export] public NodePath ArtHeaderPath { get; set; } = "BuildingArtHeader";
 
     private CityWorldController _controller = null!;
     private VisibleWorkerSlots _slots = null!;
@@ -24,6 +25,7 @@ public partial class BuildingDetailView : Control
     private ProductionPanel _productionPanel = null!;
     private Button _backButton = null!;
     private Label _title = null!;
+    private TextureRect _artHeader = null!;
     private CityMacroView _macroView = null!;
     private BuildingId _currentBuilding;
 
@@ -35,6 +37,7 @@ public partial class BuildingDetailView : Control
         _productionPanel = RequireNode<ProductionPanel>(ProductionPanelPath);
         _backButton = RequireNode<Button>(BackButtonPath);
         _title = RequireNode<Label>(TitlePath);
+        _artHeader = RequireNode<TextureRect>(ArtHeaderPath);
         _macroView = GetNode<CityMacroView>(MacroViewPath);
 
         _slots.CitizenClicked += OnSlotCitizenClicked;
@@ -45,6 +48,8 @@ public partial class BuildingDetailView : Control
         _backButton.Pressed += OnBackPressed;
 
         _controller.BuildingStateChanged += OnBuildingStateChanged;
+        _controller.BuildingSelected += OnBuildingSelected;
+        _controller.SelectionChanged += OnSelectionChanged;
         _controller.CitizenAssignmentRejected += OnAssignmentRejected;
 
         Hide();
@@ -66,6 +71,8 @@ public partial class BuildingDetailView : Control
         if (_controller is not null)
         {
             _controller.BuildingStateChanged -= OnBuildingStateChanged;
+            _controller.BuildingSelected -= OnBuildingSelected;
+            _controller.SelectionChanged -= OnSelectionChanged;
             _controller.CitizenAssignmentRejected -= OnAssignmentRejected;
         }
     }
@@ -88,6 +95,21 @@ public partial class BuildingDetailView : Control
         // just "Quarry" — gives each building a distinguishable name
         // in the detail view even when its visual asset is similar.
         _title.Text = building.FullDisplayLabel;
+
+        // Texture header shows the building's art above the worker
+        // slots. Hidden when the kind has no art yet (Smithy, PotionLab)
+        // so the detail view degrades gracefully instead of crashing.
+        var texturePath = BuildingArt.GetTexturePath(building.Kind);
+        if (texturePath is not null)
+        {
+            _artHeader.Texture = ResourceLoader.Load<Texture2D>(texturePath);
+            _artHeader.Visible = true;
+        }
+        else
+        {
+            _artHeader.Texture = null;
+            _artHeader.Visible = false;
+        }
 
         var visibleIds = _controller.World.GetCurrentlyVisibleOccupants(building);
         _slots.Render(visibleIds, building, _controller.Citizens());
@@ -136,6 +158,36 @@ public partial class BuildingDetailView : Control
     {
         if (buildingId != _currentBuilding.Value) return;
         Refresh();
+    }
+
+    /// <summary>
+    /// Fired by <see cref="CityWorldController.SelectBuilding"/> when the
+    /// player activates a plot in the macro view (or any other code path
+    /// that wants to open the building detail). Opens the detail view
+    /// for the building id carried by the signal.
+    /// </summary>
+    private void OnBuildingSelected(int buildingId) =>
+        ShowBuilding(new BuildingId(buildingId));
+
+    /// <summary>
+    /// Keeps the detail view in sync with the controller's selection
+    /// state. Only stays visible while <see cref="CityWorldController.Selection.BuildingDetail"/>
+    /// is the active selection; hides on every other transition so
+    /// navigation via <c>View hero</c>, the macro view's back path,
+    /// or any future selection target never leaves the detail view
+    /// stranded on top.
+    /// </summary>
+    private void OnSelectionChanged(int selectionState)
+    {
+        var selection = (CityWorldController.Selection)selectionState;
+        if (selection == CityWorldController.Selection.BuildingDetail)
+        {
+            // BuildingSelected is what actually opens the view; this
+            // handler just makes sure we stay visible if the selection
+            // reasserts itself for the same building.
+            return;
+        }
+        HideBuilding();
     }
 
     private void OnAssignmentRejected(int reason) =>

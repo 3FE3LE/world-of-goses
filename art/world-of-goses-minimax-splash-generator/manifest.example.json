@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "generations": {
+    "ardhen_male": {
+      "generated_at": "example",
+      "model": "image-01",
+      "seed": 2607202601,
+      "reference": "assets/characters/lineages/ardhen/male/textures/idle_down_128.png",
+      "output": "art/generated/splash/ardhen/male.png"
+    }
+  }
+}
