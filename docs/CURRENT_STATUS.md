@@ -1,9 +1,8 @@
 # Current Project Status
 
 > Practical handoff for the next development session. Read this after
-> `GAME_VISION.md` and `PRODUCT_DIRECTION.md` to understand what is implemented,
-> what has been verified, and where work should resume. Update this file when a
-> vertical slice materially changes the playable state or next priority.
+> `GAME_VISION.md` and `PRODUCT_DIRECTION.md` to understand the implemented
+> founding-hero slice and the next decision.
 
 ---
 
@@ -11,171 +10,172 @@
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **189 / 189 passing**.
-- Godot headless loads the main scene and the primary save slot without scene,
-  signal, or C# errors.
-- Latest completed slice covers three changes stacked on top of the persistent
-  production policies slice: Stamina-gated production, Day/Night cycle +
-  passive Upkeep + WellFed buff, and citizen Mobilisation with a Home building.
+- xUnit suite: **232 / 232 passing**.
+- Godot headless loads the main scene and current primary slot without scene,
+  resource, signal, or C# errors.
+- The current slice combines founding-hero onboarding, the first authorised
+  Basic Shelter construction project, and eight lineage visual themes.
 
-## 2. Playable slice
+## 2. Founding-hero slice
 
-The main scene presents one city with three buildings:
+A fresh `CityWorld` contains no citizens and no buildings. The player completes a five-step onboarding flow that chooses:
 
-- Quarry produces stone through mining competency.
-- Farm produces food through farming competency.
-- Home is the resting location — workers visually move here at night and
-  return to their assigned production building at sunrise.
-- Citizens can be assigned and removed from Quarry and Farm.
-- Visible worker slots render based on each citizen's current physical
-  location, not the static assignment, so the day/night cycle is visible
-  without opening the detail view.
-- The city status strip reports time-of-day, upkeep rate, per-building
-  stock and staffing with the active stop cause, and the live split of
-  citizens at work versus at home.
+- Name and one of eight working lineages.
+- Three personal aptitudes.
+- Three professional families from the twelve-family vocabulary.
+- One elemental affinity.
+- One combat style and one or two weapon preferences.
+- Three personality traits.
+- One political orientation and one spiritual posture.
 
-## 3. Stamina-gated production
+Completing the flow creates exactly one `Citizen` with the `Hero` role, full stamina, no assignment, and `AtHome` location. The hero profile is visible in a responsive read-only profile screen. The macro view shows one real citizen marker and a clear `No buildings yet` state; it does not create a Home, Quarry, Farm, or any other building implicitly.
 
-Each citizen carries `CurrentStamina` (clamped 0–`MaxStamina`, default 100).
-Every world tick, assigned workers on a producing building pay the
-building's per-tick stamina cost, then eat food from the Farm-kind
-buildings in deterministic order to refill. If every contributor to a
-building runs out of stamina, the building sets
-`ProductionStopCause.WorkersExhausted` and produces nothing that tick.
-The Quarry and Farm are both stamina consumers in this slice. The
-underlying numbers (`MaxStamina`, costs, regen) live in `StaminaRules.cs`
-and are provisional tuning values, not product rules.
+The eight lineage definitions are canonical in
+`LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`. In this slice they are qualitative
+identity metadata. They do not block professions, establish permanent ceilings,
+or grant automatic production bonuses. Practical experience and future
+education/skill systems must outweigh birth over time.
 
-## 4. Day, Night, and Upkeep
+## 3. First authorised construction
 
-The world clock ticks at 1 Hz (a prototype parameter). One in-game day
-lasts 3600 ticks (one real hour). The day portion is the first
-`DayTicks = 2400` (16 in-game hours) and the night portion is the
-remaining `NightTicks = 1200` (8 in-game hours). `GameClock.IsDaytime`
-and `GameClock.DayFraction` derive position from the world tick.
+After onboarding, the macro view offers a Basic Shelter as an explicit player
+decision. Authorisation creates a persisted `ConstructionProject`; contributors
+can be assigned or removed, work can be paused and resumed, and deterministic
+ticks advance project progress subject to day/night and stamina. Completion
+replaces the project with the resulting Home-kind building without seeding it
+at world creation.
 
-Day-time behaviour: assigned workers pay stamina, eat food, produce.
-Night-time behaviour: no stamina cost, no production, food may still be
-eaten, passive stamina regen keeps workers topped up. At sunrise the
-day/night status changes, the night→day transition fires
-`MobiliseForDay`, and the night→day transition fires `MobiliseForNight`.
+## 4. Existing city systems retained as concepts
 
-Passive city upkeep consumes one stone per five citizens per tick
-(`Upkeep.StonePerTick`, rounded up, floor of one) from the Quarry-kind
-buildings in deterministic insertion order. The drain runs 24/7 and
-is the placeholder for future building-driven demand.
+The domain still contains buildings, production policies, assignments, stamina,
+food, upkeep, day/night mobilisation, and offline progression. They are no
+longer instantiated by the new-game path. The Basic Shelter now proves the
+empty-to-built transition while Quarry and Farm remain explicit test fixtures.
 
-## 5. WellFed buff
+The old Quarry/Farm/Home scenarios remain available only as explicit test
+fixtures in `TestHelpers`; they are not the game's current data.
 
-Eating resets each citizen's `WellFedRemainingTicks` to
-`StaminaRules.WellFedBuffDuration` (100 ticks). The buff decrements
-by one each world tick. While the buff is positive, stamina regen gains
-`StaminaRules.WellFedRegenBonus` (one extra per tick). The buff exists
-so food scarcity degrades regen gradually instead of cutting it off
-abruptly, and so a future food-quality slice can scale the bonus
-without restructuring the formula. The buff is a citizen-level
-property, so per-citizen variation is already isolated in
-`Citizen.WellFedRemainingTicks`.
+## 5. Stamina, day/night, and idle worlds
 
-## 6. Mobilisation and the Home building
+Assigned workers continue to pay stamina on producing buildings, eat food when
+available, and regenerate through the existing WellFed rules. A hero-only world
+advances its clock and decays buffs during live and offline time without trying
+to produce or consume building resources. The offline path uses an idle
+fast-forward for an empty building collection rather than iterating thousands
+of no-op building ticks.
 
-`Citizen.CurrentAssignment` is the worker's job (static). A new
-`Citizen.CurrentLocation` is the worker's physical location right now
-(`AtWork` or `AtHome`). At sunset every citizen moves to
-`AtHome`; at sunrise, assigned citizens return to `AtWork` while the
-unassigned stay home. The transition fires once per world tick from
-`AdvanceWorldTick` when `IsDaytime` changes between the previous and
-the current tick.
+## 6. Persistence
 
-A new `BuildingKind.Home` was added to the seed. The Home has
-worker capacity equal to the seeded population (5), no production,
-and no upkeep consumption. Its slots render every citizen whose
-`CurrentLocation == AtHome`. `CityWorld.GetCurrentlyVisibleOccupants`
-encapsulates the per-building occupant logic so production buildings
-show only workers with `AtWork` while Home shows everyone with
-`AtHome`. `CityWorld.Restore` runs `MobiliseForDay` or `MobiliseForNight`
-based on `IsDaytime(_tick)` so the visible state matches the loaded
-clock from the first frame after a save load.
+- Schema version is now **2**.
+- A v2 citizen save includes a complete `CitizenProfileSave` plus competencies,
+  roles, assignment, stamina, and WellFed state.
+- A playable v2 snapshot must contain exactly one hero citizen; zero buildings
+  is valid.
+- A v1 slot containing the retired five-citizen / three-building prototype is
+  rejected as incompatible and left untouched during onboarding. After a
+  successful hero creation, the normal atomic write replaces it and preserves
+  the previous file as `.bak`.
+- Partial onboarding is not saved in this slice. Closing before confirmation
+  starts the flow again without destroying the old slot.
+- Structural and cross-entity validation runs before restore.
 
-## 7. Persistence
+## 7. Presentation, themes, and navigation
 
-- One primary local JSON slot is auto-loaded and auto-saved.
-- DTOs remain separate from domain entities.
-- Snapshots include schema version, last-seen UTC timestamp, citizens,
-  buildings, assignments, competencies, roles, stock, production
-  policies, stamina (`StaminaCurrent`/`StaminaMax`), and the WellFed buff
-  counter (`WellFedRemainingTicks`).
-- Writes use a temporary file and preserve the previous snapshot as `.bak`.
-- Validation runs before restore and rejects structurally inconsistent worlds.
-- Invalid or empty snapshots retain the seeded Quarry/Farm/Home world and
-  are replaced with a valid snapshot so the same recovery does not recur.
-- Older snapshots without stamina fields default each citizen to full
-  stamina; older snapshots without the buff field default to no buff.
+`CityWorldController` emits `HeroCreated`, `WorldTickAdvanced`, selection, and
+building signals. `OnboardingView` and `HeroProfileView` are reusable Control
+scenes. They use containers, scrolling, explicit focusable controls, and a
+single back path so the flow works with mouse, keyboard, and gamepad.
 
-## 8. Controller-level event for live UI
+The global theme preserves the Geist Pixel / Jersey 10 / Pixelify Sans hierarchy.
+The eight founder lineages resolve exported panel `StyleBoxTexture` resources at
+runtime through `LineageThemeRegistry`; missing components fall back to the same
+lineage panel and then the project default. `LineageShowcase.tscn` exercises all
+eight packs and the expected component fallbacks. The reference viewport is
+1280×720 with responsive Control containers.
 
-`CityWorldController` exposes a `WorldTickAdvanced(int tick)` signal
-that fires after every `AdvanceWorldTick`. `CityMacroView` subscribes
-and refreshes the city status strip every tick so the time-of-day and
-the at-work / at-home split stay in sync with the simulation even
-when no production change fires `BuildingStateChanged`.
+## 8. Known limitations
 
-## 9. Known limitations
-
-- Quarry and Farm produce independent resources; cross-resource
-  consumption exists only through the WellFed buff mechanic on stamina.
-- Upkeep is a single city-wide stone drain; there is no building-driven
-  demand yet (Smithy, depot maintenance, etc.).
-- Offline reporting is aggregate. It does not yet provide per-building
-  causal events or a chronological return report.
-- The day/night split is provisional: day starts at tick 0 of each
-  in-game day. Moving the sunrise to hour 8 is a one-line offset change.
-- Citizens cannot yet be assigned explicitly to a Home; mobilisation
-  is automatic and follows the world clock.
-- The Home has no production and no special effects (no rest-quality
-  multiplier on regen, no healing). A future slice will add
-  capacity-aware housing and per-Home bonuses.
+- Lineage and profile choices are stored and presented but do not yet modify
+  learning, retention, errors, fatigue, teaching, or production. Those effects
+  require the future skill-system slice.
+- Basic Shelter is the only construction decision and its prerequisites are
+  intentionally minimal; materials, knowledge, institutions, and richer unlock
+  conditions remain future work.
+- Offline reporting is aggregate and does not yet provide a chronological causal
+  event log.
+- Combat, expeditions, health, relationships, institutions, migration, and
+  environmental alignment remain future systems.
 - Placeholder art is still in use.
-- No construction, institutions, development dimensions, expeditions,
-  health, relationships, lineage, or environmental alignment are
-  playable yet.
-- Visual interaction is manually/headless verified; there is no
-  automated Godot UI test harness.
+- There is no automated Godot UI test harness; headless boot and manual flow
+  verification remain required.
 
-## 10. Recommended next slice
+## 9. Recommended next slice
 
-The next slice should give the player a meaningful choice about what the
-city consumes and produces, beyond the placeholder stone upkeep. Two
-open seams are ready for that:
+Deepen the first-building proof with conditions-as-data (materials, knowledge,
+institutions, and authorisation) without turning lineage into a production bonus
+or profession lock. Preserve live/offline parity for construction progress.
 
-1. Replace the abstract upkeep with a building-driven demand (e.g.
-   a Smithy that consumes stone to produce tools, which boost
-   production). The seam is `Upkeep.StonePerTick` plus the per-building
-   cost table in `StaminaRules.cs`.
-2. Move day/night so sunrise starts at hour 8 instead of hour 0.
-   One constant change plus an offset in `GameClock.IsDaytime`.
-
-Before choosing, compare the proposal with the alignment checklist in
-`PRODUCT_DIRECTION.md` (UI/UX must reduce interaction cost through
-overview, progressive disclosure, and persistent policies without
-removing the systemic trade-off).
-
-## 11. Verification commands
+## 10. Verification commands
 
 From `C:\dev\world-of-goses`:
 
 ```powershell
-# Build the C# project (must be run from game/ for Godot's project layout)
 cd game
 dotnet build
 
-# Domain and persistence tests
 cd ../tests/WorldofGoses.Tests
 dotnet test
 
-# Godot headless (machine-specific path, not a repo requirement)
-C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe --headless --quit-after 3 res://scenes/CityPrototype.tscn
+C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe --headless --path ..\..\game --quit-after 3
 ```
 
-There is no linter or CI configured yet. Do not invent commands. Do not
-install global tools.
+There is no linter or CI configured yet. Do not install global tools.
+
+## 11. Design record
+
+The full lineage and professional-affinity contract is in
+`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`; design-influence boundaries
+remain in `docs/DESIGN_INFLUENCES.md`.
+
+The next session should begin by reading both documents before adding any
+lineage mechanic or building seed.
+
+## 12. Verification history
+
+The previous Quarry/Farm/Home slice was verified before this reset. Its
+production, stamina, mobilisation, and persistence behaviours are still covered
+by explicit test scenarios, not by production startup data.
+
+The current baseline was verified with:
+
+- `dotnet build game/World of Goses.csproj` — 0 warnings, 0 errors.
+- `dotnet test tests/WorldofGoses.Tests/WorldofGoses.Tests.csproj --no-restore` — 232 passing.
+- Godot 4.7.1 `.NET` headless boot — current slot loaded cleanly.
+
+The manual onboarding flow must still be exercised in a graphical Godot run.
+
+## 13. Open product questions
+
+- Which richer conditions should gate or reshape the Basic Shelter project?
+- Which skill formulas turn qualitative affinities into small, causal early
+  learning effects?
+- How should education, mentorship, history, health, and institutions change
+  the weight of lineage over time?
+- Which original public-facing names replace provisional design terms after
+  originality review?
+
+These are open design questions, not permission to reintroduce a starter seed.
+
+## 14. File map
+
+- Domain: `game/scripts/Domain/`
+- Persistence: `game/scripts/Domain/Persistence/`
+- Onboarding: `game/scripts/OnboardingView.cs`, `game/scenes/OnboardingView.tscn`
+- Hero profile: `game/scripts/HeroProfileView.cs`, `game/scenes/HeroProfileView.tscn`
+- Construction: `game/scripts/ConstructionPanel.cs`, domain construction types
+- Lineage themes: `game/scripts/LineageThemeRegistry.cs`, `game/assets/ui/lineages/`
+- Main scene: `game/scenes/CityPrototype.tscn`
+- Tests: `tests/WorldofGoses.Tests/`
+- Canonical lineage design: `docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`
+
+Keep documentation and code aligned as construction prerequisites deepen.

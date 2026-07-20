@@ -66,179 +66,27 @@ Internal documents may reference the original inspirations to
 communicate design intent. Public-facing names, art, lore, and
 implementations must be independently created.
 
-## 4. The 18-lineage design space
+## 4. The canonical eight-lineage roster
 
-The long-term design may contemplate approximately **18 distinct
-lineages or archetypal peoples**, inspired by the breadth and clarity
-of the source's class roster.
+The current canonical roster is **eight original working lineages**: Ardhen, Eirune, Kovari, Myrven, Vaelun, Orveth, Caelith, and Theryn. Their professional affinities and the citizen-profile rules are maintained in [`LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`](LINEAGES_AND_PROFESSIONAL_AFFINITIES.md).
 
-These must not be direct renamed copies.
+The roster is not a class system. A lineage creates tendencies and opportunities, not absolute restrictions. Members of the same lineage may become miners, doctors, farmers, engineers, politicians, artisans, adventurers, or any other profession. Experience, education, tools, health, institutions, and personal history must matter more than birth over time.
 
-Each lineage should be independently defined through:
+The eight names remain provisional until they pass the originality review in §9. The canonical design document owns the detailed affinities; this document owns the boundary between inspiration and original implementation.
 
-- Biology or magical nature.
-- Cultural tendencies.
-- Professional affinities.
-- Environmental relationship.
-- Social organization.
-- Architecture.
-- Clothing.
-- Animation language.
-- Strengths.
-- Vulnerabilities.
-- Potential internal diversity.
+## 5. Retired MVP shorthand
 
-A lineage creates tendencies and opportunities, not absolute
-restrictions. Members of the same lineage may become miners, doctors,
-farmers, engineers, politicians, artisans, adventurers, or any other
-profession. Their lineage may affect aptitude, learning conditions,
-cultural expectations, or passive interactions, but it must not
-permanently lock them into one profession.
+Earlier drafts used three internal shorthand archetypes (martial, restorative, and tactical-engineering) to explore the design space. They are historical notes, not the current roster and not implementation requirements. They must not override the eight canonical lineages or be exposed as public-facing classes.
 
-The number 18 is a target, not a commitment. The roster may evolve as
-the design matures.
+The old shorthand remains below only as an audit trail. Any future implementation must use original names, cultures, visual silhouettes, professional affinities, strengths, vulnerabilities, and environmental relationships described in the canonical document.
 
-## 5. The three MVP lineages
+## 6. Founding hero and profile
 
-For the MVP, only three original lineages are designed. Their working
-inspirations are:
+The current entry point is the complete hero onboarding described in [`LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`](LINEAGES_AND_PROFESSIONAL_AFFINITIES.md). The player chooses a name, one lineage, personal aptitudes, professional affinities, elemental affinity, combat preferences, traits, political orientation, and spiritual posture.
 
-1. A physically driven, direct, action-oriented lineage inspired by
-   the gameplay fantasy associated with the Iop archetype.
-2. A biologically or magically restorative lineage inspired by the
-   gameplay fantasy associated with the Eniripsa archetype.
-3. A tactical, explosive, deceptive, or engineering-oriented lineage
-   inspired by the gameplay fantasy associated with the Rogue /
-   Roublard archetype.
+These choices establish the hero's identity and future learning context. They are not a global numerical bonus and do not convert other citizens into copies of the founder. The hero remains an ordinary `Citizen` carrying the `Hero` recognition.
 
-These references are internal design shorthand only. The actual MVP
-lineages must receive:
-
-- Original working names.
-- Original visual silhouettes.
-- Original cultures.
-- Original professional affinities.
-- Original abilities.
-- Original architecture.
-- Original strengths and weaknesses.
-- Original environmental relationships.
-
-Direct parody names, slightly altered spellings, or transliterations
-of the source names are not acceptable as final names.
-
-### 5.1 Martial lineage (MVP)
-
-**Working inspiration:** physically driven, direct, action-oriented
-(Iop archetype).
-
-**Potential tendencies:**
-
-- Physical work.
-- Construction.
-- Mining.
-- Security.
-- Expedition leadership.
-- Heavy equipment.
-- Strong action-oriented culture.
-
-**Possible weaknesses:**
-
-- Greater resource consumption.
-- Conflict escalation.
-- Lower initial interest in administrative or medical specialization
-  unless the city deliberately develops those areas.
-
-### 5.2 Restorative lineage (MVP)
-
-**Working inspiration:** biologically or magically restorative
-(Eniripsa archetype).
-
-**Potential tendencies:**
-
-- Healthcare.
-- Agriculture.
-- Biological research.
-- Public sanitation.
-- Rehabilitation.
-- Environmental restoration.
-- Support roles during expeditions.
-
-**Possible weaknesses:**
-
-- Higher demand for specialized ingredients.
-- Greater personnel investment in long-term care.
-- Lower immediate military or industrial output unless deliberately
-  developed.
-
-### 5.3 Tactical-engineering lineage (MVP)
-
-**Working inspiration:** tactical, explosive, deceptive, or
-engineering-oriented (Rogue / Roublard archetype).
-
-**Potential tendencies:**
-
-- Engineering.
-- Traps.
-- Logistics.
-- Demolition.
-- Manufacturing.
-- Automation.
-- Tactical expedition roles.
-- Rapid infrastructure deployment.
-
-**Possible weaknesses:**
-
-- Accident risk.
-- High material consumption.
-- Pollution or environmental damage.
-- Dependence on complex supply chains.
-
-These are tendencies, not class restrictions. A member of the martial
-lineage may become an exceptional doctor. A member of the restorative
-lineage may become a soldier. A member of the tactical-engineering
-lineage may become a farmer.
-
-Their performance depends on aptitude, education, professional
-experience, institutions, equipment, and personal history — exactly as
-described in `GAME_VISION.md` for any citizen.
-
-## 6. Founder influence
-
-At the beginning of a city, the player selects:
-
-- The founding lineage.
-- The initial embodied hero.
-- The founder's primary profession or calling.
-- Initial environmental and cultural conditions.
-
-The founder should influence the early city through:
-
-- Teaching.
-- Cultural prestige.
-- Available knowledge.
-- Professional imitation.
-- Initial institutions.
-- Recruitment preferences.
-- Early production priorities.
-- The probability that other citizens pursue related professions.
-
-This is **not** a global numerical bonus that automatically converts
-citizens into copies of the founder.
-
-Example, using the restorative lineage as a working name:
-
-```
-Founder profession: healer
-
-Possible early consequences:
-- Greater social respect for medical work.
-- Earlier appearance of apprentices.
-- Basic medical knowledge becomes easier to transmit.
-- Medical supplies receive higher default priority.
-- Migrant healers may find the city more attractive.
-```
-
-The founder influences history but does not permanently dictate it.
+Environmental alignment is separate: it emerges from accumulated city actions and policies rather than from a permanent faction selected at character creation.
 
 ## 7. Environmental alignment
 

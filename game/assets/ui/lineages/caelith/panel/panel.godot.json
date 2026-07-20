@@ -1,0 +1,29 @@
+{
+  "type": "NinePatchRect",
+  "texture": "panel_mine.png",
+  "region_rect": {
+    "x": 0,
+    "y": 0,
+    "w": 48,
+    "h": 32
+  },
+  "patch_margin": {
+    "left": 11,
+    "right": 11,
+    "top": 11,
+    "bottom": 11
+  },
+  "axis_stretch_horizontal": "stretch",
+  "axis_stretch_vertical": "stretch",
+  "source": {
+    "preset": "panel",
+    "seed": 1,
+    "size": {
+      "width": 48,
+      "height": 32
+    },
+    "lineage_theme_id": "caelith",
+    "lineage_theme_version": 1,
+    "preset_relationship": "linked"
+  }
+}

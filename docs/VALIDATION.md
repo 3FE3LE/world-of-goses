@@ -15,13 +15,14 @@ The first prototype scope is expanded below into verifiable criteria:
 
 | Criterion | Status | Where |
 |---|---|---|
-| Macro city view with selectable building placeholders and a small amount of decorative citizen activity | ✅ | `CityMacroView` with `MacroCitizenActivity` (decorative 6×6 dots), plus clickable `BuildingPlot`s for the Quarry and Farm |
-| Detailed building view with configurable visual worker limit | ✅ | `BuildingPlot` + `BuildingDetailView` + `VisibleWorkerSlots`, with `VisualCapacity` enforced by `Building` |
-| Visible worker entry / exit transitions | ✅ | `VisibleWorkerSlot` runs `AnimationPlayer` with `AnimEntry`/`AnimWork`/`AnimExit`. Placeholder sprite only — final art pending the pixel-art slice |
-| Individual citizen records shared between views; the citizen is the only person entity (roles, competencies, recognitions are attached concepts, not subclasses) | ✅ | `Citizen` is a single sealed class; roles + competencies attach to it. No subclasses |
-| Worker assignment / removal with a deterministic production counter that responds to current assignment | ✅ | `CityWorld.TryAssignCitizen` / `TryUnassignCitizen`, deterministic `BuildingProductionCalculator` driven by `baseProduction + floor(base × 0.05 × exp)` |
+| Complete founding-hero onboarding with responsive profile choices | ✅ | `OnboardingView`, `HeroProfileView`, `CitizenProfile`, `ProfileCatalog` |
+| Macro city view with a valid one-hero / zero-building empty state | ✅ | `CityMacroView`, `CityStatusPanel`, `MacroCitizenActivity` |
+| Detailed building view with configurable visual worker limit | ✅ | `BuildingDetailView` + `VisibleWorkerSlots`, retained for future construction |
+| Individual citizen records shared between views; the citizen is the only person entity (roles, competencies, profile, and recognitions are attached concepts) | ✅ | `Citizen` is a single sealed class; profile, roles, and competencies attach to it |
+| Worker assignment / removal with a deterministic production counter | ✅ | `CityWorld.TryAssignCitizen` / `TryUnassignCitizen` and explicit test scenarios |
 
-**Scope verdict:** all slice-scope criteria are met. Visual fidelity is pending the pixel-art slice; mechanics are wired.
+**Scope verdict:** all slice-scope criteria are met. The lineage UI skin and
+typography pipeline are integrated; character/building pixel art remains placeholder.
 
 ---
 
@@ -50,9 +51,9 @@ violating any architecture rule:
 |---|---|
 | Domain (no Godot.*) | ✅ `game/scripts/Domain/` has zero `using Godot;` |
 | Godot representation | ✅ `game/scripts/*.cs` (presentation scripts) + `game/scenes/*.tscn` |
-| Assets | ⚠️ placeholders only — final art pending Slice 7 |
+| Assets | ⚠️ lineage UI skins, licensed fonts/icons, and default nine-slice theme integrated; character/building art remains placeholder |
 | Local persistence | ✅ implemented (`game/scripts/Domain/Persistence/`) |
-| Tests | ✅ `tests/WorldofGoses.Tests/` — **108 / 108 passing** at this snapshot |
+| Tests | ✅ `tests/WorldofGoses.Tests/` — **232 / 232 passing** at this snapshot |
 
 ### 3.2 The Godot/.NET boundary (§5)
 
@@ -73,7 +74,7 @@ violating any architecture rule:
 
 | Scale | Status |
 |---|---|
-| Macro | ✅ implemented (`MacroCitizenActivity` — decorative, not bound to `CitizenId` per the spec) |
+| Macro | ✅ implemented (`MacroCitizenActivity` count is derived from the current citizens) |
 | Building-detail | ✅ implemented (`VisibleWorkerSlots` — each visible worker **is** bound to a `CitizenId`) |
 | Expedition-detail | ❌ not implemented (out of scope for the first prototype, called out in the doc itself) |
 
@@ -83,7 +84,7 @@ violating any architecture rule:
 
 ### 3.6 "Domain is not presentation" (§9.13)
 
-✅ Holds. Domain types (`Building`, `Citizen`, `CityWorld`, `OfflineProgression`, `WorldPersistence`) compile and run without any Godot binary. Tests prove this (108 / 108 passing without Godot loaded).
+✅ Holds. Domain types (`Building`, `Citizen`, `CityWorld`, `OfflineProgression`, `WorldPersistence`) compile and run without any Godot binary. Tests prove this (232 / 232 passing without Godot loaded).
 
 ---
 
@@ -123,7 +124,8 @@ produce different resources. What is missing:
   geography, demographics, professions, knowledge redundancy,
   institutions, generations).
 - Production chains (not single-resource ticking).
-- Conditions on building unlocks (currently everything is seeded).
+- Rich conditions on building unlocks (Basic Shelter is authorised explicitly,
+  but currently requires only the founder and project state).
 
 #### 4.4.2 Expeditions (§4.2)
 
@@ -144,7 +146,7 @@ its own architectural surface.
 | Knowledge | ❌ — out of scope |
 | Personal history | ❌ — out of scope |
 | Culture | ❌ — out of scope |
-| Species or race | ❌ — no lineage yet (`DESIGN_INFLUENCES.md` §5 lists three MVP lineages as future work) |
+| Citizen lineage and profile | ✅ — eight qualitative lineages and the complete validated `CitizenProfile` are persisted and presented; future skill effects remain out of scope |
 | Health | ❌ — out of scope |
 | Relationships | ❌ — out of scope |
 | Potential | ❌ — out of scope |
@@ -184,7 +186,7 @@ The event-based domain-level simulation (per `ARCHITECTURE.md` §9) is **not** i
 | 2. No artificial penalties for absence | ✅ |
 | 3. No sovereign decisions without authorization | ✅ — every assignment requires `TryAssignCitizen` |
 | 4. No single overall level | ✅ architecturally — no "city level" exists |
-| 5. No arbitrary unlocks | ⚠️ — currently no unlocks at all (seeded only); future slice must build unlock conditions, not gates |
+| 5. No arbitrary unlocks | ⚠️ — Basic Shelter requires explicit authorisation, but richer material/knowledge conditions are still pending |
 | 6. No random loot | ✅ (nothing exists to be looted yet) |
 | 7. No invisible death | ✅ trivially (no death yet) |
 | 8. No instant healing | ✅ trivially (no healing yet) |
@@ -205,9 +207,9 @@ What would unlock the most future work for the smallest change?
 |---|---|---|---|
 | 1 | Causal report (per vision §8 / arch §9) is still a single string. The right primitive is a domain-side event log that ticks emit to. | **Slice 9 — Event-log domain primitive + causal report.** Open a slice to make `OfflineProgression.Apply` return `IReadOnlyList<WorldEvent>` instead of a flat report; renderer reads events to build the human-readable summary. | M |
 | 2 | Citizens are flat records beyond name / competencies / role. The vision enumerates a long list of citizen attributes (health, culture, relationships, …). | **Slice 10 — Extend the citizen attachment model.** Add `CitizenHealth`, `CitizenRelationships`, etc. as separate value objects composed onto `Citizen`, mirroring how the existing `Competencies` and `Roles` work. | L |
-| 3 | Unlocks (§9.5): currently no building is "unlocked" at all — they all exist in the seed. | **Slice 11 — Conditions-as-data for building unlocks.** Define a `Prerequisite` value object that a `Building` references; city state evaluates prerequisites; UI surfaces them. | L |
+| 3 | First building is not unlocked or constructed yet. | **Next slice — Conditions-as-data for the first authorised building.** | L |
 | 4 | The expedition pillar (§4.2) has no architectural place to live. | **Slice 12 — Expedition skeleton.** Add `Domain/Expedition/` with the minimum types an expedition needs (member, target, route, outcome). No gameplay yet — just enough to prove the seams. | M |
-| 5 | The lineage + founder system (`DESIGN_INFLUENCES.md` §5–6) is not in code. | **Slice 13 — Lineage as a `Citizen` attachment.** Mirrors how `Role` and `Competency` attach. Founder choice stored in `WorldSave`. | M |
+| 5 | Basic Shelter proves authorised construction, but its prerequisites are minimal. | **Next slice — Rich construction conditions-as-data.** | M |
 
 ---
 
@@ -220,14 +222,12 @@ but are worth knowing:
    production tick emits both a stone delta and a per-worker exp
    bump. The event-log primitive would just be the next refinement,
    not a from-scratch system.
-2. **The macro view's hint label says "Click a building to manage
-   its workers".** That's accurate today but undersells the seed:
-   with the Quarry and Farm both clickable, the player can be told
-   that each building produces a different resource. Cheap visual
-   polish, not a code change.
+2. **The macro view now reflects the current population.** The hero-only
+   onboarding state intentionally has no building plot and shows an explicit
+   empty state. Building plots return when construction exists.
 3. **Persistence uses one primary slot.** `CityWorldController` loads
-   `WorldPersistence.PrimarySaveSlot`, validates it before restore and
-   retains the seeded world if the file is missing or invalid.
+   `WorldPersistence.PrimarySaveSlot`, validates v2 before restore, and
+   leaves an incompatible v1 slot untouched while onboarding is incomplete.
 4. **`MainLoop.NotificationWMCloseRequest` is not exposed as a
    named constant in Godot 4.7 C# bindings.** We use the literal
    `1006` with a comment citing the `main_loop.h` value. When Godot
@@ -235,12 +235,9 @@ but are worth knowing:
    `CityWorldController._Notification`.
 5. **`SceneTree.QuitRequested`** also doesn't generate a C# event
    in 4.7 (it's a signal but the generator skips it). Same fix path.
-6. **Slice-scope claim about "decorative macro dots":**
-   `MacroCitizenActivity.Populate` lays 6 dots in deterministic
-   positions from a formula. They're not bound to `CitizenId` per
-   the architectural spec. ✅ correct, but the docstring and the
-   test don't call this out — the next reviewer might assume
-   they're bound. Worth adding a one-line comment.
+6. **Macro activity is population-derived.** `MacroCitizenActivity.Populate`
+   receives the current citizen count. It remains non-interactive, but it no
+   longer encodes a fixed decorative population.
 
 ---
 
@@ -258,7 +255,7 @@ but are worth knowing:
 | GAME_VISION §7 (production & storage) | ⚠️ basic ticking only; no chains / materials |
 | GAME_VISION §8 (persistent time) | ⚠️ save/load/elapsed ✅; causal report ⚠️ basic |
 | GAME_VISION §9 (design principles) | ✅ 13 / 14 fully held; 1 partial (unlocks — none exist yet) |
-| Tests | 108 / 108 passing |
+| Tests | 232 / 232 passing |
 | Build | clean, 0 warnings, 0 errors |
 
 **Net read:** the slice is *vertically complete* against the

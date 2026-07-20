@@ -10,7 +10,7 @@ public class CityWorldUpkeepTests
     {
         // Disable production and pre-fill Quarry so upkeep has
         // something to drain without being masked by production.
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
         quarry.AddStock(10);
@@ -24,7 +24,7 @@ public class CityWorldUpkeepTests
     [Fact]
     public void AdvanceWorldTick_UpkeepNeverMakesStockNegative()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         quarry.AddStock(0); // already 0
 
@@ -42,7 +42,7 @@ public class CityWorldUpkeepTests
         // With 5 seeded citizens, upkeep should drain 1 stone/tick.
         // We simulate by pre-filling Quarry and tracking drain over
         // many ticks.
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         quarry.AddStock(50);
         int before = quarry.Stock;

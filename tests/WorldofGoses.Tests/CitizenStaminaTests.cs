@@ -18,7 +18,7 @@ public class CitizenStaminaTests
     [Fact]
     public void Constructor_CustomMax_Respected()
     {
-        var c = new Citizen(new CitizenId(1), "X", appearanceSeed: 1, maxStamina: 50);
+        var c = new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(), maxStamina: 50);
         Assert.Equal(50, c.MaxStamina);
         Assert.Equal(50, c.CurrentStamina);
     }
@@ -27,21 +27,21 @@ public class CitizenStaminaTests
     public void Constructor_NegativeStamina_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, initialStamina: -1));
+            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(), initialStamina: -1));
     }
 
     [Fact]
     public void Constructor_StaminaExceedingMax_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, initialStamina: 200, maxStamina: 100));
+            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(), initialStamina: 200, maxStamina: 100));
     }
 
     [Fact]
     public void Constructor_NonPositiveMax_Throws()
     {
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, maxStamina: 0));
+            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(), maxStamina: 0));
     }
 
     [Fact]

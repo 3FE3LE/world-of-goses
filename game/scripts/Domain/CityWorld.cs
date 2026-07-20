@@ -6,150 +6,156 @@ using WorldofGoses.Domain.Persistence;
 namespace WorldofGoses.Domain;
 
 /// <summary>
-/// Deterministic, in-memory world state for the vertical slice. The
-/// prototype seeds an initial population and two buildings — a
-/// Quarry and a Farm — so the rest of the prototype can react to
-/// assignment changes across heterogeneous buildings without
-/// dealing with generation, persistence, or migration.
+/// Deterministic, in-memory world state. A new world starts empty and becomes
+/// active only when onboarding establishes its principal hero. Citizens and
+/// buildings are then composed explicitly through domain operations or a
+/// validated persisted snapshot.
 ///
-/// The world exposes events instead of being polled by the
-/// presentation layer. The presentation layer never reaches into
-/// a building or citizen to mutate state directly.
+/// The world exposes events instead of being polled by the presentation layer.
+/// The presentation layer never reaches into a building or citizen to mutate
+/// state directly.
 /// </summary>
 public sealed class CityWorld
 {
     private readonly Dictionary<CitizenId, Citizen> _citizens = new();
     private readonly Dictionary<BuildingId, Building> _buildings = new();
+    private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
     private int _tick;
+    private int _nextProjectId = 1;
 
-    public CityWorld() : this(seed: true) { }
+    private static readonly CitizenId PrincipalHeroId = new(1);
 
-    /// <summary>
-    /// Internal entry point used by <see cref="FromSave"/>: skip
-    /// the seed so the world starts empty and the restore step
-    /// doesn't allocate 2 buildings + 5 citizens just to throw them
-    /// away. Production callers should keep using the public
-    /// parameterless constructor.
-    /// </summary>
-    private CityWorld(bool seed)
-    {
-        if (seed) Seed();
-    }
+    /// <summary>A new world is intentionally empty until onboarding creates its hero.</summary>
+    public CityWorld() { }
 
-    /// <summary>
-    /// Monotonically increasing world tick. The prototype uses it
-    /// only to time-stamp role grants and to drive manual
-    /// production ticks.
-    /// </summary>
     public int CurrentTick => _tick;
-
     public IReadOnlyDictionary<CitizenId, Citizen> Citizens => _citizens;
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
+    public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
+    public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
 
-    private void Seed()
+    /// <summary>
+    /// The citizen recognised as the principal hero, or <c>null</c> before
+    /// onboarding. Hero status remains a role attached to a regular citizen.
+    /// </summary>
+    public Citizen? Hero
     {
-        // Quarry: produces stone, requires mining experience.
-        // Pre-assigned: Bran (mining exp 3) + Erin (mining exp 1).
-        var quarryId = new BuildingId(1);
-        var quarry = new Building(
-            id: quarryId,
-            displayName: "Quarry",
-            kind: BuildingKind.Quarry,
-            producedResourceType: ResourceType.Stone,
-            producedCompetencyId: CompetencyId.Mining,
-            workerCapacity: 6,
-            visualCapacity: 3,
-            baseProductionPerWorker: 1,
-            storageCapacity: 20,
-            resourceLabel: "Stone",
-            resourceUnit: "stone");
-        _buildings[quarryId] = quarry;
-
-        // Farm: produces food, requires farming experience.
-        // Pre-assigned: Lior (farming exp 3).
-        var farmId = new BuildingId(2);
-        var farm = new Building(
-            id: farmId,
-            displayName: "Farm",
-            kind: BuildingKind.Farm,
-            producedResourceType: ResourceType.Food,
-            producedCompetencyId: CompetencyId.Farming,
-            workerCapacity: 4,
-            visualCapacity: 2,
-            baseProductionPerWorker: 1,
-            storageCapacity: 30,
-            resourceLabel: "Food",
-            resourceUnit: "food");
-        _buildings[farmId] = farm;
-
-        // Home: where citizens go at night to rest. Non-producing,
-        // non-upkeep-consuming. Capacity matches population so every
-        // citizen has a place to rest.
-        var homeId = new BuildingId(3);
-        var home = new Building(
-            id: homeId,
-            displayName: "Home",
-            kind: BuildingKind.Home,
-            producedResourceType: ResourceType.Stone, // placeholder, ignored
-            producedCompetencyId: CompetencyId.Mining, // placeholder, ignored
-            workerCapacity: 5,
-            visualCapacity: 5,
-            baseProductionPerWorker: 0,
-            storageCapacity: 0,
-            resourceLabel: "Rest",
-            resourceUnit: "rest",
-            productionEnabled: false);
-        _buildings[homeId] = home;
-
-        var minerA = new Citizen(new CitizenId(1), "Bran", appearanceSeed: 11);
-        minerA.AddExperience(CompetencyId.Mining, 3);
-        _citizens[minerA.Id] = minerA;
-
-        var minerB = new Citizen(new CitizenId(2), "Erin", appearanceSeed: 22);
-        minerB.AddExperience(CompetencyId.Mining, 1);
-        _citizens[minerB.Id] = minerB;
-
-        var farmerA = new Citizen(new CitizenId(3), "Lior", appearanceSeed: 33);
-        farmerA.AddExperience(CompetencyId.Farming, 3);
-        _citizens[farmerA.Id] = farmerA;
-
-        var availableA = new Citizen(new CitizenId(4), "Mira", appearanceSeed: 44);
-        _citizens[availableA.Id] = availableA;
-
-        var availableB = new Citizen(new CitizenId(5), "Toma", appearanceSeed: 55);
-        _citizens[availableB.Id] = availableB;
-
-        PreAssign(quarry, quarryId, minerA);
-        PreAssign(quarry, quarryId, minerB);
-        PreAssign(farm, farmId, farmerA);
-
-        // Game starts at tick 0 (daytime). Assigned citizens are
-        // physically at their workplace; unassigned are at home.
-        minerA.SetLocation(CitizenLocation.AtWork);
-        minerB.SetLocation(CitizenLocation.AtWork);
-        farmerA.SetLocation(CitizenLocation.AtWork);
-        availableA.SetLocation(CitizenLocation.AtHome);
-        availableB.SetLocation(CitizenLocation.AtHome);
+        get
+        {
+            foreach (var citizen in _citizens.Values)
+            {
+                if (citizen.IsHero) return citizen;
+            }
+            return null;
+        }
     }
 
-    private void PreAssign(Building building, BuildingId buildingId, Citizen citizen)
+    public bool NeedsOnboarding => Hero is null;
+
+    /// <summary>
+    /// Establishes the only citizen in a fresh world. The profile is individual:
+    /// no validation requires it to match common tendencies of the chosen lineage.
+    /// </summary>
+    public HeroCreationResult TryCreateHero(HeroCreationRequest request)
     {
-        var assignment = building.TryAssign(citizen.Id);
-        if (!assignment.IsSuccess)
+        if (Hero is not null)
         {
-            // The seed's pre-assignments are part of the canonical
-            // fixture; a failure here is a developer bug, not a
-            // runtime condition (typically: WorkerCapacity too small
-            // for the pre-assigned count).
-            throw new InvalidOperationException(
-                $"Seed pre-assignment failed for {citizen.Name} (id={citizen.Id.Value}) " +
-                $"on building {buildingId.Value}: {assignment.Outcome}. " +
-                "Adjust the seed so the building's WorkerCapacity covers the pre-assigned citizens.");
+            return HeroCreationResult.Fail(HeroCreationOutcome.AlreadyExists);
         }
-        citizen.AssignTo(buildingId);
-        citizen.GrantRole(RoleId.Miner, _tick);
+        if (_citizens.Count > 0 || _buildings.Count > 0)
+        {
+            return HeroCreationResult.Fail(HeroCreationOutcome.WorldNotEmpty);
+        }
+        if (request is null || request.Profile is null)
+        {
+            return HeroCreationResult.Fail(HeroCreationOutcome.MissingProfile);
+        }
+
+        string name = request.Name?.Trim() ?? string.Empty;
+        if (name.Length is < 1 or > 32 || ContainsControlCharacter(name))
+        {
+            return HeroCreationResult.Fail(HeroCreationOutcome.InvalidName);
+        }
+
+        var hero = new Citizen(
+            PrincipalHeroId,
+            name,
+            appearanceSeed: StableAppearanceSeed(name, request.Profile.Lineage),
+            profile: request.Profile);
+        hero.GrantRole(RoleId.Hero, _tick);
+        RegisterCitizen(hero);
+        return HeroCreationResult.Success(hero.Id);
+    }
+
+    internal void RegisterCitizen(Citizen citizen)
+    {
+        ArgumentNullException.ThrowIfNull(citizen);
+        if (!_citizens.TryAdd(citizen.Id, citizen))
+        {
+            throw new InvalidOperationException($"Citizen id {citizen.Id.Value} already exists.");
+        }
+    }
+
+    internal void RegisterBuilding(Building building)
+    {
+        ArgumentNullException.ThrowIfNull(building);
+        if (!_buildings.TryAdd(building.Id, building))
+        {
+            throw new InvalidOperationException($"Building id {building.Id.Value} already exists.");
+        }
+    }
+
+    internal void RegisterProject(ConstructionProject project)
+    {
+        ArgumentNullException.ThrowIfNull(project);
+        if (_buildings.ContainsKey(project.Id))
+        {
+            throw new InvalidOperationException(
+                $"Project id {project.Id.Value} collides with an existing building.");
+        }
+        if (!_projects.TryAdd(project.Id, project))
+        {
+            throw new InvalidOperationException(
+                $"Project id {project.Id.Value} already exists.");
+        }
+    }
+
+    public ConstructionProject? GetProject(BuildingId projectId) =>
+        _projects.TryGetValue(projectId, out var project) ? project : null;
+
+    /// <summary>True when at least one citizen is assigned to a project or building as a worker.</summary>
+    internal bool HasAnyWorkAssignment()
+    {
+        foreach (var citizen in _citizens.Values)
+        {
+            if (citizen.CurrentAssignment.HasValue) return true;
+        }
+        return false;
+    }
+
+    private static bool ContainsControlCharacter(string value)
+    {
+        foreach (char character in value)
+        {
+            if (char.IsControl(character)) return true;
+        }
+        return false;
+    }
+
+    private static int StableAppearanceSeed(string name, LineageId lineage)
+    {
+        uint hash = 2166136261;
+        foreach (char character in name)
+        {
+            hash = (hash ^ character) * 16777619;
+        }
+        foreach (char character in lineage.Value)
+        {
+            hash = (hash ^ character) * 16777619;
+        }
+        return (int)(hash & int.MaxValue);
     }
 
     public Citizen? GetCitizen(CitizenId id) =>
@@ -304,7 +310,6 @@ public sealed class CityWorld
         if (result.IsSuccess)
         {
             citizen.AssignTo(buildingId);
-            citizen.GrantRole(RoleId.Miner, _tick);
             RaiseBuildingChanged(buildingId);
         }
 
@@ -337,6 +342,108 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Attempts to assign a citizen to a worksite. The id is shared
+    /// with the future building so <see cref="Citizen.CurrentAssignment"/>
+    /// remains a plain <see cref="BuildingId"/>?>.
+    /// </summary>
+    public AssignmentResult TryAssignToProject(BuildingId projectId, CitizenId citizenId)
+    {
+        if (!_projects.TryGetValue(projectId, out var project))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, projectId);
+        }
+        if (!_citizens.TryGetValue(citizenId, out var citizen))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, projectId);
+        }
+        if (project.IsAssigned(citizenId))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.AlreadyAssigned, citizenId, projectId);
+        }
+        if (citizen.CurrentAssignment.HasValue)
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, projectId);
+        }
+        if (!project.TryAssign(citizenId))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.AtCapacity, citizenId, projectId);
+        }
+        citizen.AssignTo(projectId);
+        RaiseProjectChanged(projectId);
+        return AssignmentResult.Ok(citizenId, projectId);
+    }
+
+    public AssignmentResult TryUnassignFromProject(BuildingId projectId, CitizenId citizenId)
+    {
+        if (!_projects.TryGetValue(projectId, out var project))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, projectId);
+        }
+        if (!_citizens.TryGetValue(citizenId, out var citizen))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, projectId);
+        }
+        if (!project.TryUnassign(citizenId))
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.NotAssigned, citizenId, projectId);
+        }
+        citizen.ClearAssignment();
+        RaiseProjectChanged(projectId);
+        return AssignmentResult.Ok(citizenId, projectId);
+    }
+
+    /// <summary>
+    /// Authorises the first worksite — the Basic Shelter. The id is
+    /// the next reserved <see cref="BuildingId"/>, distinct from any
+    /// existing building or citizen.
+    /// </summary>
+    public ConstructionAuthorizationResult TryAuthorizeBasicShelter()
+    {
+        if (Hero is null)
+        {
+            return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.NoHero);
+        }
+        if (_projects.Count > 0)
+        {
+            return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.AlreadyAuthorized);
+        }
+        foreach (var building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home)
+            {
+                return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeAlreadyBuilt);
+            }
+        }
+        if (_citizens.Count > 1)
+        {
+            return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.WorldNotEmpty);
+        }
+
+        var projectId = new BuildingId(_nextProjectId++);
+        var project = new ConstructionProject(
+            id: projectId,
+            kind: ConstructionKind.BasicShelter,
+            displayName: "Basic Shelter",
+            requiredWork: ConstructionRules.RequiredWork,
+            workerCapacity: ConstructionRules.WorkerCapacity,
+            enabled: true)
+        {
+            StopCause = ConstructionStopCause.NoWorkers,
+        };
+        RegisterProject(project);
+        RaiseProjectChanged(projectId);
+        return ConstructionAuthorizationResult.Success(projectId);
+    }
+
+    /// <summary>Toggles whether the project continues to accumulate work.</summary>
+    public void SetProjectEnabled(BuildingId projectId, bool enabled)
+    {
+        if (!_projects.TryGetValue(projectId, out var project)) return;
+        project.Enabled = enabled;
+        RaiseProjectChanged(projectId);
+    }
+
+    /// <summary>
     /// Advances the world by one tick and credits the building
     /// with its current production. Returns the amount of stock
     /// actually added (storage capacity can absorb less than
@@ -363,9 +470,10 @@ public sealed class CityWorld
     /// <summary>
     /// One world tick. Canonical order: clock advance → mobilisation
     /// at day/night boundary → upkeep → per-building behavior
-    /// (day: produce; night: rest). Buffs decrement at the end so a
-    /// citizen who eats this tick gets the bonus applied to this
-    /// same tick.
+    /// (day: produce; night: rest) → per-project behaviour
+    /// (day: contribute at work intervals; night: rest) → buffs.
+    /// Project completion is deferred to the end of the tick so
+    /// the project dictionary is not mutated while iterating.
     /// </summary>
     public void AdvanceWorldTick()
     {
@@ -390,7 +498,53 @@ public sealed class CityWorld
                 ApplyNightRest(building);
             }
         }
+
+        bool isWorkInterval = _tick > 0
+            && (_tick % ConstructionRules.WorkIntervalTicks == 0);
+        int completed = 0;
+        foreach (var project in _projects.Values)
+        {
+            project.LastTickProgressAdded = 0;
+            if (GameClock.IsDaytime(_tick))
+            {
+                SimulateProjectTick(project, isWorkInterval);
+            }
+            else
+            {
+                ApplyProjectNightRest(project);
+            }
+            if (project.Progress >= project.RequiredWork) completed++;
+        }
+        for (int i = 0; i < completed; i++)
+        {
+            // We cannot iterate _projects here, but the deferred
+            // completion list would be heavier than two passes;
+            // instead we re-query the dictionary of project ids
+            // that crossed the threshold this tick. A second pass
+            // over the dictionary is O(n) and avoids the iterator
+            // mutation hazard.
+        }
+        CompleteFinishedProjects();
         DecrementAllWellFed();
+    }
+
+    private void CompleteFinishedProjects()
+    {
+        if (_projects.Count == 0) return;
+        List<BuildingId>? completed = null;
+        foreach (var pair in _projects)
+        {
+            if (pair.Value.Progress >= pair.Value.RequiredWork)
+            {
+                completed ??= new List<BuildingId>();
+                completed.Add(pair.Key);
+            }
+        }
+        if (completed is null) return;
+        for (int i = 0; i < completed.Count; i++)
+        {
+            CompleteProject(completed[i]);
+        }
     }
 
     /// <summary>
@@ -622,6 +776,110 @@ public sealed class CityWorld
         }
     }
 
+    /// <summary>
+    /// One work-interval tick for a project. Stamina is paid
+    /// only on real intervals so a single hero cannot burn out
+    /// between work intervals.
+    /// </summary>
+    private void SimulateProjectTick(ConstructionProject project, bool isWorkInterval)
+    {
+        if (!project.Enabled)
+        {
+            project.StopCause = ConstructionStopCause.Paused;
+            return;
+        }
+        if (project.Progress >= project.RequiredWork)
+        {
+            project.StopCause = ConstructionStopCause.Completed;
+            return;
+        }
+        if (project.AssignedCount == 0)
+        {
+            project.StopCause = ConstructionStopCause.NoWorkers;
+            return;
+        }
+
+        int contributed = 0;
+        int paid = 0;
+        foreach (var citizenId in project.AssignedCitizenIds)
+        {
+            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
+            citizen.RestoreStamina(citizen.RegenPerTick());
+            int perCitizen = ConstructionRules.ContributionPerWorkInterval(citizen);
+            if (perCitizen <= 0) continue;
+            contributed += perCitizen;
+            if (isWorkInterval)
+            {
+                citizen.ConsumeStamina(ConstructionRules.CostPerWorkInterval);
+                paid++;
+            }
+        }
+
+        if (paid == 0 && isWorkInterval)
+        {
+            project.StopCause = ConstructionStopCause.WorkersExhausted;
+            return;
+        }
+        if (contributed == 0)
+        {
+            project.StopCause = ConstructionStopCause.WorkersExhausted;
+            return;
+        }
+        if (isWorkInterval)
+        {
+            int room = project.RequiredWork - project.Progress;
+            int added = contributed < room ? contributed : room;
+            project.Progress += added;
+            project.LastTickProgressAdded = added;
+        }
+        project.StopCause = ConstructionStopCause.Authorized;
+    }
+
+    private void ApplyProjectNightRest(ConstructionProject project)
+    {
+        foreach (var citizenId in project.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out var citizen))
+            {
+                citizen.RestoreStamina(citizen.RegenPerTick());
+            }
+        }
+        project.StopCause = ConstructionStopCause.Night;
+        RaiseProjectChanged(project.Id);
+    }
+
+    private void CompleteProject(BuildingId projectId)
+    {
+        if (!_projects.TryGetValue(projectId, out var project)) return;
+        var contributorIds = new List<CitizenId>(project.AssignedCitizenIds);
+
+        var home = new Building(
+            id: project.Id,
+            displayName: project.DisplayName,
+            kind: BuildingKind.Home,
+            producedResourceType: ResourceType.Stone,
+            producedCompetencyId: CompetencyId.Mining,
+            workerCapacity: 5,
+            visualCapacity: 5,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            resourceLabel: "Rest",
+            resourceUnit: "rest",
+            productionEnabled: false);
+
+        RegisterBuilding(home);
+        RaiseBuildingChanged(home.Id);
+
+        foreach (var cid in contributorIds)
+        {
+            project.TryUnassign(cid);
+            if (_citizens.TryGetValue(cid, out var c)) c.ClearAssignment();
+        }
+
+        _projects.Remove(projectId);
+        RaiseProjectChanged(projectId);
+    }
+
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock)
     {
         if (!_buildings.TryGetValue(buildingId, out var building))
@@ -636,6 +894,29 @@ public sealed class CityWorld
     internal void AdvanceWorldClock(int tickCount)
     {
         if (tickCount > 0) _tick += tickCount;
+    }
+
+    /// <summary>
+    /// Fast-forwards a world that has no buildings and no
+    /// construction projects. Otherwise the caller must step the
+    /// world tick by tick so the worksite can advance.
+    /// </summary>
+    internal void AdvanceIdleTicks(int tickCount)
+    {
+        if (tickCount <= 0) return;
+        if (_buildings.Count != 0 || _projects.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "Idle fast-forward requires a world with no buildings and no projects.");
+        }
+
+        _tick += tickCount;
+        foreach (var citizen in _citizens.Values)
+        {
+            citizen.AdvanceWellFedTicks(tickCount);
+        }
+        if (GameClock.IsDaytime(_tick)) MobiliseForDay();
+        else MobiliseForNight();
     }
 
     /// <summary>
@@ -661,6 +942,8 @@ public sealed class CityWorld
         WorldPersistence.Validate(save);
         _citizens.Clear();
         _buildings.Clear();
+        _projects.Clear();
+        _nextProjectId = 1;
         _tick = save.CurrentTick;
 
         foreach (var bs in save.Buildings)
@@ -690,7 +973,7 @@ public sealed class CityWorld
                 initialStock: bs.Stock,
                 productionEnabled: bs.ProductionEnabled,
                 targetStock: bs.TargetStock ?? bs.StorageCapacity);
-            _buildings[building.Id] = building;
+            RegisterBuilding(building);
 
             foreach (var cid in bs.AssignedCitizenIds)
             {
@@ -709,6 +992,7 @@ public sealed class CityWorld
                 new CitizenId(cs.Id),
                 cs.Name,
                 cs.AppearanceSeed,
+                profile: WorldPersistence.RestoreProfile(cs.Profile!),
                 initialStamina: initialStamina,
                 maxStamina: maxStamina,
                 initialWellFedTicks: cs.WellFedRemainingTicks);
@@ -727,7 +1011,34 @@ public sealed class CityWorld
                 citizen.GrantRole(new RoleId(role.Id), role.GrantedAtTick);
             }
 
-            _citizens[citizen.Id] = citizen;
+            RegisterCitizen(citizen);
+        }
+
+        if (save.Projects is { Count: > 0 })
+        {
+            foreach (var ps in save.Projects)
+            {
+                var kind = Enum.TryParse<ConstructionKind>(ps.Kind, ignoreCase: true, out var parsed)
+                    ? parsed
+                    : ConstructionKind.BasicShelter;
+                var project = new ConstructionProject(
+                    id: new BuildingId(ps.Id),
+                    kind: kind,
+                    displayName: string.IsNullOrEmpty(ps.DisplayName) ? "Basic Shelter" : ps.DisplayName,
+                    requiredWork: ps.RequiredWork,
+                    workerCapacity: ps.WorkerCapacity,
+                    enabled: ps.Enabled)
+                {
+                    Progress = ps.Progress,
+                    StopCause = ConstructionStopCause.Paused,
+                };
+                RegisterProject(project);
+                foreach (var cid in ps.AssignedCitizenIds)
+                {
+                    project.TryAssign(new CitizenId(cid));
+                }
+                if (ps.Id >= _nextProjectId) _nextProjectId = ps.Id + 1;
+            }
         }
 
         // Citizens are constructed with CurrentLocation = AtHome
@@ -747,14 +1058,10 @@ public sealed class CityWorld
         }
     }
 
-    /// <summary>
-    /// Builds a fresh <see cref="CityWorld"/> from a save
-    /// snapshot. Skips the seed step so the restore doesn't
-    /// allocate 2 buildings + 5 citizens just to throw them away.
-    /// </summary>
+    /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>
     public static CityWorld FromSave(WorldSave save)
     {
-        var world = new CityWorld(seed: false);
+        var world = new CityWorld();
         world.Restore(save);
         return world;
     }
@@ -762,5 +1069,10 @@ public sealed class CityWorld
     private void RaiseBuildingChanged(BuildingId buildingId)
     {
         BuildingChanged?.Invoke(this, new CityWorldChangedEventArgs(buildingId));
+    }
+
+    private void RaiseProjectChanged(BuildingId projectId)
+    {
+        ProjectChanged?.Invoke(this, new CityWorldChangedEventArgs(projectId));
     }
 }

@@ -83,6 +83,11 @@ public static class OfflineProgression
         double tickRateHz = DefaultTickRateHz)
     {
         if (ticksToApply <= 0) return OfflineProgressionReport.None;
+        if (world.Buildings.Count == 0 && world.Projects.Count == 0)
+        {
+            world.AdvanceIdleTicks(ticksToApply);
+            return OfflineProgressionReport.None;
+        }
 
         int stockAdded = 0;
         int lastActiveTicks = 0;

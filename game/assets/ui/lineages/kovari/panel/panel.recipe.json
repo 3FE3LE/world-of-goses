@@ -1,0 +1,459 @@
+{
+  "version": 1,
+  "preset": "panel",
+  "seed": 1,
+  "size": {
+    "width": 48,
+    "height": 32
+  },
+  "lineage_theme_id": "kovari",
+  "lineage_theme_version": 1,
+  "preset_relationship": "linked",
+  "resolved_palette": {
+    "id": "lineage-kovari",
+    "name": "Kovari lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          21,
+          21,
+          21,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          37,
+          37,
+          37,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          57,
+          56,
+          55,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          27,
+          27,
+          26,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          9,
+          9,
+          9,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          117,
+          95,
+          62,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          198,
+          154,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          225,
+          118,
+          44,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          77,
+          162,
+          164,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          233,
+          167,
+          94,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          240,
+          231,
+          213,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          201,
+          190,
+          169,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          147,
+          139,
+          125,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          104,
+          160,
+          108,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          225,
+          164,
+          60,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          208,
+          82,
+          67,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          76,
+          155,
+          194,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          240,
+          138,
+          61,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          245,
+          177,
+          108,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          89,
+          89,
+          88,
+          255
+        ]
+      }
+    ]
+  },
+  "resolved_ornamentation": {
+    "borderPreset": "modular-plates",
+    "cornerPreset": "riveted-corners",
+    "fillPreset": "brushed-metal-carbon",
+    "shadowPreset": "mechanical-displacement",
+    "contentPadding": {
+      "left": 8,
+      "top": 6,
+      "right": 9,
+      "bottom": 8
+    },
+    "nineSliceMargins": {
+      "left": 8,
+      "top": 6,
+      "right": 9,
+      "bottom": 8
+    },
+    "normalState": "base-token-resolved",
+    "hoverState": "accent-highlight-resolved",
+    "pressedState": "two-pixel-contained-displacement",
+    "selectedState": "sequential-segments",
+    "focusedState": "visible-focus-ring",
+    "disabledState": "muted-alpha-pattern",
+    "selectionEffect": "sequential-segments"
+  },
+  "manual_overrides": [],
+  "icon_treatment": {
+    "colorTokenId": "text_primary",
+    "backgroundTokenId": "surface_inset",
+    "borderTokenId": "border_mid",
+    "selectedTokenId": "selection",
+    "disabledTokenId": "disabled"
+  },
+  "palette": {
+    "id": "lineage-kovari",
+    "name": "Kovari lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          21,
+          21,
+          21,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          37,
+          37,
+          37,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          57,
+          56,
+          55,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          27,
+          27,
+          26,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          9,
+          9,
+          9,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          117,
+          95,
+          62,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          198,
+          154,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          225,
+          118,
+          44,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          77,
+          162,
+          164,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          233,
+          167,
+          94,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          240,
+          231,
+          213,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          201,
+          190,
+          169,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          147,
+          139,
+          125,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          104,
+          160,
+          108,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          225,
+          164,
+          60,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          208,
+          82,
+          67,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          76,
+          155,
+          194,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          240,
+          138,
+          61,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          245,
+          177,
+          108,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          89,
+          89,
+          88,
+          255
+        ]
+      }
+    ]
+  },
+  "border": {
+    "layers": [
+      {
+        "thickness": 1,
+        "tokenId": "border_dark",
+        "pattern": "solid"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_mid",
+        "pattern": "dashed"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_light",
+        "pattern": "dashed"
+      }
+    ]
+  },
+  "corner": {
+    "motif": "rivet",
+    "size": 5
+  },
+  "fill": {
+    "kind": "diagonal",
+    "tokenIds": [
+      "surface_base",
+      "surface_raised"
+    ]
+  },
+  "background": "transparent",
+  "shadow": {
+    "dx": 2,
+    "dy": 2,
+    "tokenId": "border_dark"
+  },
+  "contentPadding": {
+    "left": 8,
+    "top": 7,
+    "right": 8,
+    "bottom": 7
+  }
+}

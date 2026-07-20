@@ -1,3 +1,4 @@
+#nullable enable
 using Godot;
 using WorldofGoses.Domain;
 
@@ -23,11 +24,18 @@ public partial class ProductionPanel : PanelContainer
     private SpinBox _targetStockInput = null!;
     private Label _policyStateLabel = null!;
     private bool _refreshing;
+    private LineageThemeSignals? _themeSignals;
 
     public override void _Ready()
     {
         var root = new VBoxContainer();
         AddChild(root);
+        AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
+        if (_themeSignals is not null)
+        {
+            _themeSignals.LineageChanged += OnLineageChanged;
+        }
 
         _titleLabel = new Label
         {
@@ -86,6 +94,14 @@ public partial class ProductionPanel : PanelContainer
         };
         root.AddChild(_helperLabel);
     }
+
+    public override void _ExitTree()
+    {
+        if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
+    }
+
+    private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
+        "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
     public void Refresh(Building building, CityWorldController controller)
     {

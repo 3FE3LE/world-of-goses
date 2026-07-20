@@ -12,7 +12,7 @@ public class RestoreMobilizationTests
         // Seed advances to a mid-day tick (no transition from the
         // default initial state since seed starts at tick 0 day and
         // never leaves day within a few ticks).
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         for (int t = 0; t < 1500; t++) // hour 10 of day 1
         {
             world.AdvanceWorldTick();
@@ -34,7 +34,7 @@ public class RestoreMobilizationTests
     [Fact]
     public void Restore_MidNightTick_AllCitizensLandAtHome()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         // Tick 0 is daytime. Skip to mid-night of day 1.
         for (int t = 0; t < GameClock.DayTicks + 600; t++) // hour 4 of night
         {
@@ -53,7 +53,7 @@ public class RestoreMobilizationTests
     [Fact]
     public void Restore_Hour10Tick_QuarryShowsAssignedWorkers()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         for (int t = 0; t < 1500; t++) // hour 10 of day 1
         {
             world.AdvanceWorldTick();

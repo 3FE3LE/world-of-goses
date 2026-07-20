@@ -19,10 +19,10 @@ public sealed class WorldSave
 {
     /// <summary>
     /// Current save schema version. Bumped on backwards-incompatible
-    /// changes. The loader reads this and would migrate older
-    /// versions up if it recognised any.
+    /// changes. Retired versions are rejected before restore so the
+    /// controller can start a new onboarding flow without mutation.
     /// </summary>
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -37,4 +37,5 @@ public sealed class WorldSave
     public int CurrentTick { get; set; }
     public List<BuildingSave> Buildings { get; set; } = new();
     public List<CitizenSave> Citizens { get; set; } = new();
+    public List<ConstructionProjectSave> Projects { get; set; } = new();
 }

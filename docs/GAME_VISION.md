@@ -154,6 +154,24 @@ Any citizen may become an adventurer or hero if their environment,
 education, experiences, mentors, and opportunities develop that
 potential. Heroes do not appear only because of randomness.
 
+### 5.1 Lineage is context, not destiny
+
+World of Goses currently recognises eight working lineages: Ardhen,
+Eirune, Kovari, Myrven, Vaelun, Orveth, Caelith, and Theryn. They
+provide qualitative starting tendencies in learning and culture. They do
+not block professions, create permanent ceilings, guarantee competence,
+or grant automatic production bonuses.
+
+A citizen profile separates lineage from individual choices: personal
+aptitudes, professional affinities, elemental affinity, combat and weapon
+preferences, personality traits, political orientation, and spiritual
+posture. Practical experience, education, tools, health, motivation,
+opportunity, and institutions must become more important than birth as a
+citizen develops.
+
+The complete design contract is maintained in
+`docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`.
+
 ## 6. Combat, defeat, and healthcare
 
 Combat is automatic and conceptually similar to an idle battler.

@@ -1,0 +1,17 @@
+using System.Collections.Generic;
+
+namespace WorldofGoses.Domain.Persistence;
+
+/// <summary>Serializable form of a citizen's immutable identity profile.</summary>
+public sealed class CitizenProfileSave
+{
+    public string Lineage { get; set; } = "";
+    public List<string> Aptitudes { get; set; } = new();
+    public List<string> ProfessionalAffinities { get; set; } = new();
+    public string ElementalAffinity { get; set; } = "";
+    public string CombatStyle { get; set; } = "";
+    public List<string> WeaponPreferences { get; set; } = new();
+    public List<string> PersonalityTraits { get; set; } = new();
+    public string PoliticalOrientation { get; set; } = "";
+    public string SpiritualPosture { get; set; } = "";
+}

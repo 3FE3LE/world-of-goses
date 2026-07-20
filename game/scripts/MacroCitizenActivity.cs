@@ -3,24 +3,17 @@ using Godot;
 namespace WorldofGoses;
 
 /// <summary>
-/// Very small placeholder dots that represent city activity in the macro
-/// view. The dots are intentionally tiny (see
-/// <see cref="PresentationConstants.MacroCitizenSize"/>) and exist only
-/// to communicate that the city has movement; they are not individually
-/// interactive and do not correspond to specific citizens.
+/// Small markers representing the world's actual citizens in the macro view.
+/// They are not yet individually interactive; their count is derived from the
+/// domain rather than from a decorative fixed fixture.
 /// </summary>
 public partial class MacroCitizenActivity : Node2D
 {
-    public override void _Ready()
-    {
-        Populate();
-    }
-
     /// <summary>
     /// (Re)builds the macro activity dots. Deterministic: the positions
     /// are derived from the index, not from random numbers.
     /// </summary>
-    public void Populate()
+    public void Populate(int citizenCount)
     {
         foreach (var child in GetChildren())
         {
@@ -35,12 +28,11 @@ public partial class MacroCitizenActivity : Node2D
                 PresentationConstants.CanvasHeight);
         }
 
-        // Lay the dots in a gentle arc above and around the mine plot.
-        // Positions are computed from a stable formula so the macro
-        // view is identical across runs.
-        for (int i = 0; i < PresentationConstants.MacroActivityDotCount; i++)
+        // Lay the real population in a gentle arc around the city centre.
+        for (int i = 0; i < citizenCount; i++)
         {
-            float angle = Mathf.Pi * (0.15f + 0.7f * (i / (float)PresentationConstants.MacroActivityDotCount));
+            int denominator = Mathf.Max(citizenCount, 1);
+            float angle = Mathf.Pi * (0.15f + 0.7f * (i / (float)denominator));
             float radius = 220f;
             float cx = parentSize.X * 0.5f;
             float cy = parentSize.Y * 0.85f;

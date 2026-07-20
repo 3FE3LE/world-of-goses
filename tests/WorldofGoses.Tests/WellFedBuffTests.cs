@@ -73,7 +73,7 @@ public class WellFedBuffTests
     [Fact]
     public void Constructor_CustomBuff_Respected()
     {
-        var c = new Citizen(new CitizenId(1), "X", appearanceSeed: 1, initialWellFedTicks: 50);
+        var c = new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(), initialWellFedTicks: 50);
         Assert.Equal(50, c.WellFedRemainingTicks);
         Assert.Equal(
             StaminaRules.BaseRegenPerTick + StaminaRules.WellFedRegenBonus,
@@ -84,7 +84,7 @@ public class WellFedBuffTests
     public void Constructor_BeyondMaxBuff_Throws()
     {
         Assert.Throws<System.ArgumentOutOfRangeException>(
-            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1,
+            () => new Citizen(new CitizenId(1), "X", appearanceSeed: 1, profile: NewProfile(),
                 initialWellFedTicks: StaminaRules.WellFedBuffDuration + 1));
     }
 }

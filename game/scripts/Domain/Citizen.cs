@@ -24,6 +24,7 @@ public sealed class Citizen
     public CitizenId Id { get; }
     public string Name { get; }
     public int AppearanceSeed { get; }
+    public CitizenProfile Profile { get; }
     public BuildingId? CurrentAssignment { get; private set; }
     public Availability Availability => CurrentAssignment.HasValue
         ? Availability.Assigned
@@ -54,18 +55,22 @@ public sealed class Citizen
     public IReadOnlyDictionary<CompetencyId, CompetencyEntry> Competencies =>
         _competencies;
     public IReadOnlyList<Role> Roles => _roles;
+    public bool IsHero => HasRole(RoleId.Hero);
 
     public Citizen(
         CitizenId id,
         string name,
         int appearanceSeed,
+        CitizenProfile profile,
         int? initialStamina = null,
         int? maxStamina = null,
         int initialWellFedTicks = 0)
     {
+        ArgumentNullException.ThrowIfNull(profile);
         Id = id;
         Name = name;
         AppearanceSeed = appearanceSeed;
+        Profile = profile;
         MaxStamina = maxStamina ?? StaminaRules.MaxStamina;
         CurrentStamina = initialStamina ?? MaxStamina;
         WellFedRemainingTicks = initialWellFedTicks;
@@ -221,6 +226,12 @@ public sealed class Citizen
     public void AdvanceWellFedTick()
     {
         if (WellFedRemainingTicks > 0) WellFedRemainingTicks--;
+    }
+
+    internal void AdvanceWellFedTicks(int tickCount)
+    {
+        if (tickCount <= 0) return;
+        WellFedRemainingTicks = Math.Max(0, WellFedRemainingTicks - tickCount);
     }
 
     /// <summary>

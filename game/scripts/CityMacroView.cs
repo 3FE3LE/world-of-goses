@@ -1,100 +1,121 @@
 using System;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 
 namespace WorldofGoses;
 
 /// <summary>
-/// Macro city view. Shows the city as a whole: per-building plots that
-/// open the detail view when clicked, decorative macro citizen
-/// activity, a status panel, a one-time "welcome back" banner when
-/// offline progression ran during load.
-///
-/// Persistence is the controller's responsibility — saving is silent.
+/// Macro city view. A newly founded world legitimately contains one hero and
+/// no buildings, so this view renders that empty state without manufacturing
+/// production plots or treating the save as broken.
 /// </summary>
 public partial class CityMacroView : Control
 {
-    [Export] public NodePath QuarryPlotPath { get; set; } = "QuarryPlot";
-    [Export] public NodePath FarmPlotPath { get; set; } = "FarmPlot";
-    [Export] public NodePath HomePlotPath { get; set; } = "HomePlot";
     [Export] public NodePath ActivityPath { get; set; } = "MacroCitizenActivity";
     [Export] public NodePath StatusPanelPath { get; set; } = "CityStatusPanel";
-    [Export] public NodePath DetailViewPath { get; set; } = "../BuildingDetailView";
     [Export] public NodePath OfflineReportLabelPath { get; set; } = "OfflineReportLabel";
+    [Export] public NodePath ConstructionPanelPath { get; set; } = "Center/ConstructionPanel";
+    [Export] public NodePath EmptyPanelPath { get; set; } = "Center/EmptyPanel";
+    [Export] public NodePath HeroProfileButtonPath { get; set; } =
+        "Center/EmptyPanel/Margin/Content/HeroProfileButton";
 
     private CityWorldController _controller = null!;
-    private BuildingPlot _quarryPlot = null!;
-    private BuildingPlot _farmPlot = null!;
-    private BuildingPlot _homePlot = null!;
     private MacroCitizenActivity _activity = null!;
     private CityStatusPanel _statusPanel = null!;
-    private BuildingDetailView _detailView = null!;
     private Label _offlineLabel = null!;
+    private ConstructionPanel _constructionPanel = null!;
+    private PanelContainer _emptyPanel = null!;
+    private Button _heroProfileButton = null!;
 
     public override void _Ready()
     {
         _controller = GetParent().GetNode<CityWorldController>("CityWorldController");
-        _quarryPlot = GetNode<BuildingPlot>(QuarryPlotPath);
-        _farmPlot = GetNode<BuildingPlot>(FarmPlotPath);
-        _homePlot = GetNode<BuildingPlot>(HomePlotPath);
         _activity = GetNode<MacroCitizenActivity>(ActivityPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
-        _detailView = GetNode<BuildingDetailView>(DetailViewPath);
         _offlineLabel = GetNode<Label>(OfflineReportLabelPath);
+        _constructionPanel = GetNode<ConstructionPanel>(ConstructionPanelPath);
+        _emptyPanel = GetNode<PanelContainer>(EmptyPanelPath);
+        _heroProfileButton = GetNode<Button>(HeroProfileButtonPath);
 
-        _quarryPlot.BuildingClicked += OnBuildingClicked;
-        _farmPlot.BuildingClicked += OnBuildingClicked;
-        _homePlot.BuildingClicked += OnBuildingClicked;
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
+        _controller.ProjectStateChanged += OnAnyProjectStateChanged;
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.SelectionChanged += OnSelectionChanged;
+        _controller.HeroCreated += OnHeroCreated;
+        _heroProfileButton.Pressed += OnHeroProfilePressed;
 
+        Visible = !_controller.NeedsOnboarding();
+        if (Visible) Refresh();
+    }
+
+    public override void _ExitTree()
+    {
+        if (_controller is not null)
+        {
+            _controller.BuildingStateChanged -= OnAnyBuildingStateChanged;
+            _controller.ProjectStateChanged -= OnAnyProjectStateChanged;
+            _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
+            _controller.SelectionChanged -= OnSelectionChanged;
+            _controller.HeroCreated -= OnHeroCreated;
+        }
+        if (_heroProfileButton is not null)
+        {
+            _heroProfileButton.Pressed -= OnHeroProfilePressed;
+        }
+    }
+
+    public void OnReturnedToCity()
+    {
+        if (_controller.NeedsOnboarding()) return;
+        Show();
+        Refresh();
+    }
+
+    private void Refresh()
+    {
         _statusPanel.Refresh(_controller);
-        _activity.Populate();
+        _activity.Populate(_controller.Citizens().Count);
+        _constructionPanel.Refresh();
+
+        bool showConstruction = _controller.World.Projects.Count > 0
+            || (_controller.World.Hero is not null
+                && !_controller.World.Buildings.Values.Any(b => b.Kind == BuildingKind.Home));
+        _emptyPanel.Visible = !showConstruction;
+        _constructionPanel.Visible = showConstruction;
 
         if (_controller.LastOfflineReport is { HadProgression: true } report)
         {
             _offlineLabel.Text = FormatOfflineReport(report);
             _offlineLabel.Visible = true;
         }
-    }
-
-    public override void _ExitTree()
-    {
-        if (_quarryPlot is not null) _quarryPlot.BuildingClicked -= OnBuildingClicked;
-        if (_farmPlot is not null) _farmPlot.BuildingClicked -= OnBuildingClicked;
-        if (_homePlot is not null) _homePlot.BuildingClicked -= OnBuildingClicked;
-        if (_controller is not null)
+        else
         {
-            _controller.BuildingStateChanged -= OnAnyBuildingStateChanged;
-            _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
-            _controller.SelectionChanged -= OnSelectionChanged;
+            _offlineLabel.Visible = false;
         }
     }
 
-    private void OnBuildingClicked(int buildingId)
+    private void OnHeroCreated(int citizenId)
     {
-        GD.Print($"CityMacroView: building clicked, buildingId={buildingId}");
-        var id = new BuildingId(buildingId);
-        if (_controller.SelectBuilding(id))
-        {
-            _detailView.ShowBuilding(id);
-        }
+        Show();
+        Refresh();
     }
 
-    private void OnAnyBuildingStateChanged(int buildingId) =>
-        _statusPanel.Refresh(_controller);
+    private void OnHeroProfilePressed() => _controller.SelectHero();
 
-    private void OnWorldTickAdvanced(int tick) =>
-        _statusPanel.Refresh(_controller);
+    private void OnAnyBuildingStateChanged(int buildingId) => Refresh();
+
+    private void OnAnyProjectStateChanged(int projectId) => Refresh();
+
+    private void OnWorldTickAdvanced(int tick) => _statusPanel.Refresh(_controller);
 
     private void OnSelectionChanged(int selectionState)
     {
-        if ((CityWorldController.Selection)selectionState == CityWorldController.Selection.MacroView)
+        if ((CityWorldController.Selection)selectionState == CityWorldController.Selection.MacroView
+            && !_controller.NeedsOnboarding())
         {
             Show();
-            _activity.Populate();
-            _statusPanel.Refresh(_controller);
+            Refresh();
         }
         else
         {
@@ -102,27 +123,20 @@ public partial class CityMacroView : Control
         }
     }
 
-    public void OnReturnedToCity()
+    private static string FormatOfflineReport(OfflineProgressionReport report)
     {
-        Show();
-        _activity.Populate();
-        _statusPanel.Refresh(_controller);
-    }
-
-    private static string FormatOfflineReport(OfflineProgressionReport r)
-    {
-        var time = FormatSimulatedTime(r.SimulatedTime);
+        string time = FormatSimulatedTime(report.SimulatedTime);
         return
             $"Welcome back · {time} simulated · " +
-            $"{r.TicksApplied} authorized production ticks · " +
-            $"+{r.StockAdded} total stock";
+            $"{report.TicksApplied} authorized production ticks · " +
+            $"+{report.StockAdded} total stock";
     }
 
-    private static string FormatSimulatedTime(TimeSpan ts)
+    private static string FormatSimulatedTime(TimeSpan time)
     {
-        if (ts.TotalDays >= 1) return $"{(int)ts.TotalDays}d {ts.Hours}h";
-        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m";
-        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
-        return $"{(int)ts.TotalSeconds}s";
+        if (time.TotalDays >= 1) return $"{(int)time.TotalDays}d {time.Hours}h";
+        if (time.TotalHours >= 1) return $"{(int)time.TotalHours}h {time.Minutes}m";
+        if (time.TotalMinutes >= 1) return $"{(int)time.TotalMinutes}m {time.Seconds}s";
+        return $"{(int)time.TotalSeconds}s";
     }
 }

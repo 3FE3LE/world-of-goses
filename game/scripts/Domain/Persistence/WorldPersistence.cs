@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,11 +18,9 @@ namespace WorldofGoses.Domain.Persistence;
 /// crash mid-write leaves the original file (if any) intact and
 /// any previous version is preserved as a <c>.bak</c> sidecar.
 ///
-/// The presentation layer drives persistence; the controller has a
-/// toggle (<c>PersistenceEnabled</c>) to disable it during model
-/// refactors. The legacy single-file fallback was removed in
-/// Slice 8 cleanup: saves older than the current shape are simply
-/// not supported — re-seed instead.
+/// The current loader accepts only the current schema. Retired v1
+/// prototype saves are left for the controller to replace after the
+/// player confirms a new hero profile.
 /// </summary>
 public static class WorldPersistence
 {
@@ -87,6 +86,7 @@ public static class WorldPersistence
                 Id = citizen.Id.Value,
                 Name = citizen.Name,
                 AppearanceSeed = citizen.AppearanceSeed,
+                Profile = CaptureProfile(citizen.Profile),
                 CurrentAssignment = citizen.CurrentAssignment?.Value,
                 StaminaCurrent = citizen.CurrentStamina,
                 StaminaMax = citizen.MaxStamina,
@@ -111,7 +111,65 @@ public static class WorldPersistence
             save.Citizens.Add(cs);
         }
 
+        foreach (var project in world.Projects.Values)
+        {
+            var ps = new ConstructionProjectSave
+            {
+                Id = project.Id.Value,
+                Kind = project.Kind.ToString(),
+                DisplayName = project.DisplayName,
+                Progress = project.Progress,
+                RequiredWork = project.RequiredWork,
+                WorkerCapacity = project.WorkerCapacity,
+                Enabled = project.Enabled,
+                AssignedCitizenIds = new List<int>(project.AssignedCitizenIds.Count),
+            };
+            foreach (var cid in project.AssignedCitizenIds)
+            {
+                ps.AssignedCitizenIds.Add(cid.Value);
+            }
+            save.Projects.Add(ps);
+        }
+
         return save;
+    }
+
+    internal static CitizenProfileSave CaptureProfile(CitizenProfile profile)
+    {
+        var save = new CitizenProfileSave
+        {
+            Lineage = profile.Lineage.Value,
+            ElementalAffinity = profile.ElementalAffinity.Value,
+            CombatStyle = profile.CombatStyle.Value,
+            PoliticalOrientation = profile.PoliticalOrientation.Value,
+            SpiritualPosture = profile.SpiritualPosture.Value,
+        };
+        save.Aptitudes.AddRange(profile.Aptitudes.Select(value => value.Value));
+        save.ProfessionalAffinities.AddRange(profile.ProfessionalAffinities.Select(value => value.Value));
+        save.WeaponPreferences.AddRange(profile.WeaponPreferences.Select(value => value.Value));
+        save.PersonalityTraits.AddRange(profile.PersonalityTraits.Select(value => value.Value));
+        return save;
+    }
+
+    internal static CitizenProfile RestoreProfile(CitizenProfileSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (!CitizenProfile.TryCreate(
+                new LineageId(save.Lineage),
+                save.Aptitudes.Select(value => new AptitudeId(value)),
+                save.ProfessionalAffinities.Select(value => new ProfessionFamilyId(value)),
+                new ElementalAffinityId(save.ElementalAffinity),
+                new CombatStyleId(save.CombatStyle),
+                save.WeaponPreferences.Select(value => new WeaponPreferenceId(value)),
+                save.PersonalityTraits.Select(value => new PersonalityTraitId(value)),
+                new PoliticalOrientationId(save.PoliticalOrientation),
+                new SpiritualPostureId(save.SpiritualPosture),
+                out CitizenProfile? profile,
+                out string error))
+        {
+            throw new InvalidOperationException($"Invalid citizen profile: {error}");
+        }
+        return profile!;
     }
 
     /// <summary>
@@ -136,14 +194,13 @@ public static class WorldPersistence
         {
             throw new InvalidOperationException("Save.Citizens is null.");
         }
-        if (save.Buildings.Count == 0)
+        if (save.Projects is null)
         {
-            throw new InvalidOperationException(
-                "Save contains no buildings; the current prototype requires its seeded Quarry and Farm.");
+            throw new InvalidOperationException("Save.Projects is null.");
         }
-        if (save.Version <= 0 || save.Version > WorldSave.CurrentVersion)
+        if (save.Version != WorldSave.CurrentVersion)
         {
-            throw new InvalidOperationException($"Unsupported save version {save.Version}.");
+            throw new IncompatibleSaveVersionException(save.Version, WorldSave.CurrentVersion);
         }
         if (save.CurrentTick < 0)
         {
@@ -151,6 +208,7 @@ public static class WorldPersistence
         }
 
         var buildingIds = new HashSet<int>();
+        var projectIds = new HashSet<int>();
         foreach (var b in save.Buildings)
         {
             if (b is null)
@@ -217,6 +275,25 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException($"Duplicate citizen id {c.Id}.");
             }
+            if (c.Profile is null)
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: profile is missing.");
+            }
+            if (c.Profile.Aptitudes is null
+                || c.Profile.ProfessionalAffinities is null
+                || c.Profile.WeaponPreferences is null
+                || c.Profile.PersonalityTraits is null)
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: profile collection is null.");
+            }
+            try
+            {
+                _ = RestoreProfile(c.Profile);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: {ex.Message}", ex);
+            }
             if (c.Competencies is null || c.Roles is null)
             {
                 throw new InvalidOperationException($"Citizen {c.Id}: attachment collection is null.");
@@ -256,6 +333,68 @@ public static class WorldPersistence
             }
         }
 
+        int heroCount = save.Citizens.Count(c =>
+            c.Roles.Any(role => role.Id == RoleId.Hero.Value));
+        if (heroCount != 1)
+        {
+            throw new InvalidOperationException(
+                $"Save must contain exactly one hero citizen (found {heroCount}).");
+        }
+
+        foreach (var p in save.Projects)
+        {
+            if (p is null)
+            {
+                throw new InvalidOperationException("Save.Projects contains a null entry.");
+            }
+            if (!projectIds.Add(p.Id))
+            {
+                throw new InvalidOperationException($"Duplicate project id {p.Id}.");
+            }
+            if (buildingIds.Contains(p.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Project id {p.Id} collides with an existing building.");
+            }
+            if (p.RequiredWork <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: RequiredWork must be positive (got {p.RequiredWork}).");
+            }
+            if (p.WorkerCapacity < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: WorkerCapacity is negative.");
+            }
+            if (p.Progress < 0 || p.Progress > p.RequiredWork)
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: Progress ({p.Progress}) is out of [0, {p.RequiredWork}].");
+            }
+            if (p.AssignedCitizenIds is null)
+            {
+                throw new InvalidOperationException($"Project {p.Id}: AssignedCitizenIds is null.");
+            }
+            if (p.AssignedCitizenIds.Count > p.WorkerCapacity)
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: assigned citizens exceed capacity.");
+            }
+            if (p.AssignedCitizenIds.Count != p.AssignedCitizenIds.Distinct().Count())
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: duplicate assigned citizen id.");
+            }
+            foreach (var cid in p.AssignedCitizenIds)
+            {
+                if (!citizenIds.Contains(cid))
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id} references unknown citizen {cid}.");
+                }
+            }
+        }
+
         // Cross-entity invariants: every AssignedCitizenId must exist
         // as a citizen; every CurrentAssignment must exist as a
         // building. Without these, Restore produces a building whose
@@ -281,18 +420,28 @@ public static class WorldPersistence
         foreach (var c in save.Citizens)
         {
             if (c.CurrentAssignment.HasValue
-                && !buildingIds.Contains(c.CurrentAssignment.Value))
+                && !buildingIds.Contains(c.CurrentAssignment.Value)
+                && !projectIds.Contains(c.CurrentAssignment.Value))
             {
                 throw new InvalidOperationException(
-                    $"Citizen {c.Id} references unknown building {c.CurrentAssignment.Value}.");
+                    $"Citizen {c.Id} references unknown assignment target {c.CurrentAssignment.Value}.");
             }
-            if (c.CurrentAssignment.HasValue)
+            if (c.CurrentAssignment.HasValue && buildingIds.Contains(c.CurrentAssignment.Value))
             {
                 var building = save.Buildings.Single(b => b.Id == c.CurrentAssignment.Value);
                 if (!building.AssignedCitizenIds.Contains(c.Id))
                 {
                     throw new InvalidOperationException(
                         $"Citizen {c.Id} and building {building.Id} disagree about the assignment.");
+                }
+            }
+            if (c.CurrentAssignment.HasValue && projectIds.Contains(c.CurrentAssignment.Value))
+            {
+                var project = save.Projects.Single(p => p.Id == c.CurrentAssignment.Value);
+                if (!project.AssignedCitizenIds.Contains(c.Id))
+                {
+                    throw new InvalidOperationException(
+                        $"Citizen {c.Id} and project {project.Id} disagree about the assignment.");
                 }
             }
         }

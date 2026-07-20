@@ -15,10 +15,20 @@ run/main_scene="res://scenes/CityPrototype.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+LineageThemeSignals="*res://scripts/LineageThemeSignals.cs"
+
 [display]
 
+window/size/viewport_width=1280
+window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom="res://assets/ui/default_theme.tres"
 
 [dotnet]
 
@@ -31,5 +41,7 @@ project/assembly_name="World of Goses"
 [rendering]
 
 rendering_device/driver.windows="d3d12"
+textures/canvas_textures/default_texture_filter=0
+textures/default_filters/use_nearest_mipmap_filter=false
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"

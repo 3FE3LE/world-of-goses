@@ -170,17 +170,14 @@ If the answers are weak, refine the slice before expanding its implementation.
 
 ## 8. Current recommended next proof
 
-The highest-leverage next proof is an autonomous Quarry–Farm loop in which the
-player configures stock goals and priorities, production and consumption
-interact, operations stop for explicit causes, time advances consistently, and
-the return report leads to a new decision.
+The current proof is the founding-hero vertical slice: a new world begins empty, the player completes a complete identity profile, and the game persists one hero without inventing buildings or secondary citizens. The hero profile is visible and the old production fixture is no longer the game's established data.
 
-The first two steps are now implemented: each building has a persistent
-production authorization and stock target, and one shared world-time path
-advances every authorized building both live and during offline catch-up. The
-next step is to introduce one understandable cross-resource dependency and
-surface its stopping cause without expanding into a generic economy framework.
+The next proof should give the player one consequential first-building decision. That decision should follow from the hero's profile, available knowledge, materials, authorisation, and the city's actual conditions. It must not turn a lineage affinity into an automatic production bonus or use an arbitrary overall level.
 
-The exact resource costs, time scale, policies, and UI layout are intentionally
-open. They should be chosen through implementation and play rather than treated
-as commitments in this guide.
+### 8.1 Lineage and profile contract
+
+The eight lineage definitions and the citizen-profile vocabulary are canonical in `LINEAGES_AND_PROFESSIONAL_AFFINITIES.md`. The current implementation stores and presents them as validated identity data. It intentionally does not interpret them as production percentages, permanent skill ceilings, or profession locks.
+
+When skill mechanics are introduced, they must demonstrate that lineage mostly affects early learning context while experience, education, tools, health, motivation, opportunities, and institutions can overturn the initial tendency. A professional affinity chosen by an individual may contradict their lineage and remains valid.
+
+The exact first-building costs, time scale, policies, and later skill formulas remain open. They should be chosen through implementation and play rather than treated as commitments in this guide.

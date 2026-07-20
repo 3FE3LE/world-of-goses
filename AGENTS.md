@@ -190,12 +190,15 @@ artifacts are ignored. See `.gitignore` at the root.
 - Saves use a schema version, a last-seen UTC timestamp, a temporary file,
   and a `.bak` sidecar when replacing an existing snapshot.
 - The controller auto-loads the primary slot, auto-saves periodically and
-  on window close, and retains the seeded world if loading fails.
+  on window close only after hero onboarding, and starts a new empty world
+  when no valid v2 snapshot is available. A v1 prototype slot remains
+  untouched until a completed hero profile replaces it atomically.
 - Offline progression currently supports:
   - saving world state,
   - saving the timestamp of the last update,
   - computing elapsed time,
   - applying a capped batch of deterministic production ticks,
+  - fast-forwarding an empty hero-only world without production work,
   - and producing a basic aggregate report.
 - A causal event log is still planned. Do not mistake the current aggregate
   report for the final event-based simulation described in the vision.

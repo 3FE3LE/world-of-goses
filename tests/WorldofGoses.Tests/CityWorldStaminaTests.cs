@@ -6,17 +6,17 @@ namespace WorldofGoses.Tests;
 public class CityWorldStaminaTests
 {
     [Fact]
-    public void FreshSeed_FoodStockIsZero()
+    public void ProductionScenario_FoodStockIsZero()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         Assert.Equal(0, world.FoodStock);
         Assert.True(world.MaxFoodStock > 0);
     }
 
     [Fact]
-    public void FreshSeed_AllCitizensStartAtMaxStamina()
+    public void ProductionScenario_AllCitizensStartAtMaxStamina()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         foreach (var citizen in world.Citizens.Values)
         {
             Assert.Equal(citizen.MaxStamina, citizen.CurrentStamina);
@@ -26,7 +26,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void AdvanceWorldTick_WithoutFood_DrainsStamina()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         int totalBefore = SumStamina(world);
 
         world.AdvanceWorldTick();
@@ -43,7 +43,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void AdvanceWorldTick_WithSeededFood_NetZeroStaminaChange()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         // Pre-load enough food to cover every worker's regen.
         world.DepositFood(StaminaRules.MaxStamina);
         int totalBefore = SumStamina(world);
@@ -60,7 +60,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void AdvanceWorldTick_AllWorkersExhausted_ProducesZeroAndSetsStopCause()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
@@ -84,7 +84,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void AdvanceWorldTick_WithFood_KeepsStaminaAboveZero()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var bran = world.GetCitizen(new CitizenId(1))!;
         var erin = world.GetCitizen(new CitizenId(2))!;
 
@@ -105,7 +105,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void TryConsumeFood_Insufficient_ReturnsFalse_LeavesStockUnchanged()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         Assert.False(world.TryConsumeFood(5));
         Assert.Equal(0, world.FoodStock);
     }
@@ -113,7 +113,7 @@ public class CityWorldStaminaTests
     [Fact]
     public void DepositFood_ClampsAtFarmStorageCapacity()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         int added = world.DepositFood(10_000);
         Assert.Equal(world.MaxFoodStock, added);
         Assert.Equal(world.MaxFoodStock, world.FoodStock);
@@ -125,7 +125,7 @@ public class CityWorldStaminaTests
         // Regression: CanProduce is policy + workers + room, NOT
         // stamina. The stamina check lives in the tick body and the
         // stop cause carries the exhaustion signal.
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         Assert.True(quarry.CanProduce);
 

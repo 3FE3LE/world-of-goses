@@ -5,16 +5,15 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// End-to-end domain tests. Use the seeded <see cref="CityWorld"/>
-/// as a realistic fixture: 1 Quarry + 1 Farm, 5 citizens, 3
-/// pre-assigned (Bran + Erin on Quarry, Lior on Farm), 2 free.
+/// End-to-end domain tests. Production scenarios are built explicitly by
+/// TestHelpers; a fresh CityWorld remains empty until hero onboarding.
 /// </summary>
 public class CityWorldTests
 {
     [Fact]
     public void AdvanceWorldTick_AdvancesEveryAuthorizedBuildingOnce()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
@@ -28,7 +27,7 @@ public class CityWorldTests
     [Fact]
     public void AdvanceWorldTick_RespectsIndependentBuildingPolicies()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
         quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
@@ -40,17 +39,17 @@ public class CityWorldTests
     }
 
     [Fact]
-    public void FreshWorld_HasPrimaryBuildingAndAvailableCitizens()
+    public void ProductionScenario_HasPrimaryBuildingAndAvailableCitizens()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         Assert.NotNull(world.PrimaryBuilding);
         Assert.Equal(2, world.AvailableCitizens().Count);
     }
 
     [Fact]
-    public void Seed_HasQuarryAndFarmAndHome()
+    public void ProductionScenario_HasQuarryFarmAndHome()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         Assert.Equal(3, world.Buildings.Count);
 
         var kinds = world.Buildings.Values.Select(b => b.Kind).ToHashSet();
@@ -60,9 +59,9 @@ public class CityWorldTests
     }
 
     [Fact]
-    public void Seed_LiorPreAssignedToFarm()
+    public void ProductionScenario_CitizenIsPreAssignedToFarm()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var lior = world.GetCitizen(new CitizenId(3))!;
         Assert.NotNull(lior.CurrentAssignment);
         var building = world.GetBuilding(lior.CurrentAssignment!.Value)!;
@@ -72,7 +71,7 @@ public class CityWorldTests
     [Fact]
     public void AvailableCitizens_OnlyReturnsUnassigned()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         foreach (var c in world.AvailableCitizens())
         {
             Assert.Null(c.CurrentAssignment);
@@ -82,7 +81,7 @@ public class CityWorldTests
     [Fact]
     public void Assign_FirstFree_SucceedsAndRaisesBuildingChanged()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var firedBuildingId = -1;
         world.BuildingChanged += (_, e) => firedBuildingId = e.BuildingId.Value;
@@ -98,7 +97,7 @@ public class CityWorldTests
     [Fact]
     public void Assign_AlreadyOnBuilding_RejectsWithAlreadyAssigned()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var available = world.AvailableCitizens()[0];
         world.TryAssignCitizen(buildingId, available.Id);
@@ -111,7 +110,7 @@ public class CityWorldTests
     [Fact]
     public void Assign_CitizenAlreadyOnAnotherBuilding_RejectsWithCitizenUnavailable()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var target = world.AvailableCitizens()[0];
 
@@ -126,7 +125,7 @@ public class CityWorldTests
     [Fact]
     public void Assign_UnknownBuilding_RejectsWithBuildingNotFound()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var anyAvailable = world.AvailableCitizens()[0];
         var result = world.TryAssignCitizen(new BuildingId(99), anyAvailable.Id);
         Assert.False(result.IsSuccess);
@@ -136,7 +135,7 @@ public class CityWorldTests
     [Fact]
     public void Assign_UnknownCitizen_RejectsWithCitizenNotFound()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var result = world.TryAssignCitizen(buildingId, new CitizenId(999));
         Assert.False(result.IsSuccess);
@@ -146,7 +145,7 @@ public class CityWorldTests
     [Fact]
     public void Unassign_NotCurrentlyAssigned_RejectsWithNotAssigned()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var unassigned = world.AvailableCitizens()[0];
         var result = world.TryUnassignCitizen(buildingId, unassigned.Id);
@@ -157,7 +156,7 @@ public class CityWorldTests
     [Fact]
     public void AssignAndUnassign_TogglesAvailability()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
 
         var target = world.AvailableCitizens()[0];
@@ -171,7 +170,7 @@ public class CityWorldTests
     [Fact]
     public void AdvanceProduction_CreditsStockByCurrentRate()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         int before = world.PrimaryBuilding.Stock;
         int added = world.AdvanceProduction(buildingId);
@@ -182,7 +181,7 @@ public class CityWorldTests
     [Fact]
     public void AdvanceProduction_ClampsAtStorageCapacity()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
 
         while (world.PrimaryBuilding.Stock < world.PrimaryBuilding.StorageCapacity
@@ -198,7 +197,7 @@ public class CityWorldTests
     [Fact]
     public void AdvanceProduction_GrantsExperienceToAssignedCitizens()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var assignedIds = world.PrimaryBuilding.AssignedCitizenIds.ToList();
         Assert.NotEmpty(assignedIds);
@@ -210,5 +209,29 @@ public class CityWorldTests
         world.AdvanceProduction(buildingId);
 
         Assert.Equal(before + 1, first.GetExperience(competency));
+    }
+
+    [Fact]
+    public void FreshWorld_StartsEmptyUntilHeroOnboarding()
+    {
+        var world = new CityWorld();
+
+        Assert.True(world.NeedsOnboarding);
+        Assert.Empty(world.Citizens);
+        Assert.Empty(world.Buildings);
+    }
+
+    [Fact]
+    public void FreshWorld_OnboardingCreatesThePrincipalHero()
+    {
+        var world = new CityWorld();
+        var result = world.TryCreateHero(
+            new HeroCreationRequest("Founder", TestHelpers.NewProfile(LineageId.Caelith)));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Founder", world.Hero!.Name);
+        Assert.True(world.Hero.IsHero);
+        Assert.Single(world.Citizens);
+        Assert.Empty(world.Buildings);
     }
 }

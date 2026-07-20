@@ -1,0 +1,459 @@
+{
+  "version": 1,
+  "preset": "panel",
+  "seed": 1,
+  "size": {
+    "width": 48,
+    "height": 32
+  },
+  "lineage_theme_id": "vaelun",
+  "lineage_theme_version": 1,
+  "preset_relationship": "linked",
+  "resolved_palette": {
+    "id": "lineage-vaelun",
+    "name": "Vaelun lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          14,
+          27,
+          37,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          24,
+          43,
+          56,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          39,
+          72,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          18,
+          34,
+          44,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          7,
+          16,
+          22,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          93,
+          122,
+          135,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          161,
+          192,
+          202,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          72,
+          162,
+          198,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          209,
+          132,
+          85,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          122,
+          197,
+          220,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          235,
+          243,
+          244,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          196,
+          212,
+          216,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          145,
+          167,
+          173,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          112,
+          170,
+          128,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          214,
+          175,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          196,
+          90,
+          84,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          89,
+          169,
+          212,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          117,
+          207,
+          235,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          173,
+          229,
+          245,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          77,
+          98,
+          107,
+          255
+        ]
+      }
+    ]
+  },
+  "resolved_ornamentation": {
+    "borderPreset": "route-borders",
+    "cornerPreset": "map-fold-compass-corners",
+    "fillPreset": "cartographic-topographic",
+    "shadowPreset": "directional-wayfinding",
+    "contentPadding": {
+      "left": 9,
+      "top": 7,
+      "right": 8,
+      "bottom": 9
+    },
+    "nineSliceMargins": {
+      "left": 9,
+      "top": 7,
+      "right": 8,
+      "bottom": 9
+    },
+    "normalState": "base-token-resolved",
+    "hoverState": "accent-highlight-resolved",
+    "pressedState": "two-pixel-contained-displacement",
+    "selectedState": "path-drawing",
+    "focusedState": "visible-focus-ring",
+    "disabledState": "muted-alpha-pattern",
+    "selectionEffect": "path-drawing"
+  },
+  "manual_overrides": [],
+  "icon_treatment": {
+    "colorTokenId": "text_primary",
+    "backgroundTokenId": "surface_inset",
+    "borderTokenId": "border_mid",
+    "selectedTokenId": "selection",
+    "disabledTokenId": "disabled"
+  },
+  "palette": {
+    "id": "lineage-vaelun",
+    "name": "Vaelun lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          14,
+          27,
+          37,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          24,
+          43,
+          56,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          39,
+          72,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          18,
+          34,
+          44,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          7,
+          16,
+          22,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          93,
+          122,
+          135,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          161,
+          192,
+          202,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          72,
+          162,
+          198,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          209,
+          132,
+          85,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          122,
+          197,
+          220,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          235,
+          243,
+          244,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          196,
+          212,
+          216,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          145,
+          167,
+          173,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          112,
+          170,
+          128,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          214,
+          175,
+          88,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          196,
+          90,
+          84,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          89,
+          169,
+          212,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          117,
+          207,
+          235,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          173,
+          229,
+          245,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          77,
+          98,
+          107,
+          255
+        ]
+      }
+    ]
+  },
+  "border": {
+    "layers": [
+      {
+        "thickness": 1,
+        "tokenId": "border_dark",
+        "pattern": "solid"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_mid",
+        "pattern": "dotted"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_light",
+        "pattern": "dotted"
+      }
+    ]
+  },
+  "corner": {
+    "motif": "compass",
+    "size": 6
+  },
+  "fill": {
+    "kind": "diagonal",
+    "tokenIds": [
+      "surface_base",
+      "surface_raised"
+    ]
+  },
+  "background": "transparent",
+  "shadow": {
+    "dx": 2,
+    "dy": 1,
+    "tokenId": "border_dark"
+  },
+  "contentPadding": {
+    "left": 8,
+    "top": 7,
+    "right": 8,
+    "bottom": 7
+  }
+}

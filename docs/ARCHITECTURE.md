@@ -138,6 +138,7 @@ prototype does **not** introduce specialised subclasses for hero,
 miner, doctor, artisan, leader, adventurer, or any other role. Those
 concepts are *attachments* composed onto a citizen:
 
+- **Citizen profiles.** A citizen stores one immutable profile attachment containing lineage, personal aptitudes, professional affinities, elemental affinity, combat and weapon preferences, personality traits, political orientation, and spiritual posture. These are identity metadata in the current slice; they do not replace competencies or practical history.
 - **Competencies.** A citizen accumulates experience in named
   competencies (e.g. mining). The current slice implements mining
   only; the model is open-ended and not bounded to a fixed number of
@@ -153,11 +154,10 @@ concepts are *attachments* composed onto a citizen:
   model.
 
 The vertical slice in `game/scripts/Domain/` exposes the minimum
-needed by the first prototype (`CitizenId`, `CompetencyId`, `RoleId`,
-`CompetencyEntry`, `Role`, `Availability`, `Citizen`) and leaves room
-for `Health`, `ProfessionalHistory`, `Aptitudes`, `Relationships`, and
-`ExpeditionHistory` to be added later without modifying the citizen
-class's identity.
+needed by the current prototype (`CitizenId`, `LineageId`, profile option
+IDs, `CompetencyId`, `RoleId`, `CompetencyEntry`, `Role`, `CitizenProfile`,
+`Availability`, and `Citizen`). Professional history, education, health,
+relationships, and expedition history remain future attachments.
 
 A hero in this model is a citizen whose role list contains a `hero`
 recognition. Any citizen is potentially eligible for expedition duty
@@ -177,10 +177,9 @@ only the first two are implemented now.
 
 Concretely:
 
-- **Macro.** A city view uses a small placeholder of roughly
-  4–8 logical pixels per citizen. The number of visible macro
-  citizens does not need to match the total population. Each visible
-  dot is decorative and is **not** bound to a `CitizenId`.
+- **Macro.** A city view uses one small marker per current citizen. Markers
+  are not individually interactive yet, but their count is derived from the
+  domain rather than from a fixed population fixture.
 - **Building-detail.** When a building is selected, the view opens
   with one visible worker per *visual capacity* slot. Every visible
   worker corresponds to a real `CitizenId`. Workers that are assigned
@@ -216,13 +215,32 @@ Local persistence is implemented through plain DTOs and
 - Writes use a temporary file and preserve the previous snapshot as `.bak`.
 - Structural and cross-entity invariants are validated before restore.
 - The Godot controller auto-loads the primary slot, auto-saves periodically
-  and on window close, and retains the seeded world when loading fails.
-- Offline elapsed time is capped and applied as deterministic batched ticks.
+  and on window close after onboarding, and starts a new empty world when
+  no valid v2 snapshot is available. A v1 prototype slot is left untouched
+  until a completed hero profile replaces it atomically.
+- Offline elapsed time is capped and applied as deterministic batched ticks;
+  an empty hero-only world uses an equivalent idle fast-forward.
 
 The current `OfflineProgressionReport` is aggregate. A causal event log and
 the final relationship between real time and world time remain undecided.
 
-## 9. Planned event-based simulation
+## 9. UI themes and resolution
+
+The project uses one shared Control hierarchy and one global `Theme`; lineage
+identity never duplicates scenes or functional controls. `LineageThemeRegistry`
+loads the exported `StyleBoxTexture` resources under
+`res://assets/ui/lineages/<lineage>/`, caches them, and resolves missing
+components through the same-lineage `panel` before falling back to the existing
+project theme. `LineageThemeSignals` is the presentation-only autoload that
+notifies visible controls when the founder's persisted lineage changes.
+
+Fonts and icons remain independent of lineage. Geist Pixel is used for display
+titles, Jersey 10 for headings, and Pixelify Sans for controls and reading text.
+Pixelify Sans is imported with grayscale antialiasing, light hinting, disabled
+subpixel positioning, and fixed 1.0 oversampling. The reference viewport is
+explicitly 1280×720 with `canvas_items` stretch and `expand` aspect handling.
+
+## 10. Planned event-based simulation
 
 The current offline simulation batches deterministic ticks. Its intended
 evolution is event-based:
@@ -237,7 +255,7 @@ evolution is event-based:
 This section is a contract for the future architecture. It is not an
 implementation plan. The first prototype does not need it.
 
-## 10. What is explicitly out of scope
+## 11. What is explicitly out of scope
 
 The following are out of scope for the initial architecture and any
 system work that follows:
@@ -254,7 +272,7 @@ These are listed so that the next agent or contributor does not
 "helpfully" add them. The README and `AGENTS.md` repeat the same
 boundary.
 
-## 11. Evolution of the architecture
+## 12. Evolution of the architecture
 
 The architecture is allowed to evolve. The rules for evolving it are:
 

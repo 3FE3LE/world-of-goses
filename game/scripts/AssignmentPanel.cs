@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
@@ -19,6 +20,7 @@ public partial class AssignmentPanel : PanelContainer
     private Label _summary = null!;
     private VBoxContainer _assignedList = null!;
     private VBoxContainer _availableList = null!;
+    private LineageThemeSignals? _themeSignals;
 
     public override void _Ready()
     {
@@ -26,6 +28,12 @@ public partial class AssignmentPanel : PanelContainer
 
         _root = new VBoxContainer();
         AddChild(_root);
+        AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
+        if (_themeSignals is not null)
+        {
+            _themeSignals.LineageChanged += OnLineageChanged;
+        }
 
         var header = new Label
         {
@@ -49,6 +57,14 @@ public partial class AssignmentPanel : PanelContainer
         _availableList = new VBoxContainer();
         _root.AddChild(_availableList);
     }
+
+    public override void _ExitTree()
+    {
+        if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
+    }
+
+    private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
+        "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
     public void Refresh(Building building, CityWorldController controller)
     {

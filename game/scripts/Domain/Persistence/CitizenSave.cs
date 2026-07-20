@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace WorldofGoses.Domain.Persistence;
@@ -7,6 +8,7 @@ public sealed class CitizenSave
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public int AppearanceSeed { get; set; }
+    public CitizenProfileSave? Profile { get; set; }
     /// <summary>
     /// The building the citizen is currently assigned to, mirroring
     /// <see cref="Citizen.CurrentAssignment"/>. Named on the DTO

@@ -1,0 +1,459 @@
+{
+  "version": 1,
+  "preset": "panel",
+  "seed": 1,
+  "size": {
+    "width": 48,
+    "height": 32
+  },
+  "lineage_theme_id": "theryn",
+  "lineage_theme_version": 1,
+  "preset_relationship": "linked",
+  "resolved_palette": {
+    "id": "lineage-theryn",
+    "name": "Theryn lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          33,
+          18,
+          24,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          50,
+          28,
+          36,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          74,
+          41,
+          53,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          41,
+          23,
+          30,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          17,
+          9,
+          13,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          120,
+          70,
+          86,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          192,
+          120,
+          141,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          198,
+          79,
+          106,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          210,
+          151,
+          72,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          226,
+          122,
+          148,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          246,
+          235,
+          238,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          215,
+          189,
+          197,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          167,
+          140,
+          148,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          112,
+          162,
+          120,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          215,
+          165,
+          72,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          208,
+          71,
+          83,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          109,
+          145,
+          182,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          236,
+          123,
+          152,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          243,
+          167,
+          186,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          98,
+          77,
+          84,
+          255
+        ]
+      }
+    ]
+  },
+  "resolved_ornamentation": {
+    "borderPreset": "pulse-borders",
+    "cornerPreset": "overlapping-circle-corners",
+    "fillPreset": "rhythmic-ceremonial",
+    "shadowPreset": "synchronized-state-transition",
+    "contentPadding": {
+      "left": 8,
+      "top": 7,
+      "right": 8,
+      "bottom": 8
+    },
+    "nineSliceMargins": {
+      "left": 8,
+      "top": 7,
+      "right": 8,
+      "bottom": 8
+    },
+    "normalState": "base-token-resolved",
+    "hoverState": "accent-highlight-resolved",
+    "pressedState": "two-pixel-contained-displacement",
+    "selectedState": "contained-pulse",
+    "focusedState": "visible-focus-ring",
+    "disabledState": "muted-alpha-pattern",
+    "selectionEffect": "contained-pulse"
+  },
+  "manual_overrides": [],
+  "icon_treatment": {
+    "colorTokenId": "text_primary",
+    "backgroundTokenId": "surface_inset",
+    "borderTokenId": "border_mid",
+    "selectedTokenId": "selection",
+    "disabledTokenId": "disabled"
+  },
+  "palette": {
+    "id": "lineage-theryn",
+    "name": "Theryn lineage",
+    "tokens": [
+      {
+        "id": "background_deep",
+        "rgba": [
+          33,
+          18,
+          24,
+          255
+        ]
+      },
+      {
+        "id": "surface_base",
+        "rgba": [
+          50,
+          28,
+          36,
+          255
+        ]
+      },
+      {
+        "id": "surface_raised",
+        "rgba": [
+          74,
+          41,
+          53,
+          255
+        ]
+      },
+      {
+        "id": "surface_inset",
+        "rgba": [
+          41,
+          23,
+          30,
+          255
+        ]
+      },
+      {
+        "id": "border_dark",
+        "rgba": [
+          17,
+          9,
+          13,
+          255
+        ]
+      },
+      {
+        "id": "border_mid",
+        "rgba": [
+          120,
+          70,
+          86,
+          255
+        ]
+      },
+      {
+        "id": "border_light",
+        "rgba": [
+          192,
+          120,
+          141,
+          255
+        ]
+      },
+      {
+        "id": "accent_primary",
+        "rgba": [
+          198,
+          79,
+          106,
+          255
+        ]
+      },
+      {
+        "id": "accent_secondary",
+        "rgba": [
+          210,
+          151,
+          72,
+          255
+        ]
+      },
+      {
+        "id": "accent_soft",
+        "rgba": [
+          226,
+          122,
+          148,
+          255
+        ]
+      },
+      {
+        "id": "text_primary",
+        "rgba": [
+          246,
+          235,
+          238,
+          255
+        ]
+      },
+      {
+        "id": "text_secondary",
+        "rgba": [
+          215,
+          189,
+          197,
+          255
+        ]
+      },
+      {
+        "id": "text_muted",
+        "rgba": [
+          167,
+          140,
+          148,
+          255
+        ]
+      },
+      {
+        "id": "success",
+        "rgba": [
+          112,
+          162,
+          120,
+          255
+        ]
+      },
+      {
+        "id": "warning",
+        "rgba": [
+          215,
+          165,
+          72,
+          255
+        ]
+      },
+      {
+        "id": "danger",
+        "rgba": [
+          208,
+          71,
+          83,
+          255
+        ]
+      },
+      {
+        "id": "information",
+        "rgba": [
+          109,
+          145,
+          182,
+          255
+        ]
+      },
+      {
+        "id": "selection",
+        "rgba": [
+          236,
+          123,
+          152,
+          255
+        ]
+      },
+      {
+        "id": "focus",
+        "rgba": [
+          243,
+          167,
+          186,
+          255
+        ]
+      },
+      {
+        "id": "disabled",
+        "rgba": [
+          98,
+          77,
+          84,
+          255
+        ]
+      }
+    ]
+  },
+  "border": {
+    "layers": [
+      {
+        "thickness": 1,
+        "tokenId": "border_dark",
+        "pattern": "solid"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_mid",
+        "pattern": "solid"
+      },
+      {
+        "thickness": 2,
+        "tokenId": "border_light",
+        "pattern": "solid"
+      }
+    ]
+  },
+  "corner": {
+    "motif": "pulse",
+    "size": 6
+  },
+  "fill": {
+    "kind": "checker",
+    "tokenIds": [
+      "surface_base",
+      "surface_raised"
+    ]
+  },
+  "background": "transparent",
+  "shadow": {
+    "dx": 1,
+    "dy": 2,
+    "tokenId": "border_dark"
+  },
+  "contentPadding": {
+    "left": 8,
+    "top": 7,
+    "right": 8,
+    "bottom": 7
+  }
+}

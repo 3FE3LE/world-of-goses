@@ -11,9 +11,9 @@ namespace WorldofGoses.Tests;
 public class WorldPersistenceTests
 {
     [Fact]
-    public void Capture_FreshSeed_RecordsSeededCitizensAndBuildings()
+    public void Capture_ExplicitProductionScenario_RecordsCitizensAndBuildings()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var save = WorldPersistence.Capture(world);
 
         Assert.Equal(5, save.Citizens.Count);
@@ -24,7 +24,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Capture_AfterAssignmentsAndProduction_ReflectsCurrentState()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var freeCitizen = world.AvailableCitizens()[0];
         world.TryAssignCitizen(world.PrimaryBuilding.Id, freeCitizen.Id);
         world.AdvanceProduction(world.PrimaryBuilding.Id);
@@ -41,7 +41,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Capture_MultiBuilding_RecordsKindResourceAndCompetency()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var save = WorldPersistence.Capture(world);
 
         var quarrySave = save.Buildings.Single(b => b.Id == 1);
@@ -60,7 +60,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_PreservesProductionPolicyIncludingZeroTarget()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, targetStock: 0);
 
         var save = WorldPersistence.Capture(world);
@@ -74,7 +74,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Capture_StampsCurrentSchemaVersion()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         Assert.Equal(WorldSave.CurrentVersion, save.Version);
         Assert.Equal(WorldSave.CurrentVersion, save.Version);
     }
@@ -82,7 +82,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_VersionPersists()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var save = WorldPersistence.Capture(world);
         var json = WorldPersistence.SerializeToJson(save);
         var restored = WorldPersistence.DeserializeFromJson(json);
@@ -92,7 +92,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_SerializeDeserialize_PreservesWorldSave()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var freeCitizen = world.AvailableCitizens()[0];
         world.TryAssignCitizen(world.PrimaryBuilding.Id, freeCitizen.Id);
         for (int i = 0; i < 5; i++)
@@ -110,7 +110,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_FromSave_ProducesIdenticalLiveCityWorld()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var freeCitizen = world.AvailableCitizens()[0];
         world.TryAssignCitizen(world.PrimaryBuilding.Id, freeCitizen.Id);
         for (int i = 0; i < 3; i++)
@@ -127,28 +127,15 @@ public class WorldPersistenceTests
     }
 
     [Fact]
-    public void Restore_OldSaveWithoutKind_DefaultsToQuarryMiningStone()
+    public void Validate_V1Save_ThrowsIncompatibleVersion()
     {
-        // Backward-compat: a save written before the Building refactor
-        // has no Kind / ProducedResourceType fields. Restore must
-        // default to Quarry / Mining / Stone instead of crashing.
-        var json = @"{
-  ""LastSeenAtUnixMillis"": 0,
-  ""CurrentTick"": 0,
-  ""Buildings"": [
-    { ""Id"": 1, ""DisplayName"": ""Legacy"",
-      ""WorkerCapacity"": 6, ""VisualCapacity"": 3,
-      ""BaseProductionPerWorker"": 1, ""StorageCapacity"": 20,
-      ""Stock"": 0, ""AssignedCitizenIds"": [] }
-  ],
-  ""Citizens"": []
-}";
-        var save = WorldPersistence.DeserializeFromJson(json);
-        var world = CityWorld.FromSave(save);
-        var building = world.PrimaryBuilding;
-        Assert.Equal(BuildingKind.Quarry, building.Kind);
-        Assert.Equal(ResourceType.Stone, building.ProducedResourceType);
-        Assert.Equal(CompetencyId.Mining, building.ProducedCompetencyId);
+        var save = new WorldSave { Version = 1 };
+
+        var error = Assert.Throws<IncompatibleSaveVersionException>(
+            () => WorldPersistence.Validate(save));
+
+        Assert.Equal(1, error.FoundVersion);
+        Assert.Equal(WorldSave.CurrentVersion, error.ExpectedVersion);
     }
 
     [Fact]
@@ -173,7 +160,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_ValidSave_DoesNotThrow()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         WorldPersistence.Validate(save);
     }
 
@@ -193,7 +180,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_NullBuildingEntry_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Buildings.Add(null!);
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -201,7 +188,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_NullCitizenEntry_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Citizens.Add(null!);
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -209,7 +196,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_NoBuildings_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Buildings.Clear();
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -217,7 +204,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_DuplicateBuildingId_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Buildings[1].Id = save.Buildings[0].Id;
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -225,7 +212,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_AssignmentMismatch_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Citizens.Single(c => c.Id == 1).CurrentAssignment = null;
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -233,7 +220,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_NullCompetencyEntry_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Citizens[0].Competencies.Add(null!);
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -241,7 +228,7 @@ public class WorldPersistenceTests
     [Fact]
     public void FromSave_InvalidSave_DoesNotMutatePartially()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.CurrentTick = -1;
         Assert.Throws<InvalidOperationException>(() => CityWorld.FromSave(save));
     }
@@ -249,7 +236,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_PreservesNamesCompetenciesRoles()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         world.AdvanceProduction(world.PrimaryBuilding.Id);
         world.AdvanceProduction(world.PrimaryBuilding.Id);
 
@@ -258,7 +245,7 @@ public class WorldPersistenceTests
         var save2 = WorldPersistence.DeserializeFromJson(json);
 
         var branSave = save2.Citizens.First(c => c.Id == 1);
-        Assert.Equal("Bran", branSave.Name);
+        Assert.Equal("Aster", branSave.Name);
         Assert.NotEmpty(branSave.Competencies);
         Assert.Contains(branSave.Competencies, c => c.Id == "mining" && c.Experience > 0);
         Assert.Contains(branSave.Roles, r => r.Id == "miner");
@@ -271,7 +258,7 @@ public class WorldPersistenceTests
         try
         {
             var path = Path.Combine(dir, "save.json");
-            var save = WorldPersistence.Capture(new CityWorld());
+            var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
             WorldPersistence.WriteToFile(save, path);
 
             Assert.True(File.Exists(path));
@@ -291,10 +278,10 @@ public class WorldPersistenceTests
         try
         {
             var path = Path.Combine(dir, "save.json");
-            var save1 = WorldPersistence.Capture(new CityWorld());
+            var save1 = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
             WorldPersistence.WriteToFile(save1, path);
 
-            var save2 = WorldPersistence.Capture(new CityWorld());
+            var save2 = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
             save2.CurrentTick = 999;
             WorldPersistence.WriteToFile(save2, path);
 
@@ -315,7 +302,7 @@ public class WorldPersistenceTests
         try
         {
             var nestedPath = Path.Combine(tempRoot, "sub", "save.json");
-            var world = new CityWorld();
+            var world = TestHelpers.NewProductionWorld();
             WorldPersistence.WriteToFile(WorldPersistence.Capture(world), nestedPath);
             Assert.True(File.Exists(nestedPath));
         }
@@ -342,7 +329,7 @@ public class WorldPersistenceTests
         var slotsDir = NewTempDir();
         try
         {
-            var world = new CityWorld();
+            var world = TestHelpers.NewProductionWorld();
             world.AdvanceProduction(world.PrimaryBuilding.Id);
             world.AdvanceProduction(world.PrimaryBuilding.Id);
 
@@ -364,8 +351,8 @@ public class WorldPersistenceTests
         var slotsDir = NewTempDir();
         try
         {
-            var w1 = new CityWorld();
-            var w2 = new CityWorld();
+            var w1 = TestHelpers.NewProductionWorld();
+            var w2 = TestHelpers.NewProductionWorld();
             w2.AdvanceProduction(w2.PrimaryBuilding.Id);
             w2.AdvanceProduction(w2.PrimaryBuilding.Id);
             w2.AdvanceProduction(w2.PrimaryBuilding.Id);
@@ -421,7 +408,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Roundtrip_PreservesStaminaCurrentAndMax()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var bran = world.GetCitizen(new CitizenId(1))!;
         bran.ConsumeStamina(40); // -> 60 / 100
         var branBeforeStamina = bran.CurrentStamina;
@@ -438,36 +425,21 @@ public class WorldPersistenceTests
     }
 
     [Fact]
-    public void Roundtrip_OldSaveWithoutStamina_RestoresFullStamina()
+    public void Validate_V2CitizenWithoutProfile_Throws()
     {
-        // Legacy shape: no StaminaCurrent / StaminaMax. The loader
-        // must default every citizen to MaxStamina without throwing.
-        var json = @"{
-  ""LastSeenAtUnixMillis"": 0,
-  ""CurrentTick"": 0,
-  ""Buildings"": [
-    { ""Id"": 1, ""DisplayName"": ""Legacy"",
-      ""WorkerCapacity"": 6, ""VisualCapacity"": 3,
-      ""BaseProductionPerWorker"": 1, ""StorageCapacity"": 20,
-      ""Stock"": 0, ""AssignedCitizenIds"": [] }
-  ],
-  ""Citizens"": [
-    { ""Id"": 1, ""Name"": ""OldBran"", ""AppearanceSeed"": 1 }
-  ]
-}";
-        var save = WorldPersistence.DeserializeFromJson(json);
-        WorldPersistence.Validate(save);
-        var world = CityWorld.FromSave(save);
+        var save = WorldPersistence.Capture(TestHelpers.NewHeroWorld());
+        save.Citizens[0].Profile = null;
 
-        var bran = world.GetCitizen(new CitizenId(1))!;
-        Assert.Equal(bran.MaxStamina, bran.CurrentStamina);
-        Assert.Equal(StaminaRules.MaxStamina, bran.MaxStamina);
+        var error = Assert.Throws<InvalidOperationException>(
+            () => WorldPersistence.Validate(save));
+
+        Assert.Contains("profile is missing", error.Message);
     }
 
     [Fact]
     public void Validate_NegativeStaminaCurrent_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Citizens[0].StaminaCurrent = -1;
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }
@@ -475,7 +447,7 @@ public class WorldPersistenceTests
     [Fact]
     public void Validate_StaminaCurrentExceedsStaminaMax_Throws()
     {
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.Citizens[0].StaminaMax = 50;
         save.Citizens[0].StaminaCurrent = 51;
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
@@ -486,7 +458,7 @@ public class WorldPersistenceTests
     {
         // Old saves have StaminaCurrent = 0 (default int) and
         // StaminaMax = null. Validation must accept that.
-        var save = WorldPersistence.Capture(new CityWorld());
+        var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         foreach (var c in save.Citizens)
         {
             c.StaminaMax = null;

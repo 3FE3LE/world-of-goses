@@ -18,7 +18,8 @@ namespace WorldofGoses;
 /// on window close (in <see cref="_Notification"/>). No manual
 /// save button — the game philosophy forbids progress loss.
 ///
-/// Load priority: primary slot → seeded in-memory world.
+/// Load priority: primary slot → current v2 world; an absent or retired
+/// slot starts the hero onboarding flow without creating production data.
 /// </summary>
 public partial class CityWorldController : Node
 {
@@ -40,6 +41,12 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void WorldTickAdvancedEventHandler(int tick);
 
+    [Signal]
+    public delegate void HeroCreatedEventHandler(int citizenId);
+
+    [Signal]
+    public delegate void ProjectStateChangedEventHandler(int projectId);
+
     private readonly CityWorld _world = new();
 
     /// <summary>
@@ -56,6 +63,7 @@ public partial class CityWorldController : Node
     {
         MacroView = 0,
         BuildingDetail = 1,
+        HeroProfile = 2,
     }
 
     public CityWorld World => _world;
@@ -73,10 +81,17 @@ public partial class CityWorldController : Node
     {
         if (PersistenceEnabled) TryLoadFromDisk();
         _world.BuildingChanged += OnDomainBuildingChanged;
+        _world.ProjectChanged += OnDomainProjectChanged;
+        if (_world.Hero is { } hero)
+        {
+            LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(hero.Profile.Lineage);
+        }
     }
 
     public override void _Process(double delta)
     {
+        if (_world.NeedsOnboarding) return;
+
         AdvanceLiveSimulation(delta);
 
         if (!PersistenceEnabled) return;
@@ -108,6 +123,7 @@ public partial class CityWorldController : Node
     public override void _ExitTree()
     {
         _world.BuildingChanged -= OnDomainBuildingChanged;
+        _world.ProjectChanged -= OnDomainProjectChanged;
     }
 
     public override void _Notification(int what)
@@ -129,6 +145,8 @@ public partial class CityWorldController : Node
 
     private void TryAutoSave()
     {
+        if (_world.NeedsOnboarding) return;
+
         try
         {
             WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
@@ -149,6 +167,28 @@ public partial class CityWorldController : Node
 
     public void ReturnToCity() =>
         EmitSignal(SignalName.SelectionChanged, (int)Selection.MacroView);
+
+    public bool SelectHero()
+    {
+        if (_world.Hero is null) return false;
+        EmitSignal(SignalName.SelectionChanged, (int)Selection.HeroProfile);
+        return true;
+    }
+
+    public bool NeedsOnboarding() => _world.NeedsOnboarding;
+
+    public Citizen? HeroOrNull() => _world.Hero;
+
+    public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
+    {
+        var result = _world.TryCreateHero(request);
+        if (!result.IsSuccess || !result.CitizenId.HasValue) return result;
+
+        LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(request.Profile.Lineage);
+        EmitSignal(SignalName.HeroCreated, result.CitizenId.Value.Value);
+        SaveNow();
+        return result;
+    }
 
     public Building PrimaryBuilding() => _world.PrimaryBuilding;
 
@@ -189,6 +229,39 @@ public partial class CityWorldController : Node
         return result;
     }
 
+    public AssignmentResult TryAssignCitizenToProject(BuildingId projectId, CitizenId citizenId)
+    {
+        var result = _world.TryAssignToProject(projectId, citizenId);
+        if (!result.IsSuccess)
+            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
+        return result;
+    }
+
+    public AssignmentResult TryUnassignCitizenFromProject(BuildingId projectId, CitizenId citizenId)
+    {
+        var result = _world.TryUnassignFromProject(projectId, citizenId);
+        if (!result.IsSuccess)
+            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
+        return result;
+    }
+
+    public ConstructionAuthorizationResult TryAuthorizeBasicShelter()
+    {
+        var result = _world.TryAuthorizeBasicShelter();
+        if (result.IsSuccess && result.ProjectId.HasValue)
+        {
+            SaveNow();
+        }
+        return result;
+    }
+
+    public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
+        _world.SetProjectEnabled(projectId, enabled);
+
+    public ConstructionProject? GetProject(BuildingId projectId) => _world.GetProject(projectId);
+
+    public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects() => _world.Projects;
+
     public int AdvanceProduction(BuildingId buildingId) => _world.AdvanceProduction(buildingId);
 
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock) =>
@@ -196,21 +269,22 @@ public partial class CityWorldController : Node
 
     private void TryLoadFromDisk()
     {
-        // Single source: the primary slot. The legacy single-file
-        // fallback was removed during the Building refactor; saves
-        // older than the current shape are simply not supported.
         try
         {
             TryLoadFromPrimarySlot();
         }
+        catch (IncompatibleSaveVersionException ex)
+        {
+            LastOfflineReport = null;
+            GD.Print(
+                $"Save schema v{ex.FoundVersion} belongs to the retired prototype. " +
+                "Starting hero onboarding; the old slot will remain untouched until confirmation.");
+        }
         catch (Exception ex)
         {
             LastOfflineReport = null;
-            GD.Print($"Save recovery: starting from the seeded world because the primary slot is invalid: {ex.Message}");
-            // Replace the incompatible primary snapshot immediately so
-            // the same warning does not recur on every launch. The
-            // persistence layer preserves the rejected file as `.bak`.
-            TryAutoSave();
+            GD.PushWarning(
+                $"Primary slot could not be loaded. Starting hero onboarding without overwriting it: {ex.Message}");
         }
     }
 
@@ -229,36 +303,20 @@ public partial class CityWorldController : Node
         {
             var now = DateTimeOffset.UtcNow;
             var lastSeenAt = DateTimeOffset.FromUnixTimeMilliseconds(save.LastSeenAtUnixMillis);
-            var ticks = OfflineProgression.ComputeTicks(now, lastSeenAt);
+            int ticks = OfflineProgression.ComputeTicks(now, lastSeenAt);
+            LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
 
-            // Defensive: if the loaded save produced a world with no
-            // buildings (a broken legacy migration, for example),
-            // skip offline progression rather than crashing on
-            // PrimaryBuilding.
-            if (_world.Buildings.Count > 0)
+            if (LastOfflineReport.HadProgression)
             {
-                LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
-
-                if (LastOfflineReport.HadProgression)
-                {
-                    GD.Print(
-                        $"World loaded from {source} (tick {_world.CurrentTick}). " +
-                        $"Offline progression: +{LastOfflineReport.TicksApplied} ticks, " +
-                        $"+{LastOfflineReport.StockAdded} stock, " +
-                        $"{(int)LastOfflineReport.SimulatedTime.TotalSeconds}s simulated.");
-                }
-                else
-                {
-                    GD.Print($"World loaded from {source} (tick {_world.CurrentTick}).");
-                }
+                GD.Print(
+                    $"World loaded from {source} (tick {_world.CurrentTick}). " +
+                    $"Offline progression: +{LastOfflineReport.TicksApplied} ticks, " +
+                    $"+{LastOfflineReport.StockAdded} stock, " +
+                    $"{(int)LastOfflineReport.SimulatedTime.TotalSeconds}s simulated.");
             }
             else
             {
-                LastOfflineReport = null;
-                GD.PushWarning(
-                    $"Loaded save from {source} has no buildings. " +
-                    "If this persists, delete %LOCALAPPDATA%/World of Goses/slots/save_slot_0.json " +
-                    "and the legacy save.json to start fresh.");
+                GD.Print($"World loaded from {source} (tick {_world.CurrentTick}).");
             }
         }
         else
@@ -270,4 +328,7 @@ public partial class CityWorldController : Node
 
     private void OnDomainBuildingChanged(object? sender, CityWorldChangedEventArgs e) =>
         EmitSignal(SignalName.BuildingStateChanged, e.BuildingId.Value);
+
+    private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e) =>
+        EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
 }

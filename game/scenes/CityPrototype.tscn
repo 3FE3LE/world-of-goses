@@ -3,13 +3,15 @@
 [ext_resource type="Script" path="res://scripts/CityPrototype.cs" id="1_root"]
 [ext_resource type="Script" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
 [ext_resource type="Script" path="res://scripts/CityMacroView.cs" id="3_macro"]
-[ext_resource type="Script" path="res://scripts/BuildingPlot.cs" id="4_plot"]
-[ext_resource type="Script" path="res://scripts/MacroCitizenActivity.cs" id="5_activity"]
-[ext_resource type="Script" path="res://scripts/CityStatusPanel.cs" id="6_status"]
-[ext_resource type="Script" path="res://scripts/BuildingDetailView.cs" id="7_detail"]
-[ext_resource type="Script" path="res://scripts/VisibleWorkerSlots.cs" id="8_slots"]
-[ext_resource type="Script" path="res://scripts/AssignmentPanel.cs" id="9_assign"]
-[ext_resource type="Script" path="res://scripts/ProductionPanel.cs" id="10_prod"]
+[ext_resource type="Script" path="res://scripts/MacroCitizenActivity.cs" id="4_activity"]
+[ext_resource type="Script" path="res://scripts/CityStatusPanel.cs" id="5_status"]
+[ext_resource type="Script" path="res://scripts/BuildingDetailView.cs" id="6_detail"]
+[ext_resource type="Script" path="res://scripts/VisibleWorkerSlots.cs" id="7_slots"]
+[ext_resource type="Script" path="res://scripts/AssignmentPanel.cs" id="8_assign"]
+[ext_resource type="Script" path="res://scripts/ProductionPanel.cs" id="9_prod"]
+[ext_resource type="PackedScene" path="res://scenes/OnboardingView.tscn" id="10_onboarding"]
+[ext_resource type="PackedScene" path="res://scenes/HeroProfileView.tscn" id="11_profile"]
+[ext_resource type="Script" path="res://scripts/ConstructionPanel.cs" id="12_construction"]
 
 [node name="CityPrototype" type="Node"]
 script = ExtResource("1_root")
@@ -18,113 +20,175 @@ script = ExtResource("1_root")
 script = ExtResource("2_ctrl")
 
 [node name="CityMacroView" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("3_macro")
 
 [node name="Background" type="ColorRect" parent="CityMacroView"]
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.42, 0.55, 0.36, 1)
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.23, 0.31, 0.26, 1)
 mouse_filter = 2
 
 [node name="MacroCitizenActivity" type="Node2D" parent="CityMacroView"]
-script = ExtResource("5_activity")
-
-[node name="HomePlot" type="Control" parent="CityMacroView"]
-offset_left = 335.0
-offset_top = 340.0
-offset_right = 527.0
-offset_bottom = 532.0
-script = ExtResource("4_plot")
-BuildingIdValue = 3
-BuildingNameValue = "Home"
-BuildingTooltip = "Click to see who is resting"
+script = ExtResource("4_activity")
 
 [node name="OfflineReportLabel" type="Label" parent="CityMacroView"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
 anchor_right = 1.0
 offset_top = 40.0
 offset_bottom = 64.0
+grow_horizontal = 2
 text = ""
 horizontal_alignment = 1
+theme_type_variation = "EventTitle"
+
+[node name="Center" type="CenterContainer" parent="CityMacroView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="EmptyPanel" type="PanelContainer" parent="CityMacroView/Center"]
+custom_minimum_size = Vector2(520, 180)
 visible = false
+layout_mode = 2
 
-[node name="QuarryPlot" type="Control" parent="CityMacroView"]
-offset_left = 220.0
-offset_top = 110.0
-offset_right = 412.0
-offset_bottom = 302.0
-script = ExtResource("4_plot")
-BuildingIdValue = 1
-BuildingNameValue = "Quarry"
-BuildingTooltip = "Click to enter quarry"
+[node name="Margin" type="MarginContainer" parent="CityMacroView/Center/EmptyPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
 
-[node name="FarmPlot" type="Control" parent="CityMacroView"]
-offset_left = 450.0
-offset_top = 110.0
-offset_right = 642.0
-offset_bottom = 302.0
-script = ExtResource("4_plot")
-BuildingIdValue = 2
-BuildingNameValue = "Farm"
-BuildingTooltip = "Click to enter farm"
+[node name="Content" type="VBoxContainer" parent="CityMacroView/Center/EmptyPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+layout_mode = 2
+theme_type_variation = "ScreenTitle"
+theme_override_font_sizes/font_size = 36
+text = "The city begins with one person"
+horizontal_alignment = 1
+
+[node name="EmptyStateLabel" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+layout_mode = 2
+theme_type_variation = "BodyText"
+text = "No buildings yet. Your hero is ready for the first decision."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="HeroProfileButton" type="Button" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_type_variation = "ButtonPrimary"
+text = "View hero profile"
+
+[node name="ConstructionPanel" type="PanelContainer" parent="CityMacroView/Center"]
+custom_minimum_size = Vector2(720, 420)
+layout_mode = 2
+script = ExtResource("12_construction")
 
 [node name="CityStatusPanel" type="PanelContainer" parent="CityMacroView"]
+layout_mode = 1
+anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 32.0
-script = ExtResource("6_status")
+grow_horizontal = 2
+script = ExtResource("5_status")
 
 [node name="BuildingDetailView" type="Control" parent="."]
 visible = false
+layout_mode = 3
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 0
-script = ExtResource("7_detail")
+script = ExtResource("6_detail")
 
 [node name="DetailBackground" type="ColorRect" parent="BuildingDetailView"]
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 color = Color(0.2, 0.24, 0.3, 1)
 mouse_filter = 2
 
 [node name="Title" type="Label" parent="BuildingDetailView"]
+layout_mode = 1
+anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 32.0
+grow_horizontal = 2
 text = "Building"
 horizontal_alignment = 1
+theme_type_variation = "PanelTitle"
 
 [node name="VisibleWorkerSlots" type="Control" parent="BuildingDetailView"]
+layout_mode = 0
 offset_left = 80.0
 offset_top = 120.0
 offset_right = 560.0
 offset_bottom = 260.0
-script = ExtResource("8_slots")
+script = ExtResource("7_slots")
 
 [node name="AssignmentPanel" type="PanelContainer" parent="BuildingDetailView"]
+layout_mode = 1
+anchors_preset = 7
 anchor_left = 1.0
+anchor_top = 0.5
 anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_bottom = 0.5
 offset_left = -240.0
-offset_top = 40.0
-offset_right = 0.0
-offset_bottom = -90.0
-script = ExtResource("9_assign")
+offset_top = -284.0
+offset_bottom = 244.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("8_assign")
 
 [node name="ProductionPanel" type="PanelContainer" parent="BuildingDetailView"]
-anchor_top = 1.0
+layout_mode = 1
+anchors_preset = 12
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -180.0
 offset_right = -260.0
-script = ExtResource("10_prod")
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("9_prod")
 
 [node name="BackButton" type="Button" parent="BuildingDetailView"]
+layout_mode = 1
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -120.0
+offset_left = -136.0
 offset_top = 8.0
 offset_right = -16.0
-offset_bottom = 40.0
+offset_bottom = 48.0
+grow_horizontal = 0
+theme_type_variation = "ButtonText"
 tooltip_text = "Return to the city view"
 text = "Back to city"
+
+[node name="HeroProfileView" parent="." instance=ExtResource("11_profile")]
+
+[node name="OnboardingView" parent="." instance=ExtResource("10_onboarding")]

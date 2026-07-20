@@ -16,4 +16,8 @@ public readonly record struct AssignmentResult(
 
     public static AssignmentResult Fail(AssignmentOutcome outcome, CitizenId citizen, BuildingId building) =>
         new(outcome, citizen, building);
+
+    /// <summary>Convenience factory for the project assignment path that uses <see cref="AssignmentOutcome.NotAssigned"/> as a non-failure placeholder.</summary>
+    public static AssignmentResult Ok(AssignmentOutcome placeholder, CitizenId citizen, BuildingId building) =>
+        Ok(citizen, building);
 }

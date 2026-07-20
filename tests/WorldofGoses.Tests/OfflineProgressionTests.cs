@@ -9,7 +9,7 @@ public class OfflineProgressionTests
     [Fact]
     public void ApplyAll_AdvancesQuarryAndFarmDuringAbsence()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
@@ -24,7 +24,7 @@ public class OfflineProgressionTests
     [Fact]
     public void ApplyAll_RespectsEachBuildingsPolicy()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
         farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
@@ -104,7 +104,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_ZeroTicks_NoStateChange()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var tickBefore = world.CurrentTick;
         var stockBefore = world.PrimaryBuilding.Stock;
@@ -120,7 +120,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_NegativeTicks_NoOp()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var tickBefore = world.CurrentTick;
 
@@ -133,7 +133,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_FewTicks_StockAndExperienceAccumulate()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var bran = world.GetCitizen(new CitizenId(1))!;
         var branExpBefore = bran.GetExperience(CompetencyId.Mining);
@@ -156,7 +156,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_ManyTicks_StopsAtTargetWithoutPhantomExperienceOrWaste()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         var bran = world.GetCitizen(new CitizenId(1))!;
         var branExpBefore = bran.GetExperience(CompetencyId.Mining);
@@ -166,12 +166,12 @@ public class OfflineProgressionTests
 
         Assert.True(report.TicksApplied < 100);
         Assert.Equal(stoneCap, world.PrimaryBuilding.Stock);
-        // Bran's mining experience crosses the bonus threshold at tick
+        // The hero's mining experience crosses the bonus threshold at tick
         // 18 (3 base + 15 gained = 18 exp; floor(1*21/20) = 1, so total
         // 2/tick; tick 18 exp = 21 → bonus fires). 17 ticks × 2 + 1 tick
         // × 3 = 37 produced before target cap. StockAdded counts
         // production only; the test asserts "no phantom experience"
-        // by checking Bran's exp matches productive ticks.
+        // by checking the hero's exp matches productive ticks.
         Assert.Equal(37, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
         Assert.Equal(branExpBefore + report.TicksApplied, bran.GetExperience(CompetencyId.Mining));
@@ -180,7 +180,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_UnknownBuilding_ReturnsNoneReport()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var report = OfflineProgression.Apply(world, new BuildingId(999), ticksToApply: 100);
         Assert.False(report.HadProgression);
         Assert.Equal(0, report.TicksApplied);
@@ -189,13 +189,13 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_SimulatedTime_MatchesTickRate()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
 
         var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 60, tickRateHz: 1.0);
         Assert.Equal(60.0, report.SimulatedTime.TotalSeconds);
 
-        var secondWorld = new CityWorld();
+        var secondWorld = TestHelpers.NewProductionWorld();
         var report2 = OfflineProgression.Apply(
             secondWorld, secondWorld.PrimaryBuilding.Id, ticksToApply: 60, tickRateHz: 2.0);
         Assert.Equal(30.0, report2.SimulatedTime.TotalSeconds);
@@ -204,7 +204,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_DisabledPolicy_DoesNotProduce()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var building = world.PrimaryBuilding;
         building.ConfigureProductionPolicy(enabled: false, targetStock: building.StorageCapacity);
 
@@ -221,7 +221,7 @@ public class OfflineProgressionTests
         // and disable the Farm so no food is produced for regen.
         // Each tick pays 1 cost → 5 productive ticks, then no more
         // (cost 6 → 0 means tick 6 contributes nothing).
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
         var bran = world.GetCitizen(new CitizenId(1))!;
@@ -241,7 +241,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_WithFoodLoaded_RunsLongerThanExhaustedBaseline()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var bran = world.GetCitizen(new CitizenId(1))!;
         var erin = world.GetCitizen(new CitizenId(2))!;
@@ -253,7 +253,7 @@ public class OfflineProgressionTests
         var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
 
         // With food (buff active) workers sustain; target reached in 18
-        // ticks (Bran's mining bonus kicks in at tick 18, producing 3).
+        // ticks (the hero's mining bonus kicks in at tick 18, producing 3).
         Assert.Equal(18, report.TicksApplied);
         Assert.Equal(37, report.StockAdded);
         Assert.Equal(quarry.StorageCapacity, quarry.Stock);
@@ -262,7 +262,7 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_AfterExhaustion_BuildingStopCauseIsWorkersExhausted()
     {
-        var world = new CityWorld();
+        var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
         foreach (var citizen in world.Citizens.Values)
