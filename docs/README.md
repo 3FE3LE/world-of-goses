@@ -43,6 +43,11 @@ These files describe what the code does today, the recommended slice sequence, a
 | `LINEAGES_AND_PROFESSIONAL_AFFINITIES.md` | **Pointer.** The eight lineages, twelve-family vocabulary, five layers, and balance rules live in the bible; this file maps old sections to their new homes. |
 | `DESIGN_INFLUENCES.md` | **Pointer + audit trail.** The IP boundary and naming discipline live in the bible; the retired MVP shorthand stays here as a historical note. |
 
+The optional lineage splash workflow is documented beside the tool at
+[`art/world-of-goses-minimax-splash-generator/README.md`](../art/world-of-goses-minimax-splash-generator/README.md).
+Its generated output is local concept material, not a runtime dependency or an
+automatic addition to `game/assets/`.
+
 ## Authority rules
 
 1. The most recent explicit decision wins.

@@ -105,6 +105,23 @@ These characters use Universal LPC body bases and require attribution.
 Preserve `docs/LICENSING_AND_ATTRIBUTION.md`, `docs/licenses/`,
 `docs/LINEAGE_DESIGN_MATRIX.md`, and `docs/MANIFEST.json` in distributions.
 
+### 5.2 Lineage splash generator
+
+`art/world-of-goses-minimax-splash-generator/` contains an optional MiniMax
+generation workflow for lineage splash concepts. It reads the integrated LPC
+idle sheets as visual references but is not part of the Godot runtime or the
+Pixelorama-to-engine asset path.
+
+In this repository the Godot project root passed to the tool is `game/`, so its
+current output is `game/art/generated/standardized_lineage_characters/`. That
+directory, the generator's `.venv`, temporary files, and Godot-generated
+`*.import` files are local outputs and must not be committed. A generated image
+only becomes a game asset after manual art review and intentional promotion
+through the normal `art/source` / `art/exports` / `game/assets` pipeline.
+
+The generator reads `MINIMAX_API_KEY` from the process environment. Never store
+the real value in repository files, prompts, manifests, shell history, or logs.
+
 ## 6. Naming conventions
 
 ### 6.1 Subjects and states

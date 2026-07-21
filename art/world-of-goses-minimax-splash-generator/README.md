@@ -13,22 +13,23 @@ proyecto de Godot.
 
 ## Instalación
 
-Extrae esta carpeta dentro de `/art`:
+En este repositorio la carpeta ya vive dentro de `/art`. La raíz del proyecto
+Godot es `game/`:
 
 ```text
 <proyecto>/
-├── project.godot
-├── assets/
-│   └── characters/lineages/...
-└── art/
-    └── world-of-goses-minimax-splash-generator/
+├── art/
+│   └── world-of-goses-minimax-splash-generator/
+└── game/
+    ├── project.godot
+    └── assets/characters/lineages/...
 ```
 
 ## Validar sin gastar
 
 ```powershell
 cd .\art\world-of-goses-minimax-splash-generator
-.\run.ps1 -DryRun -All
+.\run.ps1 -DryRun -All -ProjectRoot ..\..\game
 ```
 
 Debe encontrar las 16 referencias y no hace llamadas a MiniMax.
@@ -36,7 +37,7 @@ Debe encontrar las 16 referencias y no hace llamadas a MiniMax.
 ## Probar un personaje
 
 ```powershell
-.\run.ps1
+.\run.ps1 -ProjectRoot ..\..\game
 ```
 
 La primera ejecución crea `.venv`, instala `requests` y `Pillow`, solicita la
@@ -52,13 +53,13 @@ $env:MINIMAX_API_KEY = "tu-api-key"
 ## Generar los 16
 
 ```powershell
-.\run.ps1 -All
+.\run.ps1 -All -ProjectRoot ..\..\game
 ```
 
 Solicita escribir `GENERATE 16` antes de realizar las llamadas pagadas.
 
 ```powershell
-.\run.ps1 -All -Yes
+.\run.ps1 -All -Yes -ProjectRoot ..\..\game
 ```
 
 omite esa confirmación.
@@ -66,15 +67,15 @@ omite esa confirmación.
 ## Generar uno concreto
 
 ```powershell
-.\run.ps1 -Only eirune_female
-.\run.ps1 -Only kovari_male
-.\run.ps1 -Only theryn_female
+.\run.ps1 -Only eirune_female -ProjectRoot ..\..\game
+.\run.ps1 -Only kovari_male -ProjectRoot ..\..\game
+.\run.ps1 -Only theryn_female -ProjectRoot ..\..\game
 ```
 
 ## Resultados
 
 ```text
-art/generated/splash/
+game/art/generated/standardized_lineage_characters/
 ├── ardhen/
 │   ├── male.png
 │   └── female.png
@@ -88,7 +89,7 @@ art/generated/splash/
 Los PNG existentes se omiten. Para regenerar uno:
 
 ```powershell
-.\run.ps1 -Only ardhen_male -Force
+.\run.ps1 -Only ardhen_male -Force -ProjectRoot ..\..\game
 ```
 
 ## Qué hace con las referencias
@@ -96,7 +97,7 @@ Los PNG existentes se omiten. Para regenerar uno:
 Para cada personaje toma:
 
 ```text
-assets/characters/lineages/<linaje>/<gender>/textures/idle_down_128.png
+game/assets/characters/lineages/<linaje>/<gender>/textures/idle_down_128.png
 ```
 
 Extrae el primer frame de 128 × 128, recorta la transparencia, lo amplía con
@@ -121,9 +122,14 @@ El script valida el máximo de 1.500 caracteres antes de llamar a MiniMax.
 
 ## Proyecto Godot en otra ruta
 
-```powershell
-.\run.ps1 -DryRun -All -ProjectRoot C:\dev\world-of-goses
-```
+Pasa siempre la carpeta que contiene `project.godot`. Para este repositorio es
+`C:\dev\world-of-goses\game`, no la raíz del repositorio.
+
+## Control de versiones
+
+No agregues a Git `.venv/`, `.env`, `game/art/generated/`, archivos temporales
+ni `*.import`. Los resultados son material conceptual local hasta que sean
+revisados y promovidos de forma intencional por el pipeline de arte.
 
 ## Seguridad
 

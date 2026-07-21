@@ -23,11 +23,12 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **232 / 232 passing**.
+- xUnit suite: **274 / 274 passing**.
 - Godot headless loads the main scene and current primary slot without scene,
   resource, signal, or C# errors.
-- The current slice combines founding-hero onboarding, the first authorised
-  Basic Shelter construction project, and eight lineage visual themes.
+- The current slice combines founding-hero onboarding, interactive construction
+  for Basic Shelter, Farm, and Quarry, a causal event log, and 16 animated LPC
+  lineage character variants.
 
 ## 2. Founding-hero slice
 
@@ -52,12 +53,19 @@ outweigh birth over time.
 
 ## 3. First authorised construction
 
-After onboarding, the macro view offers a Basic Shelter as an explicit player
-decision. Authorisation creates a persisted `ConstructionProject`; contributors
-can be assigned or removed, work can be paused and resumed, and deterministic
-ticks advance project progress subject to day/night and stamina. Completion
-replaces the project with the resulting Home-kind building without seeding it
-at world creation.
+After onboarding, the construction menu offers Basic Shelter, Farm, and Quarry
+as explicit player decisions. Selecting an option enters placement mode instead
+of activating an existing building behind the menu. Confirming a valid plot
+creates a persisted `ConstructionProject`; contributors can be assigned or
+removed, work can be paused and resumed, and deterministic ticks advance the
+project through visible phases subject to day/night and stamina. Completion
+replaces the project with the resulting building without seeding it at world
+creation.
+
+The world records construction and simulation outcomes in a bounded causal
+`WorldEventLog`. The HUD event-log panel reacts to controller signals rather
+than polling domain state. Offline progression still retains its aggregate
+summary for catch-up reporting; it is not a replacement for the event stream.
 
 ## 4. Existing city systems retained as concepts
 
@@ -66,8 +74,8 @@ food, upkeep, day/night mobilisation, and offline progression. They are no
 longer instantiated by the new-game path. The Basic Shelter now proves the
 empty-to-built transition while Quarry and Farm remain explicit test fixtures.
 
-The old Quarry/Farm/Home scenarios remain available only as explicit test
-fixtures in `TestHelpers`; they are not the game's current data.
+The old pre-seeded Quarry/Farm/Home scenarios remain available only as explicit
+test fixtures in `TestHelpers`; they are not the game's current startup data.
 
 ## 5. Stamina, day/night, and idle worlds
 
@@ -95,10 +103,11 @@ of no-op building ticks.
 
 ## 7. Presentation, themes, and navigation
 
-`CityWorldController` emits `HeroCreated`, `WorldTickAdvanced`, selection, and
-building signals. `OnboardingView` and `HeroProfileView` are reusable Control
-scenes. They use containers, scrolling, explicit focusable controls, and a
-single back path so the flow works with mouse, keyboard, and gamepad.
+`CityWorldController` emits `HeroCreated`, `WorldTickAdvanced`, project-change,
+event-log, selection, and building signals. `OnboardingView` and
+`HeroProfileView` are reusable Control scenes. They use containers, scrolling,
+explicit focusable controls, and a single back path so the flow works with
+mouse, keyboard, and gamepad.
 
 The global theme preserves the Geist Pixel / Jersey 10 / Pixelify Sans hierarchy.
 The eight founder lineages resolve exported panel `StyleBoxTexture` resources at
@@ -112,14 +121,15 @@ eight packs and the expected component fallbacks. The reference viewport is
 - Lineage and profile choices are stored and presented but do not yet modify
   learning, retention, errors, fatigue, teaching, or production. Those effects
   require the future skill-system slice.
-- Basic Shelter is the only construction decision and its prerequisites are
-  intentionally minimal; materials, knowledge, institutions, and richer unlock
-  conditions remain future work.
-- Offline reporting is aggregate and does not yet provide a chronological causal
-  event log.
+- Basic Shelter, Farm, and Quarry are the current placement options, but all
+  three recipes keep intentionally minimal prerequisites; materials, knowledge,
+  institutions, and richer unlock conditions remain future work.
+- The causal event log covers the current prototype actions; it is not yet the
+  complete long-horizon event model described by the design bible.
 - Combat, expeditions, health, relationships, institutions, migration, and
   environmental alignment remain future systems.
-- Placeholder art is still in use.
+- Building art remains provisional. Detailed citizens now use the imported LPC
+  set, while the macro citizen marker and some UI elements remain placeholders.
 - There is no automated Godot UI test harness; headless boot and manual flow
   verification remain required.
 
@@ -171,7 +181,7 @@ by explicit test scenarios, not by production startup data.
 The current baseline was verified with:
 
 - `dotnet build game/World of Goses.csproj` — 0 warnings, 0 errors.
-- `dotnet test tests/WorldofGoses.Tests/WorldofGoses.Tests.csproj --no-restore` — 232 passing.
+- `dotnet test tests/WorldofGoses.Tests/WorldofGoses.Tests.csproj --no-restore` — 274 passing.
 - Godot 4.7.1 `.NET` headless boot — current slot loaded cleanly.
 
 The manual onboarding flow must still be exercised in a graphical Godot run.
@@ -195,7 +205,9 @@ These are open design questions, not permission to reintroduce a starter seed.
 - Onboarding: `game/scripts/OnboardingView.cs`, `game/scenes/OnboardingView.tscn`
 - Hero profile: `game/scripts/HeroProfileView.cs`, `game/scenes/HeroProfileView.tscn`
 - Construction: `game/scripts/ConstructionPanel.cs`, domain construction types
+- Event log: `game/scripts/Domain/WorldEventLog.cs`, `game/scripts/OfflineReportPanel.cs`
 - Lineage themes: `game/scripts/LineageThemeRegistry.cs`, `game/assets/ui/lineages/`
+- Lineage characters: `game/assets/characters/lineages/`, `game/scripts/visual/`
 - Main scene: `game/scenes/CityPrototype.tscn`
 - Tests: `tests/WorldofGoses.Tests/`
 - Canonical lineage design: [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md)
@@ -215,9 +227,17 @@ The catalog lives at `game/scripts/BuildingArt.cs`. `BuildingPlot` defaults to t
 
 `Smithy` and `PotionLab` still have no art at any level. `BuildingArt.GetTexturePath` returns `null` for them; rendering code must handle the missing case rather than crash.
 
-## 16. Worker sprite (slice 7 — deferred)
+## 16. Detailed citizen sprites
 
-The previous `worker_placeholder.png` was removed. `VisibleWorkerSlot.WorkerSpritePath` is now an empty default; when empty, the slot renders without a sprite instead of crashing the loader. A real `worker.pxo` lands when a character art slice ships; the canvas target (64 × 96) and frame vocabulary are recorded in `art/source/characters/README.md`.
+The previous `worker_placeholder.png` was removed. Building-detail worker slots
+now resolve one of 16 lineage/gender scenes through
+`CharacterVisualRegistry`. Each scene exposes `idle`, `walk`, and `slash` in
+four directions using 128 × 128 cells. `LineageSpritePlayer` owns animation
+selection; the building-detail slot explicitly selects `idle_down` and does not
+apply a second looping locomotion animation to the container.
+
+Universal LPC attribution and redistribution requirements are recorded in
+`docs/LICENSING_AND_ATTRIBUTION.md` and `docs/licenses/`.
 
 ## 17. Visual and audio lineage identity
 
