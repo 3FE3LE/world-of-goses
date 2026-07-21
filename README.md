@@ -5,6 +5,15 @@
 > by an explicitly authorised Basic Shelter construction project. The prototype
 > includes lineage-driven UI skins, local persistence, offline progression, and
 > a 232-test domain/persistence suite.
+>
+> **Before authoring any new screen or widget, read
+> [`docs/UI_PATTERNS.md`](docs/UI_PATTERNS.md).** It codifies the
+> three reusable UI patterns (PackedScene, `[GlobalClass]`, static
+> factory), the signal-based state binding rule, the 3-font theming
+> hierarchy, save/load integration, navigation/focus, anti-patterns,
+> and a per-PR audit checklist. Every UI PR follows it; every UI
+> shortcut that bypasses it reproduces the divergent widget
+> definitions we already paid to consolidate.
 
 A persistent pixel-art desktop game about a single living city. The world
 continues advancing while the game is closed, and the player guides its
@@ -53,6 +62,10 @@ The current implementation status and next starting point are in
 [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
 The implementation architecture is in
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The **UI patterns** rulebook for any new screen or widget is in
+[`docs/UI_PATTERNS.md`](docs/UI_PATTERNS.md).
+The current UI state and the manual checklist live in
+[`docs/UI_AUDIT.md`](docs/UI_AUDIT.md).
 The pixel-art file flow is in [`docs/ART_PIPELINE.md`](docs/ART_PIPELINE.md).
 The honest cross-check against the bible is in
 [`docs/VALIDATION.md`](docs/VALIDATION.md).
@@ -259,6 +272,10 @@ The conceptual rule is:
   concrete current need.
 - **No premature systems**: do not implement networking, mobile, or other
   speculative systems before the prototype validates the need.
+- **UI follows `UI_PATTERNS.md`.** Every new screen, modal, button, chip, or
+  row goes through one of the three patterns declared there, with explicit
+  `theme_type_variation`, signal-driven state binding, and the close-path
+  matrix that the modal/focus rules demand.
 
 ## 13. First prototype scope
 
@@ -394,6 +411,9 @@ other contributors can join later, but the workflow is informal.
 
 - Read `AGENTS.md` and the documents in `docs/` before opening an issue or
   pull request.
+- **Read `docs/UI_PATTERNS.md` before authoring any new UI** (screen,
+  modal, button, chip, row). It is the guardrail against the divergent
+  per-callsite widget definitions that already cost a stabilisation slice.
 - Keep changes small, verifiable, and aligned with the current prototype
   scope.
 - Do not commit secrets, API keys, tokens, signing keys, or machine-specific

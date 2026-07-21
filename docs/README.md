@@ -32,6 +32,8 @@ These files describe what the code does today, the recommended slice sequence, a
 | --- | --- |
 | `CURRENT_STATUS.md` | What slice is live, what the next proof should be, verification commands. |
 | `ARCHITECTURE.md` | Folder layout, the engine/domain boundary, three visual scales, persistence boundary, what is out of scope. |
+| `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
+| `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |
 | `VALIDATION.md` | Honest cross-check of the current slice against the bible's vision and pillars, ranked gaps. |
 | `ART_PIPELINE.md` | Pixelorama → PNG → Godot file flow, naming conventions, SpriteFrames / TileMapLayer wiring, anti-patterns. |
 | `LINEAGE_DESIGN_MATRIX.md` | Visual translation matrix shipped with the Universal LPC lineage character pack. |
@@ -61,6 +63,11 @@ automatic addition to `game/assets/`.
    appears here, it is either (a) implementation-aware (status, code
    structure, validation snapshot, process guide) or (b) a pointer to
    the bible chapter that owns the content.
+7. **New UI flows through `UI_PATTERNS.md`.** Before opening a screen
+   or widget, read `UI_PATTERNS.md`. The three reusable patterns
+   (PackedScene, `[GlobalClass]`, static factory) plus the per-PR
+   audit checklist there are the guardrail against the divergent
+   per-callsite widget definitions that already cost a slice.
 
 ## When the two sets disagree
 
@@ -73,6 +80,8 @@ automatic addition to `game/assets/`.
 | "How should it sound?" | bible `09_AUDIO_GUIDELINES.md` |
 | "What is the current slice and what ships next?" | `CURRENT_STATUS.md` |
 | "How is the code organised today?" | `ARCHITECTURE.md` |
+| "How should I build a new screen or widget?" | `UI_PATTERNS.md` |
+| "What does the current UI look like in practice?" | `UI_AUDIT.md` |
 | "How do I validate a new slice?" | `PRODUCT_DIRECTION.md` |
 | "What must the slice still prove?" | `VALIDATION.md` |
 | "Where do files live and how are they named?" | `ART_PIPELINE.md` |
