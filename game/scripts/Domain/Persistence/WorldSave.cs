@@ -21,8 +21,16 @@ public sealed class WorldSave
     /// Current save schema version. Bumped on backwards-incompatible
     /// changes. Retired versions are rejected before restore so the
     /// controller can start a new onboarding flow without mutation.
+    ///
+    /// <para>Version history:</para>
+    /// <list type="bullet">
+    ///   <item><description>v1 — retired founding prototype (5 citizens, 3 buildings seeded).</description></item>
+    ///   <item><description>v2 — founding-hero slice with single-target production policy.</description></item>
+    ///   <item><description>v3 — recipes + min/max stock range + priority + CauseEventId wiring.</description></item>
+    ///   <item><description>v4 — explicit gender identity stored on CitizenProfile.</description></item>
+    /// </list>
     /// </summary>
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 4;
 
     public int Version { get; set; } = CurrentVersion;
 

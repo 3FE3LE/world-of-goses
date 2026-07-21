@@ -27,10 +27,13 @@ public static class CharacterVisualRegistry
             ?? throw new InvalidOperationException($"Character scene could not be loaded: {path}");
     }
 
-    public static CharacterBodyVariant ResolveBodyVariant(int appearanceSeed) =>
-        (appearanceSeed & 1) == 0
-            ? CharacterBodyVariant.Male
-            : CharacterBodyVariant.Female;
+    public static CharacterBodyVariant ResolveBodyVariant(GenderId gender) =>
+        gender switch
+        {
+            GenderId.Feminine => CharacterBodyVariant.Female,
+            GenderId.Masculine => CharacterBodyVariant.Male,
+            _ => CharacterBodyVariant.Male,
+        };
 
     private static IReadOnlyDictionary<VisualKey, string> BuildScenePaths()
     {

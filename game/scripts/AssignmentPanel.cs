@@ -72,24 +72,24 @@ public partial class AssignmentPanel : PanelContainer
     private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
         "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
-    public void Refresh(Building building, CityWorldController controller)
+    public void Refresh(BuildingDetailSnapshot snapshot)
     {
         _summary.Text =
-            $"Assigned: {building.AssignedCount} / {building.WorkerCapacity}\n" +
-            $"Visible: {building.VisibleWorkerCount} · Inside: {building.HiddenWorkerCount}";
+            $"Assigned: {snapshot.AssignedCount} / {snapshot.WorkerCapacity}\n" +
+            $"Visible: {snapshot.VisibleWorkerCount} · Inside: {snapshot.HiddenWorkerCount}";
 
-        PopulateAssigned(building, controller);
-        PopulateAvailable(building, controller);
+        PopulateAssigned(snapshot);
+        PopulateAvailable(snapshot);
     }
 
-    private void PopulateAssigned(Building building, CityWorldController controller)
+    private void PopulateAssigned(BuildingDetailSnapshot snapshot)
     {
         foreach (var child in _assignedList.GetChildren())
         {
             child.QueueFree();
         }
 
-        if (building.AssignedCount == 0)
+        if (snapshot.AssignedCount == 0)
         {
             var empty = new Label { Text = "(no workers)" };
             empty.ThemeTypeVariation = "BodySmall";
@@ -97,27 +97,23 @@ public partial class AssignmentPanel : PanelContainer
             return;
         }
 
-        foreach (var citizenId in building.AssignedCitizenIds)
+        foreach (var citizen in snapshot.AssignedCitizens)
         {
-            string name = controller.Citizens().TryGetValue(citizenId, out var citizen)
-                ? citizen.Name
-                : $"Citizen {citizenId.Value}";
-            var row = BuildRow(citizenId, name, "Remove", $"Remove from {building.DisplayName}");
+            var row = BuildRow(citizen.Id, citizen.Name, "Remove", $"Remove from {snapshot.DisplayName}");
             row.GetNode<Button>("Button").Pressed += () =>
-                EmitSignal(SignalName.UnassignRequested, citizenId.Value);
+                EmitSignal(SignalName.UnassignRequested, citizen.Id.Value);
             _assignedList.AddChild(row);
         }
     }
 
-    private void PopulateAvailable(Building building, CityWorldController controller)
+    private void PopulateAvailable(BuildingDetailSnapshot snapshot)
     {
         foreach (var child in _availableList.GetChildren())
         {
             child.QueueFree();
         }
 
-        var available = controller.AvailableCitizens();
-        if (available.Count == 0)
+        if (snapshot.AvailableCitizens.Count == 0)
         {
             var empty = new Label { Text = "(no free citizens)" };
             empty.ThemeTypeVariation = "BodySmall";
@@ -125,10 +121,10 @@ public partial class AssignmentPanel : PanelContainer
             return;
         }
 
-        foreach (var citizen in available)
+        foreach (var citizen in snapshot.AvailableCitizens)
         {
-            bool canAssign = building.AssignedCount < building.WorkerCapacity;
-            var row = BuildRow(citizen.Id, citizen.Name, "Assign", $"Assign to {building.DisplayName}");
+            bool canAssign = snapshot.AssignedCount < snapshot.WorkerCapacity;
+            var row = BuildRow(citizen.Id, citizen.Name, "Assign", $"Assign to {snapshot.DisplayName}");
             var button = row.GetNode<Button>("Button");
             button.Disabled = !canAssign;
             var capturedId = citizen.Id;

@@ -14,6 +14,7 @@ public partial class HeroProfileView : Control
     private CityWorldController _controller = null!;
     private VBoxContainer _content = null!;
     private Button _backButton = null!;
+    private LineageSpritePlayer? _heroSprite;
 
     public override void _Ready()
     {
@@ -106,6 +107,14 @@ public partial class HeroProfileView : Control
             child.QueueFree();
         }
 
+        // Drop the cached sprite so a re-render after a lineage or
+        // gender change loads the new scene.
+        if (_heroSprite is not null)
+        {
+            _heroSprite.QueueFree();
+            _heroSprite = null;
+        }
+
         Citizen? hero = _controller.HeroOrNull();
         if (hero is null)
         {
@@ -115,6 +124,7 @@ public partial class HeroProfileView : Control
 
         CitizenProfile profile = hero.Profile;
         LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
+        AddHeroSprite(hero);
         AddHeroName($"{hero.Name} · {lineage.DisplayName}");
         AddBody("Role: Hero");
         AddBody(lineage.Summary);
@@ -136,6 +146,7 @@ public partial class HeroProfileView : Control
         AddBody($"Elemental affinity: {ProfileCatalog.DisplayName(profile.ElementalAffinity)}");
         AddBody($"Combat style: {ProfileCatalog.DisplayName(profile.CombatStyle)}");
         AddBody($"Weapon preferences: {Join(profile.WeaponPreferences.Select(ProfileCatalog.DisplayName))}");
+        AddBody($"Gender: {profile.Gender}");
 
         AddHeading("Personality and worldview");
         AddBody($"Traits: {Join(profile.PersonalityTraits.Select(ProfileCatalog.DisplayName))}");
@@ -155,6 +166,27 @@ public partial class HeroProfileView : Control
         label.ThemeTypeVariation = "PanelTitle";
         label.AddThemeFontSizeOverride("font_size", 26);
         _content.AddChild(label);
+    }
+
+    /// <summary>
+    /// Centers the hero sprite above the title block. The sprite is the
+    /// imported LPC scene for the hero's lineage + gender combination,
+    /// resolved through <see cref="CharacterVisualRegistry"/>, played in
+    /// its idle animation so the page communicates the hero is alive
+    /// without forcing the player to read the body text first.
+    /// </summary>
+    private void AddHeroSprite(Citizen hero)
+    {
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Profile.Gender);
+        var scene = CharacterVisualRegistry.LoadScene(hero.Profile.Lineage, bodyVariant);
+        _heroSprite = scene.Instantiate<LineageSpritePlayer>();
+        _heroSprite.Position = new Vector2(0, 0);
+        var centered = new CenterContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        centered.AddChild(_heroSprite);
+        _content.AddChild(centered);
     }
 
     /// <summary>

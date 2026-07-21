@@ -58,6 +58,7 @@ public sealed class WorldEventLog
         WorldEventKind.ProjectCompleted => $"{subjectName} completed",
         WorldEventKind.BuildingCreated => $"{subjectName} became a building",
         WorldEventKind.WellFedExpired => $"{subjectName} lost the WellFed buff",
+        WorldEventKind.ProductionBlocked => $"{subjectName} waiting: missing inputs",
         _ => subjectName,
     };
 }

@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 
@@ -21,6 +20,7 @@ public partial class ConstructionPanel : PanelContainer
     [Signal] public delegate void ViewCompletedBuildingRequestedEventHandler(int buildingId);
     [Signal] public delegate void AssignToProjectRequestedEventHandler(int projectId, int citizenId);
     [Signal] public delegate void UnassignFromProjectRequestedEventHandler(int projectId, int citizenId);
+    [Signal] public delegate void GatherWoodRequestedEventHandler(int forestId, int amount);
 
     [Export] public NodePath ControllerPath { get; set; } = "/root/CityPrototype/CityWorldController";
 
@@ -36,6 +36,7 @@ public partial class ConstructionPanel : PanelContainer
     private Label _statusLabel = null!;
     private ProgressBar _progress = null!;
     private Label _contributors = null!;
+    private Label _requirementsLabel = null!;
     private VBoxContainer _assignList = null!;
     private VBoxContainer _availableList = null!;
     private IconButton _authorizeButton = null!;
@@ -45,6 +46,7 @@ public partial class ConstructionPanel : PanelContainer
     private IconButton _resumeButton = null!;
     private IconButton _viewHeroButton = null!;
     private IconButton _viewBuildingButton = null!;
+    private IconButton _gatherWoodButton = null!;
     private Label _errorLabel = null!;
     private Button _primaryFocus = null!;
     private LineageThemeSignals? _themeSignals;
@@ -58,22 +60,23 @@ public partial class ConstructionPanel : PanelContainer
             return;
         }
         _controller = controllerNode;
-        AuthorizeRequested += kind => _controller.TryAuthorizeConstruction((ConstructionKind)kind);
-        PauseRequested += () => OnPauseResume(true);
-        ResumeRequested += () => OnPauseResume(false);
-        ViewHeroRequested += () => _controller.SelectHero();
+        AuthorizeRequested += OnAuthorizeRequested;
+        PauseRequested += OnPauseRequested;
+        ResumeRequested += OnResumeRequested;
+        ViewHeroRequested += OnViewHeroRequested;
         ViewCompletedBuildingRequested += OnViewCompletedBuilding;
         AssignToProjectRequested += OnAssignToProject;
         UnassignFromProjectRequested += OnUnassignFromProject;
+        GatherWoodRequested += OnGatherWoodRequested;
 
         BuildShell();
         if (_controller is not null)
         {
-            _controller.HeroCreated += _ => ApplyLineageTheme();
-            _controller.ProjectStateChanged += _ => Refresh();
-            _controller.BuildingStateChanged += _ => Refresh();
-            _controller.SelectionChanged += _ => Refresh();
-            _controller.CitizenAssignmentRejected += _ => Refresh();
+            _controller.HeroCreated += OnHeroCreated;
+            _controller.ProjectStateChanged += OnProjectStateChanged;
+            _controller.BuildingStateChanged += OnBuildingStateChanged;
+            _controller.SelectionChanged += OnSelectionChanged;
+            _controller.CitizenAssignmentRejected += OnCitizenAssignmentRejected;
             _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
             if (_themeSignals is not null)
             {
@@ -91,6 +94,37 @@ public partial class ConstructionPanel : PanelContainer
 
     private void OnLineageChanged(string lineage) => ApplyLineageTheme();
 
+    private void OnAuthorizeRequested(int constructionKind)
+    {
+        var result = _controller.TryAuthorizeConstruction((ConstructionKind)constructionKind);
+        if (result.IsSuccess) return;
+        _errorLabel.Text = FormatAuthorizationError(result.Outcome);
+        _errorLabel.Visible = true;
+    }
+
+    private void OnPauseRequested() => OnPauseResume(true);
+
+    private void OnResumeRequested() => OnPauseResume(false);
+
+    private void OnViewHeroRequested() => _controller.SelectHero();
+
+    private void OnHeroCreated(int citizenId) => ApplyLineageTheme();
+
+    private void OnProjectStateChanged(int projectId) => Refresh();
+
+    private void OnBuildingStateChanged(int buildingId) => Refresh();
+
+    private void OnSelectionChanged(int selectionState) => Refresh();
+
+    private void OnCitizenAssignmentRejected(int reason) => Refresh();
+
+    private void OnGatherWoodRequested(int forestId, int amount)
+    {
+        int gathered = _controller.GatherWood(new BuildingId(forestId), amount);
+        _errorLabel.Text = gathered > 0 ? $"Gathered {gathered} wood." : "No wood could be gathered.";
+        Refresh(clearError: false);
+    }
+
     private void OnPauseResume(bool pause)
     {
         var project = CurrentProject();
@@ -98,14 +132,8 @@ public partial class ConstructionPanel : PanelContainer
         _controller.SetProjectEnabled(project.Id, !pause);
     }
 
-    private ConstructionProject? CurrentProject()
-    {
-        foreach (var project in _controller.World.Projects.Values)
-        {
-            return project;
-        }
-        return null;
-    }
+    private ConstructionSnapshot.ProjectItem? CurrentProject() =>
+        _controller.GetConstructionSnapshot().Project;
 
     private void OnViewCompletedBuilding(int buildingId)
     {
@@ -184,6 +212,14 @@ public partial class ConstructionPanel : PanelContainer
         _contributors.ThemeTypeVariation = "BodySmall";
         shell.AddChild(_contributors);
 
+        _requirementsLabel = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            ThemeTypeVariation = "BodyText",
+        };
+        shell.AddChild(_requirementsLabel);
+
         var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         lists.AddThemeConstantOverride("separation", 16);
         shell.AddChild(lists);
@@ -240,6 +276,10 @@ public partial class ConstructionPanel : PanelContainer
             iconPath: IconPaths.House,
             label: "View shelter",
             variation: "ButtonPrimary");
+        _gatherWoodButton = NewFooterButton(
+            iconPath: IconPaths.Tree,
+            label: "Gather wood",
+            variation: "ButtonPrimary");
         _authorizeButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.BasicShelter);
         _farmButton.Pressed += () => EmitSignal(
@@ -257,6 +297,15 @@ public partial class ConstructionPanel : PanelContainer
                 EmitSignal(SignalName.ViewCompletedBuildingRequested, project.Id.Value);
             }
         };
+        _gatherWoodButton.Pressed += () =>
+        {
+            var action = _controller.GetConstructionSnapshot().GatherWood;
+            if (action is not null)
+            {
+                EmitSignal(SignalName.GatherWoodRequested, action.ForestId.Value, action.Amount);
+            }
+        };
+        footer.AddChild(_gatherWoodButton);
         footer.AddChild(_viewHeroButton);
         footer.AddChild(_pauseButton);
         footer.AddChild(_resumeButton);
@@ -281,19 +330,27 @@ public partial class ConstructionPanel : PanelContainer
     {
         if (_controller is null) return;
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
-        _controller.HeroCreated -= _ => Refresh();
-        _controller.ProjectStateChanged -= _ => Refresh();
-        _controller.BuildingStateChanged -= _ => Refresh();
-        _controller.SelectionChanged -= _ => Refresh();
-        _controller.CitizenAssignmentRejected -= _ => Refresh();
+        _controller.HeroCreated -= OnHeroCreated;
+        _controller.ProjectStateChanged -= OnProjectStateChanged;
+        _controller.BuildingStateChanged -= OnBuildingStateChanged;
+        _controller.SelectionChanged -= OnSelectionChanged;
+        _controller.CitizenAssignmentRejected -= OnCitizenAssignmentRejected;
+        AuthorizeRequested -= OnAuthorizeRequested;
+        PauseRequested -= OnPauseRequested;
+        ResumeRequested -= OnResumeRequested;
+        ViewHeroRequested -= OnViewHeroRequested;
+        ViewCompletedBuildingRequested -= OnViewCompletedBuilding;
+        AssignToProjectRequested -= OnAssignToProject;
+        UnassignFromProjectRequested -= OnUnassignFromProject;
+        GatherWoodRequested -= OnGatherWoodRequested;
     }
 
-    public void Refresh()
+    public void Refresh(bool clearError = true)
     {
         if (_controller is null) return;
-        _errorLabel.Text = string.Empty;
-        var world = _controller.World;
-        if (world.Projects.Count == 0)
+        if (clearError) _errorLabel.Text = string.Empty;
+        var snapshot = _controller.GetConstructionSnapshot();
+        if (snapshot.Project is null)
         {
             _mode = Mode.Blueprint;
         }
@@ -301,29 +358,28 @@ public partial class ConstructionPanel : PanelContainer
         {
             _mode = Mode.Underway;
         }
-        Render();
+        Render(snapshot);
     }
 
-    private void Render()
+    private void Render(ConstructionSnapshot snapshot)
     {
-        var world = _controller.World;
         switch (_mode)
         {
             case Mode.Blueprint:
-                RenderBlueprint(world);
+                RenderBlueprint(snapshot);
                 break;
             case Mode.Underway:
-                RenderUnderway(world);
+                RenderUnderway(snapshot);
                 break;
             case Mode.Completed:
-                RenderCompleted(world);
+                RenderCompleted(snapshot);
                 break;
         }
     }
 
-    private void RenderBlueprint(CityWorld world)
+    private void RenderBlueprint(ConstructionSnapshot snapshot)
     {
-        bool hasHome = world.Buildings.Values.Any(building => building.Kind == BuildingKind.Home);
+        bool hasHome = snapshot.HasHome;
         _title.Text = hasHome ? "Choose the next construction" : "Build the first shelter";
         _description.Text = hasHome
             ? "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
@@ -332,30 +388,50 @@ public partial class ConstructionPanel : PanelContainer
         _progress.Visible = false;
         _statusLabel.Visible = false;
         _contributors.Visible = false;
+        _requirementsLabel.Visible = true;
         _assignList.Visible = false;
         _availableList.Visible = false;
-        _errorLabel.Visible = false;
-        bool canAuthorise = world.Hero is not null && world.Projects.Count == 0;
+        _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
+        bool canAuthorise = snapshot.HasHero && snapshot.Project is null;
+        var shelter = snapshot.OptionFor(ConstructionKind.BasicShelter);
+        var farm = snapshot.OptionFor(ConstructionKind.Farm);
+        var quarry = snapshot.OptionFor(ConstructionKind.Quarry);
+        _requirementsLabel.Text = hasHome
+            ? $"Farm — {DescribeMaterials(farm)}\nQuarry — {DescribeMaterials(quarry)}"
+            : $"Basic Shelter — {DescribeMaterials(shelter)}";
         _authorizeButton.Visible = !hasHome;
-        _authorizeButton.Disabled = !canAuthorise;
+        _authorizeButton.Disabled = !canAuthorise || !shelter.CanPayDeposit;
         _farmButton.Visible = hasHome;
-        _farmButton.Disabled = !canAuthorise;
+        _farmButton.Disabled = !canAuthorise || !farm.CanPayDeposit;
         _quarryButton.Visible = hasHome;
-        _quarryButton.Disabled = !canAuthorise;
+        _quarryButton.Disabled = !canAuthorise || !quarry.CanPayDeposit;
+        _gatherWoodButton.Visible = !hasHome && snapshot.GatherWood is not null;
+        if (snapshot.GatherWood is { } gather)
+        {
+            _gatherWoodButton.SetIconAndLabel(
+                IconPaths.Tree,
+                $"Send {gather.CitizenName} to gather {gather.Amount} wood");
+        }
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _viewBuildingButton.Visible = false;
-        _viewHeroButton.Visible = world.Hero is not null;
-        _primaryFocus = hasHome ? _farmButton : _authorizeButton;
+        _viewHeroButton.Visible = snapshot.HasHero;
+        _primaryFocus = !hasHome
+            ? (_authorizeButton.Disabled && _gatherWoodButton.Visible ? _gatherWoodButton : _authorizeButton)
+            : !_farmButton.Disabled
+                ? _farmButton
+                : !_quarryButton.Disabled
+                    ? _quarryButton
+                    : _viewHeroButton;
         _primaryFocus.GrabFocus();
     }
 
-    private void RenderUnderway(CityWorld world)
+    private void RenderUnderway(ConstructionSnapshot snapshot)
     {
-        var project = CurrentProject();
+        var project = snapshot.Project;
         if (project is null)
         {
-            RenderBlueprint(world);
+            RenderBlueprint(snapshot);
             return;
         }
         _title.Text = project.DisplayName;
@@ -366,6 +442,10 @@ public partial class ConstructionPanel : PanelContainer
         _progress.Visible = true;
         _statusLabel.Visible = true;
         _contributors.Visible = true;
+        _requirementsLabel.Visible = project.RemainingInputs.Count > 0;
+        _requirementsLabel.Text = project.RemainingInputs.Count > 0
+            ? $"Still needed — {DescribeInputs(project.RemainingInputs)}"
+            : string.Empty;
         _assignList.Visible = true;
         _availableList.Visible = true;
         _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
@@ -380,12 +460,19 @@ public partial class ConstructionPanel : PanelContainer
         ClearList(_assignList);
         ClearList(_availableList);
         PopulateAssigned(project);
-        PopulateAvailable(project);
+        PopulateAvailable(project, snapshot.AvailableCitizens);
 
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
         _quarryButton.Visible = false;
         _viewBuildingButton.Visible = false;
+        _gatherWoodButton.Visible = snapshot.GatherWood is not null;
+        if (snapshot.GatherWood is { } gather)
+        {
+            _gatherWoodButton.SetIconAndLabel(
+                IconPaths.Tree,
+                $"Send {gather.CitizenName} to gather {gather.Amount} wood");
+        }
         _pauseButton.Visible = project.Enabled;
         _resumeButton.Visible = !project.Enabled;
         _viewHeroButton.Visible = true;
@@ -393,19 +480,11 @@ public partial class ConstructionPanel : PanelContainer
         _primaryFocus.GrabFocus();
     }
 
-    private void RenderCompleted(CityWorld world)
+    private void RenderCompleted(ConstructionSnapshot snapshot)
     {
-        Building? shelter = null;
-        foreach (var building in world.Buildings.Values)
-        {
-            if (building.Kind == BuildingKind.Home)
-            {
-                shelter = building;
-                break;
-            }
-        }
+        BuildingId? shelterId = snapshot.HomeBuildingId;
         _title.Text = "Basic Shelter completed";
-        if (shelter is not null)
+        if (shelterId.HasValue)
         {
             _description.Text = "The Basic Shelter is ready. Open the building to assign it as resting site.";
         }
@@ -417,6 +496,7 @@ public partial class ConstructionPanel : PanelContainer
         _progress.Visible = false;
         _statusLabel.Visible = false;
         _contributors.Visible = false;
+        _requirementsLabel.Visible = false;
         _assignList.Visible = false;
         _availableList.Visible = false;
         _errorLabel.Visible = false;
@@ -426,12 +506,13 @@ public partial class ConstructionPanel : PanelContainer
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _viewHeroButton.Visible = true;
-        _viewBuildingButton.Visible = shelter is not null;
-        _primaryFocus = shelter is not null ? _viewBuildingButton : _viewHeroButton;
+        _viewBuildingButton.Visible = shelterId.HasValue;
+        _gatherWoodButton.Visible = false;
+        _primaryFocus = shelterId.HasValue ? _viewBuildingButton : _viewHeroButton;
         _primaryFocus.GrabFocus();
     }
 
-    private void PopulateAssigned(ConstructionProject project)
+    private void PopulateAssigned(ConstructionSnapshot.ProjectItem project)
     {
         AddSectionHeader(_assignList, "Assigned");
         if (project.AssignedCount == 0)
@@ -439,10 +520,8 @@ public partial class ConstructionPanel : PanelContainer
             AddListLabel(_assignList, "No contributors yet.");
             return;
         }
-        foreach (var cid in project.AssignedCitizenIds)
+        foreach (var citizen in project.AssignedCitizens)
         {
-            var citizen = _controller.World.GetCitizen(cid);
-            if (citizen is null) continue;
             var row = new HBoxContainer();
             var name = new Label
             {
@@ -456,7 +535,7 @@ public partial class ConstructionPanel : PanelContainer
                 ThemeTypeVariation = "ButtonText",
                 FocusMode = FocusModeEnum.All,
             };
-            var captured = cid;
+            var captured = citizen.Id;
             button.Pressed += () => EmitSignal(SignalName.UnassignFromProjectRequested, project.Id.Value, captured.Value);
             row.AddChild(name);
             row.AddChild(button);
@@ -464,14 +543,14 @@ public partial class ConstructionPanel : PanelContainer
         }
     }
 
-    private void PopulateAvailable(ConstructionProject project)
+    private void PopulateAvailable(
+        ConstructionSnapshot.ProjectItem project,
+        IReadOnlyList<ConstructionSnapshot.CitizenItem> availableCitizens)
     {
         AddSectionHeader(_availableList, "Available");
         bool atCapacity = project.AssignedCount >= project.WorkerCapacity;
-        foreach (var citizen in _controller.World.Citizens.Values)
+        foreach (var citizen in availableCitizens)
         {
-            if (citizen.CurrentAssignment.HasValue && citizen.CurrentAssignment != project.Id) continue;
-            if (project.IsAssigned(citizen.Id)) continue;
             var row = new HBoxContainer();
             var name = new Label
             {
@@ -526,7 +605,7 @@ public partial class ConstructionPanel : PanelContainer
         }
     }
 
-    private static string DescribeProjectStatus(ConstructionProject project) => project.StopCause switch
+    private static string DescribeProjectStatus(ConstructionSnapshot.ProjectItem project) => project.StopCause switch
     {
         ConstructionStopCause.Authorized =>
             $"Active — next contribution on a {ConstructionRules.WorkIntervalTicks}-tick interval",
@@ -548,5 +627,40 @@ public partial class ConstructionPanel : PanelContainer
         AssignmentOutcome.CitizenNotFound => "Citizen no longer exists.",
         AssignmentOutcome.BuildingNotFound => "Worksite no longer exists.",
         _ => "Assignment rejected.",
+    };
+
+    private static string DescribeMaterials(ConstructionSnapshot.OptionItem option)
+    {
+        if (option.Materials.Count == 0) return "no material cost";
+        var parts = new List<string>();
+        foreach (var material in option.Materials)
+        {
+            string resource = material.Resource.ToString().ToLowerInvariant();
+            parts.Add($"{material.Required} {resource} ({material.Available} available)");
+        }
+        return string.Join(" + ", parts);
+    }
+
+    private static string DescribeInputs(IReadOnlyList<RecipeInput> inputs)
+    {
+        var parts = new List<string>();
+        foreach (var input in inputs)
+        {
+            parts.Add($"{input.Amount} {input.Resource.ToString().ToLowerInvariant()}");
+        }
+        return string.Join(" + ", parts);
+    }
+
+    private static string FormatAuthorizationError(ConstructionAuthorizationOutcome outcome) => outcome switch
+    {
+        ConstructionAuthorizationOutcome.MissingMaterials =>
+            "Missing materials. Check the requirements above.",
+        ConstructionAuthorizationOutcome.HomeRequired => "Build the Basic Shelter first.",
+        ConstructionAuthorizationOutcome.AlreadyAuthorized => "Finish or cancel the current project first.",
+        ConstructionAuthorizationOutcome.NoHero => "Create the founding hero first.",
+        ConstructionAuthorizationOutcome.HomeAlreadyBuilt => "The Basic Shelter already exists.",
+        ConstructionAuthorizationOutcome.WorldNotEmpty =>
+            "The founding shelter can only start in the initial world.",
+        _ => "Construction could not be authorized.",
     };
 }

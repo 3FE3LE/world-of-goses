@@ -165,7 +165,7 @@ public class MobilizationTests
         // If Home were consuming upkeep, the drain would be higher.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
-        quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
         quarry.AddStock(50);
 
         int before = quarry.Stock;

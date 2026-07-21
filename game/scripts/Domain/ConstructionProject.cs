@@ -9,10 +9,18 @@ namespace WorldofGoses.Domain;
 /// <see cref="Id"/> is reserved for the building that will appear
 /// once the project completes, so the presentation layer can keep
 /// one <c>BuildingId</c> across both lifecycles.
+///
+/// <para>
+/// <see cref="RemainingInputs"/> tracks the recipe inputs the city
+/// still owes the worksite after the up-front deposit was paid. The
+/// simulation drains 1 unit per input per <see cref="ConstructionRules.WorkIntervalTicks"/>
+/// while the project is active.
+/// </para>
 /// </summary>
 public sealed class ConstructionProject
 {
     private readonly List<CitizenId> _assigned = new();
+    private readonly List<RecipeInput> _remainingInputs = new();
 
     public ConstructionProject(
         BuildingId id,
@@ -42,6 +50,13 @@ public sealed class ConstructionProject
 
     public IReadOnlyList<CitizenId> AssignedCitizenIds => _assigned;
     public int AssignedCount => _assigned.Count;
+
+    /// <summary>
+    /// Inputs the city still owes this worksite after the deposit
+    /// has been debited. The simulation drains one unit per entry
+    /// per work interval; on completion the residue is discarded.
+    /// </summary>
+    public IReadOnlyList<RecipeInput> RemainingInputs => _remainingInputs;
 
     public bool IsComplete => Progress >= RequiredWork;
     public bool IsAtWorkerCapacity => _assigned.Count >= WorkerCapacity;
@@ -90,5 +105,19 @@ public sealed class ConstructionProject
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// Replaces the remaining-inputs snapshot verbatim. Called by
+    /// the simulation after the per-work-interval drawdown so the
+    /// UI always reflects what is still owed.
+    /// </summary>
+    internal void SetRemainingInputs(IEnumerable<RecipeInput> inputs)
+    {
+        _remainingInputs.Clear();
+        foreach (var input in inputs)
+        {
+            _remainingInputs.Add(input);
+        }
     }
 }

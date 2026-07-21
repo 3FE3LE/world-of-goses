@@ -15,4 +15,5 @@ public enum ConstructionStopCause
     Night = 4,
     Completed = 5,
     NoHero = 6,
+    MissingMaterials = 7,
 }

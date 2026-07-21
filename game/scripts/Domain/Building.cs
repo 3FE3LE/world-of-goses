@@ -19,10 +19,20 @@ namespace WorldofGoses.Domain;
 /// The display labels (<see cref="ResourceLabel"/>,
 /// <see cref="ResourceUnit"/>) are also data, set per-building in
 /// the seed/factory.
+///
+/// <para>
+/// The reactive production policy is a triplet: <see cref="MinStock"/>,
+/// <see cref="MaxStock"/>, and <see cref="Priority"/>. The building
+/// produces until it reaches <see cref="MaxStock"/>, then stops. It
+/// resumes automatically when stock drops to <see cref="MinStock"/>
+/// (or below). <see cref="Priority"/> is a sort hint stored today
+/// for future auto-assignment; the domain does not act on it.
+/// </para>
 /// </summary>
 public sealed class Building
 {
     private readonly List<CitizenId> _assigned = new();
+    private readonly List<RecipeInput> _pendingInputs = new();
 
     public BuildingId Id { get; }
     public string DisplayName { get; }
@@ -34,8 +44,38 @@ public sealed class Building
     public int BaseProductionPerWorker { get; }
     public int StorageCapacity { get; }
     public int Stock { get; private set; }
+
+    /// <summary>
+    /// Separate counter for material inputs the building consumes
+    /// (iron, future: fuel, tools). Kept distinct from <see cref="Stock"/>
+    /// so the operating-recipe drawdown does not visually shrink the
+    /// produced-resource amount the player sees in the HUD. Tests
+    /// and seed scenarios populate this via <see cref="DepositIron"/>.
+    /// </summary>
+    public int IronStock { get; private set; }
+
+    /// <summary>
+    /// How much wood is still in the forest. Each <see cref="BuildingKind.Forest"/>
+    /// starts with a positive reserve; the hero drains it by gathering.
+    /// Kept distinct from <see cref="Stock"/> so the Forest's
+    /// remaining-reserve visualisation never overlaps with the
+    /// gathered-and-available amount the player can spend on construction.
+    /// </summary>
+    public int WoodReserve { get; private set; }
+
     public bool ProductionEnabled { get; private set; }
-    public int TargetStock { get; private set; }
+    public int MinStock { get; private set; }
+    public int MaxStock { get; private set; }
+    public int Priority { get; private set; }
+
+    /// <summary>
+    /// Materials the operating building still owes the city in order
+    /// to produce. Empty by default; the simulation populates and
+    /// drains this list as inputs are consumed per producing tick.
+    /// The presentation layer surfaces this verbatim so the player
+    /// can see what is missing.
+    /// </summary>
+    public IReadOnlyList<RecipeInput> PendingInputs => _pendingInputs;
 
     public string ResourceLabel { get; }
     public string ResourceUnit { get; }
@@ -57,8 +97,7 @@ public sealed class Building
         string resourceLabel,
         string resourceUnit,
         int initialStock = 0,
-        bool productionEnabled = true,
-        int? targetStock = null)
+        bool productionEnabled = true)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(workerCapacity);
         ArgumentOutOfRangeException.ThrowIfNegative(visualCapacity);
@@ -67,11 +106,6 @@ public sealed class Building
         if (initialStock < 0 || initialStock > storageCapacity)
         {
             throw new ArgumentOutOfRangeException(nameof(initialStock));
-        }
-        int resolvedTargetStock = targetStock ?? storageCapacity;
-        if (resolvedTargetStock < 0 || resolvedTargetStock > storageCapacity)
-        {
-            throw new ArgumentOutOfRangeException(nameof(targetStock));
         }
 
         Id = id;
@@ -87,7 +121,9 @@ public sealed class Building
         ResourceUnit = resourceUnit;
         Stock = initialStock;
         ProductionEnabled = productionEnabled;
-        TargetStock = resolvedTargetStock;
+        MinStock = 0;
+        MaxStock = storageCapacity;
+        Priority = 0;
     }
 
     /// <summary>
@@ -106,8 +142,16 @@ public sealed class Building
     public bool IsAssigned(CitizenId citizenId) =>
         _assigned.Contains(citizenId);
 
+    /// <summary>
+    /// Produces when authorised, has at least one worker, and has
+    /// room below <see cref="MaxStock"/>. The reactive resume from
+    /// <see cref="MinStock"/> is handled by <see cref="ResumeIfBelowMin"/>:
+    /// once stock falls to or below the minimum, the world tick
+    /// calls this to clear the <see cref="ProductionStopCause.TargetReached"/>
+    /// sentinel so the next tick produces again.
+    /// </summary>
     public bool CanProduce =>
-        ProductionEnabled && AssignedCount > 0 && Stock < TargetStock;
+        ProductionEnabled && AssignedCount > 0 && Stock < MaxStock;
 
     /// <summary>
     /// Reason the building produced zero (or no attempt was made) on
@@ -127,15 +171,51 @@ public sealed class Building
     /// </summary>
     public int LastTickProduction { get; internal set; }
 
-    public void ConfigureProductionPolicy(bool enabled, int targetStock)
+    /// <summary>
+    /// Configures the reactive production policy. Validation:
+    /// <c>0 &lt;= minStock &lt;= maxStock &lt;= StorageCapacity</c> and
+    /// <c>priority &gt;= 0</c>. <see cref="MinStock"/> equal to
+    /// <see cref="MaxStock"/> is allowed: the building oscillates
+    /// between full and one-below-full each tick.
+    /// </summary>
+    public void ConfigureProductionPolicy(bool enabled, int minStock, int maxStock, int priority)
     {
-        if (targetStock < 0 || targetStock > StorageCapacity)
+        if (minStock < 0 || minStock > StorageCapacity)
         {
-            throw new ArgumentOutOfRangeException(nameof(targetStock));
+            throw new ArgumentOutOfRangeException(nameof(minStock));
+        }
+        if (maxStock < 0 || maxStock > StorageCapacity)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxStock));
+        }
+        if (minStock > maxStock)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minStock),
+                $"MinStock ({minStock}) cannot exceed MaxStock ({maxStock}).");
+        }
+        if (priority < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(priority));
         }
 
         ProductionEnabled = enabled;
-        TargetStock = targetStock;
+        MinStock = minStock;
+        MaxStock = maxStock;
+        Priority = priority;
+    }
+
+    /// <summary>
+    /// Called by the world tick when stock has fallen to or below
+    /// <see cref="MinStock"/>. Clears the <see cref="ProductionStopCause.TargetReached"/>
+    /// sentinel so the building can produce again next tick. No-op
+    /// when the building is currently stopped for another reason.
+    /// </summary>
+    internal void ResumeIfBelowMin()
+    {
+        if (StopCause == ProductionStopCause.TargetReached)
+        {
+            StopCause = ProductionStopCause.NoWorkers;
+        }
     }
 
     internal AssignmentResult TryAssign(CitizenId citizenId)
@@ -178,5 +258,71 @@ public sealed class Building
         if (Stock < amount) return false;
         Stock -= amount;
         return true;
+    }
+
+    /// <summary>
+    /// Adds the given iron to the input reserve. Used by tests to
+    /// seed scenarios and by the construction-cancellation refund.
+    /// </summary>
+    public void DepositIron(int amount)
+    {
+        if (amount <= 0) return;
+        IronStock += amount;
+    }
+
+    /// <summary>
+    /// Consumes iron from the input reserve. Returns <c>false</c>
+    /// when the building does not hold enough.
+    /// </summary>
+    public bool TryConsumeIron(int amount)
+    {
+        if (amount < 0) return false;
+        if (IronStock < amount) return false;
+        IronStock -= amount;
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the forest's starting wood reserve. Used by seed scenarios
+    /// (the founding hero world places two Forests with this much
+    /// wood still in them).
+    /// </summary>
+    public void SeedWoodReserve(int amount)
+    {
+        if (amount < 0) return;
+        WoodReserve = amount;
+    }
+
+    /// <summary>
+    /// Drains wood from the forest's remaining reserve and credits
+    /// it to <see cref="Stock"/> (which the construction recipe gate
+    /// then consumes). Returns the amount actually gathered, which
+    /// may be less than <paramref name="amount"/> when the reserve
+    /// runs dry.
+    /// </summary>
+    public int GatherWood(int amount)
+    {
+        if (amount <= 0) return 0;
+        int available = WoodReserve < amount ? WoodReserve : amount;
+        if (available <= 0) return 0;
+        WoodReserve -= available;
+        int room = StorageCapacity - Stock;
+        int added = available < room ? available : room;
+        Stock += added;
+        return added;
+    }
+
+    /// <summary>
+    /// Replaces the pending-inputs list verbatim. Used by the
+    /// simulation after the per-tick drawdown step so the UI always
+    /// reflects what is still owed.
+    /// </summary>
+    internal void SetPendingInputs(IEnumerable<RecipeInput> inputs)
+    {
+        _pendingInputs.Clear();
+        foreach (var input in inputs)
+        {
+            _pendingInputs.Add(input);
+        }
     }
 }

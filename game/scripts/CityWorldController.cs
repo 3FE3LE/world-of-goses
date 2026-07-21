@@ -195,6 +195,11 @@ public partial class CityWorldController : Node
         var result = _world.TryCreateHero(request);
         if (!result.IsSuccess || !result.CitizenId.HasValue) return result;
 
+        // Drop two forests so the hero has a gathering target before
+        // the Basic Shelter can be authorised. The wood-cost gate
+        // would otherwise deadlock a fresh world.
+        _world.SeedStartingForests();
+
         LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(request.Profile.Lineage);
         EmitSignal(SignalName.HeroCreated, result.CitizenId.Value.Value);
         SaveNow();
@@ -220,9 +225,21 @@ public partial class CityWorldController : Node
 
     public Building? GetBuilding(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
+    public CityStatusSnapshot GetCityStatusSnapshot() => CityStatusSnapshot.From(_world);
+
+    public ConstructionSnapshot GetConstructionSnapshot() => ConstructionSnapshot.From(_world);
+
+    public BuildingDetailSnapshot? GetBuildingDetailSnapshot(BuildingId buildingId) =>
+        BuildingDetailSnapshot.From(_world, buildingId);
+
     public int CurrentProductionRate(BuildingId buildingId) => _world.CurrentProductionRate(buildingId);
 
+    public int GatherWood(BuildingId forestId, int amount) =>
+        _world.GatherWood(forestId, amount);
+
     public IReadOnlyList<Citizen> AvailableCitizens() => _world.AvailableCitizens();
+
+    public IReadOnlyList<Citizen> AvailableCitizensByPriority() => _world.AvailableCitizensByPriority();
 
     public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
@@ -272,14 +289,16 @@ public partial class CityWorldController : Node
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
         _world.SetProjectEnabled(projectId, enabled);
 
+    public bool CancelProject(BuildingId projectId) => _world.CancelProject(projectId);
+
     public ConstructionProject? GetProject(BuildingId projectId) => _world.GetProject(projectId);
 
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects() => _world.Projects;
 
     public int AdvanceProduction(BuildingId buildingId) => _world.AdvanceProduction(buildingId);
 
-    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock) =>
-        _world.ConfigureProductionPolicy(buildingId, enabled, targetStock);
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority) =>
+        _world.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
 
     private void TryLoadFromDisk()
     {
@@ -305,7 +324,32 @@ public partial class CityWorldController : Node
     private bool TryLoadFromPrimarySlot()
     {
         if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot)) return false;
-        var save = WorldPersistence.LoadFromSlot(WorldPersistence.PrimarySaveSlot);
+        // Load raw JSON so the migration helpers can see the original
+        // version before Validate rejects it. Validate runs after
+        // migration completes.
+        var path = System.IO.Path.Combine(
+            WorldPersistence.SlotsDirectory,
+            $"save_slot_{WorldPersistence.PrimarySaveSlot}.json");
+        var save = WorldPersistence.DeserializeFromJson(System.IO.File.ReadAllText(path));
+        // Pre-v4 saves predate the Gender identity field. Walk them
+        // through the migration helpers before restore so the load
+        // path is non-fatal across schema bumps.
+        while (save.Version < WorldSave.CurrentVersion)
+        {
+            if (save.Version == 2)
+            {
+                save = WorldPersistence.MigrateV2ToV3(save);
+            }
+            else if (save.Version == 3)
+            {
+                save = WorldPersistence.MigrateV3ToV4(save);
+            }
+            else
+            {
+                break;
+            }
+        }
+        WorldPersistence.Validate(save);
         _world.Restore(save);
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         return true;

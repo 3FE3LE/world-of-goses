@@ -94,11 +94,11 @@ public partial class VisibleWorkerSlot : Control
         _animationPlayer.Play(AnimEntry);
     }
 
-    public void Configure(Citizen citizen)
+    public void Configure(BuildingDetailSnapshot.CitizenItem citizen)
     {
         CitizenId = citizen.Id;
-        _lineage = citizen.Profile.Lineage;
-        _bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(citizen.AppearanceSeed);
+        _lineage = citizen.Lineage;
+        _bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(citizen.Gender);
         _nameLabel.Text = citizen.Name;
     }
 

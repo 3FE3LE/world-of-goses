@@ -12,8 +12,6 @@ public partial class VisibleWorkerSlots : Control
 
     private const int SlotPadding = 8;
     private readonly List<VisibleWorkerSlot> _slots = new();
-    private Building? _building;
-    private IReadOnlyDictionary<CitizenId, Citizen>? _citizens;
 
     public override void _Ready()
     {
@@ -22,15 +20,9 @@ public partial class VisibleWorkerSlots : Control
             PresentationConstants.DetailedCitizenHeight + SlotPadding * 2);
     }
 
-    public void Render(
-        IReadOnlyList<CitizenId> visibleIds,
-        Building building,
-        IReadOnlyDictionary<CitizenId, Citizen> citizens)
+    public void Render(IReadOnlyList<BuildingDetailSnapshot.CitizenItem> visibleCitizens)
     {
-        _building = building;
-        _citizens = citizens;
-
-        var wanted = new HashSet<int>(visibleIds.Select(id => id.Value));
+        var wanted = new HashSet<int>(visibleCitizens.Select(citizen => citizen.Id.Value));
         for (int i = _slots.Count - 1; i >= 0; i--)
         {
             var slot = _slots[i];
@@ -42,13 +34,12 @@ public partial class VisibleWorkerSlots : Control
         }
 
         var existing = new HashSet<int>(_slots.Select(s => s.CitizenId.Value));
-        foreach (var citizenId in visibleIds)
+        foreach (var citizen in visibleCitizens)
         {
-            if (existing.Contains(citizenId.Value)) continue;
-            if (!citizens.TryGetValue(citizenId, out var citizen)) continue;
+            if (existing.Contains(citizen.Id.Value)) continue;
 
             var slot = new VisibleWorkerSlot();
-            slot.Name = $"Slot_{citizenId.Value}";
+            slot.Name = $"Slot_{citizen.Id.Value}";
             slot.Position = ComputeSlotPosition(_slots.Count);
             slot.Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,

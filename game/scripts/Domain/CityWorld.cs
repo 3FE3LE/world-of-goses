@@ -59,8 +59,12 @@ public sealed class CityWorld
     public bool NeedsOnboarding => Hero is null;
 
     /// <summary>
-    /// Establishes the only citizen in a fresh world. The profile is individual:
-    /// no validation requires it to match common tendencies of the chosen lineage.
+    /// Establishes the only citizen in a fresh world. The profile is
+    /// individual: no validation requires it to match common tendencies
+    /// of the chosen lineage. The founding forests are not part of this
+    /// call — the controller invokes <see cref="SeedStartingForests"/>
+    /// separately so test fixtures can opt out of the empty-field
+    /// gathering target.
     /// </summary>
     public HeroCreationResult TryCreateHero(HeroCreationRequest request)
     {
@@ -91,6 +95,64 @@ public sealed class CityWorld
         hero.GrantRole(RoleId.Hero, _tick);
         RegisterCitizen(hero);
         return HeroCreationResult.Success(hero.Id);
+    }
+
+    /// <summary>
+    /// Per-forest starting wood reserve. The hero gathers wood from
+    /// each Forest up to this much; the Basic Shelter recipe (4 wood
+    /// total, deposit = 1) requires the player to gather at least
+    /// once before authorisation succeeds.
+    /// </summary>
+    public const int StartingForestWoodReserve = 8;
+
+    /// <summary>Per-forest storage capacity for gathered wood.</summary>
+    public const int StartingForestStorageCapacity = 20;
+
+    /// <summary>
+    /// Drops two Forests into the freshly founded world so the hero has
+    /// a wood source to gather from. Each Forest starts with
+    /// <see cref="StartingForestWoodReserve"/> wood still in it.
+    /// IDs are reserved (100, 101) so they never collide with future
+    /// player-authorised buildings. No-op when the world already has
+    /// buildings or citizens beyond the principal hero, so this is
+    /// safe to call from a restore path that already populated the
+    /// world from a save.
+    /// </summary>
+    public void SeedStartingForests()
+    {
+        if (_buildings.Count > 0) return;
+        if (_citizens.Count > 1) return;
+
+        var forest1 = new Building(
+            id: new BuildingId(100),
+            displayName: "Forest",
+            kind: BuildingKind.Forest,
+            producedResourceType: ResourceType.Wood,
+            producedCompetencyId: CompetencyId.Foraging,
+            workerCapacity: 0,
+            visualCapacity: 0,
+            baseProductionPerWorker: 0,
+            storageCapacity: StartingForestStorageCapacity,
+            resourceLabel: "Wood",
+            resourceUnit: "wood");
+        forest1.SeedWoodReserve(StartingForestWoodReserve);
+
+        var forest2 = new Building(
+            id: new BuildingId(101),
+            displayName: "Forest",
+            kind: BuildingKind.Forest,
+            producedResourceType: ResourceType.Wood,
+            producedCompetencyId: CompetencyId.Foraging,
+            workerCapacity: 0,
+            visualCapacity: 0,
+            baseProductionPerWorker: 0,
+            storageCapacity: StartingForestStorageCapacity,
+            resourceLabel: "Wood",
+            resourceUnit: "wood");
+        forest2.SeedWoodReserve(StartingForestWoodReserve);
+
+        RegisterBuilding(forest1);
+        RegisterBuilding(forest2);
     }
 
     internal void RegisterCitizen(Citizen citizen)
@@ -201,6 +263,41 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Total wood available across every Forest-kind building.
+    /// Wood lives on each Forest's <see cref="Building.Stock"/>
+    /// after the hero gathers it from the Forest's
+    /// <see cref="Building.WoodReserve"/>.
+    /// </summary>
+    public int TotalWood
+    {
+        get
+        {
+            int total = 0;
+            foreach (var b in _buildings.Values)
+            {
+                if (b.Kind == BuildingKind.Forest) total += b.Stock;
+            }
+            return total;
+        }
+    }
+
+    /// <summary>
+    /// Total wood still waiting to be gathered across every Forest.
+    /// </summary>
+    public int TotalWoodReserve
+    {
+        get
+        {
+            int total = 0;
+            foreach (var b in _buildings.Values)
+            {
+                if (b.Kind == BuildingKind.Forest) total += b.WoodReserve;
+            }
+            return total;
+        }
+    }
+
+    /// <summary>
     /// Adds food across Farm-kind buildings in deterministic insertion
     /// order until capacity absorbs the request. Returns the amount
     /// actually deposited.
@@ -260,6 +357,144 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Total stock of the given resource across every building that
+    /// produces it. Used by the recipe drawdown path to gate
+    /// construction authorisation and operating consumption. Iron
+    /// is summed from the dedicated <see cref="Building.IronStock"/>
+    /// reserve, not from the produced-resource <see cref="Building.Stock"/>.
+    /// </summary>
+    public int TotalStockOf(ResourceType type)
+    {
+        if (type == ResourceType.Iron)
+        {
+            int total = 0;
+            foreach (var b in _buildings.Values)
+            {
+                total += b.IronStock;
+            }
+            return total;
+        }
+        int sum = 0;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.ProducedResourceType == type) sum += b.Stock;
+        }
+        return sum;
+    }
+
+    /// <summary>
+    /// Consumes the requested amount of the resource across every
+    /// building that produces it, in insertion order, draining each
+    /// up to its stock. Returns <c>false</c> when the city does not
+    /// hold enough to satisfy the request; the city is left untouched
+    /// on failure (transactional).
+    /// </summary>
+    public bool TryConsumeResource(ResourceType type, int amount)
+    {
+        if (amount <= 0) return amount == 0;
+        if (TotalStockOf(type) < amount) return false;
+
+        if (type == ResourceType.Iron)
+        {
+            // Iron is held in each building's IronStock reserve.
+            // Drains in insertion order, transactional.
+            int remaining = amount;
+            foreach (var b in _buildings.Values)
+            {
+                if (remaining == 0) break;
+                int take = b.IronStock < remaining ? b.IronStock : remaining;
+                if (b.TryConsumeIron(take))
+                {
+                    remaining -= take;
+                }
+            }
+            return remaining == 0;
+        }
+
+        int rest = amount;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.ProducedResourceType != type || rest == 0) continue;
+            int take = b.Stock < rest ? b.Stock : rest;
+            if (b.TryConsumeStock(take))
+            {
+                rest -= take;
+            }
+        }
+        return rest == 0;
+    }
+
+    /// <summary>
+    /// Consumes the per-tick operating recipe inputs for the given
+    /// building. Returns the first missing <see cref="ResourceType"/>
+    /// on failure (transactional: no partial drawdown is left
+    /// applied). Returns <c>null</c> on success.
+    /// </summary>
+    private ResourceType? TryConsumeOperatingInputs(Building building, Recipe recipe)
+    {
+        var debited = new List<(ResourceType resource, int amount)>();
+        foreach (var input in recipe.RequiredInputs)
+        {
+            if (input.Amount <= 0) continue;
+            if (!TryConsumeResource(input.Resource, input.Amount))
+            {
+                foreach (var (resource, amount) in debited)
+                {
+                    DepositResource(resource, amount);
+                }
+                return input.Resource;
+            }
+            debited.Add((input.Resource, input.Amount));
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Returns the most recent <see cref="WorldEvent"/> whose
+    /// <see cref="WorldEvent.SubjectName"/> matches the building's
+    /// display name, or <c>null</c> when none exists. Used to wire
+    /// <see cref="WorldEvent.CauseEventId"/> for causal chains; the
+    /// resource filter is intentionally unused here so a blocked
+    /// event can still reference the last successful production tick.
+    /// </summary>
+    public WorldEvent? FindCauseEvent(Building? building = null, ResourceType? resource = null)
+    {
+        _ = resource; // accepted for future use; not consulted today.
+        var events = _log.Events;
+        for (int i = events.Count - 1; i >= 0; i--)
+        {
+            var evt = events[i];
+            if (building is not null && evt.SubjectName != building.DisplayName) continue;
+            return evt;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Drains wood from a Forest's remaining reserve and credits it
+    /// to the forest's Stock (which the construction recipe gate then
+    /// consumes). Returns the amount actually gathered, which may be
+    /// less than <paramref name="amount"/> when the reserve runs dry
+    /// or the storage capacity is full. Records a
+    /// <see cref="WorldEventKind.StockProduced"/> event so the offline
+    /// report can surface the gathering activity.
+    /// </summary>
+    public int GatherWood(BuildingId forestId, int amount)
+    {
+        if (amount <= 0) return 0;
+        if (!_buildings.TryGetValue(forestId, out var forest)) return 0;
+        if (forest.Kind != BuildingKind.Forest) return 0;
+        int gathered = forest.GatherWood(amount);
+        if (gathered > 0)
+        {
+            var cause = FindCauseEvent(forest)?.Id.ToString();
+            _log.Record(_tick, WorldEventKind.StockProduced, forest.DisplayName, gathered, cause);
+            RaiseBuildingChanged(forestId);
+        }
+        return gathered;
+    }
+
+    /// <summary>
     /// Returns the citizens that are not currently assigned to any
     /// building, in deterministic insertion order. The presentation
     /// layer uses this to populate the assignment panel.
@@ -273,6 +508,31 @@ public sealed class CityWorld
             {
                 list.Add(citizen);
             }
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// Same set as <see cref="AvailableCitizens"/> but ordered so the
+    /// highest-priority productive building shows first. The domain
+    /// owns the policy; consumers (the assignment panel) just render.
+    /// When no productive building exists, falls back to insertion
+    /// order.
+    /// </summary>
+    public IReadOnlyList<Citizen> AvailableCitizensByPriority()
+    {
+        var list = new List<Citizen>(AvailableCitizens());
+        int topPriority = -1;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.Priority > topPriority) topPriority = b.Priority;
+        }
+        // When there is a productive building, the most relevant
+        // priority ranks first; the panel renders this order. With
+        // no productive building the list stays in insertion order.
+        if (topPriority >= 0)
+        {
+            list.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.Ordinal));
         }
         return list;
     }
@@ -408,6 +668,10 @@ public sealed class CityWorld
     /// Authorises one worksite at a time. Productive buildings become
     /// available after the founding shelter exists; every kind uses
     /// the same phased progress model with its own work requirement.
+    /// Material cost is debited up-front as a deposit; the remainder
+    /// is drained one unit per work interval while the project is
+    /// active. On cancellation, inputs already consumed remain spent;
+    /// the recorded remainder was never debited and is simply discarded.
     /// </summary>
     public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
     {
@@ -440,6 +704,35 @@ public sealed class CityWorld
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeRequired);
         }
 
+        // Recipe gate: a non-empty recipe must be satisfiable up-front
+        // (deposit = ceil(total * 0.25)) or the authorisation fails
+        // and the city state is unchanged.
+        var recipe = Recipes.ConstructionRecipeFor(kind);
+        if (recipe is not null && recipe.RequiredInputs.Count > 0)
+        {
+            var debited = new List<(ResourceType resource, int amount)>();
+            bool success = true;
+            foreach (var input in recipe.RequiredInputs)
+            {
+                int deposit = ConstructionRules.DepositOf(input.Amount);
+                if (!TryConsumeResource(input.Resource, deposit))
+                {
+                    success = false;
+                    break;
+                }
+                debited.Add((input.Resource, deposit));
+            }
+            if (!success)
+            {
+                // Refund everything we already took — atomic on failure.
+                foreach (var (resource, amount) in debited)
+                {
+                    DepositResource(resource, amount);
+                }
+                return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.MissingMaterials);
+            }
+        }
+
         var projectId = NextAvailableProjectId();
         var project = new ConstructionProject(
             id: projectId,
@@ -451,9 +744,81 @@ public sealed class CityWorld
         {
             StopCause = ConstructionStopCause.NoWorkers,
         };
+        // Seed the remaining-inputs list from the recipe. Each entry
+        // starts at the post-deposit remainder; the simulation drains
+        // it 1 unit per work interval.
+        if (recipe is not null && recipe.RequiredInputs.Count > 0)
+        {
+            var remaining = new List<RecipeInput>();
+            foreach (var input in recipe.RequiredInputs)
+            {
+                int after = ConstructionRules.RemainderAfterDeposit(input.Amount);
+                if (after > 0)
+                {
+                    remaining.Add(new RecipeInput(input.Resource, after));
+                }
+            }
+            project.SetRemainingInputs(remaining);
+        }
         RegisterProject(project);
         RaiseProjectChanged(projectId);
         return ConstructionAuthorizationResult.Success(projectId);
+    }
+
+    /// <summary>
+    /// Cancels an in-flight project. Inputs already consumed by the
+    /// deposit or subsequent work intervals remain spent. RemainingInputs
+    /// represent amounts not yet debited, so cancellation must not deposit
+    /// them or it would create resources.
+    /// </summary>
+    public bool CancelProject(BuildingId projectId)
+    {
+        if (!_projects.TryGetValue(projectId, out var project)) return false;
+        foreach (var cid in project.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(cid, out var citizen))
+            {
+                citizen.ClearAssignment();
+            }
+        }
+        _projects.Remove(projectId);
+        RaiseProjectChanged(projectId);
+        return true;
+    }
+
+    /// <summary>
+    /// Adds the given amount of resource to the city aggregate.
+    /// Used by explicit deposit paths such as test setup and future
+    /// rewards or expeditions returning with goods.
+    /// Iron flows to <see cref="Building.IronStock"/>; everything
+    /// else flows to the produced-resource <see cref="Building.Stock"/>.
+    /// </summary>
+    public void DepositResource(ResourceType type, int amount)
+    {
+        if (amount <= 0) return;
+        if (type == ResourceType.Iron)
+        {
+            // Spread the deposit across buildings in insertion order.
+            // For this slice the convention is "first building gets it";
+            // a future slice can introduce per-resource sharing.
+            foreach (var b in _buildings.Values)
+            {
+                b.DepositIron(amount);
+                break;
+            }
+            return;
+        }
+        int remaining = amount;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.ProducedResourceType != type || remaining == 0) continue;
+            int added = b.AddStock(remaining);
+            remaining -= added;
+            if (remaining == 0) break;
+        }
+        // If no building produces this resource yet, the deposit is
+        // silently lost. Future slices can introduce a "shared
+        // inventory" abstraction here without touching callers.
     }
 
     private BuildingId NextAvailableProjectId()
@@ -523,16 +888,25 @@ public sealed class CityWorld
             building.LastTickProduction = 0;
             if (GameClock.IsDaytime(_tick))
             {
+                // Reactive resume: a building whose stock has fallen
+                // to or below its MinStock since the last MaxStock cap
+                // is unblocked and can produce again next tick.
+                if (building.Stock <= building.MinStock)
+                {
+                    building.ResumeIfBelowMin();
+                }
+
                 int added = SimulateBuildingTick(building);
                 if (added > 0)
                 {
-                    _log.Record(_tick, WorldEventKind.StockProduced, building.DisplayName, added);
+                    var cause = FindCauseEvent(building)?.Id.ToString();
+                    _log.Record(_tick, WorldEventKind.StockProduced, building.DisplayName, added, cause);
                 }
                 if (building.StopCause == ProductionStopCause.WorkersExhausted)
                 {
                     _log.Record(_tick, WorldEventKind.WorkersExhausted, building.DisplayName);
                 }
-                if (building.Stock >= building.TargetStock && building.TargetStock > 0)
+                if (building.Stock >= building.MaxStock && building.MaxStock > 0)
                 {
                     _log.Record(_tick, WorldEventKind.StockCapped, building.DisplayName);
                 }
@@ -768,6 +1142,24 @@ public sealed class CityWorld
             return 0;
         }
 
+        // Recipe gate: if the operating recipe needs inputs and the
+        // city cannot satisfy them this tick, block production
+        // before paying stamina or growing experience.
+        var operatingRecipe = Recipes.OperatingRecipeFor(building.Kind);
+        if (operatingRecipe is not null && operatingRecipe.RequiredInputs.Count > 0)
+        {
+            var missing = TryConsumeOperatingInputs(building, operatingRecipe);
+            if (missing is not null)
+            {
+                building.StopCause = ProductionStopCause.MissingInputs;
+                _log.Record(_tick, WorldEventKind.ProductionBlocked,
+                    building.DisplayName, amount: 0,
+                    causeEventId: FindCauseEvent(building, missing)?.Id.ToString());
+                RaiseBuildingChanged(building.Id);
+                return 0;
+            }
+        }
+
         ApplyFoodAndRegen(building);
         ApplyStaminaCost(building);
 
@@ -788,7 +1180,7 @@ public sealed class CityWorld
         }
 
         int produced = BuildingProductionCalculator.ProductionPerTick(contributing, building);
-        int roomToTarget = building.TargetStock - building.Stock;
+        int roomToTarget = building.MaxStock - building.Stock;
         int added = building.AddStock(Math.Min(produced, roomToTarget));
         building.LastTickProduction = added;
 
@@ -798,7 +1190,7 @@ public sealed class CityWorld
             citizen.AddExperience(competency, 1);
         }
 
-        building.StopCause = building.Stock >= building.TargetStock
+        building.StopCause = building.Stock >= building.MaxStock
             ? ProductionStopCause.TargetReached
             : ProductionStopCause.Authorized;
         return added;
@@ -845,7 +1237,8 @@ public sealed class CityWorld
     /// <summary>
     /// One work-interval tick for a project. Stamina is paid
     /// only on real intervals so a single hero cannot burn out
-    /// between work intervals.
+    /// between work intervals. Material drawdown runs at the same
+    /// cadence: 1 unit per remaining input per work interval.
     /// </summary>
     private void SimulateProjectTick(ConstructionProject project, bool isWorkInterval)
     {
@@ -863,6 +1256,44 @@ public sealed class CityWorld
         {
             project.StopCause = ConstructionStopCause.NoWorkers;
             return;
+        }
+
+        // Material drawdown at the work-interval boundary. Drains
+        // 1 unit per remaining input. Refunds anything already taken
+        // when one input is short (transactional).
+        if (isWorkInterval && project.RemainingInputs.Count > 0)
+        {
+            var debited = new List<(ResourceType resource, int amount)>();
+            bool success = true;
+            var nextRemaining = new List<RecipeInput>();
+            foreach (var input in project.RemainingInputs)
+            {
+                if (!TryConsumeResource(input.Resource, 1))
+                {
+                    success = false;
+                    nextRemaining.Add(input);
+                    break;
+                }
+                debited.Add((input.Resource, 1));
+                if (input.Amount - 1 > 0)
+                {
+                    nextRemaining.Add(new RecipeInput(input.Resource, input.Amount - 1));
+                }
+            }
+            if (!success)
+            {
+                foreach (var (resource, amount) in debited)
+                {
+                    DepositResource(resource, amount);
+                }
+                project.StopCause = ConstructionStopCause.MissingMaterials;
+                var cause = FindCauseEvent()?.Id.ToString();
+                _log.Record(_tick, WorldEventKind.ProductionBlocked,
+                    project.DisplayName, amount: 0, causeEventId: cause);
+                RaiseProjectChanged(project.Id);
+                return;
+            }
+            project.SetRemainingInputs(nextRemaining);
         }
 
         int contributed = 0;
@@ -977,14 +1408,14 @@ public sealed class CityWorld
             productionEnabled: false),
     };
 
-    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int targetStock)
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority)
     {
         if (!_buildings.TryGetValue(buildingId, out var building))
         {
             return;
         }
 
-        building.ConfigureProductionPolicy(enabled, targetStock);
+        building.ConfigureProductionPolicy(enabled, minStock, maxStock, priority);
         RaiseBuildingChanged(buildingId);
     }
 
@@ -1069,8 +1500,14 @@ public sealed class CityWorld
                 resourceLabel: string.IsNullOrEmpty(bs.ResourceLabel) ? "Resource" : bs.ResourceLabel,
                 resourceUnit: string.IsNullOrEmpty(bs.ResourceUnit) ? "units" : bs.ResourceUnit,
                 initialStock: bs.Stock,
-                productionEnabled: bs.ProductionEnabled,
-                targetStock: bs.TargetStock ?? bs.StorageCapacity);
+                productionEnabled: bs.ProductionEnabled);
+            // v3 fields default to (0, StorageCapacity, 0) for v2 saves
+            // that predate the policy triplet. A legacy TargetStock is
+            // treated as MaxStock so old saves behave identically.
+            int maxStock = bs.MaxStock ?? bs.TargetStock ?? bs.StorageCapacity;
+            int minStock = bs.MinStock ?? 0;
+            int priority = bs.Priority ?? 0;
+            building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock, priority);
             RegisterBuilding(building);
 
             foreach (var cid in bs.AssignedCitizenIds)
@@ -1130,6 +1567,23 @@ public sealed class CityWorld
                     Progress = ps.Progress,
                     StopCause = ConstructionStopCause.Paused,
                 };
+                // Restore material drawdown state. v2 saves without
+                // these fields default to "fully spent" (empty) — the
+                // resumed project simply runs without any per-interval
+                // drawdown, which matches the pre-v3 behaviour exactly.
+                var remaining = new List<RecipeInput>();
+                if (ps.RemainingInputs is { Count: > 0 })
+                {
+                    foreach (var pair in ps.RemainingInputs)
+                    {
+                        if (Enum.TryParse<ResourceType>(pair.Key, ignoreCase: true, out var res)
+                            && pair.Value > 0)
+                        {
+                            remaining.Add(new RecipeInput(res, pair.Value));
+                        }
+                    }
+                }
+                project.SetRemainingInputs(remaining);
                 RegisterProject(project);
                 foreach (var cid in ps.AssignedCitizenIds)
                 {

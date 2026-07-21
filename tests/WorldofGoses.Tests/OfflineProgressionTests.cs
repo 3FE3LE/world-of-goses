@@ -27,7 +27,7 @@ public class OfflineProgressionTests
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
-        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
         OfflineProgression.ApplyAll(world, ticksToApply: 5);
 
@@ -206,7 +206,7 @@ public class OfflineProgressionTests
     {
         var world = TestHelpers.NewProductionWorld();
         var building = world.PrimaryBuilding;
-        building.ConfigureProductionPolicy(enabled: false, targetStock: building.StorageCapacity);
+        building.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: building.StorageCapacity, priority: 0);
 
         var report = OfflineProgression.Apply(world, building.Id, ticksToApply: 60);
 
@@ -228,7 +228,7 @@ public class OfflineProgressionTests
         var erin = world.GetCitizen(new CitizenId(2))!;
         bran.ConsumeStamina(bran.CurrentStamina - 6);
         erin.ConsumeStamina(erin.CurrentStamina - 6);
-        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
         var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
 
@@ -269,7 +269,7 @@ public class OfflineProgressionTests
         {
             citizen.ConsumeStamina(citizen.CurrentStamina);
         }
-        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
         OfflineProgression.Apply(world, quarry.Id, ticksToApply: 10);
 

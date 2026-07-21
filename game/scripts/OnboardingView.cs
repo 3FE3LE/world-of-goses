@@ -31,6 +31,7 @@ public partial class OnboardingView : Control
     private int _step;
     private string _heroName = string.Empty;
     private LineageId? _lineage;
+    private GenderId? _gender;
     private ElementalAffinityId? _element;
     private CombatStyleId? _combatStyle;
     private PoliticalOrientationId? _politics;
@@ -228,6 +229,20 @@ public partial class OnboardingView : Control
                 UpdateNavigation();
             });
         if (_lineage.HasValue) description.Text = FormatLineage(ProfileCatalog.Get(_lineage.Value));
+
+        AddSectionTitle("Gender — choose one");
+        AddSingleChoiceGrid(
+            new[]
+            {
+                new ProfileOption<GenderId>(GenderId.Feminine, "Feminine", "Body variant used by the imported sprite."),
+                new ProfileOption<GenderId>(GenderId.Masculine, "Masculine", "Body variant used by the imported sprite."),
+            },
+            _gender,
+            selected =>
+            {
+                _gender = selected;
+                UpdateNavigation();
+            });
     }
 
     private void BuildAptitudesStep()
@@ -421,7 +436,7 @@ public partial class OnboardingView : Control
         }
 
         var result = _controller.TryCompleteOnboarding(
-            new HeroCreationRequest(_heroName, profile!));
+            new HeroCreationRequest(_heroName, profile!, _gender!.Value));
         if (!result.IsSuccess)
         {
             _errorLabel.Text = $"The hero could not be created ({result.Outcome}).";
@@ -452,7 +467,7 @@ public partial class OnboardingView : Control
     {
         return step switch
         {
-            0 => IsNameValid(_heroName) && _lineage.HasValue,
+            0 => IsNameValid(_heroName) && _lineage.HasValue && _gender.HasValue,
             1 => _aptitudes.Count == 3 && _professions.Count == 3,
             2 => _element.HasValue && _combatStyle.HasValue && _weapons.Count is >= 1 and <= 2,
             3 => _traits.Count == 3,
@@ -470,8 +485,8 @@ public partial class OnboardingView : Control
             error = "Enter a name between 1 and 32 characters.";
             return false;
         }
-        if (!_lineage.HasValue || !_element.HasValue || !_combatStyle.HasValue
-            || !_politics.HasValue || !_spirituality.HasValue)
+        if (!_lineage.HasValue || !_gender.HasValue || !_element.HasValue
+            || !_combatStyle.HasValue || !_politics.HasValue || !_spirituality.HasValue)
         {
             error = "Complete every single-choice section.";
             return false;
@@ -479,6 +494,7 @@ public partial class OnboardingView : Control
 
         return CitizenProfile.TryCreate(
             _lineage.Value,
+            _gender!.Value,
             _aptitudes,
             _professions,
             _element.Value,
@@ -494,7 +510,7 @@ public partial class OnboardingView : Control
     private void UpdateReview()
     {
         if (_reviewLabel is null) return;
-        if (!_lineage.HasValue)
+        if (!_lineage.HasValue || !_gender.HasValue)
         {
             _reviewLabel.Text = "Complete the earlier steps to review the profile.";
             return;
@@ -503,6 +519,7 @@ public partial class OnboardingView : Control
         _reviewLabel.Text =
             $"Name: {_heroName.Trim()}\n" +
             $"Lineage: {ProfileCatalog.Get(_lineage.Value).DisplayName}\n" +
+            $"Gender: {_gender.Value}\n" +
             $"Aptitudes: {Join(_aptitudes.Select(ProfileCatalog.DisplayName))}\n" +
             $"Professional affinities: {Join(_professions.Select(ProfileCatalog.DisplayName))}\n" +
             $"Element: {Display(_element, ProfileCatalog.DisplayName)}\n" +

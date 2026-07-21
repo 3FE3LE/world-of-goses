@@ -8,8 +8,8 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Replaces the one-line offline banner with a chronological panel
-/// of <see cref="WorldEvent"/> rows. Each row carries an icon
-/// (from <see cref="WorldEvent.IconPath"/>), a one-line summary, and
+/// of <see cref="WorldEvent"/> rows. Each row carries a presentation-owned
+/// icon, a one-line summary, and
 /// the tick at which it happened relative to the offline window's
 /// start.
 ///
@@ -127,6 +127,33 @@ public partial class OfflineReportPanel : PanelContainer
 
         _summary.Text = SummariseReport(report);
 
+        // "Decisions needed" — distinct groups of ProductionBlocked
+        // events by (subject, cause). Renders before the event list so
+        // the player sees what requires attention at a glance.
+        var decisions = GroupDecisionsNeeded(report.Events);
+        if (decisions.Count > 0)
+        {
+            var header = new Label
+            {
+                Text = $"Decisions needed ({decisions.Count})",
+                ThemeTypeVariation = "SectionTitle",
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            header.AddThemeFontSizeOverride("font_size", 22);
+            _list.AddChild(header);
+            foreach (var entry in decisions)
+            {
+                var label = new Label
+                {
+                    Text = entry,
+                    ThemeTypeVariation = "BodyText",
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                _list.AddChild(label);
+            }
+            _list.AddChild(new HSeparator());
+        }
+
         // Show the most recent N events; older ones would only add
         // noise to the panel.
         IReadOnlyList<WorldEvent> events = report.Events;
@@ -153,9 +180,17 @@ public partial class OfflineReportPanel : PanelContainer
             child.QueueFree();
         }
 
-        _summary.Text = events.Count == 0
-            ? "The city's recent events will be recorded here."
-            : $"{events.Count} events recorded · newest at the bottom";
+        var liveDecisions = GroupDecisionsNeeded(events);
+        if (liveDecisions.Count > 0)
+        {
+            _summary.Text = $"{events.Count} events recorded · {liveDecisions.Count} need attention";
+        }
+        else
+        {
+            _summary.Text = events.Count == 0
+                ? "The city's recent events will be recorded here."
+                : $"{events.Count} events recorded · newest at the bottom";
+        }
 
         int skip = System.Math.Max(0, events.Count - MaxRows);
         for (int i = skip; i < events.Count; i++)
@@ -180,6 +215,31 @@ public partial class OfflineReportPanel : PanelContainer
         return report.StockAdded > 0
             ? $"Welcome back · {time} simulated · +{report.StockAdded} stock"
             : $"Welcome back · {time} simulated";
+    }
+
+    /// <summary>
+    /// Groups <see cref="WorldEventKind.ProductionBlocked"/> events
+    /// by their subject so the offline report can surface "this many
+    /// stoppages from that building" at a glance. Subject name is the
+    /// summary carrier; for now we use it verbatim and rely on the
+    /// log summary to read "<subject> waiting: missing inputs".
+    /// </summary>
+    private static System.Collections.Generic.List<string> GroupDecisionsNeeded(
+        IReadOnlyList<WorldEvent> events)
+    {
+        var grouped = new System.Collections.Generic.Dictionary<string, int>();
+        foreach (var evt in events)
+        {
+            if (evt.Kind != WorldEventKind.ProductionBlocked) continue;
+            grouped.TryGetValue(evt.SubjectName, out var count);
+            grouped[evt.SubjectName] = count + 1;
+        }
+        var output = new System.Collections.Generic.List<string>();
+        foreach (var pair in grouped)
+        {
+            output.Add($"{pair.Value}× {pair.Key}");
+        }
+        return output;
     }
 
     private static string FormatTime(System.TimeSpan time)
@@ -223,9 +283,10 @@ public partial class OfflineReportPanel : PanelContainer
                 Modulate = LineageThemeRegistry.IconAccent,
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
             };
-            if (evt.IconPath is not null)
+            string? iconPath = IconPathFor(evt.Kind);
+            if (iconPath is not null)
             {
-                icon.Texture = ResourceLoader.Load<Texture2D>(evt.IconPath);
+                icon.Texture = ResourceLoader.Load<Texture2D>(iconPath);
             }
             iconCell.AddChild(icon);
 
@@ -253,4 +314,22 @@ public partial class OfflineReportPanel : PanelContainer
             AddChild(tickLabel);
         }
     }
+
+    private static string? IconPathFor(WorldEventKind kind) => kind switch
+    {
+        WorldEventKind.StockProduced => IconPaths.Coin,
+        WorldEventKind.StockCapped => IconPaths.Check,
+        WorldEventKind.WorkersExhausted => IconPaths.Warning,
+        WorldEventKind.WorkerRecovered => IconPaths.Heart,
+        WorldEventKind.DayBegan => IconPaths.Sun,
+        WorldEventKind.NightBegan => IconPaths.Moon,
+        WorldEventKind.ProjectProgressed => IconPaths.Building,
+        WorldEventKind.ProjectPaused => IconPaths.Pause,
+        WorldEventKind.ProjectResumed => IconPaths.Play,
+        WorldEventKind.ProjectCompleted => IconPaths.Check,
+        WorldEventKind.BuildingCreated => IconPaths.House,
+        WorldEventKind.WellFedExpired => IconPaths.Clock,
+        WorldEventKind.ProductionBlocked => IconPaths.Warning,
+        _ => null,
+    };
 }

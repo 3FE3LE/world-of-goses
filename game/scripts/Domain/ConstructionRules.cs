@@ -26,11 +26,35 @@ public enum ConstructionVisualPhase
 public static class ConstructionRules
 {
     /// <summary>
-    /// Ticks between visible work contributions. At the runtime's
+    /// Fraction of a recipe's total material cost that the player
+    /// must deposit up-front to authorise the construction. The
+    /// remainder is drawn down 1 unit per <see cref="WorkIntervalTicks"/>
+    /// while the worksite is active.
+    /// </summary>
+    public const double DepositFraction = 0.25;
+
+    /// <summary>Ticks between visible work contributions. At the runtime's
     /// default 1 Hz rate this gives feedback every ten seconds, fast
     /// enough to validate phases while still batching construction.
     /// </summary>
     public const int WorkIntervalTicks = 10;
+
+    /// <summary>
+    /// Up-front deposit for a total recipe cost. Always at least 1
+    /// when the total is positive — the deposit is the player's
+    /// commitment signal and rounds up so a small recipe still
+    /// requires a meaningful down-payment.
+    /// </summary>
+    public static int DepositOf(int total)
+    {
+        if (total <= 0) return 0;
+        int deposit = (int)Math.Ceiling(total * DepositFraction);
+        return deposit < 1 ? 1 : deposit;
+    }
+
+    /// <summary>Amount left to draw down after the deposit has been paid.</summary>
+    public static int RemainderAfterDeposit(int total) =>
+        Math.Max(0, total - DepositOf(total));
 
     /// <summary>Total work required to finish the first Basic Shelter.</summary>
     public const int RequiredWork = 720;

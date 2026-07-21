@@ -20,6 +20,7 @@ public class ProfileCatalogTests
     {
         bool valid = CitizenProfile.TryCreate(
             LineageId.Caelith,
+            GenderId.Feminine,
             new[] { AptitudeId.Observation, AptitudeId.Memory, AptitudeId.Creativity },
             new[] { ProfessionFamilyId.MedicineCare, ProfessionFamilyId.ResearchEducation, ProfessionFamilyId.Extraction },
             ElementalAffinityId.Water,
@@ -33,6 +34,7 @@ public class ProfileCatalogTests
 
         Assert.True(valid, error);
         Assert.NotNull(profile);
+        Assert.Equal(GenderId.Feminine, profile!.Gender);
     }
 
     [Fact]
@@ -40,6 +42,7 @@ public class ProfileCatalogTests
     {
         bool valid = CitizenProfile.TryCreate(
             LineageId.Eirune,
+            GenderId.Masculine,
             new[] { AptitudeId.Strength, AptitudeId.Orientation, AptitudeId.RiskTolerance },
             new[] { ProfessionFamilyId.Extraction, ProfessionFamilyId.SecurityCombat, ProfessionFamilyId.EngineeringManufacturing },
             ElementalAffinityId.Fire,
@@ -61,6 +64,7 @@ public class ProfileCatalogTests
     {
         bool valid = CitizenProfile.TryCreate(
             LineageId.Ardhen,
+            GenderId.Masculine,
             new[] { AptitudeId.Observation, AptitudeId.Observation, AptitudeId.Empathy },
             new[] { ProfessionFamilyId.Extraction, ProfessionFamilyId.MedicineCare, ProfessionFamilyId.Logistics },
             ElementalAffinityId.Water,

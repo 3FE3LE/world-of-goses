@@ -26,4 +26,5 @@ public enum ProductionStopCause
     TargetReached = 3,
     WorkersExhausted = 4,
     Night = 5,
+    MissingInputs = 6,
 }

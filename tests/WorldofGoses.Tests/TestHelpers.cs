@@ -1,3 +1,4 @@
+using System.Linq;
 using WorldofGoses.Domain;
 
 namespace WorldofGoses.Tests;
@@ -9,10 +10,11 @@ namespace WorldofGoses.Tests;
 /// </summary>
 internal static class TestHelpers
 {
-    public static CitizenProfile NewProfile(LineageId? lineage = null)
+    public static CitizenProfile NewProfile(LineageId? lineage = null, GenderId? gender = null)
     {
         bool created = CitizenProfile.TryCreate(
             lineage ?? LineageId.Ardhen,
+            gender ?? GenderId.Masculine,
             new[] { AptitudeId.Observation, AptitudeId.Empathy, AptitudeId.ManualPrecision },
             new[] { ProfessionFamilyId.Extraction, ProfessionFamilyId.MedicineCare, ProfessionFamilyId.ResearchEducation },
             ElementalAffinityId.Water,
@@ -30,7 +32,7 @@ internal static class TestHelpers
     public static CityWorld NewHeroWorld()
     {
         var world = new CityWorld();
-        var result = world.TryCreateHero(new HeroCreationRequest("Aster", NewProfile()));
+        var result = world.TryCreateHero(new HeroCreationRequest("Aster", NewProfile(), GenderId.Masculine));
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
         return world;
     }
@@ -42,12 +44,50 @@ internal static class TestHelpers
     public static CityWorld NewConstructionWorld(int extraCitizens = 0)
     {
         var world = NewHeroWorld();
+        world.SeedStartingForests();
+        // Basic Shelter costs Wood × 4 (deposit = 1, remainder = 3).
+        // Gather all 4 so the project can complete without stalling
+        // mid-life; tests that want a stalled project can call
+        // GatherWood themselves.
+        world.GatherWood(new BuildingId(100), 4);
         var result = world.TryAuthorizeBasicShelter();
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
         for (int i = 0; i < extraCitizens; i++)
         {
             world.RegisterCitizen(NewCitizen(100 + i));
         }
+        return world;
+    }
+
+    /// <summary>
+    /// A world with the Basic Shelter already built (Home registered
+    /// as a building) and zero projects. Also registers a placeholder
+    /// Farm so Food deposits land somewhere (the Quarry construction
+    /// recipe needs Iron + Food). Tests that need a Home but don't
+    /// want to share state with the Basic Shelter project use this
+    /// helper.
+    /// </summary>
+    public static CityWorld WorldWithHome()
+    {
+        var world = NewConstructionWorld();
+        // The shelter project is in flight; fast-forward to completion
+        // so the world is ready to authorise the next project.
+        var projectId = world.Projects.Values.First().Id;
+        FastForwardToCompletion(world, projectId);
+        // Register a placeholder Farm so Food deposits land.
+        var farm = new Building(
+            id: new BuildingId(9001),
+            displayName: "Test farm (placeholder)",
+            kind: BuildingKind.Farm,
+            producedResourceType: ResourceType.Food,
+            producedCompetencyId: CompetencyId.Farming,
+            workerCapacity: 4,
+            visualCapacity: 2,
+            baseProductionPerWorker: 1,
+            storageCapacity: 1000,
+            resourceLabel: "Food",
+            resourceUnit: "food");
+        world.RegisterBuilding(farm);
         return world;
     }
 
@@ -85,6 +125,12 @@ internal static class TestHelpers
         world.RegisterBuilding(quarry);
         world.RegisterBuilding(farm);
         world.RegisterBuilding(home);
+
+        // Operating recipes consume 1 iron per producing tick. Seed
+        // enough iron in the Quarry so production tests can run a full
+        // scenario without starving; Farm needs iron for the same reason.
+        quarry.DepositIron(1000);
+        farm.DepositIron(1000);
 
         var worker = NewCitizen(2, miningExperience: 1);
         var grower = NewCitizen(3, CompetencyId.Farming, experience: 3);
@@ -151,5 +197,44 @@ internal static class TestHelpers
         var citizen = new Citizen(new CitizenId(id), $"Citizen-{id}", id * 11, NewProfile());
         if (experience > 0) citizen.AddExperience(competency, experience);
         return citizen;
+    }
+
+    /// <summary>
+    /// Fast-forwards a project to completion by directly setting
+    /// <see cref="ConstructionProject.Progress"/> to <see cref="ConstructionProject.RequiredWork"/>
+    /// and triggering the world's completion pass. Returns the
+    /// resulting <see cref="Building"/> registered in the world.
+    /// </summary>
+    public static Building FastForwardToCompletion(CityWorld world, BuildingId projectId)
+    {
+        var project = world.GetProject(projectId)!;
+        // Advance the tick counter so the building is registered on
+        // a fresh tick — the completion path emits events with the
+        // current tick as their timestamp.
+        world.AdvanceWorldTick();
+        // Bypass the per-tick contribution loop: set Progress to
+        // RequiredWork and call the world's completion hook directly
+        // by triggering one more tick (the project draws inputs and
+        // grants contributions; we just need Progress >= RequiredWork
+        // for CompleteFinishedProjects to fire).
+        // Use reflection-free helper: simulate by adding enough work
+        // via assignment + many ticks.
+        var citizen = world.Hero!;
+        if (project.AssignedCount == 0)
+        {
+            world.TryAssignToProject(projectId, citizen.Id);
+        }
+        int safety = 1000;
+        while (project.Progress < project.RequiredWork && safety-- > 0)
+        {
+            world.AdvanceWorldTick();
+        }
+        var building = world.GetBuilding(projectId);
+        if (building is null)
+        {
+            throw new System.InvalidOperationException(
+                $"Project {projectId.Value} did not complete within the safety budget.");
+        }
+        return building;
     }
 }

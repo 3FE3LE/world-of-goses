@@ -116,7 +116,11 @@ public partial class CityMacroView : Control
     private void Refresh()
     {
         _statusPanel.Refresh(_controller);
-        _activity.Populate(_controller.Citizens().Count);
+        _activity.Hero = _controller.HeroOrNull();
+        _activity.Populate(
+            _controller.Citizens().Count,
+            _controller.World.Buildings.Count,
+            _controller.World.Projects.Count);
         _constructionPanel.Refresh();
 
         var mode = DetermineMacroMode(
@@ -129,7 +133,9 @@ public partial class CityMacroView : Control
         _constructionScrim.Visible = constructionPanelVisible;
         _plotStage.Visible = !constructionPanelVisible
             && (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction);
-        _constructionMenuButton.Visible = mode is MacroMode.Plots or MacroMode.PlotsAndConstruction;
+        _constructionMenuButton.Visible = mode is MacroMode.Plots
+            or MacroMode.PlotsAndConstruction
+            or MacroMode.Empty;
         UpdateConstructionMenuButton(mode);
 
         if (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction)
@@ -196,10 +202,14 @@ public partial class CityMacroView : Control
             return;
         }
 
-        bool hasActiveProject = mode is MacroMode.Construction or MacroMode.PlotsAndConstruction;
-        _constructionMenuButton.SetIconAndLabel(
-            hasActiveProject ? IconPaths.Building : IconPaths.Plus,
-            hasActiveProject ? "Construction progress" : "Construction");
+        (string icon, string label) = mode switch
+        {
+            MacroMode.Empty => (IconPaths.House, "Build shelter"),
+            MacroMode.Construction => (IconPaths.Building, "Construction progress"),
+            MacroMode.PlotsAndConstruction => (IconPaths.Building, "Construction progress"),
+            _ => (IconPaths.Plus, "Construction"),
+        };
+        _constructionMenuButton.SetIconAndLabel(icon, label);
     }
 
     private void OnPlotBuildingClicked(int buildingId) =>

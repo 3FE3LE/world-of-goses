@@ -14,4 +14,10 @@ public enum ResourceType
     Food = 1,
     Iron = 2,
     Potions = 3,
+    /// <summary>
+    /// Wood gathered from <see cref="BuildingKind.Forest"/> plots.
+    /// Required as input by the Basic Shelter recipe; future
+    /// carpenter / forestry buildings will consume it too.
+    /// </summary>
+    Wood = 4,
 }

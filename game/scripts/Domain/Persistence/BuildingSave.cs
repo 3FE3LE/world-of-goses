@@ -22,6 +22,13 @@ public sealed class BuildingSave
     public int StorageCapacity { get; set; }
     public int Stock { get; set; }
     public bool ProductionEnabled { get; set; } = true;
+    /// <summary>Legacy v2 field retained so old saves round-trip cleanly. New v3 saves ignore it.</summary>
     public int? TargetStock { get; set; }
+    /// <summary>Nullable for forward-compat reads of v2 saves; defaults to 0.</summary>
+    public int? MinStock { get; set; }
+    /// <summary>Nullable for forward-compat reads of v2 saves; defaults to <see cref="StorageCapacity"/>.</summary>
+    public int? MaxStock { get; set; }
+    /// <summary>Nullable for forward-compat reads of v2 saves; defaults to 0.</summary>
+    public int? Priority { get; set; }
     public List<int> AssignedCitizenIds { get; set; } = new();
 }

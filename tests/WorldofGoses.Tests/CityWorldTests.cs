@@ -30,7 +30,7 @@ public class CityWorldTests
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
-        quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
 
         world.AdvanceWorldTick();
 
@@ -226,7 +226,7 @@ public class CityWorldTests
     {
         var world = new CityWorld();
         var result = world.TryCreateHero(
-            new HeroCreationRequest("Founder", TestHelpers.NewProfile(LineageId.Caelith)));
+            new HeroCreationRequest("Founder", TestHelpers.NewProfile(LineageId.Caelith), GenderId.Feminine));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Founder", world.Hero!.Name);

@@ -6,22 +6,24 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Bottom panel of the building detail view. Shows the building's
-/// stock, capacity, and current production rate, and offers a manual
-/// button that advances the production by one tick.
+/// stock, capacity, current production rate, and the reactive
+/// production policy (min stock / max stock / priority). Reads the
+/// city's pending-input view so the player can see what materials
+/// the operating building is missing right now.
 /// </summary>
 public partial class ProductionPanel : PanelContainer
 {
-    [Signal] public delegate void AdvanceRequestedEventHandler();
-    [Signal] public delegate void PolicyChangeRequestedEventHandler(bool enabled, int targetStock);
+    [Signal] public delegate void PolicyChangeRequestedEventHandler(bool enabled, int minStock, int maxStock, int priority);
 
     private Label _titleLabel = null!;
     private Label _stockLabel = null!;
     private Label _rateLabel = null!;
-    private Label _helperLabel = null!;
+    private Label _inputsLabel = null!;
     private ProgressBar _stockBar = null!;
-    private Button _advanceButton = null!;
     private CheckButton _enabledToggle = null!;
-    private SpinBox _targetStockInput = null!;
+    private SpinBox _minStockInput = null!;
+    private SpinBox _maxStockInput = null!;
+    private SpinBox _priorityInput = null!;
     private Label _policyStateLabel = null!;
     private bool _refreshing;
     private LineageThemeSignals? _themeSignals;
@@ -62,6 +64,10 @@ public partial class ProductionPanel : PanelContainer
         _rateLabel.ThemeTypeVariation = "NumericText";
         root.AddChild(_rateLabel);
 
+        _inputsLabel = new Label { Text = "Inputs due: none" };
+        _inputsLabel.ThemeTypeVariation = "BodySmall";
+        root.AddChild(_inputsLabel);
+
         root.AddChild(new HSeparator());
         var policyHeader = new Label { Text = "Production policy" };
         policyHeader.ThemeTypeVariation = "SectionTitle";
@@ -69,41 +75,57 @@ public partial class ProductionPanel : PanelContainer
 
         _enabledToggle = new CheckButton { Text = "Authorize production", ButtonPressed = true };
         _enabledToggle.ThemeTypeVariation = "BodyText";
-        _enabledToggle.Toggled += OnPolicyInputChanged;
+        _enabledToggle.Toggled += OnPolicyToggle;
         root.AddChild(_enabledToggle);
 
-        var targetRow = new HBoxContainer();
-        var stopAtLabel = new Label { Text = "Stop at stock:" };
-        stopAtLabel.ThemeTypeVariation = "BodyText";
-        targetRow.AddChild(stopAtLabel);
-        _targetStockInput = new SpinBox
+        var minRow = new HBoxContainer();
+        var minLabel = new Label { Text = "Resume at stock:" };
+        minLabel.ThemeTypeVariation = "BodyText";
+        minRow.AddChild(minLabel);
+        _minStockInput = new SpinBox
         {
             MinValue = 0,
             Step = 1,
             Rounded = true,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _targetStockInput.ValueChanged += _ => OnPolicyInputChanged(_enabledToggle.ButtonPressed);
-        targetRow.AddChild(_targetStockInput);
-        root.AddChild(targetRow);
+        _minStockInput.ValueChanged += _ => OnPolicyInputChanged();
+        minRow.AddChild(_minStockInput);
+        root.AddChild(minRow);
+
+        var maxRow = new HBoxContainer();
+        var maxLabel = new Label { Text = "Stop at stock:" };
+        maxLabel.ThemeTypeVariation = "BodyText";
+        maxRow.AddChild(maxLabel);
+        _maxStockInput = new SpinBox
+        {
+            MinValue = 0,
+            Step = 1,
+            Rounded = true,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _maxStockInput.ValueChanged += _ => OnPolicyInputChanged();
+        maxRow.AddChild(_maxStockInput);
+        root.AddChild(maxRow);
+
+        var priorityRow = new HBoxContainer();
+        var priorityLabel = new Label { Text = "Priority (future auto-assignment):" };
+        priorityLabel.ThemeTypeVariation = "BodyText";
+        priorityRow.AddChild(priorityLabel);
+        _priorityInput = new SpinBox
+        {
+            MinValue = 0,
+            Step = 1,
+            Rounded = true,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _priorityInput.ValueChanged += _ => OnPolicyInputChanged();
+        priorityRow.AddChild(_priorityInput);
+        root.AddChild(priorityRow);
 
         _policyStateLabel = new Label();
         _policyStateLabel.ThemeTypeVariation = "BodySmall";
         root.AddChild(_policyStateLabel);
-
-        _advanceButton = new Button { Text = "Advance production" };
-        _advanceButton.ThemeTypeVariation = "ButtonPrimary";
-        _advanceButton.Pressed += () => EmitSignal(SignalName.AdvanceRequested);
-        root.AddChild(_advanceButton);
-
-        _helperLabel = new Label
-        {
-            Text = "Click 'Advance production' to add.",
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Modulate = new Color(1, 1, 1, 0.7f),
-        };
-        _helperLabel.ThemeTypeVariation = "BodySmall";
-        root.AddChild(_helperLabel);
     }
 
     public override void _ExitTree()
@@ -114,43 +136,75 @@ public partial class ProductionPanel : PanelContainer
     private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
         "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
-    public void Refresh(Building building, CityWorldController controller)
+    public void Refresh(BuildingDetailSnapshot snapshot)
     {
-        _titleLabel.Text = $"{building.DisplayName} — {building.ResourceLabel}";
-        _stockLabel.Text = $"{building.ResourceLabel}: {building.Stock} / {building.StorageCapacity}";
+        _titleLabel.Text = $"{snapshot.DisplayName} — {snapshot.ResourceLabel}";
+        _stockLabel.Text = $"{snapshot.ResourceLabel}: {snapshot.Stock} / {snapshot.StorageCapacity}";
 
         _stockBar.MinValue = 0;
-        _stockBar.MaxValue = building.StorageCapacity == 0 ? 1 : building.StorageCapacity;
-        _stockBar.Value = building.Stock;
+        _stockBar.MaxValue = snapshot.StorageCapacity == 0 ? 1 : snapshot.StorageCapacity;
+        _stockBar.Value = snapshot.Stock;
 
-        int rate = controller.CurrentProductionRate(building.Id);
-        _rateLabel.Text = $"Rate: {rate} {building.ResourceUnit} / tick ({building.AssignedCount} workers)";
-        _helperLabel.Text = $"Click 'Advance production' to add {building.ResourceUnit}.";
+        _rateLabel.Text = $"Rate: {snapshot.ProductionRate} {snapshot.ResourceUnit} / tick ({snapshot.AssignedCount} workers)";
+        _inputsLabel.Text = DescribeInputsDue(snapshot);
 
         _refreshing = true;
-        _enabledToggle.ButtonPressed = building.ProductionEnabled;
-        _targetStockInput.MaxValue = building.StorageCapacity;
-        _targetStockInput.Value = building.TargetStock;
+        _enabledToggle.ButtonPressed = snapshot.ProductionEnabled;
+        _minStockInput.MaxValue = snapshot.StorageCapacity;
+        _maxStockInput.MaxValue = snapshot.StorageCapacity;
+        _priorityInput.MinValue = 0;
+        _minStockInput.Value = snapshot.MinStock;
+        _maxStockInput.Value = snapshot.MaxStock;
+        _priorityInput.Value = snapshot.Priority;
         _refreshing = false;
 
-        _policyStateLabel.Text = DescribePolicyState(building);
-        _advanceButton.Disabled = !building.CanProduce;
+        _policyStateLabel.Text = DescribePolicyState(snapshot);
     }
 
-    private void OnPolicyInputChanged(bool enabled)
+    private void OnPolicyToggle(bool pressed)
     {
         if (_refreshing) return;
-        EmitSignal(SignalName.PolicyChangeRequested, enabled, (int)_targetStockInput.Value);
+        EmitSignal(SignalName.PolicyChangeRequested,
+            pressed,
+            (int)_minStockInput.Value,
+            (int)_maxStockInput.Value,
+            (int)_priorityInput.Value);
     }
 
-    private static string DescribePolicyState(Building building)
+    private void OnPolicyInputChanged()
     {
-        if (building.StopCause == ProductionStopCause.Night) return "Workers resting (night)";
-        if (!building.ProductionEnabled) return "Paused by player policy";
-        if (building.AssignedCount == 0) return "Blocked: no assigned workers";
-        if (building.StopCause == ProductionStopCause.WorkersExhausted)
+        if (_refreshing) return;
+        EmitSignal(SignalName.PolicyChangeRequested,
+            _enabledToggle.ButtonPressed,
+            (int)_minStockInput.Value,
+            (int)_maxStockInput.Value,
+            (int)_priorityInput.Value);
+    }
+
+    private static string DescribeInputsDue(BuildingDetailSnapshot snapshot)
+    {
+        if (snapshot.PendingInputs.Count == 0)
+        {
+            return "Inputs due: none";
+        }
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (var input in snapshot.PendingInputs)
+        {
+            parts.Add($"{input.Amount} {input.Resource.ToString().ToLowerInvariant()}");
+        }
+        return $"Inputs due: {string.Join(" + ", parts)}";
+    }
+
+    private static string DescribePolicyState(BuildingDetailSnapshot snapshot)
+    {
+        if (snapshot.StopCause == ProductionStopCause.Night) return "Workers resting (night)";
+        if (!snapshot.ProductionEnabled) return "Paused by player policy";
+        if (snapshot.StopCause == ProductionStopCause.MissingInputs)
+            return $"Waiting: missing inputs ({string.Join(", ", snapshot.PendingInputs)})";
+        if (snapshot.AssignedCount == 0) return "Blocked: no assigned workers";
+        if (snapshot.StopCause == ProductionStopCause.WorkersExhausted)
             return "Blocked: workers exhausted";
-        if (building.Stock >= building.TargetStock) return "Waiting: stock target reached";
-        return $"Authorized until {building.TargetStock} {building.ResourceUnit}";
+        if (snapshot.Stock >= snapshot.MaxStock) return $"Full at {snapshot.MaxStock} {snapshot.ResourceUnit}";
+        return $"Authorized between {snapshot.MinStock} and {snapshot.MaxStock} {snapshot.ResourceUnit}";
     }
 }

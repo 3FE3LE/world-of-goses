@@ -12,7 +12,7 @@ public class CityWorldUpkeepTests
         // something to drain without being masked by production.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
-        quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
         quarry.AddStock(10);
         int stoneBefore = quarry.Stock;
 
@@ -50,7 +50,7 @@ public class CityWorldUpkeepTests
         // Run 100 day ticks. Quarry produces ~2 stone/tick (net +1
         // with upkeep), so the stock will rise, not fall. To isolate
         // the upkeep drain we disable Quarry.
-        quarry.ConfigureProductionPolicy(enabled: false, targetStock: quarry.StorageCapacity);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
 
         world.AdvanceWorldTick();
 

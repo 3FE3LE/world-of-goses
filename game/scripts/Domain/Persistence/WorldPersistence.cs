@@ -69,7 +69,9 @@ public static class WorldPersistence
                 StorageCapacity = building.StorageCapacity,
                 Stock = building.Stock,
                 ProductionEnabled = building.ProductionEnabled,
-                TargetStock = building.TargetStock,
+                MinStock = building.MinStock,
+                MaxStock = building.MaxStock,
+                Priority = building.Priority,
                 AssignedCitizenIds = new List<int>(building.AssignedCitizenIds.Count),
             };
             foreach (var cid in building.AssignedCitizenIds)
@@ -139,6 +141,7 @@ public static class WorldPersistence
         var save = new CitizenProfileSave
         {
             Lineage = profile.Lineage.Value,
+            Gender = profile.Gender.ToString(),
             ElementalAffinity = profile.ElementalAffinity.Value,
             CombatStyle = profile.CombatStyle.Value,
             PoliticalOrientation = profile.PoliticalOrientation.Value,
@@ -154,8 +157,18 @@ public static class WorldPersistence
     internal static CitizenProfile RestoreProfile(CitizenProfileSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
+        // Pre-v4 saves omit Gender; default to Masculine so legacy
+        // heroes still load and the simulation never deserializes a
+        // missing enum.
+        GenderId gender = GenderId.Masculine;
+        if (!string.IsNullOrEmpty(save.Gender)
+            && Enum.TryParse(save.Gender, ignoreCase: true, out GenderId parsed))
+        {
+            gender = parsed;
+        }
         if (!CitizenProfile.TryCreate(
                 new LineageId(save.Lineage),
+                gender,
                 save.Aptitudes.Select(value => new AptitudeId(value)),
                 save.ProfessionalAffinities.Select(value => new ProfessionFamilyId(value)),
                 new ElementalAffinityId(save.ElementalAffinity),
@@ -246,10 +259,35 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     $"Building {b.Id}: Stock ({b.Stock}) exceeds StorageCapacity ({b.StorageCapacity}).");
             }
-            if (b.TargetStock < 0 || b.TargetStock > b.StorageCapacity)
+            if (b.TargetStock is int legacyTarget
+                && (legacyTarget < 0 || legacyTarget > b.StorageCapacity))
             {
                 throw new InvalidOperationException(
-                    $"Building {b.Id}: TargetStock must be between 0 and StorageCapacity.");
+                    $"Building {b.Id}: legacy TargetStock must be between 0 and StorageCapacity.");
+            }
+            if (b.MinStock is int minStock
+                && (minStock < 0 || minStock > b.StorageCapacity))
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: MinStock must be between 0 and StorageCapacity.");
+            }
+            if (b.MaxStock is int maxStock
+                && (maxStock < 0 || maxStock > b.StorageCapacity))
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: MaxStock must be between 0 and StorageCapacity.");
+            }
+            if (b.MinStock is int minVal
+                && b.MaxStock is int maxVal
+                && minVal > maxVal)
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: MinStock ({minVal}) cannot exceed MaxStock ({maxVal}).");
+            }
+            if (b.Priority is int priority && priority < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: Priority must be non-negative (got {priority}).");
             }
             if (b.AssignedCitizenIds is null)
             {
@@ -542,6 +580,72 @@ public static class WorldPersistence
         var path = Path.Combine(slotsDirectory, $"save_slot_{slot}.json");
         var save = ReadFromFile(path);
         Validate(save);
+        return save;
+    }
+
+    /// <summary>
+    /// Upgrades a v2 save to v3 in-place. Missing
+    /// <see cref="BuildingSave.MinStock"/>/<see cref="BuildingSave.MaxStock"/>/
+    /// <see cref="BuildingSave.Priority"/> fields default to
+    /// <c>0</c>/<see cref="BuildingSave.StorageCapacity"/>/<c>0</c>. The legacy
+    /// <see cref="BuildingSave.TargetStock"/> field is preserved for
+    /// compatibility but no longer drives production. Returns the
+    /// upgraded save so the caller can persist it before the next
+    /// catch-up cycle.
+    /// </summary>
+    public static WorldSave MigrateV2ToV3(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 2)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV2ToV3 expects version 2 but found {save.Version}.");
+        }
+
+        foreach (var bs in save.Buildings)
+        {
+            if (bs is null) continue;
+            // Prefer an explicit MaxStock if the v2 saver ever wrote
+            // one; otherwise fall back to legacy TargetStock.
+            if (bs.MaxStock is null && bs.TargetStock is int legacy)
+            {
+                bs.MaxStock = legacy;
+            }
+            bs.MinStock ??= 0;
+            bs.Priority ??= 0;
+        }
+
+        save.Version = 3;
+        return save;
+    }
+
+    /// <summary>
+    /// Upgrades a v3 save to v4 by defaulting each citizen profile's
+    /// <see cref="CitizenProfileSave.Gender"/> to Masculine when the
+    /// field is absent. Pre-v4 saves were authored before gender was
+    /// an explicit identity choice, so the visual registry picked a
+    /// variant from <c>AppearanceSeed</c>; v4 keeps the legacy default
+    /// so the same hero loads with the same sprite.
+    /// </summary>
+    public static WorldSave MigrateV3ToV4(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 3)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV3ToV4 expects version 3 but found {save.Version}.");
+        }
+
+        foreach (var cs in save.Citizens)
+        {
+            if (cs is null) continue;
+            if (cs.Profile is not null && string.IsNullOrEmpty(cs.Profile.Gender))
+            {
+                cs.Profile.Gender = GenderId.Masculine.ToString();
+            }
+        }
+
+        save.Version = WorldSave.CurrentVersion;
         return save;
     }
 }

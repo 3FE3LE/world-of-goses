@@ -14,4 +14,8 @@ public sealed class ConstructionProjectSave
     public int WorkerCapacity { get; set; }
     public bool Enabled { get; set; } = true;
     public List<int> AssignedCitizenIds { get; set; } = new();
+    /// <summary>Resources debited up-front when the project was authorised (key: ResourceType name).</summary>
+    public Dictionary<string, int> DepositedInputs { get; set; } = new();
+    /// <summary>Resources the city still owes the worksite (key: ResourceType name).</summary>
+    public Dictionary<string, int> RemainingInputs { get; set; } = new();
 }

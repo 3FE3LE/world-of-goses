@@ -21,7 +21,7 @@ public class OnboardingDomainTests
     public void CreateHero_LeavesExactlyOneHeroAndNoBuildings()
     {
         var world = new CityWorld();
-        var result = world.TryCreateHero(new HeroCreationRequest("Founder", TestHelpers.NewProfile(LineageId.Vaelun)));
+        var result = world.TryCreateHero(new HeroCreationRequest("Founder", TestHelpers.NewProfile(LineageId.Vaelun), GenderId.Masculine));
 
         Assert.True(result.IsSuccess);
         Assert.False(world.NeedsOnboarding);
@@ -36,7 +36,7 @@ public class OnboardingDomainTests
     public void CreateHero_RejectsInvalidNameAndDoesNotMutateWorld()
     {
         var world = new CityWorld();
-        var result = world.TryCreateHero(new HeroCreationRequest("\n", TestHelpers.NewProfile()));
+        var result = world.TryCreateHero(new HeroCreationRequest("\n", TestHelpers.NewProfile(), GenderId.Feminine));
 
         Assert.False(result.IsSuccess);
         Assert.Equal(HeroCreationOutcome.InvalidName, result.Outcome);

@@ -1,6 +1,4 @@
 #nullable enable
-using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 
@@ -98,37 +96,40 @@ public partial class CityStatusPanel : PanelContainer
     public void Refresh(CityWorldController controller)
     {
         EnsureBuilt();
+        var snapshot = controller.GetCityStatusSnapshot();
         foreach (var child in _row.GetChildren())
         {
             child.QueueFree();
         }
 
-        BuildClockChip(controller);
-        BuildUpkeepChip(controller);
-        BuildMobilisationChip(controller.Citizens());
+        BuildClockChip(snapshot);
+        BuildUpkeepChip(snapshot);
+        BuildFoodChip(snapshot);
+        BuildWoodChip(snapshot);
+        BuildMobilisationChip(snapshot);
 
-        foreach (var project in controller.World.Projects.Values)
+        foreach (var project in snapshot.Projects)
         {
             BuildProjectChip(project);
         }
 
-        foreach (var building in controller.World.Buildings.Values)
+        foreach (var building in snapshot.Buildings)
         {
             BuildBuildingChip(building);
         }
 
-        BuildFreeCitizensChip(controller);
+        BuildFreeCitizensChip(snapshot);
 
-        if (controller.World.Buildings.Count == 0 && controller.World.Projects.Count == 0)
+        if (snapshot.IsEmpty)
         {
-            BuildHeroChip(controller);
+            BuildHeroChip(snapshot);
             BuildEmptyStateChip();
         }
     }
 
-    private void BuildClockChip(CityWorldController controller)
+    private void BuildClockChip(CityStatusSnapshot snapshot)
     {
-        int tick = controller.World.CurrentTick;
+        int tick = snapshot.CurrentTick;
         bool day = GameClock.IsDaytime(tick);
         int dayNumber = GameClock.DayNumber(tick);
         int hour = (int)(GameClock.DayFraction(tick) * 24);
@@ -136,26 +137,40 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(new IconChip(iconPath, $"Day {dayNumber} · {hour:D2}:00"));
     }
 
-    private void BuildUpkeepChip(CityWorldController controller)
+    private void BuildUpkeepChip(CityStatusSnapshot snapshot)
     {
-        int rate = Upkeep.StonePerTick(controller.Citizens().Count);
+        int rate = snapshot.UpkeepPerTick;
         if (rate <= 0) return;
-        _row.AddChild(new IconChip(IconPaths.Coin, $"-{rate} stone/tick"));
+        _row.AddChild(new IconChip(IconPaths.Coin, $"-{rate} stone/tick (upkeep)"));
     }
 
-    private void BuildMobilisationChip(IReadOnlyDictionary<CitizenId, Citizen> citizens)
+    private void BuildFoodChip(CityStatusSnapshot snapshot)
     {
-        int atWork = 0;
-        int atHome = 0;
-        foreach (var citizen in citizens.Values)
-        {
-            if (citizen.CurrentLocation == CitizenLocation.AtWork) atWork++;
-            else atHome++;
-        }
-        _row.AddChild(new IconChip(IconPaths.User, $"{atWork} at work · {atHome} at home"));
+        int food = snapshot.FoodStock;
+        int cap = snapshot.MaxFoodStock;
+        if (cap <= 0) return;
+        _row.AddChild(new IconChip(IconPaths.Leaf, $"Food: {food} / {cap}"));
     }
 
-    private void BuildProjectChip(ConstructionProject project)
+    private void BuildWoodChip(CityStatusSnapshot snapshot)
+    {
+        int stock = snapshot.WoodStock;
+        int reserve = snapshot.WoodReserve;
+        if (stock == 0 && reserve == 0) return;
+        _row.AddChild(new IconChip(
+            IconPaths.Tree,
+            reserve > 0
+                ? $"Wood: {stock} gathered · {reserve} in forests"
+                : $"Wood: {stock} gathered"));
+    }
+
+    private void BuildMobilisationChip(CityStatusSnapshot snapshot)
+    {
+        _row.AddChild(new IconChip(IconPaths.User,
+            $"{snapshot.CitizensAtWork} at work · {snapshot.CitizensAtHome} at home"));
+    }
+
+    private void BuildProjectChip(CityStatusSnapshot.ProjectItem project)
     {
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
         string label = $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
@@ -164,28 +179,28 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(new IconChip(IconPaths.Building, label));
     }
 
-    private void BuildBuildingChip(Building building)
+    private void BuildBuildingChip(CityStatusSnapshot.BuildingItem building)
     {
-        string label = $"{building.DisplayName}: {building.Stock}/{building.StorageCapacity} " +
-            $"{building.ResourceUnit} · {building.AssignedCount}/{building.WorkerCapacity} workers" +
+        string range = building.StorageCapacity > 0
+            ? $" ({building.MinStock}-{building.MaxStock})"
+            : string.Empty;
+        string label = $"{building.DisplayName}: {building.Stock}/{building.StorageCapacity}" +
+            $"{range} {building.ResourceUnit} · {building.AssignedCount}/{building.WorkerCapacity} workers" +
             StopCauseSuffix(building);
         _row.AddChild(new IconChip(IconPaths.House, label));
     }
 
-    private void BuildFreeCitizensChip(CityWorldController controller)
+    private void BuildFreeCitizensChip(CityStatusSnapshot snapshot)
     {
-        var freeNames = new List<string>();
-        foreach (var citizen in controller.Citizens().Values)
-        {
-            if (!citizen.CurrentAssignment.HasValue) freeNames.Add(citizen.Name);
-        }
-        string label = freeNames.Count == 0 ? "no free citizens" : string.Join(", ", freeNames);
+        string label = snapshot.FreeCitizenNames.Count == 0
+            ? "no free citizens"
+            : string.Join(", ", snapshot.FreeCitizenNames);
         _row.AddChild(new IconChip(IconPaths.User, $"Free: {label}"));
     }
 
-    private void BuildHeroChip(CityWorldController controller)
+    private void BuildHeroChip(CityStatusSnapshot snapshot)
     {
-        string heroName = controller.HeroOrNull()?.Name ?? "not established";
+        string heroName = snapshot.HeroName ?? "not established";
         _row.AddChild(new IconChip(IconPaths.User, $"Hero: {heroName}"));
     }
 
@@ -194,13 +209,14 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(new IconChip(IconPaths.House, "No buildings yet"));
     }
 
-    private static string StopCauseSuffix(Building building) => building.StopCause switch
+    private static string StopCauseSuffix(CityStatusSnapshot.BuildingItem building) => building.StopCause switch
     {
         ProductionStopCause.Paused => " · paused",
         ProductionStopCause.TargetReached => " · full",
         ProductionStopCause.WorkersExhausted => " · exhausted",
         ProductionStopCause.NoWorkers => " · no workers",
         ProductionStopCause.Night => " · night",
+        ProductionStopCause.MissingInputs => " · missing inputs",
         _ => string.Empty,
     };
 }

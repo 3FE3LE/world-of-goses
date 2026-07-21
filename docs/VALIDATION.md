@@ -22,14 +22,19 @@ The first prototype scope is expanded below into verifiable criteria:
 
 | Criterion | Status | Where |
 |---|---|---|
-| Complete founding-hero onboarding with responsive profile choices | ✅ | `OnboardingView`, `HeroProfileView`, `CitizenProfile`, `ProfileCatalog` |
-| Macro city view with a valid one-hero / zero-building empty state | ✅ | `CityMacroView`, `CityStatusPanel`, `MacroCitizenActivity` |
+| Complete founding-hero onboarding with gender-aware profile choices | ✅ | `OnboardingView`, `HeroProfileView`, `CitizenProfile`, `ProfileCatalog`, `GenderId` |
+| Macro city view with a valid one-hero / zero-building empty state (hero walks on the field) | ✅ | `CityMacroView`, `CityStatusPanel`, `MacroCitizenActivity` |
 | Detailed building view with configurable visual worker limit | ✅ | `BuildingDetailView` + `VisibleWorkerSlots`, retained for future construction |
-| Individual citizen records shared between views; the citizen is the only person entity (roles, competencies, profile, and recognitions are attached concepts) | ✅ | `Citizen` is a single sealed class; profile, roles, and competencies attach to it |
+| Individual citizen records shared between views; the citizen is the only person entity (roles, competencies, profile, and recognitions are attached concepts) | ✅ | `Citizen` is a single sealed class; profile, gender, roles, and competencies attach to it |
 | Worker assignment / removal with a deterministic production counter | ✅ | `CityWorld.TryAssignCitizen` / `TryUnassignCitizen` and explicit test scenarios |
+| Construction authorisation consumes a recipe deposit atomically with rollback | ✅ | `CityWorld.TryAuthorizeConstruction`, `Recipes.ConstructionRecipeFor`, `ConstructionRules.DepositOf` |
+| Reactive production policy stops at MaxStock and resumes at MinStock | ✅ | `Building.ConfigureProductionPolicy`, `Building.ResumeIfBelowMin`, `Building.CanProduce` |
+| Wood-gathering from natural sources drains a reserve into a spendable pool | ✅ | `BuildingKind.Forest`, `Building.GatherWood`, `CityWorld.GatherWood`, `ForestGatherPanel` |
+| Causal event log carries `CauseEventId` chains across production ticks | ✅ | `WorldEvent.CauseEventId`, `CityWorld.FindCauseEvent`, `OfflineReportPanel` "Decisions needed" |
 
 **Scope verdict:** all slice-scope criteria are met. The lineage UI skin and
-typography pipeline are integrated; character/building pixel art remains placeholder.
+typography pipeline are integrated; character/building pixel art remains
+placeholder (Forest has no art at any level).
 
 ---
 
@@ -56,16 +61,16 @@ violating any architecture rule:
 
 | Layer | Status |
 |---|---|
-| Domain (no Godot.*) | ✅ `game/scripts/Domain/` has zero `using Godot;` |
+| Domain (no Godot.*) | ✅ enforced by `DomainBoundaryTests` across every Domain C# source |
 | Godot representation | ✅ `game/scripts/*.cs` (presentation scripts) + `game/scenes/*.tscn` |
-| Assets | ⚠️ lineage UI skins, licensed fonts/icons, and default nine-slice theme integrated; character/building art remains placeholder |
-| Local persistence | ✅ implemented (`game/scripts/Domain/Persistence/`) |
-| Tests | ✅ `tests/WorldofGoses.Tests/` — **232 / 232 passing** at this snapshot |
+| Assets | ⚠️ lineage UI skins, licensed fonts/icons, and default nine-slice theme integrated; character/building art remains placeholder (Forest plot has no art yet) |
+| Local persistence | ✅ implemented (`game/scripts/Domain/Persistence/`) with v3 → v4 migration chain |
+| Tests | ✅ `tests/WorldofGoses.Tests/` — **309 / 309 passing** at this snapshot |
 
 ### 3.2 The Godot/.NET boundary (§5)
 
 - `partial class` used where required by source generators
-- Domain code does not import `Godot.*` (verified by grep)
+- Domain code contains no Godot references or `res://` asset paths
 - Presentation stays thin (no business logic in `BuildingPlot` / `CityMacroView` etc.)
 - Controllers (`CityWorldController`) are the only place where domain and Godot signals meet
 
@@ -91,7 +96,10 @@ violating any architecture rule:
 
 ### 3.6 "Domain is not presentation" (§9.13)
 
-✅ Holds. Domain types (`Building`, `Citizen`, `CityWorld`, `OfflineProgression`, `WorldPersistence`) compile and run without any Godot binary. Tests prove this (232 / 232 passing without Godot loaded).
+✅ Holds and is executable. `WorldEvent` carries semantic event data only;
+`OfflineReportPanel` maps kinds to `IconPaths`. `DomainBoundaryTests` scans the
+complete Domain source tree for Godot references and resource paths. UI panels
+consume immutable presentation snapshots rather than mutable domain entities.
 
 ---
 
@@ -102,10 +110,10 @@ violating any architecture rule:
 > "A single living city that grows because of decisions made by a
 > player who is not always present."
 
-✅ Achieved within scope: the world advances on its own during
-play (manual `AdvanceProduction` click + offline tick catch-up on
-load). What isn't implemented yet is the *richness* of what can
-happen — for now, only stone-mining and food-farming exist.
+✅ Achieved within scope: the controller advances the world automatically at
+1 Hz during play and applies offline catch-up on load. Current activity includes
+stone/food production, construction, stamina, and manual forest gathering; the
+missing part is the breadth and long-horizon richness described by the bible.
 
 ### 4.2 Single-city concept (§2)
 
@@ -124,15 +132,23 @@ a penalty. There is no decay, no grinding bonus for being absent.
 
 #### 4.4.1 City development (§4.1)
 
-⚠️ **Shape only.** The architecture supports multi-dimensional
-city development — `BuildingKind` already lets the same surface
-produce different resources. What is missing:
+✅ **Material inputs landed; chains still pending.** The architecture now
+supports material costs and per-tick drawdown for projects and
+operating buildings. The founding Forests are a non-productive
+source of wood; Basic Shelter, Farm, and Quarry each carry a
+  recipe with a playable wood / food bootstrap. What is still missing:
+- Production chains (Smithy consumes Iron and produces Tools; Weaver
+  consumes Food and produces Cloth).
+- Shared inventory abstraction. Reserved Iron still lives on per-building
+  input reserves; food on each Farm's Stock; wood on
+  each Forest's Stock. A single city aggregate would let recipes
+  source inputs from any building.
+- Knowledge, institution, and richer condition gates (the bible's
+  "Un edificio no produce por existir" picture is only partly in
+  code; the inputs list is the only condition today).
 - Explicit "dimensions" object (age, culture, politics, economy,
   geography, demographics, professions, knowledge redundancy,
   institutions, generations).
-- Production chains (not single-resource ticking).
-- Rich conditions on building unlocks (Basic Shelter is authorised explicitly,
-  but currently requires only the founder and project state).
 
 #### 4.4.2 Expeditions (§4.2)
 
@@ -154,6 +170,7 @@ its own architectural surface.
 | Personal history | ❌ — out of scope |
 | Culture | ❌ — out of scope |
 | Citizen lineage and profile | ✅ — eight qualitative lineages and the complete validated `CitizenProfile` are persisted and presented; future skill effects remain out of scope |
+| Body variant (gender) is an explicit player choice | ✅ — `GenderId` carried by `CitizenProfile`, resolved by `CharacterVisualRegistry` |
 | Health | ❌ — out of scope |
 | Relationships | ❌ — out of scope |
 | Potential | ❌ — out of scope |
@@ -167,10 +184,12 @@ its own architectural surface.
 
 | Spec item | Status |
 |---|---|
-| Configurable production chains | ❌ — current `Building.AddStock` is a single-resource tick |
-| Stops when materials / workers / storage missing | ⚠️ partial — stops on storage capacity only |
+| Configurable production chains | ❌ — `Building.AddStock` is single-resource; Smithy/Weaver chains are future work |
+| Stops when materials / workers / storage missing | ✅ — production gate checks operating-recipe inputs; emits `WorldEventKind.ProductionBlocked` with `CauseEventId` when inputs are short |
 | Time does not magically reduce efficiency | ✅ — efficiency is a function of competency experience, not elapsed time |
 | A well-configured city may improve while the player is absent | ✅ — experience grows, which compounds the rate |
+| Reactive min / max stock range | ✅ — `Building.CanProduce` and `ResumeIfBelowMin` drive the loop |
+| Policy applied to a fixed stockpile (`Min == Max`) | ✅ — allowed by design |
 
 ### 4.8 Persistent time (§8)
 
@@ -181,9 +200,11 @@ its own architectural surface.
 | Calculate elapsed time | ✅ |
 | Process changes through discrete events | ⚠️ partial — we tick once per second of real time, not via a domain-level event log |
 | Avoid simulating every individual second | ✅ — capped at 1 Hz and at 7 days |
-| **Generate a causal report** | ⚠️ basic — the macro view shows `+N stone mined, +N exp per worker`. The vision's example report (`08:00 / 10:00 / 11:30 / ...`) is richer than what we produce |
+| **Generate a causal report** | ⚠️ partial — catch-up returns chronological events and the UI groups blocked decisions, but the bounded log is not persisted and does not yet represent a multi-day history |
 
-The event-based domain-level simulation (per `ARCHITECTURE.md` §9) is **not** implemented — offline progression batches ticks rather than producing causal events. That is the natural next slice after multi-building and persistence.
+The causal primitive described in `ARCHITECTURE.md` §10 exists, but the current
+log is bounded, in-memory, and cleared on restore. Offline progression still
+iterates deterministic ticks; persisted/streamed long-horizon events remain open.
 
 ### 4.9 Design principles (§9)
 
@@ -197,11 +218,11 @@ The event-based domain-level simulation (per `ARCHITECTURE.md` §9) is **not** i
 | 6. No random loot | ✅ (nothing exists to be looted yet) |
 | 7. No invisible death | ✅ trivially (no death yet) |
 | 8. No instant healing | ✅ trivially (no healing yet) |
-| 9. No magic-string efficiency | ✅ — only `string` left is the `WorldSave.Kind` for forward-compat enum serialization, well-justified |
+| 9. No magic-string efficiency | ✅ — production efficiency is driven by typed competency data; remaining UI text, summaries, IDs, and paths are outside the formula |
 | 10. No single correct model of development | ✅ — `BuildingKind` distinguishes current kinds while resource and competency data remain independent |
 | 11. Causality over randomness | ✅ — `ProductionPerTick` is pure-deterministic, no `Random` anywhere |
 | 12. Composition over inheritance | ✅ |
-| 13. Domain is not presentation | ✅ |
+| 13. Domain is not presentation | ✅ source-scanned by `DomainBoundaryTests` |
 | 14. Originality | ✅ — all current names are documented as provisional per `PROVISIONAL_NAMES` |
 
 ---
@@ -212,11 +233,13 @@ What would unlock the most future work for the smallest change?
 
 | Rank | Gap | Suggested slice | Effort |
 |---|---|---|---|
-| 1 | Causal report (per vision §8 / arch §9) is still a single string. The right primitive is a domain-side event log that ticks emit to. | **Slice 9 — Event-log domain primitive + causal report.** Open a slice to make `OfflineProgression.Apply` return `IReadOnlyList<WorldEvent>` instead of a flat report; renderer reads events to build the human-readable summary. | M |
-| 2 | Citizens are flat records beyond name / competencies / role. The vision enumerates a long list of citizen attributes (health, culture, relationships, …). | **Slice 10 — Extend the citizen attachment model.** Add `CitizenHealth`, `CitizenRelationships`, etc. as separate value objects composed onto `Citizen`, mirroring how the existing `Competencies` and `Roles` work. | L |
-| 3 | First building is not unlocked or constructed yet. | **Next slice — Conditions-as-data for the first authorised building.** | L |
-| 4 | The expedition pillar (§4.2) has no architectural place to live. | **Slice 12 — Expedition skeleton.** Add `Domain/Expedition/` with the minimum types an expedition needs (member, target, route, outcome). No gameplay yet — just enough to prove the seams. | M |
-| 5 | Basic Shelter proves authorised construction, but its prerequisites are minimal. | **Next slice — Rich construction conditions-as-data.** | M |
+| 1 | Snapshot projections now expose the required state, but blocked/empty/decision states still need a consistent visual hierarchy and focus verification. | **Next slice — UI state visibility.** Render explicit actionable states, then verify keyboard/gamepad focus and multiple aspect ratios. | M |
+| 2 | Skill formulas are absent: lineage and personal aptitudes have no effect on early learning, errors, retention, or production. The bible warns against turning lineage into a permanent bonus; the right shape is small, qualitative hooks that experience and tools overwhelm. | **Following product slice — Skill-system hook.** Land one or two early-learning effects derived from `CitizenProfile`, gated by the lineage guardrail in the bible. | L |
+| 3 | Production chains are still single-resource. Smithy consuming Iron to produce Tools, Weaver consuming Food to produce Cloth, PotionLab consuming Herbs to produce Potions. | **Production chains.** Add one building that consumes one resource and produces another; share the existing drawdown machinery. | L |
+| 4 | Shared inventory abstraction. Iron lives on each Quarry, Food on each Farm, Wood on each Forest. Recipes must source from any matching building, which works today but means a city aggregate counter would be cleaner. | **Shared inventory.** Replace per-building reserves with one `CityWorld.Resource(type)` aggregate; per-building reserves become optional capacity hints. | M |
+| 5 | Rich condition gates on unlocks. Today, only material inputs gate a construction; the bible calls for knowledge, institution, and authorisation gates too. | **Knowledge and institution gates.** Extend `TryAuthorizeConstruction` with a pre-flight that checks accumulated knowledge and active institutions. | M |
+| 6 | The expedition pillar (§4.2) has no architectural place to live. | **Expedition skeleton.** Add `Domain/Expedition/` with the minimum types an expedition needs (member, target, route, outcome). No gameplay yet — just enough to prove the seams. | M |
+| 7 | Causal event log covers the current prototype actions; it is not yet the complete long-horizon event model described by the design bible. | **Long-horizon events.** Replace the bounded `WorldEventLog` with a streamed / persisted event store and surface decisions over multi-day catch-ups. | L |
 
 ---
 
@@ -225,15 +248,14 @@ What would unlock the most future work for the smallest change?
 These are things the validation surfaced that aren't quite "gaps"
 but are worth knowing:
 
-1. **Causal granularity already exists in the data.** Every
-   production tick emits both a stone delta and a per-worker exp
-   bump. The event-log primitive would just be the next refinement,
-   not a from-scratch system.
+1. **The causal primitive already exists.** Production and blocking events
+   carry causal links. The next refinement is persistence and richer event
+   coverage, not another in-memory log.
 2. **The macro view now reflects the current population.** The hero-only
    onboarding state intentionally has no building plot and shows an explicit
    empty state. Building plots return when construction exists.
 3. **Persistence uses one primary slot.** `CityWorldController` loads
-   `WorldPersistence.PrimarySaveSlot`, validates v2 before restore, and
+   `WorldPersistence.PrimarySaveSlot`, migrates raw v2/v3 data to v4, validates it, and
    leaves an incompatible v1 slot untouched while onboarding is incomplete.
 4. **`MainLoop.NotificationWMCloseRequest` is not exposed as a
    named constant in Godot 4.7 C# bindings.** We use the literal
@@ -252,38 +274,39 @@ but are worth knowing:
 
 | Area | Verdict |
 |---|---|
-| Original slice scope | ✅ all 4 bullets met |
-| Architecture compliance | ✅ full (Domain / presentation split, composition, three scales, no Godot in domain) |
+| Original slice scope | ✅ all bullets met (incl. gender-aware onboarding, walking hero, forest gathering) |
+| Architecture compliance | ✅ Domain boundary is now enforced by an automated source scan |
 | GAME_VISION §1–3 (fantasy, single city, absence) | ✅ met |
-| GAME_VISION §4.1 (city development) | ⚠️ shape only — no dimensions, no chains |
+| GAME_VISION §4.1 (city development) | ✅ materials landed; chains and shared inventory pending |
 | GAME_VISION §4.2 (expeditions) | ❌ missing |
-| GAME_VISION §5 (citizens, partial) | ⚠️ core attachments done; long attributes list pending |
+| GAME_VISION §5 (citizens, partial) | ✅ gender landed; long attributes list pending |
 | GAME_VISION §6 (combat, healthcare) | ❌ out of scope |
-| GAME_VISION §7 (production & storage) | ⚠️ basic ticking only; no chains / materials |
-| GAME_VISION §8 (persistent time) | ⚠️ save/load/elapsed ✅; causal report ⚠️ basic |
-| GAME_VISION §9 (design principles) | ✅ 13 / 14 fully held; 1 partial (unlocks — none exist yet) |
+| GAME_VISION §7 (production & storage) | ✅ reactive range + materials landed; chains pending |
+| GAME_VISION §8 (persistent time) | ⚠️ causal in-session/catch-up report exists; persisted long-horizon history pending |
+| GAME_VISION §9 (design principles) | ✅ including an enforced Domain/presentation boundary |
 | Slice 7 — First MVP pixel art | ✅ done — Home (64×64), Quarry (128×128), Farm (128×128) placeholders wired through `BuildingArt`; old generic `building_placeholder.png` and `worker_placeholder.png` removed |
-| Tests | 232 / 232 passing |
+| Recipes slice | ✅ recipe/deposit/drawdown pass; cancellation never credits inputs that were not consumed |
+| Gender slice | ✅ done — `GenderId` on profile; v3 → v4 migration; body variant chosen in onboarding step 0 |
+| Forest/Wood slice | ✅ done — 2 founding Forests, manual gather, Basic Shelter requires 4 wood |
+| Tests | 309 / 309 passing |
 | Build | clean, 0 warnings, 0 errors |
 
-**Net read:** the slice is *vertically complete* against the
-prototype promise and the architectural boundary. The vision as a
+**Net read:** the gameplay proof is vertically broad and well tested. The strict
+domain boundary and construction resource conservation are now guarded by tests.
+The vision as a
 whole is **far from done** — expeditions, multi-dimensional city
-development, healthcare, causal reports, lineaging — but each of
+development, healthcare, chains, shared inventory — but each of
 those is a clearly-scoped next slice, and none of them is blocked
 by what exists today.
 
 The top three investments, in priority order:
 
-1. **Slice 9 — Event-log primitive + causal report.** Most
-   leverage: it turns the current offline-progression summary
-   into the event-stream model the architecture already prescribes
-   and the vision already illustrates.
-2. **Slice 12 — Expedition skeleton.** Most gameplay leverage:
-   the second pillar is the other half of the design.
-3. **Slice 11 — Unlock conditions.** Most architectural leverage:
-   it cements the "no arbitrary unlocks" principle and opens the
-   door to additive content.
+1. **UI state visibility.** Use the controller-owned snapshots to make
+   blocked/empty/decision states directly visible and navigable.
+2. **Skill-system hook.** Add small qualitative effects that experience and
+   tools overwhelm, without permanent lineage bonuses.
+3. **Production chains.** Prove one input-to-output chain before generalising
+   shared inventory.
 
 These are recommendations, not commitments. The user / next agent
 decides what to build next.

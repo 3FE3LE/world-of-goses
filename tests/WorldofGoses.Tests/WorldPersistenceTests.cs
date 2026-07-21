@@ -58,17 +58,19 @@ public class WorldPersistenceTests
     }
 
     [Fact]
-    public void Roundtrip_PreservesProductionPolicyIncludingZeroTarget()
+    public void Roundtrip_PreservesProductionPolicyIncludingZeroRange()
     {
         var world = TestHelpers.NewProductionWorld();
-        world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, targetStock: 0);
+        world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: 0, priority: 0);
 
         var save = WorldPersistence.Capture(world);
         var restored = CityWorld.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
 
         Assert.False(restored.PrimaryBuilding.ProductionEnabled);
-        Assert.Equal(0, restored.PrimaryBuilding.TargetStock);
+        Assert.Equal(0, restored.PrimaryBuilding.MinStock);
+        Assert.Equal(0, restored.PrimaryBuilding.MaxStock);
+        Assert.Equal(0, restored.PrimaryBuilding.Priority);
     }
 
     [Fact]
@@ -495,7 +497,9 @@ public class WorldPersistenceTests
             Assert.Equal(em.StorageCapacity, am.StorageCapacity);
             Assert.Equal(em.Stock, am.Stock);
             Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
-            Assert.Equal(em.TargetStock, am.TargetStock);
+            Assert.Equal(em.MinStock, am.MinStock);
+            Assert.Equal(em.MaxStock, am.MaxStock);
+            Assert.Equal(em.Priority, am.Priority);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 
@@ -531,7 +535,9 @@ public class WorldPersistenceTests
             Assert.Equal(em.StorageCapacity, am.StorageCapacity);
             Assert.Equal(em.Stock, am.Stock);
             Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
-            Assert.Equal(em.TargetStock, am.TargetStock);
+            Assert.Equal(em.MinStock, am.MinStock);
+            Assert.Equal(em.MaxStock, am.MaxStock);
+            Assert.Equal(em.Priority, am.Priority);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 

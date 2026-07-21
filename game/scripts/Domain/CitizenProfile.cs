@@ -14,6 +14,7 @@ public sealed class CitizenProfile
 {
     private CitizenProfile(
         LineageId lineage,
+        GenderId gender,
         AptitudeId[] aptitudes,
         ProfessionFamilyId[] professionalAffinities,
         ElementalAffinityId elementalAffinity,
@@ -24,6 +25,7 @@ public sealed class CitizenProfile
         SpiritualPostureId spiritualPosture)
     {
         Lineage = lineage;
+        Gender = gender;
         Aptitudes = Array.AsReadOnly(aptitudes);
         ProfessionalAffinities = Array.AsReadOnly(professionalAffinities);
         ElementalAffinity = elementalAffinity;
@@ -35,6 +37,7 @@ public sealed class CitizenProfile
     }
 
     public LineageId Lineage { get; }
+    public GenderId Gender { get; }
     public IReadOnlyList<AptitudeId> Aptitudes { get; }
     public IReadOnlyList<ProfessionFamilyId> ProfessionalAffinities { get; }
     public ElementalAffinityId ElementalAffinity { get; }
@@ -46,6 +49,7 @@ public sealed class CitizenProfile
 
     public static bool TryCreate(
         LineageId lineage,
+        GenderId gender,
         IEnumerable<AptitudeId> aptitudes,
         IEnumerable<ProfessionFamilyId> professionalAffinities,
         ElementalAffinityId elementalAffinity,
@@ -63,6 +67,11 @@ public sealed class CitizenProfile
         if (!ProfileCatalog.Contains(lineage))
         {
             error = "Choose a known lineage.";
+            return false;
+        }
+        if (!Enum.IsDefined(typeof(GenderId), gender))
+        {
+            error = "Choose a known gender.";
             return false;
         }
         if (!ProfileCatalog.Contains(elementalAffinity))
@@ -96,6 +105,7 @@ public sealed class CitizenProfile
 
         profile = new CitizenProfile(
             lineage,
+            gender,
             aptitudeValues,
             professionValues,
             elementalAffinity,

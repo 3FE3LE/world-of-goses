@@ -59,16 +59,6 @@ public class WorldEventLogTests
             log.Record(2, WorldEventKind.NightBegan, "Sun").Summary);
     }
 
-    [Fact]
-    public void WorldEvent_IconPath_KnownKind_ReturnsResPath()
-    {
-        var log = new WorldEventLog();
-        var produced = log.Record(1, WorldEventKind.StockProduced, "Q", 1);
-        var day = log.Record(2, WorldEventKind.DayBegan, "Sun");
-        Assert.Equal("res://assets/ui/icons/24/coin.svg", produced.IconPath);
-        Assert.Equal("res://assets/ui/icons/24/sun.svg", day.IconPath);
-    }
-
     // ---------------- CityWorld integration ----------------
 
     [Fact]

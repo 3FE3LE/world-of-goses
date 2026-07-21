@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/VisibleWorkerSlots.cs" id="7_slots"]
 [ext_resource type="Script" path="res://scripts/AssignmentPanel.cs" id="8_assign"]
 [ext_resource type="Script" path="res://scripts/ProductionPanel.cs" id="9_prod"]
+[ext_resource type="Script" path="res://scripts/ForestGatherPanel.cs" id="9_forest"]
 [ext_resource type="PackedScene" path="res://scenes/OnboardingView.tscn" id="10_onboarding"]
 [ext_resource type="PackedScene" path="res://scenes/HeroProfileView.tscn" id="11_profile"]
 [ext_resource type="Script" path="res://scripts/ConstructionPanel.cs" id="12_construction"]
@@ -215,6 +216,17 @@ offset_right = -260.0
 grow_horizontal = 2
 grow_vertical = 0
 script = ExtResource("9_prod")
+
+[node name="ForestGatherPanel" type="PanelContainer" parent="BuildingDetailView"]
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -180.0
+offset_right = -260.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("9_forest")
 
 [node name="BackButton" type="Button" parent="BuildingDetailView"]
 layout_mode = 1

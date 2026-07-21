@@ -46,4 +46,7 @@ public static class IconPaths
     public const string User = Root + "user.svg";
     public const string House = Root + "house.svg";
     public const string Building = Root + "building.svg";
+    /// <summary>Alias for <see cref="Leaf"/> while the forest-slice
+    /// reuses the leaf sprite. Will become tree.svg when art lands.</summary>
+    public const string Tree = Leaf;
 }

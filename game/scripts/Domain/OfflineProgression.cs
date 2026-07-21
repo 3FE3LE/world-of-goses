@@ -199,7 +199,7 @@ public static class OfflineProgression
             {
                 stockAdded += produced;
                 ticksApplied++;
-                if (building.Stock >= building.TargetStock) break;
+                if (building.Stock >= building.MaxStock) break;
             }
             else
             {

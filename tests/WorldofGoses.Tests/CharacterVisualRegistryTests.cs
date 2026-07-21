@@ -38,14 +38,12 @@ public sealed class CharacterVisualRegistryTests
     }
 
     [Theory]
-    [InlineData(0, CharacterBodyVariant.Male)]
-    [InlineData(2, CharacterBodyVariant.Male)]
-    [InlineData(1, CharacterBodyVariant.Female)]
-    [InlineData(-1, CharacterBodyVariant.Female)]
-    public void ResolveBodyVariant_IsStableFromAppearanceSeed(
-        int appearanceSeed,
+    [InlineData(GenderId.Masculine, CharacterBodyVariant.Male)]
+    [InlineData(GenderId.Feminine, CharacterBodyVariant.Female)]
+    public void ResolveBodyVariant_MapsGenderToBodyVariant(
+        GenderId gender,
         CharacterBodyVariant expected)
     {
-        Assert.Equal(expected, CharacterVisualRegistry.ResolveBodyVariant(appearanceSeed));
+        Assert.Equal(expected, CharacterVisualRegistry.ResolveBodyVariant(gender));
     }
 }

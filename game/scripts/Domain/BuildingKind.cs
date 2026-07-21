@@ -16,4 +16,11 @@ public enum BuildingKind
     Smithy = 2,
     PotionLab = 3,
     Home = 4,
+    /// <summary>
+    /// A natural wood source placed in the empty founding world.
+    /// The hero gathers wood from a Forest by interacting with it;
+    /// no automatic production. Each Forest tracks its own
+    /// <see cref="Building.WoodReserve"/>.
+    /// </summary>
+    Forest = 5,
 }

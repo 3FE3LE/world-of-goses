@@ -89,6 +89,7 @@ public class ConstructionRulesTests
     {
         bool created = CitizenProfile.TryCreate(
             LineageId.Ardhen,
+            GenderId.Masculine,
             aptitudes,
             new[] { ProfessionFamilyId.ConstructionInfrastructure, ProfessionFamilyId.MedicineCare, ProfessionFamilyId.Extraction },
             ElementalAffinityId.Water,

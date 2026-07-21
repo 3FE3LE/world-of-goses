@@ -231,13 +231,61 @@ Local persistence is implemented through plain DTOs and
 - Structural and cross-entity invariants are validated before restore.
 - The Godot controller auto-loads the primary slot, auto-saves periodically
   and on window close after onboarding, and starts a new empty world when
-  no valid v2 snapshot is available. A v1 prototype slot is left untouched
-  until a completed hero profile replaces it atomically.
+  no valid v4 snapshot is available. The controller's load path runs
+  `MigrateV2ToV3` then `MigrateV3ToV4` on the raw JSON before `Validate`,
+  so older saves upgrade non-fatally: v2 → v3 introduces the reactive
+  policy triplet and IronStock; v3 → v4 introduces explicit gender identity
+  (defaulting to Masculine when missing).
 - Offline elapsed time is capped and applied as deterministic batched ticks;
   an empty hero-only world uses an equivalent idle fast-forward.
 
-The current `OfflineProgressionReport` is aggregate. A causal event log and
-the final relationship between real time and world time remain undecided.
+### Material reserves vs. produced-resource storage
+
+`Building` carries two distinct counters so the operating-recipe drawdown
+does not visually shrink the produced-resource amount:
+
+- `Stock` is the building's produced-resource output (Stone, Food, etc.).
+- `IronStock` remains persisted for schema compatibility and future tools/fuel
+  work, but no current early-game construction or operating recipe consumes it.
+- `WoodReserve` is the Forest-style remaining source, drained by the
+  manual "Gather wood" action into the Forest's `Stock`, which the
+  construction recipe gate then consumes.
+
+`TryConsumeResource(type, amount)` can still route Iron to `IronStock`, Wood to
+gathered Forest `Stock`, and everything else to produced `Stock`. Current recipe
+drawdown uses Wood and Food; the Iron path is retained without making it a
+bootstrap requirement.
+
+### Causal event log
+
+`WorldEvent.CauseEventId` is wired through `CityWorld.FindCauseEvent`. The
+`OfflineReportPanel` renders a "Decisions needed" list grouped by subject
+above the chronological rows so the player can scan what requires attention
+without scrolling the full timeline.
+
+`OfflineProgressionReport` carries both aggregate counters and the causal events
+generated during catch-up. The current `WorldEventLog` is bounded and in memory:
+restore clears it, it is not part of `WorldSave`, and offline catch-up repopulates
+it. Persistence/streaming for a long-horizon history and the final relationship
+between real time and world time remain undecided.
+
+### Boundary enforcement
+
+Domain events retain only causal and semantic data. Presentation owns the
+`WorldEventKind` → icon mapping through `IconPaths`; asset paths never travel
+through `WorldEvent`. `DomainBoundaryTests` scans every C# source below
+`game/scripts/Domain/` and fails if it finds a Godot reference or `res://` path,
+turning the domain/presentation rule into an executable constraint.
+
+### Presentation snapshots
+
+`CityWorldController` projects the mutable world into immutable,
+Godot-free read models: `CityStatusSnapshot`, `ConstructionSnapshot`, and
+`BuildingDetailSnapshot`. The status strip, construction panel, building-detail
+shell, worker slots, assignment panel, production panel, and forest gather panel
+render those snapshots instead of traversing `CityWorld` or retaining domain
+entities. Commands still flow through the controller and domain; snapshots are
+read-only copies and never become a second source of truth.
 
 ## 9. UI themes and resolution
 

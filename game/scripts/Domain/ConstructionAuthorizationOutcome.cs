@@ -9,4 +9,5 @@ public enum ConstructionAuthorizationOutcome
     HomeAlreadyBuilt = 3,
     WorldNotEmpty = 4,
     HomeRequired = 5,
+    MissingMaterials = 6,
 }

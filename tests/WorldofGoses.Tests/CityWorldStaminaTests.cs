@@ -69,7 +69,7 @@ public class CityWorldStaminaTests
         {
             citizen.ConsumeStamina(citizen.CurrentStamina);
         }
-        farm.ConfigureProductionPolicy(enabled: false, targetStock: farm.StorageCapacity);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
         int quarryStockBefore = quarry.Stock;
         world.AdvanceWorldTick();

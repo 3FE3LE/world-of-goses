@@ -22,17 +22,22 @@ public class ConstructionTickTests
     public void Authorize_AfterOnboarding_CreatesProject()
     {
         var world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        // Basic Shelter requires Wood × 4 (deposit = 1 wood). The
+        // hero must gather at least once before authorisation.
+        world.GatherWood(new BuildingId(100), 1);
         var result = world.TryAuthorizeBasicShelter();
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"authorization failed with {result.Outcome}");
         Assert.Single(world.Projects);
-        Assert.Empty(world.Buildings);
     }
 
     [Fact]
     public void Authorize_Twice_Fails()
     {
         var world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 1);
         Assert.True(world.TryAuthorizeBasicShelter().IsSuccess);
         Assert.Equal(ConstructionAuthorizationOutcome.AlreadyAuthorized, world.TryAuthorizeBasicShelter().Outcome);
     }
@@ -47,9 +52,37 @@ public class ConstructionTickTests
     {
         var world = TestHelpers.NewProductionWorld();
 
+        var woodSource = TestHelpers.NewBuilding(
+            id: new BuildingId(9100),
+            kind: BuildingKind.Forest,
+            producedCompetencyId: CompetencyId.Foraging,
+            producedResourceType: ResourceType.Wood,
+            workerCapacity: 0,
+            visualCapacity: 0,
+            baseProductionPerWorker: 0,
+            storageCapacity: 20,
+            displayName: "Test wood stock",
+            resourceLabel: "Wood",
+            resourceUnit: "wood");
+        woodSource.AddStock(20);
+        world.RegisterBuilding(woodSource);
+        // Construction authorisation debits the recipe deposit up-front.
+        var recipe = Recipes.ConstructionRecipeFor(kind);
+        if (recipe is not null)
+        {
+            foreach (var input in recipe.RequiredInputs)
+            {
+                if (input.Resource == ResourceType.Wood)
+                {
+                    continue;
+                }
+                world.DepositResource(input.Resource, ConstructionRules.DepositOf(input.Amount));
+            }
+        }
+
         var result = world.TryAuthorizeConstruction(kind);
 
-        Assert.True(result.IsSuccess);
+        Assert.True(result.IsSuccess, $"authorization failed with {result.Outcome}");
         var project = FirstProject(world);
         Assert.Equal(kind, project.Kind);
         Assert.Equal(resultingKind, project.ResultingKind);
@@ -100,10 +133,10 @@ public class ConstructionTickTests
         }
 
         Assert.Empty(world.Projects);
-        Assert.Single(world.Buildings);
-        var home = world.Buildings.Values.Single();
-        Assert.Equal(BuildingKind.Home, home.Kind);
-        Assert.Equal("Basic Shelter", home.DisplayName);
+        // The two founding Forests (id 100, 101) are still in the
+        // world; the Basic Shelter becomes a Home building (id 1).
+        Assert.Contains(world.Buildings.Values, b => b.Kind == BuildingKind.Home);
+        Assert.Equal(3, world.Buildings.Count);
     }
 
     [Fact]
