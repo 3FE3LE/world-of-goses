@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -56,12 +57,20 @@ public partial class BuildingPlotStage : Control
 
     /// <summary>
     /// Reconciles the stage against the current buildings and projects.
-    /// Buildings are rendered as finished plots; in-flight projects
-    /// (with no corresponding building yet) are rendered as
+    /// Buildings with art are rendered as finished plots; in-flight
+    /// projects (with no corresponding building yet) are rendered as
     /// under-construction plots. Buildings for which
-    /// <see cref="BuildingArt.GetTexturePath"/> returns null are
-    /// skipped (Smithy and PotionLab today).
+    /// <see cref="BuildingArt.GetTexturePath"/> returns null fall back
+    /// to a placeholder plot so the player can still reach them — see
+    /// <see cref="BuildingPlot.Configure"/> for the placeholder style.
+    /// The placeholder list below names every kind we explicitly want
+    /// to keep visible while art is missing; kinds not in this list
+    /// (Smithy, PotionLab) remain hidden so the city stays accurate
+    /// when a future slice wires their art.
     /// </summary>
+    private static readonly HashSet<BuildingKind> KindsWithoutArtStillShown =
+        new() { BuildingKind.Forest };
+
     public void Render(IReadOnlyList<Building> buildings, IReadOnlyList<ConstructionProject> projects)
     {
         // Map id -> project so we can look up by id when iterating plots.
@@ -70,14 +79,14 @@ public partial class BuildingPlotStage : Control
         var wanted = new HashSet<int>();
         foreach (var b in buildings)
         {
-            if (BuildingArt.GetTexturePath(b.Kind) is not null)
+            if (IsPlottable(b.Kind))
             {
                 wanted.Add(b.Id.Value);
             }
         }
         foreach (var p in projects)
         {
-            if (BuildingArt.GetTexturePath(p.ResultingKind) is not null)
+            if (IsPlottable(p.ResultingKind))
             {
                 wanted.Add(p.Id.Value);
             }
@@ -100,20 +109,33 @@ public partial class BuildingPlotStage : Control
         foreach (var building in buildings)
         {
             if (existing.Contains(building.Id.Value)) continue;
+            if (!IsPlottable(building.Kind)) continue;
             var texturePath = BuildingArt.GetTexturePath(building.Kind);
-            if (texturePath is null) continue;
             AddPlot(building.Id.Value, building.Kind, building.DisplayName, texturePath, isUnderConstruction: false);
         }
         foreach (var project in projects)
         {
             if (existing.Contains(project.Id.Value)) continue;
+            if (!IsPlottable(project.ResultingKind)) continue;
             var texturePath = BuildingArt.GetTexturePath(project.ResultingKind);
-            if (texturePath is null) continue;
             AddPlot(project.Id.Value, project.ResultingKind, project.DisplayName, texturePath, isUnderConstruction: true);
         }
     }
 
-    private void AddPlot(int idValue, BuildingKind kind, string displayName, string texturePath, bool isUnderConstruction)
+    /// <summary>
+    /// True when a <see cref="BuildingKind"/> should produce a
+    /// <see cref="BuildingPlot"/>. Real-art kinds are always shown;
+    /// kinds in <see cref="KindsWithoutArtStillShown"/> are shown via
+    /// placeholder; everything else (Smithy, PotionLab today) is hidden
+    /// so the city never references an unrepresented building.
+    /// </summary>
+    private static bool IsPlottable(BuildingKind kind)
+    {
+        if (BuildingArt.GetTexturePath(kind) is not null) return true;
+        return KindsWithoutArtStillShown.Contains(kind);
+    }
+
+    private void AddPlot(int idValue, BuildingKind kind, string displayName, string? texturePath, bool isUnderConstruction)
     {
         var plot = new BuildingPlot
         {

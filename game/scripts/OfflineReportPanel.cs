@@ -31,7 +31,6 @@ public partial class OfflineReportPanel : PanelContainer
     public override void _Ready()
     {
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        SizeFlagsVertical = SizeFlags.ShrinkBegin;
         MouseFilter = MouseFilterEnum.Stop;
         AddThemeStyleboxOverride(
             "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));

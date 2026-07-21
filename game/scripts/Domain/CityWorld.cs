@@ -109,19 +109,25 @@ public sealed class CityWorld
     public const int StartingForestStorageCapacity = 20;
 
     /// <summary>
-    /// Drops two Forests into the freshly founded world so the hero has
-    /// a wood source to gather from. Each Forest starts with
+    /// Drops two Forests into the world so the hero has a wood source
+    /// to gather from. Each Forest starts with
     /// <see cref="StartingForestWoodReserve"/> wood still in it.
     /// IDs are reserved (100, 101) so they never collide with future
-    /// player-authorised buildings. No-op when the world already has
-    /// buildings or citizens beyond the principal hero, so this is
-    /// safe to call from a restore path that already populated the
-    /// world from a save.
+    /// player-authorised buildings. Safe to call from any path:
+    /// - no-op when no hero exists (no point seeding before founding),
+    /// - no-op when the world already has a Forest (idempotent),
+    /// - otherwise seeds two Forests. This is intentionally permissive
+    ///   about pre-existing non-Forest buildings so a hero who already
+    ///   finished the founding step still receives forests when their
+    ///   save predated the wood-gathering slice.
     /// </summary>
     public void SeedStartingForests()
     {
-        if (_buildings.Count > 0) return;
-        if (_citizens.Count > 1) return;
+        if (_citizens.Count == 0) return;
+        foreach (var b in _buildings.Values)
+        {
+            if (b.Kind == BuildingKind.Forest) return;
+        }
 
         var forest1 = new Building(
             id: new BuildingId(100),
@@ -129,9 +135,9 @@ public sealed class CityWorld
             kind: BuildingKind.Forest,
             producedResourceType: ResourceType.Wood,
             producedCompetencyId: CompetencyId.Foraging,
-            workerCapacity: 0,
-            visualCapacity: 0,
-            baseProductionPerWorker: 0,
+            workerCapacity: 2,
+            visualCapacity: 2,
+            baseProductionPerWorker: 1,
             storageCapacity: StartingForestStorageCapacity,
             resourceLabel: "Wood",
             resourceUnit: "wood");
@@ -143,9 +149,9 @@ public sealed class CityWorld
             kind: BuildingKind.Forest,
             producedResourceType: ResourceType.Wood,
             producedCompetencyId: CompetencyId.Foraging,
-            workerCapacity: 0,
-            visualCapacity: 0,
-            baseProductionPerWorker: 0,
+            workerCapacity: 2,
+            visualCapacity: 2,
+            baseProductionPerWorker: 1,
             storageCapacity: StartingForestStorageCapacity,
             resourceLabel: "Wood",
             resourceUnit: "wood");
@@ -960,7 +966,41 @@ public sealed class CityWorld
             // mutation hazard.
         }
         CompleteFinishedProjects();
+        DemolishDepletedForests();
         DecrementAllWellFed();
+    }
+
+    /// <summary>
+    /// Removes Forests whose wood reserve ran out during the most
+    /// recent production tick. Forests gather wood by transferring it
+    /// from <see cref="Building.WoodReserve"/> to
+    /// <see cref="Building.Stock"/> as workers produce; once the
+    /// reserve is empty, the natural source is gone and the Forest
+    /// disappears from the world so the player doesn't keep paying
+    /// upkeep on an empty plot. Other building kinds never trigger
+    /// this path.
+    /// </summary>
+    private void DemolishDepletedForests()
+    {
+        List<BuildingId>? depleted = null;
+        foreach (var pair in _buildings)
+        {
+            if (pair.Value.Kind != BuildingKind.Forest) continue;
+            if (pair.Value.WoodReserve > 0) continue;
+            depleted ??= new List<BuildingId>();
+            depleted.Add(pair.Key);
+        }
+        if (depleted is null) return;
+
+        foreach (var id in depleted)
+        {
+            RemoveBuildingInternal(id);
+            _log.Record(_tick, WorldEventKind.ForestDemolished, "Forest");
+        }
+        if (depleted.Count > 0)
+        {
+            RaiseBuildingChanged(depleted[0]);
+        }
     }
 
     private void CompleteFinishedProjects()
@@ -1180,6 +1220,23 @@ public sealed class CityWorld
         }
 
         int produced = BuildingProductionCalculator.ProductionPerTick(contributing, building);
+
+        // Forest buildings differ from the rest: their output stream
+        // is fed by the building's own WoodReserve, not by recipes.
+        // Each contributing worker "forages" one wood from the
+        // reserve and credits it to stock; if the reserve is
+        // smaller than the work capacity, only `reserve` ticks'
+        // worth of wood transfers, and a later DemolishDepletedForests
+        // sweep will remove the now-empty forest.
+        if (building.Kind == BuildingKind.Forest && building.WoodReserve > 0)
+        {
+            int fromReserve = contributing.Count < building.WoodReserve
+                ? contributing.Count
+                : building.WoodReserve;
+            building.DecrementWoodReserve(fromReserve);
+            produced = fromReserve;
+        }
+
         int roomToTarget = building.MaxStock - building.Stock;
         int added = building.AddStock(Math.Min(produced, roomToTarget));
         building.LastTickProduction = added;
@@ -1188,6 +1245,15 @@ public sealed class CityWorld
         foreach (var citizen in contributing)
         {
             citizen.AddExperience(competency, 1);
+        }
+
+        if (building.Kind == BuildingKind.Forest && building.WoodReserve == 0)
+        {
+            // Reserve ran out this tick: forest is depleted; stop
+            // cause reads as "no inputs" until the per-tick sweep
+            // removes the building.
+            building.StopCause = ProductionStopCause.MissingInputs;
+            return added;
         }
 
         building.StopCause = building.Stock >= building.MaxStock
@@ -1419,6 +1485,29 @@ public sealed class CityWorld
         RaiseBuildingChanged(buildingId);
     }
 
+    /// <summary>
+    /// Flips a building's <see cref="Building.ProductionEnabled"/>
+    /// flag without touching its reactive <c>MinStock</c>/<c>MaxStock</c>/
+    /// <c>Priority</c> triplet. The presentation layer uses this when the
+    /// player toggles the simple on/off button. Future slices that
+    /// expose the triplet as a UI again will revert to
+    /// <see cref="ConfigureProductionPolicy"/>.
+    /// </summary>
+    public void SetProductionEnabled(BuildingId buildingId, bool enabled)
+    {
+        if (!_buildings.TryGetValue(buildingId, out var building))
+        {
+            return;
+        }
+
+        building.ConfigureProductionPolicy(
+            enabled,
+            building.MinStock,
+            building.MaxStock,
+            building.Priority);
+        RaiseBuildingChanged(buildingId);
+    }
+
     internal void AdvanceWorldClock(int tickCount)
     {
         if (tickCount > 0) _tick += tickCount;
@@ -1508,6 +1597,31 @@ public sealed class CityWorld
             int minStock = bs.MinStock ?? 0;
             int priority = bs.Priority ?? 0;
             building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock, priority);
+
+            // Old saves predate the wood-gathering slice and have no
+            // WoodReserve field; for Forest plots, seed them with
+            // the starting reserve so the saving doesn't auto-demolish
+            // them on the first tick. Fresh worlds (already carrying
+            // a WoodReserve) preserve their state.
+            if (kind == BuildingKind.Forest && bs.WoodReserve is null)
+            {
+                building.SeedWoodReserve(StartingForestWoodReserve);
+                if (bs.WorkerCapacity == 0)
+                {
+                    // Old saves serialised Forest with capacity 0 (a
+                    // marker for "non-productive in v2"). Re-apply the
+                    // v4 defaults so the player can assign workers.
+                    building.ReplaceForestCapacity(
+                        workerCapacity: 2,
+                        visualCapacity: 2,
+                        baseProductionPerWorker: 1);
+                }
+            }
+            else
+            {
+                building.SeedWoodReserve(bs.WoodReserve ?? 0);
+            }
+
             RegisterBuilding(building);
 
             foreach (var cid in bs.AssignedCitizenIds)
@@ -1621,6 +1735,42 @@ public sealed class CityWorld
     private void RaiseBuildingChanged(BuildingId buildingId)
     {
         BuildingChanged?.Invoke(this, new CityWorldChangedEventArgs(buildingId));
+    }
+
+    /// <summary>
+    /// Removes a building from the world without raising an event.
+    /// Used by the per-tick depletion sweep that might demolish
+    /// several forests in one pass; the caller emits one
+    /// <see cref="RaiseBuildingChanged"/> for the batch when needed.
+    /// Free any assigned citizens via
+    /// <see cref="TryUnassignCitizen"/> first so the world state
+    /// stays consistent.
+    /// </summary>
+    private void RemoveBuildingInternal(BuildingId buildingId)
+    {
+        if (!_buildings.TryGetValue(buildingId, out var building)) return;
+
+        // Free assigned citizens so they can be re-assigned elsewhere.
+        var assignedCopy = new List<CitizenId>(building.AssignedCitizenIds);
+        foreach (var citizenId in assignedCopy)
+        {
+            TryUnassignCitizen(buildingId, citizenId);
+        }
+        _buildings.Remove(buildingId);
+    }
+
+    /// <summary>
+    /// Public demolition path: removes a building immediately and
+    /// notifies subscribers. Used when the player explicitly tears
+    /// down a building (future slice). Today's <see cref="DemolishDepletedForests"/>
+    /// sweep batches internally to avoid per-building event spam.
+    /// </summary>
+    public bool RemoveBuilding(BuildingId buildingId)
+    {
+        if (!_buildings.ContainsKey(buildingId)) return false;
+        RemoveBuildingInternal(buildingId);
+        RaiseBuildingChanged(buildingId);
+        return true;
     }
 
     private void RaiseProjectChanged(BuildingId projectId)

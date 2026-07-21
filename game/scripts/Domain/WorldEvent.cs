@@ -21,6 +21,7 @@ public enum WorldEventKind
     BuildingCreated,
     WellFedExpired,
     ProductionBlocked,
+    ForestDemolished,
 }
 
 /// <summary>

@@ -10,8 +10,7 @@ public sealed record ConstructionSnapshot(
     BuildingId? HomeBuildingId,
     ConstructionSnapshot.ProjectItem? Project,
     IReadOnlyList<ConstructionSnapshot.CitizenItem> AvailableCitizens,
-    IReadOnlyList<ConstructionSnapshot.OptionItem> Options,
-    ConstructionSnapshot.GatherWoodAction? GatherWood)
+    IReadOnlyList<ConstructionSnapshot.OptionItem> Options)
 {
     public bool HasHome => HomeBuildingId.HasValue;
 
@@ -36,8 +35,6 @@ public sealed record ConstructionSnapshot(
             }
         }
     }
-
-    public sealed record GatherWoodAction(BuildingId ForestId, string CitizenName, int Reserve, int Amount);
 
     public sealed record ProjectItem(
         BuildingId Id,
@@ -111,19 +108,8 @@ public sealed record ConstructionSnapshot(
             options.Add(new OptionItem(kind, materials));
         }
 
-        GatherWoodAction? gatherWood = null;
-        if (world.Hero is { } hero)
-        {
-            foreach (var building in world.Buildings.Values)
-            {
-                if (building.Kind != BuildingKind.Forest || building.WoodReserve <= 0) continue;
-                gatherWood = new GatherWoodAction(building.Id, hero.Name, building.WoodReserve, 2);
-                break;
-            }
-        }
-
         return new ConstructionSnapshot(world.Hero is not null, world.Hero?.Name, homeId,
-            projectItem, available, options, gatherWood);
+            projectItem, available, options);
     }
 
     public OptionItem OptionFor(ConstructionKind kind)

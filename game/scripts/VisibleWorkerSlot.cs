@@ -1,5 +1,6 @@
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -40,7 +41,7 @@ public partial class VisibleWorkerSlot : Control
     private LineageId _lineage = LineageId.Ardhen;
     private CharacterBodyVariant _bodyVariant;
     private LineageSpritePlayer _sprite = null!;
-    private Button _hitArea = null!;
+    private TooltipButton _hitArea = null!;
     private AnimationPlayer _animationPlayer = null!;
     private AnimationLibrary _library = null!;
     private bool _exiting;
@@ -66,7 +67,7 @@ public partial class VisibleWorkerSlot : Control
 
         AddChild(_nameLabel);
 
-        _hitArea = new Button
+        _hitArea = new TooltipButton
         {
             Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,

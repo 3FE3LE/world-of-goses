@@ -68,6 +68,7 @@ public static class WorldPersistence
                 BaseProductionPerWorker = building.BaseProductionPerWorker,
                 StorageCapacity = building.StorageCapacity,
                 Stock = building.Stock,
+                WoodReserve = building.WoodReserve,
                 ProductionEnabled = building.ProductionEnabled,
                 MinStock = building.MinStock,
                 MaxStock = building.MaxStock,

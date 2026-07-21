@@ -14,7 +14,6 @@ public partial class BuildingDetailView : Control
     [Export] public NodePath SlotsPath { get; set; } = "VisibleWorkerSlots";
     [Export] public NodePath AssignmentPanelPath { get; set; } = "AssignmentPanel";
     [Export] public NodePath ProductionPanelPath { get; set; } = "ProductionPanel";
-    [Export] public NodePath ForestGatherPanelPath { get; set; } = "ForestGatherPanel";
     [Export] public NodePath BackButtonPath { get; set; } = "BackButton";
     [Export] public NodePath TitlePath { get; set; } = "Title";
     [Export] public NodePath MacroViewPath { get; set; } = "../CityMacroView";
@@ -24,7 +23,6 @@ public partial class BuildingDetailView : Control
     private VisibleWorkerSlots _slots = null!;
     private AssignmentPanel _assignmentPanel = null!;
     private ProductionPanel _productionPanel = null!;
-    private ForestGatherPanel _forestGatherPanel = null!;
     private Button _backButton = null!;
     private Label _title = null!;
     private TextureRect _artHeader = null!;
@@ -37,7 +35,6 @@ public partial class BuildingDetailView : Control
         _slots = RequireNode<VisibleWorkerSlots>(SlotsPath);
         _assignmentPanel = RequireNode<AssignmentPanel>(AssignmentPanelPath);
         _productionPanel = RequireNode<ProductionPanel>(ProductionPanelPath);
-        _forestGatherPanel = RequireNode<ForestGatherPanel>(ForestGatherPanelPath);
         _backButton = RequireNode<Button>(BackButtonPath);
         _title = RequireNode<Label>(TitlePath);
         _artHeader = RequireNode<TextureRect>(ArtHeaderPath);
@@ -47,7 +44,6 @@ public partial class BuildingDetailView : Control
         _assignmentPanel.AssignRequested += OnAssignRequested;
         _assignmentPanel.UnassignRequested += OnUnassignRequested;
         _productionPanel.PolicyChangeRequested += OnPolicyChangeRequested;
-        _forestGatherPanel.GatherRequested += OnGatherRequested;
         _backButton.Pressed += OnBackPressed;
 
         _controller.BuildingStateChanged += OnBuildingStateChanged;
@@ -55,7 +51,6 @@ public partial class BuildingDetailView : Control
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.CitizenAssignmentRejected += OnAssignmentRejected;
 
-        _forestGatherPanel.Visible = false;
         Hide();
     }
 
@@ -116,33 +111,20 @@ public partial class BuildingDetailView : Control
 
         _slots.Render(snapshot.VisibleCitizens);
 
-        // Home and Forest are non-production buildings: no
-        // assignment, no production panel. Hide them so the detail
-        // view shows only the slots stage (the "resting" list) or,
-        // for Forests, the gather affordance.
+        // Home is non-productive (only the worker slots list). Forests
+        // are productive like Farms and Quarries now — assign workers
+        // and they produce wood from the reserve, so they reuse the
+        // AssignmentPanel + ProductionPanel pair.
         bool isHome = snapshot.IsHome;
-        bool isForest = snapshot.IsForest;
-        _assignmentPanel.Visible = !isHome && !isForest;
-        _productionPanel.Visible = !isHome && !isForest;
-        if (isForest)
-        {
-            _forestGatherPanel.Visible = true;
-            _forestGatherPanel.Refresh(snapshot);
-        }
-        else
-        {
-            _forestGatherPanel.Visible = false;
-        }
+        _assignmentPanel.Visible = !isHome;
+        _productionPanel.Visible = !isHome;
         if (isHome)
         {
             return;
         }
 
-        if (!isForest)
-        {
-            _assignmentPanel.Refresh(snapshot);
-            _productionPanel.Refresh(snapshot);
-        }
+        _assignmentPanel.Refresh(snapshot);
+        _productionPanel.Refresh(snapshot);
     }
 
     private void OnSlotCitizenClicked(int citizenIdValue) =>
@@ -157,13 +139,8 @@ public partial class BuildingDetailView : Control
     private void OnUnassignRequested(int citizenIdValue) =>
         _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
 
-    private void OnPolicyChangeRequested(bool enabled, int minStock, int maxStock, int priority) =>
-        _controller.ConfigureProductionPolicy(_currentBuilding, enabled, minStock, maxStock, priority);
-
-    private void OnGatherRequested(int forestIdValue)
-    {
-        _controller.GatherWood(new BuildingId(forestIdValue), ForestGatherPanel.GatherAmount);
-    }
+    private void OnPolicyChangeRequested(bool enabled) =>
+        _controller.SetProductionEnabled(_currentBuilding, enabled);
 
     private void OnBackPressed()
     {

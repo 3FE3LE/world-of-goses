@@ -300,6 +300,9 @@ public partial class CityWorldController : Node
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority) =>
         _world.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
 
+    public void SetProductionEnabled(BuildingId buildingId, bool enabled) =>
+        _world.SetProductionEnabled(buildingId, enabled);
+
     private void TryLoadFromDisk()
     {
         try
@@ -351,6 +354,12 @@ public partial class CityWorldController : Node
         }
         WorldPersistence.Validate(save);
         _world.Restore(save);
+        // Retroactive seed for saves predating the wood-gathering
+        // slice: if the world has the founding hero but no Forests,
+        // give it two Forests so wood gathering remains reachable.
+        // SeedStartingForests is idempotent — it skips when forests
+        // already exist or when no hero is present.
+        _world.SeedStartingForests();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         return true;
     }

@@ -14,8 +14,15 @@ namespace WorldofGoses;
 /// The button is hidden during onboarding (no hero yet) because the
 /// hero profile button would target no existing citizen. The
 /// controller exposes <c>NeedsOnboarding()</c> for that check.
+///
+/// Inherits from <see cref="IconButton"/> for two reasons:
+/// - the persistent instance in <c>CityPrototype.tscn</c> needs the
+///   Pixelify tooltip override that <see cref="IconButton"/> provides,
+/// - the inner Label needs the same ButtonText (Jersey 10) variation
+///   so it does not fall back to the engine default font for typography
+///   for the icon+label row.
 /// </summary>
-public partial class HeroAccessButton : Button
+public partial class HeroAccessButton : IconButton
 {
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
 

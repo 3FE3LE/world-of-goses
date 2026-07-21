@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -35,26 +36,25 @@ public partial class CityMacroView : Control
     [Export] public NodePath ActivityPath { get; set; } = "MacroCitizenActivity";
     [Export] public NodePath StatusPanelPath { get; set; } = "../CityStatusPanel";
     [Export] public NodePath OfflineReportPath { get; set; } = "OfflineReportPanel";
-    [Export] public NodePath ConstructionPanelPath { get; set; } = "Center/ConstructionPanel";
+    [Export] public NodePath ModalHostPath { get; set; } = "ModalHost";
     [Export] public NodePath EmptyPanelPath { get; set; } = "Center/EmptyPanel";
     [Export] public NodePath HeroProfileButtonPath { get; set; } =
         "Center/EmptyPanel/Margin/Content/HeroProfileButton";
     [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../ConstructionMenuButton";
-    [Export] public NodePath ConstructionScrimPath { get; set; } = "ConstructionModalScrim";
 
     private CityWorldController _controller = null!;
     private MacroCitizenActivity _activity = null!;
     private CityStatusPanel _statusPanel = null!;
     private OfflineReportPanel _offlineReport = null!;
+    private ModalHost _modalHost = null!;
     private ConstructionPanel _constructionPanel = null!;
     private PanelContainer _emptyPanel = null!;
     private Button _heroProfileButton = null!;
     private BuildingPlotStage _plotStage = null!;
     private bool _offlineReportShown;
     private IconButton _constructionMenuButton = null!;
-    private bool _constructionMenuOpen;
-    private ColorRect _constructionScrim = null!;
+    private bool _modalWantsOpen;
 
     public override void _Ready()
     {
@@ -62,12 +62,12 @@ public partial class CityMacroView : Control
         _activity = GetNode<MacroCitizenActivity>(ActivityPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
         _offlineReport = GetNode<OfflineReportPanel>(OfflineReportPath);
-        _constructionPanel = GetNode<ConstructionPanel>(ConstructionPanelPath);
+        _modalHost = GetNode<ModalHost>(ModalHostPath);
+        _constructionPanel = GetNode<ConstructionPanel>("Center/ConstructionPanel");
         _emptyPanel = GetNode<PanelContainer>(EmptyPanelPath);
         _heroProfileButton = GetNode<Button>(HeroProfileButtonPath);
         _plotStage = GetNode<BuildingPlotStage>(PlotStagePath);
         _constructionMenuButton = GetNode<IconButton>(ConstructionMenuButtonPath);
-        _constructionScrim = GetNode<ColorRect>(ConstructionScrimPath);
 
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
         _controller.ProjectStateChanged += OnAnyProjectStateChanged;
@@ -77,6 +77,8 @@ public partial class CityMacroView : Control
         _plotStage.BuildingClicked += OnPlotBuildingClicked;
         _heroProfileButton.Pressed += OnHeroProfilePressed;
         _constructionMenuButton.Pressed += OnConstructionMenuPressed;
+        _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
+        _modalHost.Closed += OnModalHostClosed;
 
         Visible = !_controller.NeedsOnboarding();
         if (Visible) Refresh();
@@ -104,6 +106,28 @@ public partial class CityMacroView : Control
         {
             _constructionMenuButton.Pressed -= OnConstructionMenuPressed;
         }
+        if (_constructionPanel is not null)
+        {
+            _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
+        }
+        if (_modalHost is not null)
+        {
+            _modalHost.Closed -= OnModalHostClosed;
+        }
+    }
+
+    /// <summary>
+    /// Resets the desired state when the host emits Closed, so the
+    /// next refresh does not auto-reopen. Auto-open policy still
+    /// applies when <see cref="Refresh"/> runs again with a new mode.
+    /// </summary>
+    private void OnModalHostClosed()
+    {
+        _modalWantsOpen = false;
+        UpdateConstructionMenuButton(
+            DetermineMacroMode(
+                _controller.World.Buildings.Count,
+                _controller.World.Projects.Count));
     }
 
     public void OnReturnedToCity()
@@ -128,14 +152,19 @@ public partial class CityMacroView : Control
             _controller.World.Projects.Count);
 
         _emptyPanel.Visible = mode == MacroMode.Empty;
-        bool constructionPanelVisible = mode == MacroMode.Construction || _constructionMenuOpen;
-        _constructionPanel.Visible = constructionPanelVisible;
-        _constructionScrim.Visible = constructionPanelVisible;
-        _plotStage.Visible = !constructionPanelVisible
+        // Auto-open the modal when the player has an in-flight project
+        // but no buildings yet — that way Construction progress is the
+        // canonical surface for assigning contributors. After they
+        // have buildings they must explicitly reopen via the menu
+        // button, because the macro view starts showing plots.
+        _modalWantsOpen = mode == MacroMode.Construction;
+        SyncModalHost();
+        _plotStage.Visible = !_modalHost.IsOpen
             && (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction);
         _constructionMenuButton.Visible = mode is MacroMode.Plots
             or MacroMode.PlotsAndConstruction
-            or MacroMode.Empty;
+            or MacroMode.Empty
+            or MacroMode.Construction;
         UpdateConstructionMenuButton(mode);
 
         if (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction)
@@ -162,6 +191,55 @@ public partial class CityMacroView : Control
     }
 
     /// <summary>
+    /// Reconciles the host's state with <see cref="_modalWantsOpen"/>.
+    /// When the player dismisses the modal (X / ESC / scrim), the
+    /// host's <see cref="ModalHost.Closed"/> signal flips the flag
+    /// back to false via <see cref="OnModalHostClosed"/> so the modal
+    /// does not auto-reopen on the next refresh.
+    /// </summary>
+    private void SyncModalHost()
+    {
+        if (_modalWantsOpen)
+        {
+            if (!_modalHost.IsOpen)
+            {
+                _modalHost.Open(_constructionPanel);
+            }
+        }
+        else
+        {
+            if (_modalHost.IsOpen)
+            {
+                _modalHost.Close();
+            }
+            else
+            {
+                _constructionPanel.Visible = false;
+            }
+        }
+    }
+
+    private void OnConstructionMenuPressed()
+    {
+        if (_modalHost.IsOpen)
+        {
+            _modalWantsOpen = false;
+            _modalHost.Close();
+        }
+        else
+        {
+            _modalWantsOpen = true;
+            SyncModalHost();
+        }
+    }
+
+    private void OnConstructionPanelCloseRequested()
+    {
+        _modalWantsOpen = false;
+        _modalHost.Close();
+    }
+
+    /// <summary>
     /// Pure decision function exposed for unit tests. Decides which
     /// combination of panels and plot stage should be visible given
     /// the current world state.
@@ -185,18 +263,9 @@ public partial class CityMacroView : Control
 
     private void OnHeroProfilePressed() => _controller.SelectHero();
 
-    private void OnConstructionMenuPressed()
-    {
-        _constructionMenuOpen = !_constructionMenuOpen;
-        _constructionMenuButton.SetIconAndLabel(
-            _constructionMenuOpen ? IconPaths.Close : IconPaths.Building,
-            _constructionMenuOpen ? "Close construction" : "Construction");
-        Refresh();
-    }
-
     private void UpdateConstructionMenuButton(MacroMode mode)
     {
-        if (_constructionMenuOpen)
+        if (_modalHost.IsOpen)
         {
             _constructionMenuButton.SetIconAndLabel(IconPaths.Close, "Close construction");
             return;
@@ -235,6 +304,14 @@ public partial class CityMacroView : Control
         }
         else
         {
+            // Any selection away from the macro view must release the
+            // modal so the next non-macro selection isn't blocked by a
+            // stale construction panel sitting on top.
+            if (_modalHost is not null && _modalHost.IsOpen)
+            {
+                _modalWantsOpen = false;
+                _modalHost.Close();
+            }
             Hide();
         }
     }

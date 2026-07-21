@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -72,13 +73,7 @@ public partial class HeroProfileView : Control
         title.AddThemeFontSizeOverride("font_size", 36);
         header.AddChild(title);
 
-        _backButton = new Button
-        {
-            Text = "Back to city",
-            ThemeTypeVariation = "ButtonText",
-            CustomMinimumSize = new Vector2(150, 44),
-            FocusMode = FocusModeEnum.All,
-        };
+        _backButton = StandardButtons.BackToCityButton();
         _backButton.Pressed += () => _controller.ReturnToCity();
         header.AddChild(_backButton);
 

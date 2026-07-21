@@ -39,9 +39,9 @@ public sealed class Building
     public BuildingKind Kind { get; }
     public ResourceType ProducedResourceType { get; }
     public CompetencyId ProducedCompetencyId { get; }
-    public int WorkerCapacity { get; }
-    public int VisualCapacity { get; }
-    public int BaseProductionPerWorker { get; }
+    public int WorkerCapacity { get; private set; }
+    public int VisualCapacity { get; private set; }
+    public int BaseProductionPerWorker { get; private set; }
     public int StorageCapacity { get; }
     public int Stock { get; private set; }
 
@@ -141,6 +141,40 @@ public sealed class Building
 
     public bool IsAssigned(CitizenId citizenId) =>
         _assigned.Contains(citizenId);
+
+    /// <summary>
+    /// Replace the worker-capacity triplet for a Forest whose old save
+    /// was produced before the wood-gathering slice landed. Old saves
+    /// serialised Forest with all three set to 0 (a marker for
+    /// "non-productive in v2"); the migration layer uses this method
+    /// to bump those defaults so a freshly-loaded city can assign
+    /// workers. Existing citizens assigned to this forest are kept on
+    /// the roster up to the new capacity — if the new capacity is
+    /// smaller, the most-recently-assigned citizen stays (any other
+    /// excess assignments would have to be cleaned up before load).
+    /// </summary>
+    public void ReplaceForestCapacity(int workerCapacity, int visualCapacity, int baseProductionPerWorker)
+    {
+        if (Kind != BuildingKind.Forest)
+        {
+            throw new InvalidOperationException(
+                "ReplaceForestCapacity only applies to Forest-kind buildings.");
+        }
+        WorkerCapacitySetter(workerCapacity, visualCapacity, baseProductionPerWorker);
+    }
+
+    /// <summary>
+    /// Internal setter for the production triplet. Avoids the readonly
+    /// field restriction in Building's constructor by giving the
+    /// migration path a write-through on the values it needs to
+    /// correct on restore.
+    /// </summary>
+    private void WorkerCapacitySetter(int workerCapacity, int visualCapacity, int baseProductionPerWorker)
+    {
+        WorkerCapacity = workerCapacity;
+        VisualCapacity = visualCapacity;
+        BaseProductionPerWorker = baseProductionPerWorker;
+    }
 
     /// <summary>
     /// Produces when authorised, has at least one worker, and has
@@ -291,6 +325,20 @@ public sealed class Building
     {
         if (amount < 0) return;
         WoodReserve = amount;
+    }
+
+    /// <summary>
+    /// Drains <paramref name="amount"/> wood from the reserve without
+    /// touching <see cref="Stock"/>. Called by the world tick after
+    /// it has decided how much wood the assigned workers foraged this
+    /// tick — the <see cref="CityWorld"/> routes the same amount into
+    /// <see cref="AddStock"/> as the produced output.
+    /// </summary>
+    public void DecrementWoodReserve(int amount)
+    {
+        if (amount <= 0) return;
+        int actual = amount < WoodReserve ? amount : WoodReserve;
+        WoodReserve -= actual;
     }
 
     /// <summary>

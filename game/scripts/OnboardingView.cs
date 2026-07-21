@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -206,6 +207,11 @@ public partial class OnboardingView : Control
             MaxLength = 32,
             CustomMinimumSize = new Vector2(0, 42),
             FocusMode = FocusModeEnum.All,
+            // The global theme defines Pixelify Sans for any LineEdit
+            // (default_theme.tres:136-141), but assigning the variation
+            // explicitly follows the typography-rule "every visible
+            // text node carries an explicit variation in code".
+            ThemeTypeVariation = "LineEdit",
         };
         name.TextChanged += value =>
         {
@@ -407,7 +413,7 @@ public partial class OnboardingView : Control
         SizeFlagsHorizontal = SizeFlags.ExpandFill,
     };
 
-    private static Button NewChoiceButton(string text, string tooltip) => new()
+    private static TooltipButton NewChoiceButton(string text, string tooltip) => new()
     {
         Text = text,
         TooltipText = tooltip,

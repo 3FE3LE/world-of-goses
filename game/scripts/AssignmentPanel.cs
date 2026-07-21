@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -100,7 +101,7 @@ public partial class AssignmentPanel : PanelContainer
         foreach (var citizen in snapshot.AssignedCitizens)
         {
             var row = BuildRow(citizen.Id, citizen.Name, "Remove", $"Remove from {snapshot.DisplayName}");
-            row.GetNode<Button>("Button").Pressed += () =>
+            row.GetNode<TooltipButton>("Button").Pressed += () =>
                 EmitSignal(SignalName.UnassignRequested, citizen.Id.Value);
             _assignedList.AddChild(row);
         }
@@ -125,7 +126,7 @@ public partial class AssignmentPanel : PanelContainer
         {
             bool canAssign = snapshot.AssignedCount < snapshot.WorkerCapacity;
             var row = BuildRow(citizen.Id, citizen.Name, "Assign", $"Assign to {snapshot.DisplayName}");
-            var button = row.GetNode<Button>("Button");
+            var button = row.GetNode<TooltipButton>("Button");
             button.Disabled = !canAssign;
             var capturedId = citizen.Id;
             button.Pressed += () => EmitSignal(SignalName.AssignRequested, capturedId.Value);
@@ -139,7 +140,7 @@ public partial class AssignmentPanel : PanelContainer
         var label = new Label { Text = name, SizeFlagsHorizontal = SizeFlags.ExpandFill };
         label.ThemeTypeVariation = "BodyText";
         row.AddChild(label);
-        var button = new Button
+        var button = new TooltipButton
         {
             Text = actionLabel,
             Name = "Button",

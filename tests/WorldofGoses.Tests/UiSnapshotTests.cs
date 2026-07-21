@@ -1,3 +1,4 @@
+using System.Linq;
 using WorldofGoses.Domain;
 using Xunit;
 
@@ -28,7 +29,6 @@ public sealed class UiSnapshotTests
         Assert.Empty(snapshot.Project.AssignedCitizens);
         Assert.Contains(snapshot.Project.RemainingInputs,
             input => input.Resource == ResourceType.Wood && input.Amount == 3);
-        Assert.NotNull(snapshot.GatherWood);
         Assert.Contains(snapshot.AvailableCitizens, citizen => citizen.Name == "Aster");
     }
 
@@ -47,10 +47,11 @@ public sealed class UiSnapshotTests
         Assert.Equal(0, material.Available);
         Assert.Equal(1, material.DepositRequired);
         Assert.False(shelter.CanPayDeposit);
-        Assert.NotNull(before.GatherWood);
-        Assert.Equal("Aster", before.GatherWood!.CitizenName);
-
-        world.GatherWood(before.GatherWood.ForestId, before.GatherWood.Amount);
+        // Forest gathering is now driven by worker assignment; verify
+        // the forest reserve exposes the same end-state through that
+        // path instead of a GatherWood snapshot field.
+        var forest = world.Buildings.Values.First(b => b.Kind == BuildingKind.Forest);
+        world.GatherWood(forest.Id, 2);
         var after = ConstructionSnapshot.From(world).OptionFor(ConstructionKind.BasicShelter);
 
         Assert.Equal(2, Assert.Single(after.Materials).Available);

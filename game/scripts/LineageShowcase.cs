@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -40,7 +41,7 @@ public partial class LineageShowcase : PanelContainer
     private Label _label = null!;
     private HBoxContainer _bar = null!;
     private GridContainer _grid = null!;
-    private readonly List<(PanelContainer Panel, string Component)> _surfaces = new();
+    private readonly List<(TooltipPanelContainer Panel, string Component)> _surfaces = new();
     private LineageThemeSignals? _signals;
 
     public override void _Ready()
@@ -101,7 +102,7 @@ public partial class LineageShowcase : PanelContainer
     {
         foreach (string component in ComponentIds)
         {
-            var surface = new PanelContainer
+            var surface = new TooltipPanelContainer
             {
                 CustomMinimumSize = new Vector2(220, 72),
                 TooltipText = component == LineageThemeRegistry.ComponentPanel

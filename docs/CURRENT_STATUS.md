@@ -177,6 +177,57 @@ lineage panel and then the project default. `LineageShowcase.tscn` exercises all
 eight packs and the expected component fallbacks. The reference viewport is
 1280×720 with responsive Control containers.
 
+### Tooltips
+
+Native Godot popup with a project-wide base `Label/font = Pixelify Sans`
+set in `default_theme.tres`. Every tooltip (engine default or
+`ThemeTypeVariation = "TooltipText"`/`"BodyText"` override) uses the
+Pixelify family. No custom overlay — the user perceived previous attempts
+as stretched boxes, so we leave the engine popup unmodified and rely on
+the theme to do the typography work.
+
+### Reusable button factory
+
+`Ui/StandardButtons.cs` centralises the buttons that more than one screen
+reaches for (`BackToCityButton`, `ViewHeroButton`). Every consumer hits
+the same factory so the icon, label, theme variation, and tooltip are
+identical — previously `HeroProfileView._backButton` was a plain `Button`
+while `BuildingDetailView.BackButton` was an `IconButton` with an arrow
+glyph and the `HeroAccessButton` macro shortcut shipped without its user
+icon. The factory eliminates that divergence.
+
+### Modal + close UX
+
+`Ui/ModalHost.cs` owns the scrim, the centre container, the
+`ui_cancel` (ESC) handler, and scrim-click dismissal. `Ui/PanelHeader.cs`
+gives any panel a Jersey 10 title plus an `IconButton` close (X) bound
+to the host's `Closed` signal. Construction modal closes via X,
+`ui_cancel` (ESC), or click on the scrim — three independent routes so
+the player is never stuck if the construction state blocks an option.
+
+### Forest gathering (organic)
+
+Forests are productive buildings like Farms and Quarries:
+`SeedStartingForests` configures them with `workerCapacity: 2`,
+`visualCapacity: 2`, `baseProductionPerWorker: 1`. Assigning workers
+moves wood from `Building.WoodReserve` to `Building.Stock` each tick
+(1 wood per worker, capped by the remaining reserve). When the reserve
+reaches 0, `DemolishDepletedForests` removes the building from the
+world, the plot disappears from the macro stage, and a
+`WorldEventKind.ForestDemolished` event is recorded for the log. The
+detail panel shows `Wood: X / Y (reserve R)` so the player can see the
+limit before the Forest vanishes.
+
+### Production panel simplification
+
+`ProductionPanel` is a single production-toggle, single-rate-line view:
+title, stock with reserve (Forest only), rate line, input due line,
+stop-cause line, on/off `IconButton` (play/pause glyph). The reactive
+`MinStock` / `MaxStock` / `Priority` triplet exists in the domain
+(`Building.ConfigureProductionPolicy`) but is not surfaced in the
+detail panel; `CityWorld.SetProductionEnabled` flips just the bool,
+keeping the triplet intact for future slices that re-expose it.
+
 ## 10. Known limitations
 
 - Lineage and profile choices are stored and presented but do not yet modify

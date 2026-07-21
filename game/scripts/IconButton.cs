@@ -1,4 +1,5 @@
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -10,7 +11,7 @@ namespace WorldofGoses;
 /// icon by passing an empty label.
 ///
 /// Layout contract:
-/// - Icon sits to the left of the label with a 10-px gap.
+/// - Icon sits to the left of the label with an 8-px gap.
 /// - Both icon and label are vertically centred inside the button's
 ///   content rect via an <see cref="HBoxContainer"/> with full-rect
 ///   anchors and expand-fill size flags; the row's <c>Alignment.Center</c>
@@ -20,6 +21,14 @@ namespace WorldofGoses;
 ///   yellow primary and grey secondary panel backgrounds without any
 ///   runtime tint (which would be multiplicative and darken the
 ///   stroke).
+///
+/// Tooltip routing: Godot's <c>_make_custom_tooltip</c> proved
+/// unreliable in this Godot 4.7 build — the engine kept showing the
+/// default yellow 9-slice popup despite the C# override. <see cref="_Ready"/>
+/// captures the configured <see cref="BaseButton.TooltipText"/>,
+/// clears it, and re-routes to the in-world
+/// <see cref="TooltipOverlay"/> so the Pixelify typography guide is
+/// always honoured.
 /// </summary>
 public partial class IconButton : Button
 {
@@ -71,7 +80,14 @@ public partial class IconButton : Button
 
         _label = new Label
         {
+            // The Label inside the HBox does NOT inherit the parent
+            // Button's theme_type_variation in Godot 4 — it has its own
+            // theme lookup that falls back to engine defaults unless we
+            // pin it explicitly. We use the same Jersey 10 variation
+            // the Button uses so the icon-plus-label row reads as one
+            // typographic unit.
             Text = Label,
+            ThemeTypeVariation = "ButtonText",
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
             SizeFlagsVertical = SizeFlags.ShrinkCenter,

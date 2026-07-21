@@ -15,6 +15,10 @@
 
 [resource]
 
+Label/font_sizes/font_size = 18
+Label/fonts/font = ExtResource("3_pixelify")
+Label/font_colors/font_color = Color(0.96, 0.92, 0.82, 1)
+
 GameTitle/base_type = "Label"
 GameTitle/font_sizes/font_size = 48
 GameTitle/fonts/font = ExtResource("1_geist")
