@@ -88,6 +88,11 @@ keystore.properties
 
 # ── Godot import scratch (per-file) ─────────────────────────────────────────
 # These are generated next to imported assets. Safe to ignore.
+**/*.import
+
+# ── Local generated concept art ─────────────────────────────────────────────
+# MiniMax splash output is reviewed before intentional pipeline promotion.
+/game/art/generated/
 
 # ── Logs ────────────────────────────────────────────────────────────────────
 *.log
