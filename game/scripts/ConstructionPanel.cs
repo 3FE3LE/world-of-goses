@@ -14,6 +14,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class ConstructionPanel : PanelContainer
 {
+    private static readonly Vector2 PreferredMinimumSize = new(720, 420);
+    private const float ViewportMargin = 48f;
+
     private static readonly PackedScene AssignmentRowScene =
         GD.Load<PackedScene>("res://scenes/Components/AssignmentRow.tscn");
 
@@ -87,6 +90,8 @@ public partial class ConstructionPanel : PanelContainer
         UnassignFromProjectRequested += OnUnassignFromProject;
 
         BuildShell();
+        GetViewport().SizeChanged += ApplyResponsiveMinimumSize;
+        ApplyResponsiveMinimumSize();
         if (_controller is not null)
         {
             _controller.HeroCreated += OnHeroCreated;
@@ -294,9 +299,9 @@ public partial class ConstructionPanel : PanelContainer
         _errorLabel.ThemeTypeVariation = "ErrorText";
         shell.AddChild(_errorLabel);
 
-        var footer = new HBoxContainer
+        var footer = new HFlowContainer
         {
-            Alignment = BoxContainer.AlignmentMode.End,
+            Alignment = FlowContainer.AlignmentMode.End,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         footer.AddThemeConstantOverride("separation", 8);
@@ -367,6 +372,7 @@ public partial class ConstructionPanel : PanelContainer
 
     public override void _ExitTree()
     {
+        GetViewport().SizeChanged -= ApplyResponsiveMinimumSize;
         if (_controller is null) return;
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         _controller.HeroCreated -= OnHeroCreated;
@@ -382,6 +388,14 @@ public partial class ConstructionPanel : PanelContainer
         ViewCompletedBuildingRequested -= OnViewCompletedBuilding;
         AssignToProjectRequested -= OnAssignToProject;
         UnassignFromProjectRequested -= OnUnassignFromProject;
+    }
+
+    private void ApplyResponsiveMinimumSize()
+    {
+        Vector2 availableSize = GetViewportRect().Size - new Vector2(ViewportMargin, ViewportMargin);
+        CustomMinimumSize = new Vector2(
+            Mathf.Max(0f, Mathf.Min(PreferredMinimumSize.X, availableSize.X)),
+            Mathf.Max(0f, Mathf.Min(PreferredMinimumSize.Y, availableSize.Y)));
     }
 
     public void Refresh(bool clearError = true)

@@ -249,6 +249,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-17 — Modales dependen de mínimos fijos sin fallback estrecho
 
+- **Estado:** Implementado estructuralmente; pendiente matriz visual con texto largo.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `ConstructionPanel.cs`, `ModalHost.cs`, `TutorialOverlay.cs`.
@@ -264,6 +265,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
 
+- **Estado:** En curso; detail, onboarding y toast usan el componente canónico.
 - **Prioridad:** 🟡 Media
 - **Categoría:** arquitectura
 - **Afecta:** `SafeAreaMarginContainer.cs`, macro actions, status, Chronicle,
@@ -278,6 +280,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟡 M-12 — Banners, toasts y tutorial no comparten zonas de exclusión
 
+- **Estado:** En curso; toast/banner separados y toast suprimido durante tutorial.
 - **Prioridad:** 🟡 Media
 - **Categoría:** UX
 - **Afecta:** `AttentionBanner.cs`, `Notifier.cs`, `TutorialOverlay.cs`,
@@ -309,6 +312,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟡 M-14 — No existe una matriz de regresión visual para UI
 
+- **Estado:** Checklist reproducible definido; capturas comparativas pendientes.
 - **Prioridad:** 🟡 Media
 - **Categoría:** arquitectura
 - **Afecta:** verificación de escenas/UI.
@@ -321,6 +325,22 @@ reorganiza la lista, los IDs no se renumeran.
 - **Criterios de aceptación:** cada PR de UI adjunta la matriz aplicable y
   compara rects/capturas; ningún cierre se basa únicamente en headless boot.
 - **Relacionados:** todos los ítems de esta auditoría.
+
+#### Matriz mínima por cambio de UI
+
+| Vista/estado | 1024×576 | 1280×720 | 1600×900 | Casos obligatorios |
+| --- | --- | --- | --- | --- |
+| Macro | captura | captura | captura | ciudad vacía, cinco plots, Chronicle abierto |
+| Building detail | captura | captura | captura | sin workers, workers máximos, listas largas |
+| Hero profile | captura | captura | captura | texto normal y texto de prueba +50% |
+| Construction modal | captura | captura | captura | blueprint, underway, footer envuelto |
+| Tutorial/overlays | captura | captura | captura | tutorial + attention + intento de toast |
+
+En cada celda aplicable se comprueban: rect completo dentro del viewport,
+header y acción de cierre visibles, foco de teclado/gamepad, ausencia de
+solapamientos, y scroll únicamente dentro de secciones de datos no acotados.
+La revisión registra resolución, estado/fixture y resultado; una captura del
+macro inicial no sustituye las demás vistas afectadas.
 
 ### 🟡 M-15 — Scroll solo en secciones de información no acotada
 

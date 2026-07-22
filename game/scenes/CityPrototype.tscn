@@ -180,7 +180,6 @@ tooltip_text = "Send the hero to gather 2 wood from a Forest."
 text = "Gather 2 wood"
 
 [node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
-custom_minimum_size = Vector2(720, 420)
 z_index = 21
 layout_mode = 2
 mouse_filter = 0

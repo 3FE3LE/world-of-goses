@@ -14,6 +14,8 @@ namespace WorldofGoses;
 public partial class AttentionBanner : PanelContainer
 {
     private const float PulseSeconds = 0.9f;
+    private const float ToastExclusionHeight = 88f;
+    private const float HorizontalInset = 32f;
 
     private Label _label = null!;
     private Tween? _pulse;
@@ -28,9 +30,9 @@ public partial class AttentionBanner : PanelContainer
     {
         if (_label is not null) return;
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
-        AddThemeConstantOverride("margin_bottom", 64);
-        AddThemeConstantOverride("margin_left", 80);
-        AddThemeConstantOverride("margin_right", 80);
+        OffsetLeft = HorizontalInset;
+        OffsetRight = -HorizontalInset;
+        OffsetBottom = -ToastExclusionHeight;
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         MouseFilter = Control.MouseFilterEnum.Ignore;
         Visible = false;

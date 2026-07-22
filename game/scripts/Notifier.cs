@@ -24,17 +24,19 @@ public partial class Notifier : Node
     private PanelContainer _panel = null!;
     private Label _label = null!;
     private Timer _hideTimer = null!;
+    private bool _overlaySuppressed;
 
     public override void _Ready()
     {
         var layer = new CanvasLayer { Layer = 100 };
         AddChild(layer);
 
-        var anchor = new MarginContainer();
+        var anchor = new SafeAreaMarginContainer
+        {
+            MinimumInset = 32,
+            MinimumTopInset = 0,
+        };
         anchor.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
-        anchor.AddThemeConstantOverride("margin_bottom", 32);
-        anchor.AddThemeConstantOverride("margin_left", 32);
-        anchor.AddThemeConstantOverride("margin_right", 32);
         layer.AddChild(anchor);
 
         var align = new CenterContainer();
@@ -95,6 +97,17 @@ public partial class Notifier : Node
         if (Resolve() is { } notifier) notifier.ShowInternal(message, ErrorColor);
     }
 
+    public static void SetOverlaySuppressed(bool suppressed)
+    {
+        if (Resolve() is not { } notifier) return;
+        notifier._overlaySuppressed = suppressed;
+        if (suppressed)
+        {
+            notifier._hideTimer.Stop();
+            notifier._panel.Visible = false;
+        }
+    }
+
     private static Notifier? Resolve()
     {
         var tree = Engine.GetMainLoop() as SceneTree;
@@ -103,6 +116,7 @@ public partial class Notifier : Node
 
     private void ShowInternal(string message, Color color)
     {
+        if (_overlaySuppressed) return;
         _label.Text = message;
         _label.AddThemeColorOverride("font_color", color);
         _panel.Visible = true;

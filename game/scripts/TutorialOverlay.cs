@@ -14,6 +14,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class TutorialOverlay : Control
 {
+    private const float PreferredCardWidth = 360f;
+    private const float HorizontalSafeMargin = 48f;
+
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
 
     private static readonly IReadOnlyList<TutorialStep> Steps = new[]
@@ -51,10 +54,13 @@ public partial class TutorialOverlay : Control
 
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         BuildShell();
+        GetViewport().SizeChanged += ApplyResponsiveCardWidth;
+        ApplyResponsiveCardWidth();
     }
 
     public override void _ExitTree()
     {
+        GetViewport().SizeChanged -= ApplyResponsiveCardWidth;
         if (_controller is not null) _controller.HeroCreated -= OnHeroCreated;
     }
 
@@ -141,6 +147,7 @@ public partial class TutorialOverlay : Control
         if (_dismissed) return;
         _stepIndex = 0;
         ApplyStep();
+        Notifier.SetOverlaySuppressed(true);
         Visible = true;
     }
 
@@ -170,6 +177,14 @@ public partial class TutorialOverlay : Control
     {
         _dismissed = true;
         Visible = false;
+        Notifier.SetOverlaySuppressed(false);
+    }
+
+    private void ApplyResponsiveCardWidth()
+    {
+        if (_card is null) return;
+        float availableWidth = Mathf.Max(0f, GetViewportRect().Size.X - HorizontalSafeMargin);
+        _card.CustomMinimumSize = new Vector2(Mathf.Min(PreferredCardWidth, availableWidth), 0f);
     }
 
     private readonly record struct TutorialStep(string Title, string Body, string IconPath);
