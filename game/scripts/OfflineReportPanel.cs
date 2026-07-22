@@ -181,6 +181,7 @@ public partial class OfflineReportPanel : PanelContainer
     {
         OffsetTop = _isExpanded ? ExpandedTopOffset : CollapsedTopOffset;
         _summary.Visible = _isExpanded;
+        _scroll.Visible = _isExpanded || _compactedCount > 0;
         _scroll.CustomMinimumSize = new Vector2(0, _isExpanded ? 220 : 36);
         _scroll.VerticalScrollMode = _isExpanded
             ? ScrollContainer.ScrollMode.Auto

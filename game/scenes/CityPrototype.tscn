@@ -260,7 +260,7 @@ theme_override_constants/separation = 12
 
 [node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
 visible = false
-custom_minimum_size = Vector2(192, 192)
+custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 mouse_filter = 2
 stretch_mode = 6

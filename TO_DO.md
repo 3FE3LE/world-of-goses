@@ -119,7 +119,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
 
-- **Estado:** En curso; shell estable y scroll global retirado por decisión de UX.
+- **Estado:** Implementado y verificado en Quarry a 1280×720; pendiente matriz estrecha.
 - **Prioridad:** 🔴 Crítica
 - **Categoría:** UX
 - **Afecta:** `CityPrototype.tscn`, `BuildingDetailView.cs`,
@@ -216,7 +216,8 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-15 — Chronicle ocluye plots y mezcla overlay con panel persistente
 
-- **Estado:** Mitigado: inicia colapsado y solo la expansión explícita ocupa el overlay.
+- **Estado:** Mitigado y verificado a 1280×720: inicia colapsado, no deja cuerpo
+  vacío y solo la expansión explícita ocupa el overlay.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `OfflineReportPanel.cs`, `CityPrototype.tscn`,

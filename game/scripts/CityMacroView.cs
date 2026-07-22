@@ -44,6 +44,7 @@ public partial class CityMacroView : Control
     [Export] public NodePath GatherWoodButtonPath { get; set; } =
         "Center/EmptyPanel/Margin/Content/GatherWoodButton";
     [Export] public NodePath HeroAccessButtonPath { get; set; } = "../MacroActions/Actions/HeroAccessButton";
+    [Export] public NodePath MacroActionsPath { get; set; } = "../MacroActions";
     [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../MacroActions/Actions/ConstructionMenuButton";
     [Export] public NodePath AttentionBannerPath { get; set; } = "../../../AttentionBanner";
@@ -58,6 +59,7 @@ public partial class CityMacroView : Control
     private Label _emptyGuidanceLabel = null!;
     private Button _gatherWoodButton = null!;
     private HeroAccessButton _heroAccessButton = null!;
+    private Control _macroActions = null!;
     private BuildingPlotStage _plotStage = null!;
     private bool _offlineReportShown;
     private IconButton _constructionMenuButton = null!;
@@ -79,6 +81,7 @@ public partial class CityMacroView : Control
         _emptyGuidanceLabel = GetNode<Label>(EmptyGuidanceLabelPath);
         _gatherWoodButton = GetNode<Button>(GatherWoodButtonPath);
         _heroAccessButton = GetNode<HeroAccessButton>(HeroAccessButtonPath);
+        _macroActions = GetNode<Control>(MacroActionsPath);
         _plotStage = GetNode<BuildingPlotStage>(PlotStagePath);
         _constructionMenuButton = GetNode<IconButton>(ConstructionMenuButtonPath);
         _attentionBanner = GetNode<AttentionBanner>(AttentionBannerPath);
@@ -101,6 +104,7 @@ public partial class CityMacroView : Control
         _constructionMenuButton.FocusNeighborLeft = _heroAccessButton.GetPath();
 
         Visible = !_controller.NeedsOnboarding();
+        _macroActions.Visible = Visible;
         if (Visible) Refresh();
     }
 
@@ -481,6 +485,7 @@ public partial class CityMacroView : Control
         if ((CityWorldController.Selection)selectionState == CityWorldController.Selection.MacroView
             && !_controller.NeedsOnboarding())
         {
+            _macroActions.Show();
             Show();
             Refresh();
         }
@@ -494,6 +499,7 @@ public partial class CityMacroView : Control
                 _modalWantsOpen = false;
                 _modalHost.Close();
             }
+            _macroActions.Hide();
             _constructionMenuButton.Visible = false;
             Hide();
         }

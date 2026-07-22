@@ -11,6 +11,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class BuildingDetailView : Control
 {
+    private const string BackgroundNodePath = "DetailBackground";
+    private const string SafeAreaNodePath = "SafeArea";
+
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath SlotsPath { get; set; } = "SafeArea/Layout/Content/Main/VisibleWorkerSlots";
     [Export] public NodePath AssignmentPanelPath { get; set; } = "SafeArea/Layout/Content/AssignmentPanel";
@@ -32,6 +35,12 @@ public partial class BuildingDetailView : Control
 
     public override void _Ready()
     {
+        // This view starts hidden. Re-apply the full parent rect at runtime so
+        // its origin follows ScreenContent after GameUiShell reserves the HUD.
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        GetNode<Control>(BackgroundNodePath).SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        GetNode<Control>(SafeAreaNodePath).SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+
         _controller = GetNode<CityWorldController>(ControllerPath);
         _slots = RequireNode<VisibleWorkerSlots>(SlotsPath);
         _assignmentPanel = RequireNode<AssignmentPanel>(AssignmentPanelPath);
@@ -117,6 +126,7 @@ public partial class BuildingDetailView : Control
         }
 
         _slots.Render(_currentBuilding, snapshot.VisibleCitizens);
+        _slots.Visible = snapshot.VisibleCitizens.Count > 0;
 
         // Home is non-productive (only the worker slots list). Forests
         // are productive like Farms and Quarries now — assign workers
