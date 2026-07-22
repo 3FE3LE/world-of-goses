@@ -93,6 +93,7 @@ public partial class BuildingPlot : Control
     private TooltipButton _button = null!;
     private Panel _hitOutline = null!;
     private Label _overlay = null!;
+    private ProgressBar _progressBar = null!;
     private PlaceholderStyle _placeholderStyle = DefaultForestStyle();
 
     private static PlaceholderStyle DefaultForestStyle() =>
@@ -169,6 +170,20 @@ public partial class BuildingPlot : Control
         };
         AddChild(_overlay);
 
+        _progressBar = new ProgressBar
+        {
+            MinValue = 0,
+            MaxValue = 1,
+            Value = 0,
+            ShowPercentage = false,
+            CustomMinimumSize = new Vector2(
+                PresentationConstants.MacroPlotSize - 16, 8),
+            Position = new Vector2(8, PresentationConstants.MacroPlotSize - 16),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Visible = IsUnderConstruction,
+        };
+        AddChild(_progressBar);
+
         _button = new TooltipButton
         {
             Flat = true,
@@ -215,7 +230,8 @@ public partial class BuildingPlot : Control
         bool underConstruction,
         int progress = 0,
         int requiredWork = 0,
-        PlaceholderStyle? placeholder = null)
+        PlaceholderStyle? placeholder = null,
+        bool enabled = true)
     {
         BuildingTexturePath = texturePath;
         BuildingNameValue = displayName;
@@ -228,14 +244,27 @@ public partial class BuildingPlot : Control
         _label.Text = displayName;
         _label.Visible = texturePath is not null;
         _overlay.Visible = underConstruction;
-        _overlay.Text = ConstructionProgressLabel(progress, requiredWork);
+        if (underConstruction && !enabled)
+        {
+            _overlay.Text = "Paused";
+        }
+        else
+        {
+            _overlay.Text = ConstructionProgressLabel(progress, requiredWork);
+        }
+        _progressBar.Visible = underConstruction;
+        _progressBar.MinValue = 0;
+        _progressBar.MaxValue = requiredWork > 0 ? requiredWork : 1;
+        _progressBar.Value = System.Math.Clamp(progress, 0, _progressBar.MaxValue);
         _placeholder.Visible = texturePath is null;
         _placeholder.Color = _placeholderStyle.Background;
         _placeholderLabel.Text = _placeholderStyle.Headline;
         _placeholderLabel.Modulate = _placeholderStyle.HeadlineColor;
         _placeholderLabel.Visible = texturePath is null;
         _button.TooltipText = underConstruction
-            ? "Under construction"
+            ? enabled
+                ? $"Under construction — click to open progress ({progress}/{requiredWork})"
+                : "Work paused — click to open progress"
             : texturePath is null
                 ? $"Click to enter {displayName}"
                 : "Click to enter";

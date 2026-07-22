@@ -57,6 +57,22 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void ProjectStateChangedEventHandler(int projectId);
 
+    /// <summary>
+    /// Fired after a successful auto-save. Carries the wall-clock
+    /// unix timestamp in milliseconds so the status panel can render
+    /// the moment the world was protected.
+    /// </summary>
+    [Signal]
+    public delegate void WorldSavedEventHandler(long unixMillis);
+
+    /// <summary>
+    /// Emitted when the player changes the simulation speed. The
+    /// status panel listens for this so the chip highlights the
+    /// active rate.
+    /// </summary>
+    [Signal]
+    public delegate void SimulationSpeedChangedEventHandler(int speedChoice);
+
     private readonly CityWorld _world = new();
 
     /// <summary>
@@ -68,6 +84,43 @@ public partial class CityWorldController : Node
     private double _simulationTimer;
 
     public double SimulationTickIntervalSeconds { get; set; } = 1.0;
+
+    /// <summary>
+    /// Discrete speed choices the player can pick from the status
+    /// panel. The numeric value is the multiplier applied to the
+    /// default tick interval (1.0 s). <see cref="SpeedChoice.Paused"/>
+    /// uses a sentinel of zero so the advance loop stops ticking.
+    /// </summary>
+    public enum SpeedChoice
+    {
+        Paused = 0,
+        Normal = 1,
+        Fast = 2,
+        Fastest = 4,
+    }
+
+    private SpeedChoice _speed = SpeedChoice.Normal;
+
+    public SpeedChoice CurrentSpeed => _speed;
+
+    /// <summary>
+    /// Switches the simulation speed and adjusts
+    /// <see cref="SimulationTickIntervalSeconds"/> accordingly. A
+    /// value of <see cref="SpeedChoice.Paused"/> halts the world
+    /// entirely until the player resumes. The change is broadcast via
+    /// <see cref="SimulationSpeedChanged"/> so listeners can refresh.
+    /// </summary>
+    public void SetSimulationSpeed(SpeedChoice speed)
+    {
+        _speed = speed;
+        SimulationTickIntervalSeconds = speed switch
+        {
+            SpeedChoice.Paused => 0,
+            _ => 1.0 / (int)speed,
+        };
+        if (speed == SpeedChoice.Paused) _simulationTimer = 0;
+        EmitSignal(SignalName.SimulationSpeedChanged, (int)speed);
+    }
 
     public enum Selection
     {
@@ -160,6 +213,7 @@ public partial class CityWorldController : Node
         try
         {
             WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         }
         catch (Exception ex)
         {
@@ -227,7 +281,8 @@ public partial class CityWorldController : Node
 
     public Building? GetBuilding(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
-    public CityStatusSnapshot GetCityStatusSnapshot() => CityStatusSnapshot.From(_world);
+    public CityStatusSnapshot GetCityStatusSnapshot() =>
+        CityStatusSnapshot.From(_world, hasController: true, currentSpeed: (int)_speed);
 
     public ConstructionSnapshot GetConstructionSnapshot() => ConstructionSnapshot.From(_world);
 

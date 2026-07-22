@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 LineageThemeSignals="*res://scripts/LineageThemeSignals.cs"
 CursorController="*res://scripts/CursorController.cs"
+Notifier="*res://scripts/Notifier.cs"
+CitizenSpriteBank="*res://scripts/CitizenSpriteBank.cs"
 
 [display]
 

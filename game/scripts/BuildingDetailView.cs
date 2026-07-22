@@ -44,6 +44,7 @@ public partial class BuildingDetailView : Control
         _assignmentPanel.AssignRequested += OnAssignRequested;
         _assignmentPanel.UnassignRequested += OnUnassignRequested;
         _productionPanel.PolicyChangeRequested += OnPolicyChangeRequested;
+        _productionPanel.PolicyConfigureRequested += OnPolicyConfigureRequested;
         _backButton.Pressed += OnBackPressed;
 
         _controller.BuildingStateChanged += OnBuildingStateChanged;
@@ -65,6 +66,7 @@ public partial class BuildingDetailView : Control
         if (_productionPanel is not null)
         {
             _productionPanel.PolicyChangeRequested -= OnPolicyChangeRequested;
+            _productionPanel.PolicyConfigureRequested -= OnPolicyConfigureRequested;
         }
         if (_controller is not null)
         {
@@ -79,6 +81,9 @@ public partial class BuildingDetailView : Control
     {
         _currentBuilding = buildingId;
         Show();
+        Modulate = new Color(1f, 1f, 1f, 0f);
+        var tween = CreateTween();
+        tween.TweenProperty(this, "modulate:a", 1f, 0.2);
         Refresh();
         _backButton.GrabFocus();
     }
@@ -110,7 +115,7 @@ public partial class BuildingDetailView : Control
             _artHeader.Visible = false;
         }
 
-        _slots.Render(snapshot.VisibleCitizens);
+        _slots.Render(_currentBuilding, snapshot.VisibleCitizens);
 
         // Home is non-productive (only the worker slots list). Forests
         // are productive like Farms and Quarries now — assign workers
@@ -121,11 +126,42 @@ public partial class BuildingDetailView : Control
         _productionPanel.Visible = !isHome;
         if (isHome)
         {
+            RefreshHomeSummary(snapshot);
             return;
         }
 
         _assignmentPanel.Refresh(snapshot);
         _productionPanel.Refresh(snapshot);
+    }
+
+    private void RefreshHomeSummary(BuildingDetailSnapshot snapshot)
+    {
+        // Surfaces the metrics the player cares about when looking at
+        // the Home: capacity and who's currently inside. The label
+        // reuses the icon-chip vocabulary so it reads as part of the
+        // status bar.
+        int resting = snapshot.HiddenWorkerCount + snapshot.VisibleWorkerCount;
+        int capacity = snapshot.WorkerCapacity;
+        var label = new Label
+        {
+            Text = resting == 0
+                ? $"Capacity: {capacity} · No one is resting here."
+                : $"Capacity: {capacity} · {resting} citizen{(resting == 1 ? string.Empty : "s")} resting here.",
+            ThemeTypeVariation = "BodyText",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        // Recreate the panel each refresh so the label stays in sync
+        // with the latest assignment count.
+        foreach (var child in _productionPanel.GetParent().GetChildren())
+        {
+            if (child.Name == "HomeSummary") child.QueueFree();
+        }
+        var container = new PanelContainer { Name = "HomeSummary" };
+        container.AddThemeStyleboxOverride(
+            "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        container.AddChild(label);
+        _productionPanel.GetParent().AddChild(container);
     }
 
     private void OnSlotCitizenClicked(int citizenIdValue) =>
@@ -134,14 +170,26 @@ public partial class BuildingDetailView : Control
     private void OnAssignRequested(int citizenIdValue)
     {
         var result = _controller.TryAssignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
-        if (!result.IsSuccess) GD.Print($"Assignment rejected: {result.Outcome}");
+        if (!result.IsSuccess) Notifier.ShowError(FormatAssignmentError(result.Outcome));
     }
 
-    private void OnUnassignRequested(int citizenIdValue) =>
-        _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
+    private void OnUnassignRequested(int citizenIdValue)
+    {
+        var result = _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
+        if (!result.IsSuccess) Notifier.ShowError(FormatAssignmentError(result.Outcome));
+    }
 
     private void OnPolicyChangeRequested(bool enabled) =>
         _controller.SetProductionEnabled(_currentBuilding, enabled);
+
+    private void OnPolicyConfigureRequested(int minStock, int maxStock)
+    {
+        var snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+        if (snapshot is null) return;
+        bool enabled = snapshot.ProductionEnabled;
+        int priority = snapshot.Priority;
+        _controller.ConfigureProductionPolicy(_currentBuilding, enabled, minStock, maxStock, priority);
+    }
 
     private void OnBackPressed()
     {
@@ -187,7 +235,18 @@ public partial class BuildingDetailView : Control
     }
 
     private void OnAssignmentRejected(int reason) =>
-        GD.Print($"Assignment rejected by domain (code {reason}).");
+        Notifier.ShowError($"Assignment rejected (code {reason}).");
+
+    private static string FormatAssignmentError(AssignmentOutcome outcome) => outcome switch
+    {
+        AssignmentOutcome.AtCapacity => "Project is at worker capacity.",
+        AssignmentOutcome.AlreadyAssigned => "Citizen is already a contributor.",
+        AssignmentOutcome.CitizenUnavailable => "Citizen is assigned elsewhere.",
+        AssignmentOutcome.NotAssigned => "Citizen is not assigned here.",
+        AssignmentOutcome.CitizenNotFound => "Citizen no longer exists.",
+        AssignmentOutcome.BuildingNotFound => "Worksite no longer exists.",
+        _ => "Assignment rejected.",
+    };
 
     private T RequireNode<T>(NodePath path) where T : class
     {

@@ -6,6 +6,7 @@ using WorldofGoses.Domain;
 namespace WorldofGoses;
 
 public sealed record HeroProfileSnapshot(
+    CitizenId Id,
     string Name,
     string LineageName,
     string LineageSummary,
@@ -33,6 +34,7 @@ public sealed record HeroProfileSnapshot(
         CitizenProfile profile = hero.Profile;
         LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
         return new HeroProfileSnapshot(
+            hero.Id,
             hero.Name,
             lineage.DisplayName,
             lineage.Summary,

@@ -219,6 +219,66 @@ The numbers above live as constants in
 `game/scripts/PresentationConstants.cs` so future art can rely on the
 same anchors.
 
+## 7b. Citizen visual carrier: one citizen, one sprite
+
+The domain guarantees a single `Citizen` instance per identity. The
+visual layer must honour that guarantee — and the design bible confirms
+it (see `world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`)
+when it states that no subclass duplication or per-context visual
+variant is permitted. The presentation rule therefore is:
+
+> **One citizen → one sprite instance, alive for the citizen's lifetime.**
+
+Views (the macro hero sprite, the building-detail worker slot, the
+future hero profile detail, the future expedition cast) **do not create
+sprites**. They ask the central registry where the citizen's sprite
+should be and animate it to that position. The sprite is a single
+object that moves between contexts.
+
+### Concretely
+
+- `CitizenSpriteBank` (autoload) owns a
+  `Dictionary<CitizenId, CitizenSpriteCarrier>`. The bank is the only
+  place that creates and disposes sprites.
+- `CitizenSpriteCarrier` (Node2D) wraps one `LineageSpritePlayer` and
+  tracks its state — `Home`, `Entering`, `Working`, `Exiting`. It never
+  has a duplicate; it is the canonical visual for one citizen.
+- A view (slot, macro marker, profile panel) holds a **position** and tells
+  the carrier "go to this position" — never "create a sprite here". If the
+  active context changes, the single carrier moves or snaps to the new
+  position; two contexts cannot render duplicate instances simultaneously.
+- The carrier's animation is keyed by `WalkSpeedPxPerSec` (a constant
+  derived from the sprite's own animation cadence, not an arbitrary
+  duration). Entry and exit durations are `distance / speed`, so the
+  visual speed stays consistent regardless of layout.
+
+### Why this matters
+
+- **No duplication.** A worker cannot be visible in two places at once.
+  The "re-assign while exiting shows two sprites" class of bugs cannot
+  exist by construction.
+- **No allocation churn.** Re-entering a building does not instantiate
+  a new sprite; it moves the existing one. The sprite's cached state
+  (current animation, position) survives context changes.
+- **One identity, one visual.** The hero profile, the macro
+  hero marker, and the building-detail worker slot all reference the
+  same carrier. Splash art, portraits, and stats panels become read
+  models over the same `Citizen` instance.
+- **Deterministic memory.** The bank caps sprite count at the number of
+  citizens that have needed a detailed visual. `PruneExcept` removes stale
+  carriers when the active world's citizen set shrinks, so tracked carriers
+  remain a subset of current citizen identities. A lineage or gender mismatch
+  for a reused id replaces the stale visual instead of retaining it.
+
+### Out of scope for this rule
+
+The rule applies to **ents with persistent identity** (citizens,
+eventually named buildings, expedition parties). Anonymous decorations (dust
+particles, weather, one-shot celebratory sprites, resource-item effects) do
+not get a carrier. Pooling is introduced only when a repeated effect exists
+and profiling shows allocation churn; the current prototype has no item-sprite
+consumer or pool.
+
 ## 8. Local persistence
 
 Local persistence is implemented through plain DTOs and

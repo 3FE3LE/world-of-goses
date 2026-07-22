@@ -39,6 +39,7 @@ public sealed record ConstructionSnapshot(
     public sealed record ProjectItem(
         BuildingId Id,
         string DisplayName,
+        BuildingKind ResultingKind,
         int Progress,
         int RequiredWork,
         int WorkerCapacity,
@@ -79,9 +80,9 @@ public sealed record ConstructionSnapshot(
                 var citizen = world.GetCitizen(id);
                 if (citizen is not null) assigned.Add(new CitizenItem(id, citizen.Name));
             }
-            projectItem = new ProjectItem(current.Id, current.DisplayName, current.Progress,
-                current.RequiredWork, current.WorkerCapacity, current.Enabled, current.StopCause,
-                assigned, new List<RecipeInput>(current.RemainingInputs));
+            projectItem = new ProjectItem(current.Id, current.DisplayName, current.ResultingKind,
+                current.Progress, current.RequiredWork, current.WorkerCapacity, current.Enabled,
+                current.StopCause, assigned, new List<RecipeInput>(current.RemainingInputs));
         }
 
         var available = new List<CitizenItem>();

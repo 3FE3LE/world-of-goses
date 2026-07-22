@@ -1,3 +1,5 @@
+#nullable enable
+using System;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -5,28 +7,22 @@ using WorldofGoses.Ui;
 namespace WorldofGoses;
 
 /// <summary>
-/// One visible citizen inside the building detail view. It resolves
-/// the citizen's imported LPC scene through <see cref="CharacterVisualRegistry"/>
-/// and plays presentation-only entry, idle, and exit motion.
-///
-/// Visual proportions match <see cref="PresentationConstants"/> so the
-/// imported LPC art uses one unscaled 128×128 cell.
-///
-/// Initialization-order note: slots are created by code in
-/// <see cref="VisibleWorkerSlots.Render"/> via <c>new VisibleWorkerSlot()</c>.
-/// <see cref="Configure"/> runs BEFORE <c>AddChild</c> and therefore
-/// BEFORE this slot's <c>_Ready()</c> — so any field that
-/// <see cref="Configure"/> touches must be created via a field
-/// initializer, not inside <c>_Ready()</c>. The label is the only such
-/// field today; everything else (_sprite, _hitArea, _animationPlayer,
-/// _library) is only touched after the slot is in the tree.
+/// One slot in the building-detail view. Holds the position, name
+/// label, and click hit area for a citizen. The visual sprite lives
+/// in the <see cref="CitizenSpriteBank"/>'s carrier so the same
+/// citizen never appears twice when the player navigates between
+/// buildings.
 /// </summary>
 public partial class VisibleWorkerSlot : Control
 {
     [Signal] public delegate void CitizenActivatedEventHandler(int citizenId);
 
-    private const string AnimEntry = "entry";
-    private const string AnimExit = "exit";
+    public CitizenId CitizenId { get; private set; } = default;
+    public BuildingId BuildingId { get; private set; } = default;
+
+    private CitizenSpriteCarrier? _carrier;
+    private string _citizenName = string.Empty;
+    public bool IsExiting { get; private set; }
 
     // Field initializer so Configure() can set Text before _Ready().
     private readonly Label _nameLabel = new()
@@ -38,34 +34,13 @@ public partial class VisibleWorkerSlot : Control
         ThemeTypeVariation = "BodySmall",
     };
 
-    private LineageId _lineage = LineageId.Ardhen;
-    private CharacterBodyVariant _bodyVariant;
-    private LineageSpritePlayer _sprite = null!;
     private TooltipButton _hitArea = null!;
-    private AnimationPlayer _animationPlayer = null!;
-    private AnimationLibrary _library = null!;
-    private bool _exiting;
-
-    public CitizenId CitizenId { get; private set; }
 
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(
             PresentationConstants.DetailedCitizenWidth,
             PresentationConstants.DetailedCitizenHeight);
-
-        PackedScene visualScene = CharacterVisualRegistry.LoadScene(_lineage, _bodyVariant);
-        _sprite = visualScene.Instantiate<LineageSpritePlayer>();
-        _sprite.Position = new Vector2(
-            PresentationConstants.DetailedCitizenWidth / 2,
-            126);
-        AddChild(_sprite);
-        // The imported scene has autoplay metadata; select the resting
-        // animation only after it enters the tree so autoplay cannot
-        // replace this explicit building-state choice.
-        _sprite.PlayIdle(Vector2.Down);
-
-        AddChild(_nameLabel);
 
         _hitArea = new TooltipButton
         {
@@ -75,97 +50,113 @@ public partial class VisibleWorkerSlot : Control
             Flat = true,
             TooltipText = "Click to remove this worker",
         };
-        _hitArea.Pressed += () =>
-        {
-            if (!_exiting)
-            {
-                EmitSignal(SignalName.CitizenActivated, CitizenId.Value);
-            }
-        };
+        _hitArea.Pressed += () => EmitSignal(SignalName.CitizenActivated, CitizenId.Value);
         AddChild(_hitArea);
 
-        _animationPlayer = new AnimationPlayer();
-        AddChild(_animationPlayer);
-        _library = new AnimationLibrary();
-        _library.AddAnimation(AnimEntry, BuildEntryAnimation());
-        _library.AddAnimation(AnimExit, BuildExitAnimation());
-        _animationPlayer.AddAnimationLibrary("", _library);
-
-        _animationPlayer.AnimationFinished += OnAnimationFinished;
-        _animationPlayer.Play(AnimEntry);
+        _nameLabel.Text = _citizenName;
+        AddChild(_nameLabel);
     }
 
-    public void Configure(BuildingDetailSnapshot.CitizenItem citizen)
+    public void Configure(BuildingId buildingId, CitizenId citizenId, string citizenName)
     {
-        CitizenId = citizen.Id;
-        _lineage = citizen.Lineage;
-        _bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(citizen.Gender);
-        _nameLabel.Text = citizen.Name;
+        BuildingId = buildingId;
+        CitizenId = citizenId;
+        _citizenName = citizenName;
+        if (_nameLabel != null)
+        {
+            _nameLabel.Text = citizenName;
+        }
     }
 
     /// <summary>
-    /// Plays the exit transition then frees the node. Called when
-    /// the worker is removed from the building.
+    /// Binds the carrier for this slot. The carrier is owned by the
+    /// bank; the slot is just a position marker.
     /// </summary>
-    public void PlayExitAndFree()
+    public void AttachCarrier(CitizenSpriteCarrier carrier)
     {
-        if (_exiting)
-        {
-            return;
-        }
+        _carrier = carrier;
+    }
 
-        _exiting = true;
+    /// <summary>
+    /// Walks the carrier from the entry border to the slot center,
+    /// then settles into the slash loop. The hit area is enabled only
+    /// after the worker arrives so spurious clicks during the entry
+    /// animation are ignored.
+    /// </summary>
+    public void ShowAt(Vector2 entryBorderViewport, Vector2 slotCenterViewport, Action? onComplete = null)
+    {
+        if (_carrier == null) return;
+        bool wasHidden = _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
+        IsExiting = false;
+        _carrier.SetState(CitizenSpriteCarrier.VisualState.Entering);
         _hitArea.Disabled = true;
-        _animationPlayer.Stop();
-        _animationPlayer.Play(AnimExit);
+        if (wasHidden)
+        {
+            _carrier.SetPositionImmediate(entryBorderViewport);
+        }
+        _carrier.GoTo(slotCenterViewport, Vector2.Zero, () =>
+        {
+            if (IsExiting) return;
+            _hitArea.Disabled = false;
+            _carrier?.SetState(CitizenSpriteCarrier.VisualState.Working);
+            _carrier?.Slash(Vector2.Down);
+            onComplete?.Invoke();
+        });
     }
 
-    private void OnAnimationFinished(StringName name)
+    /// <summary>
+    /// Walks the carrier from the slot center to the border (or
+    /// wherever the consumer decides), then hides it.
+    /// </summary>
+    public void HideTo(Vector2 borderViewport, Vector2 facing, Action? onComplete = null)
     {
-        if (_exiting)
+        if (_carrier == null)
         {
-            if (name == AnimExit)
-            {
-                QueueFree();
-            }
+            onComplete?.Invoke();
             return;
         }
-
-        // Entry ends at the resting position. The LPC SpriteFrames
-        // continue their own idle loop without procedural locomotion.
+        _hitArea.Disabled = true;
+        IsExiting = true;
+        _carrier.SetState(CitizenSpriteCarrier.VisualState.Exiting);
+        _carrier.GoTo(borderViewport, facing, () =>
+        {
+            if (!IsExiting) return;
+            _carrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            onComplete?.Invoke();
+        });
     }
 
-    private static Animation BuildEntryAnimation()
+    /// <summary>
+    /// Hides the carrier immediately without animation. Used when the
+    /// context changes (different building) so the carrier is
+    /// available for the next show without lingering in the slot.
+    /// </summary>
+    public void HideImmediate()
     {
-        var entry = new Animation
-        {
-            Length = 0.4f,
-            Step = 0.05f,
-        };
-
-        int posTrack = entry.AddTrack(Animation.TrackType.Value);
-        entry.TrackSetPath(posTrack, ".:position");
-        entry.TrackInsertKey(posTrack, 0.0, new Vector2(0, 24), 0);
-        entry.TrackInsertKey(posTrack, 0.4, new Vector2(0, 0), 0);
-        entry.TrackSetInterpolationType(posTrack, Animation.InterpolationType.Cubic);
-
-        return entry;
+        _hitArea.Disabled = true;
+        IsExiting = false;
+        _carrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
     }
 
-    private static Animation BuildExitAnimation()
+    /// <summary>
+    /// Returns the carrier to its entry border and starts the entry
+    /// walk. Used when the player re-assigns a worker during the
+    /// exit animation — the carrier turns around and walks back to
+    /// the slot instead of being recreated from the other side.
+    /// </summary>
+    public void ResumeTo(Vector2 slotCenterViewport, Action? onComplete = null)
     {
-        var exit = new Animation
+        if (_carrier == null) return;
+        IsExiting = false;
+        _carrier.SetState(CitizenSpriteCarrier.VisualState.Entering);
+        _hitArea.Disabled = true;
+        _carrier.GoTo(slotCenterViewport, Vector2.Zero, () =>
         {
-            Length = 0.35f,
-            Step = 0.05f,
-        };
-
-        int posTrack = exit.AddTrack(Animation.TrackType.Value);
-        exit.TrackSetPath(posTrack, ".:position");
-        exit.TrackInsertKey(posTrack, 0.0, new Vector2(0, 0), 0);
-        exit.TrackInsertKey(posTrack, 0.35, new Vector2(0, 24), 0);
-        exit.TrackSetInterpolationType(posTrack, Animation.InterpolationType.Cubic);
-
-        return exit;
+            if (IsExiting) return;
+            _hitArea.Disabled = false;
+            _carrier?.SetState(CitizenSpriteCarrier.VisualState.Working);
+            _carrier?.Slash(Vector2.Down);
+            onComplete?.Invoke();
+        });
     }
 }

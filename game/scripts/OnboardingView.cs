@@ -133,7 +133,7 @@ public partial class OnboardingView : Control
 
         _backButton = StandardButtons.NavigationButton("Back");
         _nextButton = StandardButtons.NavigationButton("Next");
-        _confirmButton = StandardButtons.NavigationButton("Found the city");
+        _confirmButton = StandardButtons.NavigationButton("Create the hero");
         _confirmButton.ThemeTypeVariation = "ButtonPrimary";
         _backButton.Pressed += OnBackPressed;
         _nextButton.Pressed += OnNextPressed;
@@ -207,6 +207,17 @@ public partial class OnboardingView : Control
         _page.AddChild(name);
         _initialFocus = name;
 
+        // Hero preview anchored to the right of the description so the
+        // player sees the sprite they are choosing as line/age options
+        // change. Updated by ShowHeroPreview below.
+        _heroPreviewSlot = new CenterContainer
+        {
+            CustomMinimumSize = new Vector2(128, 128),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _page.AddChild(_heroPreviewSlot);
+        ShowHeroPreview();
+
         AddSectionTitle("Lineage — choose one");
         Label description = AddDescription(string.Empty);
         AddSingleChoiceGrid(
@@ -218,6 +229,7 @@ public partial class OnboardingView : Control
                 _lineage = selected;
                 var definition = ProfileCatalog.Get(selected);
                 description.Text = FormatLineage(definition);
+                ShowHeroPreview();
                 UpdateNavigation();
             });
         if (_lineage.HasValue) description.Text = FormatLineage(ProfileCatalog.Get(_lineage.Value));
@@ -233,8 +245,32 @@ public partial class OnboardingView : Control
             selected =>
             {
                 _gender = selected;
+                ShowHeroPreview();
                 UpdateNavigation();
             });
+    }
+
+    private CenterContainer _heroPreviewSlot = null!;
+
+    /// <summary>
+    /// Renders the hero sprite for the current lineage + gender pair so
+    /// the player has a visual anchor while reading the descriptions.
+    /// The slot is kept across re-renders so we can swap the contents
+    /// without rebuilding the layout.
+    /// </summary>
+    private void ShowHeroPreview()
+    {
+        if (_heroPreviewSlot is null) return;
+        foreach (var child in _heroPreviewSlot.GetChildren())
+        {
+            _heroPreviewSlot.RemoveChild(child);
+            child.QueueFree();
+        }
+        if (!_lineage.HasValue || !_gender.HasValue) return;
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(_gender.Value);
+        var scene = CharacterVisualRegistry.LoadScene(_lineage.Value, bodyVariant);
+        var sprite = scene.Instantiate<LineageSpritePlayer>();
+        _heroPreviewSlot.AddChild(sprite);
     }
 
     private void BuildAptitudesStep()
@@ -296,8 +332,37 @@ public partial class OnboardingView : Control
             UpdateNavigation();
         });
         AddSectionTitle("Profile review");
+        AddReviewCard();
         _reviewLabel = AddDescription(string.Empty);
         UpdateReview();
+    }
+
+    private CenterContainer _reviewSpriteSlot = null!;
+
+    private void AddReviewCard()
+    {
+        _reviewSpriteSlot = new CenterContainer
+        {
+            CustomMinimumSize = new Vector2(0, 128),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _page.AddChild(_reviewSpriteSlot);
+        UpdateReviewSprite();
+    }
+
+    private void UpdateReviewSprite()
+    {
+        if (_reviewSpriteSlot is null) return;
+        foreach (var child in _reviewSpriteSlot.GetChildren())
+        {
+            _reviewSpriteSlot.RemoveChild(child);
+            child.QueueFree();
+        }
+        if (!_lineage.HasValue || !_gender.HasValue) return;
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(_gender.Value);
+        var scene = CharacterVisualRegistry.LoadScene(_lineage.Value, bodyVariant);
+        var sprite = scene.Instantiate<LineageSpritePlayer>();
+        _reviewSpriteSlot.AddChild(sprite);
     }
 
     private void AddHeading(string title, string description)
@@ -391,11 +456,18 @@ public partial class OnboardingView : Control
         _page.AddChild(grid);
     }
 
-    private static GridContainer NewChoiceGrid() => new()
+    private GridContainer NewChoiceGrid()
     {
-        Columns = 2,
-        SizeFlagsHorizontal = SizeFlags.ExpandFill,
-    };
+        // On short screens the 2-column grid forces the bottom row to
+        // hide the footer. Collapse to a single column when the
+        // viewport is unusually short so every option fits.
+        var viewport = GetViewportRect().Size;
+        return new GridContainer
+        {
+            Columns = viewport.Y < 720f ? 1 : 2,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+    }
 
     private void OnBackPressed()
     {
@@ -495,6 +567,7 @@ public partial class OnboardingView : Control
             _reviewLabel.Text = "Complete the earlier steps to review the profile.";
             return;
         }
+        UpdateReviewSprite();
 
         _reviewLabel.Text =
             $"Name: {_heroName.Trim()}\n" +

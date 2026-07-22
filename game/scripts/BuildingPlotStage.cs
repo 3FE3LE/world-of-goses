@@ -76,15 +76,19 @@ public partial class BuildingPlotStage : Control
         IReadOnlyList<CityMacroSnapshot.PlotItem> buildings,
         IReadOnlyList<CityMacroSnapshot.PlotItem> projects)
     {
+        // Sort: in-progress first, then completed. Stable within each
+        // group so the layout stays deterministic across loads.
+        var sortedBuildings = SortPlots(buildings);
+        var sortedProjects = SortPlots(projects);
         var wanted = new HashSet<int>();
-        foreach (var b in buildings)
+        foreach (var b in sortedBuildings)
         {
             if (IsPlottable(b.Kind))
             {
                 wanted.Add(b.Id.Value);
             }
         }
-        foreach (var p in projects)
+        foreach (var p in sortedProjects)
         {
             if (IsPlottable(p.Kind))
             {
@@ -104,25 +108,45 @@ public partial class BuildingPlotStage : Control
             }
         }
 
-        foreach (var building in buildings) UpdatePlot(building);
-        foreach (var project in projects) UpdatePlot(project);
+        foreach (var building in sortedBuildings) UpdatePlot(building);
+        foreach (var project in sortedProjects) UpdatePlot(project);
 
-        // Add plots for any new id.
+        // Add plots for any new id in the desired order.
         var existing = new HashSet<int>(_plots.Select(p => p.BuildingIdValue));
-        foreach (var building in buildings)
+        foreach (var building in sortedBuildings)
         {
             if (existing.Contains(building.Id.Value)) continue;
             if (!IsPlottable(building.Kind)) continue;
             var texturePath = BuildingArt.GetTexturePath(building.Kind);
             AddPlot(building, texturePath);
         }
-        foreach (var project in projects)
+        foreach (var project in sortedProjects)
         {
             if (existing.Contains(project.Id.Value)) continue;
             if (!IsPlottable(project.Kind)) continue;
             var texturePath = BuildingArt.GetTexturePath(project.Kind);
             AddPlot(project, texturePath);
         }
+    }
+
+    /// <summary>
+    /// Sorts plots so under-construction items lead the row. The
+    /// relative order within each group is preserved (stable) so the
+    /// city keeps a deterministic layout across loads.
+    /// </summary>
+    private static List<CityMacroSnapshot.PlotItem> SortPlots(
+        IReadOnlyList<CityMacroSnapshot.PlotItem> source)
+    {
+        var sorted = new List<CityMacroSnapshot.PlotItem>(source.Count);
+        foreach (var item in source)
+        {
+            if (item.IsUnderConstruction) sorted.Add(item);
+        }
+        foreach (var item in source)
+        {
+            if (!item.IsUnderConstruction) sorted.Add(item);
+        }
+        return sorted;
     }
 
     private void UpdatePlot(CityMacroSnapshot.PlotItem item)
@@ -134,7 +158,8 @@ public partial class BuildingPlotStage : Control
             item.DisplayName,
             item.IsUnderConstruction,
             item.Progress,
-            item.RequiredWork);
+            item.RequiredWork,
+            enabled: item.Enabled);
     }
 
     /// <summary>
@@ -165,7 +190,8 @@ public partial class BuildingPlotStage : Control
             item.DisplayName,
             item.IsUnderConstruction,
             item.Progress,
-            item.RequiredWork);
+            item.RequiredWork,
+            enabled: item.Enabled);
         plot.BuildingClicked += emittedId =>
         {
             if (plot.IsUnderConstruction)

@@ -25,11 +25,19 @@ public partial class MacroCitizenActivity : Node2D
 {
     private const float WalkAmplitudePx = 220f;
     private const float WalkPeriodSeconds = 3.6f;
+    private const float HeroHitboxPx = 128f;
 
-    private LineageSpritePlayer? _heroSprite;
+    /// <summary>
+    /// Emitted when the player clicks the hero sprite on the macro
+    /// view. The host routes the click to the hero profile detail.
+    /// </summary>
+    [Signal] public delegate void HeroClickedEventHandler();
+
+    private CitizenSpriteCarrier? _heroCarrier;
     private Vector2 _heroBasePosition;
     private float _walkClock;
     private bool _walkingRight = true;
+    private bool _heroHovered;
 
     /// <summary>
     /// (Re)builds the macro population dots or places the walking
@@ -46,11 +54,20 @@ public partial class MacroCitizenActivity : Node2D
         int buildingCount = 0,
         int projectCount = 0)
     {
+        if (_heroHovered)
+        {
+            _heroHovered = false;
+            Input.SetDefaultCursorShape(Input.CursorShape.Arrow);
+        }
         foreach (var child in GetChildren())
         {
             child.QueueFree();
         }
-        _heroSprite = null;
+        if (_heroCarrier?.State == CitizenSpriteCarrier.VisualState.Macro)
+        {
+            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+        }
+        _heroCarrier = null;
 
         var parentSize = ((Control)GetParent()).Size;
         if (parentSize == Vector2.Zero)
@@ -97,18 +114,56 @@ public partial class MacroCitizenActivity : Node2D
             // An unassigned citizen is physically AtHome in the domain. On
             // the macro view, keep that state visible by naming its existing
             // population marker instead of letting it become an anonymous dot.
+            string statusIcon = CitizenStatusIcon(citizens[i]);
+            var row = new HBoxContainer
+            {
+                Position = new Vector2(x - 48f, y + PresentationConstants.MacroCitizenSize + 3f),
+                Size = new Vector2(96f, 22f),
+                Alignment = BoxContainer.AlignmentMode.Center,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            row.AddThemeConstantOverride("separation", 4);
+            AddChild(row);
+
+            var icon = new TextureRect
+            {
+                Texture = ResourceLoader.Load<Texture2D>(statusIcon),
+                StretchMode = TextureRect.StretchModeEnum.Keep,
+                CustomMinimumSize = new Vector2(12, 12),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Modulate = LineageThemeRegistry.IconAccent,
+            };
+            row.AddChild(icon);
+
             var nameLabel = new Label
             {
                 Text = citizens[i].Name,
                 ThemeTypeVariation = "BodySmall",
-                Position = new Vector2(x - 44f, y + PresentationConstants.MacroCitizenSize + 3f),
-                Size = new Vector2(96f, 22f),
-                HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 MouseFilter = Control.MouseFilterEnum.Ignore,
             };
-            AddChild(nameLabel);
+            row.AddChild(nameLabel);
         }
+    }
+
+    /// <summary>
+    /// Maps a citizen's state to the icon shown next to their name on
+    /// the macro view. The hero walking on the empty field ignores
+    /// this helper (the sprite carries the affordance).
+    /// </summary>
+    private static string CitizenStatusIcon(CityMacroSnapshot.CitizenItem item)
+    {
+        if (item.CurrentStamina <= 0)
+        {
+            return IconPaths.Warning;
+        }
+        return item.Location switch
+        {
+            CitizenLocation.AtHome => IconPaths.House,
+            CitizenLocation.AtWork => IconPaths.Building,
+            _ => IconPaths.User,
+        };
     }
 
     /// <summary>
@@ -129,32 +184,73 @@ public partial class MacroCitizenActivity : Node2D
 
     private void PlaceWalkingHero(CityMacroSnapshot.HeroVisual hero, Vector2 parentSize)
     {
-        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Gender);
-        var scene = CharacterVisualRegistry.LoadScene(hero.Lineage, bodyVariant);
-        _heroSprite = scene.Instantiate<LineageSpritePlayer>();
+        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(hero.Id, hero.Lineage, hero.Gender);
         _heroBasePosition = new Vector2(parentSize.X * 0.5f, parentSize.Y * 0.6f);
-        _heroSprite.Position = _heroBasePosition;
-        AddChild(_heroSprite);
+        _heroCarrier.SetPositionImmediate(ToGlobal(_heroBasePosition));
+        _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
         _walkClock = 0f;
         _walkingRight = true;
-        _heroSprite.PlayWalk(Vector2.Right);
+        _heroCarrier.Walk(Vector2.Right);
     }
 
     public override void _Process(double delta)
     {
-        if (_heroSprite is null) return;
+        if (_heroCarrier is null || _heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro) return;
+
+        // Pause the walk cycle when the player's cursor is over the
+        // hero sprite. The hero stops in place, which signals "this
+        // is interactive" and gives the player a moment to click.
+        UpdateHoverState();
+        if (_heroHovered) return;
+
         _walkClock += (float)delta;
         float phase = (_walkClock / WalkPeriodSeconds) * Mathf.Tau;
         float offsetX = Mathf.Sin(phase) * WalkAmplitudePx;
-        _heroSprite.Position = new Vector2(
+        _heroCarrier.SetPositionImmediate(ToGlobal(new Vector2(
             _heroBasePosition.X + offsetX,
-            _heroBasePosition.Y);
+            _heroBasePosition.Y)));
 
         bool nowRight = offsetX >= 0f;
         if (nowRight != _walkingRight)
         {
             _walkingRight = nowRight;
-            _heroSprite.PlayWalk(_walkingRight ? Vector2.Right : Vector2.Left);
+            _heroCarrier.Walk(_walkingRight ? Vector2.Right : Vector2.Left);
         }
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (_heroCarrier is null || _heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro) return;
+        if (@event is InputEventMouseButton mb
+            && mb.ButtonIndex == MouseButton.Left
+            && mb.Pressed
+            && _heroHovered)
+        {
+            EmitSignal(SignalName.HeroClicked);
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
+    /// <summary>
+    /// Tracks whether the cursor is currently over the hero sprite and
+    /// toggles the global cursor shape to communicate that the sprite
+    /// is interactive. The hitbox is the same 128×128 box the LPC
+    /// sprite uses, so the hint matches the visible art.
+    /// </summary>
+    private void UpdateHoverState()
+    {
+        if (_heroCarrier is null) return;
+        Vector2 mouse = GetViewport().GetMousePosition();
+        Vector2 pos = _heroCarrier.Position;
+        float half = HeroHitboxPx * 0.5f;
+        bool nowHovered = mouse.X >= pos.X - half
+            && mouse.X <= pos.X + half
+            && mouse.Y >= pos.Y - half
+            && mouse.Y <= pos.Y + half;
+        if (nowHovered == _heroHovered) return;
+        _heroHovered = nowHovered;
+        Input.SetDefaultCursorShape(nowHovered
+            ? Input.CursorShape.PointingHand
+            : Input.CursorShape.Arrow);
     }
 }

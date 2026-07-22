@@ -19,6 +19,10 @@ namespace WorldofGoses;
 public partial class ProductionPanel : PanelContainer
 {
     [Signal] public delegate void PolicyChangeRequestedEventHandler(bool enabled);
+    [Signal] public delegate void PolicyConfigureRequestedEventHandler(int minStock, int maxStock);
+
+    private const int MinStockFloor = 0;
+    private const int MaxStockCeiling = 999;
 
     private Label _titleLabel = null!;
     private Label _stockLabel = null!;
@@ -27,8 +31,11 @@ public partial class ProductionPanel : PanelContainer
     private IconButton _enabledToggle = null!;
     private Label _inputsLabel = null!;
     private Label _statusLabel = null!;
-    private bool _refreshing;
+    private SpinBox _minStockBox = null!;
+    private SpinBox _maxStockBox = null!;
+    private Label _policyErrorLabel = null!;
     private LineageThemeSignals? _themeSignals;
+    private bool _refreshing;
 
     public override void _Ready()
     {
@@ -89,6 +96,118 @@ public partial class ProductionPanel : PanelContainer
         _statusLabel = new Label();
         _statusLabel.ThemeTypeVariation = "BodySmall";
         root.AddChild(_statusLabel);
+
+        var policySeparator = new HSeparator();
+        root.AddChild(policySeparator);
+
+        var policyHeader = new Label
+        {
+            Text = "Reactive policy",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        policyHeader.ThemeTypeVariation = "PanelTitle";
+        root.AddChild(policyHeader);
+
+        var policyRow = new HBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            Alignment = BoxContainer.AlignmentMode.Center,
+        };
+        policyRow.AddThemeConstantOverride("separation", 12);
+        root.AddChild(policyRow);
+
+        _minStockBox = BuildPolicyBox("Min");
+        _maxStockBox = BuildPolicyBox("Max");
+        policyRow.AddChild(BuildPolicyColumn("Min", _minStockBox));
+        policyRow.AddChild(BuildPolicyColumn("Max", _maxStockBox));
+
+        _minStockBox.ValueChanged += OnMinStockChanged;
+        _maxStockBox.ValueChanged += OnMaxStockChanged;
+
+        _policyErrorLabel = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        _policyErrorLabel.ThemeTypeVariation = "ErrorText";
+        root.AddChild(_policyErrorLabel);
+    }
+
+    private static VBoxContainer BuildPolicyColumn(string caption, SpinBox box)
+    {
+        var column = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        column.AddThemeConstantOverride("separation", 4);
+        var label = new Label
+        {
+            Text = caption,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        label.ThemeTypeVariation = "BodySmall";
+        column.AddChild(label);
+        column.AddChild(box);
+        return column;
+    }
+
+    private static SpinBox BuildPolicyBox(string _)
+    {
+        return new SpinBox
+        {
+            MinValue = MinStockFloor,
+            MaxValue = MaxStockCeiling,
+            Step = 1,
+            Rounded = true,
+            CustomMinimumSize = new Vector2(96, 0),
+            FocusMode = Control.FocusModeEnum.All,
+            ThemeTypeVariation = "LineEdit",
+        };
+    }
+
+    private void OnMinStockChanged(double value)
+    {
+        if (_refreshing) return;
+        if (!ValidatePolicy((int)value, (int)_maxStockBox.Value, out string error))
+        {
+            _policyErrorLabel.Text = error;
+            return;
+        }
+        _policyErrorLabel.Text = string.Empty;
+        EmitSignal(SignalName.PolicyConfigureRequested, (int)value, (int)_maxStockBox.Value);
+    }
+
+    private void OnMaxStockChanged(double value)
+    {
+        if (_refreshing) return;
+        if (!ValidatePolicy((int)_minStockBox.Value, (int)value, out string error))
+        {
+            _policyErrorLabel.Text = error;
+            return;
+        }
+        _policyErrorLabel.Text = string.Empty;
+        EmitSignal(SignalName.PolicyConfigureRequested, (int)_minStockBox.Value, (int)value);
+    }
+
+    private static bool ValidatePolicy(int min, int max, out string error)
+    {
+        if (min < MinStockFloor)
+        {
+            error = $"Min must be at least {MinStockFloor}.";
+            return false;
+        }
+        if (max > MaxStockCeiling)
+        {
+            error = $"Max must be at most {MaxStockCeiling}.";
+            return false;
+        }
+        if (min > max)
+        {
+            error = "Min must be less than or equal to Max.";
+            return false;
+        }
+        error = string.Empty;
+        return true;
     }
 
     public override void _ExitTree()
@@ -127,6 +246,22 @@ public partial class ProductionPanel : PanelContainer
         _enabledToggle.TooltipText = snapshot.ProductionEnabled
             ? "Pause production"
             : "Resume production";
+
+        // Reactive policy controls are hidden for non-productive
+        // buildings (Home) and updated without firing the change
+        // signals so Refresh() never produces a feedback loop.
+        bool showPolicy = snapshot.StorageCapacity > 0;
+        _minStockBox.Visible = showPolicy;
+        _maxStockBox.Visible = showPolicy;
+        _policyErrorLabel.Visible = showPolicy;
+        if (showPolicy)
+        {
+            _minStockBox.SetValueNoSignal(snapshot.MinStock);
+            _maxStockBox.SetValueNoSignal(snapshot.MaxStock);
+            _policyErrorLabel.Text = string.Empty;
+            _minStockBox.MaxValue = snapshot.StorageCapacity;
+            _maxStockBox.MaxValue = snapshot.StorageCapacity;
+        }
         _refreshing = false;
     }
 

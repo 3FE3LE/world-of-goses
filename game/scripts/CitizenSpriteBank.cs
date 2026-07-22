@@ -1,0 +1,127 @@
+#nullable enable
+using System.Collections.Generic;
+using Godot;
+using WorldofGoses.Domain;
+
+namespace WorldofGoses;
+
+/// <summary>
+/// Autoload that owns the long-lived sprite instances for every
+/// citizen. One citizen, one sprite, period — see
+/// `docs/ARCHITECTURE.md §7b` for the design rationale. Views
+/// (building-detail slots, macro markers, future hero profile) ask
+/// the bank for the carrier and position it; they never create
+/// sprites of their own.
+///
+/// <para>The carrier lives in a dedicated <see cref="CanvasLayer"/>
+/// above the regular UI so the sprite can be positioned in
+/// viewport coordinates and shown above any view that asks for
+/// it.</para>
+/// </summary>
+public partial class CitizenSpriteBank : Node
+{
+    public static CitizenSpriteBank Instance { get; private set; } = null!;
+
+    private const int CarrierLayer = 50;
+
+    private readonly Dictionary<CitizenId, CitizenSpriteCarrier> _carriers = new();
+    private CanvasLayer _layer = null!;
+
+    public override void _Ready()
+    {
+        Instance = this;
+        _layer = new CanvasLayer { Layer = CarrierLayer };
+        AddChild(_layer);
+    }
+
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null!;
+    }
+
+    /// <summary>
+    /// Returns the canonical carrier for the citizen, creating it on
+    /// first request. The carrier is created once per citizen and
+    /// lives for the lifetime of the bank.
+    /// </summary>
+    public CitizenSpriteCarrier GetOrCreate(CitizenId citizenId, LineageId lineage, GenderId gender)
+    {
+        if (_carriers.TryGetValue(citizenId, out var existing)
+            && IsInstanceValid(existing)
+            && existing.Lineage == lineage
+            && existing.Gender == gender)
+        {
+            return existing;
+        }
+
+        if (existing is not null && IsInstanceValid(existing))
+        {
+            existing.QueueFree();
+        }
+
+        var carrier = new CitizenSpriteCarrier();
+        carrier.Name = $"Carrier_{citizenId.Value}";
+        carrier.Initialize(citizenId, lineage, gender);
+        _layer.AddChild(carrier);
+        _carriers[citizenId] = carrier;
+        return carrier;
+    }
+
+    /// <summary>
+    /// Returns the carrier if it exists and is alive. Useful for views
+    /// that want to reposition an already-known carrier without
+    /// creating a new one.
+    /// </summary>
+    public bool TryGet(CitizenId id, out CitizenSpriteCarrier? carrier)
+    {
+        if (_carriers.TryGetValue(id, out var existing) && IsInstanceValid(existing))
+        {
+            carrier = existing;
+            return true;
+        }
+        carrier = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Discards the carrier when the citizen is removed from the
+    /// world (e.g., death, emigration). The next GetOrCreate for the
+    /// same id is unreachable, so the entry is freed.
+    /// </summary>
+    public void Remove(CitizenId id)
+    {
+        if (_carriers.TryGetValue(id, out var carrier))
+        {
+            if (IsInstanceValid(carrier))
+            {
+                carrier.QueueFree();
+            }
+            _carriers.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Number of currently-tracked carriers. Diagnostics helper and
+    /// invariant for performance tests.
+    /// </summary>
+    public int CarrierCount => _carriers.Count;
+
+    /// <summary>
+    /// Removes carriers whose citizens no longer exist in the active world.
+    /// This does not create missing carriers: allocation stays lazy, while
+    /// the tracked set remains a subset of the domain's citizen identities.
+    /// </summary>
+    public void PruneExcept(IEnumerable<CitizenId> activeCitizenIds)
+    {
+        var active = new HashSet<CitizenId>(activeCitizenIds);
+        var stale = new List<CitizenId>();
+        foreach (var id in _carriers.Keys)
+        {
+            if (!active.Contains(id)) stale.Add(id);
+        }
+        foreach (var id in stale)
+        {
+            Remove(id);
+        }
+    }
+}

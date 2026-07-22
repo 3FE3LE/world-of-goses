@@ -16,7 +16,9 @@ public sealed record CityStatusSnapshot(
     IReadOnlyList<CityStatusSnapshot.ProjectItem> Projects,
     IReadOnlyList<CityStatusSnapshot.BuildingItem> Buildings,
     IReadOnlyList<string> FreeCitizenNames,
-    string? HeroName)
+    string? HeroName,
+    bool HasController,
+    int CurrentSpeed)
 {
     public bool IsEmpty => Buildings.Count == 0 && Projects.Count == 0;
 
@@ -40,7 +42,7 @@ public sealed record CityStatusSnapshot(
         int WorkerCapacity,
         ProductionStopCause StopCause);
 
-    public static CityStatusSnapshot From(CityWorld world)
+    public static CityStatusSnapshot From(CityWorld world, bool hasController = false, int currentSpeed = 1)
     {
         var projects = new List<ProjectItem>();
         foreach (var project in world.Projects.Values)
@@ -69,6 +71,7 @@ public sealed record CityStatusSnapshot(
 
         return new CityStatusSnapshot(world.CurrentTick, Upkeep.StonePerTick(world.Citizens.Count),
             world.FoodStock, world.MaxFoodStock, world.TotalWood, world.TotalWoodReserve,
-            atWork, atHome, projects, buildings, freeNames, world.Hero?.Name);
+            atWork, atHome, projects, buildings, freeNames, world.Hero?.Name,
+            hasController, currentSpeed);
     }
 }

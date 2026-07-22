@@ -12,15 +12,26 @@ public sealed record CityMacroSnapshot(
     IReadOnlyList<CityMacroSnapshot.PlotItem> Projects,
     IReadOnlyList<WorldEvent> Events)
 {
-    public sealed record HeroVisual(LineageId Lineage, GenderId Gender);
+    public sealed record HeroVisual(CitizenId Id, LineageId Lineage, GenderId Gender);
 
-    public sealed record CitizenItem(string Name, bool IsAvailable);
+    /// <summary>
+    /// Citizen summary used by the macro view. Carries the visible
+    /// state so the UI can render a status icon next to the name
+    /// without re-querying the domain.
+    /// </summary>
+    public sealed record CitizenItem(
+        string Name,
+        bool IsAvailable,
+        CitizenLocation Location,
+        int CurrentStamina,
+        int MaxStamina);
 
     public sealed record PlotItem(
         BuildingId Id,
         BuildingKind Kind,
         string DisplayName,
         bool IsUnderConstruction,
+        bool Enabled,
         int Progress,
         int RequiredWork);
 
@@ -34,6 +45,7 @@ public sealed record CityMacroSnapshot(
                 building.Kind,
                 building.DisplayName,
                 IsUnderConstruction: false,
+                Enabled: true,
                 Progress: 0,
                 RequiredWork: 0));
         }
@@ -46,12 +58,13 @@ public sealed record CityMacroSnapshot(
                 project.ResultingKind,
                 project.DisplayName,
                 IsUnderConstruction: true,
+                project.Enabled,
                 project.Progress,
                 project.RequiredWork));
         }
 
         HeroVisual? hero = world.Hero is { } citizen
-            ? new HeroVisual(citizen.Profile.Lineage, citizen.Profile.Gender)
+            ? new HeroVisual(citizen.Id, citizen.Profile.Lineage, citizen.Profile.Gender)
             : null;
 
         var citizens = new List<CitizenItem>();
@@ -59,7 +72,10 @@ public sealed record CityMacroSnapshot(
         {
             citizens.Add(new CitizenItem(
                 resident.Name,
-                !resident.CurrentAssignment.HasValue));
+                !resident.CurrentAssignment.HasValue,
+                resident.CurrentLocation,
+                resident.CurrentStamina,
+                resident.MaxStamina));
         }
 
         return new CityMacroSnapshot(

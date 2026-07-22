@@ -15,7 +15,8 @@ public partial class HeroProfileView : Control
     private CityWorldController _controller = null!;
     private VBoxContainer _content = null!;
     private Button _backButton = null!;
-    private LineageSpritePlayer? _heroSprite;
+    private CitizenSpriteCarrier? _heroCarrier;
+    private CenterContainer? _heroAnchor;
 
     public override void _Ready()
     {
@@ -97,13 +98,7 @@ public partial class HeroProfileView : Control
             child.QueueFree();
         }
 
-        // Drop the cached sprite so a re-render after a lineage or
-        // gender change loads the new scene.
-        if (_heroSprite is not null)
-        {
-            _heroSprite.QueueFree();
-            _heroSprite = null;
-        }
+        HideHeroCarrier();
 
         HeroProfileSnapshot? hero = _controller.GetHeroProfileSnapshot();
         if (hero is null)
@@ -141,10 +136,25 @@ public partial class HeroProfileView : Control
         AddBody($"Spiritual posture: {hero.SpiritualPosture}");
 
         AddHeading("Current condition");
+        AddStaminaBar(hero.CurrentStamina, hero.MaxStamina);
         AddIconBody(IconPaths.Heart, $"Stamina: {hero.CurrentStamina}/{hero.MaxStamina}");
         AddIconBody(
             hero.IsAtHome ? IconPaths.House : IconPaths.Building,
             hero.IsAtHome ? "At home" : "At work");
+        AddIconBody(IconPaths.Sun, $"Elemental affinity: {hero.ElementalAffinity}");
+    }
+
+    private void AddStaminaBar(int current, int max)
+    {
+        var bar = new ProgressBar
+        {
+            MinValue = 0,
+            MaxValue = max,
+            Value = current,
+            ShowPercentage = false,
+            CustomMinimumSize = new Vector2(0, 14),
+        };
+        _content.AddChild(bar);
     }
 
     private void AddHeading(string text)
@@ -163,16 +173,35 @@ public partial class HeroProfileView : Control
     /// </summary>
     private void AddHeroSprite(HeroProfileSnapshot hero)
     {
-        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Gender);
-        var scene = CharacterVisualRegistry.LoadScene(hero.Lineage, bodyVariant);
-        _heroSprite = scene.Instantiate<LineageSpritePlayer>();
-        _heroSprite.Position = new Vector2(0, 0);
-        var centered = new CenterContainer
+        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(hero.Id, hero.Lineage, hero.Gender);
+        _heroAnchor = new CenterContainer
         {
+            CustomMinimumSize = new Vector2(0, PresentationConstants.DetailedCitizenHeight),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        centered.AddChild(_heroSprite);
-        _content.AddChild(centered);
+        _content.AddChild(_heroAnchor);
+        CallDeferred(MethodName.PositionHeroCarrier);
+    }
+
+    private void PositionHeroCarrier()
+    {
+        if (_heroCarrier is null || _heroAnchor is null || !IsVisibleInTree()) return;
+        Vector2 position = _heroAnchor.GlobalPosition + new Vector2(
+            _heroAnchor.Size.X * 0.5f,
+            PresentationConstants.DetailedCitizenHeight * 0.5f);
+        _heroCarrier.SetPositionImmediate(position);
+        _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.HeroProfile);
+        _heroCarrier.Idle(Vector2.Down);
+    }
+
+    private void HideHeroCarrier()
+    {
+        if (_heroCarrier?.State == CitizenSpriteCarrier.VisualState.HeroProfile)
+        {
+            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+        }
+        _heroCarrier = null;
+        _heroAnchor = null;
     }
 
     /// <summary>
@@ -269,10 +298,14 @@ public partial class HeroProfileView : Control
         {
             Render();
             Show();
+            Modulate = new Color(1f, 1f, 1f, 0f);
+            var tween = CreateTween();
+            tween.TweenProperty(this, "modulate:a", 1f, 0.2);
             _backButton.GrabFocus();
         }
         else
         {
+            HideHeroCarrier();
             Hide();
         }
     }

@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3]
+[gd_scene load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/CityPrototype.cs" id="1_root"]
 [ext_resource type="Script" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
@@ -21,12 +21,38 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/BackToCityButton.tscn" id="19_backbutton"]
 [ext_resource type="Script" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="20_safearea"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ViewHeroButton.tscn" id="21_viewhero"]
+[ext_resource type="Script" path="res://scripts/TutorialOverlay.cs" id="22_tutorial"]
+[ext_resource type="Script" path="res://scripts/AttentionBanner.cs" id="23_attention"]
 
 [node name="CityPrototype" type="Node"]
 script = ExtResource("1_root")
 
 [node name="CityWorldController" type="Node" parent="."]
 script = ExtResource("2_ctrl")
+
+[node name="TutorialOverlay" type="Control" parent="."]
+z_index = 50
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("22_tutorial")
+
+[node name="AttentionBanner" type="PanelContainer" parent="."]
+z_index = 15
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -560.0
+offset_top = 80.0
+offset_right = -16.0
+offset_bottom = 130.0
+grow_horizontal = 0
+script = ExtResource("23_attention")
 
 [node name="CityMacroView" type="Control" parent="."]
 layout_mode = 3
@@ -53,7 +79,7 @@ TexturePath = "res://assets/ui/kenney/9-slice/ancient_grey.png"
 script = ExtResource("4_activity")
 
 [node name="OfflineReportPanel" type="PanelContainer" parent="CityMacroView"]
-z_index = 30
+z_index = 10
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -118,9 +144,21 @@ text = "No buildings yet. Your hero is ready for the first decision."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HeroProfileButton" parent="CityMacroView/Center/EmptyPanel/Margin/Content" instance=ExtResource("21_viewhero")]
+[node name="GuidanceLabel" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
 layout_mode = 2
+theme_type_variation = "BodySmall"
+text = "Tip: open the Construction menu to authorise the first shelter. You will need 1 wood — gather it from a Forest."
+horizontal_alignment = 1
+autowrap_mode = 2
+modulate = Color(1, 1, 1, 0.85)
+
+[node name="GatherWoodButton" type="Button" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 4
 theme_type_variation = "ButtonPrimary"
+tooltip_text = "Send the hero to gather 2 wood from a Forest."
+text = "Gather 2 wood"
 
 [node name="ConstructionPanel" type="PanelContainer" parent="CityMacroView/Center"]
 custom_minimum_size = Vector2(720, 420)

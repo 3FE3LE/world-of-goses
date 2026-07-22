@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Godot;
 using WorldofGoses.Domain;
 
@@ -21,6 +22,9 @@ public partial class CityStatusPanel : PanelContainer
 
     private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;
+    private IconChip? _savedChip;
+    private long _lastSavedUnixMillis;
+    private CityWorldController? _controller;
 
     public override void _Ready()
     {
@@ -55,10 +59,68 @@ public partial class CityStatusPanel : PanelContainer
         LineageThemeRegistry.ActiveLineageChanged += OnLineageAccentChanged;
     }
 
+    /// <summary>
+    /// Subscribes to the controller's save signal so the indicator
+    /// chip stays accurate even when the panel is built before the
+    /// controller signals the first save.
+    /// </summary>
+    public void AttachController(CityWorldController controller)
+    {
+        _controller = controller;
+        controller.WorldSaved += OnWorldSaved;
+        controller.SimulationSpeedChanged += OnSimulationSpeedChanged;
+        ApplySavedChip();
+    }
+
     public override void _ExitTree()
     {
+        if (_controller is not null)
+        {
+            _controller.WorldSaved -= OnWorldSaved;
+            _controller.SimulationSpeedChanged -= OnSimulationSpeedChanged;
+        }
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageAccentChanged;
+    }
+
+    private void OnSimulationSpeedChanged(int speedChoice)
+    {
+        // Refresh so the chip highlights the new active speed.
+        if (_controller is not null) Refresh(_controller);
+    }
+
+    private void OnWorldSaved(long unixMillis)
+    {
+        _lastSavedUnixMillis = unixMillis;
+        ApplySavedChip();
+    }
+
+    private void ApplySavedChip()
+    {
+        if (_row is null) return;
+        if (_lastSavedUnixMillis <= 0)
+        {
+            _savedChip?.QueueFree();
+            _savedChip = null;
+            return;
+        }
+        string text = $"Saved · {FormatSavedTime(_lastSavedUnixMillis)}";
+        if (_savedChip is null)
+        {
+            _savedChip = new IconChip(IconPaths.Check, text);
+            _row.AddChild(_savedChip);
+        }
+        else
+        {
+            _savedChip.UpdateText(text);
+        }
+        _row.MoveChild(_savedChip, _row.GetChildCount() - 1);
+    }
+
+    private static string FormatSavedTime(long unixMillis)
+    {
+        var time = DateTimeOffset.FromUnixTimeMilliseconds(unixMillis).ToLocalTime();
+        return time.ToString("HH:mm");
     }
 
     private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
@@ -101,11 +163,11 @@ public partial class CityStatusPanel : PanelContainer
         {
             child.QueueFree();
         }
+        _savedChip = null;
 
         BuildClockChip(snapshot);
         BuildUpkeepChip(snapshot);
-        BuildFoodChip(snapshot);
-        BuildWoodChip(snapshot);
+        BuildResourcesChip(snapshot);
         BuildMobilisationChip(snapshot);
 
         // Construction is intentionally singular in the current slice. Keep
@@ -124,6 +186,8 @@ public partial class CityStatusPanel : PanelContainer
             BuildHeroChip(snapshot);
             BuildEmptyStateChip();
         }
+
+        ApplySavedChip();
     }
 
     private void BuildClockChip(CityStatusSnapshot snapshot)
@@ -131,7 +195,63 @@ public partial class CityStatusPanel : PanelContainer
         int tick = snapshot.CurrentTick;
         bool day = GameClock.IsDaytime(tick);
         string iconPath = day ? IconPaths.Sun : IconPaths.Moon;
-        _row.AddChild(new IconChip(iconPath, SimulationTimeText.Format(tick)));
+        var chip = new IconChip(iconPath, SimulationTimeText.Format(tick));
+        chip.TooltipText = SimulationTimeText.Format(tick);
+        _row.AddChild(chip);
+        if (snapshot.HasController)
+        {
+            _row.AddChild(BuildSpeedControl((CityWorldController.SpeedChoice)snapshot.CurrentSpeed));
+        }
+    }
+
+    /// <summary>
+    /// Compact horizontal group of speed toggles (Pause / 1× / 2× / 4×).
+    /// The active speed is highlighted; clicking any button routes
+    /// through the controller so the simulation reacts immediately.
+    /// </summary>
+    private HBoxContainer BuildSpeedControl(CityWorldController.SpeedChoice current)
+    {
+        var group = new HBoxContainer
+        {
+            Alignment = BoxContainer.AlignmentMode.Center,
+            MouseFilter = Control.MouseFilterEnum.Pass,
+        };
+        group.AddThemeConstantOverride("separation", 2);
+        AddSpeedButton(group, CityWorldController.SpeedChoice.Paused, "Pause", IconPaths.Pause, current);
+        AddSpeedButton(group, CityWorldController.SpeedChoice.Normal, "1×", IconPaths.Play, current);
+        AddSpeedButton(group, CityWorldController.SpeedChoice.Fast, "2×", IconPaths.ChevronUp, current);
+        AddSpeedButton(group, CityWorldController.SpeedChoice.Fastest, "4×", IconPaths.Expand, current);
+        return group;
+    }
+
+    private void AddSpeedButton(
+        HBoxContainer parent,
+        CityWorldController.SpeedChoice choice,
+        string label,
+        string iconPath,
+        CityWorldController.SpeedChoice current)
+    {
+        var button = new Button
+        {
+            Text = label,
+            TooltipText = choice switch
+            {
+                CityWorldController.SpeedChoice.Paused => "Pause the simulation.",
+                CityWorldController.SpeedChoice.Normal => "Normal speed (1 tick per second).",
+                CityWorldController.SpeedChoice.Fast => "Fast (2 ticks per second).",
+                CityWorldController.SpeedChoice.Fastest => "Fastest (4 ticks per second).",
+                _ => label,
+            },
+            ThemeTypeVariation = choice == current ? "ButtonPrimary" : "ButtonText",
+            CustomMinimumSize = new Vector2(40, 28),
+            FocusMode = Control.FocusModeEnum.All,
+        };
+        if (current == choice)
+        {
+            button.Disabled = true;
+        }
+        button.Pressed += () => _controller?.SetSimulationSpeed(choice);
+        parent.AddChild(button);
     }
 
     private void BuildUpkeepChip(CityStatusSnapshot snapshot)
@@ -143,6 +263,9 @@ public partial class CityStatusPanel : PanelContainer
 
     private void BuildFoodChip(CityStatusSnapshot snapshot)
     {
+        // Kept for backward compatibility (call sites may still want the
+        // standalone chip). The default Refresh() uses BuildResourcesChip
+        // to fit on 1280×720.
         int food = snapshot.FoodStock;
         int cap = snapshot.MaxFoodStock;
         if (cap <= 0) return;
@@ -151,6 +274,8 @@ public partial class CityStatusPanel : PanelContainer
 
     private void BuildWoodChip(CityStatusSnapshot snapshot)
     {
+        // Kept for backward compatibility. Default Refresh() uses
+        // BuildResourcesChip to fit on 1280×720.
         int stock = snapshot.WoodStock;
         int reserve = snapshot.WoodReserve;
         if (stock == 0 && reserve == 0) return;
@@ -159,6 +284,41 @@ public partial class CityStatusPanel : PanelContainer
             reserve > 0
                 ? $"Wood: {stock} gathered · {reserve} in forests"
                 : $"Wood: {stock} gathered"));
+    }
+
+    /// <summary>
+    /// Combines Food and Wood into a single compact chip when both
+    /// categories are active, so the status bar stops overflowing on
+    /// 1280×720. The tooltip exposes the full breakdown.
+    /// </summary>
+    private void BuildResourcesChip(CityStatusSnapshot snapshot)
+    {
+        bool hasFood = snapshot.MaxFoodStock > 0;
+        bool hasWood = snapshot.WoodStock > 0 || snapshot.WoodReserve > 0;
+        if (!hasFood && !hasWood) return;
+
+        var breakdown = new System.Text.StringBuilder();
+        if (hasFood)
+        {
+            breakdown.Append($"Food: {snapshot.FoodStock} / {snapshot.MaxFoodStock}");
+        }
+        if (hasWood)
+        {
+            if (breakdown.Length > 0) breakdown.Append('\n');
+            breakdown.Append(snapshot.WoodReserve > 0
+                ? $"Wood: {snapshot.WoodStock} gathered · {snapshot.WoodReserve} in forests"
+                : $"Wood: {snapshot.WoodStock} gathered");
+        }
+
+        string headline = hasFood && snapshot.MaxFoodStock > 0
+            ? $"Food {snapshot.FoodStock}/{snapshot.MaxFoodStock}"
+            : hasWood
+                ? $"Wood {snapshot.WoodStock}"
+                : "Resources";
+
+        var chip = new IconChip(IconPaths.Leaf, headline);
+        chip.TooltipText = breakdown.ToString();
+        _row.AddChild(chip);
     }
 
     private void BuildMobilisationChip(CityStatusSnapshot snapshot)
@@ -173,7 +333,11 @@ public partial class CityStatusPanel : PanelContainer
         string label = $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
             $"({ConstructionRules.Describe(phase)}) · {project.AssignedCount}/{project.WorkerCapacity}";
         if (!project.Enabled) label += " · paused";
-        _row.AddChild(new IconChip(IconPaths.Building, label));
+        var chip = new IconChip(IconPaths.Building, label);
+        chip.TooltipText = project.Enabled
+            ? $"In progress. Click the construction menu for details."
+            : "Paused. Resume from the construction menu.";
+        _row.AddChild(chip);
     }
 
     private void BuildBuildingChip(CityStatusSnapshot.BuildingItem building)
@@ -189,9 +353,14 @@ public partial class CityStatusPanel : PanelContainer
 
     private void BuildFreeCitizensChip(CityStatusSnapshot snapshot)
     {
-        _row.AddChild(new IconChip(
+        var chip = new IconChip(
             IconPaths.User,
-            $"Free citizens: {snapshot.FreeCitizenNames.Count}"));
+            $"Free citizens: {snapshot.FreeCitizenNames.Count}");
+        if (snapshot.FreeCitizenNames.Count > 0)
+        {
+            chip.TooltipText = "Unassigned: " + string.Join(", ", snapshot.FreeCitizenNames);
+        }
+        _row.AddChild(chip);
     }
 
     private void BuildAttentionChip(CityStatusSnapshot snapshot)
@@ -252,12 +421,15 @@ public partial class IconChip : HBoxContainer
     private const int IconSize = 14;
     private const int ChipHeight = 24;
 
+    private Label _label = null!;
+
     public IconChip(string iconPath, string text)
     {
-        MouseFilter = MouseFilterEnum.Ignore;
+        MouseFilter = MouseFilterEnum.Pass;
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
         CustomMinimumSize = new Vector2(0, ChipHeight);
         AddThemeConstantOverride("separation", IconTextGap);
+        TooltipText = string.Empty;
 
         var iconCell = new MarginContainer
         {
@@ -280,7 +452,7 @@ public partial class IconChip : HBoxContainer
         };
         iconCell.AddChild(icon);
 
-        var label = new Label
+        _label = new Label
         {
             Text = text,
             ThemeTypeVariation = "BodySmall",
@@ -288,6 +460,15 @@ public partial class IconChip : HBoxContainer
             MouseFilter = MouseFilterEnum.Ignore,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        AddChild(label);
+        AddChild(_label);
+    }
+
+    /// <summary>
+    /// Replaces the chip text without rebuilding the icon. Used by the
+    /// "Saved" chip so the timestamp can refresh in place.
+    /// </summary>
+    public void UpdateText(string text)
+    {
+        if (_label is not null) _label.Text = text;
     }
 }

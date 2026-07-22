@@ -38,6 +38,18 @@ public partial class OfflineReportPanel : PanelContainer
     private bool _followNewestAfterLayout;
     private double _scrollValueAfterLayout;
     private bool _collapseHovered;
+    private CityWorldController? _controller;
+
+    /// <summary>
+    /// Wires the controller so the "Decisions needed" rows can route
+    /// to the matching building detail view when clicked. Call this
+    /// once from the host (the macro view) before the panel needs to
+    /// resolve subjects.
+    /// </summary>
+    public void SetController(CityWorldController controller)
+    {
+        _controller = controller;
+    }
 
     public override void _Ready()
     {
@@ -68,8 +80,8 @@ public partial class OfflineReportPanel : PanelContainer
         _collapseButton = new IconButton
         {
             IconPath = IconPaths.ChevronUp,
-            ButtonText = "City chronicle · Collapse",
-            TooltipText = "Show only the newest event",
+            ButtonText = "Chronicle — click to collapse",
+            TooltipText = "Click to show only the newest event.",
             ThemeTypeVariation = "ButtonText",
             CustomMinimumSize = new Vector2(0, 40),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -176,11 +188,11 @@ public partial class OfflineReportPanel : PanelContainer
         _collapseButton.SetIconAndLabel(
             _isExpanded ? IconPaths.ChevronUp : IconPaths.ChevronDown,
             _isExpanded
-                ? "City chronicle · Collapse"
-                : $"City chronicle · Expand ({_compactedCount})");
+                ? "Chronicle — click to collapse"
+                : $"Chronicle — click to expand ({_compactedCount})");
         _collapseButton.TooltipText = _isExpanded
-            ? "Show only the newest event"
-            : "Open the city chronicle";
+            ? "Click to show only the newest event."
+            : "Click to open the full chronicle.";
     }
 
     private void OnScrollGuiInput(InputEvent inputEvent)
@@ -221,7 +233,9 @@ public partial class OfflineReportPanel : PanelContainer
 
         // "Decisions needed" — distinct groups of ProductionBlocked
         // events by (subject, cause). Renders before the event list so
-        // the player sees what requires attention at a glance.
+        // the player sees what requires attention at a glance. Each
+        // row is a clickable button when the subject resolves to a
+        // building currently in the world.
         var decisions = GroupDecisionsNeeded(report.Events);
         if (decisions.Count > 0)
         {
@@ -234,13 +248,7 @@ public partial class OfflineReportPanel : PanelContainer
             _list.AddChild(header);
             foreach (var entry in decisions)
             {
-                var label = new Label
-                {
-                    Text = entry,
-                    ThemeTypeVariation = "BodyText",
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                };
-                _list.AddChild(label);
+                _list.AddChild(BuildDecisionRow(entry));
             }
             _list.AddChild(new HSeparator());
         }
@@ -289,6 +297,11 @@ public partial class OfflineReportPanel : PanelContainer
         if (liveDecisions.Count > 0)
         {
             _summary.Text = "Needs attention · newest entry at the bottom";
+            foreach (var entry in liveDecisions)
+            {
+                _list.AddChild(BuildDecisionRow(entry));
+            }
+            _list.AddChild(new HSeparator());
         }
         else
         {
@@ -358,11 +371,11 @@ public partial class OfflineReportPanel : PanelContainer
     /// <summary>
     /// Groups <see cref="WorldEventKind.ProductionBlocked"/> events
     /// by their subject so the offline report can surface "this many
-    /// stoppages from that building" at a glance. Subject name is the
-    /// summary carrier; for now we use it verbatim and rely on the
-    /// log summary to read "<subject> waiting: missing inputs".
+    /// stoppages from that building" at a glance. Each entry pairs the
+    /// display label with the optional building id so the panel can
+    /// route the click to the matching detail view.
     /// </summary>
-    private static System.Collections.Generic.List<string> GroupDecisionsNeeded(
+    private System.Collections.Generic.List<DecisionNeeded> GroupDecisionsNeeded(
         IReadOnlyList<WorldEvent> events)
     {
         var grouped = new System.Collections.Generic.Dictionary<string, int>();
@@ -372,13 +385,65 @@ public partial class OfflineReportPanel : PanelContainer
             grouped.TryGetValue(evt.SubjectName, out var count);
             grouped[evt.SubjectName] = count + 1;
         }
-        var output = new System.Collections.Generic.List<string>();
+        var output = new System.Collections.Generic.List<DecisionNeeded>();
         foreach (var pair in grouped)
         {
-            output.Add($"{pair.Value}× {pair.Key}");
+            output.Add(new DecisionNeeded($"{pair.Value}× {pair.Key}", ResolveBuildingId(pair.Key)));
         }
         return output;
     }
+
+    /// <summary>
+    /// Looks up a building id by display name. Returns null when the
+    /// controller has not been wired (the panel is being unit-tested
+    /// without a scene) or when no building currently matches the
+    /// subject name (e.g. a Forest that was demolished).
+    /// </summary>
+    private BuildingId? ResolveBuildingId(string subjectName)
+    {
+        if (_controller is null) return null;
+        foreach (var building in _controller.World.Buildings.Values)
+        {
+            if (building.DisplayName == subjectName) return building.Id;
+        }
+        return null;
+    }
+
+    private void OnDecisionClicked(BuildingId id)
+    {
+        _controller?.SelectBuilding(id);
+    }
+
+    /// <summary>
+    /// Builds a single row for a "Decisions needed" entry. When the
+    /// subject resolves to a building, the row is a button that opens
+    /// the matching detail view; otherwise it falls back to a label
+    /// so the player still sees the information.
+    /// </summary>
+    private Control BuildDecisionRow(DecisionNeeded entry)
+    {
+        if (entry.TargetBuildingId is { } buildingId)
+        {
+            var button = new Button
+            {
+                Text = $"{entry.Label} · open",
+                TooltipText = "Open the building that needs attention.",
+                ThemeTypeVariation = "ButtonText",
+                CustomMinimumSize = new Vector2(0, 28),
+                FocusMode = FocusModeEnum.All,
+            };
+            button.Pressed += () => OnDecisionClicked(buildingId);
+            return button;
+        }
+        return new Label
+        {
+            Text = entry.Label,
+            ThemeTypeVariation = "BodyText",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+    }
+
+    private readonly record struct DecisionNeeded(string Label, BuildingId? TargetBuildingId);
 
     private static string FormatTime(System.TimeSpan time)
     {

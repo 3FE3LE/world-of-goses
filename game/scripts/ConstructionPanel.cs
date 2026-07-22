@@ -24,6 +24,7 @@ public partial class ConstructionPanel : PanelContainer
     [Signal] public delegate void ViewCompletedBuildingRequestedEventHandler(int buildingId);
     [Signal] public delegate void AssignToProjectRequestedEventHandler(int projectId, int citizenId);
     [Signal] public delegate void UnassignFromProjectRequestedEventHandler(int projectId, int citizenId);
+    [Signal] public delegate void CancelProjectRequestedEventHandler(int projectId);
     /// <summary>
     /// Emitted when the player asks the modal to close — either via the
     /// header X or because the player triggered a route that closes the
@@ -38,10 +39,15 @@ public partial class ConstructionPanel : PanelContainer
 
     private CityWorldController _controller = null!;
     private Mode _mode = Mode.Blueprint;
+    private bool _wasAuthorizeEnabled;
+    private bool _wasFarmEnabled;
+    private bool _wasQuarryEnabled;
+    private Tween? _pulseTween;
 
     private PanelContainer _body = null!;
     private Label _title = null!;
     private PanelHeader _header = null!;
+    private TextureRect _constructionPreview = null!;
     private Label _description = null!;
     private Label _phaseLabel = null!;
     private Label _statusLabel = null!;
@@ -55,6 +61,7 @@ public partial class ConstructionPanel : PanelContainer
     private IconButton _quarryButton = null!;
     private IconButton _pauseButton = null!;
     private IconButton _resumeButton = null!;
+    private IconButton _cancelButton = null!;
     private IconButton _viewHeroButton = null!;
     private IconButton _viewBuildingButton = null!;
     private Label _errorLabel = null!;
@@ -73,6 +80,7 @@ public partial class ConstructionPanel : PanelContainer
         AuthorizeRequested += OnAuthorizeRequested;
         PauseRequested += OnPauseRequested;
         ResumeRequested += OnResumeRequested;
+        CancelProjectRequested += OnCancelProjectRequested;
         ViewHeroRequested += OnViewHeroRequested;
         ViewCompletedBuildingRequested += OnViewCompletedBuilding;
         AssignToProjectRequested += OnAssignToProject;
@@ -142,6 +150,27 @@ public partial class ConstructionPanel : PanelContainer
         _controller.SetProjectEnabled(project.Id, !pause);
     }
 
+    private void OnCancelButtonPressed()
+    {
+        var project = CurrentProject();
+        if (project is null) return;
+        EmitSignal(SignalName.CancelProjectRequested, project.Id.Value);
+    }
+
+    private void OnCancelProjectRequested(int projectId)
+    {
+        var project = _controller.GetProject(new BuildingId(projectId));
+        if (project is null) return;
+        if (_controller.CancelProject(new BuildingId(projectId)))
+        {
+            Notifier.Show($"Cancelled {project.DisplayName}.");
+        }
+        else
+        {
+            Notifier.ShowError("Could not cancel the project.");
+        }
+    }
+
     private ConstructionSnapshot.ProjectItem? CurrentProject() =>
         _controller.GetConstructionSnapshot().Project;
 
@@ -182,7 +211,21 @@ public partial class ConstructionPanel : PanelContainer
         _header.CloseRequested += () => EmitSignal(SignalName.CloseRequested);
         shell.AddChild(_header);
 
-        _title = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        _constructionPreview = new TextureRect
+        {
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            CustomMinimumSize = new Vector2(0, 80),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        shell.AddChild(_constructionPreview);
+
+        _title = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Visible = false,
+        };
         _title.ThemeTypeVariation = "ScreenTitle";
         shell.AddChild(_title);
 
@@ -279,6 +322,11 @@ public partial class ConstructionPanel : PanelContainer
             iconPath: IconPaths.Play,
             label: "Resume",
             variation: "ButtonText");
+        _cancelButton = NewFooterButton(
+            iconPath: IconPaths.Close,
+            label: "Cancel project",
+            variation: "ButtonText");
+        _cancelButton.TooltipText = "Cancel the project. The deposit is lost and the site is cleared.";
         _viewHeroButton = StandardButtons.ViewHeroButton();
         _viewBuildingButton = NewFooterButton(
             iconPath: IconPaths.House,
@@ -292,6 +340,7 @@ public partial class ConstructionPanel : PanelContainer
             SignalName.AuthorizeRequested, (int)ConstructionKind.Quarry);
         _pauseButton.Pressed += () => EmitSignal(SignalName.PauseRequested);
         _resumeButton.Pressed += () => EmitSignal(SignalName.ResumeRequested);
+        _cancelButton.Pressed += OnCancelButtonPressed;
         _viewHeroButton.Pressed += () => EmitSignal(SignalName.ViewHeroRequested);
         _viewBuildingButton.Pressed += () =>
         {
@@ -304,6 +353,7 @@ public partial class ConstructionPanel : PanelContainer
         footer.AddChild(_viewHeroButton);
         footer.AddChild(_pauseButton);
         footer.AddChild(_resumeButton);
+        footer.AddChild(_cancelButton);
         footer.AddChild(_authorizeButton);
         footer.AddChild(_farmButton);
         footer.AddChild(_quarryButton);
@@ -327,6 +377,7 @@ public partial class ConstructionPanel : PanelContainer
         AuthorizeRequested -= OnAuthorizeRequested;
         PauseRequested -= OnPauseRequested;
         ResumeRequested -= OnResumeRequested;
+        CancelProjectRequested -= OnCancelProjectRequested;
         ViewHeroRequested -= OnViewHeroRequested;
         ViewCompletedBuildingRequested -= OnViewCompletedBuilding;
         AssignToProjectRequested -= OnAssignToProject;
@@ -370,6 +421,17 @@ public partial class ConstructionPanel : PanelContainer
         bool hasHome = snapshot.HasHome;
         _header.SetTitle(hasHome ? "Choose the next construction" : "Build the first shelter");
         _title.Text = hasHome ? "Choose the next construction" : "Build the first shelter";
+        // Preview the shelter art so the player knows what they are about to build.
+        var shelterArt = BuildingArt.GetTexturePath(ConstructionKind.BasicShelter);
+        if (shelterArt is { } path)
+        {
+            _constructionPreview.Texture = ResourceLoader.Load<Texture2D>(path);
+            _constructionPreview.Visible = !hasHome;
+        }
+        else
+        {
+            _constructionPreview.Visible = false;
+        }
         _description.Text = hasHome
             ? "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
             : "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction.";
@@ -389,13 +451,36 @@ public partial class ConstructionPanel : PanelContainer
             ? $"Farm — {DescribeMaterials(farm)}\nQuarry — {DescribeMaterials(quarry)}"
             : $"Basic Shelter — {DescribeMaterials(shelter)}";
         _authorizeButton.Visible = !hasHome;
-        _authorizeButton.Disabled = !canAuthorise || !shelter.CanPayDeposit;
-        _farmButton.Visible = hasHome;
-        _farmButton.Disabled = !canAuthorise || !farm.CanPayDeposit;
-        _quarryButton.Visible = hasHome;
-        _quarryButton.Disabled = !canAuthorise || !quarry.CanPayDeposit;
+        bool authorizeEnabled = canAuthorise && shelter.CanPayDeposit;
+        _authorizeButton.Disabled = !authorizeEnabled;
+        _authorizeButton.TooltipText = authorizeEnabled
+            ? "Authorise the Basic Shelter."
+            : "Needs 1 wood — gather from a Forest first.";
+        // Farm and Quarry are now always visible so the player can see
+        // the upcoming options. They are disabled until the Basic
+        // Shelter exists; the tooltip explains the dependency.
+        _farmButton.Visible = true;
+        bool farmEnabled = canAuthorise && hasHome && farm.CanPayDeposit;
+        _farmButton.Disabled = !farmEnabled;
+        _farmButton.TooltipText = !hasHome
+            ? "Build the Basic Shelter first to unlock the Farm."
+            : farmEnabled
+                ? "Build a Farm."
+                : "Not enough materials to authorise a Farm.";
+        _quarryButton.Visible = true;
+        bool quarryEnabled = canAuthorise && hasHome && quarry.CanPayDeposit;
+        _quarryButton.Disabled = !quarryEnabled;
+        _quarryButton.TooltipText = !hasHome
+            ? "Build the Basic Shelter first to unlock the Quarry."
+            : quarryEnabled
+                ? "Build a Quarry."
+                : "Not enough materials to authorise a Quarry.";
+        DetectEnableTransition(authorizeEnabled, ref _wasAuthorizeEnabled, _authorizeButton);
+        DetectEnableTransition(farmEnabled, ref _wasFarmEnabled, _farmButton);
+        DetectEnableTransition(quarryEnabled, ref _wasQuarryEnabled, _quarryButton);
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
+        _cancelButton.Visible = false;
         _viewBuildingButton.Visible = false;
         _viewHeroButton.Visible = snapshot.HasHero;
         _primaryFocus = !hasHome
@@ -406,6 +491,29 @@ public partial class ConstructionPanel : PanelContainer
                     ? _quarryButton
                     : _viewHeroButton;
         _primaryFocus.GrabFocus();
+    }
+
+    /// <summary>
+    /// Pulses the button when it transitions from disabled to enabled,
+    /// so the player notices that a previously blocked action is now
+    /// available. Subsequent refreshes do not re-pulse.
+    /// </summary>
+    private void DetectEnableTransition(bool nowEnabled, ref bool wasEnabled, IconButton button)
+    {
+        if (nowEnabled && !wasEnabled)
+        {
+            PulseButton(button);
+        }
+        wasEnabled = nowEnabled;
+    }
+
+    private void PulseButton(IconButton button)
+    {
+        _pulseTween?.Kill();
+        button.Modulate = new Color(1f, 1f, 1f, 1f);
+        _pulseTween = CreateTween();
+        _pulseTween.TweenProperty(button, "modulate", new Color(0.8f, 1f, 0.8f, 1f), 0.15f);
+        _pulseTween.TweenProperty(button, "modulate", new Color(1f, 1f, 1f, 1f), 0.45f);
     }
 
     private void RenderUnderway(ConstructionSnapshot snapshot)
@@ -425,6 +533,16 @@ public partial class ConstructionPanel : PanelContainer
         _progress.Visible = true;
         _statusLabel.Visible = true;
         _contributors.Visible = true;
+        var projectArt = BuildingArt.GetTexturePath(project.ResultingKind);
+        if (projectArt is { } path)
+        {
+            _constructionPreview.Texture = ResourceLoader.Load<Texture2D>(path);
+            _constructionPreview.Visible = true;
+        }
+        else
+        {
+            _constructionPreview.Visible = false;
+        }
         _requirementsLabel.Visible = project.RemainingInputs.Count > 0;
         _requirementsLabel.Text = project.RemainingInputs.Count > 0
             ? $"Still needed — {DescribeInputs(project.RemainingInputs)}"
@@ -451,6 +569,7 @@ public partial class ConstructionPanel : PanelContainer
         _viewBuildingButton.Visible = false;
         _pauseButton.Visible = project.Enabled;
         _resumeButton.Visible = !project.Enabled;
+        _cancelButton.Visible = true;
         _viewHeroButton.Visible = true;
         _primaryFocus = project.Enabled ? _pauseButton : _resumeButton;
         _primaryFocus.GrabFocus();
@@ -482,6 +601,7 @@ public partial class ConstructionPanel : PanelContainer
         _quarryButton.Visible = false;
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
+        _cancelButton.Visible = false;
         _viewHeroButton.Visible = true;
         _viewBuildingButton.Visible = shelterId.HasValue;
         _primaryFocus = shelterId.HasValue ? _viewBuildingButton : _viewHeroButton;

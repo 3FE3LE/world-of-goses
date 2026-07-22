@@ -68,4 +68,20 @@ public static class BuildingArt
         BuildingKind.Farm => new Vector2(FarmWidth, FarmHeight),
         _ => null,
     };
+
+    /// <summary>
+    /// Convenience for the construction panel: maps a construction
+    /// intent (BasicShelter, Farm, Quarry) to the matching building
+    /// texture, falling back to <c>null</c> when no art exists.
+    /// </summary>
+    public static string? GetTexturePath(ConstructionKind kind) =>
+        GetTexturePath(ConstructionKindToBuildingKind(kind));
+
+    private static BuildingKind ConstructionKindToBuildingKind(ConstructionKind kind) => kind switch
+    {
+        ConstructionKind.BasicShelter => BuildingKind.Home,
+        ConstructionKind.Farm => BuildingKind.Farm,
+        ConstructionKind.Quarry => BuildingKind.Quarry,
+        _ => BuildingKind.Home,
+    };
 }
