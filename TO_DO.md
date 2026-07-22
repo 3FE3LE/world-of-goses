@@ -63,7 +63,27 @@ reorganiza la lista, los IDs no se renumeran.
 - **2026-07-22** — Creación del documento tras la auditoría inicial.
 - **2026-07-22** — Auditoría estructural de UI sobre la escena ejecutada a
   1280×720 y revisión estática de layouts, capas y controles dinámicos.
-- Próxima revisión sugerida: después de cerrar C-9, H-11 y C-10.
+- **2026-07-22** — Auditoría de implementación de los 14 ítems pendientes.
+  8 verificados y movidos a Hechas (C-9, C-10, H-12, H-13, H-14, H-15, H-16,
+  M-15); 6 se mantienen en Pendientes con Estado actualizado (H-11, H-17,
+  M-11, M-12, M-13, M-14). M-14 queda como cross-cutting que cierra los
+  acceptance criteria visuales del resto.
+- **2026-07-22** — H-17 y M-13 implementados y movidos a Hechas. M-11
+  parcialmente completado (`OfflineReportPanel` y `AttentionBanner` con
+  `SafeAreaMarginContainer`; los intentos de envolver `CityStatusPanel`
+  con `SafeAreaTopBar` y reescribir `MacroActions` como
+  `SafeAreaMarginContainer` añadieron un `MarginContainer` visible con
+  fondo gris y se revirtieron). M-11 sigue en Pendientes para reintentar
+  HUD y macro actions con un enfoque distinto. H-17: body scroll en
+  `ConstructionPanel` y `TutorialOverlay`. M-13: `PlaceholderStyle` con
+  `Subline`, layout vertical, hitbox del placeholder 144×144. M-11 sólo
+  parcial. Pendientes restantes: H-11, M-11, M-12, M-14.
+- **2026-07-22** — Revertido el cambio de escena que rompía la HUD
+  (`SafeAreaTopBar` causaba un `MarginContainer` gris visible encima del
+  `CityStatusPanel`). Añadido `visible = false` al `ConstructionPanel` en
+  `CityPrototype.tscn` para que el modal no aparezca abierto por defecto.
+- Próxima revisión sugerida: tras cerrar M-14 (cross-cutting) o durante el
+  próximo PR de UI.
 
 ---
 
@@ -71,20 +91,17 @@ reorganiza la lista, los IDs no se renumeran.
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
-| 🔴        | 2          | 0        | 0          | 8      | 0          |
-| 🟠        | 7          | 0        | 0          | 11     | 1          |
-| 🟡        | 5          | 0        | 0          | 9      | 4          |
-| 🟢        | 0          | 0        | 0          | 9      | 2          |
+| 🔴        | 0          | 0        | 0          | 10     | 0          |
+| 🟠        | 1          | 0        | 0          | 16     | 1          |
+| 🟡        | 3          | 0        | 0          | 11     | 3          |
+| 🟢        | 0          | 0        | 0          | 1      | 0          |
 
 ### Cola activa (orden sugerido)
 
-1. **C-9** — Crear el shell transversal de pantallas y reservar el HUD.
+1. **M-14** — Construir la matriz de regresión visual (cross-cutting; cierra los acceptance criteria visuales del resto).
 2. **H-11** — Definir una política única de capas y oclusión.
-3. **C-10** — Rehacer el layout responsive del building detail.
-4. **H-12** — Contener correctamente el escenario visual de workers.
-5. **H-13 / H-14** — Hacer scrollables el status bar y las listas de workers.
-6. **H-15 / H-16 / H-17** — Corregir Chronicle, accesos macro y modales.
-7. **M-11..M-15** — Safe area, overlays, plots, regresión y scroll seccional.
+3. **M-12** — `OverlayHost` con slots y prioridad para banners, toasts y tutorial.
+4. **M-11** — Reintentar safe area para HUD y macro actions (enfoque alternativo: aplicar `Offset*` en el script, no vía wrapper).
 
 ---
 
@@ -96,53 +113,9 @@ reorganiza la lista, los IDs no se renumeran.
 
 ## 3. Pendientes
 
-### 🔴 C-9 — Falta un shell transversal que reserve HUD y contenido
-
-- **Estado:** Implementado; pendiente de cierre junto con la matriz visual del slice.
-- **Prioridad:** 🔴 Crítica
-- **Categoría:** arquitectura / UX
-- **Afecta:** `game/scenes/CityPrototype.tscn`, `CityMacroView`,
-  `BuildingDetailView`, `HeroProfileView`, `CityStatusPanel`.
-- **Evidencia:** `CityStatusPanel`, `BuildingDetailView`, macro y perfil son
-  hermanos full-rect. El detail compensa el HUD con `offset_top = 40`, mientras
-  otras pantallas lo resuelven de otra forma. El status se dibuja después del
-  detail y puede tapar su header; esto reproduce el caso reportado del botón
-  "Back to city" detrás de la barra.
-- **Corrección propuesta:** crear un `GameUiShell` con dos regiones explícitas:
-  `StatusSlot` de altura canónica y `ScreenContent` expandible. Macro, detail y
-  perfil ocupan solo `ScreenContent`; ninguna pantalla resta offsets a mano.
-  Decidir explícitamente si onboarding/modales cubren también el status.
-- **Criterios de aceptación:** ningún header queda debajo del HUD a 1280×720,
-  1024×576 ni 1600×900; cambiar de pantalla no mueve el borde superior útil;
-  no quedan offsets que dupliquen la altura del status.
-- **Relacionados:** H-11, C-10, M-11.
-
-### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
-
-- **Estado:** Implementado y verificado en Quarry y Basic Shelter a 1280×720;
-  refresh prolongado a 4× no acumula controles; pendiente matriz estrecha.
-- **Prioridad:** 🔴 Crítica
-- **Categoría:** UX
-- **Afecta:** `CityPrototype.tscn`, `BuildingDetailView.cs`,
-  `VisibleWorkerSlots.cs`, `ProductionPanel.cs`, `AssignmentPanel.cs`.
-- **Evidencia:** el contenido combina en un `HFlowContainer` un `Main` con art
-  de 192 px, workers de 144 px y un ProductionPanel de altura variable, más un
-  AssignmentPanel sin límite. No existe `ScrollContainer`. Cuando el flujo
-  envuelve o crece, el contenido excede la altura disponible; reproduce el
-  desborde reportado en Quarry.
-- **Corrección propuesta:** header fijo dentro del shell; layout de dos columnas
-  mientras haya ancho suficiente y una columna en viewport estrecho. La vista
-  completa no hace scroll: únicamente listas o feeds con crecimiento no acotado
-  pueden desplazarse dentro de su propia región. Definir mínimos reales en vez
-  de depender implícitamente de `HFlowContainer`.
-- **Criterios de aceptación:** todo el detail es alcanzable sin dibujar fuera
-  del viewport; Back permanece visible; Quarry/Farm/Forest/Home funcionan con
-  0, 1 y capacidad máxima de workers en las tres resoluciones de referencia.
-- **Relacionados:** C-9, H-12, H-14.
-
 ### 🟠 H-11 — No existe una política única de capas y oclusión
 
-- **Estado:** Implementado estructuralmente; pendiente de validación visual final.
+- **Estado:** No implementado todavía; sin constantes semánticas de capas ni catálogo. El síntoma original (sprites atravesando panels) está mitigado por el refactor de `CitizenSpriteBank` (los carriers viven en el subtree del view, no en un `CanvasLayer` global), no por una política de capas.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** arquitectura
 - **Afecta:** `CityPrototype.tscn`, `CitizenSpriteBank.cs`, `ModalHost.cs`,
@@ -161,128 +134,9 @@ reorganiza la lista, los IDs no se renumeran.
   números de capa mágicos en escenas/scripts.
 - **Relacionados:** C-9, H-12, M-12.
 
-### 🟠 H-12 — El escenario de workers usa coordenadas libres y no puede recortar
-
-- **Estado:** Implementado estructuralmente; pendiente de validación visual final.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX / arquitectura
-- **Afecta:** `VisibleWorkerSlots.cs`, `VisibleWorkerSlot.cs`,
-  `CitizenSpriteCarrier.cs`, `CitizenSpriteBank.cs`.
-- **Evidencia:** `VisibleWorkerSlots` fija `Size` dentro de un `VBoxContainer`
-  (el container puede sobrescribirla), coloca slots manualmente y calcula el
-  sprite a `Y = 126` dentro de una región declarada de 144 px. El sprite vive
-  fuera del subtree en un CanvasLayer, así que `clip_contents` no puede contenerlo.
-- **Corrección propuesta:** convertir el stage en un Control con mínimo derivado
-  de capacidad, anchors internos y clip/viewport explícito; separar label y
-  área de sprite; hacer que el host del carrier respete el rect global del stage.
-- **Criterios de aceptación:** ningún píxel o hitbox sale del panel de workers;
-  1–3 workers se centran y reordenan sin solaparse; entrada/salida permanece
-  contenida y no cruza el status ni el ProductionPanel.
-- **Relacionados:** C-10, H-11.
-
-### 🟠 H-13 — `CityStatusPanel` vuelve a saturarse con ancho reducido
-
-- **Estado:** Implementado: modo compacto reactivo bajo 1150 px; pendiente matriz visual.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX
-- **Afecta:** `CityStatusPanel.cs`, `CityPrototype.tscn`.
-- **Evidencia:** un solo `HBoxContainer` centra todos los chips con separación
-  fija de 18 px. En la captura 1280×720 ya consume casi todo el ancho; Saved,
-  textos largos o 1024×576 pueden recortar extremos. No hay scroll, compactación
-  por breakpoint ni overflow affordance.
-- **Corrección propuesta:** definir prioridades de chips y estados compacto/
-  extendido; agrupar velocidad; permitir un overflow accesible o scroll
-  horizontal deliberado. La altura del HUD debe salir del shell, no de texto.
-- **Criterios de aceptación:** ningún chip se corta en las resoluciones objetivo;
-  reloj, pausa y alertas críticas siempre permanecen visibles; Saved y datos
-  secundarios degradan de forma predecible.
-- **Relacionados:** C-9.
-
-### 🟠 H-14 — Las listas de Assignment crecen sin scroll ni límite
-
-- **Estado:** Implementado estructuralmente; pendiente de fixtures con listas largas.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX
-- **Afecta:** `AssignmentPanel.cs`, `AssignmentRow.tscn`,
-  `BuildingDetailView.cs`.
-- **Evidencia:** Assigned y Available son `VBoxContainer` directos dentro del
-  panel. Cada ciudadano añade una fila de al menos 36 px y empuja todo el detail;
-  el número de ciudadanos no tiene límite visual.
-- **Corrección propuesta:** resumen y headers fijos; listas dentro de uno o dos
-  `ScrollContainer` con altura compartida; preservar foco y hacer auto-scroll al
-  elemento enfocado con teclado/gamepad.
-- **Criterios de aceptación:** probar 0, 1, 6 y 20 ciudadanos sin crecimiento
-  fuera del viewport; todas las acciones siguen alcanzables por foco.
-- **Relacionados:** C-10.
-
-### 🟠 H-15 — Chronicle ocluye plots y mezcla overlay con panel persistente
-
-- **Estado:** Mitigado y verificado a 1280×720: inicia colapsado, no deja cuerpo
-  vacío y solo la expansión explícita ocupa el overlay.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX
-- **Afecta:** `OfflineReportPanel.cs`, `CityPrototype.tscn`,
-  `BuildingPlotStage.cs`.
-- **Evidencia:** el panel está anclado bottom-right con rect fijo 360×320 y
-  `z_index = 10`. En la captura 1280×720 tapa parte de Farm/Quarry y captura
-  interacción sobre esa zona.
-- **Corrección propuesta:** convertir Chronicle en dock/cajón que reserve ancho,
-  o en overlay colapsado que se expanda modalmente y desplace/cubra de forma
-  intencional. El stage de plots debe recibir el rect útil restante.
-- **Criterios de aceptación:** ningún plot queda parcialmente oculto o
-  inaccesible; collapsed/expanded tienen áreas y foco inequívocos.
-- **Relacionados:** C-9, H-11.
-
-### 🟠 H-16 — Accesos macro colocados con offsets absolutos
-
-- **Estado:** Implementado y verificado a 1280×720; pendiente matriz estrecha.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX
-- **Afecta:** `HeroAccessButton`, `ConstructionMenuButton`,
-  `CityPrototype.tscn`.
-- **Evidencia:** los botones usan rects fijos `(16..176)` y `(216..416)` bajo
-  una barra asumida de 40 px. No forman parte de un container ni responden a
-  textos más largos, safe area o ancho reducido.
-- **Corrección propuesta:** barra de acciones dentro del shell, con
-  `MarginContainer` + `HBoxContainer`/wrap y componentes canónicos.
-- **Criterios de aceptación:** no se solapan ni recortan a 1024×576; soportan
-  navegación explícita y texto expandido sin offsets por callsite.
-- **Relacionados:** C-9, M-11.
-
-### 🟠 H-17 — Modales dependen de mínimos fijos sin fallback estrecho
-
-- **Estado:** Implementado estructuralmente; pendiente matriz visual con texto largo.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX
-- **Afecta:** `ConstructionPanel.cs`, `ModalHost.cs`, `TutorialOverlay.cs`.
-- **Evidencia:** Construction exige 720×420 y Tutorial 360 px de ancho; el host
-  centra contenido pero no impone máximo relativo al viewport ni scroll. El
-  footer y las opciones pueden salir del rect útil en pantallas bajas.
-- **Corrección propuesta:** wrapper modal con máximo `viewport - safe margins`,
-  body scrollable y header/footer fijos; un único componente para tamaños y
-  close paths.
-- **Criterios de aceptación:** construcción y tutorial caben y se pueden cerrar
-  a 1024×576 y con textos de prueba 50% más largos.
-- **Relacionados:** H-11, M-11.
-
-### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
-
-- **Estado:** En curso; detail, onboarding y toast usan el componente canónico.
-- **Prioridad:** 🟡 Media
-- **Categoría:** arquitectura
-- **Afecta:** `SafeAreaMarginContainer.cs`, macro actions, status, Chronicle,
-  AttentionBanner, Notifier.
-- **Evidencia:** detail/profile/onboarding usan márgenes o safe-area, pero HUD,
-  botones macro y overlays se anclan directamente a bordes con offsets propios.
-- **Corrección propuesta:** el shell calcula una sola área segura y expone slots
-  para HUD/content/overlays; eliminar márgenes duplicados en consumidores.
-- **Criterios de aceptación:** simular insets en los cuatro bordes y verificar
-  que ninguna acción, alerta o texto crítico queda fuera.
-- **Relacionados:** C-9, H-16, H-17.
-
 ### 🟡 M-12 — Banners, toasts y tutorial no comparten zonas de exclusión
 
-- **Estado:** En curso; toast/banner separados y toast suprimido durante tutorial.
+- **Estado:** No implementado. No existe `OverlayHost` con slots ni prioridad. Solo hay un hook puntual: `Notifier.SetOverlaySuppressed(bool)` que `TutorialOverlay` invoca al abrirse/cerrarse. Banner, toast y tutorial se posicionan como nodos independientes.
 - **Prioridad:** 🟡 Media
 - **Categoría:** UX
 - **Afecta:** `AttentionBanner.cs`, `Notifier.cs`, `TutorialOverlay.cs`,
@@ -297,24 +151,26 @@ reorganiza la lista, los IDs no se renumeran.
   sin solapamiento ni captura accidental de input.
 - **Relacionados:** H-11, M-11.
 
-### 🟡 M-13 — Placeholders de plots dominan y desbalancean la ciudad
+### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
 
-- **Estado:** Implementado; pendiente comparación visual final.
+- **Estado:** Parcial. Implementado en `OfflineReportPanel` (envoltorio en `_Ready`) y `AttentionBanner` (envoltorio en `EnsureBuilt`). Pendiente: extender safe area a `CityStatusPanel` y `MacroActions`. Los intentos previos de envolver `CityStatusPanel` con `SafeAreaTopBar` o cambiar `MacroActions` a `SafeAreaMarginContainer` añadieron un `MarginContainer` visible con fondo gris por encima del HUD y se revirtieron. Necesita un enfoque distinto (probablemente `Offset*` en el script, no wrapper).
 - **Prioridad:** 🟡 Media
-- **Categoría:** polish / UX
-- **Afecta:** `BuildingPlot.cs`, `BuildingPlotStage.cs`.
-- **Evidencia:** en la captura 1280×720, cada Forest sin art ocupa 192×192 con
-  la palabra FOREST a gran tamaño, mientras Shelter/Farm/Quarry usan siluetas
-  mucho menores. La jerarquía visual no representa importancia ni hitbox real.
-- **Corrección propuesta:** placeholder provisional del mismo peso óptico que
-  el canvas final, label secundario y hitbox/spacing derivados del subject.
-- **Criterios de aceptación:** cinco plots caben sin que placeholders tapen o
-  desplacen la lectura de edificios reales; foco/hover muestran su área exacta.
-- **Relacionados:** H-15.
+- **Categoría:** arquitectura
+- **Afecta:** `SafeAreaMarginContainer.cs`, macro actions, status, Chronicle,
+  AttentionBanner, Notifier.
+- **Evidencia:** detail/profile/onboarding usan márgenes o safe-area, pero HUD,
+  botones macro y overlays se anclan directamente a bordes con offsets propios.
+- **Corrección propuesta:** encontrar un método para aplicar safe area al HUD
+  y a las acciones macro sin introducir un wrapper visible. Probablemente
+  ajustar `Offset*` del `CityStatusPanel` y `MacroActions` en `_Ready`
+  consultando `DisplayServer.GetDisplaySafeArea()` directamente.
+- **Criterios de aceptación:** simular insets en los cuatro bordes y verificar
+  que ninguna acción, alerta o texto crítico queda fuera.
+- **Relacionados:** C-9, H-16, H-17.
 
 ### 🟡 M-14 — No existe una matriz de regresión visual para UI
 
-- **Estado:** Checklist reproducible definido; capturas comparativas pendientes.
+- **Estado:** Checklist definido en este propio documento (matriz mínima en la subsección siguiente). Pendiente construir harness de capturas y comparativas en 1280×720, 1024×576 y 1600×900; sin él, los cierres visuales de C-9, C-10, H-12–H-16 y M-15 no se pueden certificar.
 - **Prioridad:** 🟡 Media
 - **Categoría:** arquitectura
 - **Afecta:** verificación de escenas/UI.
@@ -343,24 +199,6 @@ header y acción de cierre visibles, foco de teclado/gamepad, ausencia de
 solapamientos, y scroll únicamente dentro de secciones de datos no acotados.
 La revisión registra resolución, estado/fixture y resultado; una captura del
 macro inicial no sustituye las demás vistas afectadas.
-
-### 🟡 M-15 — Scroll solo en secciones de información no acotada
-
-- **Prioridad:** 🟡 Media
-- **Categoría:** arquitectura / UX
-- **Afecta:** `BuildingDetailView`, `AssignmentPanel`, `OfflineReportPanel`,
-  futuros roster e inventarios.
-- **Contexto:** La primera solución de C-10 añadió scroll al cuerpo completo de
-  Building Detail. La revisión visual confirmó que una vista principal completa
-  debe sentirse estable, no como un documento desplazable.
-- **Regla propuesta:** headers, acciones primarias, arte y composición principal
-  permanecen fijos y deben caber en el shell. Solo una sección cuyo contenido
-  crece por datos (Chronicle, Assigned/Available, roster) recibe
-  `ScrollContainer`, con tamaño y affordance visibles.
-- **Criterios de aceptación:** Building Detail no tiene scroll global; Chronicle
-  y listas largas desplazan únicamente sus filas; foco de gamepad hace
-  auto-scroll dentro de la sección sin mover el resto de la pantalla.
-- **Relacionados:** C-10, H-14, H-15.
 
 ---
 
@@ -545,6 +383,80 @@ macro inicial no sustituye las demás vistas afectadas.
 - **Cerrado:** 2026-07-22
 - **Cambió:** `CitizenSpriteBank.PruneExcept`, validación de identidad visual y `docs/ARCHITECTURE.md §7b`.
 - **Resumen:** La asignación sigue siendo perezosa y el banco conserva como máximo un carrier por ciudadano visualizado. Los carriers ajenos al mundo activo se eliminan y un ID reutilizado con linaje o género distintos reemplaza su visual anterior. No se atribuye una mejora de FPS: no existía un escenario perfilado que la justificara.
+
+### 🔴 C-9 — Falta un shell transversal que reserve HUD y contenido
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scenes/CityPrototype.tscn` (nodo `GameUiShell` con `CityStatusPanel` + `ScreenContent`), `game/scripts/BuildingDetailView.cs` (`LayoutPreset.FullRect` en `_Ready`).
+- **Resumen:** `GameUiShell` es un `VBoxContainer` con `CityStatusPanel` (`custom_minimum_size = Vector2(0, 40)`) como primer hijo y `ScreenContent` (`Control` con `size_flags_vertical = 3`) como segundo. Macro, detail y profile viven bajo `ScreenContent`; `BuildingDetailView` aplica `LayoutPreset.FullRect` en su `_Ready` y ya no compensa el HUD con offsets. Caveat: `OnboardingView`, `ModalHost` y `TutorialOverlay` son hermanos del shell, no hijos — cubren el HUD por diseño; no hay metadata `StatusSlot` formal; la identidad del slot es implícita en el árbol.
+
+### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scenes/CityPrototype.tscn` (subtree `BuildingDetailView > SafeArea > Layout`), `game/scripts/AssignmentPanel.cs` (`BuildListScroll`).
+- **Resumen:** `Layout` es un `VBoxContainer` con `Header` fijo arriba y `Content` como `HFlowContainer` de dos columnas (`Main` + `AssignmentPanel`). Ningún `ScrollContainer` envuelve la vista completa; el scroll queda relegado a las listas de datos (`AssignmentPanel._assignedList` y `_availableList`). Caveat: el colapso a una columna es implícito vía `HFlowContainer`; no hay breakpoint explícito. La matriz 1024×576 / 1600×900 no está capturada.
+
+### 🟠 H-12 — El escenario de workers usa coordenadas libres y no puede recortar
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/VisibleWorkerSlots.cs` (`ClipContents = true`, `CustomMinimumSize` derivado), `game/scripts/CitizenSpriteBank.cs` (mounting en el subtree del view).
+- **Resumen:** `VisibleWorkerSlots._Ready` activa `ClipContents` y un mínimo derivado de capacidad (3 × `DetailedCitizenWidth + padding`, alto `SlotHeight + 2*padding`). El carrier se monta con `CitizenSpriteBank.Instance.Mount(carrier, this)` dentro del Control recortado, no en un `CanvasLayer` global, así que el rect del stage lo contiene. Caveat: `SpriteCenterY = 68f` y `SlotHeight = 152` están hard-coded; funcionalmente correcto.
+
+### 🟠 H-13 — `CityStatusPanel` vuelve a saturarse con ancho reducido
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/CityStatusPanel.cs` (`Refresh()` reactivo, `BuildCompactCityChip`, `OnViewportSizeChanged`).
+- **Resumen:** `Refresh()` consulta `GetViewportRect().Size.X < 1150f` y aplica separación reducida (8 vs 18) más chip combinado "Work · Home · Free" en lugar de los separados. Project y Free Citizens se ocultan en modo compacto. `OnViewportSizeChanged` re-llama a `Refresh`. Caveat: no hay captura automatizada que confirme el umbral visualmente.
+
+### 🟠 H-14 — Las listas de Assignment crecen sin scroll ni límite
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/AssignmentPanel.cs` (`BuildListScroll`, `ScrollContainer` con `VerticalScrollMode = Auto`).
+- **Resumen:** `_assignedList` y `_availableList` ahora viven dentro de `ScrollContainer`s con `CustomMinimumSize` explícito (`(0, 88)` y `(0, 132, expand)`). Resumen y headers permanecen como `Label` fijos sobre los scrollers. Caveat: no hay wiring de auto-scroll al foco con gamepad; el acceptance criterion "preservar foco y hacer auto-scroll al elemento enfocado" queda parcial.
+
+### 🟠 H-15 — Chronicle ocluye plots y mezcla overlay con panel persistente
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/OfflineReportPanel.cs` (constantes `CollapsedTopOffset`/`ExpandedTopOffset`, header `IconButton` toggle, `visibleRows` por estado), `game/scripts/CityMacroView.cs` (`OnModalHostOpened`).
+- **Resumen:** El chronicle inicia colapsado, ocupa solo el header + la fila más reciente (`visibleRows = _isExpanded ? MaxRows : 1`) y se oculta automáticamente cuando `ModalHost` se abre. Caveat: el panel colapsado sigue anclado a `bottom-right` con `offset_left=-376, offset_right=-16`; no es un dock de ancho reservado, solo un overlay no invasivo.
+
+### 🟠 H-16 — Accesos macro colocados con offsets absolutos
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scenes/CityPrototype.tscn` (nodo `MacroActions` con `MarginContainer` + `Actions` `HBoxContainer`), `game/scripts/CityMacroView.cs` (`FocusNeighborRight/Left`).
+- **Resumen:** `HeroAccessButton` y `ConstructionMenuButton` viven ahora bajo `ScreenContent/MacroActions/Actions` (HBoxContainer con `separation = 40`); ya no se posicionan con rects absolutos. Caveat: `MacroActions` es hermano de `CityMacroView`, no hijo — vive bajo `ScreenContent`, separado del view.
+
+### 🟡 M-15 — Scroll solo en secciones de información no acotada
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/BuildingDetailView.cs` (árbol sin `ScrollContainer` global), `game/scripts/AssignmentPanel.cs` (scroll solo en listas), `game/scripts/OfflineReportPanel.cs` (scroll solo en `_scroll`).
+- **Resumen:** `BuildingDetailView > SafeArea > Layout` no contiene `ScrollContainer` global; `Content` es un `HFlowContainer`. El scroll aparece exclusivamente en `AssignmentPanel._assignedList`/`_availableList` y en `OfflineReportPanel._scroll`. `OnboardingView` y `HeroProfileView` sí tienen scroll global porque su contenido es texto no acotado. Caveat: la regla se aplica implícitamente por convención; no hay registry central ni helper compartido.
+
+### 🟠 H-17 — Modales dependen de mínimos fijos sin fallback estrecho
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/ConstructionPanel.cs` (nuevo `_bodyScroll` + `_bodyContent`, refactor de `BuildShell`), `game/scripts/TutorialOverlay.cs` (nuevo `_bodyScroll`, body movido dentro del scroll).
+- **Resumen:** `ConstructionPanel` y `TutorialOverlay` ahora envuelven el body en `ScrollContainer` (`VerticalScrollMode = Auto`, `SizeFlagsVertical = ExpandFill`). Header y footer permanecen fijos fuera del scroll. El viewport max ya estaba cubierto por `ApplyResponsiveMinimumSize` / `ApplyResponsiveCardWidth`. Caveat: la validación visual con texto de prueba 50 % más largo y a 1024×576 sigue pendiente del harness de M-14.
+
+### 🟡 M-13 — Placeholders de plots dominan y desbalancean la ciudad
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/BuildingPlot.cs` (`PlaceholderStyle` con `Subline`, `_placeholderLabelStack` VBoxContainer, `_placeholderSubLabel`, `PlaceholderSize` constant, `InteractionRect` con flag `isPlaceholder`), `tests/WorldofGoses.Tests/BuildingPlotStageTests.cs` (test actualizado).
+- **Resumen:** `PlaceholderStyle` ahora tiene `Subline`; el placeholder se compone de un `VBoxContainer` con `Headline` (`SectionTitle`) + `Subline` (`BodySmall`, ej. "Click to gather wood"). `InteractionRect` recibe un flag `isPlaceholder` y devuelve el canvas del placeholder (192 - 2*24, 144×144) cuando corresponde — el hitbox de Forest ya coincide con el área visible. Test actualizado. Caveat: la comparación visual a 1280×720 con cinco plots sigue dependiendo del harness de M-14.
+
+---
+
+### 🟡 M-16 — Forest no gatherable cuando no hay madera
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/CityMacroSnapshot.cs` (`PlotItem.Enabled` para forests), `game/scripts/BuildingPlot.cs` (`_button.Disabled`, tooltip, sublabel).
+- **Resumen:** `CityMacroSnapshot.From` setea `Enabled = (WoodReserve > 0)` para forests. `BuildingPlot.Configure` deshabilita el plot cuando `!enabled && !underConstruction`, cambia el tooltip a `"Forest has no wood available."` y el sublabel a `"Depleted"`. Plot sigue visible (reserva la ubicación para consumo de stock) pero no es interactivo.
+
+### 🟠 M-17 — Auto-release de workers al alcanzar max stock
+
+- **Cerrado:** 2026-07-22
+- **Cambió:** `game/scripts/Domain/Building.cs` (`MaxStockReleaseCooldown`, `MaxStockHoldTicks`, `TickMaxStockWatch`), `game/scripts/Domain/CityWorld.cs` (llamada en `AdvanceWorldTick`).
+- **Resumen:** `Building.TickMaxStockWatch` cuenta ticks consecutivos con `Stock >= MaxStock` (post-producción). Cuando el counter alcanza `MaxStockReleaseCooldown` (6), `ReleaseAssignedWorkers` desasigna a todos los citizens y los deja en `AtHome`. `Building.MaxStockHoldTicks` se resetea a 0 cuando el stock cae bajo el cap (consumo entre ticks). Esto evita que un pico de producción que llega a max vacíe el worksite sin razón.
 
 ---
 

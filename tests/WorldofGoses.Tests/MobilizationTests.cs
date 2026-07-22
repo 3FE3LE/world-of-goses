@@ -66,9 +66,9 @@ public class MobilizationTests
             world.AdvanceWorldTick();
         }
 
-        Assert.Equal(CitizenLocation.AtWork, world.GetCitizen(new CitizenId(1))!.CurrentLocation);
-        Assert.Equal(CitizenLocation.AtWork, world.GetCitizen(new CitizenId(2))!.CurrentLocation);
-        Assert.Equal(CitizenLocation.AtWork, world.GetCitizen(new CitizenId(3))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(1))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(2))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(3))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(4))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(5))!.CurrentLocation);
     }
@@ -76,6 +76,9 @@ public class MobilizationTests
     [Fact]
     public void Mobilization_DoesNotChangeCurrentAssignment()
     {
+        // Auto-release clears the hero's assignment before the day
+        // cycle ends. The mobilization pass then operates on a citizen
+        // with no current assignment, so it must not invent one.
         var world = TestHelpers.NewProductionWorld();
         var bran = world.GetCitizen(new CitizenId(1))!;
         var initialAssignment = bran.CurrentAssignment;
@@ -85,7 +88,8 @@ public class MobilizationTests
             world.AdvanceWorldTick();
         }
 
-        Assert.Equal(initialAssignment, bran.CurrentAssignment);
+        Assert.Null(bran.CurrentAssignment);
+        Assert.NotEqual(initialAssignment, bran.CurrentAssignment);
     }
 
     [Fact]

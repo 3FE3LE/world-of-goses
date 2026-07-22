@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -62,9 +63,16 @@ public partial class OfflineReportPanel : PanelContainer
         AddThemeConstantOverride("margin_top", 12);
         AddThemeConstantOverride("margin_bottom", 12);
 
+        var safeArea = new SafeAreaMarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        AddChild(safeArea);
+
         var margin = new MarginContainer();
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(margin);
+        safeArea.AddChild(margin);
 
         var shell = new VBoxContainer
         {

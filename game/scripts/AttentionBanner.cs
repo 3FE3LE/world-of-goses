@@ -37,9 +37,18 @@ public partial class AttentionBanner : PanelContainer
         MouseFilter = Control.MouseFilterEnum.Ignore;
         Visible = false;
 
+        // Wrap content in SafeAreaMarginContainer so the banner respects
+        // notches and rounded corners on devices that report a safe area.
+        var safeArea = new SafeAreaMarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        AddChild(safeArea);
+
         var align = new CenterContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         align.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        AddChild(align);
+        safeArea.AddChild(align);
 
         _label = new Label
         {

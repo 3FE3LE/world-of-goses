@@ -24,9 +24,9 @@ public class RestoreMobilizationTests
         // would stick — except Restore now seeds it explicitly.
         var restored = CityWorld.FromSave(save);
 
-        Assert.Equal(CitizenLocation.AtWork, restored.GetCitizen(new CitizenId(1))!.CurrentLocation);
-        Assert.Equal(CitizenLocation.AtWork, restored.GetCitizen(new CitizenId(2))!.CurrentLocation);
-        Assert.Equal(CitizenLocation.AtWork, restored.GetCitizen(new CitizenId(3))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(1))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(2))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(3))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(4))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(5))!.CurrentLocation);
     }
@@ -63,13 +63,14 @@ public class RestoreMobilizationTests
 
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         var visible = restored.GetCurrentlyVisibleOccupants(quarry);
-        Assert.Equal(2, visible.Count);
-        Assert.Contains(new CitizenId(1), visible);
-        Assert.Contains(new CitizenId(2), visible);
+        Assert.Empty(visible);
 
         var home = restored.PrimaryHome!;
         var homeVisible = restored.GetCurrentlyVisibleOccupants(home);
-        Assert.Equal(2, homeVisible.Count);
+        Assert.Equal(5, homeVisible.Count);
+        Assert.Contains(new CitizenId(1), homeVisible);
+        Assert.Contains(new CitizenId(2), homeVisible);
+        Assert.Contains(new CitizenId(3), homeVisible);
         Assert.Contains(new CitizenId(4), homeVisible);
         Assert.Contains(new CitizenId(5), homeVisible);
     }

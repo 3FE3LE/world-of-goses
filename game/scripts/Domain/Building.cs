@@ -31,8 +31,20 @@ namespace WorldofGoses.Domain;
 /// </summary>
 public sealed class Building
 {
+    /// <summary>
+    /// Number of consecutive ticks the building has sat at
+    /// <see cref="MaxStock"/> without any consumption. When the
+    /// counter reaches this value, all assigned workers are released
+    /// so they can be re-deployed elsewhere. Shorter than the duration
+    /// of a typical production peak in a supply chain with constant
+    /// consumption, so a temporary stock spike does not empty the
+    /// worksite.
+    /// </summary>
+    public const int MaxStockReleaseCooldown = 6;
+
     private readonly List<CitizenId> _assigned = new();
     private readonly List<RecipeInput> _pendingInputs = new();
+    private int _maxStockHoldTicks;
 
     public BuildingId Id { get; }
     public string DisplayName { get; }
@@ -76,6 +88,13 @@ public sealed class Building
     /// can see what is missing.
     /// </summary>
     public IReadOnlyList<RecipeInput> PendingInputs => _pendingInputs;
+
+    /// <summary>
+    /// Consecutive ticks the building has been at max stock. Observer
+    /// value exposed for tests and the UI; driven by
+    /// <see cref="TickMaxStockWatch"/>.
+    /// </summary>
+    public int MaxStockHoldTicks => _maxStockHoldTicks;
 
     public string ResourceLabel { get; }
     public string ResourceUnit { get; }
@@ -372,5 +391,26 @@ public sealed class Building
         {
             _pendingInputs.Add(input);
         }
+    }
+
+    /// <summary>
+    /// Tracks consecutive ticks at <see cref="MaxStock"/> and returns
+    /// <c>true</c> once the counter reaches
+    /// <see cref="MaxStockReleaseCooldown"/>. The check is done after
+    /// production so the watch fires whether the production is
+    /// supply-chain-balanced (consumption offset by production) or
+    /// supply-chain-absent (no consumption at all). The call sites are
+    /// responsible for resetting the counter when the production
+    /// stream pauses (e.g. workers exhausted, building paused).
+    /// </summary>
+    public bool TickMaxStockWatch()
+    {
+        if (Stock < MaxStock)
+        {
+            _maxStockHoldTicks = 0;
+            return false;
+        }
+        _maxStockHoldTicks++;
+        return _maxStockHoldTicks >= MaxStockReleaseCooldown;
     }
 }

@@ -19,6 +19,10 @@ namespace WorldofGoses;
 public partial class CityStatusPanel : PanelContainer
 {
     private const int ChipGap = 18;
+    /// <summary>Fixed width of the clock chip so the row never shifts when
+    /// the day digit count changes (1–3 digits). Sized to fit
+    /// "Day 99 · 23:59" at 22 px Jersey 10 plus the icon + gap.</summary>
+    private const float ClockChipWidth = 180f;
 
     private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;
@@ -69,7 +73,6 @@ public partial class CityStatusPanel : PanelContainer
     {
         _controller = controller;
         controller.WorldSaved += OnWorldSaved;
-        controller.SimulationSpeedChanged += OnSimulationSpeedChanged;
         ApplySavedChip();
     }
 
@@ -79,7 +82,6 @@ public partial class CityStatusPanel : PanelContainer
         if (_controller is not null)
         {
             _controller.WorldSaved -= OnWorldSaved;
-            _controller.SimulationSpeedChanged -= OnSimulationSpeedChanged;
         }
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageAccentChanged;
@@ -87,12 +89,6 @@ public partial class CityStatusPanel : PanelContainer
 
     private void OnViewportSizeChanged()
     {
-        if (_controller is not null) Refresh(_controller);
-    }
-
-    private void OnSimulationSpeedChanged(int speedChoice)
-    {
-        // Refresh so the chip highlights the new active speed.
         if (_controller is not null) Refresh(_controller);
     }
 
@@ -170,7 +166,10 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-        bool compact = GetViewportRect().Size.X < 1150f;
+        // Compact threshold matches the project's reference viewport width
+        // (1280×720). Below that, chips collapse to a single summary so the
+        // row never pushes the shell UI past the viewport width.
+        bool compact = GetViewportRect().Size.X < 1280f;
         _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
         foreach (var child in _row.GetChildren())
         {
@@ -216,63 +215,36 @@ public partial class CityStatusPanel : PanelContainer
         int tick = snapshot.CurrentTick;
         bool day = GameClock.IsDaytime(tick);
         string iconPath = day ? IconPaths.Sun : IconPaths.Moon;
-        var chip = new IconChip(iconPath, SimulationTimeText.Format(tick));
+        // The day field varies (1–3 digits) and even a monospaced font
+        // shifts the chip width when the digit count changes. Wrap the
+        // chip in a fixed-width Control with clip_contents so the row
+        // never reflows as the simulation advances.
+        var chip = new IconChip(iconPath, SimulationTimeText.Format(tick), "BuildingName");
         chip.TooltipText = SimulationTimeText.Format(tick);
-        _row.AddChild(chip);
+        var wrap = new Control
+        {
+            CustomMinimumSize = new Vector2(ClockChipWidth, 0),
+            ClipContents = true,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        wrap.AddChild(chip);
+        _row.AddChild(wrap);
         if (snapshot.HasController)
         {
-            _row.AddChild(BuildSpeedControl((CityWorldController.SpeedChoice)snapshot.CurrentSpeed));
-        }
-    }
-
-    /// <summary>
-    /// Compact horizontal group of speed toggles (Pause / 1× / 2× / 4×).
-    /// The active speed is highlighted; clicking any button routes
-    /// through the controller so the simulation reacts immediately.
-    /// </summary>
-    private HBoxContainer BuildSpeedControl(CityWorldController.SpeedChoice current)
-    {
-        var group = new HBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            MouseFilter = Control.MouseFilterEnum.Pass,
-        };
-        group.AddThemeConstantOverride("separation", 2);
-        AddSpeedButton(group, CityWorldController.SpeedChoice.Paused, "Pause", IconPaths.Pause, current);
-        AddSpeedButton(group, CityWorldController.SpeedChoice.Normal, "1×", IconPaths.Play, current);
-        AddSpeedButton(group, CityWorldController.SpeedChoice.Fast, "2×", IconPaths.ChevronUp, current);
-        AddSpeedButton(group, CityWorldController.SpeedChoice.Fastest, "4×", IconPaths.Expand, current);
-        return group;
-    }
-
-    private void AddSpeedButton(
-        HBoxContainer parent,
-        CityWorldController.SpeedChoice choice,
-        string label,
-        string iconPath,
-        CityWorldController.SpeedChoice current)
-    {
-        var button = new Button
-        {
-            Text = label,
-            TooltipText = choice switch
+            // Two independent buttons: PlayPause owns the pause state,
+            // SpeedButton owns the speed multiplier. The row separation
+            // gives them a visible gap without a wrapping container.
+            _row.AddChild(new PlayPauseButton
             {
-                CityWorldController.SpeedChoice.Paused => "Pause the simulation.",
-                CityWorldController.SpeedChoice.Normal => "Normal speed (1 tick per second).",
-                CityWorldController.SpeedChoice.Fast => "Fast (2 ticks per second).",
-                CityWorldController.SpeedChoice.Fastest => "Fastest (4 ticks per second).",
-                _ => label,
-            },
-            ThemeTypeVariation = choice == current ? "ButtonPrimary" : "ButtonText",
-            CustomMinimumSize = new Vector2(40, 28),
-            FocusMode = Control.FocusModeEnum.All,
-        };
-        if (current == choice)
-        {
-            button.Disabled = true;
+                ThemeTypeVariation = "ButtonText",
+                FocusMode = Control.FocusModeEnum.All,
+            });
+            _row.AddChild(new SpeedButton
+            {
+                ThemeTypeVariation = "ButtonText",
+                FocusMode = Control.FocusModeEnum.All,
+            });
         }
-        button.Pressed += () => _controller?.SetSimulationSpeed(choice);
-        parent.AddChild(button);
     }
 
     private void BuildUpkeepChip(CityStatusSnapshot snapshot)
@@ -457,7 +429,7 @@ public partial class IconChip : HBoxContainer
 
     private Label _label = null!;
 
-    public IconChip(string iconPath, string text)
+    public IconChip(string iconPath, string text, string labelVariation = "BodySmall")
     {
         MouseFilter = MouseFilterEnum.Pass;
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
@@ -489,8 +461,12 @@ public partial class IconChip : HBoxContainer
         _label = new Label
         {
             Text = text,
-            ThemeTypeVariation = "BodySmall",
+            // Pass any non-empty variation to override the default
+            // BodySmall (Pixelify Sans). The clock uses a Jersey 10
+            // variation so the digit widths stay constant across ticks.
+            ThemeTypeVariation = string.IsNullOrEmpty(labelVariation) ? "BodySmall" : labelVariation,
             VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
             MouseFilter = MouseFilterEnum.Ignore,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };

@@ -113,13 +113,23 @@ public class BuildingPlotStageTests
         var farm = BuildingPlot.InteractionRect(new Godot.Vector2(128, 128));
         var shelter = BuildingPlot.InteractionRect(new Godot.Vector2(64, 64));
         var forest = BuildingPlot.InteractionRect(null);
+        var forestExplicit = BuildingPlot.InteractionRect(new Godot.Vector2(200, 200), isPlaceholder: true);
 
         Assert.Equal(128, farm.Size.X);
         Assert.True(farm.Position.X > 0);
         Assert.Equal(96, shelter.Size.X);
         Assert.True(shelter.Position.Y > 0);
-        Assert.Equal(PresentationConstants.MacroPlotSize, forest.Size.X);
-        Assert.Equal(PresentationConstants.MacroPlotSize, forest.Size.Y);
+        // Placeholder hitbox tracks the visible placeholder canvas
+        // (192 - 2*24) instead of the full plot size.
+        int placeholderSide = PresentationConstants.MacroPlotSize - 48;
+        Assert.Equal(placeholderSide, forest.Size.X);
+        Assert.Equal(placeholderSide, forest.Size.Y);
+        Assert.Equal(24, forest.Position.X);
+        Assert.Equal(24, forest.Position.Y);
+        // Explicit isPlaceholder also returns the placeholder rect,
+        // ignoring the supplied canvas size.
+        Assert.Equal(placeholderSide, forestExplicit.Size.X);
+        Assert.Equal(placeholderSide, forestExplicit.Size.Y);
     }
 
     // ---------------- CityMacroView.DetermineMacroMode ----------------

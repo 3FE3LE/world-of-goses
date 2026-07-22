@@ -37,6 +37,7 @@ public partial class TutorialOverlay : Control
 
     private CityWorldController _controller = null!;
     private PanelContainer _card = null!;
+    private ScrollContainer _bodyScroll = null!;
     private Label _titleLabel = null!;
     private Label _bodyLabel = null!;
     private IconButton _nextButton = null!;
@@ -108,13 +109,26 @@ public partial class TutorialOverlay : Control
         };
         shell.AddChild(_titleLabel);
 
+        // Body lives in a ScrollContainer so translated or stretched copy
+        // does not push the footer out of the viewport. Title and footer
+        // stay fixed.
+        _bodyScroll = new ScrollContainer
+        {
+            Name = "BodyScroll",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        shell.AddChild(_bodyScroll);
+
         _bodyLabel = new Label
         {
             ThemeTypeVariation = "BodyText",
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        shell.AddChild(_bodyLabel);
+        _bodyScroll.AddChild(_bodyLabel);
 
         var footer = new HBoxContainer
         {

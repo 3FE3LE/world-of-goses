@@ -616,6 +616,23 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Unassigns every assigned citizen from the given building. Used
+    /// by the auto-release watch when a building has been at max stock
+    /// long enough to rule out a brief production peak and the workers
+    /// should be re-deployed elsewhere.
+    /// </summary>
+    private void ReleaseAssignedWorkers(Building building)
+    {
+        // Snapshot the ids so TryUnassignCitizen (which mutates the
+        // building's assigned list) does not invalidate the iteration.
+        var assignedIds = new List<CitizenId>(building.AssignedCitizenIds);
+        foreach (var citizenId in assignedIds)
+        {
+            TryUnassignCitizen(building.Id, citizenId);
+        }
+    }
+
+    /// <summary>
     /// Attempts to assign a citizen to a worksite. The id is shared
     /// with the future building so <see cref="Citizen.CurrentAssignment"/>
     /// remains a plain <see cref="BuildingId"/>?>.
@@ -930,6 +947,15 @@ public sealed class CityWorld
                     || building.StopCause == ProductionStopCause.WorkersExhausted)
                 {
                     RaiseBuildingChanged(building.Id);
+                }
+
+                // Auto-release workers after the building has been at
+                // max stock long enough to rule out a brief production
+                // peak. Any consumption that drops the stock below the
+                // cap resets the watch.
+                if (building.AssignedCount > 0 && building.TickMaxStockWatch())
+                {
+                    ReleaseAssignedWorkers(building);
                 }
             }
             else

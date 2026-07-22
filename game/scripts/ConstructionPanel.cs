@@ -47,7 +47,8 @@ public partial class ConstructionPanel : PanelContainer
     private bool _wasQuarryEnabled;
     private Tween? _pulseTween;
 
-    private PanelContainer _body = null!;
+    private ScrollContainer _bodyScroll = null!;
+    private VBoxContainer _bodyContent = null!;
     private Label _title = null!;
     private PanelHeader _header = null!;
     private TextureRect _constructionPreview = null!;
@@ -216,6 +217,28 @@ public partial class ConstructionPanel : PanelContainer
         _header.CloseRequested += () => EmitSignal(SignalName.CloseRequested);
         shell.AddChild(_header);
 
+        // Body is wrapped in a ScrollContainer so long descriptions, big
+        // assignment lists, or text 50 %+ longer than designed do not push
+        // the footer out of the viewport. Header and footer stay fixed.
+        _bodyScroll = new ScrollContainer
+        {
+            Name = "BodyScroll",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        shell.AddChild(_bodyScroll);
+
+        _bodyContent = new VBoxContainer
+        {
+            Name = "BodyContent",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin,
+        };
+        _bodyContent.AddThemeConstantOverride("separation", 10);
+        _bodyScroll.AddChild(_bodyContent);
+
         _constructionPreview = new TextureRect
         {
             StretchMode = TextureRect.StretchModeEnum.Keep,
@@ -224,7 +247,7 @@ public partial class ConstructionPanel : PanelContainer
             MouseFilter = Control.MouseFilterEnum.Ignore,
             Visible = false,
         };
-        shell.AddChild(_constructionPreview);
+        _bodyContent.AddChild(_constructionPreview);
 
         _title = new Label
         {
@@ -232,7 +255,7 @@ public partial class ConstructionPanel : PanelContainer
             Visible = false,
         };
         _title.ThemeTypeVariation = "ScreenTitle";
-        shell.AddChild(_title);
+        _bodyContent.AddChild(_title);
 
         _description = new Label
         {
@@ -240,11 +263,11 @@ public partial class ConstructionPanel : PanelContainer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _description.ThemeTypeVariation = "BodyText";
-        shell.AddChild(_description);
+        _bodyContent.AddChild(_description);
 
         _phaseLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
         _phaseLabel.ThemeTypeVariation = "SectionTitle";
-        shell.AddChild(_phaseLabel);
+        _bodyContent.AddChild(_phaseLabel);
 
         _progress = new ProgressBar
         {
@@ -254,7 +277,7 @@ public partial class ConstructionPanel : PanelContainer
             ShowPercentage = false,
             CustomMinimumSize = new Vector2(0, 24),
         };
-        shell.AddChild(_progress);
+        _bodyContent.AddChild(_progress);
 
         _statusLabel = new Label
         {
@@ -262,7 +285,7 @@ public partial class ConstructionPanel : PanelContainer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _statusLabel.ThemeTypeVariation = "BodyText";
-        shell.AddChild(_statusLabel);
+        _bodyContent.AddChild(_statusLabel);
 
         _contributors = new Label
         {
@@ -270,7 +293,7 @@ public partial class ConstructionPanel : PanelContainer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         _contributors.ThemeTypeVariation = "BodySmall";
-        shell.AddChild(_contributors);
+        _bodyContent.AddChild(_contributors);
 
         _requirementsLabel = new Label
         {
@@ -278,11 +301,11 @@ public partial class ConstructionPanel : PanelContainer
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             ThemeTypeVariation = "BodyText",
         };
-        shell.AddChild(_requirementsLabel);
+        _bodyContent.AddChild(_requirementsLabel);
 
         var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         lists.AddThemeConstantOverride("separation", 16);
-        shell.AddChild(lists);
+        _bodyContent.AddChild(lists);
 
         _assignList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
         _assignList.AddThemeConstantOverride("separation", 4);
@@ -297,7 +320,7 @@ public partial class ConstructionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         _errorLabel.ThemeTypeVariation = "ErrorText";
-        shell.AddChild(_errorLabel);
+        _bodyContent.AddChild(_errorLabel);
 
         var footer = new HFlowContainer
         {

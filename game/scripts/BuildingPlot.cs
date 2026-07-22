@@ -39,25 +39,31 @@ namespace WorldofGoses;
 public partial class BuildingPlot : Control
 {
     private const int PlaceholderInset = 24;
+    private static readonly Vector2 PlaceholderSize = new(
+        PresentationConstants.MacroPlotSize - PlaceholderInset * 2,
+        PresentationConstants.MacroPlotSize - PlaceholderInset * 2);
     [Signal] public delegate void BuildingClickedEventHandler(int buildingId);
 
     /// <summary>
     /// Optional visual fallback for kinds without art. When
     /// <see cref="BuildingTexturePath"/> is null, <see cref="_Ready"/>
     /// paints the plot with <see cref="Background"/> + a centred
-    /// <see cref="Headline"/> label. Both are drawn before the hit
-    /// button so clicks still fire <see cref="BuildingClicked"/>.
+    /// <see cref="Headline"/> + <see cref="Subline"/> pair. Both are
+    /// drawn before the hit button so clicks still fire
+    /// <see cref="BuildingClicked"/>.
     /// </summary>
     public readonly struct PlaceholderStyle
     {
-        public PlaceholderStyle(Color background, string headline, Color headlineColor)
+        public PlaceholderStyle(Color background, string headline, string subline, Color headlineColor)
         {
             Background = background;
             Headline = headline;
+            Subline = subline;
             HeadlineColor = headlineColor;
         }
         public Color Background { get; }
         public string Headline { get; }
+        public string Subline { get; }
         public Color HeadlineColor { get; }
     }
 
@@ -89,7 +95,9 @@ public partial class BuildingPlot : Control
 
     private TextureRect _art = null!;
     private ColorRect _placeholder = null!;
+    private VBoxContainer _placeholderLabelStack = null!;
     private Label _placeholderLabel = null!;
+    private Label _placeholderSubLabel = null!;
     private Label _label = null!;
     private TooltipButton _button = null!;
     private Panel _hitOutline = null!;
@@ -101,6 +109,7 @@ public partial class BuildingPlot : Control
         new(
             background: new Color(0.42f, 0.27f, 0.16f),
             headline: "FOREST",
+            subline: "Click to gather wood",
             headlineColor: new Color(0.96f, 0.93f, 0.86f));
 
     public override void _Ready()
@@ -125,29 +134,46 @@ public partial class BuildingPlot : Control
         {
             Color = _placeholderStyle.Background,
             Position = new Vector2(PlaceholderInset, PlaceholderInset),
-            Size = new Vector2(
-                PresentationConstants.MacroPlotSize - PlaceholderInset * 2,
-                PresentationConstants.MacroPlotSize - PlaceholderInset * 2),
+            Size = PlaceholderSize,
             Visible = BuildingTexturePath is null,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         AddChild(_placeholder);
 
-        _placeholderLabel = new Label
+        _placeholderLabelStack = new VBoxContainer
         {
-            Text = _placeholderStyle.Headline,
+            Name = "PlaceholderLabels",
             Position = new Vector2(PlaceholderInset, PlaceholderInset),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Size = new Vector2(
-                PresentationConstants.MacroPlotSize - PlaceholderInset * 2,
-                PresentationConstants.MacroPlotSize - PlaceholderInset * 2),
-            Modulate = _placeholderStyle.HeadlineColor,
-            ThemeTypeVariation = "SectionTitle",
+            Size = PlaceholderSize,
+            Alignment = BoxContainer.AlignmentMode.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
             Visible = BuildingTexturePath is null,
         };
-        AddChild(_placeholderLabel);
+        _placeholderLabelStack.AddThemeConstantOverride("separation", 2);
+        AddChild(_placeholderLabelStack);
+
+        _placeholderLabel = new Label
+        {
+            Text = _placeholderStyle.Headline,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Modulate = _placeholderStyle.HeadlineColor,
+            ThemeTypeVariation = "SectionTitle",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        _placeholderLabelStack.AddChild(_placeholderLabel);
+
+        _placeholderSubLabel = new Label
+        {
+            Text = _placeholderStyle.Subline,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Modulate = _placeholderStyle.HeadlineColor,
+            ThemeTypeVariation = "BodySmall",
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        _placeholderLabelStack.AddChild(_placeholderSubLabel);
 
         _label = new Label
         {
@@ -261,15 +287,25 @@ public partial class BuildingPlot : Control
         _progressBar.Value = System.Math.Clamp(progress, 0, _progressBar.MaxValue);
         _placeholder.Visible = texturePath is null;
         _placeholder.Color = _placeholderStyle.Background;
+        _placeholderLabelStack.Visible = texturePath is null;
         _placeholderLabel.Text = _placeholderStyle.Headline;
         _placeholderLabel.Modulate = _placeholderStyle.HeadlineColor;
-        _placeholderLabel.Visible = texturePath is null;
+        _placeholderSubLabel.Text = enabled && texturePath is null
+            ? _placeholderStyle.Subline
+            : "Depleted";
+        _placeholderSubLabel.Modulate = _placeholderStyle.HeadlineColor;
+        // Disable the plot when not under construction and the building
+        // is not gatherable (e.g. forest with no wood). Construction
+        // plots stay clickable so the player can open their progress.
+        _button.Disabled = !enabled && !underConstruction;
         _button.TooltipText = underConstruction
             ? enabled
                 ? $"Under construction — click to open progress ({progress}/{requiredWork})"
                 : "Work paused — click to open progress"
             : texturePath is null
-                ? $"Click to enter {displayName}"
+                ? enabled
+                    ? $"Click to gather wood from {displayName}"
+                    : $"{displayName} has no wood available."
                 : "Click to enter";
         UpdateInteractionGeometry();
     }
@@ -278,7 +314,7 @@ public partial class BuildingPlot : Control
     {
         if (_button is null || _hitOutline is null) return;
         Vector2? canvasSize = _art.Texture?.GetSize();
-        Rect2 interaction = InteractionRect(canvasSize);
+        Rect2 interaction = InteractionRect(canvasSize, BuildingTexturePath is null);
         _button.Position = interaction.Position;
         _button.Size = interaction.Size;
         _hitOutline.Position = interaction.Position;
@@ -288,10 +324,17 @@ public partial class BuildingPlot : Control
         _label.HorizontalAlignment = HorizontalAlignment.Center;
     }
 
-    internal static Rect2 InteractionRect(Vector2? canvasSize)
+    internal static Rect2 InteractionRect(Vector2? canvasSize, bool isPlaceholder = false)
     {
         float plotSize = PresentationConstants.MacroPlotSize;
-        if (canvasSize is null) return new Rect2(Vector2.Zero, new Vector2(plotSize, plotSize));
+        // Placeholder plots have no art, so the hitbox tracks the visible
+        // placeholder canvas (192 - 2*24) instead of the full plot.
+        if (isPlaceholder || canvasSize is null)
+        {
+            return new Rect2(
+                new Vector2(PlaceholderInset, PlaceholderInset),
+                PlaceholderSize);
+        }
 
         float width = Mathf.Max(canvasSize.Value.X, 96f);
         float artHeight = Mathf.Max(canvasSize.Value.Y, 96f);

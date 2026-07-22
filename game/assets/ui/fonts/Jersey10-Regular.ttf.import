@@ -13,7 +13,7 @@ dest_files=["res://.godot/imported/Jersey10-Regular.ttf-8cb3aec4a7648d4f0974beed
 [params]
 
 Rendering=null
-antialiasing=0
+antialiasing=1
 generate_mipmaps=false
 disable_embedded_bitmaps=true
 multichannel_signed_distance_field=false
@@ -22,9 +22,9 @@ msdf_size=48
 allow_system_fallback=true
 force_autohinter=false
 modulate_color_glyphs=false
-hinting=0
+hinting=1
 subpixel_positioning=0
-keep_rounding_remainders=false
+keep_rounding_remainders=true
 oversampling=1.0
 Fallbacks=null
 fallbacks=[]

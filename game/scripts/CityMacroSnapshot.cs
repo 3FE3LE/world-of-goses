@@ -40,12 +40,19 @@ public sealed record CityMacroSnapshot(
         var buildings = new List<PlotItem>();
         foreach (var building in world.Buildings.Values)
         {
+            // Forests are gatherable only while they still have wood in
+            // their reserve. Other buildings stay enabled in the
+            // snapshot regardless of stock; construction projects use
+            // the same field for pause state (see below).
+            bool enabled = building.Kind == Domain.BuildingKind.Forest
+                ? building.WoodReserve > 0
+                : true;
             buildings.Add(new PlotItem(
                 building.Id,
                 building.Kind,
                 building.DisplayName,
                 IsUnderConstruction: false,
-                Enabled: true,
+                Enabled: enabled,
                 Progress: 0,
                 RequiredWork: 0));
         }
