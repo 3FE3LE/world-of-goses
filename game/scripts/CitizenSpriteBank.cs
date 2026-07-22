@@ -13,25 +13,22 @@ namespace WorldofGoses;
 /// the bank for the carrier and position it; they never create
 /// sprites of their own.
 ///
-/// <para>The carrier lives in a dedicated <see cref="CanvasLayer"/>
-/// above the regular UI so the sprite can be positioned in
-/// viewport coordinates and shown above any view that asks for
-/// it.</para>
+/// <para>Inactive carriers park under the bank. The active view mounts the
+/// canonical carrier into its own visual host, so ordinary scene order,
+/// clipping, modals and scrims apply without a global overlay layer.</para>
 /// </summary>
 public partial class CitizenSpriteBank : Node
 {
     public static CitizenSpriteBank Instance { get; private set; } = null!;
 
-    private const int CarrierLayer = 50;
-
     private readonly Dictionary<CitizenId, CitizenSpriteCarrier> _carriers = new();
-    private CanvasLayer _layer = null!;
+    private Node2D _parking = null!;
 
     public override void _Ready()
     {
         Instance = this;
-        _layer = new CanvasLayer { Layer = CarrierLayer };
-        AddChild(_layer);
+        _parking = new Node2D { Name = "Parking" };
+        AddChild(_parking);
     }
 
     public override void _ExitTree()
@@ -62,7 +59,7 @@ public partial class CitizenSpriteBank : Node
         var carrier = new CitizenSpriteCarrier();
         carrier.Name = $"Carrier_{citizenId.Value}";
         carrier.Initialize(citizenId, lineage, gender);
-        _layer.AddChild(carrier);
+        _parking.AddChild(carrier);
         _carriers[citizenId] = carrier;
         return carrier;
     }
@@ -105,6 +102,17 @@ public partial class CitizenSpriteBank : Node
     /// invariant for performance tests.
     /// </summary>
     public int CarrierCount => _carriers.Count;
+
+    /// <summary>
+    /// Moves a canonical carrier into the active view's visual subtree while
+    /// preserving its global transform. Registry ownership does not depend on
+    /// scene-tree parentage.
+    /// </summary>
+    public void Mount(CitizenSpriteCarrier carrier, Node host)
+    {
+        if (!IsInstanceValid(carrier) || carrier.GetParent() == host) return;
+        carrier.Reparent(host, keepGlobalTransform: true);
+    }
 
     /// <summary>
     /// Removes carriers whose citizens no longer exist in the active world.

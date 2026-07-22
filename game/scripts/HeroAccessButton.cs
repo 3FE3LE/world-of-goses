@@ -25,7 +25,7 @@ namespace WorldofGoses;
 [GlobalClass]
 public partial class HeroAccessButton : IconButton
 {
-    [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
+    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
 
     private CityWorldController _controller = null!;
     private CityWorldController.Selection _selection = CityWorldController.Selection.MacroView;

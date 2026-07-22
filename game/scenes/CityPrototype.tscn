@@ -30,6 +30,25 @@ script = ExtResource("1_root")
 [node name="CityWorldController" type="Node" parent="."]
 script = ExtResource("2_ctrl")
 
+[node name="GameUiShell" type="VBoxContainer" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="CityStatusPanel" type="PanelContainer" parent="GameUiShell"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("5_status")
+
+[node name="ScreenContent" type="Control" parent="GameUiShell"]
+layout_mode = 2
+size_flags_vertical = 3
+
 [node name="TutorialOverlay" type="Control" parent="."]
 z_index = 50
 layout_mode = 3
@@ -54,7 +73,7 @@ offset_bottom = 130.0
 grow_horizontal = 0
 script = ExtResource("23_attention")
 
-[node name="CityMacroView" type="Control" parent="."]
+[node name="CityMacroView" type="Control" parent="GameUiShell/ScreenContent"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -64,7 +83,7 @@ grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("3_macro")
 
-[node name="Background" type="TextureRect" parent="CityMacroView"]
+[node name="Background" type="TextureRect" parent="GameUiShell/ScreenContent/CityMacroView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -75,10 +94,10 @@ mouse_filter = 2
 script = ExtResource("16_kenbg")
 TexturePath = "res://assets/ui/kenney/9-slice/ancient_grey.png"
 
-[node name="MacroCitizenActivity" type="Node2D" parent="CityMacroView"]
+[node name="MacroCitizenActivity" type="Node2D" parent="GameUiShell/ScreenContent/CityMacroView"]
 script = ExtResource("4_activity")
 
-[node name="OfflineReportPanel" type="PanelContainer" parent="CityMacroView"]
+[node name="OfflineReportPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView"]
 z_index = 10
 layout_mode = 1
 anchors_preset = 3
@@ -95,7 +114,7 @@ grow_vertical = 0
 mouse_filter = 0
 script = ExtResource("17_offrep")
 
-[node name="ModalHost" type="Control" parent="CityMacroView"]
+[node name="ModalHost" type="Control" parent="GameUiShell/ScreenContent/CityMacroView"]
 visible = false
 z_index = 20
 layout_mode = 1
@@ -107,7 +126,7 @@ grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("18_modalhost")
 
-[node name="Center" type="CenterContainer" parent="CityMacroView"]
+[node name="Center" type="CenterContainer" parent="GameUiShell/ScreenContent/CityMacroView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -115,36 +134,36 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="EmptyPanel" type="PanelContainer" parent="CityMacroView/Center"]
+[node name="EmptyPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
 custom_minimum_size = Vector2(520, 180)
 visible = false
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="CityMacroView/Center/EmptyPanel"]
+[node name="Margin" type="MarginContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="Content" type="VBoxContainer" parent="CityMacroView/Center/EmptyPanel/Margin"]
+[node name="Content" type="VBoxContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
 layout_mode = 2
 theme_type_variation = "ScreenTitle"
 text = "The city begins with one person"
 horizontal_alignment = 1
 
-[node name="EmptyStateLabel" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="EmptyStateLabel" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
 layout_mode = 2
 theme_type_variation = "BodyText"
 text = "No buildings yet. Your hero is ready for the first decision."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="GuidanceLabel" type="Label" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="GuidanceLabel" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
 layout_mode = 2
 theme_type_variation = "BodySmall"
 text = "Tip: open the Construction menu to authorise the first shelter. You will need 1 wood — gather it from a Forest."
@@ -152,7 +171,7 @@ horizontal_alignment = 1
 autowrap_mode = 2
 modulate = Color(1, 1, 1, 0.85)
 
-[node name="GatherWoodButton" type="Button" parent="CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="GatherWoodButton" type="Button" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -160,14 +179,14 @@ theme_type_variation = "ButtonPrimary"
 tooltip_text = "Send the hero to gather 2 wood from a Forest."
 text = "Gather 2 wood"
 
-[node name="ConstructionPanel" type="PanelContainer" parent="CityMacroView/Center"]
+[node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
 custom_minimum_size = Vector2(720, 420)
 z_index = 21
 layout_mode = 2
 mouse_filter = 0
 script = ExtResource("12_construction")
 
-[node name="BuildingPlotStage" type="Control" parent="CityMacroView"]
+[node name="BuildingPlotStage" type="Control" parent="GameUiShell/ScreenContent/CityMacroView"]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -178,19 +197,18 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("13_plotstage")
 
-[node name="BuildingDetailView" type="Control" parent="."]
+[node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent"]
 visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 40.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
 script = ExtResource("6_detail")
 
-[node name="DetailBackground" type="TextureRect" parent="BuildingDetailView"]
+[node name="DetailBackground" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -201,7 +219,7 @@ mouse_filter = 2
 script = ExtResource("16_kenbg")
 TexturePath = "res://assets/ui/kenney/9-slice/ancient_brown.png"
 
-[node name="SafeArea" type="MarginContainer" parent="BuildingDetailView"]
+[node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingDetailView"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -211,36 +229,37 @@ grow_vertical = 2
 script = ExtResource("20_safearea")
 minimum_inset = 24
 
-[node name="Layout" type="VBoxContainer" parent="BuildingDetailView/SafeArea"]
+[node name="Layout" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Header" type="HBoxContainer" parent="BuildingDetailView/SafeArea/Layout"]
+[node name="Header" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="BuildingDetailView/SafeArea/Layout/Header"]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Building"
 vertical_alignment = 1
 theme_type_variation = "PanelTitle"
 
-[node name="BackButton" parent="BuildingDetailView/SafeArea/Layout/Header" instance=ExtResource("19_backbutton")]
+[node name="BackButton" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" instance=ExtResource("19_backbutton")]
 layout_mode = 2
 
-[node name="Content" type="HFlowContainer" parent="BuildingDetailView/SafeArea/Layout"]
+[node name="Content" type="HFlowContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 16
 
-[node name="Main" type="VBoxContainer" parent="BuildingDetailView/SafeArea/Layout/Content"]
+[node name="Main" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="BuildingArtHeader" type="TextureRect" parent="BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
 visible = false
 custom_minimum_size = Vector2(192, 192)
 layout_mode = 2
@@ -248,42 +267,42 @@ mouse_filter = 2
 stretch_mode = 6
 expand_mode = 1
 
-[node name="VisibleWorkerSlots" type="Control" parent="BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
 custom_minimum_size = Vector2(440, 144)
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("7_slots")
 
-[node name="ProductionPanel" type="PanelContainer" parent="BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("9_prod")
 
-[node name="AssignmentPanel" type="PanelContainer" parent="BuildingDetailView/SafeArea/Layout/Content"]
+[node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_vertical = 3
 script = ExtResource("8_assign")
 
-[node name="CityStatusPanel" type="PanelContainer" parent="."]
+[node name="MacroActions" type="MarginContainer" parent="GameUiShell/ScreenContent"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 40.0
+offset_bottom = 68.0
 grow_horizontal = 2
 mouse_filter = 2
-script = ExtResource("5_status")
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
 
-[node name="HeroAccessButton" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 0.0
-anchor_bottom = 0.0
-offset_left = 16.0
-offset_top = 40.0
-offset_right = 176.0
-offset_bottom = 84.0
-grow_horizontal = 0
+[node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/MacroActions"]
+layout_mode = 2
+theme_override_constants/separation = 40
+
+[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(160, 44)
 mouse_filter = 0
 theme_type_variation = "ButtonText"
 tooltip_text = "Open the hero profile"
@@ -291,17 +310,11 @@ text = "View hero"
 script = ExtResource("14_heroaccess")
 icon_path = "res://assets/ui/icons/24/user.svg"
 button_text = "View hero"
+ControllerPath = NodePath("../../../../../CityWorldController")
 
-[node name="ConstructionMenuButton" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 2
-anchor_top = 0.0
-anchor_bottom = 0.0
-offset_left = 216.0
-offset_top = 40.0
-offset_right = 416.0
-offset_bottom = 84.0
-grow_horizontal = 0
+[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 44)
 mouse_filter = 0
 theme_type_variation = "ButtonText"
 tooltip_text = "Open the construction menu"
@@ -310,6 +323,6 @@ script = ExtResource("15_iconbtn")
 icon_path = "res://assets/ui/icons/24/building.svg"
 button_text = "Construction"
 
-[node name="HeroProfileView" parent="." instance=ExtResource("11_profile")]
+[node name="HeroProfileView" parent="GameUiShell/ScreenContent" instance=ExtResource("11_profile")]
 
 [node name="OnboardingView" parent="." instance=ExtResource("10_onboarding")]

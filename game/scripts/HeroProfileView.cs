@@ -10,7 +10,7 @@ namespace WorldofGoses;
 /// <summary>Read-only presentation of every persisted hero profile choice.</summary>
 public partial class HeroProfileView : Control
 {
-    [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
+    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
 
     private CityWorldController _controller = null!;
     private VBoxContainer _content = null!;
@@ -180,13 +180,14 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         _content.AddChild(_heroAnchor);
+        CitizenSpriteBank.Instance.Mount(_heroCarrier, _heroAnchor);
         CallDeferred(MethodName.PositionHeroCarrier);
     }
 
     private void PositionHeroCarrier()
     {
         if (_heroCarrier is null || _heroAnchor is null || !IsVisibleInTree()) return;
-        Vector2 position = _heroAnchor.GlobalPosition + new Vector2(
+        Vector2 position = new(
             _heroAnchor.Size.X * 0.5f,
             PresentationConstants.DetailedCitizenHeight * 0.5f);
         _heroCarrier.SetPositionImmediate(position);

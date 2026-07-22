@@ -28,7 +28,11 @@ public partial class AssignmentPanel : PanelContainer
     {
         CustomMinimumSize = new Vector2(220, 0);
 
-        _root = new VBoxContainer();
+        _root = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
         AddChild(_root);
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
@@ -54,16 +58,33 @@ public partial class AssignmentPanel : PanelContainer
         var assignedHeader = new Label { Text = "Assigned" };
         assignedHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(assignedHeader);
-        _assignedList = new VBoxContainer();
-        _root.AddChild(_assignedList);
+        _assignedList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _root.AddChild(BuildListScroll(_assignedList, 88));
 
         _root.AddChild(new HSeparator());
 
         var availableHeader = new Label { Text = "Available" };
         availableHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(availableHeader);
-        _availableList = new VBoxContainer();
-        _root.AddChild(_availableList);
+        _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _root.AddChild(BuildListScroll(_availableList, 132, expand: true));
+    }
+
+    private static ScrollContainer BuildListScroll(
+        Control content,
+        float minimumHeight,
+        bool expand = false)
+    {
+        var scroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(0, minimumHeight),
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = expand ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin,
+        };
+        scroll.AddChild(content);
+        return scroll;
     }
 
     public override void _ExitTree()

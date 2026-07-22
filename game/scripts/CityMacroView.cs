@@ -34,7 +34,8 @@ public partial class CityMacroView : Control
     }
 
     [Export] public NodePath ActivityPath { get; set; } = "MacroCitizenActivity";
-    [Export] public NodePath StatusPanelPath { get; set; } = "../CityStatusPanel";
+    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
+    [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
     [Export] public NodePath OfflineReportPath { get; set; } = "OfflineReportPanel";
     [Export] public NodePath ModalHostPath { get; set; } = "ModalHost";
     [Export] public NodePath EmptyPanelPath { get; set; } = "Center/EmptyPanel";
@@ -42,10 +43,10 @@ public partial class CityMacroView : Control
         "Center/EmptyPanel/Margin/Content/GuidanceLabel";
     [Export] public NodePath GatherWoodButtonPath { get; set; } =
         "Center/EmptyPanel/Margin/Content/GatherWoodButton";
-    [Export] public NodePath HeroAccessButtonPath { get; set; } = "../HeroAccessButton";
+    [Export] public NodePath HeroAccessButtonPath { get; set; } = "../MacroActions/Actions/HeroAccessButton";
     [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
-    [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../ConstructionMenuButton";
-    [Export] public NodePath AttentionBannerPath { get; set; } = "../AttentionBanner";
+    [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../MacroActions/Actions/ConstructionMenuButton";
+    [Export] public NodePath AttentionBannerPath { get; set; } = "../../../AttentionBanner";
 
     private CityWorldController _controller = null!;
     private MacroCitizenActivity _activity = null!;
@@ -66,7 +67,7 @@ public partial class CityMacroView : Control
 
     public override void _Ready()
     {
-        _controller = GetParent().GetNode<CityWorldController>("CityWorldController");
+        _controller = GetNode<CityWorldController>(ControllerPath);
         _activity = GetNode<MacroCitizenActivity>(ActivityPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
         _statusPanel.AttachController(_controller);

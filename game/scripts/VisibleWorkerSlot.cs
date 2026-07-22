@@ -27,7 +27,7 @@ public partial class VisibleWorkerSlot : Control
     // Field initializer so Configure() can set Text before _Ready().
     private readonly Label _nameLabel = new()
     {
-        Position = new Vector2(0, 2),
+        Position = new Vector2(0, PresentationConstants.DetailedCitizenHeight + 4),
         Size = new Vector2(PresentationConstants.DetailedCitizenWidth, 18),
         HorizontalAlignment = HorizontalAlignment.Center,
         MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -40,13 +40,13 @@ public partial class VisibleWorkerSlot : Control
     {
         CustomMinimumSize = new Vector2(
             PresentationConstants.DetailedCitizenWidth,
-            PresentationConstants.DetailedCitizenHeight);
+            VisibleWorkerSlots.SlotHeight);
 
         _hitArea = new TooltipButton
         {
             Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,
-                PresentationConstants.DetailedCitizenHeight),
+                VisibleWorkerSlots.SlotHeight),
             Flat = true,
             TooltipText = "Click to remove this worker",
         };
@@ -77,13 +77,21 @@ public partial class VisibleWorkerSlot : Control
         _carrier = carrier;
     }
 
+    public void MountCarrier(Node host)
+    {
+        if (_carrier is not null) CitizenSpriteBank.Instance.Mount(_carrier, host);
+    }
+
+    public bool CarrierIsHidden => _carrier is null
+        || _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
+
     /// <summary>
     /// Walks the carrier from the entry border to the slot center,
     /// then settles into the slash loop. The hit area is enabled only
     /// after the worker arrives so spurious clicks during the entry
     /// animation are ignored.
     /// </summary>
-    public void ShowAt(Vector2 entryBorderViewport, Vector2 slotCenterViewport, Action? onComplete = null)
+    public void ShowAt(Vector2 entryBorder, Vector2 slotCenter, Action? onComplete = null)
     {
         if (_carrier == null) return;
         bool wasHidden = _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
@@ -92,9 +100,9 @@ public partial class VisibleWorkerSlot : Control
         _hitArea.Disabled = true;
         if (wasHidden)
         {
-            _carrier.SetPositionImmediate(entryBorderViewport);
+            _carrier.SetPositionImmediate(entryBorder);
         }
-        _carrier.GoTo(slotCenterViewport, Vector2.Zero, () =>
+        _carrier.GoTo(slotCenter, Vector2.Zero, () =>
         {
             if (IsExiting) return;
             _hitArea.Disabled = false;
@@ -108,7 +116,7 @@ public partial class VisibleWorkerSlot : Control
     /// Walks the carrier from the slot center to the border (or
     /// wherever the consumer decides), then hides it.
     /// </summary>
-    public void HideTo(Vector2 borderViewport, Vector2 facing, Action? onComplete = null)
+    public void HideTo(Vector2 border, Vector2 facing, Action? onComplete = null)
     {
         if (_carrier == null)
         {
@@ -118,7 +126,7 @@ public partial class VisibleWorkerSlot : Control
         _hitArea.Disabled = true;
         IsExiting = true;
         _carrier.SetState(CitizenSpriteCarrier.VisualState.Exiting);
-        _carrier.GoTo(borderViewport, facing, () =>
+        _carrier.GoTo(border, facing, () =>
         {
             if (!IsExiting) return;
             _carrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
@@ -144,13 +152,13 @@ public partial class VisibleWorkerSlot : Control
     /// exit animation — the carrier turns around and walks back to
     /// the slot instead of being recreated from the other side.
     /// </summary>
-    public void ResumeTo(Vector2 slotCenterViewport, Action? onComplete = null)
+    public void ResumeTo(Vector2 slotCenter, Action? onComplete = null)
     {
         if (_carrier == null) return;
         IsExiting = false;
         _carrier.SetState(CitizenSpriteCarrier.VisualState.Entering);
         _hitArea.Disabled = true;
-        _carrier.GoTo(slotCenterViewport, Vector2.Zero, () =>
+        _carrier.GoTo(slotCenter, Vector2.Zero, () =>
         {
             if (IsExiting) return;
             _hitArea.Disabled = false;

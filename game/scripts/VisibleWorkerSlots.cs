@@ -17,7 +17,8 @@ public partial class VisibleWorkerSlots : Control
     [Signal] public delegate void CitizenClickedEventHandler(int citizenId);
 
     private const int SlotPadding = 8;
-    private const float SpriteYOffset = 126f;
+    private const float SpriteCenterY = 68f;
+    public const int SlotHeight = 152;
 
     private readonly List<VisibleWorkerSlot> _slots = new();
 
@@ -30,9 +31,10 @@ public partial class VisibleWorkerSlots : Control
 
     public override void _Ready()
     {
-        Size = new Vector2(
+        CustomMinimumSize = new Vector2(
             PresentationConstants.DetailedCitizenWidth * 3 + SlotPadding * 4,
-            PresentationConstants.DetailedCitizenHeight + SlotPadding * 2);
+            SlotHeight + SlotPadding * 2);
+        ClipContents = true;
     }
 
     /// <summary>
@@ -76,7 +78,7 @@ public partial class VisibleWorkerSlots : Control
             }
             if (!wanted.Contains(slot.CitizenId.Value))
             {
-                slot.HideTo(EntryBorderViewport(slot), Vector2.Left, () =>
+                slot.HideTo(EntryBorder(slot), Vector2.Left, () =>
                 {
                     if (IsInstanceValid(slot) && slot.IsExiting)
                     {
@@ -100,9 +102,14 @@ public partial class VisibleWorkerSlots : Control
             {
                 var existingSlot = _slots.First(s =>
                     s.BuildingId.Value == buildingId.Value && s.CitizenId.Value == citizen.Id.Value);
+                existingSlot.MountCarrier(this);
                 if (existingSlot.IsExiting)
                 {
-                    existingSlot.ResumeTo(SlotCenterViewport(existingSlot));
+                    existingSlot.ResumeTo(SlotCenter(existingSlot));
+                }
+                else if (existingSlot.CarrierIsHidden)
+                {
+                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot));
                 }
                 continue;
             }
@@ -112,7 +119,7 @@ public partial class VisibleWorkerSlots : Control
             slot.Position = ComputeSlotPosition(slotIndex);
             slot.Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,
-                PresentationConstants.DetailedCitizenHeight);
+                SlotHeight);
             slot.Configure(buildingId, citizen.Id, citizen.Name);
 
             var carrier = CitizenSpriteBank.Instance.GetOrCreate(citizen.Id, citizen.Lineage, citizen.Gender);
@@ -121,11 +128,10 @@ public partial class VisibleWorkerSlots : Control
             slot.AddToGroup(PresentationConstants.GroupVisibleWorkerSlot);
             AddChild(slot);
             _slots.Add(slot);
+            CitizenSpriteBank.Instance.Mount(carrier, this);
 
-            // Walk the carrier from the slot's left border to the
-            // slot's center in viewport coordinates.
-            Vector2 slotCenter = SlotCenterViewport(slot);
-            Vector2 entryBorder = EntryBorderViewport(slot);
+            Vector2 slotCenter = SlotCenter(slot);
+            Vector2 entryBorder = EntryBorder(slot);
             slot.ShowAt(entryBorder, slotCenter);
 
             slotIndex++;
@@ -135,9 +141,8 @@ public partial class VisibleWorkerSlots : Control
     }
 
     /// <summary>
-    /// Returns the slot's name label, hit area, etc. The carrier
-    /// lives in the bank's global CanvasLayer and is positioned in
-    /// viewport coordinates by the slot's Show/Hide methods.
+    /// Returns the slot's name label and hit area. The carrier is mounted
+    /// into this clipped stage and uses stage-local coordinates.
     /// </summary>
     private Vector2 ComputeSlotPosition(int index)
     {
@@ -146,17 +151,16 @@ public partial class VisibleWorkerSlots : Control
             SlotPadding);
     }
 
-    private Vector2 SlotCenterViewport(VisibleWorkerSlot slot)
+    private static Vector2 SlotCenter(VisibleWorkerSlot slot)
     {
         return new Vector2(
-            slot.GlobalPosition.X + PresentationConstants.DetailedCitizenWidth / 2f,
-            slot.GlobalPosition.Y + SpriteYOffset);
+            slot.Position.X + PresentationConstants.DetailedCitizenWidth / 2f,
+            slot.Position.Y + SpriteCenterY);
     }
 
-    private Vector2 EntryBorderViewport(VisibleWorkerSlot slot)
+    private static Vector2 EntryBorder(VisibleWorkerSlot slot)
     {
-        // Off-screen left, at the same vertical level as the slot.
-        return new Vector2(-200f, slot.GlobalPosition.Y + SpriteYOffset);
+        return new Vector2(-PresentationConstants.DetailedCitizenWidth, slot.Position.Y + SpriteCenterY);
     }
 
     private void ReflowSlots(BuildingId buildingId)

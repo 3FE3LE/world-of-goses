@@ -29,6 +29,7 @@ public partial class CityStatusPanel : PanelContainer
     public override void _Ready()
     {
         EnsureBuilt();
+        GetViewport().SizeChanged += OnViewportSizeChanged;
     }
 
     /// <summary>
@@ -74,6 +75,7 @@ public partial class CityStatusPanel : PanelContainer
 
     public override void _ExitTree()
     {
+        GetViewport().SizeChanged -= OnViewportSizeChanged;
         if (_controller is not null)
         {
             _controller.WorldSaved -= OnWorldSaved;
@@ -81,6 +83,11 @@ public partial class CityStatusPanel : PanelContainer
         }
         if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageAccentChanged;
+    }
+
+    private void OnViewportSizeChanged()
+    {
+        if (_controller is not null) Refresh(_controller);
     }
 
     private void OnSimulationSpeedChanged(int speedChoice)
@@ -159,6 +166,8 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
+        bool compact = GetViewportRect().Size.X < 1150f;
+        _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
         foreach (var child in _row.GetChildren())
         {
             child.QueueFree();
@@ -166,20 +175,27 @@ public partial class CityStatusPanel : PanelContainer
         _savedChip = null;
 
         BuildClockChip(snapshot);
-        BuildUpkeepChip(snapshot);
         BuildResourcesChip(snapshot);
-        BuildMobilisationChip(snapshot);
+        if (compact)
+        {
+            BuildCompactCityChip(snapshot);
+        }
+        else
+        {
+            BuildUpkeepChip(snapshot);
+            BuildMobilisationChip(snapshot);
+        }
 
         // Construction is intentionally singular in the current slice. Keep
         // one concise progress chip instead of allowing future projects to
         // grow the status strip horizontally without bound.
         if (snapshot.Projects.Count > 0)
         {
-            BuildProjectChip(snapshot.Projects[0]);
+            BuildProjectChip(snapshot.Projects[0], compact);
         }
 
         BuildAttentionChip(snapshot);
-        BuildFreeCitizensChip(snapshot);
+        if (!compact) BuildFreeCitizensChip(snapshot);
 
         if (snapshot.IsEmpty)
         {
@@ -327,16 +343,29 @@ public partial class CityStatusPanel : PanelContainer
             $"{snapshot.CitizensAtWork} at work · {snapshot.CitizensAtHome} at home"));
     }
 
-    private void BuildProjectChip(CityStatusSnapshot.ProjectItem project)
+    private void BuildProjectChip(CityStatusSnapshot.ProjectItem project, bool compact)
     {
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
-        string label = $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
-            $"({ConstructionRules.Describe(phase)}) · {project.AssignedCount}/{project.WorkerCapacity}";
+        string label = compact
+            ? $"Build {project.Progress}/{project.RequiredWork}"
+            : $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
+                $"({ConstructionRules.Describe(phase)}) · {project.AssignedCount}/{project.WorkerCapacity}";
         if (!project.Enabled) label += " · paused";
         var chip = new IconChip(IconPaths.Building, label);
         chip.TooltipText = project.Enabled
             ? $"In progress. Click the construction menu for details."
             : "Paused. Resume from the construction menu.";
+        _row.AddChild(chip);
+    }
+
+    private void BuildCompactCityChip(CityStatusSnapshot snapshot)
+    {
+        var chip = new IconChip(
+            IconPaths.User,
+            $"Work {snapshot.CitizensAtWork} · Home {snapshot.CitizensAtHome} · Free {snapshot.FreeCitizenNames.Count}");
+        chip.TooltipText = snapshot.UpkeepPerTick > 0
+            ? $"Upkeep: {snapshot.UpkeepPerTick} stone/tick"
+            : "No current upkeep";
         _row.AddChild(chip);
     }
 

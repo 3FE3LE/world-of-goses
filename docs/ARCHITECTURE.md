@@ -219,6 +219,21 @@ The numbers above live as constants in
 `game/scripts/PresentationConstants.cs` so future art can rely on the
 same anchors.
 
+### Screen composition shell
+
+`CityPrototype.tscn` owns one `GameUiShell` (`VBoxContainer`) with two
+non-overlapping regions: the persistent `CityStatusPanel` and an expanding
+`ScreenContent`. Macro, building-detail, and hero-profile screens are siblings
+inside `ScreenContent`; they no longer compensate for the status bar with
+per-screen top offsets. Full-screen onboarding and tutorial surfaces remain
+outside the shell because they intentionally cover the normal screen flow.
+
+Full views do not scroll as a default composition strategy. Scrolling belongs
+to bounded subsections whose data can grow without a practical visual limit
+(for example Chronicle entries or citizen assignment lists). The shell keeps
+screen chrome stable; each screen must still fit its primary composition in the
+available content region and delegate overflow only to the growing subsection.
+
 ## 7b. Citizen visual carrier: one citizen, one sprite
 
 The domain guarantees a single `Citizen` instance per identity. The
@@ -239,7 +254,9 @@ object that moves between contexts.
 
 - `CitizenSpriteBank` (autoload) owns a
   `Dictionary<CitizenId, CitizenSpriteCarrier>`. The bank is the only
-  place that creates and disposes sprites.
+  place that creates and disposes sprites. Inactive carriers park under the
+  bank; the active view mounts the canonical instance into its local visual
+  host so normal clipping and scene order apply.
 - `CitizenSpriteCarrier` (Node2D) wraps one `LineageSpritePlayer` and
   tracks its state — `Home`, `Entering`, `Working`, `Exiting`. It never
   has a duplicate; it is the canonical visual for one citizen.

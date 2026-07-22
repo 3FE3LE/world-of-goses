@@ -185,8 +185,9 @@ public partial class MacroCitizenActivity : Node2D
     private void PlaceWalkingHero(CityMacroSnapshot.HeroVisual hero, Vector2 parentSize)
     {
         _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(hero.Id, hero.Lineage, hero.Gender);
+        CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
         _heroBasePosition = new Vector2(parentSize.X * 0.5f, parentSize.Y * 0.6f);
-        _heroCarrier.SetPositionImmediate(ToGlobal(_heroBasePosition));
+        _heroCarrier.SetPositionImmediate(_heroBasePosition);
         _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
         _walkClock = 0f;
         _walkingRight = true;
@@ -206,9 +207,9 @@ public partial class MacroCitizenActivity : Node2D
         _walkClock += (float)delta;
         float phase = (_walkClock / WalkPeriodSeconds) * Mathf.Tau;
         float offsetX = Mathf.Sin(phase) * WalkAmplitudePx;
-        _heroCarrier.SetPositionImmediate(ToGlobal(new Vector2(
+        _heroCarrier.SetPositionImmediate(new Vector2(
             _heroBasePosition.X + offsetX,
-            _heroBasePosition.Y)));
+            _heroBasePosition.Y));
 
         bool nowRight = offsetX >= 0f;
         if (nowRight != _walkingRight)
@@ -241,7 +242,7 @@ public partial class MacroCitizenActivity : Node2D
     {
         if (_heroCarrier is null) return;
         Vector2 mouse = GetViewport().GetMousePosition();
-        Vector2 pos = _heroCarrier.Position;
+        Vector2 pos = _heroCarrier.GlobalPosition;
         float half = HeroHitboxPx * 0.5f;
         bool nowHovered = mouse.X >= pos.X - half
             && mouse.X <= pos.X + half

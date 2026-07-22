@@ -21,6 +21,12 @@ public partial class AttentionBanner : PanelContainer
 
     public override void _Ready()
     {
+        EnsureBuilt();
+    }
+
+    private void EnsureBuilt()
+    {
+        if (_label is not null) return;
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomWide);
         AddThemeConstantOverride("margin_bottom", 64);
         AddThemeConstantOverride("margin_left", 80);
@@ -50,6 +56,7 @@ public partial class AttentionBanner : PanelContainer
     /// </summary>
     public void Update(int attentionCount)
     {
+        EnsureBuilt();
         if (attentionCount == _lastAttentionCount) return;
         _lastAttentionCount = attentionCount;
         if (attentionCount <= 0)

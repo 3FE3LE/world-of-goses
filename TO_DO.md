@@ -73,7 +73,7 @@ reorganiza la lista, los IDs no se renumeran.
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
 | 🔴        | 2          | 0        | 0          | 8      | 0          |
 | 🟠        | 7          | 0        | 0          | 11     | 1          |
-| 🟡        | 4          | 0        | 0          | 9      | 4          |
+| 🟡        | 5          | 0        | 0          | 9      | 4          |
 | 🟢        | 0          | 0        | 0          | 9      | 2          |
 
 ### Cola activa (orden sugerido)
@@ -84,7 +84,7 @@ reorganiza la lista, los IDs no se renumeran.
 4. **H-12** — Contener correctamente el escenario visual de workers.
 5. **H-13 / H-14** — Hacer scrollables el status bar y las listas de workers.
 6. **H-15 / H-16 / H-17** — Corregir Chronicle, accesos macro y modales.
-7. **M-11..M-14** — Safe area, overlays, plots y matriz de regresión.
+7. **M-11..M-15** — Safe area, overlays, plots, regresión y scroll seccional.
 
 ---
 
@@ -98,6 +98,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🔴 C-9 — Falta un shell transversal que reserve HUD y contenido
 
+- **Estado:** Implementado; pendiente de cierre junto con la matriz visual del slice.
 - **Prioridad:** 🔴 Crítica
 - **Categoría:** arquitectura / UX
 - **Afecta:** `game/scenes/CityPrototype.tscn`, `CityMacroView`,
@@ -118,6 +119,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
 
+- **Estado:** En curso; shell estable y scroll global retirado por decisión de UX.
 - **Prioridad:** 🔴 Crítica
 - **Categoría:** UX
 - **Afecta:** `CityPrototype.tscn`, `BuildingDetailView.cs`,
@@ -127,10 +129,11 @@ reorganiza la lista, los IDs no se renumeran.
   AssignmentPanel sin límite. No existe `ScrollContainer`. Cuando el flujo
   envuelve o crece, el contenido excede la altura disponible; reproduce el
   desborde reportado en Quarry.
-- **Corrección propuesta:** header fijo dentro del shell; cuerpo en un
-  `ScrollContainer`; layout de dos columnas solo mientras haya ancho suficiente
-  y una columna en viewport estrecho. Definir qué bloque se encoge, cuál hace
-  scroll y mínimos reales en vez de depender de `HFlowContainer`.
+- **Corrección propuesta:** header fijo dentro del shell; layout de dos columnas
+  mientras haya ancho suficiente y una columna en viewport estrecho. La vista
+  completa no hace scroll: únicamente listas o feeds con crecimiento no acotado
+  pueden desplazarse dentro de su propia región. Definir mínimos reales en vez
+  de depender implícitamente de `HFlowContainer`.
 - **Criterios de aceptación:** todo el detail es alcanzable sin dibujar fuera
   del viewport; Back permanece visible; Quarry/Farm/Forest/Home funcionan con
   0, 1 y capacidad máxima de workers en las tres resoluciones de referencia.
@@ -138,6 +141,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-11 — No existe una política única de capas y oclusión
 
+- **Estado:** Implementado estructuralmente; pendiente de validación visual final.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** arquitectura
 - **Afecta:** `CityPrototype.tscn`, `CitizenSpriteBank.cs`, `ModalHost.cs`,
@@ -158,6 +162,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-12 — El escenario de workers usa coordenadas libres y no puede recortar
 
+- **Estado:** Implementado estructuralmente; pendiente de validación visual final.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX / arquitectura
 - **Afecta:** `VisibleWorkerSlots.cs`, `VisibleWorkerSlot.cs`,
@@ -176,6 +181,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-13 — `CityStatusPanel` vuelve a saturarse con ancho reducido
 
+- **Estado:** Implementado: modo compacto reactivo bajo 1150 px; pendiente matriz visual.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `CityStatusPanel.cs`, `CityPrototype.tscn`.
@@ -193,6 +199,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-14 — Las listas de Assignment crecen sin scroll ni límite
 
+- **Estado:** Implementado estructuralmente; pendiente de fixtures con listas largas.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `AssignmentPanel.cs`, `AssignmentRow.tscn`,
@@ -209,6 +216,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-15 — Chronicle ocluye plots y mezcla overlay con panel persistente
 
+- **Estado:** Mitigado: inicia colapsado y solo la expansión explícita ocupa el overlay.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `OfflineReportPanel.cs`, `CityPrototype.tscn`,
@@ -225,6 +233,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟠 H-16 — Accesos macro colocados con offsets absolutos
 
+- **Estado:** Implementado y verificado a 1280×720; pendiente matriz estrecha.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** UX
 - **Afecta:** `HeroAccessButton`, `ConstructionMenuButton`,
@@ -311,6 +320,24 @@ reorganiza la lista, los IDs no se renumeran.
 - **Criterios de aceptación:** cada PR de UI adjunta la matriz aplicable y
   compara rects/capturas; ningún cierre se basa únicamente en headless boot.
 - **Relacionados:** todos los ítems de esta auditoría.
+
+### 🟡 M-15 — Scroll solo en secciones de información no acotada
+
+- **Prioridad:** 🟡 Media
+- **Categoría:** arquitectura / UX
+- **Afecta:** `BuildingDetailView`, `AssignmentPanel`, `OfflineReportPanel`,
+  futuros roster e inventarios.
+- **Contexto:** La primera solución de C-10 añadió scroll al cuerpo completo de
+  Building Detail. La revisión visual confirmó que una vista principal completa
+  debe sentirse estable, no como un documento desplazable.
+- **Regla propuesta:** headers, acciones primarias, arte y composición principal
+  permanecen fijos y deben caber en el shell. Solo una sección cuyo contenido
+  crece por datos (Chronicle, Assigned/Available, roster) recibe
+  `ScrollContainer`, con tamaño y affordance visibles.
+- **Criterios de aceptación:** Building Detail no tiene scroll global; Chronicle
+  y listas largas desplazan únicamente sus filas; foco de gamepad hace
+  auto-scroll dentro de la sección sin mover el resto de la pantalla.
+- **Relacionados:** C-10, H-14, H-15.
 
 ---
 

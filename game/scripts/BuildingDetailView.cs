@@ -11,6 +11,7 @@ namespace WorldofGoses;
 /// </summary>
 public partial class BuildingDetailView : Control
 {
+    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath SlotsPath { get; set; } = "SafeArea/Layout/Content/Main/VisibleWorkerSlots";
     [Export] public NodePath AssignmentPanelPath { get; set; } = "SafeArea/Layout/Content/AssignmentPanel";
     [Export] public NodePath ProductionPanelPath { get; set; } = "SafeArea/Layout/Content/Main/ProductionPanel";
@@ -31,7 +32,7 @@ public partial class BuildingDetailView : Control
 
     public override void _Ready()
     {
-        _controller = GetParent().GetNode<CityWorldController>("CityWorldController");
+        _controller = GetNode<CityWorldController>(ControllerPath);
         _slots = RequireNode<VisibleWorkerSlots>(SlotsPath);
         _assignmentPanel = RequireNode<AssignmentPanel>(AssignmentPanelPath);
         _productionPanel = RequireNode<ProductionPanel>(ProductionPanelPath);

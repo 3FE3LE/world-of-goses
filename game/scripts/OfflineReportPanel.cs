@@ -24,14 +24,14 @@ public partial class OfflineReportPanel : PanelContainer
     private const int RowSpacing = 4;
     private const int IconSize = 14;
     private const float ExpandedTopOffset = -336f;
-    private const float CollapsedTopOffset = -128f;
+    private const float CollapsedTopOffset = -92f;
 
     private Label _summary = null!;
     private ScrollContainer _scroll = null!;
     private VBoxContainer _list = null!;
     private IconButton _collapseButton = null!;
     private IReadOnlyList<WorldEvent> _currentLiveEvents = System.Array.Empty<WorldEvent>();
-    private bool _isExpanded = true;
+    private bool _isExpanded;
     private int _compactedCount;
     private int _lastLiveEventCount = -1;
     private WorldEventId? _lastLiveEventId;
