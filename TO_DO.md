@@ -294,6 +294,7 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟡 M-13 — Placeholders de plots dominan y desbalancean la ciudad
 
+- **Estado:** Implementado; pendiente comparación visual final.
 - **Prioridad:** 🟡 Media
 - **Categoría:** polish / UX
 - **Afecta:** `BuildingPlot.cs`, `BuildingPlotStage.cs`.

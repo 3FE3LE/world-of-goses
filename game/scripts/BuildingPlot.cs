@@ -38,6 +38,7 @@ namespace WorldofGoses;
 /// </summary>
 public partial class BuildingPlot : Control
 {
+    private const int PlaceholderInset = 24;
     [Signal] public delegate void BuildingClickedEventHandler(int buildingId);
 
     /// <summary>
@@ -123,9 +124,10 @@ public partial class BuildingPlot : Control
         _placeholder = new ColorRect
         {
             Color = _placeholderStyle.Background,
+            Position = new Vector2(PlaceholderInset, PlaceholderInset),
             Size = new Vector2(
-                PresentationConstants.MacroPlotSize,
-                PresentationConstants.MacroPlotSize),
+                PresentationConstants.MacroPlotSize - PlaceholderInset * 2,
+                PresentationConstants.MacroPlotSize - PlaceholderInset * 2),
             Visible = BuildingTexturePath is null,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
@@ -134,13 +136,14 @@ public partial class BuildingPlot : Control
         _placeholderLabel = new Label
         {
             Text = _placeholderStyle.Headline,
+            Position = new Vector2(PlaceholderInset, PlaceholderInset),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Size = new Vector2(
-                PresentationConstants.MacroPlotSize,
-                PresentationConstants.MacroPlotSize),
+                PresentationConstants.MacroPlotSize - PlaceholderInset * 2,
+                PresentationConstants.MacroPlotSize - PlaceholderInset * 2),
             Modulate = _placeholderStyle.HeadlineColor,
-            ThemeTypeVariation = "GameTitle",
+            ThemeTypeVariation = "SectionTitle",
             MouseFilter = Control.MouseFilterEnum.Ignore,
             Visible = BuildingTexturePath is null,
         };
