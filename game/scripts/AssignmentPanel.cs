@@ -15,7 +15,8 @@ public partial class AssignmentPanel : PanelContainer
     [Signal] public delegate void AssignRequestedEventHandler(int citizenId);
     [Signal] public delegate void UnassignRequestedEventHandler(int citizenId);
 
-    private const int RowHeight = 22;
+    private static readonly PackedScene AssignmentRowScene =
+        GD.Load<PackedScene>("res://scenes/Components/AssignmentRow.tscn");
 
     private VBoxContainer _root = null!;
     private Label _summary = null!;
@@ -100,9 +101,12 @@ public partial class AssignmentPanel : PanelContainer
 
         foreach (var citizen in snapshot.AssignedCitizens)
         {
-            var row = BuildRow(citizen.Id, citizen.Name, "Remove", $"Remove from {snapshot.DisplayName}");
-            row.GetNode<TooltipButton>("Button").Pressed += () =>
-                EmitSignal(SignalName.UnassignRequested, citizen.Id.Value);
+            var row = InstantiateRow(
+                citizen.Id.Value,
+                citizen.Name,
+                "Remove",
+                $"Remove from {snapshot.DisplayName}");
+            row.ActionRequested += id => EmitSignal(SignalName.UnassignRequested, id);
             _assignedList.AddChild(row);
         }
     }
@@ -125,29 +129,26 @@ public partial class AssignmentPanel : PanelContainer
         foreach (var citizen in snapshot.AvailableCitizens)
         {
             bool canAssign = snapshot.AssignedCount < snapshot.WorkerCapacity;
-            var row = BuildRow(citizen.Id, citizen.Name, "Assign", $"Assign to {snapshot.DisplayName}");
-            var button = row.GetNode<TooltipButton>("Button");
-            button.Disabled = !canAssign;
-            var capturedId = citizen.Id;
-            button.Pressed += () => EmitSignal(SignalName.AssignRequested, capturedId.Value);
+            var row = InstantiateRow(
+                citizen.Id.Value,
+                citizen.Name,
+                "Assign",
+                $"Assign to {snapshot.DisplayName}",
+                disabled: !canAssign);
+            row.ActionRequested += id => EmitSignal(SignalName.AssignRequested, id);
             _availableList.AddChild(row);
         }
     }
 
-    private static HBoxContainer BuildRow(CitizenId id, string name, string actionLabel, string actionTooltip)
+    private static AssignmentRow InstantiateRow(
+        int id,
+        string name,
+        string actionLabel,
+        string actionTooltip,
+        bool disabled = false)
     {
-        var row = new HBoxContainer { CustomMinimumSize = new Vector2(0, RowHeight) };
-        var label = new Label { Text = name, SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        label.ThemeTypeVariation = "BodyText";
-        row.AddChild(label);
-        var button = new TooltipButton
-        {
-            Text = actionLabel,
-            Name = "Button",
-            TooltipText = actionTooltip,
-            ThemeTypeVariation = "ButtonText",
-        };
-        row.AddChild(button);
+        var row = AssignmentRowScene.Instantiate<AssignmentRow>();
+        row.Configure(id, name, actionLabel, actionTooltip, disabled);
         return row;
     }
 }

@@ -83,12 +83,15 @@ public partial class BuildingPlot : Control
     /// continue to render normally.
     /// </summary>
     [Export] public bool IsUnderConstruction { get; set; }
+    public int ConstructionProgress { get; private set; }
+    public int ConstructionRequiredWork { get; private set; }
 
     private TextureRect _art = null!;
     private ColorRect _placeholder = null!;
     private Label _placeholderLabel = null!;
     private Label _label = null!;
     private TooltipButton _button = null!;
+    private Panel _hitOutline = null!;
     private Label _overlay = null!;
     private PlaceholderStyle _placeholderStyle = DefaultForestStyle();
 
@@ -106,7 +109,7 @@ public partial class BuildingPlot : Control
 
         _art = new TextureRect
         {
-            StretchMode = TextureRect.StretchModeEnum.Keep,
+            StretchMode = TextureRect.StretchModeEnum.KeepCentered,
             Size = new Vector2(
                 PresentationConstants.MacroPlotSize,
                 PresentationConstants.MacroPlotSize),
@@ -140,7 +143,6 @@ public partial class BuildingPlot : Control
             MouseFilter = Control.MouseFilterEnum.Ignore,
             Visible = BuildingTexturePath is null,
         };
-        _placeholderLabel.AddThemeFontSizeOverride("font_size", 36);
         AddChild(_placeholderLabel);
 
         _label = new Label
@@ -155,7 +157,7 @@ public partial class BuildingPlot : Control
 
         _overlay = new Label
         {
-            Text = "Under construction",
+            Text = ConstructionProgressLabel(ConstructionProgress, ConstructionRequiredWork),
             HorizontalAlignment = HorizontalAlignment.Center,
             Size = new Vector2(
                 PresentationConstants.MacroPlotSize,
@@ -169,10 +171,25 @@ public partial class BuildingPlot : Control
 
         _button = new TooltipButton
         {
-            Size = new Vector2(PresentationConstants.MacroPlotSize, PresentationConstants.MacroPlotSize),
             Flat = true,
             TooltipText = BuildingTooltip,
+            FocusMode = FocusModeEnum.All,
         };
+        _hitOutline = new Panel { MouseFilter = MouseFilterEnum.Ignore };
+        var outlineStyle = new StyleBoxFlat
+        {
+            BgColor = Colors.Transparent,
+            BorderColor = LineageThemeRegistry.IconAccent,
+        };
+        outlineStyle.SetBorderWidthAll(2);
+        _hitOutline.AddThemeStyleboxOverride("panel", outlineStyle);
+        _hitOutline.Hide();
+        AddChild(_hitOutline);
+        UpdateInteractionGeometry();
+        _button.MouseEntered += _hitOutline.Show;
+        _button.MouseExited += _hitOutline.Hide;
+        _button.FocusEntered += _hitOutline.Show;
+        _button.FocusExited += _hitOutline.Hide;
         _button.Pressed += () =>
         {
             GD.Print($"BuildingPlot {Name}: click BuildingIdValue={BuildingIdValue}");
@@ -192,17 +209,26 @@ public partial class BuildingPlot : Control
     /// background, headline and headline colour; pass <c>null</c> to
     /// use the default brown "FOREST" style.
     /// </summary>
-    public void Configure(string? texturePath, string displayName, bool underConstruction, PlaceholderStyle? placeholder = null)
+    public void Configure(
+        string? texturePath,
+        string displayName,
+        bool underConstruction,
+        int progress = 0,
+        int requiredWork = 0,
+        PlaceholderStyle? placeholder = null)
     {
         BuildingTexturePath = texturePath;
         BuildingNameValue = displayName;
         IsUnderConstruction = underConstruction;
+        ConstructionProgress = progress;
+        ConstructionRequiredWork = requiredWork;
         if (placeholder is { } style) _placeholderStyle = style;
         if (_art is null) return;
         ApplyTexture();
         _label.Text = displayName;
         _label.Visible = texturePath is not null;
         _overlay.Visible = underConstruction;
+        _overlay.Text = ConstructionProgressLabel(progress, requiredWork);
         _placeholder.Visible = texturePath is null;
         _placeholder.Color = _placeholderStyle.Background;
         _placeholderLabel.Text = _placeholderStyle.Headline;
@@ -213,6 +239,42 @@ public partial class BuildingPlot : Control
             : texturePath is null
                 ? $"Click to enter {displayName}"
                 : "Click to enter";
+        UpdateInteractionGeometry();
+    }
+
+    private void UpdateInteractionGeometry()
+    {
+        if (_button is null || _hitOutline is null) return;
+        Vector2? canvasSize = _art.Texture?.GetSize();
+        Rect2 interaction = InteractionRect(canvasSize);
+        _button.Position = interaction.Position;
+        _button.Size = interaction.Size;
+        _hitOutline.Position = interaction.Position;
+        _hitOutline.Size = interaction.Size;
+        _label.Position = new Vector2(interaction.Position.X, interaction.Position.Y);
+        _label.Size = new Vector2(interaction.Size.X, 22);
+        _label.HorizontalAlignment = HorizontalAlignment.Center;
+    }
+
+    internal static Rect2 InteractionRect(Vector2? canvasSize)
+    {
+        float plotSize = PresentationConstants.MacroPlotSize;
+        if (canvasSize is null) return new Rect2(Vector2.Zero, new Vector2(plotSize, plotSize));
+
+        float width = Mathf.Max(canvasSize.Value.X, 96f);
+        float artHeight = Mathf.Max(canvasSize.Value.Y, 96f);
+        float x = (plotSize - width) * 0.5f;
+        float artTop = (plotSize - artHeight) * 0.5f;
+        float labelTop = Mathf.Max(4f, artTop - 24f);
+        float artBottom = (plotSize + artHeight) * 0.5f;
+        return new Rect2(x, labelTop, width, artBottom - labelTop);
+    }
+
+    internal static string ConstructionProgressLabel(int progress, int requiredWork)
+    {
+        if (requiredWork <= 0) return "Under construction";
+        int percent = (int)((long)System.Math.Clamp(progress, 0, requiredWork) * 100 / requiredWork);
+        return $"Construction · {percent}%";
     }
 
     private void ApplyTexture()

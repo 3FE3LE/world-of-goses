@@ -75,12 +75,8 @@ public partial class OnboardingView : Control
         background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(background);
 
-        var margin = new MarginContainer();
+        var margin = new SafeAreaMarginContainer { MinimumInset = 24 };
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        margin.AddThemeConstantOverride("margin_left", 28);
-        margin.AddThemeConstantOverride("margin_right", 28);
-        margin.AddThemeConstantOverride("margin_top", 24);
-        margin.AddThemeConstantOverride("margin_bottom", 24);
         AddChild(margin);
 
         var shell = new VBoxContainer
@@ -97,7 +93,6 @@ public partial class OnboardingView : Control
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.ThemeTypeVariation = "ScreenTitle";
-        title.AddThemeFontSizeOverride("font_size", 36);
         shell.AddChild(title);
 
         _stepLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
@@ -125,8 +120,7 @@ public partial class OnboardingView : Control
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _errorLabel.ThemeTypeVariation = "BodySmall";
-        _errorLabel.AddThemeColorOverride("font_color", new Color("ef8f7a"));
+        _errorLabel.ThemeTypeVariation = "ErrorText";
         shell.AddChild(_errorLabel);
 
         var footer = new HBoxContainer
@@ -137,9 +131,9 @@ public partial class OnboardingView : Control
         footer.AddThemeConstantOverride("separation", 10);
         shell.AddChild(footer);
 
-        _backButton = NewNavigationButton("Back");
-        _nextButton = NewNavigationButton("Next");
-        _confirmButton = NewNavigationButton("Found the city");
+        _backButton = StandardButtons.NavigationButton("Back");
+        _nextButton = StandardButtons.NavigationButton("Next");
+        _confirmButton = StandardButtons.NavigationButton("Found the city");
         _confirmButton.ThemeTypeVariation = "ButtonPrimary";
         _backButton.Pressed += OnBackPressed;
         _nextButton.Pressed += OnNextPressed;
@@ -148,14 +142,6 @@ public partial class OnboardingView : Control
         footer.AddChild(_nextButton);
         footer.AddChild(_confirmButton);
     }
-
-    private static Button NewNavigationButton(string text) => new()
-    {
-        Text = text,
-        ThemeTypeVariation = "ButtonText",
-        CustomMinimumSize = new Vector2(150, 44),
-        FocusMode = FocusModeEnum.All,
-    };
 
     private void ShowStep(int step)
     {
@@ -318,7 +304,6 @@ public partial class OnboardingView : Control
     {
         var heading = new Label { Text = title };
         heading.ThemeTypeVariation = "PanelTitle";
-        heading.AddThemeFontSizeOverride("font_size", 26);
         _page.AddChild(heading);
         AddDescription(description);
     }
@@ -327,7 +312,6 @@ public partial class OnboardingView : Control
     {
         var label = new Label { Text = text };
         label.ThemeTypeVariation = "SectionTitle";
-        label.AddThemeFontSizeOverride("font_size", 22);
         _page.AddChild(label);
     }
 
@@ -354,7 +338,7 @@ public partial class OnboardingView : Control
         var grid = NewChoiceGrid();
         foreach (var option in options)
         {
-            var button = NewChoiceButton(option.DisplayName, option.Description);
+            var button = StandardButtons.ChoiceButton(option.DisplayName, option.Description);
             button.ToggleMode = true;
             button.ButtonGroup = group;
             button.SetPressedNoSignal(selected.HasValue
@@ -379,7 +363,7 @@ public partial class OnboardingView : Control
         var grid = NewChoiceGrid();
         foreach (var option in options)
         {
-            var button = NewChoiceButton(option.DisplayName, option.Description);
+            var button = StandardButtons.ChoiceButton(option.DisplayName, option.Description);
             button.ToggleMode = true;
             button.SetPressedNoSignal(selected.Contains(option.Id));
             TId id = option.Id;
@@ -411,16 +395,6 @@ public partial class OnboardingView : Control
     {
         Columns = 2,
         SizeFlagsHorizontal = SizeFlags.ExpandFill,
-    };
-
-    private static TooltipButton NewChoiceButton(string text, string tooltip) => new()
-    {
-        Text = text,
-        TooltipText = tooltip,
-        ThemeTypeVariation = "ButtonText",
-        CustomMinimumSize = new Vector2(230, 44),
-        SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        FocusMode = FocusModeEnum.All,
     };
 
     private void OnBackPressed()

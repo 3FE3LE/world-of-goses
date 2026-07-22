@@ -104,6 +104,53 @@ public class ForestTests
     }
 
     [Fact]
+    public void DepletedForest_RemainsUntilGatheredStockIsConsumed()
+    {
+        var world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        var forest = FirstForest(world);
+
+        int gathered = world.GatherWood(forest.Id, CityWorld.StartingForestWoodReserve);
+        world.AdvanceWorldTick();
+
+        Assert.Equal(CityWorld.StartingForestWoodReserve, gathered);
+        Assert.Equal(CityWorld.StartingForestWoodReserve, world.TotalStockOf(ResourceType.Wood));
+        Assert.NotNull(world.GetBuilding(forest.Id));
+        var material = Assert.Single(
+            ConstructionSnapshot.From(world)
+                .OptionFor(ConstructionKind.BasicShelter)
+                .Materials);
+        Assert.Equal(CityWorld.StartingForestWoodReserve, material.Available);
+        var farmMaterial = Assert.Single(
+            ConstructionSnapshot.From(world)
+                .OptionFor(ConstructionKind.Farm)
+                .Materials);
+        Assert.Equal(6, farmMaterial.Required);
+        Assert.Equal(CityWorld.StartingForestWoodReserve, farmMaterial.Available);
+    }
+
+    [Fact]
+    public void DepletedForest_DoesNotGeneratePhantomWoodFromWorkers()
+    {
+        var world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        var forest = FirstForest(world);
+        var second = TestHelpers.NewCitizen(100);
+        world.RegisterCitizen(second);
+        Assert.True(world.TryAssignCitizen(forest.Id, world.Hero!.Id).IsSuccess);
+        Assert.True(world.TryAssignCitizen(forest.Id, second.Id).IsSuccess);
+        world.GatherWood(forest.Id, CityWorld.StartingForestWoodReserve);
+        int staminaBefore = world.Hero.CurrentStamina;
+
+        world.AdvanceWorldTick();
+
+        Assert.Equal(CityWorld.StartingForestWoodReserve, forest.Stock);
+        Assert.Equal(0, forest.LastTickProduction);
+        Assert.Equal(ProductionStopCause.MissingInputs, forest.StopCause);
+        Assert.Equal(staminaBefore, world.Hero.CurrentStamina);
+    }
+
+    [Fact]
     public void Recipe_BasicShelter_RequiresFourWood()
     {
         var recipe = Recipes.ConstructionRecipeFor(ConstructionKind.BasicShelter);

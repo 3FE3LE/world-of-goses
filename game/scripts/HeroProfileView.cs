@@ -45,12 +45,8 @@ public partial class HeroProfileView : Control
         background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(background);
 
-        var margin = new MarginContainer();
+        var margin = new SafeAreaMarginContainer { MinimumInset = 24 };
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        margin.AddThemeConstantOverride("margin_left", 28);
-        margin.AddThemeConstantOverride("margin_right", 28);
-        margin.AddThemeConstantOverride("margin_top", 24);
-        margin.AddThemeConstantOverride("margin_bottom", 24);
         AddChild(margin);
 
         var shell = new VBoxContainer
@@ -70,7 +66,6 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         title.ThemeTypeVariation = "ScreenTitle";
-        title.AddThemeFontSizeOverride("font_size", 36);
         header.AddChild(title);
 
         _backButton = StandardButtons.BackToCityButton();
@@ -110,56 +105,52 @@ public partial class HeroProfileView : Control
             _heroSprite = null;
         }
 
-        Citizen? hero = _controller.HeroOrNull();
+        HeroProfileSnapshot? hero = _controller.GetHeroProfileSnapshot();
         if (hero is null)
         {
             AddBody("No hero has been created yet.");
             return;
         }
 
-        CitizenProfile profile = hero.Profile;
-        LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
         AddHeroSprite(hero);
-        AddHeroName($"{hero.Name} · {lineage.DisplayName}");
+        AddHeroName($"{hero.Name} · {hero.LineageName}");
         AddBody("Role: Hero");
-        AddBody(lineage.Summary);
-        AddBody(lineage.LearningApproach);
+        AddBody(hero.LineageSummary);
+        AddBody(hero.LearningApproach);
         AddBody(
             "Lineage describes common starting paths. It does not block any profession, " +
             "set a permanent ceiling, or grant automatic production.");
 
         AddHeading("Personal aptitudes");
-        AddBody(Join(profile.Aptitudes.Select(ProfileCatalog.DisplayName)));
+        AddBody(Join(hero.Aptitudes));
 
         AddHeading("Professional affinities");
-        AddBody(Join(profile.ProfessionalAffinities.Select(ProfileCatalog.DisplayName)));
+        AddBody(Join(hero.ProfessionalAffinities));
         AddBody(
-            $"Common {lineage.DisplayName} paths: " +
-            Join(lineage.MarkedAffinities.Select(ProfileCatalog.DisplayName)));
+            $"Common {hero.LineageName} paths: " + Join(hero.MarkedAffinities));
 
         AddHeading("Element and combat");
-        AddBody($"Elemental affinity: {ProfileCatalog.DisplayName(profile.ElementalAffinity)}");
-        AddBody($"Combat style: {ProfileCatalog.DisplayName(profile.CombatStyle)}");
-        AddBody($"Weapon preferences: {Join(profile.WeaponPreferences.Select(ProfileCatalog.DisplayName))}");
-        AddBody($"Gender: {profile.Gender}");
+        AddBody($"Elemental affinity: {hero.ElementalAffinity}");
+        AddBody($"Combat style: {hero.CombatStyle}");
+        AddBody($"Weapon preferences: {Join(hero.WeaponPreferences)}");
+        AddBody($"Gender: {hero.Gender}");
 
         AddHeading("Personality and worldview");
-        AddBody($"Traits: {Join(profile.PersonalityTraits.Select(ProfileCatalog.DisplayName))}");
-        AddBody($"Political orientation: {ProfileCatalog.DisplayName(profile.PoliticalOrientation)}");
-        AddBody($"Spiritual posture: {ProfileCatalog.DisplayName(profile.SpiritualPosture)}");
+        AddBody($"Traits: {Join(hero.PersonalityTraits)}");
+        AddBody($"Political orientation: {hero.PoliticalOrientation}");
+        AddBody($"Spiritual posture: {hero.SpiritualPosture}");
 
         AddHeading("Current condition");
         AddIconBody(IconPaths.Heart, $"Stamina: {hero.CurrentStamina}/{hero.MaxStamina}");
         AddIconBody(
-            hero.CurrentLocation == CitizenLocation.AtHome ? IconPaths.House : IconPaths.Building,
-            hero.CurrentLocation == CitizenLocation.AtHome ? "At home" : "At work");
+            hero.IsAtHome ? IconPaths.House : IconPaths.Building,
+            hero.IsAtHome ? "At home" : "At work");
     }
 
     private void AddHeading(string text)
     {
         var label = new Label { Text = text };
         label.ThemeTypeVariation = "PanelTitle";
-        label.AddThemeFontSizeOverride("font_size", 26);
         _content.AddChild(label);
     }
 
@@ -170,10 +161,10 @@ public partial class HeroProfileView : Control
     /// its idle animation so the page communicates the hero is alive
     /// without forcing the player to read the body text first.
     /// </summary>
-    private void AddHeroSprite(Citizen hero)
+    private void AddHeroSprite(HeroProfileSnapshot hero)
     {
-        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Profile.Gender);
-        var scene = CharacterVisualRegistry.LoadScene(hero.Profile.Lineage, bodyVariant);
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Gender);
+        var scene = CharacterVisualRegistry.LoadScene(hero.Lineage, bodyVariant);
         _heroSprite = scene.Instantiate<LineageSpritePlayer>();
         _heroSprite.Position = new Vector2(0, 0);
         var centered = new CenterContainer
@@ -216,7 +207,6 @@ public partial class HeroProfileView : Control
 
         var label = new Label { Text = text };
         label.ThemeTypeVariation = "ScreenTitle";
-        label.AddThemeFontSizeOverride("font_size", 36);
         label.VerticalAlignment = VerticalAlignment.Center;
         row.AddChild(label);
     }

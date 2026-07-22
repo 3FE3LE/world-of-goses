@@ -1,3 +1,4 @@
+using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;
@@ -94,6 +95,19 @@ public class WorldEventLogTests
             Assert.True(log[i].Tick >= log[i - 1].Tick,
                 $"event {log[i].Id} (tick {log[i].Tick}) is out of order with previous (tick {log[i - 1].Tick})");
         }
+    }
+
+    [Fact]
+    public void CityWorld_RecordsStockCappedOnlyOnTransitionToFull()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        for (int i = 0; i < 100; i++) world.AdvanceWorldTick();
+
+        var cappedByBuilding = world.Log.Events
+            .Where(evt => evt.Kind == WorldEventKind.StockCapped)
+            .GroupBy(evt => evt.SubjectName);
+
+        Assert.All(cappedByBuilding, group => Assert.Single(group));
     }
 
     [Fact]

@@ -39,7 +39,7 @@ public partial class LineageShowcase : PanelContainer
     };
 
     private Label _label = null!;
-    private HBoxContainer _bar = null!;
+    private HFlowContainer _bar = null!;
     private GridContainer _grid = null!;
     private readonly List<(TooltipPanelContainer Panel, string Component)> _surfaces = new();
     private LineageThemeSignals? _signals;
@@ -47,7 +47,7 @@ public partial class LineageShowcase : PanelContainer
     public override void _Ready()
     {
         _label = GetNode<Label>(LabelPath);
-        _bar = GetNode<HBoxContainer>(BarPath);
+        _bar = GetNode<HFlowContainer>(BarPath);
         _grid = GetNode<GridContainer>(GridPath);
         if (LineageThemeRegistry.ActiveLineage == LineageThemeRegistry.SystemDefaultLineage)
         {
@@ -59,15 +59,14 @@ public partial class LineageShowcase : PanelContainer
             // Loading each exact resource makes opening this scene an integration check
             // for every exported bundle, independent of the active save slot.
             _ = LineageThemeRegistry.GetStyleBox(lineage, LineageThemeRegistry.ComponentPanel);
-            var button = new Button
-            {
-                Text = lineage,
-                ThemeTypeVariation = "ButtonText",
-                FocusMode = FocusModeEnum.All,
-            };
+            var button = StandardButtons.TextAction(lineage, $"Preview the {lineage} theme");
             string captured = lineage;
             button.Pressed += () => LineageThemeRegistry.ActiveLineage = captured;
             _bar.AddChild(button);
+        }
+        if (_bar.GetChildCount() > 0 && _bar.GetChild(0) is Button firstButton)
+        {
+            firstButton.GrabFocus();
         }
         _signals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
         if (_signals is not null)

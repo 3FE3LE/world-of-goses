@@ -14,6 +14,7 @@ namespace WorldofGoses.Ui;
 /// "X → close" affordance promised by the stabilisation slice without
 /// each modal having to recreate the layout.
 /// </summary>
+[GlobalClass]
 public partial class PanelHeader : HBoxContainer
 {
     /// <summary>Emitted when the player clicks the close X.</summary>
@@ -46,7 +47,7 @@ public partial class PanelHeader : HBoxContainer
         _closeButton = new IconButton
         {
             IconPath = CloseIconPath,
-            Label = string.Empty,
+            ButtonText = string.Empty,
             CustomMinimumSize = new Vector2(40, 40),
             FocusMode = Control.FocusModeEnum.All,
             TooltipText = "Close (ESC)",

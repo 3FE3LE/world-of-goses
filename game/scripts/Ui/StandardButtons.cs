@@ -13,8 +13,9 @@ namespace WorldofGoses.Ui;
 /// <see cref="Button"/> while the building detail view used an
 /// <see cref="IconButton"/> with an arrow glyph).
 ///
-/// The factory returns <see cref="IconButton"/> instances so the
-/// buttons carry the project's typography (Jersey 10 via the
+/// Canonical icon actions are PackedScene instances; lightweight text
+/// and choice actions are constructed here with the same sizing and
+/// focus policy. All carry the project's typography (Jersey 10 via the
 /// <c>ButtonText</c> theme variation defined in
 /// <c>res://assets/ui/default_theme.tres</c>) and the engine's
 /// default popup respects the Pixelify base
@@ -22,42 +23,69 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public static class StandardButtons
 {
+    private static readonly PackedScene BackToCityScene =
+        GD.Load<PackedScene>("res://scenes/Components/BackToCityButton.tscn");
+    private static readonly PackedScene ViewHeroScene =
+        GD.Load<PackedScene>("res://scenes/Components/ViewHeroButton.tscn");
+
     /// <summary>
     /// Builds the canonical "Back to city" button — arrow icon,
     /// Jersey 10 typography, "Return to the city view" tooltip. Used
     /// by the building detail view and the hero profile view.
     /// </summary>
-    public static IconButton BackToCityButton()
+    public static Button BackToCityButton()
     {
-        var button = NewBase("Back to city");
-        button.IconPath = IconPaths.ArrowLeft;
-        button.CustomMinimumSize = new Vector2(160, 44);
-        button.TooltipText = "Return to the city view";
-        return button;
+        return BackToCityScene.Instantiate<Button>();
     }
 
     /// <summary>
     /// Builds the canonical "View hero" button — user icon, Jersey
     /// 10 typography, "Open the hero profile" tooltip. Currently used
-    /// by the construction panel footer; the macro-view shortcut uses
-    /// an .tscn-instanced variant with the same properties.
+    /// by the construction panel footer and empty macro state; the
+    /// persistent macro shortcut uses an aligned behavioural subclass.
     /// </summary>
     public static IconButton ViewHeroButton()
     {
-        var button = NewBase("View hero");
-        button.IconPath = IconPaths.User;
-        button.CustomMinimumSize = new Vector2(160, 44);
-        button.TooltipText = "Open the hero profile";
-        return button;
+        return ViewHeroScene.Instantiate<IconButton>();
     }
 
-    private static IconButton NewBase(string label)
+    public static IconButton IconAction(
+        string iconPath,
+        string label,
+        string variation = "ButtonText",
+        string tooltip = "") => new()
     {
-        return new IconButton
-        {
-            Label = label,
-            ThemeTypeVariation = "ButtonText",
-            FocusMode = Control.FocusModeEnum.All,
-        };
-    }
+        IconPath = iconPath,
+        ButtonText = label,
+        TooltipText = tooltip,
+        ThemeTypeVariation = variation,
+        CustomMinimumSize = new Vector2(160, 44),
+        FocusMode = Control.FocusModeEnum.All,
+    };
+
+    public static Button TextAction(string label, string tooltip = "") => new()
+    {
+        Text = label,
+        TooltipText = tooltip,
+        ThemeTypeVariation = "ButtonText",
+        FocusMode = Control.FocusModeEnum.All,
+    };
+
+    public static Button NavigationButton(string label) => new()
+    {
+        Text = label,
+        ThemeTypeVariation = "ButtonText",
+        CustomMinimumSize = new Vector2(150, 44),
+        FocusMode = Control.FocusModeEnum.All,
+    };
+
+    public static TooltipButton ChoiceButton(string label, string tooltip) => new()
+    {
+        Text = label,
+        TooltipText = tooltip,
+        ThemeTypeVariation = "ButtonText",
+        CustomMinimumSize = new Vector2(230, 44),
+        SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        FocusMode = Control.FocusModeEnum.All,
+    };
 }

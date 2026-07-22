@@ -95,6 +95,33 @@ public class BuildingPlotStageTests
         Assert.Equal(new List<int> { 1, 2 }, toRemove);
     }
 
+    [Theory]
+    [InlineData(0, 960, "Construction · 0%")]
+    [InlineData(240, 960, "Construction · 25%")]
+    [InlineData(960, 960, "Construction · 100%")]
+    public void BuildingPlot_FormatsVisibleConstructionProgress(
+        int progress,
+        int requiredWork,
+        string expected)
+    {
+        Assert.Equal(expected, BuildingPlot.ConstructionProgressLabel(progress, requiredWork));
+    }
+
+    [Fact]
+    public void BuildingPlot_InteractionRect_MatchesVisibleArtAndLabel()
+    {
+        var farm = BuildingPlot.InteractionRect(new Godot.Vector2(128, 128));
+        var shelter = BuildingPlot.InteractionRect(new Godot.Vector2(64, 64));
+        var forest = BuildingPlot.InteractionRect(null);
+
+        Assert.Equal(128, farm.Size.X);
+        Assert.True(farm.Position.X > 0);
+        Assert.Equal(96, shelter.Size.X);
+        Assert.True(shelter.Position.Y > 0);
+        Assert.Equal(PresentationConstants.MacroPlotSize, forest.Size.X);
+        Assert.Equal(PresentationConstants.MacroPlotSize, forest.Size.Y);
+    }
+
     // ---------------- CityMacroView.DetermineMacroMode ----------------
 
     [Theory]
@@ -107,6 +134,30 @@ public class BuildingPlotStageTests
         int buildings, int projects, CityMacroView.MacroMode expected)
     {
         Assert.Equal(expected, CityMacroView.DetermineMacroMode(buildings, projects));
+    }
+
+    [Fact]
+    public void CityMacroView_ResolveModalIntent_PreservesExplicitOpenAcrossTicks()
+    {
+        bool open = CityMacroView.ResolveModalIntent(
+            CityMacroView.MacroMode.Plots,
+            CityMacroView.MacroMode.Plots,
+            currentIntent: true);
+
+        Assert.True(open);
+    }
+
+    [Fact]
+    public void CityMacroView_ResolveModalIntent_AutoOpensOnlyOnConstructionTransition()
+    {
+        Assert.True(CityMacroView.ResolveModalIntent(
+            CityMacroView.MacroMode.Empty,
+            CityMacroView.MacroMode.Construction,
+            currentIntent: false));
+        Assert.False(CityMacroView.ResolveModalIntent(
+            CityMacroView.MacroMode.Construction,
+            CityMacroView.MacroMode.Plots,
+            currentIntent: true));
     }
 
     // ---------------- ConstructionProject.ResultingKind ----------------

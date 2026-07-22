@@ -23,6 +23,7 @@ namespace WorldofGoses.Ui;
 /// instantiate <see cref="ModalHost"/>, call <see cref="Open"/> on it
 /// with any <see cref="Control"/> that already lives in the scene.
 /// </summary>
+[GlobalClass]
 public partial class ModalHost : Control
 {
     /// <summary>Emitted when <see cref="Open"/> finishes binding content.</summary>
@@ -39,6 +40,7 @@ public partial class ModalHost : Control
 
     private ColorRect _scrim = null!;
     private Control? _content;
+    private bool _scrimPressStarted;
 
     /// <summary>True while a content control is bound. Used by sibling layouts.</summary>
     public bool IsOpen => _content is not null && Visible;
@@ -78,6 +80,8 @@ public partial class ModalHost : Control
     {
         if (_content == content && IsOpen) return;
         _content = content;
+        _content.MouseFilter = MouseFilterEnum.Stop;
+        _scrimPressStarted = false;
         _content.Visible = true;
         Visible = true;
         EmitSignal(SignalName.Opened);
@@ -96,6 +100,7 @@ public partial class ModalHost : Control
             _content = null;
         }
         Visible = false;
+        _scrimPressStarted = false;
         EmitSignal(SignalName.Closed);
     }
 
@@ -118,11 +123,28 @@ public partial class ModalHost : Control
     /// </summary>
     private void OnScrimGuiInput(InputEvent @event)
     {
-        if (!IsOpen) return;
-        if (@event is InputEventMouseButton mb && mb.Pressed && mb.ButtonIndex == MouseButton.Left)
+        if (!IsOpen || @event is not InputEventMouseButton mb || mb.ButtonIndex != MouseButton.Left)
         {
-            Close();
-            GetViewport().SetInputAsHandled();
+            return;
         }
+
+        bool overContent = _content is not null && _content.GetGlobalRect().HasPoint(mb.Position);
+        if (overContent)
+        {
+            _scrimPressStarted = false;
+            return;
+        }
+
+        if (mb.Pressed)
+        {
+            _scrimPressStarted = true;
+            AcceptEvent();
+            return;
+        }
+
+        if (!_scrimPressStarted) return;
+        _scrimPressStarted = false;
+        Close();
+        AcceptEvent();
     }
 }

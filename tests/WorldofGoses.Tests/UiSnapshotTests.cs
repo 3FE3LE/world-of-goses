@@ -92,4 +92,99 @@ public sealed class UiSnapshotTests
         Assert.Empty(before.Buildings);
         Assert.Equal(2, CityStatusSnapshot.From(world).Buildings.Count);
     }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsPlotsAndCopiesEventLog()
+    {
+        var world = TestHelpers.NewHeroWorld();
+        var before = CityMacroSnapshot.From(world);
+
+        world.SeedStartingForests();
+
+        Assert.Equal(1, before.CitizenCount);
+        var citizen = Assert.Single(before.Citizens);
+        Assert.Equal("Aster", citizen.Name);
+        Assert.True(citizen.IsAvailable);
+        Assert.NotNull(before.Hero);
+        Assert.Empty(before.Buildings);
+        Assert.Equal(2, CityMacroSnapshot.From(world).Buildings.Count);
+    }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsConstructionProgress()
+    {
+        var world = TestHelpers.NewConstructionWorld();
+        var project = world.Projects.Values.Single();
+        world.TryAssignToProject(project.Id, world.Hero!.Id);
+        for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++)
+        {
+            world.AdvanceWorldTick();
+        }
+
+        var projected = Assert.Single(CityMacroSnapshot.From(world).Projects);
+
+        Assert.True(projected.IsUnderConstruction);
+        Assert.Equal(project.Progress, projected.Progress);
+        Assert.Equal(project.RequiredWork, projected.RequiredWork);
+        Assert.True(projected.Progress > 0);
+    }
+
+    [Fact]
+    public void HeroProfileSnapshot_ProjectsPresentationData()
+    {
+        var snapshot = HeroProfileSnapshot.From(TestHelpers.NewHeroWorld());
+
+        Assert.NotNull(snapshot);
+        Assert.Equal("Aster", snapshot!.Name);
+        Assert.False(string.IsNullOrWhiteSpace(snapshot.LineageName));
+        Assert.NotEmpty(snapshot.Aptitudes);
+        Assert.NotEmpty(snapshot.ProfessionalAffinities);
+        Assert.True(snapshot.MaxStamina > 0);
+    }
+
+    [Fact]
+    public void EventLog_CompactsOnlyConsecutiveAdditiveEvents()
+    {
+        var log = new WorldEventLog();
+        log.Record(1, WorldEventKind.StockProduced, "Forest", 1);
+        log.Record(2, WorldEventKind.StockProduced, "Forest", 3);
+        log.Record(3, WorldEventKind.DayBegan, "Sun");
+        log.Record(4, WorldEventKind.StockProduced, "Forest", 4);
+
+        var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
+
+        Assert.Equal(3, compacted.Count);
+        Assert.Equal(4, compacted[0].Amount);
+        Assert.Equal("Forest produced +4", compacted[0].Summary);
+        Assert.Equal(1, compacted[0].FirstTick);
+        Assert.Equal(2, compacted[0].LastTick);
+        Assert.Equal(WorldEventKind.DayBegan, compacted[1].Kind);
+        Assert.Equal(4, compacted[2].Amount);
+    }
+
+    [Fact]
+    public void EventLog_CompactsRepeatedConsecutiveStateEvents()
+    {
+        var log = new WorldEventLog();
+        log.Record(1, WorldEventKind.StockCapped, "Forest");
+        log.Record(2, WorldEventKind.StockCapped, "Forest");
+        log.Record(3, WorldEventKind.DayBegan, "Sun");
+        log.Record(4, WorldEventKind.StockCapped, "Forest");
+
+        var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
+
+        Assert.Equal(3, compacted.Count);
+        Assert.Equal(1, compacted[0].FirstTick);
+        Assert.Equal(2, compacted[0].LastTick);
+        Assert.Equal(4, compacted[2].LastTick);
+    }
+
+    [Theory]
+    [InlineData(0, "Day 1 · 00:00")]
+    [InlineData(900, "Day 1 · 06:00")]
+    [InlineData(4500, "Day 2 · 06:00")]
+    public void EventLog_FormatsSimulationTimeForPlayers(int tick, string expected)
+    {
+        Assert.Equal(expected, OfflineReportPanel.FormatSimulationDate(tick));
+    }
 }

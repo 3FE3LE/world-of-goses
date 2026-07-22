@@ -31,7 +31,7 @@ public partial class VisibleWorkerSlot : Control
     // Field initializer so Configure() can set Text before _Ready().
     private readonly Label _nameLabel = new()
     {
-        Position = new Vector2(0, -20),
+        Position = new Vector2(0, 2),
         Size = new Vector2(PresentationConstants.DetailedCitizenWidth, 18),
         HorizontalAlignment = HorizontalAlignment.Center,
         MouseFilter = Control.MouseFilterEnum.Ignore,

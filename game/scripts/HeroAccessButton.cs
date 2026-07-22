@@ -22,11 +22,13 @@ namespace WorldofGoses;
 ///   so it does not fall back to the engine default font for typography
 ///   for the icon+label row.
 /// </summary>
+[GlobalClass]
 public partial class HeroAccessButton : IconButton
 {
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
 
     private CityWorldController _controller = null!;
+    private CityWorldController.Selection _selection = CityWorldController.Selection.MacroView;
 
     public override void _Ready()
     {
@@ -54,13 +56,19 @@ public partial class HeroAccessButton : IconButton
 
     private void OnHeroStateChanged(int _) => ApplyVisibility();
 
-    private void OnSelectionChanged(int selectionState) => ApplyVisibility();
+    private void OnSelectionChanged(int selectionState)
+    {
+        _selection = (CityWorldController.Selection)selectionState;
+        ApplyVisibility();
+    }
 
     private void ApplyVisibility()
     {
         if (_controller is null) return;
-        bool hasHero = _controller.HeroOrNull() is not null;
+        bool hasHero = _controller.HasHero();
         bool inOnboarding = _controller.NeedsOnboarding();
-        Visible = hasHero && !inOnboarding;
+        Visible = hasHero
+            && !inOnboarding
+            && _selection == CityWorldController.Selection.MacroView;
     }
 }

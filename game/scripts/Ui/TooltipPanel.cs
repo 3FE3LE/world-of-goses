@@ -89,23 +89,3 @@ public static class TooltipPanel
         return panel;
     }
 }
-
-/// <summary>
-/// Plain <see cref="Button"/> subclass kept for namespace symmetry
-/// with the legacy tooltip helper. Lets view code reference a stable
-/// type for "any button-style control on which a tooltip may be
-/// configured" without forcing a wrapper that would clip the engine
-/// tooltip system. Godot's default popup uses the project's base
-/// <c>Label</c> theme (Pixelify Sans, 18 px) for the popup's internal
-/// label, so typography is consistent across the game.
-/// </summary>
-public partial class TooltipButton : Button
-{
-}
-
-/// <summary>
-/// Plain <see cref="PanelContainer"/> analogue of <see cref="TooltipButton"/>.
-/// </summary>
-public partial class TooltipPanelContainer : PanelContainer
-{
-}

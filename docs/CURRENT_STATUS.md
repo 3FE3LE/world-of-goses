@@ -23,14 +23,15 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **309 / 309 passing**.
+- xUnit suite: **327 / 327 passing**.
 - Godot headless loads the main scene and current primary slot without scene,
   resource, signal, or C# errors.
 - The current slice combines founding-hero onboarding with gender selection,
   the hero sprite walking on the empty field, interactive construction for
   Basic Shelter / Farm / Quarry, data-driven recipes with min/max stock
   policy, causal event logging with `CauseEventId` chains, wood gathering
-  from founding Forests, and 16 animated LPC lineage character variants.
+  from founding Forests, 16 animated LPC lineage character variants, and the
+  completed presentation-boundary/UI interaction stabilization slice.
 
 ## 2. Founding-hero slice (with gender identity)
 
@@ -124,6 +125,13 @@ so the offline report can surface causal chains. The `OfflineReportPanel`
 groups `ProductionBlocked` events by subject and renders a compact
 "Decisions needed" list above the chronological rows.
 
+The player-facing Chronicle compacts consecutive equivalent production events
+into one accumulated row, suppresses repeated steady-state notices, and formats
+timestamps as simulated `Day N · HH:mm` values. Its count reflects rendered
+entries rather than raw repetitions. Collapsed mode shows only the latest entry;
+expanding restores the bounded scrollable history without changing simulation
+state.
+
 ## 6. Existing city systems retained as concepts
 
 The domain still contains buildings, production policies, assignments, stamina,
@@ -176,6 +184,15 @@ runtime through `LineageThemeRegistry`; missing components fall back to the same
 lineage panel and then the project default. `LineageShowcase.tscn` exercises all
 eight packs and the expected component fallbacks. The reference viewport is
 1280×720 with responsive Control containers.
+
+The UI stabilization slice is closed. Shared navigation and assignment actions
+use canonical components/factories with visible text, consistent metrics,
+contrast-safe state colours, hover/focus feedback, and safe-area offsets.
+Building plots derive interaction bounds from the visible subject rather than a
+legacy container: Forest keeps its territorial footprint, while Shelter, Farm,
+Quarry, construction stages, and citizen labels align to their rendered art.
+Clicking an in-progress construction opens its progress panel, and assignment
+changes update both detail and macro citizen representations immediately.
 
 ### Tooltips
 
@@ -251,26 +268,24 @@ keeping the triplet intact for future slices that re-expose it.
 - Building art remains provisional. Detailed citizens now use the imported LPC
   set; Forest plots render without art (no `forest_idle.png` yet) so the
   detail view shows only the gather panel.
+- The macro layout is still fixed rather than player-placeable. A future city
+  growth slice must choose between authored expansion zones and an explicit
+  placement/move mode; ordinary building clicks must not become accidental drag.
 - There is no automated Godot UI test harness; headless boot and manual flow
   verification remain required.
 
 ## 11. Recommended next slice
 
-Run a short **presentation-boundary and UI observability hardening slice** before
-adding another mechanic:
+The presentation-boundary and UI interaction hardening slice is complete.
+Before adding mechanics, make one explicit product decision for city growth:
+authored expansion zones with contextual relocation, or a deliberate placement
+mode with grid/snap, collision validation, confirm, and cancel. Do not make plots
+freely draggable during normal navigation.
 
-1. Add explicit empty/blocked/decision states using the new snapshots and verify
-   keyboard/gamepad focus,
-   16:9 plus ultrawide resizing, nearest filtering, and integer pixel placement.
-
-The prerequisite cleanup is complete: event icon paths live in presentation,
-`DomainBoundaryTests` prevents Godot/resource-path regressions, construction
-cancellation conserves resources, `ConstructionPanel` uses named handlers that
-unsubscribe correctly, and the target UI panels consume immutable
-controller-owned snapshots rather than traversing `CityWorld`.
-
-After that stabilization proof, choose between the skill-system hook and a
-small production-chain slice using the player-visible gaps found in the UI.
+After that decision, choose one bounded proof: either the skill-system hook or
+a small production-chain slice. The persistent status bar should remain a
+compact situational summary; deeper building/resource axes belong in an
+on-demand city overview rather than expanding the HUD per building.
 
 ## 12. Verification commands
 
@@ -281,7 +296,7 @@ From `C:\dev\world-of-goses`:
 cd game
 dotnet build
 
-# 2. Run the full test suite. Expect 309 passing.
+# 2. Run the full test suite. Expect 327 passing.
 cd ../tests/WorldofGoses.Tests
 dotnet test
 
@@ -320,7 +335,7 @@ by explicit test scenarios, not by production startup data.
 The current baseline was verified with:
 
 - `dotnet build game/World of Goses.csproj` — 0 warnings, 0 errors.
-- `dotnet test tests/WorldofGoses.Tests/WorldofGoses.Tests.csproj --no-build` — 309 passing.
+- `dotnet test tests/WorldofGoses.Tests/WorldofGoses.Tests.csproj --no-build` — 327 passing.
 - Godot 4.7.1 `.NET` headless editor boot — current scene/slot loaded with no
   C# or scene errors; shutdown reported only `Scan thread aborted` while the
   editor filesystem scan was being stopped by `--quit-after`.
@@ -349,6 +364,8 @@ These are open design questions, not permission to reintroduce a starter seed.
 - Construction: `game/scripts/ConstructionPanel.cs`, domain construction types
 - Forest gather: `game/scripts/ForestGatherPanel.cs`
 - Event log: `game/scripts/Domain/WorldEventLog.cs`, `game/scripts/OfflineReportPanel.cs`
+- Reusable UI: `game/scripts/Ui/`, `game/scenes/Components/`
+- Presentation snapshots: `game/scripts/*Snapshot.cs`
 - Lineage themes: `game/scripts/LineageThemeRegistry.cs`, `game/assets/ui/lineages/`
 - Lineage characters: `game/assets/characters/lineages/`, `game/scripts/visual/`
 - Walking hero: `game/scripts/MacroCitizenActivity.cs`

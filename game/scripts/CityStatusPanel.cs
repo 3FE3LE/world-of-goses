@@ -108,16 +108,15 @@ public partial class CityStatusPanel : PanelContainer
         BuildWoodChip(snapshot);
         BuildMobilisationChip(snapshot);
 
-        foreach (var project in snapshot.Projects)
+        // Construction is intentionally singular in the current slice. Keep
+        // one concise progress chip instead of allowing future projects to
+        // grow the status strip horizontally without bound.
+        if (snapshot.Projects.Count > 0)
         {
-            BuildProjectChip(project);
+            BuildProjectChip(snapshot.Projects[0]);
         }
 
-        foreach (var building in snapshot.Buildings)
-        {
-            BuildBuildingChip(building);
-        }
-
+        BuildAttentionChip(snapshot);
         BuildFreeCitizensChip(snapshot);
 
         if (snapshot.IsEmpty)
@@ -131,10 +130,8 @@ public partial class CityStatusPanel : PanelContainer
     {
         int tick = snapshot.CurrentTick;
         bool day = GameClock.IsDaytime(tick);
-        int dayNumber = GameClock.DayNumber(tick);
-        int hour = (int)(GameClock.DayFraction(tick) * 24);
         string iconPath = day ? IconPaths.Sun : IconPaths.Moon;
-        _row.AddChild(new IconChip(iconPath, $"Day {dayNumber} · {hour:D2}:00"));
+        _row.AddChild(new IconChip(iconPath, SimulationTimeText.Format(tick)));
     }
 
     private void BuildUpkeepChip(CityStatusSnapshot snapshot)
@@ -192,10 +189,29 @@ public partial class CityStatusPanel : PanelContainer
 
     private void BuildFreeCitizensChip(CityStatusSnapshot snapshot)
     {
-        string label = snapshot.FreeCitizenNames.Count == 0
-            ? "no free citizens"
-            : string.Join(", ", snapshot.FreeCitizenNames);
-        _row.AddChild(new IconChip(IconPaths.User, $"Free: {label}"));
+        _row.AddChild(new IconChip(
+            IconPaths.User,
+            $"Free citizens: {snapshot.FreeCitizenNames.Count}"));
+    }
+
+    private void BuildAttentionChip(CityStatusSnapshot snapshot)
+    {
+        int attentionCount = 0;
+        foreach (var building in snapshot.Buildings)
+        {
+            if (building.StopCause is ProductionStopCause.NoWorkers
+                or ProductionStopCause.WorkersExhausted
+                or ProductionStopCause.MissingInputs)
+            {
+                attentionCount++;
+            }
+        }
+        if (attentionCount > 0)
+        {
+            _row.AddChild(new IconChip(
+                IconPaths.Warning,
+                $"Needs attention: {attentionCount}"));
+        }
     }
 
     private void BuildHeroChip(CityStatusSnapshot snapshot)

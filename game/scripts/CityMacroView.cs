@@ -1,6 +1,6 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -55,6 +55,7 @@ public partial class CityMacroView : Control
     private bool _offlineReportShown;
     private IconButton _constructionMenuButton = null!;
     private bool _modalWantsOpen;
+    private MacroMode? _lastMacroMode;
 
     public override void _Ready()
     {
@@ -75,10 +76,14 @@ public partial class CityMacroView : Control
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
         _plotStage.BuildingClicked += OnPlotBuildingClicked;
+        _plotStage.ProjectClicked += OnPlotProjectClicked;
         _heroProfileButton.Pressed += OnHeroProfilePressed;
         _constructionMenuButton.Pressed += OnConstructionMenuPressed;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
         _modalHost.Closed += OnModalHostClosed;
+
+        _heroProfileButton.FocusNeighborRight = _constructionMenuButton.GetPath();
+        _constructionMenuButton.FocusNeighborLeft = _heroProfileButton.GetPath();
 
         Visible = !_controller.NeedsOnboarding();
         if (Visible) Refresh();
@@ -97,6 +102,7 @@ public partial class CityMacroView : Control
         if (_plotStage is not null)
         {
             _plotStage.BuildingClicked -= OnPlotBuildingClicked;
+            _plotStage.ProjectClicked -= OnPlotProjectClicked;
         }
         if (_heroProfileButton is not null)
         {
@@ -124,10 +130,10 @@ public partial class CityMacroView : Control
     private void OnModalHostClosed()
     {
         _modalWantsOpen = false;
-        UpdateConstructionMenuButton(
-            DetermineMacroMode(
-                _controller.World.Buildings.Count,
-                _controller.World.Projects.Count));
+        var snapshot = _controller.GetCityMacroSnapshot();
+        UpdateConstructionMenuButton(DetermineMacroMode(
+            snapshot.Buildings.Count,
+            snapshot.Projects.Count));
     }
 
     public void OnReturnedToCity()
@@ -139,43 +145,48 @@ public partial class CityMacroView : Control
 
     private void Refresh()
     {
+        var snapshot = _controller.GetCityMacroSnapshot();
         _statusPanel.Refresh(_controller);
-        _activity.Hero = _controller.HeroOrNull();
+        _activity.Hero = snapshot.Hero;
         _activity.Populate(
-            _controller.Citizens().Count,
-            _controller.World.Buildings.Count,
-            _controller.World.Projects.Count);
+            snapshot.Citizens,
+            snapshot.Buildings.Count,
+            snapshot.Projects.Count);
         _constructionPanel.Refresh();
 
         var mode = DetermineMacroMode(
-            _controller.World.Buildings.Count,
-            _controller.World.Projects.Count);
+            snapshot.Buildings.Count,
+            snapshot.Projects.Count);
 
         _emptyPanel.Visible = mode == MacroMode.Empty;
-        // Auto-open the modal when the player has an in-flight project
-        // but no buildings yet — that way Construction progress is the
-        // canonical surface for assigning contributors. After they
-        // have buildings they must explicitly reopen via the menu
-        // button, because the macro view starts showing plots.
-        _modalWantsOpen = mode == MacroMode.Construction;
+        // Preserve the player's explicit open/closed choice across world
+        // ticks. Only a real macro-mode transition may change it
+        // automatically; production updates in the same mode must not
+        // close an open construction menu.
+        _modalWantsOpen = ResolveModalIntent(_lastMacroMode, mode, _modalWantsOpen);
+        _lastMacroMode = mode;
         SyncModalHost();
-        _plotStage.Visible = !_modalHost.IsOpen
-            && (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction);
+        // The worksite is part of the city state, not modal content. Keep it
+        // rendered while Construction progress is open; ModalHost still owns
+        // input through its scrim, but assignment refreshes no longer make the
+        // Quarry/Farm visually disappear.
+        _plotStage.Visible = mode is MacroMode.Plots or MacroMode.PlotsAndConstruction;
         _constructionMenuButton.Visible = mode is MacroMode.Plots
             or MacroMode.PlotsAndConstruction
             or MacroMode.Empty
             or MacroMode.Construction;
         UpdateConstructionMenuButton(mode);
+        EnsureDefaultFocus(mode);
 
         if (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction)
         {
-            _plotStage.Render(
-                _controller.World.Buildings.Values.ToList(),
-                _controller.World.Projects.Values.ToList());
+            _plotStage.Render(snapshot.Buildings, snapshot.Projects);
         }
         else
         {
-            _plotStage.Render(Array.Empty<Building>(), Array.Empty<ConstructionProject>());
+            _plotStage.Render(
+                Array.Empty<CityMacroSnapshot.PlotItem>(),
+                Array.Empty<CityMacroSnapshot.PlotItem>());
         }
 
         if (!_offlineReportShown
@@ -186,7 +197,7 @@ public partial class CityMacroView : Control
         }
         else
         {
-            _offlineReport.ShowLog(_controller.World.Log.Events);
+            _offlineReport.ShowLog(snapshot.Events);
         }
     }
 
@@ -255,6 +266,17 @@ public partial class CityMacroView : Control
         return MacroMode.PlotsAndConstruction;
     }
 
+    internal static bool ResolveModalIntent(
+        MacroMode? previousMode,
+        MacroMode currentMode,
+        bool currentIntent)
+    {
+        if (previousMode == currentMode) return currentIntent;
+        if (currentMode == MacroMode.Construction) return true;
+        if (previousMode == MacroMode.Construction) return false;
+        return currentIntent;
+    }
+
     private void OnHeroCreated(int citizenId)
     {
         Show();
@@ -284,6 +306,31 @@ public partial class CityMacroView : Control
     private void OnPlotBuildingClicked(int buildingId) =>
         _controller.SelectBuilding(new BuildingId(buildingId));
 
+    private void OnPlotProjectClicked(int projectId)
+    {
+        _modalWantsOpen = true;
+        _constructionPanel.Refresh();
+        SyncModalHost();
+        var snapshot = _controller.GetCityMacroSnapshot();
+        UpdateConstructionMenuButton(DetermineMacroMode(
+            snapshot.Buildings.Count,
+            snapshot.Projects.Count));
+    }
+
+    private void EnsureDefaultFocus(MacroMode mode)
+    {
+        Control? focused = GetViewport().GuiGetFocusOwner();
+        if (focused is not null && focused.IsVisibleInTree()) return;
+        if (_constructionMenuButton.Visible && mode != MacroMode.Empty)
+        {
+            _constructionMenuButton.GrabFocus();
+        }
+        else
+        {
+            _heroProfileButton.GrabFocus();
+        }
+    }
+
     private void OnAnyBuildingStateChanged(int buildingId) => Refresh();
 
     private void OnAnyProjectStateChanged(int projectId) => Refresh();
@@ -291,7 +338,7 @@ public partial class CityMacroView : Control
     private void OnWorldTickAdvanced(int tick)
     {
         _statusPanel.Refresh(_controller);
-        _offlineReport.ShowLog(_controller.World.Log.Events);
+        _offlineReport.ShowLog(_controller.GetCityMacroSnapshot().Events);
     }
 
     private void OnSelectionChanged(int selectionState)
@@ -312,6 +359,7 @@ public partial class CityMacroView : Control
                 _modalWantsOpen = false;
                 _modalHost.Close();
             }
+            _constructionMenuButton.Visible = false;
             Hide();
         }
     }

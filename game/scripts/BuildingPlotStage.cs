@@ -28,6 +28,7 @@ namespace WorldofGoses;
 public partial class BuildingPlotStage : Control
 {
     [Signal] public delegate void BuildingClickedEventHandler(int buildingId);
+    [Signal] public delegate void ProjectClickedEventHandler(int projectId);
 
     private readonly List<BuildingPlot> _plots = new();
     private CenterContainer _center = null!;
@@ -71,11 +72,10 @@ public partial class BuildingPlotStage : Control
     private static readonly HashSet<BuildingKind> KindsWithoutArtStillShown =
         new() { BuildingKind.Forest };
 
-    public void Render(IReadOnlyList<Building> buildings, IReadOnlyList<ConstructionProject> projects)
+    public void Render(
+        IReadOnlyList<CityMacroSnapshot.PlotItem> buildings,
+        IReadOnlyList<CityMacroSnapshot.PlotItem> projects)
     {
-        // Map id -> project so we can look up by id when iterating plots.
-        var projectsById = projects.ToDictionary(p => p.Id.Value);
-
         var wanted = new HashSet<int>();
         foreach (var b in buildings)
         {
@@ -86,7 +86,7 @@ public partial class BuildingPlotStage : Control
         }
         foreach (var p in projects)
         {
-            if (IsPlottable(p.ResultingKind))
+            if (IsPlottable(p.Kind))
             {
                 wanted.Add(p.Id.Value);
             }
@@ -104,6 +104,9 @@ public partial class BuildingPlotStage : Control
             }
         }
 
+        foreach (var building in buildings) UpdatePlot(building);
+        foreach (var project in projects) UpdatePlot(project);
+
         // Add plots for any new id.
         var existing = new HashSet<int>(_plots.Select(p => p.BuildingIdValue));
         foreach (var building in buildings)
@@ -111,15 +114,27 @@ public partial class BuildingPlotStage : Control
             if (existing.Contains(building.Id.Value)) continue;
             if (!IsPlottable(building.Kind)) continue;
             var texturePath = BuildingArt.GetTexturePath(building.Kind);
-            AddPlot(building.Id.Value, building.Kind, building.DisplayName, texturePath, isUnderConstruction: false);
+            AddPlot(building, texturePath);
         }
         foreach (var project in projects)
         {
             if (existing.Contains(project.Id.Value)) continue;
-            if (!IsPlottable(project.ResultingKind)) continue;
-            var texturePath = BuildingArt.GetTexturePath(project.ResultingKind);
-            AddPlot(project.Id.Value, project.ResultingKind, project.DisplayName, texturePath, isUnderConstruction: true);
+            if (!IsPlottable(project.Kind)) continue;
+            var texturePath = BuildingArt.GetTexturePath(project.Kind);
+            AddPlot(project, texturePath);
         }
+    }
+
+    private void UpdatePlot(CityMacroSnapshot.PlotItem item)
+    {
+        var plot = _plots.Find(candidate => candidate.BuildingIdValue == item.Id.Value);
+        if (plot is null) return;
+        plot.Configure(
+            BuildingArt.GetTexturePath(item.Kind),
+            item.DisplayName,
+            item.IsUnderConstruction,
+            item.Progress,
+            item.RequiredWork);
     }
 
     /// <summary>
@@ -135,18 +150,33 @@ public partial class BuildingPlotStage : Control
         return KindsWithoutArtStillShown.Contains(kind);
     }
 
-    private void AddPlot(int idValue, BuildingKind kind, string displayName, string? texturePath, bool isUnderConstruction)
+    private void AddPlot(CityMacroSnapshot.PlotItem item, string? texturePath)
     {
         var plot = new BuildingPlot
         {
-            Name = $"Plot_{idValue}",
-            BuildingIdValue = idValue,
+            Name = $"Plot_{item.Id.Value}",
+            BuildingIdValue = item.Id.Value,
         };
         // Configure BEFORE AddChild so the overlay/texture/text fields are
         // populated before _Ready runs (mirrors the constraint honored by
         // VisibleWorkerSlot / VisibleWorkerSlots).
-        plot.Configure(texturePath, displayName, isUnderConstruction);
-        plot.BuildingClicked += emittedId => EmitSignal(SignalName.BuildingClicked, emittedId);
+        plot.Configure(
+            texturePath,
+            item.DisplayName,
+            item.IsUnderConstruction,
+            item.Progress,
+            item.RequiredWork);
+        plot.BuildingClicked += emittedId =>
+        {
+            if (plot.IsUnderConstruction)
+            {
+                EmitSignal(SignalName.ProjectClicked, emittedId);
+            }
+            else
+            {
+                EmitSignal(SignalName.BuildingClicked, emittedId);
+            }
+        };
         plot.AddToGroup(PresentationConstants.GroupBuildingPlot);
         _row.AddChild(plot);
         _plots.Add(plot);

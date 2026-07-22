@@ -11,13 +11,13 @@ namespace WorldofGoses;
 /// </summary>
 public partial class BuildingDetailView : Control
 {
-    [Export] public NodePath SlotsPath { get; set; } = "VisibleWorkerSlots";
-    [Export] public NodePath AssignmentPanelPath { get; set; } = "AssignmentPanel";
-    [Export] public NodePath ProductionPanelPath { get; set; } = "ProductionPanel";
-    [Export] public NodePath BackButtonPath { get; set; } = "BackButton";
-    [Export] public NodePath TitlePath { get; set; } = "Title";
+    [Export] public NodePath SlotsPath { get; set; } = "SafeArea/Layout/Content/Main/VisibleWorkerSlots";
+    [Export] public NodePath AssignmentPanelPath { get; set; } = "SafeArea/Layout/Content/AssignmentPanel";
+    [Export] public NodePath ProductionPanelPath { get; set; } = "SafeArea/Layout/Content/Main/ProductionPanel";
+    [Export] public NodePath BackButtonPath { get; set; } = "SafeArea/Layout/Header/BackButton";
+    [Export] public NodePath TitlePath { get; set; } = "SafeArea/Layout/Header/Title";
     [Export] public NodePath MacroViewPath { get; set; } = "../CityMacroView";
-    [Export] public NodePath ArtHeaderPath { get; set; } = "BuildingArtHeader";
+    [Export] public NodePath ArtHeaderPath { get; set; } = "SafeArea/Layout/Content/Main/BuildingArtHeader";
 
     private CityWorldController _controller = null!;
     private VisibleWorkerSlots _slots = null!;
@@ -80,6 +80,7 @@ public partial class BuildingDetailView : Control
         _currentBuilding = buildingId;
         Show();
         Refresh();
+        _backButton.GrabFocus();
     }
 
     public void HideBuilding() => Hide();

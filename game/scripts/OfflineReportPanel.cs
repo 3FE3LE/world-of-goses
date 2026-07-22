@@ -23,10 +23,21 @@ public partial class OfflineReportPanel : PanelContainer
     private const int MaxRows = 80;
     private const int RowSpacing = 4;
     private const int IconSize = 14;
+    private const float ExpandedTopOffset = -336f;
+    private const float CollapsedTopOffset = -128f;
 
     private Label _summary = null!;
     private ScrollContainer _scroll = null!;
     private VBoxContainer _list = null!;
+    private IconButton _collapseButton = null!;
+    private IReadOnlyList<WorldEvent> _currentLiveEvents = System.Array.Empty<WorldEvent>();
+    private bool _isExpanded = true;
+    private int _compactedCount;
+    private int _lastLiveEventCount = -1;
+    private WorldEventId? _lastLiveEventId;
+    private bool _followNewestAfterLayout;
+    private double _scrollValueAfterLayout;
+    private bool _collapseHovered;
 
     public override void _Ready()
     {
@@ -46,38 +57,26 @@ public partial class OfflineReportPanel : PanelContainer
         var shell = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         shell.AddThemeConstantOverride("separation", 8);
         margin.AddChild(shell);
 
-        var titleRow = new HBoxContainer
+        // One direct native Button owns the whole header. The previous
+        // icon/title/spacer/button composition created several overlapping
+        // Control rectangles and proved unreliable for pointer hit-testing.
+        _collapseButton = new IconButton
         {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
+            IconPath = IconPaths.ChevronUp,
+            ButtonText = "City chronicle · Collapse",
+            TooltipText = "Show only the newest event",
+            ThemeTypeVariation = "ButtonText",
+            CustomMinimumSize = new Vector2(0, 40),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            FocusMode = FocusModeEnum.All,
         };
-        titleRow.AddThemeConstantOverride("separation", 8);
-        shell.AddChild(titleRow);
-
-        var titleIcon = new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(IconPaths.Calendar),
-            CustomMinimumSize = new Vector2(18, 18),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            Modulate = LineageThemeRegistry.IconAccent,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        titleRow.AddChild(titleIcon);
-
-        var title = new Label
-        {
-            Text = "City chronicle",
-            ThemeTypeVariation = "PanelTitle",
-            VerticalAlignment = VerticalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        titleRow.AddChild(title);
+        _collapseButton.Pressed += OnCollapsePressed;
+        shell.AddChild(_collapseButton);
 
         _summary = new Label
         {
@@ -85,6 +84,7 @@ public partial class OfflineReportPanel : PanelContainer
             ThemeTypeVariation = "BodySmall",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
+        _summary.AddThemeColorOverride("font_color", LineageThemeRegistry.IconAccent);
         shell.AddChild(_summary);
 
         _scroll = new ScrollContainer
@@ -92,19 +92,115 @@ public partial class OfflineReportPanel : PanelContainer
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             CustomMinimumSize = new Vector2(0, 220),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
         };
+        _scroll.GuiInput += OnScrollGuiInput;
         shell.AddChild(_scroll);
 
         _list = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            // Let wheel input bubble to the ScrollContainer instead of
+            // stopping on the list's otherwise non-interactive background.
+            MouseFilter = MouseFilterEnum.Pass,
         };
         _list.AddThemeConstantOverride("separation", RowSpacing);
         _scroll.AddChild(_list);
 
         _summary.Text = "The city's recent events will be recorded here.";
+    }
+
+    public override void _ExitTree()
+    {
+        if (_scroll is not null)
+        {
+            _scroll.GuiInput -= OnScrollGuiInput;
+        }
+        if (_collapseButton is not null)
+        {
+            _collapseButton.Pressed -= OnCollapsePressed;
+        }
+    }
+
+    private void OnCollapsePressed()
+    {
+        SetExpanded(!_isExpanded);
+    }
+
+    public override void _Input(InputEvent inputEvent)
+    {
+        if (!IsVisibleInTree() || _collapseButton is null) return;
+        if (inputEvent is not InputEventMouseButton mouseButton
+            || mouseButton.ButtonIndex != MouseButton.Left
+            || !mouseButton.Pressed)
+        {
+            return;
+        }
+        if (!_collapseButton.GetGlobalRect().HasPoint(mouseButton.GlobalPosition)) return;
+
+        OnCollapsePressed();
+        GetViewport().SetInputAsHandled();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_collapseButton is null || !IsVisibleInTree()) return;
+        bool hovered = _collapseButton.GetGlobalRect().HasPoint(GetGlobalMousePosition());
+        if (hovered == _collapseHovered) return;
+        _collapseHovered = hovered;
+        _collapseButton.Modulate = hovered
+            ? new Color(0.86f, 0.94f, 1f, 1f)
+            : Colors.White;
+        _collapseButton.MouseDefaultCursorShape = hovered
+            ? CursorShape.PointingHand
+            : CursorShape.Arrow;
+    }
+
+    private void SetExpanded(bool expanded)
+    {
+        _isExpanded = expanded;
+        _lastLiveEventCount = -1;
+        ApplyExpandedState();
+        ShowLog(_currentLiveEvents);
+    }
+
+    private void ApplyExpandedState()
+    {
+        OffsetTop = _isExpanded ? ExpandedTopOffset : CollapsedTopOffset;
+        _summary.Visible = _isExpanded;
+        _scroll.CustomMinimumSize = new Vector2(0, _isExpanded ? 220 : 36);
+        _scroll.VerticalScrollMode = _isExpanded
+            ? ScrollContainer.ScrollMode.Auto
+            : ScrollContainer.ScrollMode.Disabled;
+        _collapseButton.SetIconAndLabel(
+            _isExpanded ? IconPaths.ChevronUp : IconPaths.ChevronDown,
+            _isExpanded
+                ? "City chronicle · Collapse"
+                : $"City chronicle · Expand ({_compactedCount})");
+        _collapseButton.TooltipText = _isExpanded
+            ? "Show only the newest event"
+            : "Open the city chronicle";
+    }
+
+    private void OnScrollGuiInput(InputEvent inputEvent)
+    {
+        if (inputEvent is not InputEventMouseButton mouseButton || !mouseButton.Pressed)
+        {
+            return;
+        }
+        if (mouseButton.ButtonIndex is not MouseButton.WheelUp and not MouseButton.WheelDown)
+        {
+            return;
+        }
+
+        var bar = _scroll.GetVScrollBar();
+        if (bar is null) return;
+
+        double direction = mouseButton.ButtonIndex == MouseButton.WheelUp ? -1d : 1d;
+        double factor = mouseButton.Factor > 0f ? mouseButton.Factor : 1d;
+        bar.Value += direction * 48d * factor;
+        _scroll.AcceptEvent();
     }
 
     /// <summary>
@@ -113,10 +209,7 @@ public partial class OfflineReportPanel : PanelContainer
     /// </summary>
     public void ShowReport(OfflineProgressionReport report)
     {
-        foreach (var child in _list.GetChildren())
-        {
-            child.QueueFree();
-        }
+        ClearRows();
 
         if (!report.HadProgression || report.Events.Count == 0)
         {
@@ -138,7 +231,6 @@ public partial class OfflineReportPanel : PanelContainer
                 ThemeTypeVariation = "SectionTitle",
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
-            header.AddThemeFontSizeOverride("font_size", 22);
             _list.AddChild(header);
             foreach (var entry in decisions)
             {
@@ -155,7 +247,7 @@ public partial class OfflineReportPanel : PanelContainer
 
         // Show the most recent N events; older ones would only add
         // noise to the panel.
-        IReadOnlyList<WorldEvent> events = report.Events;
+        IReadOnlyList<EventItem> events = CompactConsecutiveEvents(report.Events);
         int skip = System.Math.Max(0, events.Count - MaxRows);
         for (int i = skip; i < events.Count; i++)
         {
@@ -174,31 +266,78 @@ public partial class OfflineReportPanel : PanelContainer
     /// </summary>
     public void ShowLog(IReadOnlyList<WorldEvent> events)
     {
-        foreach (var child in _list.GetChildren())
+        _currentLiveEvents = events;
+        WorldEventId? newestId = events.Count > 0 ? events[^1].Id : null;
+        if (_lastLiveEventCount == events.Count && _lastLiveEventId == newestId)
         {
-            child.QueueFree();
+            Show();
+            return;
         }
 
+        var scrollBar = _scroll.GetVScrollBar();
+        bool firstRender = _lastLiveEventCount < 0;
+        bool wasFollowingNewest = firstRender
+            || scrollBar is null
+            || scrollBar.Value >= scrollBar.MaxValue - scrollBar.Page - 1d;
+        double previousScrollValue = scrollBar?.Value ?? 0d;
+
+        ClearRows();
+
         var liveDecisions = GroupDecisionsNeeded(events);
+        IReadOnlyList<EventItem> compactedEvents = CompactConsecutiveEvents(events);
+        _compactedCount = compactedEvents.Count;
         if (liveDecisions.Count > 0)
         {
-            _summary.Text = $"{events.Count} events recorded · {liveDecisions.Count} need attention";
+            _summary.Text = "Needs attention · newest entry at the bottom";
         }
         else
         {
             _summary.Text = events.Count == 0
                 ? "The city's recent events will be recorded here."
-                : $"{events.Count} events recorded · newest at the bottom";
+                : "Newest entry at the bottom";
         }
 
-        int skip = System.Math.Max(0, events.Count - MaxRows);
-        for (int i = skip; i < events.Count; i++)
+        int visibleRows = _isExpanded ? MaxRows : 1;
+        int skip = System.Math.Max(0, compactedEvents.Count - visibleRows);
+        for (int i = skip; i < compactedEvents.Count; i++)
         {
-            _list.AddChild(new EventRow(events[i]));
+            _list.AddChild(new EventRow(compactedEvents[i]));
         }
 
         Show();
-        CallDeferred(MethodName.ScrollToBottom);
+        _lastLiveEventCount = events.Count;
+        _lastLiveEventId = newestId;
+        ApplyExpandedState();
+        _followNewestAfterLayout = wasFollowingNewest;
+        _scrollValueAfterLayout = previousScrollValue;
+        if (_isExpanded)
+        {
+            CallDeferred(MethodName.ApplyPendingLiveScroll);
+        }
+    }
+
+    private void ClearRows()
+    {
+        foreach (var child in _list.GetChildren())
+        {
+            _list.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
+    private void ApplyPendingLiveScroll()
+    {
+        if (_followNewestAfterLayout)
+        {
+            ScrollToBottom();
+            return;
+        }
+
+        var bar = _scroll.GetVScrollBar();
+        if (bar is not null)
+        {
+            bar.Value = System.Math.Min(_scrollValueAfterLayout, bar.MaxValue - bar.Page);
+        }
     }
 
     private void ScrollToBottom()
@@ -249,6 +388,76 @@ public partial class OfflineReportPanel : PanelContainer
         return $"{(int)time.TotalSeconds}s";
     }
 
+    public sealed record EventItem(
+        WorldEventKind Kind,
+        string SubjectName,
+        int Amount,
+        int FirstTick,
+        int LastTick,
+        string Summary);
+
+    /// <summary>
+    /// Compacts adjacent additive events without modifying the domain log.
+    /// A different event kind or subject closes the current chain, so two
+    /// production runs separated by another fact remain separate rows.
+    /// </summary>
+    public static IReadOnlyList<EventItem> CompactConsecutiveEvents(
+        IReadOnlyList<WorldEvent> events)
+    {
+        var compacted = new System.Collections.Generic.List<EventItem>();
+        foreach (var evt in events)
+        {
+            bool additive = evt.Amount > 0
+                && evt.Kind is WorldEventKind.StockProduced or WorldEventKind.ProjectProgressed;
+            if (additive
+                && compacted.Count > 0
+                && compacted[^1].Kind == evt.Kind
+                && compacted[^1].SubjectName == evt.SubjectName)
+            {
+                EventItem previous = compacted[^1];
+                int amount = previous.Amount + evt.Amount;
+                compacted[^1] = previous with
+                {
+                    Amount = amount,
+                    LastTick = evt.Tick,
+                    Summary = SummariseCompacted(evt.Kind, evt.SubjectName, amount),
+                };
+                continue;
+            }
+
+            bool repeatedState = evt.Kind is WorldEventKind.StockCapped
+                or WorldEventKind.WorkersExhausted
+                or WorldEventKind.ProductionBlocked;
+            if (repeatedState
+                && compacted.Count > 0
+                && compacted[^1].Kind == evt.Kind
+                && compacted[^1].SubjectName == evt.SubjectName)
+            {
+                compacted[^1] = compacted[^1] with { LastTick = evt.Tick };
+                continue;
+            }
+
+            compacted.Add(new EventItem(
+                evt.Kind,
+                evt.SubjectName,
+                evt.Amount,
+                evt.Tick,
+                evt.Tick,
+                evt.Summary));
+        }
+        return compacted;
+    }
+
+    private static string SummariseCompacted(
+        WorldEventKind kind,
+        string subjectName,
+        int amount) => kind switch
+    {
+        WorldEventKind.StockProduced => $"{subjectName} produced +{amount}",
+        WorldEventKind.ProjectProgressed => $"{subjectName} made +{amount} work",
+        _ => subjectName,
+    };
+
     /// <summary>
     /// One row of the offline report: tinted icon + summary + tick.
     /// The row is intentionally compact so the player can scan the
@@ -258,7 +467,7 @@ public partial class OfflineReportPanel : PanelContainer
     /// </summary>
     private partial class EventRow : HBoxContainer
     {
-        public EventRow(WorldEvent evt)
+        public EventRow(EventItem evt)
         {
             MouseFilter = MouseFilterEnum.Ignore;
             AddThemeConstantOverride("separation", 8);
@@ -298,11 +507,15 @@ public partial class OfflineReportPanel : PanelContainer
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
                 MouseFilter = MouseFilterEnum.Ignore,
             };
+            label.AddThemeColorOverride("font_color", LineageThemeRegistry.IconAccent);
             AddChild(label);
 
             var tickLabel = new Label
             {
-                Text = $"t{evt.Tick}",
+                // A compacted row is dated by its most recent event; this is
+                // the moment the player cares about and avoids exposing raw
+                // simulation ticks as if they were meaningful UI language.
+                Text = SimulationTimeText.Format(evt.LastTick),
                 ThemeTypeVariation = "BodySmall",
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -310,9 +523,13 @@ public partial class OfflineReportPanel : PanelContainer
                 CustomMinimumSize = new Vector2(60, 0),
                 SizeFlagsVertical = SizeFlags.ShrinkCenter,
             };
+            tickLabel.AddThemeColorOverride("font_color", LineageThemeRegistry.IconAccent.Darkened(0.18f));
             AddChild(tickLabel);
         }
     }
+
+    public static string FormatSimulationDate(int tick)
+        => SimulationTimeText.Format(tick);
 
     private static string? IconPathFor(WorldEventKind kind) => kind switch
     {

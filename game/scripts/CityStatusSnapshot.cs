@@ -29,6 +29,7 @@ public sealed record CityStatusSnapshot(
         bool Enabled);
 
     public sealed record BuildingItem(
+        BuildingKind Kind,
         string DisplayName,
         int Stock,
         int StorageCapacity,
@@ -51,7 +52,7 @@ public sealed record CityStatusSnapshot(
         var buildings = new List<BuildingItem>();
         foreach (var building in world.Buildings.Values)
         {
-            buildings.Add(new BuildingItem(building.DisplayName, building.Stock, building.StorageCapacity,
+            buildings.Add(new BuildingItem(building.Kind, building.DisplayName, building.Stock, building.StorageCapacity,
                 building.MinStock, building.MaxStock, building.ResourceUnit, building.AssignedCount,
                 building.WorkerCapacity, building.StopCause));
         }

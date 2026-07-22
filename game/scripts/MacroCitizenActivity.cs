@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
 
@@ -35,12 +36,15 @@ public partial class MacroCitizenActivity : Node2D
     /// hero sprite when the city is empty. Positions are deterministic
     /// so the visual is identical across reloads.
     /// </summary>
-    /// <param name="citizenCount">Total citizens in the world.</param>
+    /// <param name="citizens">Citizens projected for the macro view.</param>
     /// <param name="buildingCount">Total buildings (zero while the
     /// world is empty).</param>
     /// <param name="projectCount">Total in-flight construction projects
     /// (zero while the world is empty).</param>
-    public void Populate(int citizenCount, int buildingCount = 0, int projectCount = 0)
+    public void Populate(
+        IReadOnlyList<CityMacroSnapshot.CitizenItem> citizens,
+        int buildingCount = 0,
+        int projectCount = 0)
     {
         foreach (var child in GetChildren())
         {
@@ -60,15 +64,15 @@ public partial class MacroCitizenActivity : Node2D
         // walking in the centre of the field. Once the player authorises
         // any construction, the work-site (or later plot) takes over
         // the centre and the dot pattern returns.
-        if (citizenCount == 1 && buildingCount == 0 && projectCount == 0 && _hero is not null)
+        if (citizens.Count == 1 && buildingCount == 0 && projectCount == 0 && _hero is not null)
         {
             PlaceWalkingHero(_hero, parentSize);
             return;
         }
 
-        for (int i = 0; i < citizenCount; i++)
+        for (int i = 0; i < citizens.Count; i++)
         {
-            int denominator = Mathf.Max(citizenCount, 1);
+            int denominator = Mathf.Max(citizens.Count, 1);
             float angle = Mathf.Pi * (0.15f + 0.7f * (i / (float)denominator));
             float radius = 220f;
             float cx = parentSize.X * 0.5f;
@@ -87,6 +91,23 @@ public partial class MacroCitizenActivity : Node2D
             };
             dot.AddToGroup(PresentationConstants.GroupMacroCitizenDot);
             AddChild(dot);
+
+            if (!citizens[i].IsAvailable) continue;
+
+            // An unassigned citizen is physically AtHome in the domain. On
+            // the macro view, keep that state visible by naming its existing
+            // population marker instead of letting it become an anonymous dot.
+            var nameLabel = new Label
+            {
+                Text = citizens[i].Name,
+                ThemeTypeVariation = "BodySmall",
+                Position = new Vector2(x - 44f, y + PresentationConstants.MacroCitizenSize + 3f),
+                Size = new Vector2(96f, 22f),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            AddChild(nameLabel);
         }
     }
 
@@ -96,7 +117,7 @@ public partial class MacroCitizenActivity : Node2D
     /// gender scene for the empty-field sprite. Null when no hero
     /// exists yet (population mode applies).
     /// </summary>
-    public Citizen? Hero
+    public CityMacroSnapshot.HeroVisual? Hero
     {
         get => _hero;
         set
@@ -104,12 +125,12 @@ public partial class MacroCitizenActivity : Node2D
             _hero = value;
         }
     }
-    private Citizen? _hero;
+    private CityMacroSnapshot.HeroVisual? _hero;
 
-    private void PlaceWalkingHero(Citizen hero, Vector2 parentSize)
+    private void PlaceWalkingHero(CityMacroSnapshot.HeroVisual hero, Vector2 parentSize)
     {
-        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Profile.Gender);
-        var scene = CharacterVisualRegistry.LoadScene(hero.Profile.Lineage, bodyVariant);
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(hero.Gender);
+        var scene = CharacterVisualRegistry.LoadScene(hero.Lineage, bodyVariant);
         _heroSprite = scene.Instantiate<LineageSpritePlayer>();
         _heroBasePosition = new Vector2(parentSize.X * 0.5f, parentSize.Y * 0.6f);
         _heroSprite.Position = _heroBasePosition;

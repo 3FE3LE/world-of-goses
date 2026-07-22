@@ -75,8 +75,9 @@ Use `[GlobalClass]` when:
 - Repeated configuration matters (e.g. always at the same depth under
   a card container).
 
-Targets in this project: `ModalHost`, `PanelHeader`, a future
-`StatChip`, a future `AssignmentRow`, a future `ExpeditionCard`.
+Current registered controls: `ModalHost`, `PanelHeader`,
+`AssignmentRow`, and `SafeAreaMarginContainer`. Future targets include
+`StatChip` and `ExpeditionCard`.
 
 ```csharp
 [GlobalClass]
@@ -114,6 +115,15 @@ public static class StandardButtons {
 
 When you find two callsites creating the same kind of widget with
 slightly different properties, **promote them to a factory**.
+
+`IconButton` uses Godot's native `Button.Text` and `Button.Icon` renderer.
+Do not hide the native text behind an internal `Label`: the nested label does
+not inherit a Button-based theme variation reliably and can disappear or
+measure differently between containers.
+
+Theme color entries use Godot's native `<Variation>/colors/<property>` keys.
+`font_colors` is not a valid Theme registry namespace and silently falls back
+to engine colors.
 
 ### 2.4 When NOT to fall back to a raw `new Button`
 
@@ -179,18 +189,20 @@ the screen subscribes to; do not poll the world in `_process`.
 
 ## 5. Theming — three-font hierarchy
 
-The project ships **exactly three** font families and eleven theme
-variations, declared once in `game/assets/ui/default_theme.tres`. The
+The project ships **exactly three** font families and seventeen explicit
+Label/Button text variations, declared once in
+`game/assets/ui/default_theme.tres`. The
 rules:
 
 1. **Geist Pixel** — identity, drama, era changes.
    `GameTitle`, `ScreenTitle`, `EventTitle`.
 2. **Jersey 10** — structure, navigation, buttons, panel chrome,
    sub-titles, building names.
-   `PanelTitle`, `SectionTitle`, `ButtonText`, `TabText`, `BuildingName`.
+   `PanelTitle`, `SectionTitle`, `ButtonText`, `ButtonPrimary`,
+   `ButtonWarning`, `TabText`, `BuildingName`.
 3. **Pixelify Sans** — reading, content, tooltips, body, numbers.
-   `BodyText`, `BodySmall`, `TooltipText`, `DialogText`, `TableText`,
-   `NumericText`.
+   `BodyText`, `BodySmall`, `ErrorText`, `TooltipText`, `DialogText`,
+   `TableText`, `NumericText`.
 
 Every Label and every Button MUST set one of these variations
 explicitly — never rely on the engine's default font. The base
@@ -203,8 +215,9 @@ Adding a new variation requires:
 1. A clear, justified use case documented in the PR.
 2. The variation declared in `default_theme.tres` with a single source
    of font / size / colour triple.
-3. An entry in § *Variations* of `docs/world-of-goses-typography-guideline.md`
-   with appropriate role mapping.
+3. An entry in the role mapping above and, when the font hierarchy changes,
+   the typography section of
+   `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`.
 
 Coin-ing variations inline (`theme_override_font_sizes/font_size = 42`)
 is allowed only for **single-screen, throwaway** debug UI.
@@ -232,7 +245,7 @@ the script's private fields and is rebuilt from scratch on load.
 
 ## 7. Navigation, focus, and input
 
-Three rules apply to every screen:
+Four rules apply to every screen:
 
 1. **Grab a default focus** on enter (`_backButton.GrabFocus()` on
    `HeroProfileView`, the appropriate primary button on the
@@ -242,10 +255,16 @@ Three rules apply to every screen:
    A modal uses X / ESC / click-on-scrim; a sub-screen uses a back
    button (factory-built, see § 2.3); the macro view has no "close"
    because it IS the persistent home. Be explicit which surface you
-   are on.
+   are on. Macro actions (`View hero`, `Construction`) are visible only
+   on the macro view; sub-screens own a local title + Back header.
 3. **`ui_cancel` (ESC) is owned by the topmost modal**, not by the
    screen underneath. `ModalHost` captures `ui_cancel` only while the
    modal is open. The macro view does nothing with ESC.
+4. **Use one selection router until nested navigation exists.** The current
+   prototype has mutually-exclusive macro, building-detail, and hero-profile
+   selections plus one modal layer, so `CityWorldController.Selection` and
+   `ModalHost` are the deliberately small navigation stack. Introduce a
+   general push/pop stack only when a second nested screen or modal requires it.
 
 Mouse + gamepad coexistence is the default expectation: hover
 triggers tooltips, but gamepad focus also drives the selection ring
@@ -269,7 +288,7 @@ When touching an existing screen:
 
 1. **Audit `.tscn` siblings.** Open the screen's parent `.tscn`; for
    every direct child that displays text or accepts input, confirm
-   `theme_type_variation = "<One of the eleven>"` is present.
+   `theme_type_variation = "<One of the registered variations>"` is present.
 2. **Audit `new Label / new Button / new *Container / new SpinBox`**
    inside scripts. Every one of those must either (a) belong to a
    `Components/<Name>.tscn`, (b) be a `[GlobalClass]` typed widget,
@@ -312,9 +331,11 @@ inherit the patterns in this file:
 | Modal scaffold | `game/scripts/Ui/ModalHost.cs` |
 | Modal header | `game/scripts/Ui/PanelHeader.cs` |
 | Reusable buttons | `game/scripts/Ui/StandardButtons.cs` |
+| Assignment row | `game/scenes/Components/AssignmentRow.tscn` |
+| Safe-area container | `game/scripts/Ui/SafeAreaMarginContainer.cs` |
 | Tooltip helpers | `game/scripts/Ui/TooltipPanel.cs` |
-| Snapshot contracts | `game/scripts/*Snapshot.cs` |
+| Snapshot contracts | `game/scripts/*Snapshot.cs` (`CityMacroSnapshot`, `HeroProfileSnapshot`, `BuildingDetailSnapshot`, `ConstructionSnapshot`, `CityStatusSnapshot`) |
 | City world façade | `game/scripts/CityWorldController.cs` |
-| Component PackedScenes | `game/scenes/Components/` *(future folder)* |
+| Component PackedScenes | `game/scenes/Components/` |
 | Current audit state | `docs/UI_AUDIT.md` |
 | Status snapshot | `docs/CURRENT_STATUS.md` |

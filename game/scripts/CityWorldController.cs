@@ -188,6 +188,8 @@ public partial class CityWorldController : Node
 
     public bool NeedsOnboarding() => _world.NeedsOnboarding;
 
+    public bool HasHero() => _world.Hero is not null;
+
     public Citizen? HeroOrNull() => _world.Hero;
 
     public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
@@ -231,6 +233,10 @@ public partial class CityWorldController : Node
 
     public BuildingDetailSnapshot? GetBuildingDetailSnapshot(BuildingId buildingId) =>
         BuildingDetailSnapshot.From(_world, buildingId);
+
+    public CityMacroSnapshot GetCityMacroSnapshot() => CityMacroSnapshot.From(_world);
+
+    public HeroProfileSnapshot? GetHeroProfileSnapshot() => HeroProfileSnapshot.From(_world);
 
     public int CurrentProductionRate(BuildingId buildingId) => _world.CurrentProductionRate(buildingId);
 

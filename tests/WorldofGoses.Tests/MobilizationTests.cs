@@ -1,3 +1,4 @@
+using System.Linq;
 using WorldofGoses.Domain;
 using Xunit;
 
@@ -97,6 +98,19 @@ public class MobilizationTests
         Assert.Equal(2, visible.Count);
         Assert.Contains(new CitizenId(1), visible);
         Assert.Contains(new CitizenId(2), visible);
+    }
+
+    [Fact]
+    public void AssignDuringDay_MovesCitizenIntoBuildingImmediately()
+    {
+        var world = TestHelpers.WorldWithHome();
+        var farm = world.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
+        var citizen = world.Hero!;
+
+        Assert.True(world.TryAssignCitizen(farm.Id, citizen.Id).IsSuccess);
+
+        Assert.Equal(CitizenLocation.AtWork, citizen.CurrentLocation);
+        Assert.Contains(citizen.Id, world.GetCurrentlyVisibleOccupants(farm));
     }
 
     [Fact]

@@ -14,6 +14,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class ConstructionPanel : PanelContainer
 {
+    private static readonly PackedScene AssignmentRowScene =
+        GD.Load<PackedScene>("res://scenes/Components/AssignmentRow.tscn");
+
     [Signal] public delegate void AuthorizeRequestedEventHandler(int constructionKind);
     [Signal] public delegate void PauseRequestedEventHandler();
     [Signal] public delegate void ResumeRequestedEventHandler();
@@ -102,8 +105,16 @@ public partial class ConstructionPanel : PanelContainer
 
     private void OnAuthorizeRequested(int constructionKind)
     {
+        // Material payment raises building-change events before the domain
+        // publishes the new project. Establish the macro route first so a
+        // Forest debit cannot briefly reassert a stale detail selection.
+        _controller.ReturnToCity();
         var result = _controller.TryAuthorizeConstruction((ConstructionKind)constructionKind);
-        if (result.IsSuccess) return;
+        if (result.IsSuccess)
+        {
+            Refresh();
+            return;
+        }
         _errorLabel.Text = FormatAuthorizationError(result.Outcome);
         _errorLabel.Visible = true;
     }
@@ -173,7 +184,6 @@ public partial class ConstructionPanel : PanelContainer
 
         _title = new Label { HorizontalAlignment = HorizontalAlignment.Center };
         _title.ThemeTypeVariation = "ScreenTitle";
-        _title.AddThemeFontSizeOverride("font_size", 36);
         shell.AddChild(_title);
 
         _description = new Label
@@ -186,7 +196,6 @@ public partial class ConstructionPanel : PanelContainer
 
         _phaseLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
         _phaseLabel.ThemeTypeVariation = "SectionTitle";
-        _phaseLabel.AddThemeFontSizeOverride("font_size", 22);
         shell.AddChild(_phaseLabel);
 
         _progress = new ProgressBar
@@ -239,8 +248,7 @@ public partial class ConstructionPanel : PanelContainer
         {
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        _errorLabel.ThemeTypeVariation = "BodySmall";
-        _errorLabel.AddThemeColorOverride("font_color", new Color("ef8f7a"));
+        _errorLabel.ThemeTypeVariation = "ErrorText";
         shell.AddChild(_errorLabel);
 
         var footer = new HBoxContainer
@@ -271,10 +279,7 @@ public partial class ConstructionPanel : PanelContainer
             iconPath: IconPaths.Play,
             label: "Resume",
             variation: "ButtonText");
-        _viewHeroButton = NewFooterButton(
-            iconPath: IconPaths.User,
-            label: "View hero",
-            variation: "ButtonText");
+        _viewHeroButton = StandardButtons.ViewHeroButton();
         _viewBuildingButton = NewFooterButton(
             iconPath: IconPaths.House,
             label: "View shelter",
@@ -307,14 +312,8 @@ public partial class ConstructionPanel : PanelContainer
         _primaryFocus = _authorizeButton;
     }
 
-    private static IconButton NewFooterButton(string iconPath, string label, string variation) => new()
-    {
-        IconPath = iconPath,
-        Label = label,
-        ThemeTypeVariation = variation,
-        CustomMinimumSize = new Vector2(180, 44),
-        FocusMode = FocusModeEnum.All,
-    };
+    private static IconButton NewFooterButton(string iconPath, string label, string variation) =>
+        StandardButtons.IconAction(iconPath, label, variation);
 
     public override void _ExitTree()
     {
@@ -499,23 +498,13 @@ public partial class ConstructionPanel : PanelContainer
         }
         foreach (var citizen in project.AssignedCitizens)
         {
-            var row = new HBoxContainer();
-            var name = new Label
-            {
-                Text = citizen.Name,
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                ThemeTypeVariation = "BodyText",
-            };
-            var button = new Button
-            {
-                Text = "Remove",
-                ThemeTypeVariation = "ButtonText",
-                FocusMode = FocusModeEnum.All,
-            };
-            var captured = citizen.Id;
-            button.Pressed += () => EmitSignal(SignalName.UnassignFromProjectRequested, project.Id.Value, captured.Value);
-            row.AddChild(name);
-            row.AddChild(button);
+            var row = InstantiateAssignmentRow(
+                citizen.Id.Value,
+                citizen.Name,
+                "Remove",
+                $"Remove {citizen.Name} from the project");
+            row.ActionRequested += id =>
+                EmitSignal(SignalName.UnassignFromProjectRequested, project.Id.Value, id);
             _assignList.AddChild(row);
         }
     }
@@ -528,24 +517,14 @@ public partial class ConstructionPanel : PanelContainer
         bool atCapacity = project.AssignedCount >= project.WorkerCapacity;
         foreach (var citizen in availableCitizens)
         {
-            var row = new HBoxContainer();
-            var name = new Label
-            {
-                Text = citizen.Name,
-                SizeFlagsHorizontal = SizeFlags.ExpandFill,
-                ThemeTypeVariation = "BodyText",
-            };
-            var button = new Button
-            {
-                Text = "Assign",
-                ThemeTypeVariation = "ButtonText",
-                Disabled = atCapacity,
-                FocusMode = FocusModeEnum.All,
-            };
-            var captured = citizen.Id;
-            button.Pressed += () => EmitSignal(SignalName.AssignToProjectRequested, project.Id.Value, captured.Value);
-            row.AddChild(name);
-            row.AddChild(button);
+            var row = InstantiateAssignmentRow(
+                citizen.Id.Value,
+                citizen.Name,
+                "Assign",
+                $"Assign {citizen.Name} to the project",
+                disabled: atCapacity);
+            row.ActionRequested += id =>
+                EmitSignal(SignalName.AssignToProjectRequested, project.Id.Value, id);
             _availableList.AddChild(row);
         }
         if (_availableList.GetChildCount() == 1)
@@ -558,8 +537,19 @@ public partial class ConstructionPanel : PanelContainer
     {
         var label = new Label { Text = title };
         label.ThemeTypeVariation = "SectionTitle";
-        label.AddThemeFontSizeOverride("font_size", 22);
         list.AddChild(label);
+    }
+
+    private static AssignmentRow InstantiateAssignmentRow(
+        int id,
+        string name,
+        string actionLabel,
+        string tooltip,
+        bool disabled = false)
+    {
+        var row = AssignmentRowScene.Instantiate<AssignmentRow>();
+        row.Configure(id, name, actionLabel, tooltip, disabled);
+        return row;
     }
 
     private static void AddListLabel(VBoxContainer list, string text)

@@ -1,6 +1,7 @@
 #nullable enable
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -60,14 +61,11 @@ public partial class ProductionPanel : PanelContainer
         _stockLabel.ThemeTypeVariation = "BodyText";
         stockRow.AddChild(_stockLabel);
 
-        _enabledToggle = new IconButton
-        {
-            IconPath = IconPaths.Pause,
-            Label = string.Empty,
-            CustomMinimumSize = new Vector2(40, 40),
-            FocusMode = Control.FocusModeEnum.All,
-            ToggleMode = true,
-        };
+        _enabledToggle = StandardButtons.IconAction(
+            IconPaths.Pause,
+            "Pause",
+            tooltip: "Pause production");
+        _enabledToggle.ToggleMode = true;
         _enabledToggle.Toggled += OnPolicyToggle;
         stockRow.AddChild(_enabledToggle);
 
@@ -125,7 +123,7 @@ public partial class ProductionPanel : PanelContainer
         _enabledToggle.SetPressedNoSignal(snapshot.ProductionEnabled);
         _enabledToggle.SetIconAndLabel(
             snapshot.ProductionEnabled ? IconPaths.Pause : IconPaths.Play,
-            string.Empty);
+            snapshot.ProductionEnabled ? "Pause" : "Resume");
         _enabledToggle.TooltipText = snapshot.ProductionEnabled
             ? "Pause production"
             : "Resume production";

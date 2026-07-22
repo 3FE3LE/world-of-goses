@@ -580,6 +580,9 @@ public sealed class CityWorld
         if (result.IsSuccess)
         {
             citizen.AssignTo(buildingId);
+            citizen.SetLocation(GameClock.IsDaytime(_tick)
+                ? CitizenLocation.AtWork
+                : CitizenLocation.AtHome);
             RaiseBuildingChanged(buildingId);
         }
 
@@ -605,6 +608,7 @@ public sealed class CityWorld
         if (result.IsSuccess)
         {
             citizen.ClearAssignment();
+            citizen.SetLocation(CitizenLocation.AtHome);
             RaiseBuildingChanged(buildingId);
         }
 
@@ -639,6 +643,9 @@ public sealed class CityWorld
             return AssignmentResult.Fail(AssignmentOutcome.AtCapacity, citizenId, projectId);
         }
         citizen.AssignTo(projectId);
+        citizen.SetLocation(GameClock.IsDaytime(_tick)
+            ? CitizenLocation.AtWork
+            : CitizenLocation.AtHome);
         RaiseProjectChanged(projectId);
         return AssignmentResult.Ok(citizenId, projectId);
     }
@@ -658,6 +665,7 @@ public sealed class CityWorld
             return AssignmentResult.Fail(AssignmentOutcome.NotAssigned, citizenId, projectId);
         }
         citizen.ClearAssignment();
+        citizen.SetLocation(CitizenLocation.AtHome);
         RaiseProjectChanged(projectId);
         return AssignmentResult.Ok(citizenId, projectId);
     }
@@ -894,6 +902,7 @@ public sealed class CityWorld
             building.LastTickProduction = 0;
             if (GameClock.IsDaytime(_tick))
             {
+                ProductionStopCause previousStopCause = building.StopCause;
                 // Reactive resume: a building whose stock has fallen
                 // to or below its MinStock since the last MaxStock cap
                 // is unblocked and can produce again next tick.
@@ -912,7 +921,8 @@ public sealed class CityWorld
                 {
                     _log.Record(_tick, WorldEventKind.WorkersExhausted, building.DisplayName);
                 }
-                if (building.Stock >= building.MaxStock && building.MaxStock > 0)
+                if (building.StopCause == ProductionStopCause.TargetReached
+                    && previousStopCause != ProductionStopCause.TargetReached)
                 {
                     _log.Record(_tick, WorldEventKind.StockCapped, building.DisplayName);
                 }
@@ -971,14 +981,11 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Removes Forests whose wood reserve ran out during the most
-    /// recent production tick. Forests gather wood by transferring it
-    /// from <see cref="Building.WoodReserve"/> to
-    /// <see cref="Building.Stock"/> as workers produce; once the
-    /// reserve is empty, the natural source is gone and the Forest
-    /// disappears from the world so the player doesn't keep paying
-    /// upkeep on an empty plot. Other building kinds never trigger
-    /// this path.
+    /// Removes Forests only after both their natural reserve and their
+    /// gathered stock are empty. The Forest remains as the owning
+    /// storage location while gathered wood is waiting to be consumed;
+    /// deleting it when only the reserve reaches zero would destroy
+    /// player-owned stock. Other building kinds never trigger this path.
     /// </summary>
     private void DemolishDepletedForests()
     {
@@ -987,6 +994,7 @@ public sealed class CityWorld
         {
             if (pair.Value.Kind != BuildingKind.Forest) continue;
             if (pair.Value.WoodReserve > 0) continue;
+            if (pair.Value.Stock > 0) continue;
             depleted ??= new List<BuildingId>();
             depleted.Add(pair.Key);
         }
@@ -1182,6 +1190,17 @@ public sealed class CityWorld
             return 0;
         }
 
+        // Forest output is a finite transfer from WoodReserve. Once
+        // that reserve is empty the building must not fall through to
+        // the generic worker-production formula: doing so creates wood
+        // from nothing and still charges stamina/experience.
+        if (building.Kind == BuildingKind.Forest && building.WoodReserve <= 0)
+        {
+            building.LastTickProduction = 0;
+            building.StopCause = ProductionStopCause.MissingInputs;
+            return 0;
+        }
+
         // Recipe gate: if the operating recipe needs inputs and the
         // city cannot satisfy them this tick, block production
         // before paying stamina or growing experience.
@@ -1228,7 +1247,7 @@ public sealed class CityWorld
         // smaller than the work capacity, only `reserve` ticks'
         // worth of wood transfers, and a later DemolishDepletedForests
         // sweep will remove the now-empty forest.
-        if (building.Kind == BuildingKind.Forest && building.WoodReserve > 0)
+        if (building.Kind == BuildingKind.Forest)
         {
             int fromReserve = contributing.Count < building.WoodReserve
                 ? contributing.Count
