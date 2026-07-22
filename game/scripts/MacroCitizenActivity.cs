@@ -61,6 +61,7 @@ public partial class MacroCitizenActivity : Node2D
         }
         foreach (var child in GetChildren())
         {
+            RemoveChild(child);
             child.QueueFree();
         }
         if (_heroCarrier?.State == CitizenSpriteCarrier.VisualState.Macro)

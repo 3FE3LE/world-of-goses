@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
@@ -31,6 +32,8 @@ public partial class BuildingDetailView : Control
     private Label _title = null!;
     private TextureRect _artHeader = null!;
     private CityMacroView _macroView = null!;
+    private PanelContainer? _homeSummary;
+    private Label? _homeSummaryLabel;
     private BuildingId _currentBuilding;
 
     public override void _Ready()
@@ -135,6 +138,7 @@ public partial class BuildingDetailView : Control
         bool isHome = snapshot.IsHome;
         _assignmentPanel.Visible = !isHome;
         _productionPanel.Visible = !isHome;
+        if (_homeSummary is not null) _homeSummary.Visible = isHome;
         if (isHome)
         {
             RefreshHomeSummary(snapshot);
@@ -153,26 +157,29 @@ public partial class BuildingDetailView : Control
         // status bar.
         int resting = snapshot.HiddenWorkerCount + snapshot.VisibleWorkerCount;
         int capacity = snapshot.WorkerCapacity;
-        var label = new Label
+        EnsureHomeSummary();
+        _homeSummaryLabel!.Text = resting == 0
+            ? $"Capacity: {capacity} · No one is resting here."
+            : $"Capacity: {capacity} · {resting} citizen{(resting == 1 ? string.Empty : "s")} resting here.";
+        _homeSummary!.Visible = true;
+    }
+
+    private void EnsureHomeSummary()
+    {
+        if (_homeSummary is not null) return;
+
+        _homeSummaryLabel = new Label
         {
-            Text = resting == 0
-                ? $"Capacity: {capacity} · No one is resting here."
-                : $"Capacity: {capacity} · {resting} citizen{(resting == 1 ? string.Empty : "s")} resting here.",
             ThemeTypeVariation = "BodyText",
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        // Recreate the panel each refresh so the label stays in sync
-        // with the latest assignment count.
-        foreach (var child in _productionPanel.GetParent().GetChildren())
-        {
-            if (child.Name == "HomeSummary") child.QueueFree();
-        }
-        var container = new PanelContainer { Name = "HomeSummary" };
-        container.AddThemeStyleboxOverride(
+
+        _homeSummary = new PanelContainer { Name = "HomeSummary" };
+        _homeSummary.AddThemeStyleboxOverride(
             "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
-        container.AddChild(label);
-        _productionPanel.GetParent().AddChild(container);
+        _homeSummary.AddChild(_homeSummaryLabel);
+        _productionPanel.GetParent().AddChild(_homeSummary);
     }
 
     private void OnSlotCitizenClicked(int citizenIdValue) =>

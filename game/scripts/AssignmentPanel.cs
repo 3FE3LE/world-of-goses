@@ -109,6 +109,7 @@ public partial class AssignmentPanel : PanelContainer
     {
         foreach (var child in _assignedList.GetChildren())
         {
+            _assignedList.RemoveChild(child);
             child.QueueFree();
         }
 
@@ -136,6 +137,7 @@ public partial class AssignmentPanel : PanelContainer
     {
         foreach (var child in _availableList.GetChildren())
         {
+            _availableList.RemoveChild(child);
             child.QueueFree();
         }
 

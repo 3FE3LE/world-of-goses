@@ -107,7 +107,11 @@ public partial class CityStatusPanel : PanelContainer
         if (_row is null) return;
         if (_lastSavedUnixMillis <= 0)
         {
-            _savedChip?.QueueFree();
+            if (_savedChip is not null)
+            {
+                _row.RemoveChild(_savedChip);
+                _savedChip.QueueFree();
+            }
             _savedChip = null;
             return;
         }
@@ -170,6 +174,7 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
         foreach (var child in _row.GetChildren())
         {
+            _row.RemoveChild(child);
             child.QueueFree();
         }
         _savedChip = null;

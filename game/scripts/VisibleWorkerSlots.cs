@@ -72,6 +72,7 @@ public partial class VisibleWorkerSlots : Control
             if (slot.BuildingId.Value != buildingId.Value)
             {
                 slot.HideImmediate();
+                RemoveChild(slot);
                 slot.QueueFree();
                 _slots.RemoveAt(i);
                 continue;
@@ -83,6 +84,7 @@ public partial class VisibleWorkerSlots : Control
                     if (IsInstanceValid(slot) && slot.IsExiting)
                     {
                         _slots.Remove(slot);
+                        if (slot.GetParent() == this) RemoveChild(slot);
                         slot.QueueFree();
                         ReflowSlots(buildingId);
                     }

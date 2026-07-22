@@ -119,7 +119,8 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
 
-- **Estado:** Implementado y verificado en Quarry a 1280×720; pendiente matriz estrecha.
+- **Estado:** Implementado y verificado en Quarry y Basic Shelter a 1280×720;
+  refresh prolongado a 4× no acumula controles; pendiente matriz estrecha.
 - **Prioridad:** 🔴 Crítica
 - **Categoría:** UX
 - **Afecta:** `CityPrototype.tscn`, `BuildingDetailView.cs`,
