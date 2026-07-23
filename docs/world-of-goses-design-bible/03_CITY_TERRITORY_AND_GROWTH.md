@@ -2,7 +2,11 @@
 
 ## Vista macro
 
-La pantalla principal muestra parcelas, edificios, caminos, rutas, recursos, zonas bloqueadas, infraestructura y actividad urbana desde una perspectiva elevada o pseudoisométrica.
+La pantalla principal muestra parcelas, edificios, caminos, rutas, recursos,
+zonas bloqueadas, infraestructura y actividad urbana desde una perspectiva
+ortogonal elevada. La cuadrícula y las siluetas se leen de frente y desde
+arriba; la dirección pseudoisométrica queda descartada para preservar claridad,
+coste de producción de assets y compatibilidad con parcelas desbloqueables.
 
 Los habitantes macro son representaciones de 4 a 8 píxeles. Comunican tránsito y vida, pero no representan uno a uno toda la población ni ejecutan simulación completa.
 
@@ -37,6 +41,14 @@ Una parcela puede contener:
 - Estado de seguridad.
 - Conexiones.
 - Uso actual.
+
+La unidad urbanística estándar de una parcela es una matriz de 3 × 3 solares.
+Cada solar equivale a 3 × 3 tiles visuales, pero la geometría lógica admite
+medios tiles para diferenciar el área reservada de la huella sólida de un
+edificio. Los márgenes de edificios adyacentes pueden combinarse en pasillos
+de 0.5 tile, caminos de 1 tile o calles de 2 tiles. Esta granularidad no implica
+colocación libre: los edificios se ajustan a solares y los complejos pueden
+reservar varios solares contiguos o una parcela completa.
 
 Estados sugeridos:
 

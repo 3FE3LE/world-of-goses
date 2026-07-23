@@ -23,9 +23,12 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **327 / 327 passing**.
+- xUnit suite: **345 / 345 passing**.
 - Godot headless loads the main scene and current primary slot without scene,
   resource, signal, or C# errors.
+- `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
+  captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
+  review passed viewport containment and exposed M-16, a citizen label/icon overlap.
 - The current slice combines founding-hero onboarding with gender selection,
   the hero sprite walking on the empty field, interactive construction for
   Basic Shelter / Farm / Quarry, data-driven recipes with min/max stock
@@ -125,6 +128,11 @@ so the offline report can surface causal chains. The `OfflineReportPanel`
 groups `ProductionBlocked` events by subject and renders a compact
 "Decisions needed" list above the chronological rows.
 
+Subjects use typed identity (`World`, `Building`, `ConstructionProject`,
+`Citizen`, or future `Expedition`) plus an optional entity ID; their captured
+name is display data, not identity. Player-facing summaries are formatted in
+presentation rather than stored in the domain event.
+
 The player-facing Chronicle compacts consecutive equivalent production events
 into one accumulated row, suppresses repeated steady-state notices, and formats
 timestamps as simulated `Day N · HH:mm` values. Its count reflects rendered
@@ -151,17 +159,51 @@ to produce or consume building resources. The offline path uses an idle
 fast-forward for an empty building collection rather than iterating thousands
 of no-op building ticks.
 
+`WorldTimeAdvance` also batches structured cities with no work assignments
+within each uninterrupted day/night phase. It steps only temporal boundaries
+so mobilisation and causal events remain canonical. Worlds with assigned work
+still use `AdvanceWorldTick` for every tick until their production/construction
+simulators are extracted and can prove the same snapshot/event equivalence.
+
+Assignment consistency has moved behind the internal
+`CitizenAssignmentService`. `CityWorld` remains the public facade, so existing
+controller, persistence, UI, and test call sites are unchanged. Productive
+building ticks now run through `BuildingProductionSimulation`; resource and
+event ownership remain in the aggregate through narrow delegates.
+`ConstructionSimulation` now owns project work/rest ticks and transactional
+drawdown, completing H-21. Authorisation and project completion remain aggregate
+operations because they create/remove world entities.
+
 ## 8. Persistence
 
-- Schema version is now **4**.
+- Schema version is now **7**.
 - A v4 citizen save includes a complete `CitizenProfileSave` plus
   `Gender`, competencies, roles, assignment, stamina, and WellFed state. A v4
   building save includes the reactive policy triplet `MinStock`, `MaxStock`,
   and `Priority`. A v4 project save includes `DepositedInputs` and
   `RemainingInputs` so an interrupted project resumes deterministically.
-- The controller's load path runs `MigrateV2ToV3` then `MigrateV3ToV4` on the
-  raw JSON before `Validate`, so older saves upgrade non-fatally.
-- A playable v4 snapshot must contain exactly one hero citizen; zero
+- A v5+ snapshot also stores at most 128 significant causal events. Incremental
+  production/progress and day/night cycles are excluded; repeated steady states
+  are compacted and dangling causes are removed before serialization.
+- Schema v6 persists `IronStock` and resource reservations with typed owners.
+  Validation rejects duplicate IDs, missing project owners, invalid resource
+  kinds, and commitments above physical stock.
+- Schema v7 persists stable Forest wood-unit reserves and each citizen's last
+  visited resource as `buildingId + unitId + logicalSlot`; no Godot coordinates
+  enter the domain snapshot. The logical slot keeps the macro citizen in place
+  after the depleted Forest entity is removed.
+- Schema v8 persists minimal unlocked/locked parcels and natural-resource
+  patches independently from construction entities. The current Forest
+  building remains only as a compatibility storage adapter for gathered Wood.
+- Schema v9 persists non-overlapping parcel lots, spans, orientation, and
+  footprint profiles for projects and buildings. Project completion retains
+  the same placement identity.
+- Macro buildings and projects are positioned from their persisted parcel/lot
+  instead of an insertion-order horizontal row. The current plot widget is
+  rendered at 0.5 macro scale while logical footprints remain authoritative.
+- The controller walks every migration from v2 through v9 on raw JSON before
+  `Validate`, so older saves upgrade non-fatally.
+- A playable v9 snapshot must contain exactly one hero citizen; zero
   buildings is valid. v3 saves default missing `Gender` to Masculine so the
   hero's body variant stays stable across the bump.
 - After a successful hero creation, the normal atomic write replaces the slot
@@ -169,6 +211,12 @@ of no-op building ticks.
 - Partial onboarding is not saved in this slice. Closing before confirmation
   starts the flow again without destroying the old slot.
 - Structural and cross-entity validation runs before restore.
+
+`CityResourceLedger` now centralizes totals, deposits, atomic recipe drawdown,
+and location-aware runtime reservations over the existing building stores.
+Reservations can be released, committed, or transferred between a construction
+project and future expedition owner. Schema v7 restores reservations and their
+ID sequence, so committed supplies survive close and offline catch-up.
 
 ## 9. Presentation, themes, and navigation
 
@@ -256,8 +304,8 @@ keeping the triplet intact for future slices that re-expose it.
   for a real tools/fuel chain and no longer gates early construction or operation.
   A shared inventory abstraction is still future work.
 - The hero walking animation is a procedural sinusoid (3.6 s period, 220 px
-  amplitude). It does not pause on hover or change posture when the player
-  opens the detail view.
+  amplitude). It pauses on hover and the canonical carrier is hidden or moved
+  when another view owns the hero; richer contextual posture remains future work.
 - The causal event log covers the current prototype actions; it is not yet the
   complete long-horizon event model described by the design bible.
 - The project has a correct 1280×720 responsive canvas and nearest canvas-texture
@@ -268,19 +316,24 @@ keeping the triplet intact for future slices that re-expose it.
 - Building art remains provisional. Detailed citizens now use the imported LPC
   set; Forest plots render without art (no `forest_idle.png` yet) so the
   detail view shows only the gather panel.
-- The macro layout is still fixed rather than player-placeable. A future city
-  growth slice must choose between authored expansion zones and an explicit
-  placement/move mode; ordinary building clicks must not become accidental drag.
+- The macro view now has a presentation-only orthogonal foundation: eight
+  provisional parcels and integer-scaled ground tiles. Forest entities are no
+  longer rendered as building cards: their current reserve projects into
+  interactive trees. Hover uses the CC0 axe cursor; left/right click opens the
+  resource menu; Gather moves the macro hero representation to the tree and
+  gathers 2 wood on arrival. Minimal parcel locked/unlocked state and per-tree
+  patch identity are now persistent; construction placement, 40-wood balance,
+  regeneration, and offline resource catch-up remain pending.
 - There is no automated Godot UI test harness; headless boot and manual flow
   verification remain required.
 
 ## 11. Recommended next slice
 
-The presentation-boundary and UI interaction hardening slice is complete.
-Before adding mechanics, make one explicit product decision for city growth:
-authored expansion zones with contextual relocation, or a deliberate placement
-mode with grid/snap, collision validation, confirm, and cancel. Do not make plots
-freely draggable during normal navigation.
+The presentation-boundary and UI interaction hardening slice is complete, and
+the macro direction is now committed to an elevated orthogonal grid. The next
+city-growth proof should introduce the smallest persistent parcel model:
+authored initial parcels with locked/unlocked and current-use state. It should
+not add free dragging during normal navigation.
 
 After that decision, choose one bounded proof: either the skill-system hook or
 a small production-chain slice. The persistent status bar should remain a
@@ -296,7 +349,7 @@ From `C:\dev\world-of-goses`:
 cd game
 dotnet build
 
-# 2. Run the full test suite. Expect 327 passing.
+# 2. Run the full test suite. Expect 330 passing.
 cd ../tests/WorldofGoses.Tests
 dotnet test
 
@@ -355,7 +408,18 @@ The manual onboarding flow must still be exercised in a graphical Godot run.
 
 These are open design questions, not permission to reintroduce a starter seed.
 
-## 16. File map
+## 16. Latest interaction stabilization
+
+- Resource trees now receive pointer input through the full-screen center
+  layout. Hover can install the resource cursor and left/right click can open
+  the contextual gather menu.
+- Authorizing the founding Basic Shelter automatically assigns the available
+  founder. Loading an older stalled shelter also performs this repair once,
+  without overriding an existing assignment.
+- The construction modal keeps its header and footer fixed while its body
+  scrolls. Mouse-wheel input anywhere over the panel advances that body.
+
+## 17. File map
 
 - Domain: `game/scripts/Domain/`
 - Persistence: `game/scripts/Domain/Persistence/`
@@ -374,7 +438,7 @@ These are open design questions, not permission to reintroduce a starter seed.
 - Canonical lineage design: [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md)
 - Building art catalog: `game/scripts/BuildingArt.cs` — single source of truth that maps every `BuildingKind` to its `res://` texture path and canvas size.
 
-## 17. First MVP pixel art (slice 7 — landed)
+## 18. First MVP pixel art (slice 7 — landed)
 
 Three placeholder PNGs now anchor the macro city view at the agreed canvas sizes and replace the previous generic `building_placeholder.png`:
 
@@ -390,19 +454,21 @@ The catalog lives at `game/scripts/BuildingArt.cs`. `BuildingPlot` defaults to t
 `BuildingArt.GetTexturePath` returns `null` for them; rendering code must
 handle the missing case rather than crash.
 
-## 18. Detailed citizen sprites
+## 19. Detailed citizen sprites
 
 The previous `worker_placeholder.png` was removed. Building-detail worker slots
 now resolve one of 16 lineage/gender scenes through
-`CharacterVisualRegistry`. Each scene exposes `idle`, `walk`, and `slash` in
-four directions using 128 × 128 cells. `LineageSpritePlayer` owns animation
+`CharacterVisualRegistry`. Each scene exposes 14 animations (`idle`,
+`combat_idle`, `walk`, `run`, `jump`, `climb`, `sit`, `hurt`, `slash`,
+`thrust`, `halfslash`, `backslash`, `shoot`, `spellcast`) in four
+directions using 128 × 128 cells. `LineageSpritePlayer` owns animation
 selection; the building-detail slot explicitly selects `idle_down` and does not
 apply a second looping locomotion animation to the container.
 
 Universal LPC attribution and redistribution requirements are recorded in
 `docs/LICENSING_AND_ATTRIBUTION.md` and `docs/licenses/`.
 
-## 19. Visual and audio lineage identity
+## 20. Visual and audio lineage identity
 
 The eight lineages now have a documented **visual identity** (per-lineage architectural silhouettes, materials, and UI tokens) and a documented **audio identity** (per-lineage timbral family and rhythmic character):
 
@@ -411,7 +477,7 @@ The eight lineages now have a documented **visual identity** (per-lineage archit
 
 These identities are not yet encoded in the project (the three placeholder PNGs are culture-neutral); they are documented so the next character and building art slices know what each lineage should look and sound like.
 
-## 20. Outstanding open questions
+## 21. Outstanding open questions
 
 The design bible maintains an explicit list of decisions still pending. They are not gaps in the slice — they are gaps in the game:
 

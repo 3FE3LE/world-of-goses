@@ -4,7 +4,7 @@
 > complete hero-onboarding profile for one citizen and zero buildings, followed
 > by an explicitly authorised Basic Shelter construction project. The prototype
 > includes lineage-driven UI skins, local persistence, offline progression, and
-> a 232-test domain/persistence suite.
+> a 345-test domain/persistence suite.
 >
 > **Before authoring any new screen or widget, read
 > [`docs/UI_PATTERNS.md`](docs/UI_PATTERNS.md).** It codifies the
@@ -34,6 +34,9 @@ This repository currently contains:
 
 The current implementation handoff and next recommended slice are maintained in
 [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
+UI changes use the capture and human-review contract in
+[`docs/VISUAL_REGRESSION.md`](docs/VISUAL_REGRESSION.md); headless boot alone is
+not accepted as visual evidence.
 
 ## 2. Game vision
 
@@ -290,6 +293,8 @@ The current slice demonstrates:
   no buildings have been authorised yet.
 - An authorised Basic Shelter project with contributor assignment, pause/resume,
   deterministic progress, persistence, and transition into the completed building.
+- A versioned local snapshot with bounded causal history and a location-aware
+  resource ledger whose typed reservations survive close/offline progression.
 - Eight runtime-selectable lineage panel skins backed directly by exported
   `StyleBoxTexture` resources, with deterministic fallbacks and a showcase scene.
 - Individual citizen records shared between the views. A citizen is the only
@@ -340,7 +345,8 @@ the prototype teaches us what the project actually needs.
 3. ✅ **Domain layer** — `Citizen` / `Building` / `CityWorld` with composable attachments and explicit hero onboarding.
 4. ✅ **Persistence boundary (Slice A)** — Serialize `CityWorld` to validated,
    versioned JSON; auto-load and auto-save without exposing serialization
-   concerns on domain entities.
+   concerns on domain entities. Schema v7 also preserves stable natural-resource
+   units and semantic citizen visits without serializing Godot coordinates.
 5. ✅ **Offline progression (Slice B)** — Track `lastSeenAt`; on launch,
    advance the world by N ticks equal to elapsed time (capped). Tests:
    tick arithmetic, production accumulates, experience carries. This is

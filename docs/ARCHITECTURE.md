@@ -128,6 +128,23 @@ The boundary in practice:
 - **Adapters:** small classes that translate between domain events and
   Godot signals, and between user input and domain commands.
 
+`CityWorld` is the public aggregate facade, not the required home of every rule.
+`CitizenAssignmentService` owns building/project assignment consistency,
+citizen location transitions, and auto-release while operating only on
+collections owned by the aggregate. `BuildingProductionSimulation` owns the
+productive tick sequence: recipe gate, food/regeneration, stamina cost,
+contributors, output, experience, and stop cause. Resource transfer and causal
+log ownership stay in `CityWorld` through narrow delegates until H-23/H-22
+provide their dedicated models.
+`ConstructionSimulation` owns work-interval material drawdown and rollback,
+stamina recovery/cost, contribution, project stop causes, blocking events, and
+night rest. Authorisation and the final project-to-building transition remain
+aggregate operations in `CityWorld`.
+Presentation and controllers continue calling `CityWorld`; collaborators are
+not service locators and are not exposed across the Godot boundary. Further
+extraction requires a concrete slice; the aggregate still intentionally owns
+resource topology, causal history, persistence restore, and orchestration.
+
 ## 6. State, rules, and animation
 
 The conceptual rule:
@@ -219,13 +236,30 @@ The numbers above live as constants in
 `game/scripts/PresentationConstants.cs` so future art can rely on the
 same anchors.
 
+Logical placement does not use pixel rectangles. A parcel contains a 3 × 3
+matrix of standard lots. Each standard lot covers 3 × 3 visual tiles and is
+represented by 6 × 6 integer half-tile cells. A building footprint separates
+its reserved lot area from its solid collision area; adjacent setbacks can
+therefore combine into a 0.5-tile passage, 1-tile path, or 2-tile street.
+Godot remains responsible for translating this domain geometry to pixels.
+Schema v9 now persists each building/project placement as parcel ID, lot
+rectangle, orientation, and footprint-profile ID. A construction project
+reserves its lot when authorised, releases it on cancellation, and keeps the
+same placement when it becomes a building. Navigation-grid integration remains
+a subsequent slice. The macro snapshot now projects this
+placement, and `BuildingPlotStage` translates parcel/lot rectangles into
+responsive screen coordinates. The 192 px legacy plot control is displayed at
+0.5 macro scale; its widget size is not authoritative collision geometry.
+
 ### Screen composition shell
 
-`CityPrototype.tscn` owns one `GameUiShell` (`VBoxContainer`) with two
+`CityPrototype.tscn` owns one typed `GameUiShell` (`VBoxContainer`) with two
 non-overlapping regions: the persistent `CityStatusPanel` and an expanding
 `ScreenContent`. Macro, building-detail, and hero-profile screens are siblings
 inside `ScreenContent`; they no longer compensate for the status bar with
-per-screen top offsets. Full-screen onboarding and tutorial surfaces remain
+per-screen top offsets. `GameUiShell` validates both direct slots at startup,
+enforces their order, and exposes typed references so the layout is a runtime
+contract rather than a node-name convention. Full-screen onboarding and tutorial surfaces remain
 outside the shell because they intentionally cover the normal screen flow.
 
 Full views do not scroll as a default composition strategy. Scrolling belongs
@@ -256,7 +290,9 @@ object that moves between contexts.
   `Dictionary<CitizenId, CitizenSpriteCarrier>`. The bank is the only
   place that creates and disposes sprites. Inactive carriers park under the
   bank; the active view mounts the canonical instance into its local visual
-  host so normal clipping and scene order apply.
+  host so normal clipping and scene order apply. Carrier initialization is
+  internal to the assembly and stale visuals are hidden before deferred
+  disposal, preserving the one-visible-instance invariant during replacement.
 - `CitizenSpriteCarrier` (Node2D) wraps one `LineageSpritePlayer` and
   tracks its state — `Home`, `Entering`, `Working`, `Exiting`. It never
   has a duplicate; it is the canonical visual for one citizen.
@@ -308,15 +344,33 @@ Local persistence is implemented through plain DTOs and
 - Structural and cross-entity invariants are validated before restore.
 - The Godot controller auto-loads the primary slot, auto-saves periodically
   and on window close after onboarding, and starts a new empty world when
-  no valid v4 snapshot is available. The controller's load path runs
-  `MigrateV2ToV3` then `MigrateV3ToV4` on the raw JSON before `Validate`,
+  no valid v9 snapshot is available. The controller walks the sequential
+  v2 → v3 → v4 → v5 → v6 → v7 → v8 → v9 migrations on raw JSON before `Validate`,
   so older saves upgrade non-fatally: v2 → v3 introduces the reactive
   policy triplet and IronStock; v3 → v4 introduces explicit gender identity
-  (defaulting to Masculine when missing).
+  (defaulting to Masculine when missing); v4 → v5 adds bounded event history;
+  v5 → v6 adds durable reservations and explicit building input stock;
+  v6 → v7 adds stable per-unit natural-resource reserves and semantic
+  citizen resource visits; v7 → v8 introduces persistent `CityParcel` and
+  `NaturalResourcePatch` state; v8 → v9 assigns persistent parcel placements
+  to projects and buildings.
 - Offline elapsed time is capped and applied as deterministic batched ticks;
   an empty hero-only world uses an equivalent idle fast-forward.
 
 ### Material reserves vs. produced-resource storage
+
+`CityResourceLedger` is the common location-aware facade over these physical
+stores. It does not copy stock into a global counter: entries retain their
+building and storage kind. It provides atomic recipe consumption and runtime
+reservations owned by a construction project or future expedition. Schema v7
+persists reservations, typed owners, and IDs; restore validates commitments
+against physical stock and resumes allocation after the largest retained ID.
+Natural-resource patches persist each visible unit independently and attach it
+to a stable parcel. Forest compatibility state still owns gathered Wood stock
+while recipes transition to a parcel-independent city store. Citizen visits
+are stored as domain IDs plus a logical terrain
+slot rather than viewport coordinates. The logical slot remains valid when the
+depleted Forest entity is removed.
 
 `Building` carries two distinct counters so the operating-recipe drawdown
 does not visually shrink the produced-resource amount:
@@ -335,21 +389,24 @@ bootstrap requirement.
 
 ### Causal event log
 
-`WorldEvent.CauseEventId` is wired through `CityWorld.FindCauseEvent`. The
+`WorldEvent` carries a typed subject kind, optional entity ID, captured display
+label, and typed `CauseEventId`. `CityWorld.FindCauseEvent` compares building
+identity rather than display names. The
 `OfflineReportPanel` renders a "Decisions needed" list grouped by subject
 above the chronological rows so the player can scan what requires attention
 without scrolling the full timeline.
 
-`OfflineProgressionReport` carries both aggregate counters and the causal events
-generated during catch-up. The current `WorldEventLog` is bounded and in memory:
-restore clears it, it is not part of `WorldSave`, and offline catch-up repopulates
-it. Persistence/streaming for a long-horizon history and the final relationship
-between real time and world time remain undecided.
+`OfflineProgressionReport` carries both aggregate counters and causal events
+generated during catch-up. Schema v5 persists at most 128 significant events.
+Per-tick production/progress and day/night noise are excluded; repeated adjacent
+steady states are compacted, and causes outside the retained subset are cleared.
+Restore preserves retained IDs and resumes allocation after the largest ID.
 
 ### Boundary enforcement
 
-Domain events retain only causal and semantic data. Presentation owns the
-`WorldEventKind` → icon mapping through `IconPaths`; asset paths never travel
+Domain events retain only causal and semantic data. Presentation owns both
+player-facing copy through `WorldEventTextFormatter` and the `WorldEventKind` →
+icon mapping through `IconPaths`; asset paths and localized text never travel
 through `WorldEvent`. `DomainBoundaryTests` scans every C# source below
 `game/scripts/Domain/` and fails if it finds a Godot reference or `res://` path,
 turning the domain/presentation rule into an executable constraint.
@@ -382,6 +439,19 @@ explicitly 1280×720 with `canvas_items` stretch and `expand` aspect handling.
 
 ## 10. Planned event-based simulation
 
+`WorldTimeAdvance` is now the single domain seam used by offline catch-up to
+advance an elapsed tick range. It performs one batch for a world without
+buildings or projects. A structured but quiescent city (no work assignments)
+also batches all ticks that stay within the current day/night phase: upkeep,
+WellFed expiry, stop causes, and the clock are applied arithmetically, while
+sunrise/sunset remain canonical stepped ticks. Completed projects, forests due
+for demolition, and assigned workers force the canonical
+`CityWorld.AdvanceWorldTick` path. Snapshot JSON and the full causal-event
+sequence are tested for equivalence over multiple days. New strategies belong
+behind this seam and need the same proof before replacing per-tick execution.
+Offline reports capture a log cursor before the batch, so new event kinds do
+not require category-specific counters and cannot replay older events.
+
 The current offline simulation batches deterministic ticks. Its intended
 evolution is event-based:
 
@@ -392,8 +462,9 @@ evolution is event-based:
 - Events are causal — each event refers to the state that caused it.
 - The event log is the source of truth for the causal report.
 
-This section is a contract for the future architecture. It is not an
-implementation plan. The first prototype does not need it.
+This section is the evolution contract. The current consolidation provides the
+advance seam and event cursor only; active-world event scheduling remains a
+future slice and must be introduced incrementally.
 
 ## 11. What is explicitly out of scope
 

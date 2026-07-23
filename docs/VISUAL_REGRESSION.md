@@ -1,0 +1,119 @@
+# Visual regression matrix
+
+This document is the reproducible visual-review contract for UI changes. A
+successful headless boot is necessary, but it does not prove layout, focus,
+occlusion, or readable content.
+
+## Capture command
+
+Run from the repository root with Godot 4.7.1 .NET:
+
+```powershell
+pwsh ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName macro-current
+```
+
+Use normalized client coordinates to prepare an interactive state consistently
+at every resolution. For example, the current status-bar pause control is:
+
+```powershell
+pwsh ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName macro-paused `
+  -NormalizedClicks '0.283,0.025'
+```
+
+Invoke the script directly when a fixture needs more than one click so
+PowerShell preserves the string array:
+
+```powershell
+& ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName construction-underway `
+  -NormalizedClicks @('0.247,0.102', '0.57,0.75')
+```
+
+The Windows harness opens a real Godot window because Movie Maker always uses
+the project's logical 1280×720 viewport and is not compatible with the headless
+dummy renderer. It captures the window client at 1024×576, 1280×720, and 1600×900,
+rejects missing, empty, or incorrectly sized PNGs, and writes a JSON manifest. Captures are review artifacts and are
+not committed by default. Use a distinct `StateName` for every prepared state.
+The default scene is `CityPrototype.tscn`; `-ScenePath` may target a reusable
+component scene. The harness sets `WOG_VISUAL_CAPTURE=1`: the controller still
+loads the real slot as a fixture but suppresses every persistence write, including
+periodic autosave and window-close save.
+
+States that cannot be reached reliably from an existing slot may use
+`-VisualFixture tutorial`, `-VisualFixture tutorial-long`, or
+`-VisualFixture offline-report`. These fixtures are ignored unless
+`WOG_VISUAL_CAPTURE=1`; they do not alter the normal game flow. The selected
+fixture is written into each manifest entry.
+
+## Required matrix
+
+| State | Fixture/precondition | Automated capture | Human assertions |
+| --- | --- | --- | --- |
+| Macro, running | Loaded playable slot | Yes | HUD/chips inside status bar; plots and Chronicle unobstructed |
+| Orthogonal parcel terrain | Loaded playable slot | Yes | Eight parcel boundaries, integer-scaled ground, trees only, plots readable above terrain |
+| Tree resource menu | `resource-menu` fixture | Yes | Menu anchored near tree, reserve copy, Gather/Close actions, no Forest cards |
+| Tree gathering result | `resource-gather` fixture | Yes | Hero travel completes before +2 wood, reserve/tree count falls, event reaches Chronicle |
+| Macro, paused | Pause selected | After preparing state | Pause action and selected multiplier are unambiguous |
+| Construction, empty | No authorised project | After opening panel | Empty choices, long recipe text, close paths, focus |
+| Construction, underway | Active project with contributors | After preparing slot | Progress, pause/cancel distinction, scrolling |
+| Building detail | Selected Shelter/Farm/Quarry | After opening detail | Back path, worker slots, production controls, no clipping |
+| Forest detail | Gatherable and depleted fixtures | After opening detail | Reserve/stock distinction and missing-input state |
+| Hero profile | Existing founder | After opening profile | Long profile values wrap/scroll; Back to city remains visible |
+| Tutorial overlay | Tutorial visible above macro/modal | After triggering overlay | Scrim/overlay order, readable copy, keyboard/gamepad focus |
+| Offline report | Catch-up with maximum representative rows | After loading fixture | Bottom-right anchoring, compact rows, internal scrolling |
+| ESC menu | `pause-menu` fixture | Yes | Scrim, title, Resume, disabled Settings placeholder, reset action, focus, and close paths |
+| Reset confirmation | `pause-menu-reset` fixture | Yes | Consequence copy, destructive hierarchy, safe cancel path, and no clipping |
+
+Every applicable row must be checked at all three harness resolutions. Changes
+to anchoring or safe-area behavior additionally require 2560×1080, 4:3, and a
+vertical viewport as manual exploratory checks until those shapes become part
+of a deterministic fixture harness.
+
+## Review record
+
+For each UI change, record:
+
+- commit or change identifier;
+- state names and manifest paths;
+- compared resolutions;
+- pass/fail for overflow, overlap, occlusion, focus, and close/back behavior;
+- reviewer and date;
+- any deliberately deferred state with its backlog ID.
+
+Do not mark a visual acceptance criterion complete solely from `dotnet test` or
+Godot headless boot. Automated capture proves reproducibility; a person still
+signs composition and interaction until image-diff baselines are intentionally
+introduced.
+
+## Executed reviews
+
+| Date | State | Resolutions | Result |
+| --- | --- | --- | --- |
+| 2026-07-22 | `macro-current` | 1024×576, 1280×720, 1600×900 | Captures and dimensions valid. HUD, actions, plots, and Chronicle stay inside the viewport. Failed citizen-label composition: the status icon obscures the first character of persisted name `zeventh` at all three sizes (M-16). |
+| 2026-07-22 | `macro-m16-fixed` | 1024×576, 1280×720, 1600×900 | Pass. Persisted name `zeventh` is fully visible; the 16×16 contained icon and 6 px separation no longer overlap it. Harness also forces its Godot window to foreground before capture, preventing external-window contamination. |
+| 2026-07-22 | `macro-paused` | 1024×576, 1280×720, 1600×900 | Pass. The main control changes to the play action, the retained speed control is visibly disabled, and the status bar remains legible without overlaps. An initial `0.21,0.025` click missed the control and was discarded; the reviewed fixture uses `0.283,0.025`. |
+| 2026-07-22 | `construction-empty-pass2` | 1024×576, 1280×720, 1600×900 | Pass after fixes. The no-active-project choices fit without clipping, `View hero` retains its icon and label, the macro action changes immediately to `Close construction`, and Chronicle remains hidden behind the modal across live ticks. Intermediate captures exposed the blank packed-scene button and Chronicle refresh race and were rejected. |
+| 2026-07-22 | `construction-underway-pass` | 1024×576, 1280×720, 1600×900 | Pass after fixes. The active-project HUD uses the concise project/city chips and remains inside both edges; the preview is aspect-contained and no longer overlaps instructions; header, scrolling body, Pause/Resume, Cancel, and View hero remain reachable. Invalid multi-click manifests and non-equivalent modal states were rejected. |
+| 2026-07-23 | `shelter-detail-pass` | 1024×576, 1280×720, 1600×900 | Pass. Shelter art, resting citizen label, capacity summary, persistent status bar, and `Back to city` remain visible without overlap. An earlier black 1024×576 frame was rejected and recaptured after rebuilding. |
+| 2026-07-23 | `farm-detail`, `quarry-detail` | 1024×576, 1280×720, 1600×900 | Pass for layout. Production, stock, policy controls, assignment sidebar, available citizen action, and `Back to city` remain inside the viewport. Review also found that the runtime still exposes `Reactive policy` although `CURRENT_STATUS.md` describes the future simplified panel; that product/code mismatch is not treated as a visual pass criterion. |
+| 2026-07-23 | `forest-detail` | 1024×576, 1280×720, 1600×900 | Pass for a gatherable Forest. Stock/reserve, foraging rate, production controls, assignment sidebar, and back path remain visible. A deterministic depleted-detail fixture is still required because depleted macro plots intentionally disable entry. |
+| 2026-07-23 | `hero-profile-fixed` | 1024×576, 1280×720, 1600×900 | Pass after fixing the profile scroll surface. The first capture exposed white copy on the global yellow `ScrollContainer` style and right-edge clipping at 1024×576. The profile now uses its dark reading surface, keeps a scrollbar gutter, wraps long copy, and preserves the fixed `Back to city` header. |
+| 2026-07-23 | `tutorial`, `tutorial-long` | 1024×576, 1280×720, 1600×900 | Pass after fixing the collapsed body. The initial fixture showed only a yellow strip because the body scroll had no vertical budget. The normal and longest steps now render on a dark 96 px reading surface; title, wrapped copy, Skip, focused Next/Got it, and scrim remain contained. |
+| 2026-07-23 | `offline-report` | 1024×576, 1280×720, 1600×900 | Pass with a deterministic 80-event fixture. The first capture was overwritten by the live Chronicle refresh and was rejected. Capture mode now freezes the representative offline report; summary, decision rows, event list, scrollbar, header, and bottom-right anchoring remain inside the viewport. |
+| 2026-07-23 | `pause-menu`, `pause-menu-reset` | 1024×576, 1280×720, 1600×900 | Pass after rejecting the first capture, which exposed blank packed-scene `IconButton` content. The corrected menu shows its icon/label hierarchy, pauses the simulation, provides ESC/X/scrim close paths, and separates permanent reset behind an explicit confirmation. Capture mode suppresses persistence writes; no live slot was reset. |
+| 2026-07-23 | `orthogonal-terrain` | 1024×576, 1280×720, 1600×900 | Initial green capture rejected for excessive saturation and two atlas coordinates that rendered water tiles instead of trees. Brown-floor iteration was also rejected as too architectural. Final olive-ground capture uses only verified green/orange tree tiles; eight parcel boundaries, buildings, hero activity, macro actions, and Chronicle remain readable. |
+| 2026-07-23 | `resource-menu`, `resource-macro` | 1024×576, 1280×720, 1600×900 | Pass. Forest placeholder cards are gone. Interactive trees derive from current reserves, the contextual menu stays inside the viewport, and the new Menu action fits beside View hero and Construction. Gather and Close retain visible labels/icons. |
+| 2026-07-23 | `resource-gather` | 1024×576, 1280×720, 1600×900 | Pass in read-only capture mode. The fixture routes through hero travel before the existing domain operation; +2 wood reaches status/Chronicle and the Forest reserve redraw removes two visible trees. The loaded slot is never saved by the harness. |
+| 2026-07-23 | `tree-click`, `construction-scroll-fixed` | 1024×576, 1280×720, 1600×900 | Pass. A physical click on the upper-left tree opens Gather/Close, proving the center layout no longer intercepts resource input. The construction fixture reaches the bottom of the scroll body, exposes Assigned/Available and fixed footer actions, and shows the founding shelter with one contributor. |
+| 2026-07-23 | `pixel-route-final`, `pixel-detail-retry` | 1024×576, 1280×720, 1600×900 | Pass. The in-flight gather route places the hero above-left of the Shelter instead of crossing its footprint. Shelter detail remains contained after removing its continuous fade and quantizing citizen carrier motion. The first detail attempt used a stale coordinate and was rejected. |
+| 2026-07-23 | `stable-tree-unit` | 1024×576, 1280×720, 1600×900 | Pass after arrival. The selected upper-left tree is absent while later tree slots remain in place. The citizen marker stays at the depleted slot after the gather-triggered refresh. Citizen marker and name now share one moving container. Capture mode migrated the loaded v6 fixture in memory without writing it. |
+| 2026-07-23 | `travel-refresh-guard`, `travel-refresh-arrival` | 1024×576, 1280×720, 1600×900 | Pass with Shelter and Farm complete and Quarry under construction. At 2 seconds the citizen remains mid-route despite project refresh events; at 6 seconds it has reached the upper-left resource slot. Active travel is no longer rebuilt by `CityMacroView.Refresh`. |
+| 2026-07-23 | `resource-menu-current`, `physical-gather` | 1024×576, 1280×720, 1600×900 | Pass through the real menu button rather than the direct fixture. A physical click on Gather closes the resource menu and advances the marker/name container by roughly 24 px within 350 ms (three 8 px cadence steps at 1024×576), confirming the contextual signal reaches `TravelHeroTo`. |

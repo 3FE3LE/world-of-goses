@@ -32,10 +32,12 @@ These files describe what the code does today, the recommended slice sequence, a
 | --- | --- |
 | `CURRENT_STATUS.md` | What slice is live, what the next proof should be, verification commands. |
 | `ARCHITECTURE.md` | Folder layout, the engine/domain boundary, three visual scales, persistence boundary, what is out of scope. |
+| `VISUAL_REGRESSION.md` | Reproducible capture harness, required UI-state matrix, and human sign-off contract. |
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
 | `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |
 | `VALIDATION.md` | Honest cross-check of the current slice against the bible's vision and pillars, ranked gaps. |
 | `ART_PIPELINE.md` | Pixelorama → PNG → Godot file flow, naming conventions, SpriteFrames / TileMapLayer wiring, anti-patterns. |
+| `ASSET_INVENTORY.md` | Inventory and licensing triage of downloaded art packs, selected promotions into runtime assets, and the staged integration plan. |
 | `LINEAGE_DESIGN_MATRIX.md` | Visual translation matrix shipped with the Universal LPC lineage character pack. |
 | `MANIFEST.json` | Machine-readable manifest for the 16 imported lineage character scenes. |
 | `LICENSING_AND_ATTRIBUTION.md` | Universal LPC provenance, transformations, distribution obligations, and attribution pointers. |

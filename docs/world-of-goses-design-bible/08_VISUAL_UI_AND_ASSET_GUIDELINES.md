@@ -79,6 +79,16 @@ Movimiento dibujado: caminar, trabajar, atacar, curar, recibir impacto y teletra
 
 Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efectos ambientales.
 
+### Pixel-motion grammar
+
+- Simulation time remains continuous; character presentation is quantized.
+- Macro and building-detail locomotion uses integer positions at a deliberate
+  12 Hz visual cadence, advancing by 8 pixels per step.
+- Macro travel follows cardinal routes and must not cross occupied building
+  footprints.
+- UI scrolling may remain smooth. Continuous character fades or subpixel
+  locomotion require an explicit visual exception.
+
 ## UI por linaje
 
 La estructura funcional es compartida. Cambian paleta, bordes, esquinas, rellenos, sombras, patrones, selección, microanimaciones y tratamiento de iconos.

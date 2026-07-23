@@ -97,9 +97,14 @@ three.
 The detailed lineage character set lives at
 `game/assets/characters/lineages/<lineage>/<male|female>/`. It contains
 16 Godot scenes backed by `SpriteFrames` resources and 128 × 128 cells
-for `idle`, `walk`, and `slash` in four directions. Runtime selection is
+for 14 animations (`idle`, `combat_idle`, `walk`, `run`, `jump`, `climb`,
+`sit`, `hurt`, `slash`, `thrust`, `halfslash`, `backslash`, `shoot`,
+`spellcast`) in four directions. Runtime selection is
 centralised in `game/scripts/visual/CharacterVisualRegistry.cs`; animation
-selection is owned by `LineageSpritePlayer.cs`.
+selection is owned by `LineageSpritePlayer.cs`. The combat poses (`slash`,
+`thrust`, `halfslash`, `backslash`, `shoot`, `spellcast`) come straight
+from the Universal LPC body sheets; the body recoloring and overlay
+pipeline applies the lineage identity on top.
 
 These characters use Universal LPC body bases and require attribution.
 Preserve `docs/LICENSING_AND_ATTRIBUTION.md`, `docs/licenses/`,

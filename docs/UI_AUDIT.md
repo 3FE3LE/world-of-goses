@@ -45,6 +45,10 @@
 
 ## Checklist de auditoría visual (firma humana)
 
+The canonical capture command and state/resolution matrix now live in
+[`VISUAL_REGRESSION.md`](VISUAL_REGRESSION.md). This checklist remains the
+detailed human sign-off for the current prototype.
+
 Responde sí/no y anota la observación.
 
 ### Canvas y resolución
