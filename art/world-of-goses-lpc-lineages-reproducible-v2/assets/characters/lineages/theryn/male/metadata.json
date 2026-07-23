@@ -1,0 +1,60 @@
+{
+  "lineage": "Theryn",
+  "lineage_key": "theryn",
+  "body_variant": "male",
+  "principle": "Vínculo e intensidad compartida",
+  "visual_translation": "ondas, pulsos, círculos y memoria colectiva",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#784052",
+      "secondary": "#AF5B60",
+      "accent": "#63A39E",
+      "skin": "#8B5969",
+      "hair": "#56283A"
+    },
+    "profiles": {
+      "symbol": "pulse",
+      "accessories": "theryn",
+      "back": "none",
+      "female_hair_back": "long_locks",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World of Goses lineage sprite build recipe",
+  "type": "object",
+  "required": ["source_frame_size", "output_frame_size", "directions", "animations"],
+  "properties": {
+    "source_frame_size": {"type": "integer", "minimum": 1},
+    "output_frame_size": {"type": "integer", "minimum": 1},
+    "directions": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "animations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "mode", "frames", "fps", "loop"],
+        "properties": {
+          "name": {"type": "string"},
+          "mode": {"enum": ["sheet", "sheet_mirror"]},
+          "frames": {"type": "integer", "minimum": 1},
+          "fps": {"type": "number", "exclusiveMinimum": 0},
+          "loop": {"type": "boolean"}
+        }
+      }
+    }
+  }
+}

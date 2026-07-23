@@ -1,0 +1,60 @@
+{
+  "lineage": "Orveth",
+  "lineage_key": "orveth",
+  "body_variant": "male",
+  "principle": "Valor y reciprocidad",
+  "visual_translation": "sellos, unidades repetidas, reserva y simetría",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#6B4142",
+      "secondary": "#A17E3C",
+      "accent": "#D7C184",
+      "skin": "#805846",
+      "hair": "#2D2425"
+    },
+    "profiles": {
+      "symbol": "seal",
+      "accessories": "orveth",
+      "back": "none",
+      "female_hair_back": "bun",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

@@ -1,0 +1,60 @@
+{
+  "lineage": "Myrven",
+  "lineage_key": "myrven",
+  "body_variant": "female",
+  "principle": "Identidad y representación",
+  "visual_translation": "capas, marcos dobles, máscara y revelación",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#674D78",
+      "secondary": "#3F4D73",
+      "accent": "#D18DA8",
+      "skin": "#917080",
+      "hair": "#49345A"
+    },
+    "profiles": {
+      "symbol": "split",
+      "accessories": "myrven",
+      "back": "mantle",
+      "female_hair_back": "long_locks",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

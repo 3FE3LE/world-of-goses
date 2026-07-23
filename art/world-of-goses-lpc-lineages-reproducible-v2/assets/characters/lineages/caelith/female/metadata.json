@@ -1,0 +1,60 @@
+{
+  "lineage": "Caelith",
+  "lineage_key": "caelith",
+  "body_variant": "female",
+  "principle": "Síntesis y conocimiento",
+  "visual_translation": "retículas, nodos, diagramas y conexiones",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#405370",
+      "secondary": "#665588",
+      "accent": "#75BDC0",
+      "skin": "#A37A68",
+      "hair": "#BDB5A7"
+    },
+    "profiles": {
+      "symbol": "nodes",
+      "accessories": "caelith",
+      "back": "none",
+      "female_hair_back": "long_locks",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

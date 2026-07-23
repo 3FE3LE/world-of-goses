@@ -1,0 +1,60 @@
+{
+  "lineage": "Eirune",
+  "lineage_key": "eirune",
+  "body_variant": "male",
+  "principle": "Simbiosis y continuidad vital",
+  "visual_translation": "fibras, células, hojas y ciclos de agua",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#4F7752",
+      "secondary": "#3F8580",
+      "accent": "#A5C46D",
+      "skin": "#B8815E",
+      "hair": "#304B35"
+    },
+    "profiles": {
+      "symbol": "leaf",
+      "accessories": "eirune",
+      "back": "vine",
+      "female_hair_back": "long_locks",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}

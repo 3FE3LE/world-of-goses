@@ -1,0 +1,128 @@
+{
+  "$schema": "./build.schema.json",
+  "version": 1,
+  "package": "world-of-goses-lpc-lineages",
+  "package_version": "3.0.0",
+  "source_frame_size": 64,
+  "output_frame_size": 128,
+  "baseline": [64, 126],
+  "scene_offset": [0, -62],
+  "directions": {"down": 0, "left": 1, "up": 2, "right": 3},
+  "animations": [
+    {
+      "name": "idle",
+      "mode": "sheet",
+      "source": "body_{gender}_idle.png",
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "fallbacks": {
+        "female": {"source": "body_female_walk.png", "columns": [0, 4]}
+      }
+    },
+    {
+      "name": "combat_idle",
+      "mode": "sheet",
+      "source": "body_{gender}_combat_idle.png",
+      "frames": 2,
+      "fps": 4.0,
+      "loop": true
+    },
+    {
+      "name": "walk",
+      "mode": "sheet",
+      "source": "body_{gender}_walk.png",
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true
+    },
+    {
+      "name": "run",
+      "mode": "sheet",
+      "source": "body_{gender}_run.png",
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true
+    },
+    {
+      "name": "jump",
+      "mode": "sheet",
+      "source": "body_{gender}_jump.png",
+      "frames": 5,
+      "fps": 9.0,
+      "loop": false
+    },
+    {
+      "name": "climb",
+      "mode": "sheet_mirror",
+      "source": "body_{gender}_climb.png",
+      "frames": 6,
+      "fps": 6.0,
+      "loop": true
+    },
+    {
+      "name": "sit",
+      "mode": "sheet",
+      "source": "body_{gender}_sit.png",
+      "frames": 3,
+      "fps": 3.0,
+      "loop": true
+    },
+    {
+      "name": "hurt",
+      "mode": "sheet_mirror",
+      "source": "body_{gender}_hurt.png",
+      "frames": 6,
+      "fps": 9.0,
+      "loop": false
+    },
+    {
+      "name": "slash",
+      "mode": "sheet",
+      "source": "body_{gender}_slash.png",
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false
+    },
+    {
+      "name": "thrust",
+      "mode": "sheet",
+      "source": "body_{gender}_thrust.png",
+      "frames": 8,
+      "fps": 12.0,
+      "loop": false
+    },
+    {
+      "name": "halfslash",
+      "mode": "sheet",
+      "source": "body_{gender}_halfslash.png",
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false
+    },
+    {
+      "name": "backslash",
+      "mode": "sheet",
+      "source": "body_{gender}_backslash.png",
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false
+    },
+    {
+      "name": "shoot",
+      "mode": "sheet",
+      "source": "body_{gender}_shoot.png",
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false
+    },
+    {
+      "name": "spellcast",
+      "mode": "sheet",
+      "source": "body_{gender}_spellcast.png",
+      "frames": 7,
+      "fps": 10.0,
+      "loop": false
+    }
+  ]
+}

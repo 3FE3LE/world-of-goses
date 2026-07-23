@@ -1,0 +1,138 @@
+{
+  "package": "world-of-goses-lpc-lineages",
+  "version": "2.0.0",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "recipe": "res://source/recipes/lineages.json",
+  "build_recipe": "res://source/recipes/build.json",
+  "characters": [
+    {
+      "lineage": "ardhen",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/ardhen/male/ardhen_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/ardhen/male/ardhen_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "ardhen",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/ardhen/female/ardhen_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/ardhen/female/ardhen_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "eirune",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/eirune/male/eirune_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/eirune/male/eirune_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "eirune",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/eirune/female/eirune_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/eirune/female/eirune_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "kovari",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/kovari/male/kovari_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/kovari/male/kovari_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "kovari",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/kovari/female/kovari_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/kovari/female/kovari_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "myrven",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/myrven/male/myrven_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/myrven/male/myrven_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "myrven",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/myrven/female/myrven_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/myrven/female/myrven_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "vaelun",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/vaelun/male/vaelun_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/vaelun/male/vaelun_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "vaelun",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/vaelun/female/vaelun_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/vaelun/female/vaelun_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "orveth",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/orveth/male/orveth_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/orveth/male/orveth_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "orveth",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/orveth/female/orveth_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/orveth/female/orveth_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "caelith",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/caelith/male/caelith_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/caelith/male/caelith_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "caelith",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/caelith/female/caelith_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/caelith/female/caelith_female_sprite_frames.tres"
+    },
+    {
+      "lineage": "theryn",
+      "body_variant": "male",
+      "scene": "res://assets/characters/lineages/theryn/male/theryn_male.tscn",
+      "sprite_frames": "res://assets/characters/lineages/theryn/male/theryn_male_sprite_frames.tres"
+    },
+    {
+      "lineage": "theryn",
+      "body_variant": "female",
+      "scene": "res://assets/characters/lineages/theryn/female/theryn_female.tscn",
+      "sprite_frames": "res://assets/characters/lineages/theryn/female/theryn_female_sprite_frames.tres"
+    }
+  ]
+}

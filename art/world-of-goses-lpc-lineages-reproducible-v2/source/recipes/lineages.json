@@ -1,0 +1,257 @@
+{
+  "$schema": "./lineages.schema.json",
+  "version": 1,
+  "generator_url": "https://liberatedpixelcup.github.io/Universal-LPC-Spritesheet-Character-Generator/",
+  "reference": "../reference/06_LINEAGES.md",
+  "lineages": [
+    {
+      "key": "ardhen",
+      "name": "Ardhen",
+      "principle": "Obra, carga y consecuencia",
+      "visual": "piedra, cobre, placas y soportes",
+      "colors": {
+        "primary": "#72685D",
+        "secondary": "#A65D38",
+        "accent": "#D7A35F",
+        "skin": "#99634A",
+        "hair": "#3A2924"
+      },
+      "profiles": {
+        "symbol": "brace",
+        "accessories": "ardhen",
+        "back": "none",
+        "female_hair_back": "braid",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "eirune",
+      "name": "Eirune",
+      "principle": "Simbiosis y continuidad vital",
+      "visual": "fibras, células, hojas y ciclos de agua",
+      "colors": {
+        "primary": "#4F7752",
+        "secondary": "#3F8580",
+        "accent": "#A5C46D",
+        "skin": "#B8815E",
+        "hair": "#304B35"
+      },
+      "profiles": {
+        "symbol": "leaf",
+        "accessories": "eirune",
+        "back": "vine",
+        "female_hair_back": "long_locks",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "kovari",
+      "name": "Kovari",
+      "principle": "Intervención e improvisación",
+      "visual": "placas, remaches, herramientas y segmentos",
+      "colors": {
+        "primary": "#515D69",
+        "secondary": "#9C4E3B",
+        "accent": "#E0B24D",
+        "skin": "#C58B61",
+        "hair": "#3B302C"
+      },
+      "profiles": {
+        "symbol": "gear",
+        "accessories": "kovari",
+        "back": "none",
+        "female_hair_back": "mechanical_ponytail",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "myrven",
+      "name": "Myrven",
+      "principle": "Identidad y representación",
+      "visual": "capas, marcos dobles, máscara y revelación",
+      "colors": {
+        "primary": "#674D78",
+        "secondary": "#3F4D73",
+        "accent": "#D18DA8",
+        "skin": "#917080",
+        "hair": "#49345A"
+      },
+      "profiles": {
+        "symbol": "split",
+        "accessories": "myrven",
+        "back": "mantle",
+        "female_hair_back": "long_locks",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "vaelun",
+      "name": "Vaelun",
+      "principle": "Ruta y pertenencia móvil",
+      "visual": "mapas, señales, nudos de ruta y refugio",
+      "colors": {
+        "primary": "#3E6E78",
+        "secondary": "#B18F5B",
+        "accent": "#79B4C3",
+        "skin": "#B47B58",
+        "hair": "#5A432E"
+      },
+      "profiles": {
+        "symbol": "compass",
+        "accessories": "vaelun",
+        "back": "none",
+        "female_hair_back": "braid",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "orveth",
+      "name": "Orveth",
+      "principle": "Valor y reciprocidad",
+      "visual": "sellos, unidades repetidas, reserva y simetría",
+      "colors": {
+        "primary": "#6B4142",
+        "secondary": "#A17E3C",
+        "accent": "#D7C184",
+        "skin": "#805846",
+        "hair": "#2D2425"
+      },
+      "profiles": {
+        "symbol": "seal",
+        "accessories": "orveth",
+        "back": "none",
+        "female_hair_back": "bun",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "caelith",
+      "name": "Caelith",
+      "principle": "Síntesis y conocimiento",
+      "visual": "retículas, nodos, diagramas y conexiones",
+      "colors": {
+        "primary": "#405370",
+        "secondary": "#665588",
+        "accent": "#75BDC0",
+        "skin": "#A37A68",
+        "hair": "#BDB5A7"
+      },
+      "profiles": {
+        "symbol": "nodes",
+        "accessories": "caelith",
+        "back": "none",
+        "female_hair_back": "long_locks",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    },
+    {
+      "key": "theryn",
+      "name": "Theryn",
+      "principle": "Vínculo e intensidad compartida",
+      "visual": "ondas, pulsos, círculos y memoria colectiva",
+      "colors": {
+        "primary": "#784052",
+        "secondary": "#AF5B60",
+        "accent": "#63A39E",
+        "skin": "#8B5969",
+        "hair": "#56283A"
+      },
+      "profiles": {
+        "symbol": "pulse",
+        "accessories": "theryn",
+        "back": "none",
+        "female_hair_back": "long_locks",
+        "weapon": "sword"
+      },
+      "variants": {
+        "male": {
+          "colors": {},
+          "profiles": {}
+        },
+        "female": {
+          "colors": {},
+          "profiles": {}
+        }
+      }
+    }
+  ],
+  "weapons": {
+    "sword": {
+      "blade_outline": "#2D323A",
+      "blade": "#B7C7CC",
+      "shine": "#EEF4EC",
+      "grip": "#4A3024",
+      "length": 38
+    }
+  }
+}

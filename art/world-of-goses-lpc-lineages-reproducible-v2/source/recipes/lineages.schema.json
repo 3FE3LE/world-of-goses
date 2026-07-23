@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "World of Goses lineage sprite recipes",
+  "type": "object",
+  "required": [
+    "version",
+    "lineages",
+    "weapons"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generator_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "lineages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "principle",
+          "visual",
+          "colors",
+          "profiles"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "principle": {
+            "type": "string"
+          },
+          "visual": {
+            "type": "string"
+          },
+          "colors": {
+            "type": "object",
+            "required": [
+              "primary",
+              "secondary",
+              "accent",
+              "skin",
+              "hair"
+            ],
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^#[0-9A-Fa-f]{6}$"
+            }
+          },
+          "profiles": {
+            "type": "object"
+          },
+          "variants": {
+            "type": "object",
+            "properties": {
+              "male": {
+                "$ref": "#/$defs/variant"
+              },
+              "female": {
+                "$ref": "#/$defs/variant"
+              }
+            }
+          }
+        }
+      }
+    },
+    "weapons": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "variant": {
+      "type": "object",
+      "properties": {
+        "colors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          }
+        },
+        "profiles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

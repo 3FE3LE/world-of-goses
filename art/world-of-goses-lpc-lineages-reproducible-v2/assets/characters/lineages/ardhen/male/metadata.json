@@ -1,0 +1,60 @@
+{
+  "lineage": "Ardhen",
+  "lineage_key": "ardhen",
+  "body_variant": "male",
+  "principle": "Obra, carga y consecuencia",
+  "visual_translation": "piedra, cobre, placas y soportes",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "generated_slash"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#72685D",
+      "secondary": "#A65D38",
+      "accent": "#D7A35F",
+      "skin": "#99634A",
+      "hair": "#3A2924"
+    },
+    "profiles": {
+      "symbol": "brace",
+      "accessories": "ardhen",
+      "back": "none",
+      "female_hair_back": "braid",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+}
