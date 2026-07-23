@@ -5,7 +5,6 @@
 
 [node name="VaelunFemale" type="AnimatedSprite2D"]
 texture_filter = 1
-texture_repeat = 1
 sprite_frames = ExtResource("1_frames")
 animation = &"idle_down"
 autoplay = "idle_down"

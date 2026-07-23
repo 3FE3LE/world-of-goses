@@ -16,17 +16,86 @@
     "idle": {
       "frames": 2,
       "fps": 3.0,
-      "loop": true
+      "loop": true,
+      "mode": "sheet"
+    },
+    "combat_idle": {
+      "frames": 2,
+      "fps": 4.0,
+      "loop": true,
+      "mode": "sheet"
     },
     "walk": {
       "frames": 9,
       "fps": 9.0,
-      "loop": true
+      "loop": true,
+      "mode": "sheet"
+    },
+    "run": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "jump": {
+      "frames": 5,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "climb": {
+      "frames": 6,
+      "fps": 6.0,
+      "loop": true,
+      "mode": "sheet_mirror"
+    },
+    "sit": {
+      "frames": 3,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "hurt": {
+      "frames": 6,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet_mirror"
     },
     "slash": {
       "frames": 6,
       "fps": 11.0,
-      "loop": false
+      "loop": false,
+      "mode": "sheet"
+    },
+    "thrust": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "halfslash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "backslash": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "shoot": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "spellcast": {
+      "frames": 7,
+      "fps": 10.0,
+      "loop": false,
+      "mode": "sheet"
     }
   },
   "directions": [
@@ -35,7 +104,23 @@
     "up",
     "right"
   ],
-  "source": "Official Universal LPC body bases with original World of Goses overlays",
-  "slash_source": "Original 128x128 composite using LPC-derived poses",
-  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv"
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#515D69",
+      "secondary": "#9C4E3B",
+      "accent": "#E0B24D",
+      "skin": "#C58B61",
+      "hair": "#3B302C"
+    },
+    "profiles": {
+      "symbol": "gear",
+      "accessories": "kovari",
+      "back": "none",
+      "female_hair_back": "mechanical_ponytail",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "docs/licenses/LPC_SELECTED_CREDITS.csv"
 }
