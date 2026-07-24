@@ -117,9 +117,13 @@ public partial class TutorialOverlay : Control
             Name = "BodyScroll",
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
+            CustomMinimumSize = new Vector2(0, 96),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
+        _bodyScroll.AddThemeStyleboxOverride(
+            "panel",
+            new StyleBoxFlat { BgColor = new Color(0.09f, 0.13f, 0.16f, 0.92f) });
         shell.AddChild(_bodyScroll);
 
         _bodyLabel = new Label
@@ -127,6 +131,8 @@ public partial class TutorialOverlay : Control
             ThemeTypeVariation = "BodyText",
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
         };
         _bodyScroll.AddChild(_bodyLabel);
 
@@ -159,10 +165,26 @@ public partial class TutorialOverlay : Control
     private void OnHeroCreated(int _)
     {
         if (_dismissed) return;
+        ShowFromFirstStep();
+    }
+
+    internal void ShowForVisualRegression(int stepIndex = 0)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _stepIndex = System.Math.Clamp(stepIndex, 0, Steps.Count - 1);
+        ApplyStep();
+        Notifier.SetOverlaySuppressed(true);
+        Visible = true;
+        _nextButton.GrabFocus();
+    }
+
+    private void ShowFromFirstStep()
+    {
         _stepIndex = 0;
         ApplyStep();
         Notifier.SetOverlaySuppressed(true);
         Visible = true;
+        _nextButton.GrabFocus();
     }
 
     private void OnNextPressed()

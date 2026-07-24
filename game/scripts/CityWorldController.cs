@@ -23,6 +23,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CityWorldController : Node
 {
+    private const string VisualCaptureEnvironmentVariable = "WOG_VISUAL_CAPTURE";
+    private const string VisualCaptureCommandLineArgument = "--wog-visual-capture";
+
     [Signal]
     public delegate void SelectionChangedEventHandler(int selectionState);
 
@@ -100,8 +103,10 @@ public partial class CityWorldController : Node
     }
 
     private SpeedChoice _speed = SpeedChoice.Normal;
+    private SpeedChoice _lastRunningSpeed = SpeedChoice.Normal;
 
     public SpeedChoice CurrentSpeed => _speed;
+    public SpeedChoice LastRunningSpeed => _lastRunningSpeed;
 
     /// <summary>
     /// Switches the simulation speed and adjusts
@@ -112,7 +117,16 @@ public partial class CityWorldController : Node
     /// </summary>
     public void SetSimulationSpeed(SpeedChoice speed)
     {
+        if (speed is not SpeedChoice.Paused
+            and not SpeedChoice.Normal
+            and not SpeedChoice.Fast
+            and not SpeedChoice.Fastest)
+        {
+            throw new ArgumentOutOfRangeException(nameof(speed), speed, "Unsupported simulation speed.");
+        }
+
         _speed = speed;
+        if (speed != SpeedChoice.Paused) _lastRunningSpeed = speed;
         SimulationTickIntervalSeconds = speed switch
         {
             SpeedChoice.Paused => 0,
@@ -121,6 +135,9 @@ public partial class CityWorldController : Node
         if (speed == SpeedChoice.Paused) _simulationTimer = 0;
         EmitSignal(SignalName.SimulationSpeedChanged, (int)speed);
     }
+
+    public void ToggleSimulationPause() =>
+        SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused);
 
     public enum Selection
     {
@@ -140,6 +157,19 @@ public partial class CityWorldController : Node
     /// </summary>
     public bool PersistenceEnabled { get; set; } = true;
 
+    private bool PersistenceWritesEnabled =>
+        PersistenceEnabled
+        && !Array.Exists(
+            OS.GetCmdlineUserArgs(),
+            argument => string.Equals(
+                argument,
+                VisualCaptureCommandLineArgument,
+                StringComparison.Ordinal))
+        && !string.Equals(
+            System.Environment.GetEnvironmentVariable(VisualCaptureEnvironmentVariable),
+            "1",
+            StringComparison.Ordinal);
+
     public override void _Ready()
     {
         if (PersistenceEnabled) TryLoadFromDisk();
@@ -157,7 +187,7 @@ public partial class CityWorldController : Node
 
         AdvanceLiveSimulation(delta);
 
-        if (!PersistenceEnabled) return;
+        if (!PersistenceWritesEnabled) return;
         if (AutoSaveIntervalSeconds <= 0) return;
         _autoSaveTimer += delta;
         if (_autoSaveTimer >= AutoSaveIntervalSeconds)
@@ -191,7 +221,7 @@ public partial class CityWorldController : Node
 
     public override void _Notification(int what)
     {
-        if (!PersistenceEnabled) return;
+        if (!PersistenceWritesEnabled) return;
         if (what == WmCloseRequest)
         {
             TryAutoSave();
@@ -202,8 +232,44 @@ public partial class CityWorldController : Node
 
     public void SaveNow()
     {
-        if (!PersistenceEnabled) return;
+        if (!PersistenceWritesEnabled) return;
         TryAutoSave();
+    }
+
+    public bool ResetPrimarySlotAndRestart()
+    {
+        if (!PersistenceWritesEnabled) return false;
+        try
+        {
+            WorldPersistence.DeleteSlot(WorldPersistence.PrimarySaveSlot);
+            GetTree().ReloadCurrentScene();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"Could not reset the primary slot: {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool ResetCityKeepingFounderAndRestart()
+    {
+        if (!PersistenceWritesEnabled || _world.Hero is null) return false;
+        try
+        {
+            CityWorld restarted = _world.CreateRestartedCityKeepingHero();
+            _world.Restore(WorldPersistence.Capture(restarted));
+            WorldPersistence.SaveToSlot(
+                _world,
+                WorldPersistence.PrimarySaveSlot);
+            GetTree().ReloadCurrentScene();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"Could not soft-reset the city: {ex.Message}");
+            return false;
+        }
     }
 
     private void TryAutoSave()
@@ -298,6 +364,9 @@ public partial class CityWorldController : Node
     public int GatherWood(BuildingId forestId, int amount) =>
         _world.GatherWood(forestId, amount);
 
+    public int GatherWood(BuildingId forestId, int unitId, int amount) =>
+        _world.GatherWood(forestId, unitId, amount);
+
     public IReadOnlyList<Citizen> AvailableCitizens() => _world.AvailableCitizens();
 
     public IReadOnlyList<Citizen> AvailableCitizensByPriority() => _world.AvailableCitizensByPriority();
@@ -338,14 +407,22 @@ public partial class CityWorldController : Node
         => TryAuthorizeConstruction(ConstructionKind.BasicShelter);
 
     public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
+        => TryAuthorizeConstruction(kind, selectedLot: null);
+
+    public ConstructionAuthorizationResult TryAuthorizeConstruction(
+        ConstructionKind kind,
+        ConstructionLot? selectedLot)
     {
-        var result = _world.TryAuthorizeConstruction(kind);
+        var result = _world.TryAuthorizeConstruction(kind, selectedLot);
         if (result.IsSuccess && result.ProjectId.HasValue)
         {
             SaveNow();
         }
         return result;
     }
+
+    public IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
+        _world.AvailableConstructionLots();
 
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
         _world.SetProjectEnabled(projectId, enabled);
@@ -408,6 +485,34 @@ public partial class CityWorldController : Node
             {
                 save = WorldPersistence.MigrateV3ToV4(save);
             }
+            else if (save.Version == 4)
+            {
+                save = WorldPersistence.MigrateV4ToV5(save);
+            }
+            else if (save.Version == 5)
+            {
+                save = WorldPersistence.MigrateV5ToV6(save);
+            }
+            else if (save.Version == 6)
+            {
+                save = WorldPersistence.MigrateV6ToV7(save);
+            }
+            else if (save.Version == 7)
+            {
+                save = WorldPersistence.MigrateV7ToV8(save);
+            }
+            else if (save.Version == 8)
+            {
+                save = WorldPersistence.MigrateV8ToV9(save);
+            }
+            else if (save.Version == 9)
+            {
+                save = WorldPersistence.MigrateV9ToV10(save);
+            }
+            else if (save.Version == 10)
+            {
+                save = WorldPersistence.MigrateV10ToV11(save);
+            }
             else
             {
                 break;
@@ -421,6 +526,7 @@ public partial class CityWorldController : Node
         // SeedStartingForests is idempotent — it skips when forests
         // already exist or when no hero is present.
         _world.SeedStartingForests();
+        _world.EnsureFoundingShelterContributor();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         return true;
     }

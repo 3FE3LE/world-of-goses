@@ -5,9 +5,9 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Standalone play/pause toggle independent of the speed indicator.
-/// When the simulation is paused the icon shows the pause glyph; when
-/// it is running it shows the play glyph. Clicking the button swaps
-/// between the two states (does not cycle through speed multipliers —
+/// The icon shows the action that clicking will perform: play while paused
+/// and pause while running. Clicking swaps between those states without
+/// changing the selected running multiplier —
 /// that is the responsibility of <see cref="SpeedButton"/>).
 ///
 /// The button has no Text/Icon attributes of its own; the glyph is
@@ -22,7 +22,6 @@ public partial class PlayPauseButton : Button
 
     private CityWorldController? _controller;
     private TextureRect _icon = null!;
-    private bool _wasPaused;
 
     public override void _Ready()
     {
@@ -62,19 +61,17 @@ public partial class PlayPauseButton : Button
 
     private void OnSpeedChanged(int speedValue)
     {
-        _wasPaused = speedValue == (int)CityWorldController.SpeedChoice.Paused;
+        bool isPaused = speedValue == (int)CityWorldController.SpeedChoice.Paused;
         _icon.Texture = ResourceLoader.Load<Texture2D>(
-            _wasPaused ? IconPaths.Pause : IconPaths.Play);
-        TooltipText = _wasPaused
-            ? "Simulation paused. Click to resume at 1×."
+            isPaused ? IconPaths.Play : IconPaths.Pause);
+        TooltipText = isPaused
+            ? $"Simulation paused. Click to resume at {(int)(_controller?.LastRunningSpeed ?? CityWorldController.SpeedChoice.Normal)}×."
             : "Click to pause the simulation.";
     }
 
     public override void _Pressed()
     {
         if (_controller is null) return;
-        _controller.SetSimulationSpeed(_wasPaused
-            ? CityWorldController.SpeedChoice.Normal
-            : CityWorldController.SpeedChoice.Paused);
+        _controller.ToggleSimulationPause();
     }
 }

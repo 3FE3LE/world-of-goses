@@ -20,6 +20,9 @@ public static class IconPaths
     public const string ChevronDown = Root + "chevron-down.svg";
     public const string ChevronUp = Root + "chevron-up.svg";
     public const string Close = Root + "close.svg";
+    public const string Menu = Root + "menu.svg";
+    public const string Reload = Root + "reload.svg";
+    public const string Trash = Root + "trash.svg";
 
     // Decisions and constructive actions.
     public const string Check = Root + "check.svg";

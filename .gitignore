@@ -71,8 +71,8 @@ $RECYCLE.BIN/
 .Spotlight-V100
 .Trashes
 .VolumeIcon.icns
-Icon?
-Icon
+/Icon?
+/Icon
 desktop.ini
 
 # ── Local secrets and environment files ─────────────────────────────────────

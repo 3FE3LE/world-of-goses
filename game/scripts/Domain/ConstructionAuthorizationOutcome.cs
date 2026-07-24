@@ -10,4 +10,5 @@ public enum ConstructionAuthorizationOutcome
     WorldNotEmpty = 4,
     HomeRequired = 5,
     MissingMaterials = 6,
+    NoAvailableLot = 7,
 }

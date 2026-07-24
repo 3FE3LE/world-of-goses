@@ -1,0 +1,62 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ResourceActionMenu.cs" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/IconButton.cs" id="2_icon_button"]
+
+[node name="ResourceActionMenu" type="PanelContainer"]
+visible = false
+z_index = 8
+custom_minimum_size = Vector2(190, 0)
+mouse_filter = 0
+script = ExtResource("1_menu")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="Content" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_type_variation = "PanelTitle"
+text = "Tree"
+
+[node name="ReserveLabel" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_type_variation = "BodySmall"
+text = "Wood remains"
+
+[node name="RegenerationLabel" type="Label" parent="Margin/Content"]
+layout_mode = 2
+theme_type_variation = "BodySmall"
+text = "Patch growth at next dawn"
+autowrap_mode = 2
+
+[node name="AvailabilityLabel" type="Label" parent="Margin/Content"]
+visible = false
+layout_mode = 2
+theme_type_variation = "BodySmall"
+text = "Founder is already assigned"
+autowrap_mode = 2
+
+[node name="GatherButton" type="Button" parent="Margin/Content"]
+custom_minimum_size = Vector2(160, 40)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = "ButtonPrimary"
+text = "Gather"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/cursors/kenney-pixel/axe.png"
+button_text = "Gather"
+
+[node name="CloseButton" type="Button" parent="Margin/Content"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = "ButtonText"
+text = "Close"

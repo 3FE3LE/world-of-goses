@@ -34,6 +34,40 @@ public readonly record struct WorldEventId(int Value)
     public override string ToString() => $"evt-{Value:D4}";
 }
 
+public enum WorldEventSubjectKind
+{
+    World,
+    Building,
+    ConstructionProject,
+    Citizen,
+    Expedition,
+}
+
+/// <summary>
+/// Durable identity of the entity an event concerns. <see cref="DisplayName"/>
+/// is a captured label for presentation and is deliberately not used as identity.
+/// </summary>
+public readonly record struct WorldEventSubject(
+    WorldEventSubjectKind Kind,
+    int? EntityId,
+    string DisplayName)
+{
+    public static WorldEventSubject World(string displayName) =>
+        new(WorldEventSubjectKind.World, null, displayName);
+
+    public static WorldEventSubject Building(BuildingId id, string displayName) =>
+        new(WorldEventSubjectKind.Building, id.Value, displayName);
+
+    public static WorldEventSubject ConstructionProject(BuildingId id, string displayName) =>
+        new(WorldEventSubjectKind.ConstructionProject, id.Value, displayName);
+
+    public static WorldEventSubject Citizen(CitizenId id, string displayName) =>
+        new(WorldEventSubjectKind.Citizen, id.Value, displayName);
+
+    public static WorldEventSubject Expedition(int id, string displayName) =>
+        new(WorldEventSubjectKind.Expedition, id, displayName);
+}
+
 /// <summary>
 /// One discrete fact the world produced at a specific tick. Events
 /// are the source of truth for the offline report and the future
@@ -51,27 +85,25 @@ public sealed class WorldEvent
     public WorldEventId Id { get; }
     public int Tick { get; }
     public WorldEventKind Kind { get; }
-    public string SubjectName { get; }
+    public WorldEventSubject Subject { get; }
+    public string SubjectName => Subject.DisplayName;
     public int Amount { get; }
-    public string? CauseEventId { get; }
-    public string Summary { get; }
+    public WorldEventId? CauseEventId { get; }
 
     public WorldEvent(
         WorldEventId id,
         int tick,
         WorldEventKind kind,
-        string subjectName,
+        WorldEventSubject subject,
         int amount,
-        string? causeEventId,
-        string summary)
+        WorldEventId? causeEventId)
     {
         Id = id;
         Tick = tick;
         Kind = kind;
-        SubjectName = subjectName;
+        Subject = subject;
         Amount = amount;
         CauseEventId = causeEventId;
-        Summary = summary;
     }
 
 }

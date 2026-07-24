@@ -166,10 +166,12 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-        // Compact threshold matches the project's reference viewport width
-        // (1280×720). Below that, chips collapse to a single summary so the
-        // row never pushes the shell UI past the viewport width.
-        bool compact = GetViewportRect().Size.X < 1280f;
+        // Canvas stretching keeps the logical viewport at the reference size,
+        // so use the actual client width. An active project's detailed chip is
+        // long enough to overflow even at 1600 px; keep that state concise at
+        // every currently supported matrix resolution.
+        float windowWidth = DisplayServer.WindowGetSize().X;
+        bool compact = ShouldUseCompactLayout(windowWidth, snapshot.Projects.Count > 0);
         _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
         foreach (var child in _row.GetChildren())
         {
@@ -209,6 +211,9 @@ public partial class CityStatusPanel : PanelContainer
 
         ApplySavedChip();
     }
+
+    internal static bool ShouldUseCompactLayout(float windowWidth, bool hasActiveProject) =>
+        windowWidth < 1280f || hasActiveProject;
 
     private void BuildClockChip(CityStatusSnapshot snapshot)
     {

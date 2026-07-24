@@ -21,6 +21,7 @@ public partial class ConstructionPanel : PanelContainer
         GD.Load<PackedScene>("res://scenes/Components/AssignmentRow.tscn");
 
     [Signal] public delegate void AuthorizeRequestedEventHandler(int constructionKind);
+    [Signal] public delegate void PlacementRequestedEventHandler(int constructionKind);
     [Signal] public delegate void PauseRequestedEventHandler();
     [Signal] public delegate void ResumeRequestedEventHandler();
     [Signal] public delegate void ViewHeroRequestedEventHandler();
@@ -72,6 +73,24 @@ public partial class ConstructionPanel : PanelContainer
     private Button _primaryFocus = null!;
     private LineageThemeSignals? _themeSignals;
 
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!Visible || _bodyScroll is null) return;
+        if (!GetGlobalRect().HasPoint(GetViewport().GetMousePosition())) return;
+
+        int direction = @event switch
+        {
+            InputEventMouseButton mouse
+                when mouse.Pressed && mouse.ButtonIndex == MouseButton.WheelDown => 1,
+            InputEventMouseButton mouse
+                when mouse.Pressed && mouse.ButtonIndex == MouseButton.WheelUp => -1,
+            _ => 0,
+        };
+        if (direction == 0) return;
+        _bodyScroll.ScrollVertical += direction * 56;
+        GetViewport().SetInputAsHandled();
+    }
+
     public override void _Ready()
     {
         var controllerNode = GetNodeOrNull<CityWorldController>(ControllerPath);
@@ -119,18 +138,8 @@ public partial class ConstructionPanel : PanelContainer
 
     private void OnAuthorizeRequested(int constructionKind)
     {
-        // Material payment raises building-change events before the domain
-        // publishes the new project. Establish the macro route first so a
-        // Forest debit cannot briefly reassert a stale detail selection.
         _controller.ReturnToCity();
-        var result = _controller.TryAuthorizeConstruction((ConstructionKind)constructionKind);
-        if (result.IsSuccess)
-        {
-            Refresh();
-            return;
-        }
-        _errorLabel.Text = FormatAuthorizationError(result.Outcome);
-        _errorLabel.Visible = true;
+        EmitSignal(SignalName.PlacementRequested, constructionKind);
     }
 
     private void OnPauseRequested() => OnPauseResume(true);
@@ -227,6 +236,7 @@ public partial class ConstructionPanel : PanelContainer
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
+            CustomMinimumSize = new Vector2(0, 160),
         };
         shell.AddChild(_bodyScroll);
 
@@ -235,13 +245,14 @@ public partial class ConstructionPanel : PanelContainer
             Name = "BodyContent",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            MouseFilter = MouseFilterEnum.Pass,
         };
         _bodyContent.AddThemeConstantOverride("separation", 10);
         _bodyScroll.AddChild(_bodyContent);
 
         _constructionPreview = new TextureRect
         {
-            StretchMode = TextureRect.StretchModeEnum.Keep,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             CustomMinimumSize = new Vector2(0, 80),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             MouseFilter = Control.MouseFilterEnum.Ignore,
@@ -435,6 +446,17 @@ public partial class ConstructionPanel : PanelContainer
             _mode = Mode.Underway;
         }
         Render(snapshot);
+    }
+
+    internal void ScrollBodyToEndForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        CallDeferred(MethodName.ApplyVisualRegressionScroll);
+    }
+
+    private void ApplyVisualRegressionScroll()
+    {
+        _bodyScroll.ScrollVertical = int.MaxValue;
     }
 
     private void Render(ConstructionSnapshot snapshot)
@@ -775,7 +797,7 @@ public partial class ConstructionPanel : PanelContainer
         return string.Join(" + ", parts);
     }
 
-    private static string FormatAuthorizationError(ConstructionAuthorizationOutcome outcome) => outcome switch
+    internal static string FormatAuthorizationError(ConstructionAuthorizationOutcome outcome) => outcome switch
     {
         ConstructionAuthorizationOutcome.MissingMaterials =>
             "Missing materials. Check the requirements above.",
@@ -785,6 +807,8 @@ public partial class ConstructionPanel : PanelContainer
         ConstructionAuthorizationOutcome.HomeAlreadyBuilt => "The Basic Shelter already exists.",
         ConstructionAuthorizationOutcome.WorldNotEmpty =>
             "The founding shelter can only start in the initial world.",
+        ConstructionAuthorizationOutcome.NoAvailableLot =>
+            "No unlocked parcel has a free building lot.",
         _ => "Construction could not be authorized.",
     };
 }

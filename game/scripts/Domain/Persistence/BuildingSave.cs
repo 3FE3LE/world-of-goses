@@ -21,6 +21,7 @@ public sealed class BuildingSave
     public int BaseProductionPerWorker { get; set; }
     public int StorageCapacity { get; set; }
     public int Stock { get; set; }
+    public int IronStock { get; set; }
     /// <summary>
     /// Wood reserve carried by <see cref="BuildingKind.Forest"/> plots.
     /// Nullable so v2 saves that predate the wood-gathering slice
@@ -29,6 +30,7 @@ public sealed class BuildingSave
     /// when missing.
     /// </summary>
     public int? WoodReserve { get; set; }
+    public List<int> WoodUnitReserves { get; set; } = new();
     public bool ProductionEnabled { get; set; } = true;
     /// <summary>Legacy v2 field retained so old saves round-trip cleanly. New v3 saves ignore it.</summary>
     public int? TargetStock { get; set; }

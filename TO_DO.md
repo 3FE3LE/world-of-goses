@@ -144,6 +144,26 @@ reorganiza la lista, los IDs no se renumeran.
   defectos visuales generales; esta confirmación no sustituye las firmas
   pendientes de navegación completa por teclado/gamepad ni del caso Forest
   depleted de M-14.
+- **2026-07-23** — H-25 avanza tras validación humana: cada árbol fundador
+  contiene 40 wood, el mundo inicial conserva ocho parcelas y las parcelas con
+  patches naturales quedan excluidas de la construcción. Los saves que tenían
+  una construcción sobre una parcela de recursos recolocan su placement al
+  primer lote libre. También se corrigió la transición post-`Start over` para
+  mostrar `View hero`, `Construction` y `Menu` sin reiniciar la aplicación.
+  Build limpio, 382/382 pruebas y matriz 1024×576 / 1280×720 / 1600×900.
+- **2026-07-23** — Placement manual validado por el usuario: elegir blueprint
+  abre lotes seleccionables, selección + confirmación persisten el lote elegido
+  y Cancel/ESC regresan sin autorizar. Cada unidad natural ocupa un lote estable;
+  solo los árboles vivos bloquean su lote y el render usa la misma identidad.
+  Chronicle/banner no reaparecen durante placement. Build limpio, 385/385
+  pruebas y matriz válida en 1024×576 / 1280×720 / 1600×900.
+- **2026-07-23** — Regeneración natural y soberanía de asignación validadas por
+  el usuario: cada amanecer regenera unidades existentes y puede brotar una
+  unidad nueva en cualquier lote natural libre, con equivalencia live/offline.
+  Un fundador asignado no puede iniciar gathering, permanece anclado visualmente
+  a su obra/edificio y el mismo carrier parte desde allí al quedar libre. El menú
+  añade un soft reset que conserva fundador/perfil y reinicia solo la ciudad.
+  Build limpio, 392/392 pruebas y arranque headless correcto.
 - Próxima revisión sugerida: tras cerrar M-14 (cross-cutting) o durante el
   próximo PR de UI.
 
@@ -232,13 +252,18 @@ reorganiza la lista, los IDs no se renumeran.
   forman una sola representación. Las partidas v6 migran cada reserva agregada
   a unidades compatibles. Los refresh de construcción/producción preservan un
   viaje activo y solo reconstruyen la actividad después de ejecutar su callback
-  de llegada.
+  de llegada. Cada árbol fundador contiene ahora 40 wood; las ocho parcelas
+  iniciales son persistentes y cada unidad natural ocupa un lote estable dentro
+  de su parcela. El placement manual muestra solo lotes libres, permite
+  seleccionar/confirmar/cancelar y persiste la elección. Una reparación de
+  carga recoloca placements legacy que coincidían con un árbol vivo.
 - **Prioridad:** 🟠 Alta
 - **Categoría:** dominio / territorio
 - **Pendiente:** retirar el adaptador de almacenamiento
   `BuildingKind.Forest` (se conserva para que recetas y partidas actuales no
-  pierdan madera), asignar parcelas a construcciones, balancear 40 wood por
-  árbol y añadir regeneración/offline catch-up.
+  pierdan madera). La regeneración/offline catch-up ya está implementada y
+  validada: crecimiento al amanecer, hasta una unidad nueva por patch en un lote
+  libre, sin crecer bajo edificios/proyectos y con snapshot final equivalente.
 - **Criterios de aceptación:** parcela persistente mínima; patch de recurso
   separado de una construcción con detail view; unidades visibles derivadas de
   reserva; agotamiento que elimina la unidad seleccionada; ciclo de regeneración

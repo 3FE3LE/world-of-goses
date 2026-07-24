@@ -108,7 +108,7 @@ public class ConstructionTickTests
         var world = TestHelpers.NewConstructionWorld(extraCitizens: 6);
         var project = FirstProject(world);
         var hero = world.Hero!;
-        Assert.True(world.TryAssignToProject(project.Id, hero.Id).IsSuccess);
+        Assert.True(project.IsAssigned(hero.Id));
         int extrasAssigned = 0;
         foreach (var citizen in world.Citizens.Values)
         {
@@ -124,7 +124,7 @@ public class ConstructionTickTests
     {
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
-        Assert.True(world.TryAssignToProject(project.Id, world.Hero!.Id).IsSuccess);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
 
         int totalTicks = 5 * GameClock.TicksPerInGameDay;
         for (int i = 0; i < totalTicks; i++)
@@ -146,7 +146,7 @@ public class ConstructionTickTests
         var project = FirstProject(world);
         var hero = world.Hero!;
         var migrant = world.Citizens.Values.First(c => c.Id != hero.Id);
-        Assert.True(world.TryAssignToProject(project.Id, hero.Id).IsSuccess);
+        Assert.True(project.IsAssigned(hero.Id));
         Assert.True(world.TryAssignToProject(project.Id, migrant.Id).IsSuccess);
 
         int ticks = 3 * GameClock.TicksPerInGameDay;
@@ -166,8 +166,22 @@ public class ConstructionTickTests
     {
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
+        Assert.True(world.TryUnassignFromProject(project.Id, world.Hero!.Id).IsSuccess);
         world.AdvanceWorldTick();
         Assert.Equal(0, project.Progress);
+    }
+
+    [Fact]
+    public void EnsureFoundingShelterContributor_RepairsStalledLoadedProjectOnce()
+    {
+        var world = TestHelpers.NewConstructionWorld();
+        var project = FirstProject(world);
+        var hero = world.Hero!;
+        Assert.True(world.TryUnassignFromProject(project.Id, hero.Id).IsSuccess);
+
+        Assert.True(world.EnsureFoundingShelterContributor());
+        Assert.True(project.IsAssigned(hero.Id));
+        Assert.False(world.EnsureFoundingShelterContributor());
     }
 
     [Fact]
@@ -180,7 +194,7 @@ public class ConstructionTickTests
         {
             if (args.BuildingId == project.Id) changes++;
         };
-        Assert.True(world.TryAssignToProject(project.Id, world.Hero!.Id).IsSuccess);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
         changes = 0;
 
         for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++)
@@ -200,7 +214,7 @@ public class ConstructionTickTests
     {
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
-        world.TryAssignToProject(project.Id, world.Hero!.Id);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
         for (int i = 0; i < GameClock.TicksPerInGameDay; i++) world.AdvanceWorldTick();
         int before = project.Progress;
         world.SetProjectEnabled(project.Id, false);
@@ -214,7 +228,7 @@ public class ConstructionTickTests
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
         var hero = world.Hero!;
-        world.TryAssignToProject(project.Id, hero.Id);
+        Assert.True(project.IsAssigned(hero.Id));
         hero.ConsumeStamina(50);
         world.SetProjectEnabled(project.Id, false);
 
@@ -228,7 +242,7 @@ public class ConstructionTickTests
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
         var hero = world.Hero!;
-        world.TryAssignToProject(project.Id, hero.Id);
+        Assert.True(project.IsAssigned(hero.Id));
         for (int i = 0; i < 6 * GameClock.TicksPerInGameDay; i++) world.AdvanceWorldTick();
 
         Assert.Empty(world.Projects);
@@ -242,8 +256,8 @@ public class ConstructionTickTests
         var offline = TestHelpers.NewConstructionWorld();
         var liveProject = FirstProject(live);
         var offlineProject = FirstProject(offline);
-        Assert.True(live.TryAssignToProject(liveProject.Id, live.Hero!.Id).IsSuccess);
-        Assert.True(offline.TryAssignToProject(offlineProject.Id, offline.Hero!.Id).IsSuccess);
+        Assert.True(liveProject.IsAssigned(live.Hero!.Id));
+        Assert.True(offlineProject.IsAssigned(offline.Hero!.Id));
 
         int ticks = 4 * GameClock.TicksPerInGameDay;
         for (int i = 0; i < ticks; i++) live.AdvanceWorldTick();
@@ -257,7 +271,7 @@ public class ConstructionTickTests
     {
         var world = TestHelpers.NewConstructionWorld();
         var project = FirstProject(world);
-        world.TryAssignToProject(project.Id, world.Hero!.Id);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
         for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++) world.AdvanceWorldTick();
 
         var save = WorldPersistence.Capture(world);

@@ -44,6 +44,7 @@ public sealed class Building
 
     private readonly List<CitizenId> _assigned = new();
     private readonly List<RecipeInput> _pendingInputs = new();
+    private readonly List<int> _woodUnitReserves = new();
     private int _maxStockHoldTicks;
 
     public BuildingId Id { get; }
@@ -74,6 +75,7 @@ public sealed class Building
     /// gathered-and-available amount the player can spend on construction.
     /// </summary>
     public int WoodReserve { get; private set; }
+    public IReadOnlyList<int> WoodUnitReserves => _woodUnitReserves;
 
     public bool ProductionEnabled { get; private set; }
     public int MinStock { get; private set; }
@@ -343,7 +345,24 @@ public sealed class Building
     public void SeedWoodReserve(int amount)
     {
         if (amount < 0) return;
+        _woodUnitReserves.Clear();
+        for (int index = 0; index < amount; index++)
+        {
+            _woodUnitReserves.Add(1);
+        }
         WoodReserve = amount;
+    }
+
+    public void RestoreWoodUnits(IEnumerable<int> reserves)
+    {
+        _woodUnitReserves.Clear();
+        WoodReserve = 0;
+        foreach (int reserve in reserves)
+        {
+            int validated = Math.Max(0, reserve);
+            _woodUnitReserves.Add(validated);
+            WoodReserve += validated;
+        }
     }
 
     /// <summary>
@@ -358,6 +377,7 @@ public sealed class Building
         if (amount <= 0) return;
         int actual = amount < WoodReserve ? amount : WoodReserve;
         WoodReserve -= actual;
+        DrainWoodUnits(actual);
     }
 
     /// <summary>
@@ -373,10 +393,37 @@ public sealed class Building
         int available = WoodReserve < amount ? WoodReserve : amount;
         if (available <= 0) return 0;
         WoodReserve -= available;
+        DrainWoodUnits(available);
         int room = StorageCapacity - Stock;
         int added = available < room ? available : room;
         Stock += added;
         return added;
+    }
+
+    public int GatherWoodUnit(int unitId, int amount)
+    {
+        if (amount <= 0
+            || unitId < 0
+            || unitId >= _woodUnitReserves.Count) return 0;
+        int available = Math.Min(amount, _woodUnitReserves[unitId]);
+        int room = StorageCapacity - Stock;
+        int gathered = Math.Min(available, room);
+        if (gathered <= 0) return 0;
+        _woodUnitReserves[unitId] -= gathered;
+        WoodReserve -= gathered;
+        Stock += gathered;
+        return gathered;
+    }
+
+    private void DrainWoodUnits(int amount)
+    {
+        int remaining = amount;
+        for (int index = 0; index < _woodUnitReserves.Count && remaining > 0; index++)
+        {
+            int drained = Math.Min(remaining, _woodUnitReserves[index]);
+            _woodUnitReserves[index] -= drained;
+            remaining -= drained;
+        }
     }
 
     /// <summary>

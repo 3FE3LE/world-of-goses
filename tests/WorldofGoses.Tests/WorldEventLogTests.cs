@@ -1,6 +1,7 @@
 using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Presentation;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -18,8 +19,9 @@ public class WorldEventLogTests
     public void WorldEventLog_Record_AssignsSequentialIds()
     {
         var log = new WorldEventLog();
-        var first = log.Record(1, WorldEventKind.StockProduced, "Quarry", 5);
-        var second = log.Record(2, WorldEventKind.StockCapped, "Quarry");
+        var subject = WorldEventSubject.Building(new BuildingId(7), "Quarry");
+        var first = log.Record(1, WorldEventKind.StockProduced, subject, 5);
+        var second = log.Record(2, WorldEventKind.StockCapped, subject);
 
         Assert.Equal(new WorldEventId(1), first.Id);
         Assert.Equal(new WorldEventId(2), second.Id);
@@ -27,18 +29,40 @@ public class WorldEventLogTests
     }
 
     [Fact]
+    public void WorldEventSubject_DistinguishesEntitiesWithTheSameDisplayName()
+    {
+        var first = WorldEventSubject.Building(new BuildingId(1), "Quarry");
+        var second = WorldEventSubject.Building(new BuildingId(2), "Quarry");
+
+        Assert.NotEqual(first, second);
+        Assert.Equal(first.DisplayName, second.DisplayName);
+    }
+
+    [Fact]
+    public void WorldEventSubject_KeepsIdentityWhenCapturedNameChanges()
+    {
+        var beforeRename = WorldEventSubject.Building(new BuildingId(1), "Old quarry");
+        var afterRename = WorldEventSubject.Building(new BuildingId(1), "New quarry");
+
+        Assert.Equal(beforeRename.Kind, afterRename.Kind);
+        Assert.Equal(beforeRename.EntityId, afterRename.EntityId);
+        Assert.NotEqual(beforeRename.DisplayName, afterRename.DisplayName);
+    }
+
+    [Fact]
     public void WorldEventLog_Clear_ResetsState()
     {
         var log = new WorldEventLog();
-        log.Record(1, WorldEventKind.DayBegan, "Sun");
-        log.Record(2, WorldEventKind.NightBegan, "Sun");
+        log.Record(1, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        log.Record(2, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
 
         log.Clear();
 
         Assert.Empty(log.Events);
         // Next id must restart at 1 so post-restore events keep a
         // deterministic numbering within the new world session.
-        var fresh = log.Record(3, WorldEventKind.StockProduced, "Farm", 2);
+        var fresh = log.Record(3, WorldEventKind.StockProduced,
+            WorldEventSubject.Building(new BuildingId(3), "Farm"), 2);
         Assert.Equal(new WorldEventId(1), fresh.Id);
     }
 
@@ -46,8 +70,9 @@ public class WorldEventLogTests
     public void WorldEventLog_Record_BuildsHumanSummary()
     {
         var log = new WorldEventLog();
-        var evt = log.Record(7, WorldEventKind.StockProduced, "Quarry", 4);
-        Assert.Equal("Quarry produced +4", evt.Summary);
+        var evt = log.Record(7, WorldEventKind.StockProduced,
+            WorldEventSubject.Building(new BuildingId(7), "Quarry"), 4);
+        Assert.Equal("Quarry produced +4", WorldEventTextFormatter.Format(evt));
     }
 
     [Fact]
@@ -55,9 +80,9 @@ public class WorldEventLogTests
     {
         var log = new WorldEventLog();
         Assert.Equal("Sun rose — workers mobilised to their stations",
-            log.Record(1, WorldEventKind.DayBegan, "Sun").Summary);
+            WorldEventTextFormatter.Format(log.Record(1, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"))));
         Assert.Equal("Sun set — workers returned home to rest",
-            log.Record(2, WorldEventKind.NightBegan, "Sun").Summary);
+            WorldEventTextFormatter.Format(log.Record(2, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"))));
     }
 
     // ---------------- CityWorld integration ----------------
@@ -166,6 +191,19 @@ public class WorldEventLogTests
             Assert.True(evt.Tick > 6,
                 $"event at tick {evt.Tick} leaked from the first batch");
         }
+    }
+
+    [Fact]
+    public void OfflineProgression_ApplyAll_DoesNotReplayPreexistingNonProductionEvent()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        world.Log.Record(world.CurrentTick, WorldEventKind.ForestDemolished,
+            WorldEventSubject.Building(new BuildingId(99), "Old forest"));
+
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: 1);
+
+        Assert.DoesNotContain(report.Events,
+            evt => evt.Kind == WorldEventKind.ForestDemolished && evt.SubjectName == "Old forest");
     }
 
     [Fact]

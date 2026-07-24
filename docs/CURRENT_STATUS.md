@@ -23,9 +23,10 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **345 / 345 passing**.
-- Godot headless loads the main scene and current primary slot without scene,
-  resource, signal, or C# errors.
+- xUnit suite: **385 / 385 passing**.
+- The latest standalone headless attempt was blocked by Godot 4.7.1 log-file
+  contention while the graphical instance was open; the windowed visual matrix
+  loaded the scene and current slot without scene, resource, signal, or C# errors.
 - `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
   captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
   review passed viewport containment and exposed M-16, a citizen label/icon overlap.
@@ -69,9 +70,12 @@ outweigh birth over time.
 
 After onboarding, the construction menu is reachable directly from
 `MacroMode.Empty` via a "Build shelter" button on the macro view. Selecting
-Basic Shelter, Farm, or Quarry enters placement mode instead of activating an
-existing building behind the menu. Confirming a valid plot creates a persisted
-`ConstructionProject`; contributors can be assigned or removed, work can be
+Basic Shelter, Farm, or Quarry enters placement mode instead of authorising at
+the first automatic position. The overlay projects every free standard lot,
+excludes lots occupied by buildings, projects, or live natural-resource units,
+supports mouse plus keyboard/gamepad focus, and offers explicit confirm/cancel
+paths. Confirming the selected lot creates a persisted `ConstructionProject`;
+contributors can be assigned or removed, work can be
 paused and resumed, and deterministic ticks advance the project through
 visible phases subject to day/night, stamina, and recipe drawdown.
 Completion replaces the project with the resulting building without seeding
@@ -329,16 +333,16 @@ keeping the triplet intact for future slices that re-expose it.
 
 ## 11. Recommended next slice
 
-The presentation-boundary and UI interaction hardening slice is complete, and
-the macro direction is now committed to an elevated orthogonal grid. The next
-city-growth proof should introduce the smallest persistent parcel model:
-authored initial parcels with locked/unlocked and current-use state. It should
-not add free dragging during normal navigation.
+The parcel/lot foundation and click-to-select construction placement are now
+proved without free dragging. The next bounded city-growth slice should add
+deterministic natural-resource regeneration and make the same result hold for
+offline catch-up. It should preserve stable unit/lots, expose the next
+regeneration time without expanding the persistent HUD, and avoid creating a
+second resource system.
 
-After that decision, choose one bounded proof: either the skill-system hook or
-a small production-chain slice. The persistent status bar should remain a
-compact situational summary; deeper building/resource axes belong in an
-on-demand city overview rather than expanding the HUD per building.
+After regeneration is equivalent live/offline, retire the
+`BuildingKind.Forest` compatibility-storage adapter so natural-resource patches
+own reserve state while gathered inventory follows the shared resource ledger.
 
 ## 12. Verification commands
 

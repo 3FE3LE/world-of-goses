@@ -41,12 +41,12 @@ public partial class CityMacroView : Control
     [Export] public NodePath EmptyPanelPath { get; set; } = "Center/EmptyPanel";
     [Export] public NodePath EmptyGuidanceLabelPath { get; set; } =
         "Center/EmptyPanel/Margin/Content/GuidanceLabel";
-    [Export] public NodePath GatherWoodButtonPath { get; set; } =
-        "Center/EmptyPanel/Margin/Content/GatherWoodButton";
+    [Export] public NodePath TerrainPath { get; set; } = "OrthogonalParcelTerrain";
     [Export] public NodePath HeroAccessButtonPath { get; set; } = "../MacroActions/Actions/HeroAccessButton";
     [Export] public NodePath MacroActionsPath { get; set; } = "../MacroActions";
     [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../MacroActions/Actions/ConstructionMenuButton";
+    [Export] public NodePath GameMenuButtonPath { get; set; } = "../MacroActions/Actions/GameMenuButton";
     [Export] public NodePath AttentionBannerPath { get; set; } = "../../../AttentionBanner";
 
     private CityWorldController _controller = null!;
@@ -57,14 +57,17 @@ public partial class CityMacroView : Control
     private ConstructionPanel _constructionPanel = null!;
     private PanelContainer _emptyPanel = null!;
     private Label _emptyGuidanceLabel = null!;
-    private Button _gatherWoodButton = null!;
+    private OrthogonalParcelTerrain _terrain = null!;
     private HeroAccessButton _heroAccessButton = null!;
     private Control _macroActions = null!;
     private BuildingPlotStage _plotStage = null!;
     private bool _offlineReportShown;
     private IconButton _constructionMenuButton = null!;
+    private IconButton _gameMenuButton = null!;
     private AttentionBanner _attentionBanner = null!;
+    private ConstructionPlacementOverlay _placementOverlay = null!;
     private bool _modalWantsOpen;
+    private bool _heroLayoutRefreshQueued;
     private MacroMode? _lastMacroMode;
 
     public override void _Ready()
@@ -79,12 +82,18 @@ public partial class CityMacroView : Control
         _constructionPanel = GetNode<ConstructionPanel>("Center/ConstructionPanel");
         _emptyPanel = GetNode<PanelContainer>(EmptyPanelPath);
         _emptyGuidanceLabel = GetNode<Label>(EmptyGuidanceLabelPath);
-        _gatherWoodButton = GetNode<Button>(GatherWoodButtonPath);
+        _terrain = GetNode<OrthogonalParcelTerrain>(TerrainPath);
         _heroAccessButton = GetNode<HeroAccessButton>(HeroAccessButtonPath);
         _macroActions = GetNode<Control>(MacroActionsPath);
         _plotStage = GetNode<BuildingPlotStage>(PlotStagePath);
         _constructionMenuButton = GetNode<IconButton>(ConstructionMenuButtonPath);
+        _gameMenuButton = GetNode<IconButton>(GameMenuButtonPath);
         _attentionBanner = GetNode<AttentionBanner>(AttentionBannerPath);
+        _placementOverlay = new ConstructionPlacementOverlay
+        {
+            Name = nameof(ConstructionPlacementOverlay),
+        };
+        AddChild(_placementOverlay);
 
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
         _controller.ProjectStateChanged += OnAnyProjectStateChanged;
@@ -96,16 +105,26 @@ public partial class CityMacroView : Control
         _activity.HeroClicked += OnHeroClicked;
         _constructionMenuButton.Pressed += OnConstructionMenuPressed;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
-        _gatherWoodButton.Pressed += OnGatherWoodPressed;
+        _constructionPanel.PlacementRequested += OnPlacementRequested;
+        _terrain.GatherRequested += OnResourceGatherRequested;
+        _terrain.Resized += OnTerrainResized;
+        _placementOverlay.PlacementConfirmed += OnPlacementConfirmed;
+        _placementOverlay.PlacementCancelled += OnPlacementCancelled;
         _modalHost.Opened += OnModalHostOpened;
         _modalHost.Closed += OnModalHostClosed;
 
         _heroAccessButton.FocusNeighborRight = _constructionMenuButton.GetPath();
         _constructionMenuButton.FocusNeighborLeft = _heroAccessButton.GetPath();
+        _constructionMenuButton.FocusNeighborRight = _gameMenuButton.GetPath();
+        _gameMenuButton.FocusNeighborLeft = _constructionMenuButton.GetPath();
 
         Visible = !_controller.NeedsOnboarding();
         _macroActions.Visible = Visible;
-        if (Visible) Refresh();
+        if (Visible)
+        {
+            Refresh();
+            QueueHeroLayoutRefresh();
+        }
     }
 
     public override void _ExitTree()
@@ -131,13 +150,20 @@ public partial class CityMacroView : Control
         {
             _constructionMenuButton.Pressed -= OnConstructionMenuPressed;
         }
-        if (_gatherWoodButton is not null)
+        if (_terrain is not null)
         {
-            _gatherWoodButton.Pressed -= OnGatherWoodPressed;
+            _terrain.GatherRequested -= OnResourceGatherRequested;
+            _terrain.Resized -= OnTerrainResized;
         }
         if (_constructionPanel is not null)
         {
             _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
+            _constructionPanel.PlacementRequested -= OnPlacementRequested;
+        }
+        if (_placementOverlay is not null)
+        {
+            _placementOverlay.PlacementConfirmed -= OnPlacementConfirmed;
+            _placementOverlay.PlacementCancelled -= OnPlacementCancelled;
         }
         if (_modalHost is not null)
         {
@@ -179,52 +205,35 @@ public partial class CityMacroView : Control
         bool hasWood = status.WoodStock >= 1;
         _emptyGuidanceLabel.Text = hasWood
             ? "You have at least 1 wood — open the Construction menu to authorise the Basic Shelter."
-            : "You need 1 wood to authorise the Basic Shelter. Open a Forest plot and assign your hero to gather it.";
+            : "You need 1 wood. Select a tree, choose Gather, and your hero will walk there automatically.";
         _emptyGuidanceLabel.Visible = true;
     }
 
-    /// <summary>
-    /// Enables the quick gather button only when a Forest still has
-    /// wood in its reserve. The button is the bridge between Forest
-    /// art and the construction deposit while the player has not yet
-    /// learned to assign workers to a Forest.
-    /// </summary>
-    private void UpdateGatherWoodButton(CityMacroSnapshot snapshot)
+    private void OnResourceGatherRequested(
+        int forestId,
+        int unitId,
+        Vector2 targetPosition)
     {
-        int available = 0;
-        foreach (var building in _controller.World.Buildings.Values)
+        Citizen? hero = _controller.World.Hero;
+        if (hero is null || hero.CurrentAssignment.HasValue)
         {
-            if (building.Kind == BuildingKind.Forest && building.WoodReserve > 0)
-            {
-                available += building.WoodReserve;
-            }
+            string name = hero?.Name ?? "The founder";
+            Notifier.ShowError(
+                $"{name} is already assigned. Unassign them before gathering wood.");
+            return;
         }
-        _gatherWoodButton.Disabled = available <= 0;
-        _gatherWoodButton.Text = available > 0
-            ? $"Gather 2 wood ({available} left in forests)"
-            : "Gather 2 wood";
-    }
-
-    /// <summary>
-    /// Drains 2 wood from the first Forest with reserve. We use the
-    /// dedicated <c>GatherWood</c> entry point instead of assigning
-    /// workers so the action is immediate and visible in the status
-    /// bar — the canonical Forest worker flow is taught once the
-    /// player has at least one building.
-    /// </summary>
-    private void OnGatherWoodPressed()
-    {
-        foreach (var building in _controller.World.Buildings.Values)
+        _activity.TravelHeroTo(
+            targetPosition,
+            _plotStage.GetOccupiedGlobalRects(),
+            () =>
         {
-            if (building.Kind != BuildingKind.Forest || building.WoodReserve <= 0) continue;
-            int gathered = _controller.GatherWood(building.Id, 2);
-            if (gathered > 0)
-            {
-                Notifier.Show($"Gathered {gathered} wood from {building.DisplayName}.");
-                return;
-            }
-        }
-        Notifier.ShowError("No wood available in the forests.");
+            int gathered = _controller.GatherWood(
+                new BuildingId(forestId),
+                unitId,
+                2);
+            if (gathered > 0) Notifier.Show($"Gathered {gathered} wood.");
+            else Notifier.ShowError("This tree no longer has wood available.");
+        });
     }
 
     private void OnModalHostOpened() => _offlineReport.Visible = false;
@@ -251,20 +260,12 @@ public partial class CityMacroView : Control
         CitizenSpriteBank.Instance.PruneExcept(_controller.World.Citizens.Keys);
         var snapshot = _controller.GetCityMacroSnapshot();
         _statusPanel.Refresh(_controller);
-        _activity.Hero = snapshot.Hero;
-        _activity.Populate(
-            snapshot.Citizens,
-            snapshot.Buildings.Count,
-            snapshot.Projects.Count);
-        _constructionPanel.Refresh();
-
         var mode = DetermineMacroMode(
             snapshot.Buildings.Count,
             snapshot.Projects.Count);
 
         _emptyPanel.Visible = mode == MacroMode.Empty;
         UpdateEmptyPanelGuidance(snapshot);
-        UpdateGatherWoodButton(snapshot);
         // Preserve the player's explicit open/closed choice across world
         // ticks. Only a real macro-mode transition may change it
         // automatically; production updates in the same mode must not
@@ -284,7 +285,7 @@ public partial class CityMacroView : Control
         UpdateConstructionMenuButton(mode);
         EnsureDefaultFocus(mode);
 
-        if (mode is MacroMode.Plots or MacroMode.PlotsAndConstruction)
+        if (mode is not MacroMode.Empty)
         {
             _plotStage.Render(snapshot.Buildings, snapshot.Projects);
         }
@@ -294,19 +295,92 @@ public partial class CityMacroView : Control
                 Array.Empty<CityMacroSnapshot.PlotItem>(),
                 Array.Empty<CityMacroSnapshot.PlotItem>());
         }
+        Citizen? hero = _controller.World.Hero;
+        bool canGather = hero is not null && !hero.CurrentAssignment.HasValue;
+        string unavailableReason = hero is null
+            ? "No founder is available to gather."
+            : $"{hero.Name} is already assigned. Unassign them before gathering.";
+        _terrain.RenderResources(
+            snapshot.Buildings,
+            _plotStage.GetOccupiedGlobalRects(),
+            canGather,
+            unavailableReason);
+        Vector2? heroAnchor = ResolveHeroResourceAnchor(snapshot);
+        _activity.Hero = snapshot.Hero;
+        _activity.Populate(
+            snapshot.Citizens,
+            snapshot.Buildings.Count,
+            snapshot.Projects.Count,
+            heroAnchor);
+        _constructionPanel.Refresh();
 
-        if (!_offlineReportShown
+        if (!_modalHost.IsOpen
+            && !_placementOverlay.Visible
+            && !_offlineReportShown
             && _controller.LastOfflineReport is { HadProgression: true } report)
         {
             _offlineReport.ShowReport(report);
             _offlineReportShown = true;
         }
-        else
+        else if (!_modalHost.IsOpen && !_placementOverlay.Visible)
         {
             _offlineReport.ShowLog(snapshot.Events);
         }
 
         UpdateAttentionBanner(snapshot);
+        if (_placementOverlay.Visible) _attentionBanner.Hide();
+    }
+
+    private void OnTerrainResized() => QueueHeroLayoutRefresh();
+
+    private void QueueHeroLayoutRefresh()
+    {
+        if (_heroLayoutRefreshQueued || !Visible) return;
+        _heroLayoutRefreshQueued = true;
+        Callable.From(RefreshHeroAnchorAfterLayout).CallDeferred();
+    }
+
+    private void RefreshHeroAnchorAfterLayout()
+    {
+        _heroLayoutRefreshQueued = false;
+        if (!Visible || !IsInsideTree()) return;
+        CityMacroSnapshot snapshot = _controller.GetCityMacroSnapshot();
+        Vector2? anchor = ResolveHeroResourceAnchor(snapshot);
+        if (anchor.HasValue) _activity.SetHeroAnchor(anchor.Value);
+    }
+
+    private Vector2? ResolveHeroResourceAnchor(CityMacroSnapshot snapshot)
+    {
+        if (snapshot.Citizens.Count == 0) return null;
+        CityMacroSnapshot.CitizenItem hero = snapshot.Citizens[0];
+        if (hero.CurrentAssignment is BuildingId assignment
+            && _plotStage.TryGetEntityGlobalPosition(
+                assignment,
+                out Vector2 workPosition))
+        {
+            return workPosition;
+        }
+        if (hero.LastVisitedResourcePositionIndex is int positionIndex
+            && _terrain.TryGetLogicalSlotGlobalPosition(
+                positionIndex,
+                out Vector2 persistedPosition))
+        {
+            return persistedPosition;
+        }
+        if (hero.LastVisitedResourceBuildingId is BuildingId forestId
+            && hero.LastVisitedResourceUnitId is int unitId
+            && _terrain.TryGetResourceGlobalPosition(
+                forestId.Value,
+                unitId,
+                out Vector2 globalPosition))
+        {
+            return globalPosition;
+        }
+        IReadOnlyList<ConstructionLot> freeLots =
+            _controller.AvailableConstructionLots();
+        return freeLots.Count > 0
+            ? _terrain.GetLotGlobalCenter(freeLots[0])
+            : null;
     }
 
     private void UpdateAttentionBanner(CityMacroSnapshot snapshot)
@@ -354,6 +428,21 @@ public partial class CityMacroView : Control
         }
     }
 
+    internal void ShowConstructionScrollForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _modalWantsOpen = true;
+        _constructionPanel.Refresh();
+        SyncModalHost();
+        _constructionPanel.ScrollBodyToEndForVisualRegression();
+    }
+
+    internal void ShowPlacementForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        OnPlacementRequested((int)ConstructionKind.Farm);
+    }
+
     private void OnConstructionMenuPressed()
     {
         if (_modalHost.IsOpen)
@@ -365,6 +454,10 @@ public partial class CityMacroView : Control
         {
             _modalWantsOpen = true;
             SyncModalHost();
+            var snapshot = _controller.GetCityMacroSnapshot();
+            UpdateConstructionMenuButton(DetermineMacroMode(
+                snapshot.Buildings.Count,
+                snapshot.Projects.Count));
         }
     }
 
@@ -372,6 +465,58 @@ public partial class CityMacroView : Control
     {
         _modalWantsOpen = false;
         _modalHost.Close();
+    }
+
+    private void OnPlacementRequested(int constructionKind)
+    {
+        IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
+        if (lots.Count == 0)
+        {
+            Notifier.ShowError("No unlocked parcel has a free building lot.");
+            return;
+        }
+        _modalWantsOpen = false;
+        SyncModalHost();
+        _offlineReport.Hide();
+        _attentionBanner.Hide();
+        _macroActions.Hide();
+        _placementOverlay.Begin((ConstructionKind)constructionKind, lots);
+    }
+
+    private void OnPlacementConfirmed(
+        int constructionKind,
+        int parcelId,
+        int parcelColumn,
+        int parcelRow,
+        int lotColumn,
+        int lotRow)
+    {
+        var lot = new ConstructionLot(
+            new ParcelId(parcelId),
+            parcelColumn,
+            parcelRow,
+            lotColumn,
+            lotRow);
+        ConstructionAuthorizationResult result =
+            _controller.TryAuthorizeConstruction((ConstructionKind)constructionKind, lot);
+        if (!result.IsSuccess)
+        {
+            Notifier.ShowError(ConstructionPanel.FormatAuthorizationError(result.Outcome));
+            return;
+        }
+        _placementOverlay.Hide();
+        _macroActions.Show();
+        Refresh();
+    }
+
+    private void OnPlacementCancelled()
+    {
+        _placementOverlay.Hide();
+        _macroActions.Show();
+        RestoreChronicleVisibility();
+        _modalWantsOpen = true;
+        SyncModalHost();
+        UpdateAttentionBanner(_controller.GetCityMacroSnapshot());
     }
 
     /// <summary>
@@ -404,6 +549,7 @@ public partial class CityMacroView : Control
     private void OnHeroCreated(int citizenId)
     {
         Show();
+        _macroActions.Show();
         Refresh();
     }
 
@@ -477,7 +623,10 @@ public partial class CityMacroView : Control
     private void OnWorldTickAdvanced(int tick)
     {
         _statusPanel.Refresh(_controller);
-        _offlineReport.ShowLog(_controller.GetCityMacroSnapshot().Events);
+        if (!_modalHost.IsOpen && !_placementOverlay.Visible)
+        {
+            _offlineReport.ShowLog(_controller.GetCityMacroSnapshot().Events);
+        }
     }
 
     private void OnSelectionChanged(int selectionState)

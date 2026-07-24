@@ -33,7 +33,7 @@ public class WorldEventCausalityTests
         world.AdvanceWorldTick();
         var secondProduced = FindLastProduced(world, quarry.DisplayName);
         Assert.NotEqual(firstProduced!.Id, secondProduced!.Id);
-        Assert.Equal(firstProduced.Id.ToString(), secondProduced.CauseEventId);
+        Assert.Equal(firstProduced.Id, secondProduced.CauseEventId);
     }
 
     [Fact]

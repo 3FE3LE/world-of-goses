@@ -46,7 +46,13 @@ public static class StandardButtons
     /// </summary>
     public static IconButton ViewHeroButton()
     {
-        return ViewHeroScene.Instantiate<IconButton>();
+        IconButton button = ViewHeroScene.Instantiate<IconButton>();
+        // Reassert the canonical content after PackedScene instantiation. The
+        // native Button text can be present while IconButton.ButtonText is
+        // still its C# default; _Ready() would then apply that empty value and
+        // render a blank action in dynamically built footers.
+        button.SetIconAndLabel(IconPaths.User, "View hero");
+        return button;
     }
 
     public static IconButton IconAction(

@@ -1,0 +1,169 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/PauseMenu.cs" id="1_pause"]
+[ext_resource type="Script" path="res://scripts/IconButton.cs" id="2_icon_button"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/24/menu.svg" id="3_menu"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/24/cog.svg" id="4_cog"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/24/play.svg" id="5_play"]
+
+[node name="PauseMenu" type="Control"]
+visible = false
+z_index = 100
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+process_mode = 3
+script = ExtResource("1_pause")
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.04, 0.05, 0.08, 0.78)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Shell" type="VBoxContainer" parent="Center/Card/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Heading" type="HBoxContainer" parent="Center/Card/Margin/Shell"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="MenuIcon" type="TextureRect" parent="Center/Card/Margin/Shell/Heading"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+mouse_filter = 2
+texture = ExtResource("3_menu")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Center/Card/Margin/Shell/Heading"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "ScreenTitle"
+text = "City menu"
+vertical_alignment = 1
+
+[node name="CloseButton" type="Button" parent="Center/Card/Margin/Shell/Heading"]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Close (ESC)"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/close.svg"
+button_text = ""
+
+[node name="MainActions" type="VBoxContainer" parent="Center/Card/Margin/Shell"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ResumeButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Return to the city."
+text = "Resume"
+icon = ExtResource("5_play")
+theme_type_variation = "ButtonText"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/play.svg"
+button_text = "Resume"
+
+[node name="SettingsButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+disabled = true
+tooltip_text = "Audio, display, accessibility, and controls will live here."
+text = "Settings — coming next"
+icon = ExtResource("4_cog")
+theme_type_variation = "ButtonText"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/cog.svg"
+button_text = "Settings — coming next"
+
+[node name="ResetButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Delete the current local city and return to onboarding."
+text = "Start over"
+theme_type_variation = "ButtonWarning"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/trash.svg"
+button_text = "Start over"
+
+[node name="SoftResetButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Clear the city while keeping the current founder and onboarding choices."
+text = "Restart city — keep founder"
+theme_type_variation = "ButtonText"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/reload.svg"
+button_text = "Restart city — keep founder"
+
+[node name="ResetConfirmation" type="VBoxContainer" parent="Center/Card/Margin/Shell"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Center/Card/Margin/Shell/ResetConfirmation"]
+layout_mode = 2
+theme_type_variation = "PanelTitle"
+text = "Start a new city?"
+horizontal_alignment = 1
+
+[node name="Warning" type="Label" parent="Center/Card/Margin/Shell/ResetConfirmation"]
+layout_mode = 2
+theme_type_variation = "BodyText"
+text = "This permanently deletes the current local city and returns to hero onboarding."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ConfirmResetButton" type="Button" parent="Center/Card/Margin/Shell/ResetConfirmation"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+text = "Delete city and restart"
+theme_type_variation = "ButtonWarning"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/reload.svg"
+button_text = "Delete city and restart"
+
+[node name="CancelResetButton" type="Button" parent="Center/Card/Margin/Shell/ResetConfirmation"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+text = "Keep current city"
+theme_type_variation = "ButtonText"

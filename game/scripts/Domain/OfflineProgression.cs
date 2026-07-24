@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace WorldofGoses.Domain;
 
@@ -83,90 +82,18 @@ public static class OfflineProgression
         int ticksToApply,
         double tickRateHz = DefaultTickRateHz)
     {
-        if (ticksToApply <= 0) return OfflineProgressionReport.None;
-        if (world.Buildings.Count == 0 && world.Projects.Count == 0)
+        var result = WorldTimeAdvance.Advance(world, ticksToApply);
+        if (result.StockAdded == 0 && result.Events.Count == 0)
         {
-            world.AdvanceIdleTicks(ticksToApply);
             return OfflineProgressionReport.None;
         }
 
-        int stockAdded = 0;
-        int lastActiveTick = 0;
-        int stockProducedEventsBefore = CountKind(world, WorldEventKind.StockProduced);
-        int projectCompletedEventsBefore = CountKind(world, WorldEventKind.ProjectCompleted);
-        int buildingCreatedEventsBefore = CountKind(world, WorldEventKind.BuildingCreated);
-
-        for (int t = 0; t < ticksToApply; t++)
-        {
-            world.AdvanceWorldTick();
-            bool anyProduced = false;
-            foreach (var building in world.Buildings.Values)
-            {
-                if (building.LastTickProduction > 0)
-                {
-                    stockAdded += building.LastTickProduction;
-                    anyProduced = true;
-                }
-            }
-            if (anyProduced) lastActiveTick = t + 1;
-        }
-
-        var newEvents = ExtractNewEvents(
-            world,
-            stockProducedEventsBefore,
-            projectCompletedEventsBefore,
-            buildingCreatedEventsBefore);
-
-        if (stockAdded == 0 && newEvents.Count == 0) return OfflineProgressionReport.None;
-
         return new OfflineProgressionReport(
-            ticksApplied: lastActiveTick,
-            stockAdded: stockAdded,
+            ticksApplied: result.LastActiveTick,
+            stockAdded: result.StockAdded,
             stockWasted: 0,
             simulatedTime: TimeSpan.FromSeconds(ticksToApply / tickRateHz),
-            events: newEvents);
-    }
-
-    private static int CountKind(CityWorld world, WorldEventKind kind)
-    {
-        int count = 0;
-        foreach (var evt in world.Log.Events)
-        {
-            if (evt.Kind == kind) count++;
-        }
-        return count;
-    }
-
-    /// <summary>
-    /// Returns the events added during this batch, deduped against
-    /// the pre-batch counters for the kinds that are emitted from
-    /// inside the tick loop. Day/night, mobilisation, WellFed, and
-    /// stock-cap events are included in full because they originate
-    /// from the same loop and their count is bounded by tick count.
-    /// </summary>
-    private static List<WorldEvent> ExtractNewEvents(
-        CityWorld world,
-        int stockProducedBefore,
-        int projectCompletedBefore,
-        int buildingCreatedBefore)
-    {
-        var all = world.Log.Events;
-        var result = new List<WorldEvent>(all.Count);
-        int stockSeen = 0;
-        int completedSeen = 0;
-        int buildingSeen = 0;
-        foreach (var evt in all)
-        {
-            bool include = evt.Kind switch
-            {
-                WorldEventKind.StockProduced => ++stockSeen > stockProducedBefore,
-                WorldEventKind.ProjectCompleted => ++completedSeen > projectCompletedBefore,
-                WorldEventKind.BuildingCreated => ++buildingSeen > buildingCreatedBefore,
-                _ => true,
-            };
-            if (include) result.Add(evt);
-        }
-        return result;
+            events: result.Events);
     }
 
     /// <summary>

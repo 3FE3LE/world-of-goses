@@ -26,6 +26,7 @@ public partial class SpeedButton : Button
     private HBoxContainer _container = null!;
     private readonly TextureRect[] _playIcons = new TextureRect[MaxPlayIcons];
     private CityWorldController.SpeedChoice _currentSpeed = CityWorldController.SpeedChoice.Normal;
+    private CityWorldController.SpeedChoice _lastRunningSpeed = CityWorldController.SpeedChoice.Normal;
 
     public override void _Ready()
     {
@@ -78,6 +79,7 @@ public partial class SpeedButton : Button
     public void AttachController(CityWorldController controller)
     {
         _controller = controller;
+        _lastRunningSpeed = controller.LastRunningSpeed;
         controller.SimulationSpeedChanged += OnSpeedChanged;
         OnSpeedChanged((int)controller.CurrentSpeed);
     }
@@ -85,6 +87,10 @@ public partial class SpeedButton : Button
     private void OnSpeedChanged(int speedValue)
     {
         _currentSpeed = (CityWorldController.SpeedChoice)speedValue;
+        if (_currentSpeed != CityWorldController.SpeedChoice.Paused)
+        {
+            _lastRunningSpeed = _currentSpeed;
+        }
         UpdateDisplay();
     }
 
@@ -92,11 +98,13 @@ public partial class SpeedButton : Button
     {
         // Number of trailing play icons matches the speed multiplier so
         // the visual reads as "faster" through duplication rather than a
-        // separate glyph. The paused state is represented by an empty
-        // indicator — the play/pause glyph lives in the other button.
-        int playCount = _currentSpeed switch
+        // separate glyph. While paused, retain the chosen rate but disable
+        // this button; PlayPauseButton owns resume.
+        CityWorldController.SpeedChoice displayedSpeed = _currentSpeed == CityWorldController.SpeedChoice.Paused
+            ? _lastRunningSpeed
+            : _currentSpeed;
+        int playCount = displayedSpeed switch
         {
-            CityWorldController.SpeedChoice.Paused => 0,
             CityWorldController.SpeedChoice.Normal => 1,
             CityWorldController.SpeedChoice.Fast => 2,
             CityWorldController.SpeedChoice.Fastest => 4,
@@ -106,10 +114,12 @@ public partial class SpeedButton : Button
         {
             _playIcons[i].Visible = i < playCount;
         }
+        Disabled = _currentSpeed == CityWorldController.SpeedChoice.Paused;
 
         string tooltip = _currentSpeed switch
         {
-            CityWorldController.SpeedChoice.Paused => "Paused. Click to resume at 1×.",
+            CityWorldController.SpeedChoice.Paused =>
+                $"Paused at {(int)_lastRunningSpeed}×. Resume with the play button.",
             CityWorldController.SpeedChoice.Normal => "Normal speed (1×). Click to switch to 2×.",
             CityWorldController.SpeedChoice.Fast => "Fast speed (2×). Click to switch to 4×.",
             CityWorldController.SpeedChoice.Fastest => "Fastest speed (4×). Click to switch back to 1×.",

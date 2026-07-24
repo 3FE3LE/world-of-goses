@@ -326,6 +326,33 @@ public class WorldPersistenceTests
     }
 
     [Fact]
+    public void DeleteSlot_RemovesOnlyRequestedSlotAndItsSidecars()
+    {
+        string slotsDir = Path.Combine(Path.GetTempPath(), $"wog-delete-slot-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(slotsDir);
+        try
+        {
+            string slot0 = Path.Combine(slotsDir, "save_slot_0.json");
+            string slot1 = Path.Combine(slotsDir, "save_slot_1.json");
+            File.WriteAllText(slot0, "{}");
+            File.WriteAllText(slot0 + ".bak", "{}");
+            File.WriteAllText(slot0 + ".tmp", "{}");
+            File.WriteAllText(slot1, "{}");
+
+            Assert.True(WorldPersistence.DeleteSlot(0, slotsDir));
+
+            Assert.False(File.Exists(slot0));
+            Assert.False(File.Exists(slot0 + ".bak"));
+            Assert.False(File.Exists(slot0 + ".tmp"));
+            Assert.True(File.Exists(slot1));
+        }
+        finally
+        {
+            if (Directory.Exists(slotsDir)) Directory.Delete(slotsDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SaveToSlot_RoundtripsViaLoadFromSlot()
     {
         var slotsDir = NewTempDir();
@@ -481,6 +508,7 @@ public class WorldPersistenceTests
         Assert.Equal(expected.CurrentTick, actual.CurrentTick);
         Assert.Equal(expected.Buildings.Count, actual.Buildings.Count);
         Assert.Equal(expected.Citizens.Count, actual.Citizens.Count);
+        Assert.Equal(expected.CityInventory, actual.CityInventory);
 
         for (int i = 0; i < expected.Buildings.Count; i++)
         {
@@ -500,6 +528,7 @@ public class WorldPersistenceTests
             Assert.Equal(em.MinStock, am.MinStock);
             Assert.Equal(em.MaxStock, am.MaxStock);
             Assert.Equal(em.Priority, am.Priority);
+            Assert.Equal(em.WoodUnitReserves, am.WoodUnitReserves);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 
@@ -512,6 +541,13 @@ public class WorldPersistenceTests
             Assert.Equal(ec.CurrentAssignment, ac.CurrentAssignment);
             Assert.Equal(ec.Competencies.Count, ac.Competencies.Count);
             Assert.Equal(ec.Roles.Count, ac.Roles.Count);
+            Assert.Equal(
+                ec.LastVisitedResourceBuildingId,
+                ac.LastVisitedResourceBuildingId);
+            Assert.Equal(ec.LastVisitedResourceUnitId, ac.LastVisitedResourceUnitId);
+            Assert.Equal(
+                ec.LastVisitedResourcePositionIndex,
+                ac.LastVisitedResourcePositionIndex);
         }
     }
 
@@ -520,6 +556,9 @@ public class WorldPersistenceTests
         Assert.Equal(expected.CurrentTick, actual.CurrentTick);
         Assert.Equal(expected.Buildings.Count, actual.Buildings.Count);
         Assert.Equal(expected.Citizens.Count, actual.Citizens.Count);
+        Assert.Equal(
+            expected.Resources.Total(ResourceType.Wood),
+            actual.Resources.Total(ResourceType.Wood));
 
         foreach (var em in expected.Buildings.Values)
         {

@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ResourceTree.cs" id="1_tree"]
+
+[node name="ResourceTree" type="TextureButton"]
+custom_minimum_size = Vector2(48, 48)
+offset_right = 48.0
+offset_bottom = 48.0
+focus_mode = 2
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("1_tree")

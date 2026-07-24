@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="Script" path="res://scripts/CityPrototype.cs" id="1_root"]
 [ext_resource type="Script" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
@@ -23,6 +23,9 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/ViewHeroButton.tscn" id="21_viewhero"]
 [ext_resource type="Script" path="res://scripts/TutorialOverlay.cs" id="22_tutorial"]
 [ext_resource type="Script" path="res://scripts/AttentionBanner.cs" id="23_attention"]
+[ext_resource type="Script" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
+[ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
+[ext_resource type="PackedScene" path="res://scenes/OrthogonalParcelTerrain.tscn" id="26_terrain"]
 
 [node name="CityPrototype" type="Node"]
 script = ExtResource("1_root")
@@ -38,6 +41,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 0
+script = ExtResource("24_shell")
 
 [node name="CityStatusPanel" type="PanelContainer" parent="GameUiShell"]
 custom_minimum_size = Vector2(0, 40)
@@ -73,6 +77,8 @@ offset_bottom = 130.0
 grow_horizontal = 0
 script = ExtResource("23_attention")
 
+[node name="PauseMenu" parent="." instance=ExtResource("25_pause_menu")]
+
 [node name="CityMacroView" type="Control" parent="GameUiShell/ScreenContent"]
 layout_mode = 3
 anchors_preset = 15
@@ -93,6 +99,8 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("16_kenbg")
 TexturePath = "res://assets/ui/kenney/9-slice/ancient_grey.png"
+
+[node name="OrthogonalParcelTerrain" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("26_terrain")]
 
 [node name="MacroCitizenActivity" type="Node2D" parent="GameUiShell/ScreenContent/CityMacroView"]
 script = ExtResource("4_activity")
@@ -133,6 +141,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="EmptyPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
 custom_minimum_size = Vector2(520, 180)
@@ -166,18 +175,10 @@ autowrap_mode = 2
 [node name="GuidanceLabel" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
 layout_mode = 2
 theme_type_variation = "BodySmall"
-text = "Tip: open the Construction menu to authorise the first shelter. You will need 1 wood — gather it from a Forest."
+text = "Select a tree and choose Gather. Your hero will walk to it automatically."
 horizontal_alignment = 1
 autowrap_mode = 2
 modulate = Color(1, 1, 1, 0.85)
-
-[node name="GatherWoodButton" type="Button" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_type_variation = "ButtonPrimary"
-tooltip_text = "Send the hero to gather 2 wood from a Forest."
-text = "Gather 2 wood"
 
 [node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
 visible = false
@@ -322,6 +323,17 @@ text = "Construction"
 script = ExtResource("15_iconbtn")
 icon_path = "res://assets/ui/icons/24/building.svg"
 button_text = "Construction"
+
+[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(140, 44)
+mouse_filter = 0
+theme_type_variation = "ButtonText"
+tooltip_text = "Open the city menu (ESC)"
+text = "Menu"
+script = ExtResource("15_iconbtn")
+icon_path = "res://assets/ui/icons/24/menu.svg"
+button_text = "Menu"
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" instance=ExtResource("11_profile")]
 

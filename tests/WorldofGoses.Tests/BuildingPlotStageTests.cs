@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using WorldofGoses;
 using WorldofGoses.Domain;
 using Xunit;
@@ -130,6 +131,63 @@ public class BuildingPlotStageTests
         // ignoring the supplied canvas size.
         Assert.Equal(placeholderSide, forestExplicit.Size.X);
         Assert.Equal(placeholderSide, forestExplicit.Size.Y);
+    }
+
+    [Fact]
+    public void BuildingPlotStage_PlacementRectUsesPersistedParcelLot()
+    {
+        CityWorld world = TestHelpers.NewProductionWorld();
+        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+        CityMacroSnapshot.PlotItem first = snapshot.Buildings[0];
+        CityMacroSnapshot.PlotItem second = snapshot.Buildings[1];
+
+        Godot.Rect2 firstRect = BuildingPlotStage.CalculatePlacementRect(
+            new Godot.Vector2(1280, 720),
+            first);
+        Godot.Rect2 secondRect = BuildingPlotStage.CalculatePlacementRect(
+            new Godot.Vector2(1280, 720),
+            second);
+
+        Assert.NotEqual(firstRect.Position, secondRect.Position);
+        Assert.Equal(firstRect.Size, secondRect.Size);
+        Assert.True(secondRect.Position.X > firstRect.Position.X);
+    }
+
+    [Fact]
+    public void BuildingPlotStage_SolidRectsPreserveAAndBSetbacks()
+    {
+        CityMacroSnapshot snapshot =
+            CityMacroSnapshot.From(TestHelpers.NewProductionWorld());
+        CityMacroSnapshot.PlotItem quarry = snapshot.Buildings.Single(
+            item => item.Kind == BuildingKind.Quarry);
+        CityMacroSnapshot.PlotItem farm = snapshot.Buildings.Single(
+            item => item.Kind == BuildingKind.Farm);
+        Godot.Vector2 reservedSize = new(96, 96);
+
+        Godot.Rect2 quarrySolid =
+            BuildingPlotStage.CalculateSolidLocalRect(reservedSize, quarry);
+        Godot.Rect2 farmSolid =
+            BuildingPlotStage.CalculateSolidLocalRect(reservedSize, farm);
+
+        Assert.Equal(new Godot.Rect2(0, 0, 96, 64), quarrySolid);
+        Assert.Equal(new Godot.Rect2(16, 0, 64, 64), farmSolid);
+    }
+
+    [Fact]
+    public void BuildingPlotStage_AdjacentAProfilesLeaveOneTilePath()
+    {
+        CityMacroSnapshot snapshot =
+            CityMacroSnapshot.From(TestHelpers.NewProductionWorld());
+        CityMacroSnapshot.PlotItem farm = snapshot.Buildings.Single(
+            item => item.Kind == BuildingKind.Farm);
+        Godot.Rect2 firstLot = new(0, 0, 96, 96);
+        Godot.Rect2 secondLot = new(96, 0, 96, 96);
+        Godot.Rect2 solid =
+            BuildingPlotStage.CalculateSolidLocalRect(firstLot.Size, farm);
+        Godot.Rect2 firstSolid = new(firstLot.Position + solid.Position, solid.Size);
+        Godot.Rect2 secondSolid = new(secondLot.Position + solid.Position, solid.Size);
+
+        Assert.Equal(32, secondSolid.Position.X - firstSolid.End.X);
     }
 
     // ---------------- CityMacroView.DetermineMacroMode ----------------

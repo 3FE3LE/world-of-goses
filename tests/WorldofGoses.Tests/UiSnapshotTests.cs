@@ -6,6 +6,19 @@ namespace WorldofGoses.Tests;
 
 public sealed class UiSnapshotTests
 {
+    [Theory]
+    [InlineData(1024, false, true)]
+    [InlineData(1280, false, false)]
+    [InlineData(1600, false, false)]
+    [InlineData(1600, true, true)]
+    public void CityStatusPanel_CompactsForNarrowWindowsOrActiveProjects(
+        float windowWidth,
+        bool hasActiveProject,
+        bool expected)
+    {
+        Assert.Equal(expected, CityStatusPanel.ShouldUseCompactLayout(windowWidth, hasActiveProject));
+    }
+
     [Fact]
     public void CityStatusSnapshot_ExposesExplicitHeroOnlyEmptyState()
     {
@@ -25,11 +38,11 @@ public sealed class UiSnapshotTests
 
         Assert.True(snapshot.HasHero);
         Assert.NotNull(snapshot.Project);
-        Assert.Equal(ConstructionStopCause.NoWorkers, snapshot.Project!.StopCause);
-        Assert.Empty(snapshot.Project.AssignedCitizens);
+        Assert.Single(snapshot.Project!.AssignedCitizens);
+        Assert.Equal("Aster", snapshot.Project.AssignedCitizens[0].Name);
         Assert.Contains(snapshot.Project.RemainingInputs,
             input => input.Resource == ResourceType.Wood && input.Amount == 3);
-        Assert.Contains(snapshot.AvailableCitizens, citizen => citizen.Name == "Aster");
+        Assert.DoesNotContain(snapshot.AvailableCitizens, citizen => citizen.Name == "Aster");
     }
 
     [Fact]
@@ -65,6 +78,47 @@ public sealed class UiSnapshotTests
 
         Assert.False(snapshot.OptionFor(ConstructionKind.Farm).CanPayDeposit);
         Assert.False(snapshot.OptionFor(ConstructionKind.Quarry).CanPayDeposit);
+    }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsForestReserveForInteractiveTrees()
+    {
+        var world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        Building forest = world.Buildings.Values.First(
+            building => building.Kind == BuildingKind.Forest);
+        world.GatherWood(forest.Id, 2);
+
+        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+        CityMacroSnapshot.PlotItem projected = snapshot.Buildings.Single(
+            item => item.Id == forest.Id);
+
+        Assert.Equal(CityWorld.StartingForestWoodReserve - 2, projected.WoodReserve);
+    }
+
+    [Fact]
+    public void DepletedFirstForest_DoesNotShiftSecondForestUnitPositions()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        CityMacroSnapshot before = CityMacroSnapshot.From(world);
+        CityMacroSnapshot.PlotItem first = before.Buildings
+            .First(item => item.Kind == BuildingKind.Forest);
+        CityMacroSnapshot.PlotItem second = before.Buildings
+            .Last(item => item.Kind == BuildingKind.Forest);
+        int? original = OrthogonalParcelTerrain.FindPositionIndex(
+            before.Buildings.Where(item => item.Kind == BuildingKind.Forest).ToArray(),
+            second.Id.Value,
+            unitId: 0);
+
+        world.GatherWood(first.Id, first.WoodReserve);
+        CityMacroSnapshot after = CityMacroSnapshot.From(world);
+        int? afterDepletion = OrthogonalParcelTerrain.FindPositionIndex(
+            after.Buildings.Where(item => item.Kind == BuildingKind.Forest).ToArray(),
+            second.Id.Value,
+            unitId: 0);
+
+        Assert.Equal(original, afterDepletion);
     }
 
     [Fact]
@@ -115,7 +169,7 @@ public sealed class UiSnapshotTests
     {
         var world = TestHelpers.NewConstructionWorld();
         var project = world.Projects.Values.Single();
-        world.TryAssignToProject(project.Id, world.Hero!.Id);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
         for (int i = 0; i < ConstructionRules.WorkIntervalTicks; i++)
         {
             world.AdvanceWorldTick();
@@ -146,10 +200,11 @@ public sealed class UiSnapshotTests
     public void EventLog_CompactsOnlyConsecutiveAdditiveEvents()
     {
         var log = new WorldEventLog();
-        log.Record(1, WorldEventKind.StockProduced, "Forest", 1);
-        log.Record(2, WorldEventKind.StockProduced, "Forest", 3);
-        log.Record(3, WorldEventKind.DayBegan, "Sun");
-        log.Record(4, WorldEventKind.StockProduced, "Forest", 4);
+        var forest = WorldEventSubject.Building(new BuildingId(1), "Forest");
+        log.Record(1, WorldEventKind.StockProduced, forest, 1);
+        log.Record(2, WorldEventKind.StockProduced, forest, 3);
+        log.Record(3, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        log.Record(4, WorldEventKind.StockProduced, forest, 4);
 
         var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
 
@@ -166,10 +221,11 @@ public sealed class UiSnapshotTests
     public void EventLog_CompactsRepeatedConsecutiveStateEvents()
     {
         var log = new WorldEventLog();
-        log.Record(1, WorldEventKind.StockCapped, "Forest");
-        log.Record(2, WorldEventKind.StockCapped, "Forest");
-        log.Record(3, WorldEventKind.DayBegan, "Sun");
-        log.Record(4, WorldEventKind.StockCapped, "Forest");
+        var forest = WorldEventSubject.Building(new BuildingId(1), "Forest");
+        log.Record(1, WorldEventKind.StockCapped, forest);
+        log.Record(2, WorldEventKind.StockCapped, forest);
+        log.Record(3, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        log.Record(4, WorldEventKind.StockCapped, forest);
 
         var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
 

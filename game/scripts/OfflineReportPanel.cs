@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -39,6 +40,7 @@ public partial class OfflineReportPanel : PanelContainer
     private bool _followNewestAfterLayout;
     private double _scrollValueAfterLayout;
     private bool _collapseHovered;
+    private bool _visualRegressionFixtureActive;
     private CityWorldController? _controller;
 
     /// <summary>
@@ -276,6 +278,13 @@ public partial class OfflineReportPanel : PanelContainer
         CallDeferred(MethodName.ScrollToBottom);
     }
 
+    internal void ShowVisualRegressionReport(OfflineProgressionReport report)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _visualRegressionFixtureActive = true;
+        ShowReport(report);
+    }
+
     /// <summary>
     /// Shows the live chronological log. This keeps the same visual
     /// language as the offline report while making the simulation's
@@ -283,6 +292,7 @@ public partial class OfflineReportPanel : PanelContainer
     /// </summary>
     public void ShowLog(IReadOnlyList<WorldEvent> events)
     {
+        if (_visualRegressionFixtureActive) return;
         _currentLiveEvents = events;
         WorldEventId? newestId = events.Count > 0 ? events[^1].Id : null;
         if (_lastLiveEventCount == events.Count && _lastLiveEventId == newestId)
@@ -517,7 +527,7 @@ public partial class OfflineReportPanel : PanelContainer
                 evt.Amount,
                 evt.Tick,
                 evt.Tick,
-                evt.Summary));
+                WorldEventTextFormatter.Format(evt)));
         }
         return compacted;
     }

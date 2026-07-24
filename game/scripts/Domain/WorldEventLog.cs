@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WorldofGoses.Domain;
 
@@ -11,8 +12,8 @@ namespace WorldofGoses.Domain;
 ///
 /// Events are appended in tick order; the log is the source of truth
 /// for the causal narrative the player sees after an offline stretch.
-/// The log is reset whenever the world is restored from persistence
-/// (the offline catch-up repopulates it from scratch).
+/// Persistence decides which events merit long-term retention; this log keeps
+/// the complete event stream for the current simulation session.
 /// </summary>
 public sealed class WorldEventLog
 {
@@ -26,13 +27,12 @@ public sealed class WorldEventLog
     public WorldEvent Record(
         int tick,
         WorldEventKind kind,
-        string subjectName,
+        WorldEventSubject subject,
         int amount = 0,
-        string? causeEventId = null)
+        WorldEventId? causeEventId = null)
     {
         var id = new WorldEventId(_nextId++);
-        var summary = Summarise(kind, subjectName, amount);
-        var evt = new WorldEvent(id, tick, kind, subjectName, amount, causeEventId, summary);
+        var evt = new WorldEvent(id, tick, kind, subject, amount, causeEventId);
         _events.Add(evt);
         return evt;
     }
@@ -44,21 +44,11 @@ public sealed class WorldEventLog
         _nextId = 1;
     }
 
-    private static string Summarise(WorldEventKind kind, string subjectName, int amount) => kind switch
+    /// <summary>Replaces the session log with validated persisted events.</summary>
+    public void Restore(IEnumerable<WorldEvent> events)
     {
-        WorldEventKind.StockProduced => $"{subjectName} produced +{amount}",
-        WorldEventKind.StockCapped => $"{subjectName} reached target stock",
-        WorldEventKind.WorkersExhausted => $"{subjectName} stopped: workers exhausted",
-        WorldEventKind.WorkerRecovered => $"{subjectName} resumed: workers recovered",
-        WorldEventKind.DayBegan => "Sun rose — workers mobilised to their stations",
-        WorldEventKind.NightBegan => "Sun set — workers returned home to rest",
-        WorldEventKind.ProjectProgressed => $"{subjectName} made +{amount} work",
-        WorldEventKind.ProjectPaused => $"{subjectName} paused by the player",
-        WorldEventKind.ProjectResumed => $"{subjectName} resumed by the player",
-        WorldEventKind.ProjectCompleted => $"{subjectName} completed",
-        WorldEventKind.BuildingCreated => $"{subjectName} became a building",
-        WorldEventKind.WellFedExpired => $"{subjectName} lost the WellFed buff",
-        WorldEventKind.ProductionBlocked => $"{subjectName} waiting: missing inputs",
-        _ => subjectName,
-    };
+        _events.Clear();
+        _events.AddRange(events.OrderBy(evt => evt.Id.Value));
+        _nextId = _events.Count == 0 ? 1 : _events[^1].Id.Value + 1;
+    }
 }

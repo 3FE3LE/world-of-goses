@@ -94,9 +94,7 @@ public partial class BuildingDetailView : Control
     {
         _currentBuilding = buildingId;
         Show();
-        Modulate = new Color(1f, 1f, 1f, 0f);
-        var tween = CreateTween();
-        tween.TweenProperty(this, "modulate:a", 1f, 0.2);
+        Modulate = Colors.White;
         Refresh();
         _backButton.GrabFocus();
     }
