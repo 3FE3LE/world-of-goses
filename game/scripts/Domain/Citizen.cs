@@ -24,6 +24,7 @@ public sealed class Citizen
     public CitizenId Id { get; }
     public string Name { get; }
     public int AppearanceSeed { get; }
+    public AppearanceVariantId AppearanceVariant { get; private set; }
     public CitizenProfile Profile { get; }
     public BuildingId? CurrentAssignment { get; private set; }
     public Availability Availability => CurrentAssignment.HasValue
@@ -36,6 +37,9 @@ public sealed class Citizen
     /// reads this to decide which building shows the worker slot.
     /// </summary>
     public CitizenLocation CurrentLocation { get; private set; } = CitizenLocation.AtHome;
+    public BuildingId? LastVisitedResourceBuildingId { get; private set; }
+    public int? LastVisitedResourceUnitId { get; private set; }
+    public int? LastVisitedResourcePositionIndex { get; private set; }
 
     /// <summary>Maximum stamina for this citizen. Default <see cref="StaminaRules.MaxStamina"/>.</summary>
     public int MaxStamina { get; private set; }
@@ -64,12 +68,14 @@ public sealed class Citizen
         CitizenProfile profile,
         int? initialStamina = null,
         int? maxStamina = null,
-        int initialWellFedTicks = 0)
+        int initialWellFedTicks = 0,
+        AppearanceVariantId? appearanceVariant = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         Id = id;
         Name = name;
         AppearanceSeed = appearanceSeed;
+        AppearanceVariant = appearanceVariant ?? AppearanceVariantId.Standard;
         Profile = profile;
         MaxStamina = maxStamina ?? StaminaRules.MaxStamina;
         CurrentStamina = initialStamina ?? MaxStamina;
@@ -94,6 +100,9 @@ public sealed class Citizen
         }
     }
 
+    /// <summary>Cosmetic-only: replace the current appearance variant. Does not affect production, profession or stats.</summary>
+    public void SetAppearanceVariant(AppearanceVariantId variant) => AppearanceVariant = variant;
+
     /// <summary>
     /// Attaches the citizen to a building as their primary workplace.
     /// Domain logic only; the presentation layer must not bypass this.
@@ -111,6 +120,13 @@ public sealed class Citizen
     /// transitions. Internal because only the world owns this.
     /// </summary>
     internal void SetLocation(CitizenLocation location) => CurrentLocation = location;
+
+    internal void VisitResource(BuildingId buildingId, int unitId, int positionIndex)
+    {
+        LastVisitedResourceBuildingId = buildingId;
+        LastVisitedResourceUnitId = unitId;
+        LastVisitedResourcePositionIndex = positionIndex;
+    }
 
     /// <summary>
     /// Records or updates the citizen's accumulated experience in a

@@ -79,7 +79,20 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
+        scroll.AddThemeStyleboxOverride(
+            "panel",
+            new StyleBoxFlat { BgColor = new Color("17202a") });
         shell.AddChild(scroll);
+
+        var contentMargin = new MarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        contentMargin.AddThemeConstantOverride("margin_left", 8);
+        contentMargin.AddThemeConstantOverride("margin_right", 20);
+        contentMargin.AddThemeConstantOverride("margin_top", 8);
+        contentMargin.AddThemeConstantOverride("margin_bottom", 8);
+        scroll.AddChild(contentMargin);
 
         _content = new VBoxContainer
         {
@@ -87,7 +100,7 @@ public partial class HeroProfileView : Control
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
         _content.AddThemeConstantOverride("separation", 10);
-        scroll.AddChild(_content);
+        contentMargin.AddChild(_content);
     }
 
     private void Render()
@@ -173,7 +186,7 @@ public partial class HeroProfileView : Control
     /// </summary>
     private void AddHeroSprite(HeroProfileSnapshot hero)
     {
-        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(hero.Id, hero.Lineage, hero.Gender);
+        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
         _heroAnchor = new CenterContainer
         {
             CustomMinimumSize = new Vector2(0, PresentationConstants.DetailedCitizenHeight),

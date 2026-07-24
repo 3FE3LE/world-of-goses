@@ -1,0 +1,132 @@
+{
+  "lineage": "Orveth",
+  "lineage_key": "orveth",
+  "body_variant": "female",
+  "principle": "Valor y reciprocidad",
+  "visual_translation": "sellos, unidades repetidas, reserva y simetría",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "combat_idle": {
+      "frames": 2,
+      "fps": 4.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "run": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "jump": {
+      "frames": 5,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "climb": {
+      "frames": 6,
+      "fps": 6.0,
+      "loop": true,
+      "mode": "sheet_mirror"
+    },
+    "sit": {
+      "frames": 3,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "hurt": {
+      "frames": 6,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet_mirror"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "thrust": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "halfslash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "backslash": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "shoot": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "spellcast": {
+      "frames": 7,
+      "fps": 10.0,
+      "loop": false,
+      "mode": "sheet"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#6E5F49",
+      "secondary": "#925333",
+      "accent": "#C28C4F",
+      "skin": "#805846",
+      "hair": "#2D2425"
+    },
+    "profiles": {
+      "symbol": "seal",
+      "accessories": "orveth",
+      "back": "mantle",
+      "female_hair_back": "bun",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv",
+  "appearance_variant": "extraction",
+  "appearance_display_name": "Cuerpo extractor",
+  "appearance_status": "ready",
+  "appearance_recipe_hash": "40a8d22ee7c35806851394dcf8b3121e9e78bc245d93dda0bcff408c03ad5b14",
+  "lineage_palette": "orveth",
+  "lineage_symbol": "seal"
+}

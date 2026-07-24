@@ -8,6 +8,11 @@ public sealed class CitizenSave
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public int AppearanceSeed { get; set; }
+    /// <summary>
+    /// Cosmetic appearance profile id. Old saves deserialize as <c>null</c>;
+    /// the loader resolves that to a deterministic default for the citizen.
+    /// </summary>
+    public string? AppearanceVariant { get; set; }
     public CitizenProfileSave? Profile { get; set; }
     /// <summary>
     /// The building the citizen is currently assigned to, mirroring
@@ -39,4 +44,7 @@ public sealed class CitizenSave
     /// hasn't eaten since load.
     /// </summary>
     public int WellFedRemainingTicks { get; set; }
+    public int? LastVisitedResourceBuildingId { get; set; }
+    public int? LastVisitedResourceUnitId { get; set; }
+    public int? LastVisitedResourcePositionIndex { get; set; }
 }

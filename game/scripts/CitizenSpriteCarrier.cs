@@ -25,36 +25,52 @@ public partial class CitizenSpriteCarrier : Node2D
     }
 
     /// <summary>
-    /// Walking speed in pixels per second. Calibrated to the sprite's
-    /// walk animation: 9 frames at 9 fps = 1 cycle per second, and
-    /// the LPC cell is 128×128, so the natural "one sprite-width per
-    /// second" reads as 128 px/s.
+    /// Effective walking speed produced by the shared 8 px / 12 Hz
+    /// presentation cadence.
     /// </summary>
-    public const float WalkSpeedPxPerSec = 128f;
+    public const float WalkSpeedPxPerSec =
+        PixelMotion.StepPixels / PixelMotion.CadenceSeconds;
+    private static readonly Vector2 MacroScale = new(0.25f, 0.25f);
 
     public CitizenId Id { get; private set; }
     public LineageId Lineage { get; private set; }
     public GenderId Gender { get; private set; }
+    public AppearanceVariantId AppearanceVariant { get; private set; }
     public LineageSpritePlayer Sprite { get; private set; } = null!;
     public VisualState State { get; private set; } = VisualState.Hidden;
-    private Tween? _moveTween;
+    private Vector2? _moveTarget;
+    private Action? _moveCompleted;
+    private float _moveAccumulator;
 
     /// <summary>
     /// Creates the carrier's sprite from the lineage/gender pair and
     /// parents it to the carrier. The carrier doesn't need a full
     /// Citizen — the visual layer only needs the visual identity.
     /// </summary>
-    public void Initialize(CitizenId id, LineageId lineage, GenderId gender)
+    internal void Initialize(CitizenId id, LineageId lineage, GenderId gender, AppearanceVariantId appearanceVariant)
     {
         Id = id;
         Lineage = lineage;
         Gender = gender;
+        AppearanceVariant = appearanceVariant;
         var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(gender);
-        var scene = CharacterVisualRegistry.LoadScene(lineage, bodyVariant);
+        var scene = CharacterVisualRegistry.LoadScene(lineage, appearanceVariant, bodyVariant);
         Sprite = scene.Instantiate<LineageSpritePlayer>();
         Sprite.Position = Vector2.Zero;
         AddChild(Sprite);
         Hide();
+    }
+
+    internal void ReinitializeAppearance(AppearanceVariantId appearanceVariant)
+    {
+        if (appearanceVariant == AppearanceVariant) return;
+        AppearanceVariant = appearanceVariant;
+        if (Sprite is not null) Sprite.QueueFree();
+        var bodyVariant = CharacterVisualRegistry.ResolveBodyVariant(Gender);
+        var scene = CharacterVisualRegistry.LoadScene(Lineage, appearanceVariant, bodyVariant);
+        Sprite = scene.Instantiate<LineageSpritePlayer>();
+        Sprite.Position = Vector2.Zero;
+        AddChild(Sprite);
     }
 
     /// <summary>
@@ -81,12 +97,9 @@ public partial class CitizenSpriteCarrier : Node2D
         if (hintFacing != Vector2.Zero) facing = hintFacing;
         Sprite.PlayWalk(facing);
 
-        _moveTween?.Kill();
-        float distance = current.DistanceTo(targetPosition);
-        float duration = distance / WalkSpeedPxPerSec;
-        _moveTween = CreateTween();
-        _moveTween.TweenProperty(this, "position", targetPosition, duration);
-        _moveTween.TweenCallback(Callable.From(() => onComplete?.Invoke()));
+        _moveTarget = PixelMotion.Snap(targetPosition);
+        _moveCompleted = onComplete;
+        _moveAccumulator = 0f;
     }
 
     /// <summary>
@@ -96,15 +109,19 @@ public partial class CitizenSpriteCarrier : Node2D
     /// </summary>
     public void SetPositionImmediate(Vector2 position)
     {
-        _moveTween?.Kill();
-        Position = position;
+        CancelMotion();
+        Position = PixelMotion.Snap(position);
     }
 
     public void SetState(VisualState state)
     {
         State = state;
+        Scale = ScaleForState(state);
         Visible = state != VisualState.Hidden;
     }
+
+    internal static Vector2 ScaleForState(VisualState state) =>
+        state == VisualState.Macro ? MacroScale : Vector2.One;
 
     /// <summary>
     /// Cancels any in-flight motion and snaps the sprite to the
@@ -114,11 +131,61 @@ public partial class CitizenSpriteCarrier : Node2D
     /// </summary>
     public void CancelMotion()
     {
-        _moveTween?.Kill();
-        _moveTween = null;
+        _moveTarget = null;
+        _moveCompleted = null;
+        _moveAccumulator = 0f;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_moveTarget is not Vector2 target) return;
+        _moveAccumulator += (float)delta;
+        while (_moveAccumulator >= PixelMotion.CadenceSeconds && _moveTarget is not null)
+        {
+            _moveAccumulator -= PixelMotion.CadenceSeconds;
+            Position = PixelMotion.StepCardinal(Position, target);
+            if (Position != target) continue;
+
+            Action? completed = _moveCompleted;
+            CancelMotion();
+            completed?.Invoke();
+        }
     }
 
     public void Slash(Vector2 facing) => Sprite.PlaySlash(facing);
     public void Walk(Vector2 facing) => Sprite.PlayWalk(facing);
     public void Idle(Vector2 facing) => Sprite.PlayIdle(facing);
+
+    /// <summary>Combat-ready idle pose in the given facing.</summary>
+    public void CombatIdle(Vector2 facing) => Sprite.PlayCombatIdle(facing);
+
+    /// <summary>Faster gait than <see cref="Walk"/>; same tween cadence.</summary>
+    public void Run(Vector2 facing) => Sprite.PlayRun(facing);
+
+    /// <summary>One-shot jump; the carrier does not tween while airborne.</summary>
+    public void Jump(Vector2 facing) => Sprite.PlayJump(facing);
+
+    /// <summary>Climbing pose for vertical traversal; loopable.</summary>
+    public void Climb(Vector2 facing) => Sprite.PlayClimb(facing);
+
+    /// <summary>Resting pose; the carrier is parked until it leaves.</summary>
+    public void Sit(Vector2 facing) => Sprite.PlaySit(facing);
+
+    /// <summary>One-shot reaction to damage. Plays once, then resumes idle.</summary>
+    public void Hurt(Vector2 facing) => Sprite.PlayHurt(facing);
+
+    /// <summary>Forwarder for the thrusting attack pose.</summary>
+    public void Thrust(Vector2 facing) => Sprite.PlayThrust(facing);
+
+    /// <summary>Forwarder for the half-swipe attack pose.</summary>
+    public void Halfslash(Vector2 facing) => Sprite.PlayHalfslash(facing);
+
+    /// <summary>Forwarder for the back-handed slash attack pose.</summary>
+    public void Backslash(Vector2 facing) => Sprite.PlayBackslash(facing);
+
+    /// <summary>Ranged attack pose with a bow or crossbow.</summary>
+    public void Shoot(Vector2 facing) => Sprite.PlayShoot(facing);
+
+    /// <summary>Spellcasting pose; loopable idle for ceremonial casting.</summary>
+    public void Spellcast(Vector2 facing) => Sprite.PlaySpellcast(facing);
 }

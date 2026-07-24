@@ -1,0 +1,132 @@
+{
+  "lineage": "Kovari",
+  "lineage_key": "kovari",
+  "body_variant": "female",
+  "principle": "Intervención e improvisación",
+  "visual_translation": "placas, remaches, herramientas y segmentos",
+  "frame_size": [
+    128,
+    128
+  ],
+  "baseline": [
+    64,
+    126
+  ],
+  "animations": {
+    "idle": {
+      "frames": 2,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "combat_idle": {
+      "frames": 2,
+      "fps": 4.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "walk": {
+      "frames": 9,
+      "fps": 9.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "run": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "jump": {
+      "frames": 5,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "climb": {
+      "frames": 6,
+      "fps": 6.0,
+      "loop": true,
+      "mode": "sheet_mirror"
+    },
+    "sit": {
+      "frames": 3,
+      "fps": 3.0,
+      "loop": true,
+      "mode": "sheet"
+    },
+    "hurt": {
+      "frames": 6,
+      "fps": 9.0,
+      "loop": false,
+      "mode": "sheet_mirror"
+    },
+    "slash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "thrust": {
+      "frames": 8,
+      "fps": 12.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "halfslash": {
+      "frames": 6,
+      "fps": 11.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "backslash": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "shoot": {
+      "frames": 13,
+      "fps": 14.0,
+      "loop": false,
+      "mode": "sheet"
+    },
+    "spellcast": {
+      "frames": 7,
+      "fps": 10.0,
+      "loop": false,
+      "mode": "sheet"
+    }
+  },
+  "directions": [
+    "down",
+    "left",
+    "up",
+    "right"
+  ],
+  "recipe_snapshot": {
+    "colors": {
+      "primary": "#655445",
+      "secondary": "#8E5E37",
+      "accent": "#B98B4A",
+      "skin": "#C58B61",
+      "hair": "#3B302C"
+    },
+    "profiles": {
+      "symbol": "gear",
+      "accessories": "kovari",
+      "back": "mantle",
+      "female_hair_back": "mechanical_ponytail",
+      "weapon": "sword"
+    }
+  },
+  "source": "Bundled LPC body snapshots plus deterministic World of Goses procedural overlays",
+  "generator_recipe": "res://source/recipes/lineages.json",
+  "credits": "res://docs/licenses/LPC_SELECTED_CREDITS.csv",
+  "appearance_variant": "logistics",
+  "appearance_display_name": "Cuerpo logístico",
+  "appearance_status": "ready",
+  "appearance_recipe_hash": "176f4aa7ab4d890076b5e9d5f047e1b88291cc3117294f21b721fcf341235806",
+  "lineage_palette": "kovari",
+  "lineage_symbol": "gear"
+}

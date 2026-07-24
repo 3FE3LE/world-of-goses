@@ -55,7 +55,7 @@ ANIMATION_LOOPS = {
 BASELINE = [64, 126]
 SCENE_OFFSET = [0, -62]
 PACKAGE_NAME = 'world-of-goses-lpc-lineages'
-PACKAGE_VERSION = '2.0.0'
+PACKAGE_VERSION = '3.0.0'
 SELECTED_GENDERS = ('male', 'female')
 WEAPON_RECIPES: dict[str, Any] = {}
 
@@ -851,8 +851,9 @@ def write_docs(manifest: dict) -> None:
     - Recoloración por paleta y región corporal.
     - Cabezas, cabello, prendas, accesorios y símbolos dibujados proceduralmente.
     - Normalización a celdas `128 × 128` sin antialiasing.
-    - `slash` de seis frames compuesto sobre poses LPC.
+    - Animaciones de combate procedentes de hojas LPC oficiales y compuestas con los overlays del linaje.
     - Idle femenino derivado de columnas neutrales del walk oficial incluido.
+    - El modo `generated_slash` está retirado; las animaciones actuales usan hojas `sheet` o `sheet_mirror` declaradas en `build.json`.
     '''), encoding='utf-8')
 
     (docs / 'MANIFEST.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')

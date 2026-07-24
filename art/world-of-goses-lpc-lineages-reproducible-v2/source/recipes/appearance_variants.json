@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "lineages": ["ardhen", "eirune", "kovari", "myrven", "vaelun", "orveth", "caelith", "theryn"],
+  "bodies": ["male", "female"],
+  "variants": [
+    {"id": "standard", "display_name": "Linaje estándar", "status": "ready", "overrides": {}},
+    {"id": "extraction", "display_name": "Cuerpo extractor", "status": "ready", "overrides": {"colors": {"primary": "#6E5F49", "secondary": "#925333", "accent": "#C28C4F"}, "profiles": {"back": "mantle"}}},
+    {"id": "construction", "display_name": "Cuerpo constructor", "status": "ready", "overrides": {"colors": {"primary": "#5C5550", "secondary": "#9C5E2E", "accent": "#D6A15E"}, "profiles": {"back": "mantle"}}},
+    {"id": "agriculture", "display_name": "Cuerpo cultivador", "status": "ready", "overrides": {"colors": {"primary": "#566640", "secondary": "#3F7A5C", "accent": "#B5C56B"}, "profiles": {"back": "vine"}}, "limited_to": ["eirune", "ardhen", "kovari", "theryn", "orveth", "vaelun", "caelith", "myrven"]},
+    {"id": "care", "display_name": "Cuerpo cuidador", "status": "ready", "overrides": {"colors": {"primary": "#6F5762", "secondary": "#9C5E5A", "accent": "#D88A8A"}, "profiles": {"back": "none"}}},
+    {"id": "engineering", "display_name": "Cuerpo técnico", "status": "ready", "overrides": {"colors": {"primary": "#4F5A66", "secondary": "#9B5034", "accent": "#DDAF55"}, "profiles": {"back": "none"}}},
+    {"id": "exploration", "display_name": "Cuerpo explorador", "status": "ready", "overrides": {"colors": {"primary": "#5E7066", "secondary": "#8C704B", "accent": "#C29B5B"}, "profiles": {"back": "mantle"}}},
+    {"id": "logistics", "display_name": "Cuerpo logístico", "status": "ready", "overrides": {"colors": {"primary": "#655445", "secondary": "#8E5E37", "accent": "#B98B4A"}, "profiles": {"back": "mantle"}}},
+    {"id": "commerce", "display_name": "Cuerpo comerciante", "status": "ready", "overrides": {"colors": {"primary": "#6E4640", "secondary": "#A17E3C", "accent": "#D7C184"}, "profiles": {"back": "none"}}},
+    {"id": "research", "display_name": "Cuerpo investigador", "status": "ready", "overrides": {"colors": {"primary": "#405370", "secondary": "#665588", "accent": "#75BDC0"}, "profiles": {"back": "none"}}},
+    {"id": "social", "display_name": "Cuerpo comunitario", "status": "ready", "overrides": {"colors": {"primary": "#674D78", "secondary": "#3F4D73", "accent": "#D18DA8"}, "profiles": {"back": "mantle"}}},
+    {"id": "security", "display_name": "Cuerpo vigilante", "status": "ready", "overrides": {"colors": {"primary": "#3D3A36", "secondary": "#7C4A2D", "accent": "#B6873A"}, "profiles": {"back": "mantle"}}},
+    {"id": "arts", "display_name": "Cuerpo artesano", "status": "ready", "overrides": {"colors": {"primary": "#784052", "secondary": "#AF5B60", "accent": "#63A39E"}, "profiles": {"back": "none"}}}
+  ]
+}

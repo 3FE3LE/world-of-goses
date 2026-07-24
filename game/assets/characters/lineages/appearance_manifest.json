@@ -1,0 +1,1158 @@
+{
+  "schema_version": 1,
+  "ready_variant_count": 12,
+  "promoted": [
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\construction\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\care\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\research\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\social\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\security\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\arts\\male"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\construction\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\care\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\research\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\social\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\security\\female"
+    },
+    {
+      "lineage": "ardhen",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\ardhen\\variants\\arts\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\construction\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\care\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\research\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\social\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\security\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\arts\\male"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\construction\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\care\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\research\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\social\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\security\\female"
+    },
+    {
+      "lineage": "eirune",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\eirune\\variants\\arts\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\construction\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\care\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\research\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\social\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\security\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\arts\\male"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\construction\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\care\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\research\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\social\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\security\\female"
+    },
+    {
+      "lineage": "kovari",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\kovari\\variants\\arts\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\construction\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\care\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\research\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\social\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\security\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\arts\\male"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\construction\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\care\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\research\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\social\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\security\\female"
+    },
+    {
+      "lineage": "myrven",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\myrven\\variants\\arts\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\construction\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\care\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\research\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\social\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\security\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\arts\\male"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\construction\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\care\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\research\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\social\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\security\\female"
+    },
+    {
+      "lineage": "vaelun",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\vaelun\\variants\\arts\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\construction\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\care\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\research\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\social\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\security\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\arts\\male"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\construction\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\care\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\research\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\social\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\security\\female"
+    },
+    {
+      "lineage": "orveth",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\orveth\\variants\\arts\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\construction\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\care\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\research\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\social\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\security\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\arts\\male"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\construction\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\care\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\research\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\social\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\security\\female"
+    },
+    {
+      "lineage": "caelith",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\caelith\\variants\\arts\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\extraction\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\construction\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\agriculture\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\care\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\engineering\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\exploration\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\logistics\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\commerce\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\research\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\social\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\security\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "male",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\arts\\male"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "extraction",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\extraction\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "construction",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\construction\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "agriculture",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\agriculture\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "care",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\care\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "engineering",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\engineering\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "exploration",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\exploration\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "logistics",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\logistics\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "commerce",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\commerce\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "research",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\research\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "social",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\social\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "security",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\security\\female"
+    },
+    {
+      "lineage": "theryn",
+      "body": "female",
+      "id": "arts",
+      "output": "game\\assets\\characters\\lineages\\theryn\\variants\\arts\\female"
+    }
+  ]
+}

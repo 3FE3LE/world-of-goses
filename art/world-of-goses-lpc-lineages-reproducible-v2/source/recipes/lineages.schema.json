@@ -2,99 +2,85 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "World of Goses lineage sprite recipes",
   "type": "object",
-  "required": [
-    "version",
-    "lineages",
-    "weapons"
-  ],
+  "required": ["version", "lineages", "weapons"],
   "properties": {
-    "version": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "generator_url": {
-      "type": "string",
-      "format": "uri"
-    },
+    "version": {"type": "integer", "minimum": 1},
+    "generator_url": {"type": "string", "format": "uri"},
     "lineages": {
       "type": "array",
+      "minItems": 1,
       "items": {
         "type": "object",
-        "required": [
-          "key",
-          "name",
-          "principle",
-          "visual",
-          "colors",
-          "profiles"
-        ],
+        "required": ["key", "name", "principle", "visual", "colors", "profiles"],
         "properties": {
-          "key": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9_-]*$"
-          },
-          "name": {
-            "type": "string"
-          },
-          "principle": {
-            "type": "string"
-          },
-          "visual": {
-            "type": "string"
-          },
-          "colors": {
-            "type": "object",
-            "required": [
-              "primary",
-              "secondary",
-              "accent",
-              "skin",
-              "hair"
-            ],
-            "additionalProperties": {
-              "type": "string",
-              "pattern": "^#[0-9A-Fa-f]{6}$"
-            }
-          },
-          "profiles": {
-            "type": "object"
-          },
+          "key": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+          "name": {"type": "string", "minLength": 1},
+          "principle": {"type": "string", "minLength": 1},
+          "visual": {"type": "string", "minLength": 1},
+          "colors": {"$ref": "#/$defs/colors"},
+          "profiles": {"$ref": "#/$defs/profiles"},
           "variants": {
             "type": "object",
             "properties": {
-              "male": {
-                "$ref": "#/$defs/variant"
-              },
-              "female": {
-                "$ref": "#/$defs/variant"
-              }
-            }
+              "male": {"$ref": "#/$defs/variant"},
+              "female": {"$ref": "#/$defs/variant"}
+            },
+            "additionalProperties": false
           }
-        }
+        },
+        "additionalProperties": true
       }
     },
     "weapons": {
-      "type": "object"
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/weapon"}
     }
   },
   "$defs": {
-    "variant": {
+    "colors": {
+      "type": "object",
+      "required": ["primary", "secondary", "accent", "skin", "hair"],
+      "properties": {
+        "primary": {"$ref": "#/$defs/color"},
+        "secondary": {"$ref": "#/$defs/color"},
+        "accent": {"$ref": "#/$defs/color"},
+        "skin": {"$ref": "#/$defs/color"},
+        "hair": {"$ref": "#/$defs/color"}
+      },
+      "additionalProperties": {"$ref": "#/$defs/color"}
+    },
+    "color": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+    "profiles": {
       "type": "object",
       "properties": {
-        "colors": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string",
-            "pattern": "^#[0-9A-Fa-f]{6}$"
-          }
-        },
-        "profiles": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
-          }
-        }
-      }
+        "symbol": {"type": "string"},
+        "accessories": {"type": "string"},
+        "back": {"type": "string"},
+        "female_hair_back": {"type": "string"},
+        "weapon": {"type": "string"}
+      },
+      "additionalProperties": {"type": "string"}
+    },
+    "variant": {
+      "type": "object",
+      "properties": {"colors": {"$ref": "#/$defs/partial_colors"}, "profiles": {"$ref": "#/$defs/profiles"}},
+      "additionalProperties": true
+    },
+    "partial_colors": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/color"}
+    },
+    "weapon": {
+      "type": "object",
+      "properties": {
+        "blade_outline": {"$ref": "#/$defs/color"},
+        "blade": {"$ref": "#/$defs/color"},
+        "shine": {"$ref": "#/$defs/color"},
+        "grip": {"$ref": "#/$defs/color"},
+        "length": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
     }
-  }
+  },
+  "additionalProperties": true
 }

@@ -5,11 +5,10 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// Persistence v3/v4 schema: <see cref="WorldSave.CurrentVersion"/>
-/// is now 4. The reactive policy triplet (MinStock/MaxStock/Priority)
+/// Persistence v3-v6 schema. The reactive policy triplet (MinStock/MaxStock/Priority)
 /// was added in v3; explicit <see cref="GenderId"/> identity was added
 /// in v4. Older saves must upgrade via MigrateV2ToV3 and
-/// MigrateV3ToV4 so the load path is non-fatal.
+/// MigrateV3ToV4, MigrateV4ToV5, and MigrateV5ToV6 so the load path is non-fatal.
 /// </summary>
 public class WorldPersistenceV3Tests
 {
@@ -21,7 +20,7 @@ public class WorldPersistenceV3Tests
         quarry.ConfigureProductionPolicy(true, minStock: 4, maxStock: 12, priority: 7);
 
         var save = WorldPersistence.Capture(world);
-        Assert.Equal(4, save.Version);
+        Assert.Equal(WorldSave.CurrentVersion, save.Version);
 
         var restored = CityWorld.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
@@ -65,7 +64,32 @@ public class WorldPersistenceV3Tests
         var v4Save = WorldPersistence.MigrateV3ToV4(v3Save);
         Assert.Equal(4, v4Save.Version);
 
-        var restored = CityWorld.FromSave(v4Save);
+        var v5Save = WorldPersistence.MigrateV4ToV5(v4Save);
+        Assert.Equal(5, v5Save.Version);
+
+        var v6Save = WorldPersistence.MigrateV5ToV6(v5Save);
+        Assert.Equal(6, v6Save.Version);
+
+        var v7Save = WorldPersistence.MigrateV6ToV7(v6Save);
+        Assert.Equal(7, v7Save.Version);
+
+        var v8Save = WorldPersistence.MigrateV7ToV8(v7Save);
+        Assert.Equal(8, v8Save.Version);
+
+        var v9Save = WorldPersistence.MigrateV8ToV9(v8Save);
+        Assert.Equal(9, v9Save.Version);
+
+        var v10Save = WorldPersistence.MigrateV9ToV10(v9Save);
+        Assert.Equal(10, v10Save.Version);
+
+        var v11Save = WorldPersistence.MigrateV10ToV11(v10Save);
+        Assert.Equal(11, v11Save.Version);
+
+        var v12Save = WorldPersistence.MigrateV11ToV12(v11Save);
+        Assert.Equal(12, v12Save.Version);
+        Assert.All(v12Save.Citizens, c => Assert.Equal("standard", c.AppearanceVariant));
+
+        var restored = CityWorld.FromSave(v12Save);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

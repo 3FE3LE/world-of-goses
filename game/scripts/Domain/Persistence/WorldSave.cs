@@ -28,9 +28,17 @@ public sealed class WorldSave
     ///   <item><description>v2 — founding-hero slice with single-target production policy.</description></item>
     ///   <item><description>v3 — recipes + min/max stock range + priority + CauseEventId wiring.</description></item>
     ///   <item><description>v4 — explicit gender identity stored on CitizenProfile.</description></item>
+    ///   <item><description>v5 — bounded, selective causal-event history.</description></item>
+    ///   <item><description>v6 — durable resource reservations and building input stock.</description></item>
+    ///   <item><description>v7 — stable natural-resource units and citizen resource visits.</description></item>
+    ///   <item><description>v8 — persistent parcels and natural-resource patches.</description></item>
+    ///   <item><description>v9 — persistent building/project parcel placements.</description></item>
+    ///   <item><description>v10 — one bounded natural-resource unit per parcel lot.</description></item>
+    ///   <item><description>v11 — city-owned gathered inventory.</description></item>
+    ///   <item><description>v12 — cosmetic appearance variant per citizen.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 12;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -46,4 +54,10 @@ public sealed class WorldSave
     public List<BuildingSave> Buildings { get; set; } = new();
     public List<CitizenSave> Citizens { get; set; } = new();
     public List<ConstructionProjectSave> Projects { get; set; } = new();
+    public List<WorldEventSave> Events { get; set; } = new();
+    public List<ResourceReservationSave> ResourceReservations { get; set; } = new();
+    public List<ParcelSave> Parcels { get; set; } = new();
+    public List<NaturalResourcePatchSave> NaturalResourcePatches { get; set; } = new();
+    public List<ParcelPlacementSave> ParcelPlacements { get; set; } = new();
+    public Dictionary<string, int> CityInventory { get; set; } = new();
 }

@@ -32,7 +32,7 @@ public sealed record BuildingDetailSnapshot(
     public bool IsHome => Kind == BuildingKind.Home;
     public bool IsForest => Kind == BuildingKind.Forest;
 
-    public sealed record CitizenItem(CitizenId Id, string Name, LineageId Lineage, GenderId Gender);
+    public sealed record CitizenItem(CitizenId Id, string Name, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
 
     public static BuildingDetailSnapshot? From(CityWorld world, BuildingId buildingId)
     {
@@ -65,5 +65,5 @@ public sealed record BuildingDetailSnapshot(
     }
 
     private static CitizenItem ToItem(Citizen citizen) =>
-        new(citizen.Id, citizen.Name, citizen.Profile.Lineage, citizen.Profile.Gender);
+        new(citizen.Id, citizen.Name, citizen.Profile.Lineage, citizen.Profile.Gender, citizen.AppearanceVariant);
 }

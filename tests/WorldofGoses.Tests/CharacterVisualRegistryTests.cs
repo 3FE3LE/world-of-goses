@@ -30,6 +30,26 @@ public sealed class CharacterVisualRegistryTests
     }
 
     [Fact]
+    public void GetScenePath_AppearanceVariant_FallsBackToStandardWhenMissing()
+    {
+        var lineage = LineageId.Myrven;
+        var fallback = CharacterVisualRegistry.GetScenePath(lineage, AppearanceVariantId.Standard, CharacterBodyVariant.Male);
+        Assert.Equal(
+            "res://assets/characters/lineages/myrven/male/myrven_male.tscn",
+            fallback);
+    }
+
+    [Fact]
+    public void GetScenePath_AppearanceVariant_ResolvesKnownVariant()
+    {
+        var lineage = LineageId.Ardhen;
+        string promotion = CharacterVisualRegistry.GetScenePath(lineage, AppearanceVariantId.Construction, CharacterBodyVariant.Male);
+        Assert.Equal(
+            "res://assets/characters/lineages/ardhen/variants/construction/male/ardhen_construction_male.tscn",
+            promotion);
+    }
+
+    [Fact]
     public void GetScenePath_RejectsUnknownLineage()
     {
         Assert.Throws<System.ArgumentOutOfRangeException>(() =>

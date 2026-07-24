@@ -41,27 +41,40 @@ public partial class CitizenSpriteBank : Node
     /// first request. The carrier is created once per citizen and
     /// lives for the lifetime of the bank.
     /// </summary>
-    public CitizenSpriteCarrier GetOrCreate(CitizenId citizenId, LineageId lineage, GenderId gender)
+    public CitizenSpriteCarrier GetOrCreate(CitizenId citizenId, LineageId lineage, GenderId gender, AppearanceVariantId appearanceVariant)
     {
         if (_carriers.TryGetValue(citizenId, out var existing)
             && IsInstanceValid(existing)
             && existing.Lineage == lineage
-            && existing.Gender == gender)
+            && existing.Gender == gender
+            && existing.AppearanceVariant == appearanceVariant)
         {
             return existing;
         }
 
         if (existing is not null && IsInstanceValid(existing))
         {
+            existing.CancelMotion();
+            existing.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             existing.QueueFree();
         }
 
         var carrier = new CitizenSpriteCarrier();
         carrier.Name = $"Carrier_{citizenId.Value}";
-        carrier.Initialize(citizenId, lineage, gender);
+        carrier.Initialize(citizenId, lineage, gender, appearanceVariant);
         _parking.AddChild(carrier);
         _carriers[citizenId] = carrier;
         return carrier;
+    }
+
+    /// <summary>Re-skins an existing carrier to a new cosmetic appearance variant without recreating the carrier node.</summary>
+    public void SetAppearance(CitizenId citizenId, AppearanceVariantId appearanceVariant)
+    {
+        if (!_carriers.TryGetValue(citizenId, out var existing) || !IsInstanceValid(existing))
+        {
+            return;
+        }
+        existing.ReinitializeAppearance(appearanceVariant);
     }
 
     /// <summary>
@@ -91,6 +104,8 @@ public partial class CitizenSpriteBank : Node
         {
             if (IsInstanceValid(carrier))
             {
+                carrier.CancelMotion();
+                carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
                 carrier.QueueFree();
             }
             _carriers.Remove(id);

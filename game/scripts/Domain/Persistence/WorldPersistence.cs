@@ -51,6 +51,12 @@ public static class WorldPersistence
             CurrentTick = world.CurrentTick,
             LastSeenAtUnixMillis = now.ToUnixTimeMilliseconds(),
         };
+        foreach ((ResourceType resource, int amount) in world.Resources.Entries()
+            .Where(entry => entry.Location.Kind == ResourceLocationKind.CityInventory)
+            .Select(entry => (entry.Resource, entry.Amount)))
+        {
+            save.CityInventory[resource.ToString()] = amount;
+        }
 
         foreach (var building in world.Buildings.Values)
         {
@@ -68,7 +74,9 @@ public static class WorldPersistence
                 BaseProductionPerWorker = building.BaseProductionPerWorker,
                 StorageCapacity = building.StorageCapacity,
                 Stock = building.Stock,
+                IronStock = building.IronStock,
                 WoodReserve = building.WoodReserve,
+                WoodUnitReserves = new List<int>(building.WoodUnitReserves),
                 ProductionEnabled = building.ProductionEnabled,
                 MinStock = building.MinStock,
                 MaxStock = building.MaxStock,
@@ -82,6 +90,42 @@ public static class WorldPersistence
             save.Buildings.Add(bs);
         }
 
+        foreach (CityParcel parcel in world.Parcels.Values)
+        {
+            save.Parcels.Add(new ParcelSave
+            {
+                Id = parcel.Id.Value,
+                LogicalColumn = parcel.LogicalColumn,
+                LogicalRow = parcel.LogicalRow,
+                IsUnlocked = parcel.IsUnlocked,
+            });
+        }
+        foreach (NaturalResourcePatch patch in world.NaturalResourcePatches.Values)
+        {
+            save.NaturalResourcePatches.Add(new NaturalResourcePatchSave
+            {
+                Id = patch.Id,
+                ParcelId = patch.ParcelId.Value,
+                ResourceType = patch.ResourceType.ToString(),
+                LegacyStorageBuildingId = patch.LegacyStorageBuildingId?.Value,
+                UnitReserves = new List<int>(patch.UnitReserves),
+            });
+        }
+        foreach (ParcelPlacement placement in world.ParcelPlacements.Values)
+        {
+            save.ParcelPlacements.Add(new ParcelPlacementSave
+            {
+                EntityId = placement.EntityId.Value,
+                ParcelId = placement.ParcelId.Value,
+                LotColumn = placement.LotColumn,
+                LotRow = placement.LotRow,
+                LotWidth = placement.LotWidth,
+                LotHeight = placement.LotHeight,
+                FootprintProfileId = placement.FootprintProfileId,
+                Orientation = placement.Orientation.ToString(),
+            });
+        }
+
         foreach (var citizen in world.Citizens.Values)
         {
             var cs = new CitizenSave
@@ -89,11 +133,17 @@ public static class WorldPersistence
                 Id = citizen.Id.Value,
                 Name = citizen.Name,
                 AppearanceSeed = citizen.AppearanceSeed,
+                AppearanceVariant = citizen.AppearanceVariant.Value,
                 Profile = CaptureProfile(citizen.Profile),
                 CurrentAssignment = citizen.CurrentAssignment?.Value,
                 StaminaCurrent = citizen.CurrentStamina,
                 StaminaMax = citizen.MaxStamina,
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
+                LastVisitedResourceBuildingId =
+                    citizen.LastVisitedResourceBuildingId?.Value,
+                LastVisitedResourceUnitId = citizen.LastVisitedResourceUnitId,
+                LastVisitedResourcePositionIndex =
+                    citizen.LastVisitedResourcePositionIndex,
             };
             foreach (var entry in citizen.Competencies.Values)
             {
@@ -132,6 +182,37 @@ public static class WorldPersistence
                 ps.AssignedCitizenIds.Add(cid.Value);
             }
             save.Projects.Add(ps);
+        }
+
+        IReadOnlyList<WorldEvent> retained =
+            WorldEventRetention.SelectForPersistence(world.Log.Events);
+        var retainedIds = new HashSet<int>(retained.Select(evt => evt.Id.Value));
+        foreach (var evt in retained)
+        {
+            save.Events.Add(new WorldEventSave
+            {
+                Id = evt.Id.Value,
+                Tick = evt.Tick,
+                Kind = evt.Kind.ToString(),
+                SubjectKind = evt.Subject.Kind.ToString(),
+                SubjectEntityId = evt.Subject.EntityId,
+                SubjectDisplayName = evt.Subject.DisplayName,
+                Amount = evt.Amount,
+                CauseEventId = evt.CauseEventId is WorldEventId cause
+                    && retainedIds.Contains(cause.Value) ? cause.Value : null,
+            });
+        }
+
+        foreach (ResourceReservation reservation in world.Resources.Reservations)
+        {
+            save.ResourceReservations.Add(new ResourceReservationSave
+            {
+                Id = reservation.Id.Value,
+                Resource = reservation.Resource.ToString(),
+                Amount = reservation.Amount,
+                OwnerKind = reservation.Owner.Kind.ToString(),
+                OwnerEntityId = reservation.Owner.EntityId,
+            });
         }
 
         return save;
@@ -212,6 +293,33 @@ public static class WorldPersistence
         {
             throw new InvalidOperationException("Save.Projects is null.");
         }
+        if (save.Events is null)
+        {
+            throw new InvalidOperationException("Save.Events is null.");
+        }
+        if (save.ResourceReservations is null)
+        {
+            throw new InvalidOperationException("Save.ResourceReservations is null.");
+        }
+        if (save.Parcels is null)
+        {
+            throw new InvalidOperationException("Save.Parcels is null.");
+        }
+        if (save.NaturalResourcePatches is null)
+        {
+            throw new InvalidOperationException("Save.NaturalResourcePatches is null.");
+        }
+        if (save.ParcelPlacements is null)
+        {
+            throw new InvalidOperationException("Save.ParcelPlacements is null.");
+        }
+        if (save.CityInventory is null
+            || save.CityInventory.Any(pair =>
+                pair.Value < 0
+                || !Enum.TryParse(pair.Key, true, out ResourceType _)))
+        {
+            throw new InvalidOperationException("Save.CityInventory is invalid.");
+        }
         if (save.Version != WorldSave.CurrentVersion)
         {
             throw new IncompatibleSaveVersionException(save.Version, WorldSave.CurrentVersion);
@@ -219,6 +327,139 @@ public static class WorldPersistence
         if (save.CurrentTick < 0)
         {
             throw new InvalidOperationException("Save.CurrentTick is negative.");
+        }
+        var parcelIds = new HashSet<int>();
+        foreach (ParcelSave parcel in save.Parcels)
+        {
+            if (parcel is null
+                || parcel.Id <= 0
+                || parcel.LogicalColumn < 0
+                || parcel.LogicalRow < 0
+                || !parcelIds.Add(parcel.Id))
+            {
+                throw new InvalidOperationException("Save contains an invalid parcel.");
+            }
+        }
+        var patchIds = new HashSet<int>();
+        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
+        {
+            if (patch is null
+                || patch.Id <= 0
+                || !patchIds.Add(patch.Id)
+                || !parcelIds.Contains(patch.ParcelId)
+                || !Enum.TryParse(patch.ResourceType, true, out ResourceType _)
+                || patch.UnitReserves is null
+                || patch.UnitReserves.Any(value => value < 0)
+                || patch.UnitReserves.Count > NaturalResourcePatch.MaximumUnits
+                || (patch.ResourceType == ResourceType.Wood.ToString()
+                    && patch.UnitReserves.Any(
+                        value => value > CityWorld.StartingTreeWoodReserve)))
+            {
+                throw new InvalidOperationException(
+                    "Save contains an invalid natural-resource patch.");
+            }
+        }
+        var placementEntityIds = new HashSet<int>();
+        var restoredPlacements = new List<ParcelPlacement>();
+        foreach (ParcelPlacementSave placement in save.ParcelPlacements)
+        {
+            if (placement is null
+                || !placementEntityIds.Add(placement.EntityId)
+                || !parcelIds.Contains(placement.ParcelId)
+                || !Enum.TryParse(
+                    placement.Orientation,
+                    true,
+                    out BuildingOrientation orientation))
+            {
+                throw new InvalidOperationException("Save contains an invalid parcel placement.");
+            }
+            ParcelPlacement restored;
+            try
+            {
+                restored = new ParcelPlacement(
+                    new BuildingId(placement.EntityId),
+                    new ParcelId(placement.ParcelId),
+                    placement.LotColumn,
+                    placement.LotRow,
+                    placement.LotWidth,
+                    placement.LotHeight,
+                    placement.FootprintProfileId,
+                    orientation);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidOperationException(
+                    "Save contains an invalid parcel placement.",
+                    exception);
+            }
+            if (restoredPlacements.Any(existing => restored.Overlaps(existing)))
+            {
+                throw new InvalidOperationException("Save contains overlapping parcel placements.");
+            }
+            restoredPlacements.Add(restored);
+        }
+        if (save.Events.Count > WorldEventRetention.MaximumPersistedEvents)
+        {
+            throw new InvalidOperationException("Save.Events exceeds the retention limit.");
+        }
+        var eventIds = new HashSet<int>();
+        foreach (var evt in save.Events)
+        {
+            if (evt is null) throw new InvalidOperationException("Save.Events contains a null entry.");
+            if (evt.Id <= 0 || !eventIds.Add(evt.Id))
+            {
+                throw new InvalidOperationException($"Invalid or duplicate event id {evt.Id}.");
+            }
+            if (evt.Tick < 0 || evt.Tick > save.CurrentTick)
+            {
+                throw new InvalidOperationException($"Event {evt.Id}: tick is outside world time.");
+            }
+            if (!Enum.TryParse(evt.Kind, true, out WorldEventKind kind)
+                || !WorldEventRetention.IsSignificant(kind))
+            {
+                throw new InvalidOperationException($"Event {evt.Id}: kind is not persistible.");
+            }
+            if (!Enum.TryParse(evt.SubjectKind, true, out WorldEventSubjectKind subjectKind)
+                || string.IsNullOrWhiteSpace(evt.SubjectDisplayName))
+            {
+                throw new InvalidOperationException($"Event {evt.Id}: subject is invalid.");
+            }
+            bool needsEntityId = subjectKind != WorldEventSubjectKind.World;
+            if (needsEntityId != evt.SubjectEntityId.HasValue)
+            {
+                throw new InvalidOperationException($"Event {evt.Id}: subject identity is incomplete.");
+            }
+        }
+        var reservationIds = new HashSet<int>();
+        var reservedByResource = new Dictionary<ResourceType, int>();
+        foreach (ResourceReservationSave reservation in save.ResourceReservations)
+        {
+            if (reservation is null
+                || reservation.Id <= 0
+                || !reservationIds.Add(reservation.Id)
+                || reservation.Amount <= 0
+                || reservation.OwnerEntityId <= 0
+                || !Enum.TryParse(reservation.Resource, true, out ResourceType resource)
+                || !Enum.TryParse(reservation.OwnerKind, true, out ResourceReservationOwnerKind ownerKind))
+            {
+                throw new InvalidOperationException("Save contains an invalid resource reservation.");
+            }
+            if (ownerKind == ResourceReservationOwnerKind.ConstructionProject
+                && !save.Projects.Any(project => project.Id == reservation.OwnerEntityId))
+            {
+                throw new InvalidOperationException(
+                    $"Reservation {reservation.Id} references unknown project {reservation.OwnerEntityId}.");
+            }
+            reservedByResource.TryGetValue(resource, out int reserved);
+            reservedByResource[resource] = checked(reserved + reservation.Amount);
+        }
+        foreach (var evt in save.Events)
+        {
+            if (evt.CauseEventId is int causeId
+                && (!eventIds.Contains(causeId) || causeId >= evt.Id))
+            {
+                throw new InvalidOperationException($"Event {evt.Id}: cause must reference an earlier retained event.");
+            }
         }
 
         var buildingIds = new HashSet<int>();
@@ -254,6 +495,10 @@ public static class WorldPersistence
             if (b.Stock < 0)
             {
                 throw new InvalidOperationException($"Building {b.Id}: Stock is negative.");
+            }
+            if (b.IronStock < 0)
+            {
+                throw new InvalidOperationException($"Building {b.Id}: IronStock is negative.");
             }
             if (b.Stock > b.StorageCapacity)
             {
@@ -301,6 +546,17 @@ public static class WorldPersistence
             if (b.AssignedCitizenIds.Count != b.AssignedCitizenIds.Distinct().Count())
             {
                 throw new InvalidOperationException($"Building {b.Id}: duplicate assigned citizen id.");
+            }
+            if (b.WoodUnitReserves is null
+                || b.WoodUnitReserves.Any(reserve => reserve < 0))
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: wood-unit reserves are invalid.");
+            }
+            if (b.WoodReserve != b.WoodUnitReserves.Sum())
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: aggregate wood reserve does not match its units.");
             }
         }
         var citizenIds = new HashSet<int>();
@@ -370,6 +626,35 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     $"Citizen {c.Id}: WellFedRemainingTicks is negative ({c.WellFedRemainingTicks}).");
             }
+            bool hasVisitedBuilding = c.LastVisitedResourceBuildingId.HasValue;
+            bool hasVisitedUnit = c.LastVisitedResourceUnitId.HasValue;
+            if (hasVisitedBuilding != hasVisitedUnit)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id}: resource visit identity is incomplete.");
+            }
+            if (hasVisitedBuilding
+                && (c.LastVisitedResourceUnitId < 0
+                    || c.LastVisitedResourcePositionIndex < 0))
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id}: resource visit is invalid.");
+            }
+        }
+
+        foreach (var pair in reservedByResource)
+        {
+            int stored = pair.Key == ResourceType.Iron
+                ? save.Buildings.Sum(building => building.IronStock)
+                : save.Buildings
+                    .Where(building => Enum.TryParse(building.ProducedResourceType, true, out ResourceType produced)
+                        && produced == pair.Key)
+                    .Sum(building => building.Stock);
+            if (pair.Value > stored)
+            {
+                throw new InvalidOperationException(
+                    $"Reserved {pair.Key} ({pair.Value}) exceeds stored amount ({stored}).");
+            }
         }
 
         int heroCount = save.Citizens.Count(c =>
@@ -431,6 +716,31 @@ public static class WorldPersistence
                     throw new InvalidOperationException(
                         $"Project {p.Id} references unknown citizen {cid}.");
                 }
+            }
+        }
+        foreach (int entityId in placementEntityIds)
+        {
+            if (!buildingIds.Contains(entityId) && !projectIds.Contains(entityId))
+            {
+                throw new InvalidOperationException(
+                    $"Parcel placement references unknown entity {entityId}.");
+            }
+        }
+        foreach (BuildingSave building in save.Buildings)
+        {
+            if (building.Kind != BuildingKind.Forest.ToString()
+                && !placementEntityIds.Contains(building.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Building {building.Id} has no parcel placement.");
+            }
+        }
+        foreach (ConstructionProjectSave project in save.Projects)
+        {
+            if (!placementEntityIds.Contains(project.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Project {project.Id} has no parcel placement.");
             }
         }
 
@@ -564,6 +874,26 @@ public static class WorldPersistence
     public static bool SlotExists(int slot, string slotsDirectory) =>
         File.Exists(Path.Combine(slotsDirectory, $"save_slot_{slot}.json"));
 
+    public static bool DeleteSlot(int slot) => DeleteSlot(slot, SlotsDirectory);
+
+    public static bool DeleteSlot(int slot, string slotsDirectory)
+    {
+        if (slot < 0) throw new ArgumentOutOfRangeException(nameof(slot));
+        ArgumentException.ThrowIfNullOrWhiteSpace(slotsDirectory);
+
+        string path = Path.Combine(slotsDirectory, $"save_slot_{slot}.json");
+        bool existed = File.Exists(path);
+        DeleteIfPresent(path);
+        DeleteIfPresent(path + ".bak");
+        DeleteIfPresent(path + ".tmp");
+        return existed;
+    }
+
+    private static void DeleteIfPresent(string path)
+    {
+        if (File.Exists(path)) File.Delete(path);
+    }
+
     public static void SaveToSlot(CityWorld world, int slot) =>
         SaveToSlot(world, slot, SlotsDirectory);
 
@@ -646,6 +976,275 @@ public static class WorldPersistence
             }
         }
 
+        save.Version = 4;
+        return save;
+    }
+
+    /// <summary>Adds an empty durable history to a v4 snapshot.</summary>
+    public static WorldSave MigrateV4ToV5(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 4)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV4ToV5 expects version 4 but found {save.Version}.");
+        }
+        save.Events ??= new List<WorldEventSave>();
+        save.Version = 5;
+        return save;
+    }
+
+    /// <summary>Adds durable reservation storage to a v5 snapshot.</summary>
+    public static WorldSave MigrateV5ToV6(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 5)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV5ToV6 expects version 5 but found {save.Version}.");
+        }
+        save.ResourceReservations ??= new List<ResourceReservationSave>();
+        save.Version = 6;
+        return save;
+    }
+
+    public static WorldSave MigrateV6ToV7(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 6)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV6ToV7 expects version 6 but found {save.Version}.");
+        }
+        foreach (BuildingSave building in save.Buildings)
+        {
+            building.WoodUnitReserves ??= new List<int>();
+            if (building.Kind == BuildingKind.Forest.ToString()
+                && building.WoodUnitReserves.Count == 0)
+            {
+                int reserve = Math.Max(0, building.WoodReserve ?? 0);
+                for (int index = 0; index < reserve; index++)
+                {
+                    building.WoodUnitReserves.Add(1);
+                }
+            }
+        }
+        save.Version = 7;
+        return save;
+    }
+
+    public static WorldSave MigrateV7ToV8(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 7)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV7ToV8 expects version 7 but found {save.Version}.");
+        }
+        save.Parcels ??= new List<ParcelSave>();
+        save.NaturalResourcePatches ??= new List<NaturalResourcePatchSave>();
+        save.Parcels.Clear();
+        save.NaturalResourcePatches.Clear();
+        int parcelId = 1;
+        foreach (BuildingSave building in save.Buildings)
+        {
+            if (building.Kind != BuildingKind.Forest.ToString()) continue;
+            save.Parcels.Add(new ParcelSave
+            {
+                Id = parcelId,
+                LogicalColumn = parcelId - 1,
+                LogicalRow = 0,
+                IsUnlocked = true,
+            });
+            save.NaturalResourcePatches.Add(new NaturalResourcePatchSave
+            {
+                Id = building.Id,
+                ParcelId = parcelId,
+                ResourceType = ResourceType.Wood.ToString(),
+                LegacyStorageBuildingId = building.Id,
+                UnitReserves = new List<int>(building.WoodUnitReserves),
+            });
+            parcelId++;
+        }
+        save.Version = 8;
+        return save;
+    }
+
+    public static WorldSave MigrateV8ToV9(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 8)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV8ToV9 expects version 8 but found {save.Version}.");
+        }
+        save.ParcelPlacements ??= new List<ParcelPlacementSave>();
+        save.ParcelPlacements.Clear();
+
+        var entities = new List<(int Id, string ProfileId)>();
+        foreach (BuildingSave building in save.Buildings)
+        {
+            if (building.Kind == BuildingKind.Forest.ToString()) continue;
+            BuildingKind kind = Enum.TryParse(
+                building.Kind,
+                ignoreCase: true,
+                out BuildingKind parsedKind)
+                ? parsedKind
+                : BuildingKind.Home;
+            entities.Add((building.Id, BuildingFootprintCatalog.ProfileIdFor(kind)));
+        }
+        foreach (ConstructionProjectSave project in save.Projects)
+        {
+            ConstructionKind kind = Enum.TryParse(
+                project.Kind,
+                ignoreCase: true,
+                out ConstructionKind parsedKind)
+                ? parsedKind
+                : ConstructionKind.BasicShelter;
+            entities.Add((project.Id, BuildingFootprintCatalog.ProfileIdFor(kind)));
+        }
+
+        int requiredParcels = Math.Max(
+            1,
+            (entities.Count + ParcelGrid.LotsPerAxis * ParcelGrid.LotsPerAxis - 1)
+                / (ParcelGrid.LotsPerAxis * ParcelGrid.LotsPerAxis));
+        int nextParcelId = save.Parcels.Count == 0
+            ? 1
+            : save.Parcels.Max(parcel => parcel.Id) + 1;
+        while (save.Parcels.Count < requiredParcels)
+        {
+            save.Parcels.Add(new ParcelSave
+            {
+                Id = nextParcelId++,
+                LogicalColumn = save.Parcels.Count,
+                LogicalRow = 0,
+                IsUnlocked = true,
+            });
+        }
+        List<ParcelSave> unlocked = save.Parcels
+            .Where(parcel => parcel.IsUnlocked)
+            .OrderBy(parcel => parcel.Id)
+            .ToList();
+        while (unlocked.Count < requiredParcels)
+        {
+            var parcel = new ParcelSave
+            {
+                Id = nextParcelId++,
+                LogicalColumn = save.Parcels.Count,
+                LogicalRow = 0,
+                IsUnlocked = true,
+            };
+            save.Parcels.Add(parcel);
+            unlocked.Add(parcel);
+        }
+
+        for (int index = 0; index < entities.Count; index++)
+        {
+            int parcelIndex = index / 9;
+            int lotIndex = index % 9;
+            save.ParcelPlacements.Add(new ParcelPlacementSave
+            {
+                EntityId = entities[index].Id,
+                ParcelId = unlocked[parcelIndex].Id,
+                LotColumn = lotIndex % ParcelGrid.LotsPerAxis,
+                LotRow = lotIndex / ParcelGrid.LotsPerAxis,
+                LotWidth = 1,
+                LotHeight = 1,
+                FootprintProfileId = entities[index].ProfileId,
+                Orientation = BuildingOrientation.South.ToString(),
+            });
+        }
+        save.Version = 9;
+        return save;
+    }
+
+    public static WorldSave MigrateV9ToV10(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 9)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV9ToV10 expects version 9 but found {save.Version}.");
+        }
+        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
+        {
+            if (!string.Equals(
+                patch.ResourceType,
+                ResourceType.Wood.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+            int remaining = patch.UnitReserves.Sum();
+            patch.UnitReserves.Clear();
+            while (remaining > 0
+                && patch.UnitReserves.Count < NaturalResourcePatch.MaximumUnits)
+            {
+                int reserve = Math.Min(remaining, CityWorld.StartingTreeWoodReserve);
+                patch.UnitReserves.Add(reserve);
+                remaining -= reserve;
+            }
+            if (remaining > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Natural-resource patch {patch.Id} exceeds its physical lot capacity.");
+            }
+            if (patch.LegacyStorageBuildingId is not int storageId) continue;
+            BuildingSave? storage = save.Buildings.FirstOrDefault(
+                building => building.Id == storageId);
+            if (storage is null) continue;
+            storage.WoodUnitReserves = new List<int>(patch.UnitReserves);
+            storage.WoodReserve = patch.UnitReserves.Sum();
+        }
+        save.Version = 10;
+        return save;
+    }
+
+    public static WorldSave MigrateV10ToV11(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 10)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV10ToV11 expects version 10 but found {save.Version}.");
+        }
+        save.CityInventory ??= new Dictionary<string, int>();
+        int wood = 0;
+        foreach (BuildingSave building in save.Buildings)
+        {
+            if (!string.Equals(
+                building.Kind,
+                BuildingKind.Forest.ToString(),
+                StringComparison.OrdinalIgnoreCase)
+                || building.Stock <= 0)
+            {
+                continue;
+            }
+            wood = checked(wood + building.Stock);
+            building.Stock = 0;
+        }
+        if (wood > 0)
+        {
+            save.CityInventory.TryGetValue(ResourceType.Wood.ToString(), out int existing);
+            save.CityInventory[ResourceType.Wood.ToString()] = checked(existing + wood);
+        }
+        save.Version = 11;
+        return save;
+    }
+
+    public static WorldSave MigrateV11ToV12(WorldSave save)
+    {
+        if (save.Version != 11)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV11ToV12 expects version 11 but found {save.Version}.");
+        }
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            citizen.AppearanceVariant = string.IsNullOrEmpty(citizen.AppearanceVariant)
+                ? AppearanceVariantId.Standard.Value
+                : citizen.AppearanceVariant;
+        }
         save.Version = WorldSave.CurrentVersion;
         return save;
     }

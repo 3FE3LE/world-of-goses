@@ -23,10 +23,10 @@ public partial class VisibleWorkerSlots : Control
     private readonly List<VisibleWorkerSlot> _slots = new();
 
     /// <summary>Snapshot the controller passes through.</summary>
-    public sealed record CitizenSlotInfo(CitizenId Id, string Name, LineageId Lineage, GenderId Gender)
+    public sealed record CitizenSlotInfo(CitizenId Id, string Name, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance)
     {
         public static CitizenSlotInfo From(BuildingDetailSnapshot.CitizenItem item) =>
-            new(item.Id, item.Name, item.Lineage, item.Gender);
+            new(item.Id, item.Name, item.Lineage, item.Gender, item.Appearance);
     }
 
     public override void _Ready()
@@ -124,7 +124,7 @@ public partial class VisibleWorkerSlots : Control
                 SlotHeight);
             slot.Configure(buildingId, citizen.Id, citizen.Name);
 
-            var carrier = CitizenSpriteBank.Instance.GetOrCreate(citizen.Id, citizen.Lineage, citizen.Gender);
+            var carrier = CitizenSpriteBank.Instance.GetOrCreate(citizen.Id, citizen.Lineage, citizen.Gender, citizen.Appearance);
             slot.AttachCarrier(carrier);
             slot.CitizenActivated += id => EmitSignal(SignalName.CitizenClicked, id);
             slot.AddToGroup(PresentationConstants.GroupVisibleWorkerSlot);

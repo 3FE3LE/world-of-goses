@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WorldofGoses.Domain.Persistence;
 
 namespace WorldofGoses.Domain;
@@ -20,22 +21,60 @@ public sealed class CityWorld
     private readonly Dictionary<CitizenId, Citizen> _citizens = new();
     private readonly Dictionary<BuildingId, Building> _buildings = new();
     private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
+    private readonly Dictionary<ParcelId, CityParcel> _parcels = new();
+    private readonly Dictionary<int, NaturalResourcePatch> _naturalResourcePatches = new();
+    private readonly Dictionary<BuildingId, ParcelPlacement> _parcelPlacements = new();
     private readonly WorldEventLog _log = new();
+    private readonly CityInventory _inventory = new();
+    private readonly CityResourceLedger _resources;
+    private readonly CitizenAssignmentService _assignments;
+    private readonly BuildingProductionSimulation _production;
+    private readonly ConstructionSimulation _construction;
     private int _tick;
     private int _nextProjectId = 1;
 
     private static readonly CitizenId PrincipalHeroId = new(1);
 
     /// <summary>A new world is intentionally empty until onboarding creates its hero.</summary>
-    public CityWorld() { }
+    public CityWorld()
+    {
+        _resources = new CityResourceLedger(_buildings, _inventory);
+        _assignments = new CitizenAssignmentService(
+            _citizens,
+            _buildings,
+            _projects,
+            RaiseBuildingChanged,
+            RaiseProjectChanged);
+        _production = new BuildingProductionSimulation(
+            _citizens,
+            _log,
+            () => _tick,
+            TryConsumeFood,
+            TryConsumeOperatingInputs,
+            FindCauseEvent,
+            RaiseBuildingChanged);
+        _construction = new ConstructionSimulation(
+            _citizens,
+            _log,
+            () => _tick,
+            TryConsumeResources,
+            () => FindCauseEvent(),
+            RaiseProjectChanged);
+    }
 
     public int CurrentTick => _tick;
     public IReadOnlyDictionary<CitizenId, Citizen> Citizens => _citizens;
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
+    public IReadOnlyDictionary<ParcelId, CityParcel> Parcels => _parcels;
+    public IReadOnlyDictionary<int, NaturalResourcePatch> NaturalResourcePatches =>
+        _naturalResourcePatches;
+    public IReadOnlyDictionary<BuildingId, ParcelPlacement> ParcelPlacements =>
+        _parcelPlacements;
 
     /// <summary>Read-only view of the chronological event log.</summary>
     public WorldEventLog Log => _log;
+    public CityResourceLedger Resources => _resources;
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
     public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
@@ -57,6 +96,30 @@ public sealed class CityWorld
     }
 
     public bool NeedsOnboarding => Hero is null;
+
+    public CityWorld CreateRestartedCityKeepingHero()
+    {
+        Citizen? hero = Hero;
+        if (hero is null)
+        {
+            throw new InvalidOperationException(
+                "A city without a founder cannot be soft-reset.");
+        }
+
+        var restarted = new CityWorld();
+        HeroCreationResult result = restarted.TryCreateHero(
+            new HeroCreationRequest(
+                hero.Name,
+                hero.Profile,
+                hero.Profile.Gender));
+        if (!result.IsSuccess)
+        {
+            throw new InvalidOperationException(
+                $"Could not preserve the founder during soft reset: {result.Outcome}.");
+        }
+        restarted.SeedStartingForests();
+        return restarted;
+    }
 
     /// <summary>
     /// Establishes the only citizen in a fresh world. The profile is
@@ -98,15 +161,19 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Per-forest starting wood reserve. The hero gathers wood from
-    /// each Forest up to this much; the Basic Shelter recipe (4 wood
-    /// total, deposit = 1) requires the player to gather at least
-    /// once before authorisation succeeds.
+    /// Number of individually visible trees in each founding resource patch.
     /// </summary>
-    public const int StartingForestWoodReserve = 8;
+    public const int StartingForestUnitCount = 8;
 
-    /// <summary>Per-forest storage capacity for gathered wood.</summary>
-    public const int StartingForestStorageCapacity = 20;
+    /// <summary>Wood held by each tree in a founding resource patch.</summary>
+    public const int StartingTreeWoodReserve = 40;
+
+    /// <summary>Total reserve across one founding resource patch.</summary>
+    public const int StartingForestWoodReserve =
+        StartingForestUnitCount * StartingTreeWoodReserve;
+
+    /// <summary>Per-forest compatibility-storage capacity for gathered wood.</summary>
+    public const int StartingForestStorageCapacity = StartingForestWoodReserve * 2;
 
     /// <summary>
     /// Drops two Forests into the world so the hero has a wood source
@@ -124,6 +191,10 @@ public sealed class CityWorld
     public void SeedStartingForests()
     {
         if (_citizens.Count == 0) return;
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.ResourceType == ResourceType.Wood) return;
+        }
         foreach (var b in _buildings.Values)
         {
             if (b.Kind == BuildingKind.Forest) return;
@@ -141,7 +212,8 @@ public sealed class CityWorld
             storageCapacity: StartingForestStorageCapacity,
             resourceLabel: "Wood",
             resourceUnit: "wood");
-        forest1.SeedWoodReserve(StartingForestWoodReserve);
+        forest1.RestoreWoodUnits(
+            Enumerable.Repeat(StartingTreeWoodReserve, StartingForestUnitCount));
 
         var forest2 = new Building(
             id: new BuildingId(101),
@@ -155,10 +227,158 @@ public sealed class CityWorld
             storageCapacity: StartingForestStorageCapacity,
             resourceLabel: "Wood",
             resourceUnit: "wood");
-        forest2.SeedWoodReserve(StartingForestWoodReserve);
+        forest2.RestoreWoodUnits(
+            Enumerable.Repeat(StartingTreeWoodReserve, StartingForestUnitCount));
 
         RegisterBuilding(forest1);
         RegisterBuilding(forest2);
+        EnsureFoundingParcels();
+        RegisterNaturalResourcePatch(new NaturalResourcePatch(
+            forest1.Id.Value, new ParcelId(1), ResourceType.Wood,
+            forest1.WoodUnitReserves, forest1.Id));
+        RegisterNaturalResourcePatch(new NaturalResourcePatch(
+            forest2.Id.Value, new ParcelId(2), ResourceType.Wood,
+            forest2.WoodUnitReserves, forest2.Id));
+    }
+
+    private void EnsureFoundingParcels()
+    {
+        const int columnCount = 4;
+        const int rowCount = 2;
+        for (int row = 0; row < rowCount; row++)
+        {
+            for (int column = 0; column < columnCount; column++)
+            {
+                var parcelId = new ParcelId(row * columnCount + column + 1);
+                _parcels.TryAdd(
+                    parcelId,
+                    new CityParcel(parcelId, column, row, isUnlocked: true));
+            }
+        }
+    }
+
+    private void RegisterNaturalResourcePatch(NaturalResourcePatch patch)
+    {
+        if (!_parcels.ContainsKey(patch.ParcelId))
+        {
+            throw new InvalidOperationException(
+                $"Natural resource patch {patch.Id} references unknown parcel {patch.ParcelId.Value}.");
+        }
+        if (!_naturalResourcePatches.TryAdd(patch.Id, patch))
+        {
+            throw new InvalidOperationException($"Natural resource patch id {patch.Id} already exists.");
+        }
+    }
+
+    private void RegisterParcelPlacement(ParcelPlacement placement)
+    {
+        if (!_parcels.TryGetValue(placement.ParcelId, out CityParcel? parcel)
+            || !parcel.IsUnlocked)
+        {
+            throw new InvalidOperationException(
+                $"Placement {placement.EntityId.Value} requires an unlocked parcel.");
+        }
+        if (NaturalResourceOccupiesLot(
+            placement.ParcelId,
+            placement.LotColumn,
+            placement.LotRow))
+        {
+            throw new InvalidOperationException(
+                $"Placement {placement.EntityId.Value} overlaps a natural resource.");
+        }
+        foreach (ParcelPlacement existing in _parcelPlacements.Values)
+        {
+            if (placement.Overlaps(existing))
+            {
+                throw new InvalidOperationException(
+                    $"Placement {placement.EntityId.Value} overlaps {existing.EntityId.Value}.");
+            }
+        }
+        if (!_parcelPlacements.TryAdd(placement.EntityId, placement))
+        {
+            throw new InvalidOperationException(
+                $"Placement for entity {placement.EntityId.Value} already exists.");
+        }
+    }
+
+    private ParcelPlacement? FindFirstAvailablePlacement(
+        BuildingId entityId,
+        string footprintProfileId)
+    {
+        IReadOnlyList<ConstructionLot> lots = AvailableConstructionLots();
+        if (lots.Count == 0) return null;
+        ConstructionLot lot = lots[0];
+        return CreatePlacement(entityId, lot, footprintProfileId);
+    }
+
+    public IReadOnlyList<ConstructionLot> AvailableConstructionLots()
+    {
+        var lots = new List<ConstructionLot>();
+        var candidateId = new BuildingId(int.MaxValue);
+        foreach (CityParcel parcel in _parcels.Values)
+        {
+            if (!parcel.IsUnlocked) continue;
+            for (int row = 0; row < ParcelGrid.LotsPerAxis; row++)
+            {
+                for (int column = 0; column < ParcelGrid.LotsPerAxis; column++)
+                {
+                    if (NaturalResourceOccupiesLot(parcel.Id, column, row)) continue;
+                    var lot = new ConstructionLot(
+                        parcel.Id,
+                        parcel.LogicalColumn,
+                        parcel.LogicalRow,
+                        column,
+                        row);
+                    ParcelPlacement candidate = CreatePlacement(
+                        candidateId,
+                        lot,
+                        BuildingFootprintCatalog.StandardWithSideSetbacksId);
+                    bool occupied = false;
+                    foreach (ParcelPlacement existing in _parcelPlacements.Values)
+                    {
+                        if (candidate.Overlaps(existing))
+                        {
+                            occupied = true;
+                            break;
+                        }
+                    }
+                    if (!occupied) lots.Add(lot);
+                }
+            }
+        }
+        return lots;
+    }
+
+    private static ParcelPlacement CreatePlacement(
+        BuildingId entityId,
+        ConstructionLot lot,
+        string footprintProfileId) =>
+        new(
+            entityId,
+            lot.ParcelId,
+            lot.LotColumn,
+            lot.LotRow,
+            lotWidth: 1,
+            lotHeight: 1,
+            footprintProfileId,
+            BuildingOrientation.South);
+
+    private bool NaturalResourceOccupiesLot(
+        ParcelId parcelId,
+        int lotColumn,
+        int lotRow)
+    {
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.ParcelId != parcelId) continue;
+            for (int unitId = 0; unitId < patch.UnitReserves.Count; unitId++)
+            {
+                if (patch.UnitReserves[unitId] <= 0) continue;
+                (int column, int row) = ParcelGrid.NaturalResourceLot(unitId);
+                if (column == lotColumn && row == lotRow) return true;
+            }
+        }
+        return false;
     }
 
     internal void RegisterCitizen(Citizen citizen)
@@ -170,12 +390,32 @@ public sealed class CityWorld
         }
     }
 
-    internal void RegisterBuilding(Building building)
+    internal void RegisterBuilding(Building building, bool placeIfMissing = true)
     {
         ArgumentNullException.ThrowIfNull(building);
         if (!_buildings.TryAdd(building.Id, building))
         {
             throw new InvalidOperationException($"Building id {building.Id.Value} already exists.");
+        }
+        if (placeIfMissing
+            && building.Kind != BuildingKind.Forest
+            && !_parcelPlacements.ContainsKey(building.Id))
+        {
+            if (_parcels.Count == 0)
+            {
+                var parcelId = new ParcelId(1);
+                _parcels.Add(parcelId, new CityParcel(parcelId, 0, 0, true));
+            }
+            ParcelPlacement? placement = FindFirstAvailablePlacement(
+                building.Id,
+                BuildingFootprintCatalog.ProfileIdFor(building.Kind));
+            if (placement is null)
+            {
+                _buildings.Remove(building.Id);
+                throw new InvalidOperationException(
+                    $"No available parcel lot for building {building.Id.Value}.");
+            }
+            RegisterParcelPlacement(placement);
         }
     }
 
@@ -245,12 +485,7 @@ public sealed class CityWorld
     {
         get
         {
-            int total = 0;
-            foreach (var b in _buildings.Values)
-            {
-                if (b.Kind == BuildingKind.Farm) total += b.Stock;
-            }
-            return total;
+            return _resources.Total(ResourceType.Food);
         }
     }
 
@@ -278,12 +513,7 @@ public sealed class CityWorld
     {
         get
         {
-            int total = 0;
-            foreach (var b in _buildings.Values)
-            {
-                if (b.Kind == BuildingKind.Forest) total += b.Stock;
-            }
-            return total;
+            return _resources.Total(ResourceType.Wood);
         }
     }
 
@@ -295,9 +525,9 @@ public sealed class CityWorld
         get
         {
             int total = 0;
-            foreach (var b in _buildings.Values)
+            foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
             {
-                if (b.Kind == BuildingKind.Forest) total += b.WoodReserve;
+                if (patch.ResourceType == ResourceType.Wood) total += patch.TotalReserve;
             }
             return total;
         }
@@ -310,16 +540,7 @@ public sealed class CityWorld
     /// </summary>
     public int DepositFood(int amount)
     {
-        if (amount <= 0) return 0;
-        int remaining = amount;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.Kind != BuildingKind.Farm) continue;
-            int added = b.AddStock(remaining);
-            remaining -= added;
-            if (remaining == 0) break;
-        }
-        return amount - remaining;
+        return _resources.Deposit(ResourceType.Food, amount);
     }
 
     /// <summary>
@@ -329,20 +550,7 @@ public sealed class CityWorld
     /// </summary>
     public bool TryConsumeFood(int amount)
     {
-        if (amount <= 0) return amount == 0;
-        if (FoodStock < amount) return false;
-
-        int remaining = amount;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.Kind != BuildingKind.Farm || remaining == 0) continue;
-            int take = b.Stock < remaining ? b.Stock : remaining;
-            if (b.TryConsumeStock(take))
-            {
-                remaining -= take;
-            }
-        }
-        return remaining == 0;
+        return _resources.TryConsume(ResourceType.Food, amount);
     }
 
     /// <summary>
@@ -371,21 +579,7 @@ public sealed class CityWorld
     /// </summary>
     public int TotalStockOf(ResourceType type)
     {
-        if (type == ResourceType.Iron)
-        {
-            int total = 0;
-            foreach (var b in _buildings.Values)
-            {
-                total += b.IronStock;
-            }
-            return total;
-        }
-        int sum = 0;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.ProducedResourceType == type) sum += b.Stock;
-        }
-        return sum;
+        return _resources.Total(type);
     }
 
     /// <summary>
@@ -397,37 +591,7 @@ public sealed class CityWorld
     /// </summary>
     public bool TryConsumeResource(ResourceType type, int amount)
     {
-        if (amount <= 0) return amount == 0;
-        if (TotalStockOf(type) < amount) return false;
-
-        if (type == ResourceType.Iron)
-        {
-            // Iron is held in each building's IronStock reserve.
-            // Drains in insertion order, transactional.
-            int remaining = amount;
-            foreach (var b in _buildings.Values)
-            {
-                if (remaining == 0) break;
-                int take = b.IronStock < remaining ? b.IronStock : remaining;
-                if (b.TryConsumeIron(take))
-                {
-                    remaining -= take;
-                }
-            }
-            return remaining == 0;
-        }
-
-        int rest = amount;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.ProducedResourceType != type || rest == 0) continue;
-            int take = b.Stock < rest ? b.Stock : rest;
-            if (b.TryConsumeStock(take))
-            {
-                rest -= take;
-            }
-        }
-        return rest == 0;
+        return _resources.TryConsume(type, amount);
     }
 
     /// <summary>
@@ -438,27 +602,15 @@ public sealed class CityWorld
     /// </summary>
     private ResourceType? TryConsumeOperatingInputs(Building building, Recipe recipe)
     {
-        var debited = new List<(ResourceType resource, int amount)>();
-        foreach (var input in recipe.RequiredInputs)
-        {
-            if (input.Amount <= 0) continue;
-            if (!TryConsumeResource(input.Resource, input.Amount))
-            {
-                foreach (var (resource, amount) in debited)
-                {
-                    DepositResource(resource, amount);
-                }
-                return input.Resource;
-            }
-            debited.Add((input.Resource, input.Amount));
-        }
-        return null;
+        return _resources.TryConsume(recipe.RequiredInputs, out ResourceType? missing)
+            ? null
+            : missing;
     }
 
     /// <summary>
     /// Returns the most recent <see cref="WorldEvent"/> whose
-    /// <see cref="WorldEvent.SubjectName"/> matches the building's
-    /// display name, or <c>null</c> when none exists. Used to wire
+    /// typed subject matches the building identity, or <c>null</c> when none
+    /// exists. Used to wire
     /// <see cref="WorldEvent.CauseEventId"/> for causal chains; the
     /// resource filter is intentionally unused here so a blocked
     /// event can still reference the last successful production tick.
@@ -470,7 +622,9 @@ public sealed class CityWorld
         for (int i = events.Count - 1; i >= 0; i--)
         {
             var evt = events[i];
-            if (building is not null && evt.SubjectName != building.DisplayName) continue;
+            if (building is not null
+                && (evt.Subject.Kind != WorldEventSubjectKind.Building
+                    || evt.Subject.EntityId != building.Id.Value)) continue;
             return evt;
         }
         return null;
@@ -487,17 +641,65 @@ public sealed class CityWorld
     /// </summary>
     public int GatherWood(BuildingId forestId, int amount)
     {
+        return GatherWood(forestId, unitId: null, amount: amount);
+    }
+
+    public int GatherWood(BuildingId forestId, int? unitId, int amount)
+    {
         if (amount <= 0) return 0;
+        Citizen? hero = Hero;
+        if (hero is null || hero.CurrentAssignment.HasValue) return 0;
         if (!_buildings.TryGetValue(forestId, out var forest)) return 0;
         if (forest.Kind != BuildingKind.Forest) return 0;
-        int gathered = forest.GatherWood(amount);
+        int gathered;
+        if (_naturalResourcePatches.TryGetValue(
+            forestId.Value,
+            out NaturalResourcePatch? patch))
+        {
+            int drained = unitId.HasValue
+                ? patch.GatherUnit(unitId.Value, amount)
+                : patch.Gather(amount);
+            forest.RestoreWoodUnits(patch.UnitReserves);
+            gathered = _resources.DepositToCityInventory(
+                ResourceType.Wood,
+                drained);
+        }
+        else
+        {
+            gathered = unitId.HasValue
+                ? forest.GatherWoodUnit(unitId.Value, amount)
+                : forest.GatherWood(amount);
+        }
         if (gathered > 0)
         {
-            var cause = FindCauseEvent(forest)?.Id.ToString();
-            _log.Record(_tick, WorldEventKind.StockProduced, forest.DisplayName, gathered, cause);
+            if (unitId.HasValue)
+            {
+                hero.VisitResource(
+                    forestId,
+                    unitId.Value,
+                    ResourcePositionIndex(forestId, unitId.Value));
+            }
+            WorldEventId? cause = FindCauseEvent(forest)?.Id;
+            _log.Record(_tick, WorldEventKind.StockProduced,
+                WorldEventSubject.Building(forest.Id, forest.DisplayName), gathered, cause);
             RaiseBuildingChanged(forestId);
         }
         return gathered;
+    }
+
+    private int ResourcePositionIndex(BuildingId forestId, int unitId)
+    {
+        int positionIndex = 0;
+        foreach (Building building in _buildings.Values)
+        {
+            if (building.Kind != BuildingKind.Forest) continue;
+            if (building.Id == forestId)
+            {
+                return positionIndex + unitId;
+            }
+            positionIndex += building.WoodUnitReserves.Count;
+        }
+        return Math.Max(0, unitId);
     }
 
     /// <summary>
@@ -551,69 +753,13 @@ public sealed class CityWorld
     /// capacity.
     /// </summary>
     public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId)
-    {
-        if (!_buildings.TryGetValue(buildingId, out var building))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, buildingId);
-        }
-
-        if (!_citizens.TryGetValue(citizenId, out var citizen))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, buildingId);
-        }
-
-        // Check the specific building first so callers get a precise
-        // "AlreadyAssigned" outcome (the citizen is on THIS building)
-        // before the more generic "CitizenUnavailable" (the citizen
-        // is on another building).
-        if (building.IsAssigned(citizenId))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.AlreadyAssigned, citizenId, buildingId);
-        }
-
-        if (citizen.CurrentAssignment.HasValue)
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, buildingId);
-        }
-
-        var result = building.TryAssign(citizenId);
-        if (result.IsSuccess)
-        {
-            citizen.AssignTo(buildingId);
-            citizen.SetLocation(GameClock.IsDaytime(_tick)
-                ? CitizenLocation.AtWork
-                : CitizenLocation.AtHome);
-            RaiseBuildingChanged(buildingId);
-        }
-
-        return result;
-    }
+        => _assignments.AssignToBuilding(buildingId, citizenId, _tick);
 
     /// <summary>
     /// Attempts to remove a citizen from a building.
     /// </summary>
     public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId)
-    {
-        if (!_buildings.TryGetValue(buildingId, out var building))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, buildingId);
-        }
-
-        if (!_citizens.TryGetValue(citizenId, out var citizen))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, buildingId);
-        }
-
-        var result = building.TryUnassign(citizenId);
-        if (result.IsSuccess)
-        {
-            citizen.ClearAssignment();
-            citizen.SetLocation(CitizenLocation.AtHome);
-            RaiseBuildingChanged(buildingId);
-        }
-
-        return result;
-    }
+        => _assignments.UnassignFromBuilding(buildingId, citizenId);
 
     /// <summary>
     /// Unassigns every assigned citizen from the given building. Used
@@ -621,16 +767,8 @@ public sealed class CityWorld
     /// long enough to rule out a brief production peak and the workers
     /// should be re-deployed elsewhere.
     /// </summary>
-    private void ReleaseAssignedWorkers(Building building)
-    {
-        // Snapshot the ids so TryUnassignCitizen (which mutates the
-        // building's assigned list) does not invalidate the iteration.
-        var assignedIds = new List<CitizenId>(building.AssignedCitizenIds);
-        foreach (var citizenId in assignedIds)
-        {
-            TryUnassignCitizen(building.Id, citizenId);
-        }
-    }
+    private void ReleaseAssignedWorkers(Building building) =>
+        _assignments.ReleaseBuilding(building);
 
     /// <summary>
     /// Attempts to assign a citizen to a worksite. The id is shared
@@ -638,54 +776,10 @@ public sealed class CityWorld
     /// remains a plain <see cref="BuildingId"/>?>.
     /// </summary>
     public AssignmentResult TryAssignToProject(BuildingId projectId, CitizenId citizenId)
-    {
-        if (!_projects.TryGetValue(projectId, out var project))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, projectId);
-        }
-        if (!_citizens.TryGetValue(citizenId, out var citizen))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, projectId);
-        }
-        if (project.IsAssigned(citizenId))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.AlreadyAssigned, citizenId, projectId);
-        }
-        if (citizen.CurrentAssignment.HasValue)
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, projectId);
-        }
-        if (!project.TryAssign(citizenId))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.AtCapacity, citizenId, projectId);
-        }
-        citizen.AssignTo(projectId);
-        citizen.SetLocation(GameClock.IsDaytime(_tick)
-            ? CitizenLocation.AtWork
-            : CitizenLocation.AtHome);
-        RaiseProjectChanged(projectId);
-        return AssignmentResult.Ok(citizenId, projectId);
-    }
+        => _assignments.AssignToProject(projectId, citizenId, _tick);
 
     public AssignmentResult TryUnassignFromProject(BuildingId projectId, CitizenId citizenId)
-    {
-        if (!_projects.TryGetValue(projectId, out var project))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.BuildingNotFound, citizenId, projectId);
-        }
-        if (!_citizens.TryGetValue(citizenId, out var citizen))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.CitizenNotFound, citizenId, projectId);
-        }
-        if (!project.TryUnassign(citizenId))
-        {
-            return AssignmentResult.Fail(AssignmentOutcome.NotAssigned, citizenId, projectId);
-        }
-        citizen.ClearAssignment();
-        citizen.SetLocation(CitizenLocation.AtHome);
-        RaiseProjectChanged(projectId);
-        return AssignmentResult.Ok(citizenId, projectId);
-    }
+        => _assignments.UnassignFromProject(projectId, citizenId);
 
     /// <summary>
     /// Authorises the first worksite — the Basic Shelter. The id is
@@ -704,7 +798,9 @@ public sealed class CityWorld
     /// active. On cancellation, inputs already consumed remain spent;
     /// the recorded remainder was never debited and is simply discarded.
     /// </summary>
-    public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
+    public ConstructionAuthorizationResult TryAuthorizeConstruction(
+        ConstructionKind kind,
+        ConstructionLot? selectedLot = null)
     {
         if (Hero is null)
         {
@@ -735,36 +831,38 @@ public sealed class CityWorld
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeRequired);
         }
 
+        var projectId = NextAvailableProjectId();
+        string footprintProfileId = BuildingFootprintCatalog.ProfileIdFor(kind);
+        ParcelPlacement? placement = selectedLot.HasValue
+            && AvailableConstructionLots().Contains(selectedLot.Value)
+                ? CreatePlacement(projectId, selectedLot.Value, footprintProfileId)
+                : selectedLot.HasValue
+                    ? null
+                    : FindFirstAvailablePlacement(projectId, footprintProfileId);
+        if (placement is null)
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.NoAvailableLot);
+        }
+
         // Recipe gate: a non-empty recipe must be satisfiable up-front
         // (deposit = ceil(total * 0.25)) or the authorisation fails
         // and the city state is unchanged.
         var recipe = Recipes.ConstructionRecipeFor(kind);
         if (recipe is not null && recipe.RequiredInputs.Count > 0)
         {
-            var debited = new List<(ResourceType resource, int amount)>();
-            bool success = true;
+            var deposits = new List<RecipeInput>();
             foreach (var input in recipe.RequiredInputs)
             {
                 int deposit = ConstructionRules.DepositOf(input.Amount);
-                if (!TryConsumeResource(input.Resource, deposit))
-                {
-                    success = false;
-                    break;
-                }
-                debited.Add((input.Resource, deposit));
+                if (deposit > 0) deposits.Add(new RecipeInput(input.Resource, deposit));
             }
-            if (!success)
+            if (TryConsumeResources(deposits) is not null)
             {
-                // Refund everything we already took — atomic on failure.
-                foreach (var (resource, amount) in debited)
-                {
-                    DepositResource(resource, amount);
-                }
                 return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.MissingMaterials);
             }
         }
 
-        var projectId = NextAvailableProjectId();
         var project = new ConstructionProject(
             id: projectId,
             kind: kind,
@@ -792,8 +890,35 @@ public sealed class CityWorld
             project.SetRemainingInputs(remaining);
         }
         RegisterProject(project);
+        RegisterParcelPlacement(placement);
+        if (kind == ConstructionKind.BasicShelter)
+        {
+            EnsureFoundingShelterContributor();
+        }
         RaiseProjectChanged(projectId);
         return ConstructionAuthorizationResult.Success(projectId);
+    }
+
+    /// <summary>
+    /// Assigns the lone available founder to an in-flight Basic Shelter.
+    /// Used on authorisation and once after loading older stalled saves.
+    /// It never overrides an existing assignment or a deliberate contributor.
+    /// </summary>
+    public bool EnsureFoundingShelterContributor()
+    {
+        Citizen? hero = Hero;
+        if (hero is null || hero.CurrentAssignment.HasValue) return false;
+        foreach (ConstructionProject project in _projects.Values)
+        {
+            if (project.Kind != ConstructionKind.BasicShelter
+                || project.AssignedCount > 0
+                || project.Progress >= project.RequiredWork)
+            {
+                continue;
+            }
+            return _assignments.AssignToProject(project.Id, hero.Id, _tick).IsSuccess;
+        }
+        return false;
     }
 
     /// <summary>
@@ -813,6 +938,7 @@ public sealed class CityWorld
             }
         }
         _projects.Remove(projectId);
+        _parcelPlacements.Remove(projectId);
         RaiseProjectChanged(projectId);
         return true;
     }
@@ -826,31 +952,11 @@ public sealed class CityWorld
     /// </summary>
     public void DepositResource(ResourceType type, int amount)
     {
-        if (amount <= 0) return;
-        if (type == ResourceType.Iron)
-        {
-            // Spread the deposit across buildings in insertion order.
-            // For this slice the convention is "first building gets it";
-            // a future slice can introduce per-resource sharing.
-            foreach (var b in _buildings.Values)
-            {
-                b.DepositIron(amount);
-                break;
-            }
-            return;
-        }
-        int remaining = amount;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.ProducedResourceType != type || remaining == 0) continue;
-            int added = b.AddStock(remaining);
-            remaining -= added;
-            if (remaining == 0) break;
-        }
-        // If no building produces this resource yet, the deposit is
-        // silently lost. Future slices can introduce a "shared
-        // inventory" abstraction here without touching callers.
+        _resources.Deposit(type, amount);
     }
+
+    private ResourceType? TryConsumeResources(IReadOnlyList<RecipeInput> inputs) =>
+        _resources.TryConsume(inputs, out ResourceType? missing) ? null : missing;
 
     private BuildingId NextAvailableProjectId()
     {
@@ -910,8 +1016,12 @@ public sealed class CityWorld
         bool dayChanged = DetectAndApplyMobilisation(previousTick, _tick);
         if (dayChanged)
         {
-            if (GameClock.IsDaytime(_tick)) _log.Record(_tick, WorldEventKind.DayBegan, "Sun");
-            else _log.Record(_tick, WorldEventKind.NightBegan, "Sun");
+            if (GameClock.IsDaytime(_tick))
+            {
+                _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+                RegenerateNaturalResources();
+            }
+            else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
         ApplyUpkeep();
         foreach (var building in _buildings.Values)
@@ -931,17 +1041,20 @@ public sealed class CityWorld
                 int added = SimulateBuildingTick(building);
                 if (added > 0)
                 {
-                    var cause = FindCauseEvent(building)?.Id.ToString();
-                    _log.Record(_tick, WorldEventKind.StockProduced, building.DisplayName, added, cause);
+                    WorldEventId? cause = FindCauseEvent(building)?.Id;
+                    _log.Record(_tick, WorldEventKind.StockProduced,
+                        WorldEventSubject.Building(building.Id, building.DisplayName), added, cause);
                 }
                 if (building.StopCause == ProductionStopCause.WorkersExhausted)
                 {
-                    _log.Record(_tick, WorldEventKind.WorkersExhausted, building.DisplayName);
+                    _log.Record(_tick, WorldEventKind.WorkersExhausted,
+                        WorldEventSubject.Building(building.Id, building.DisplayName));
                 }
                 if (building.StopCause == ProductionStopCause.TargetReached
                     && previousStopCause != ProductionStopCause.TargetReached)
                 {
-                    _log.Record(_tick, WorldEventKind.StockCapped, building.DisplayName);
+                    _log.Record(_tick, WorldEventKind.StockCapped,
+                        WorldEventSubject.Building(building.Id, building.DisplayName));
                 }
                 if (added > 0
                     || building.StopCause == ProductionStopCause.WorkersExhausted)
@@ -974,11 +1087,12 @@ public sealed class CityWorld
             project.LastTickProgressAdded = 0;
             if (GameClock.IsDaytime(_tick))
             {
-                SimulateProjectTick(project, isWorkInterval);
+                _construction.SimulateTick(project, isWorkInterval);
                 if (project.LastTickProgressAdded > 0)
                 {
                     _log.Record(_tick, WorldEventKind.ProjectProgressed,
-                        project.DisplayName, project.LastTickProgressAdded);
+                        WorldEventSubject.ConstructionProject(project.Id, project.DisplayName),
+                        project.LastTickProgressAdded);
                 }
                 if (project.Progress != previousProgress
                     || project.StopCause != previousStopCause)
@@ -988,7 +1102,7 @@ public sealed class CityWorld
             }
             else
             {
-                ApplyProjectNightRest(project);
+                _construction.ApplyNightRest(project);
             }
             if (project.Progress >= project.RequiredWork) completed++;
         }
@@ -1019,6 +1133,7 @@ public sealed class CityWorld
         foreach (var pair in _buildings)
         {
             if (pair.Value.Kind != BuildingKind.Forest) continue;
+            if (_naturalResourcePatches.ContainsKey(pair.Key.Value)) continue;
             if (pair.Value.WoodReserve > 0) continue;
             if (pair.Value.Stock > 0) continue;
             depleted ??= new List<BuildingId>();
@@ -1028,13 +1143,58 @@ public sealed class CityWorld
 
         foreach (var id in depleted)
         {
+            Building building = _buildings[id];
             RemoveBuildingInternal(id);
-            _log.Record(_tick, WorldEventKind.ForestDemolished, "Forest");
+            _log.Record(_tick, WorldEventKind.ForestDemolished,
+                WorldEventSubject.Building(id, building.DisplayName));
         }
         if (depleted.Count > 0)
         {
             RaiseBuildingChanged(depleted[0]);
         }
+    }
+
+    private void RegenerateNaturalResources()
+    {
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.ResourceType != ResourceType.Wood) continue;
+            int added = patch.Regenerate(
+                amountPerUnit: 1,
+                unitCapacity: StartingTreeWoodReserve,
+                canGrowAtUnit: unitId =>
+                {
+                    (int column, int row) = ParcelGrid.NaturalResourceLot(unitId);
+                    return !ConstructionOccupiesLot(patch.ParcelId, column, row);
+                });
+            if (added <= 0) continue;
+            if (patch.LegacyStorageBuildingId is not BuildingId storageId
+                || !_buildings.TryGetValue(storageId, out Building? storage))
+            {
+                continue;
+            }
+            storage.RestoreWoodUnits(patch.UnitReserves);
+            RaiseBuildingChanged(storageId);
+        }
+    }
+
+    private bool ConstructionOccupiesLot(
+        ParcelId parcelId,
+        int lotColumn,
+        int lotRow)
+    {
+        foreach (ParcelPlacement placement in _parcelPlacements.Values)
+        {
+            if (placement.ParcelId != parcelId) continue;
+            if (lotColumn >= placement.LotColumn
+                && lotColumn < placement.LotColumn + placement.LotWidth
+                && lotRow >= placement.LotRow
+                && lotRow < placement.LotRow + placement.LotHeight)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void CompleteFinishedProjects()
@@ -1187,7 +1347,7 @@ public sealed class CityWorld
 
     private void ApplyNightRest(Building building)
     {
-        ApplyFoodAndRegen(building);
+        _production.ApplyFoodAndRegen(building);
         building.StopCause = ProductionStopCause.Night;
         RaiseBuildingChanged(building.Id);
     }
@@ -1209,252 +1369,7 @@ public sealed class CityWorld
     /// callers decide whether to notify the UI.
     /// </summary>
     internal int SimulateBuildingTick(Building building)
-    {
-        if (!building.CanProduce)
-        {
-            building.StopCause = ResolveStopCauseWhenNotProducing(building);
-            return 0;
-        }
-
-        // Forest output is a finite transfer from WoodReserve. Once
-        // that reserve is empty the building must not fall through to
-        // the generic worker-production formula: doing so creates wood
-        // from nothing and still charges stamina/experience.
-        if (building.Kind == BuildingKind.Forest && building.WoodReserve <= 0)
-        {
-            building.LastTickProduction = 0;
-            building.StopCause = ProductionStopCause.MissingInputs;
-            return 0;
-        }
-
-        // Recipe gate: if the operating recipe needs inputs and the
-        // city cannot satisfy them this tick, block production
-        // before paying stamina or growing experience.
-        var operatingRecipe = Recipes.OperatingRecipeFor(building.Kind);
-        if (operatingRecipe is not null && operatingRecipe.RequiredInputs.Count > 0)
-        {
-            var missing = TryConsumeOperatingInputs(building, operatingRecipe);
-            if (missing is not null)
-            {
-                building.StopCause = ProductionStopCause.MissingInputs;
-                _log.Record(_tick, WorldEventKind.ProductionBlocked,
-                    building.DisplayName, amount: 0,
-                    causeEventId: FindCauseEvent(building, missing)?.Id.ToString());
-                RaiseBuildingChanged(building.Id);
-                return 0;
-            }
-        }
-
-        ApplyFoodAndRegen(building);
-        ApplyStaminaCost(building);
-
-        var contributing = new List<Citizen>();
-        foreach (var citizenId in building.AssignedCitizenIds)
-        {
-            if (_citizens.TryGetValue(citizenId, out var citizen)
-                && citizen.CurrentStamina > 0)
-            {
-                contributing.Add(citizen);
-            }
-        }
-
-        if (contributing.Count == 0)
-        {
-            building.StopCause = ProductionStopCause.WorkersExhausted;
-            return 0;
-        }
-
-        int produced = BuildingProductionCalculator.ProductionPerTick(contributing, building);
-
-        // Forest buildings differ from the rest: their output stream
-        // is fed by the building's own WoodReserve, not by recipes.
-        // Each contributing worker "forages" one wood from the
-        // reserve and credits it to stock; if the reserve is
-        // smaller than the work capacity, only `reserve` ticks'
-        // worth of wood transfers, and a later DemolishDepletedForests
-        // sweep will remove the now-empty forest.
-        if (building.Kind == BuildingKind.Forest)
-        {
-            int fromReserve = contributing.Count < building.WoodReserve
-                ? contributing.Count
-                : building.WoodReserve;
-            building.DecrementWoodReserve(fromReserve);
-            produced = fromReserve;
-        }
-
-        int roomToTarget = building.MaxStock - building.Stock;
-        int added = building.AddStock(Math.Min(produced, roomToTarget));
-        building.LastTickProduction = added;
-
-        var competency = building.ProducedCompetencyId;
-        foreach (var citizen in contributing)
-        {
-            citizen.AddExperience(competency, 1);
-        }
-
-        if (building.Kind == BuildingKind.Forest && building.WoodReserve == 0)
-        {
-            // Reserve ran out this tick: forest is depleted; stop
-            // cause reads as "no inputs" until the per-tick sweep
-            // removes the building.
-            building.StopCause = ProductionStopCause.MissingInputs;
-            return added;
-        }
-
-        building.StopCause = building.Stock >= building.MaxStock
-            ? ProductionStopCause.TargetReached
-            : ProductionStopCause.Authorized;
-        return added;
-    }
-
-    private static ProductionStopCause ResolveStopCauseWhenNotProducing(Building building)
-    {
-        if (!building.ProductionEnabled) return ProductionStopCause.Paused;
-        if (building.AssignedCount == 0) return ProductionStopCause.NoWorkers;
-        return ProductionStopCause.TargetReached;
-    }
-
-    private void ApplyFoodAndRegen(Building building)
-    {
-        foreach (var citizenId in building.AssignedCitizenIds)
-        {
-            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
-
-            // Eat if the citizen has room to grow and the city has food.
-            if (citizen.CurrentStamina < citizen.MaxStamina
-                && TryConsumeFood(StaminaRules.FoodConsumedPerRegen))
-            {
-                int restored = StaminaRules.RegenFromFood(StaminaRules.FoodConsumedPerRegen, citizen);
-                citizen.RestoreStamina(restored);
-                citizen.RefreshWellFedBuff();
-            }
-
-            // Passive + (optional) buff regen, always applied.
-            citizen.RestoreStamina(citizen.RegenPerTick());
-        }
-    }
-
-    private void ApplyStaminaCost(Building building)
-    {
-        foreach (var citizenId in building.AssignedCitizenIds)
-        {
-            if (_citizens.TryGetValue(citizenId, out var citizen))
-            {
-                citizen.ConsumeStamina(StaminaRules.CostForWorker(citizen, building.Kind));
-            }
-        }
-    }
-
-    /// <summary>
-    /// One work-interval tick for a project. Stamina is paid
-    /// only on real intervals so a single hero cannot burn out
-    /// between work intervals. Material drawdown runs at the same
-    /// cadence: 1 unit per remaining input per work interval.
-    /// </summary>
-    private void SimulateProjectTick(ConstructionProject project, bool isWorkInterval)
-    {
-        if (!project.Enabled)
-        {
-            project.StopCause = ConstructionStopCause.Paused;
-            return;
-        }
-        if (project.Progress >= project.RequiredWork)
-        {
-            project.StopCause = ConstructionStopCause.Completed;
-            return;
-        }
-        if (project.AssignedCount == 0)
-        {
-            project.StopCause = ConstructionStopCause.NoWorkers;
-            return;
-        }
-
-        // Material drawdown at the work-interval boundary. Drains
-        // 1 unit per remaining input. Refunds anything already taken
-        // when one input is short (transactional).
-        if (isWorkInterval && project.RemainingInputs.Count > 0)
-        {
-            var debited = new List<(ResourceType resource, int amount)>();
-            bool success = true;
-            var nextRemaining = new List<RecipeInput>();
-            foreach (var input in project.RemainingInputs)
-            {
-                if (!TryConsumeResource(input.Resource, 1))
-                {
-                    success = false;
-                    nextRemaining.Add(input);
-                    break;
-                }
-                debited.Add((input.Resource, 1));
-                if (input.Amount - 1 > 0)
-                {
-                    nextRemaining.Add(new RecipeInput(input.Resource, input.Amount - 1));
-                }
-            }
-            if (!success)
-            {
-                foreach (var (resource, amount) in debited)
-                {
-                    DepositResource(resource, amount);
-                }
-                project.StopCause = ConstructionStopCause.MissingMaterials;
-                var cause = FindCauseEvent()?.Id.ToString();
-                _log.Record(_tick, WorldEventKind.ProductionBlocked,
-                    project.DisplayName, amount: 0, causeEventId: cause);
-                RaiseProjectChanged(project.Id);
-                return;
-            }
-            project.SetRemainingInputs(nextRemaining);
-        }
-
-        int contributed = 0;
-        int paid = 0;
-        foreach (var citizenId in project.AssignedCitizenIds)
-        {
-            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
-            citizen.RestoreStamina(citizen.RegenPerTick());
-            int perCitizen = ConstructionRules.ContributionPerWorkInterval(citizen);
-            if (perCitizen <= 0) continue;
-            contributed += perCitizen;
-            if (isWorkInterval)
-            {
-                citizen.ConsumeStamina(ConstructionRules.CostPerWorkInterval);
-                paid++;
-            }
-        }
-
-        if (paid == 0 && isWorkInterval)
-        {
-            project.StopCause = ConstructionStopCause.WorkersExhausted;
-            return;
-        }
-        if (contributed == 0)
-        {
-            project.StopCause = ConstructionStopCause.WorkersExhausted;
-            return;
-        }
-        if (isWorkInterval)
-        {
-            int room = project.RequiredWork - project.Progress;
-            int added = contributed < room ? contributed : room;
-            project.Progress += added;
-            project.LastTickProgressAdded = added;
-        }
-        project.StopCause = ConstructionStopCause.Authorized;
-    }
-
-    private void ApplyProjectNightRest(ConstructionProject project)
-    {
-        foreach (var citizenId in project.AssignedCitizenIds)
-        {
-            if (_citizens.TryGetValue(citizenId, out var citizen))
-            {
-                citizen.RestoreStamina(citizen.RegenPerTick());
-            }
-        }
-        project.StopCause = ConstructionStopCause.Night;
-        RaiseProjectChanged(project.Id);
-    }
+        => _production.SimulateTick(building);
 
     private void CompleteProject(BuildingId projectId)
     {
@@ -1465,8 +1380,10 @@ public sealed class CityWorld
 
         RegisterBuilding(building);
         RaiseBuildingChanged(building.Id);
-        _log.Record(_tick, WorldEventKind.ProjectCompleted, project.DisplayName);
-        _log.Record(_tick, WorldEventKind.BuildingCreated, building.DisplayName);
+        _log.Record(_tick, WorldEventKind.ProjectCompleted,
+            WorldEventSubject.ConstructionProject(project.Id, project.DisplayName));
+        _log.Record(_tick, WorldEventKind.BuildingCreated,
+            WorldEventSubject.Building(building.Id, building.DisplayName));
 
         foreach (var cid in contributorIds)
         {
@@ -1582,6 +1499,83 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Advances a same-phase range for a city that has structures but no work
+    /// assignments. Returns the number of ticks consumed, or zero when the
+    /// canonical per-tick path is required. Day/night boundaries are excluded
+    /// so mobilisation and its causal event remain canonical stepped ticks.
+    /// </summary>
+    internal int TryAdvanceQuiescentTicks(int maxTickCount)
+    {
+        if (maxTickCount <= 0 || HasAnyWorkAssignment()) return 0;
+
+        foreach (var building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Forest
+                && building.WoodReserve <= 0
+                && building.Stock <= 0)
+            {
+                return 0;
+            }
+        }
+        foreach (var project in _projects.Values)
+        {
+            if (project.AssignedCount > 0 || project.Progress >= project.RequiredWork)
+            {
+                return 0;
+            }
+        }
+
+        int dayTick = ((_tick % GameClock.TicksPerInGameDay)
+            + GameClock.TicksPerInGameDay) % GameClock.TicksPerInGameDay;
+        int lastTickInPhase = GameClock.IsDaytime(_tick)
+            ? GameClock.DayTicks - 1
+            : GameClock.TicksPerInGameDay - 1;
+        int ticksBeforeBoundary = lastTickInPhase - dayTick;
+        int tickCount = Math.Min(maxTickCount, ticksBeforeBoundary);
+        if (tickCount <= 0) return 0;
+
+        ApplyUpkeepBatch(tickCount);
+        bool isDaytime = GameClock.IsDaytime(_tick);
+        foreach (var building in _buildings.Values)
+        {
+            building.LastTickProduction = 0;
+            building.StopCause = isDaytime
+                ? BuildingProductionSimulation.ResolveStopCauseWhenNotProducing(building)
+                : ProductionStopCause.Night;
+        }
+        foreach (var project in _projects.Values)
+        {
+            project.LastTickProgressAdded = 0;
+            project.StopCause = isDaytime
+                ? project.Enabled
+                    ? ConstructionStopCause.NoWorkers
+                    : ConstructionStopCause.Paused
+                : ConstructionStopCause.Night;
+        }
+        foreach (var citizen in _citizens.Values)
+        {
+            citizen.AdvanceWellFedTicks(tickCount);
+        }
+        _tick += tickCount;
+        return tickCount;
+    }
+
+    private void ApplyUpkeepBatch(int tickCount)
+    {
+        long remaining = (long)Upkeep.StonePerTick(_citizens.Count) * tickCount;
+        if (remaining <= 0) return;
+
+        foreach (var building in _buildings.Values)
+        {
+            if (building.Kind != BuildingKind.Quarry || building.Stock <= 0) continue;
+            int consumed = (int)Math.Min(remaining, building.Stock);
+            building.TryConsumeStock(consumed);
+            remaining -= consumed;
+            if (remaining <= 0) return;
+        }
+    }
+
+    /// <summary>
     /// Current production rate per tick for the given building.
     /// </summary>
     public int CurrentProductionRate(BuildingId buildingId)
@@ -1605,9 +1599,23 @@ public sealed class CityWorld
         _citizens.Clear();
         _buildings.Clear();
         _projects.Clear();
+        _parcels.Clear();
+        _naturalResourcePatches.Clear();
+        _parcelPlacements.Clear();
         _log.Clear();
+        _resources.ClearReservations();
         _nextProjectId = 1;
         _tick = save.CurrentTick;
+
+        foreach (ParcelSave parcel in save.Parcels)
+        {
+            var restoredParcel = new CityParcel(
+                new ParcelId(parcel.Id),
+                parcel.LogicalColumn,
+                parcel.LogicalRow,
+                parcel.IsUnlocked);
+            _parcels.Add(restoredParcel.Id, restoredParcel);
+        }
 
         foreach (var bs in save.Buildings)
         {
@@ -1648,7 +1656,11 @@ public sealed class CityWorld
             // the starting reserve so the saving doesn't auto-demolish
             // them on the first tick. Fresh worlds (already carrying
             // a WoodReserve) preserve their state.
-            if (kind == BuildingKind.Forest && bs.WoodReserve is null)
+            if (kind == BuildingKind.Forest && bs.WoodUnitReserves is { Count: > 0 })
+            {
+                building.RestoreWoodUnits(bs.WoodUnitReserves);
+            }
+            else if (kind == BuildingKind.Forest && bs.WoodReserve is null)
             {
                 building.SeedWoodReserve(StartingForestWoodReserve);
                 if (bs.WorkerCapacity == 0)
@@ -1666,8 +1678,9 @@ public sealed class CityWorld
             {
                 building.SeedWoodReserve(bs.WoodReserve ?? 0);
             }
+            building.DepositIron(bs.IronStock);
 
-            RegisterBuilding(building);
+            RegisterBuilding(building, placeIfMissing: false);
 
             foreach (var cid in bs.AssignedCitizenIds)
             {
@@ -1675,6 +1688,25 @@ public sealed class CityWorld
                 building.TryAssign(new CitizenId(cid));
             }
         }
+
+        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
+        {
+            ResourceType type = Enum.TryParse(
+                patch.ResourceType,
+                ignoreCase: true,
+                out ResourceType parsedType)
+                ? parsedType
+                : ResourceType.Wood;
+            RegisterNaturalResourcePatch(new NaturalResourcePatch(
+                patch.Id,
+                new ParcelId(patch.ParcelId),
+                type,
+                patch.UnitReserves,
+                patch.LegacyStorageBuildingId.HasValue
+                    ? new BuildingId(patch.LegacyStorageBuildingId.Value)
+                    : null));
+        }
+        EnsureFoundingParcels();
 
         foreach (var cs in save.Citizens)
         {
@@ -1689,10 +1721,24 @@ public sealed class CityWorld
                 profile: WorldPersistence.RestoreProfile(cs.Profile!),
                 initialStamina: initialStamina,
                 maxStamina: maxStamina,
-                initialWellFedTicks: cs.WellFedRemainingTicks);
+                initialWellFedTicks: cs.WellFedRemainingTicks,
+                appearanceVariant: string.IsNullOrEmpty(cs.AppearanceVariant)
+                    ? (AppearanceVariantId?)null
+                    : new AppearanceVariantId(cs.AppearanceVariant));
             if (cs.CurrentAssignment.HasValue)
             {
                 citizen.AssignTo(new BuildingId(cs.CurrentAssignment.Value));
+            }
+            if (cs.LastVisitedResourceBuildingId.HasValue
+                && cs.LastVisitedResourceUnitId.HasValue)
+            {
+                citizen.VisitResource(
+                    new BuildingId(cs.LastVisitedResourceBuildingId.Value),
+                    cs.LastVisitedResourceUnitId.Value,
+                    cs.LastVisitedResourcePositionIndex
+                        ?? ResourcePositionIndex(
+                            new BuildingId(cs.LastVisitedResourceBuildingId.Value),
+                            cs.LastVisitedResourceUnitId.Value));
             }
 
             foreach (var entry in cs.Competencies)
@@ -1752,6 +1798,38 @@ public sealed class CityWorld
             }
         }
 
+        foreach (ParcelPlacementSave placement in save.ParcelPlacements)
+        {
+            BuildingOrientation orientation = Enum.TryParse(
+                placement.Orientation,
+                ignoreCase: true,
+                out BuildingOrientation parsedOrientation)
+                ? parsedOrientation
+                : BuildingOrientation.South;
+            var restoredPlacement = new ParcelPlacement(
+                new BuildingId(placement.EntityId),
+                new ParcelId(placement.ParcelId),
+                placement.LotColumn,
+                placement.LotRow,
+                placement.LotWidth,
+                placement.LotHeight,
+                placement.FootprintProfileId,
+                orientation);
+            if (NaturalResourceOccupiesLot(
+                restoredPlacement.ParcelId,
+                restoredPlacement.LotColumn,
+                restoredPlacement.LotRow))
+            {
+                restoredPlacement = FindFirstAvailablePlacement(
+                    restoredPlacement.EntityId,
+                    restoredPlacement.FootprintProfileId)
+                    ?? throw new InvalidOperationException(
+                        $"No resource-free parcel lot is available for entity "
+                        + $"{restoredPlacement.EntityId.Value}.");
+            }
+            RegisterParcelPlacement(restoredPlacement);
+        }
+
         // Citizens are constructed with CurrentLocation = AtHome
         // (the default). If the saved tick is mid-cycle — neither
         // exactly at a sunrise nor a sunset — the next mobilisation
@@ -1767,6 +1845,42 @@ public sealed class CityWorld
         {
             MobiliseForNight();
         }
+
+        var restoredEvents = new List<WorldEvent>(save.Events.Count);
+        foreach (var evt in save.Events)
+        {
+            _ = Enum.TryParse(evt.Kind, ignoreCase: true, out WorldEventKind kind);
+            _ = Enum.TryParse(evt.SubjectKind, ignoreCase: true, out WorldEventSubjectKind subjectKind);
+            restoredEvents.Add(new WorldEvent(
+                new WorldEventId(evt.Id),
+                evt.Tick,
+                kind,
+                new WorldEventSubject(subjectKind, evt.SubjectEntityId, evt.SubjectDisplayName),
+                evt.Amount,
+                evt.CauseEventId is int causeId ? new WorldEventId(causeId) : null));
+        }
+        _log.Restore(restoredEvents);
+
+        var restoredReservations = new List<ResourceReservation>(save.ResourceReservations.Count);
+        foreach (var reservation in save.ResourceReservations)
+        {
+            _ = Enum.TryParse(reservation.Resource, ignoreCase: true, out ResourceType resource);
+            _ = Enum.TryParse(reservation.OwnerKind, ignoreCase: true,
+                out ResourceReservationOwnerKind ownerKind);
+            restoredReservations.Add(new ResourceReservation(
+                new ResourceReservationId(reservation.Id),
+                resource,
+                reservation.Amount,
+                new ResourceReservationOwner(ownerKind, reservation.OwnerEntityId)));
+        }
+        _resources.RestoreReservations(restoredReservations);
+        var restoredInventory = new Dictionary<ResourceType, int>();
+        foreach ((string key, int amount) in save.CityInventory)
+        {
+            _ = Enum.TryParse(key, ignoreCase: true, out ResourceType resource);
+            restoredInventory[resource] = amount;
+        }
+        _inventory.Restore(restoredInventory);
     }
 
     /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>
@@ -1802,6 +1916,7 @@ public sealed class CityWorld
             TryUnassignCitizen(buildingId, citizenId);
         }
         _buildings.Remove(buildingId);
+        _parcelPlacements.Remove(buildingId);
     }
 
     /// <summary>
