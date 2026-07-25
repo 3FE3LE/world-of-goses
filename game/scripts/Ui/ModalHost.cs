@@ -40,7 +40,12 @@ public partial class ModalHost : Control
 
     private ColorRect _scrim = null!;
     private Control? _content;
+    private Control? _previousFocus;
     private bool _scrimPressStarted;
+    private bool _isClosing;
+    private Vector2 _contentRestingPosition;
+    private Tween? _motionTween;
+    private ulong _openGeneration;
 
     /// <summary>True while a content control is bound. Used by sibling layouts.</summary>
     public bool IsOpen => _content is not null && Visible;
@@ -79,12 +84,37 @@ public partial class ModalHost : Control
     public void Open(Control content)
     {
         if (_content == content && IsOpen) return;
+        _previousFocus = GetViewport().GuiGetFocusOwner();
         _content = content;
+        _isClosing = false;
         _content.MouseFilter = MouseFilterEnum.Stop;
         _scrimPressStarted = false;
         _content.Visible = true;
         Visible = true;
+        _motionTween?.Kill();
+        _scrim.Color = new Color(ScrimColor.R, ScrimColor.G, ScrimColor.B, 0f);
+        _content.Modulate = new Color(1f, 1f, 1f, 0f);
+        ulong generation = ++_openGeneration;
+        Callable.From(() => StartReveal(content, generation)).CallDeferred();
         EmitSignal(SignalName.Opened);
+    }
+
+    private void StartReveal(Control content, ulong generation)
+    {
+        if (_isClosing
+            || generation != _openGeneration
+            || _content != content
+            || !GodotObject.IsInstanceValid(content))
+        {
+            return;
+        }
+        _contentRestingPosition = content.Position.Round();
+        _motionTween = UiMotion.RevealModal(
+            this,
+            _scrim,
+            content,
+            ScrimColor,
+            _contentRestingPosition);
     }
 
     /// <summary>
@@ -93,14 +123,44 @@ public partial class ModalHost : Control
     /// </summary>
     public void Close()
     {
-        if (!IsOpen && _content is null && !Visible) return;
+        if (_isClosing || (!IsOpen && _content is null && !Visible)) return;
+        _openGeneration++;
+        if (_content is null)
+        {
+            CompleteClose();
+            return;
+        }
+        _isClosing = true;
+        _scrimPressStarted = false;
+        _motionTween?.Kill();
+        _motionTween = UiMotion.HideModal(
+            this,
+            _scrim,
+            _content,
+            _contentRestingPosition,
+            Callable.From(CompleteClose));
+    }
+
+    private void CompleteClose()
+    {
         if (_content is not null)
         {
+            _content.Position = _contentRestingPosition;
+            _content.Modulate = Colors.White;
             _content.Visible = false;
             _content = null;
         }
         Visible = false;
-        _scrimPressStarted = false;
+        _isClosing = false;
+        Control? focusTarget = _previousFocus;
+        _previousFocus = null;
+        if (focusTarget is not null
+            && GodotObject.IsInstanceValid(focusTarget)
+            && focusTarget.IsVisibleInTree()
+            && focusTarget.FocusMode != FocusModeEnum.None)
+        {
+            focusTarget.CallDeferred(Control.MethodName.GrabFocus);
+        }
         EmitSignal(SignalName.Closed);
     }
 

@@ -18,6 +18,11 @@ namespace WorldofGoses.Domain;
 /// </summary>
 public sealed class CityWorld
 {
+    private static readonly string[] MigrantNames =
+    {
+        "Inara", "Tovan", "Mirel", "Sada", "Orin", "Veya", "Cael", "Neris",
+    };
+
     private readonly Dictionary<CitizenId, Citizen> _citizens = new();
     private readonly Dictionary<BuildingId, Building> _buildings = new();
     private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
@@ -30,8 +35,10 @@ public sealed class CityWorld
     private readonly CitizenAssignmentService _assignments;
     private readonly BuildingProductionSimulation _production;
     private readonly ConstructionSimulation _construction;
+    private readonly Dictionary<ExpeditionId, Expedition> _expeditions = new();
     private int _tick;
     private int _nextProjectId = 1;
+    private int _nextExpeditionId = 1;
 
     private static readonly CitizenId PrincipalHeroId = new(1);
 
@@ -44,7 +51,8 @@ public sealed class CityWorld
             _buildings,
             _projects,
             RaiseBuildingChanged,
-            RaiseProjectChanged);
+            RaiseProjectChanged,
+            this);
         _production = new BuildingProductionSimulation(
             _citizens,
             _log,
@@ -71,6 +79,7 @@ public sealed class CityWorld
         _naturalResourcePatches;
     public IReadOnlyDictionary<BuildingId, ParcelPlacement> ParcelPlacements =>
         _parcelPlacements;
+    public IReadOnlyDictionary<ExpeditionId, Expedition> Expeditions => _expeditions;
 
     /// <summary>Read-only view of the chronological event log.</summary>
     public WorldEventLog Log => _log;
@@ -78,6 +87,7 @@ public sealed class CityWorld
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
     public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
+    public event EventHandler<ExpeditionChangedEventArgs>? ExpeditionChanged;
 
     /// <summary>
     /// The citizen recognised as the principal hero, or <c>null</c> before
@@ -96,6 +106,246 @@ public sealed class CityWorld
     }
 
     public bool NeedsOnboarding => Hero is null;
+
+    public bool IsCitizenOnActiveExpedition(CitizenId citizenId)
+    {
+        foreach (Expedition expedition in _expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active
+                && expedition.LeadCitizenId == citizenId)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
+    {
+        Citizen? hero = Hero;
+        if (hero is null) return ExpeditionStartResult.Fail(ExpeditionStartOutcome.NoHero);
+        if (!_citizens.ContainsKey(request.LeadCitizenId))
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.LeadCitizenNotFound);
+        }
+        if (request.LeadCitizenId != hero.Id
+            || hero.CurrentAssignment.HasValue
+            || IsCitizenOnActiveExpedition(hero.Id))
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.LeadUnavailable);
+        }
+        if (request.DurationTicks <= 0
+            || request.SupplyAmount <= 0
+            || (request.RewardKind == ExpeditionRewardKind.Supplies
+                && request.RewardAmount <= 0)
+            || string.IsNullOrWhiteSpace(request.DisplayName))
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
+        }
+        foreach (Expedition existing in _expeditions.Values)
+        {
+            if (existing.Status == ExpeditionStatus.Active)
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.AlreadyActive);
+            }
+        }
+
+        var id = new ExpeditionId(_nextExpeditionId++);
+        if (!_resources.TryReserve(
+                request.SupplyResource,
+                request.SupplyAmount,
+                new ResourceReservationOwner(
+                    ResourceReservationOwnerKind.Expedition,
+                    id.Value),
+                out ResourceReservation? reservation)
+            || reservation is null)
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MissingSupplies);
+        }
+
+        var expedition = new Expedition(
+            id,
+            request.DisplayName.Trim(),
+            request.LeadCitizenId,
+            _tick,
+            checked(_tick + request.DurationTicks),
+            request.SupplyResource,
+            request.SupplyAmount,
+            request.RewardResource,
+            request.RewardAmount,
+            request.RewardKind,
+            reservation.Id);
+        _expeditions.Add(id, expedition);
+        WorldEvent dispatch = _log.Record(
+            _tick,
+            WorldEventKind.ExpeditionDispatched,
+            WorldEventSubject.Expedition(id.Value, expedition.DisplayName),
+            request.SupplyAmount);
+        expedition.SetDispatchEventId(dispatch.Id);
+        ExpeditionChanged?.Invoke(
+            this,
+            new ExpeditionChangedEventArgs(id, expedition.Status));
+        return ExpeditionStartResult.Success(id);
+    }
+
+    public bool CancelExpedition(ExpeditionId id)
+    {
+        if (!_expeditions.TryGetValue(id, out Expedition? expedition)
+            || expedition.Status != ExpeditionStatus.Active)
+        {
+            return false;
+        }
+        _resources.Release(expedition.ReservationId);
+        expedition.MarkCancelled();
+        _log.Record(
+            _tick,
+            WorldEventKind.ExpeditionCancelled,
+            WorldEventSubject.Expedition(id.Value, expedition.DisplayName));
+        ExpeditionChanged?.Invoke(
+            this,
+            new ExpeditionChangedEventArgs(id, expedition.Status));
+        return true;
+    }
+
+    public enum MigrantOutcome
+    {
+        Success = 0,
+        AtCapacity = 1,
+        InvalidProfile = 2,
+    }
+
+    public readonly record struct MigrantResult(
+        MigrantOutcome Outcome,
+        CitizenId? MigrantId)
+    {
+        public bool IsSuccess => Outcome == MigrantOutcome.Success;
+
+        public static MigrantResult Success(CitizenId id) =>
+            new(MigrantOutcome.Success, id);
+
+        public static MigrantResult Fail(MigrantOutcome outcome) =>
+            new(outcome, null);
+    }
+
+    /// <summary>
+    /// Adds a non-hero citizen to the city. The profile is taken
+    /// verbatim (aptitudes, families, lineage, gender). A
+    /// <see cref="CitizenId"/> is allocated beyond every existing
+    /// hero and migrant; the new citizen is mobilised at home and
+    /// not assigned. Hard-codes a deterministic two-line biography
+    /// when <paramref name="name"/> is null/empty so test fixtures
+    /// do not need a separate name source.
+    /// </summary>
+    public MigrantResult TryRecruitMigrant(CitizenProfile profile, string? name = null)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (Hero is null)
+        {
+            return MigrantResult.Fail(MigrantOutcome.InvalidProfile);
+        }
+        int nextId = NextCitizenId();
+        string displayName = string.IsNullOrWhiteSpace(name)
+            ? $"Migrant {nextId}"
+            : name.Trim();
+        var migrant = new Citizen(
+            new CitizenId(nextId),
+            displayName,
+            appearanceSeed: nextId * 7,
+            profile: profile);
+        _citizens.Add(migrant.Id, migrant);
+        if (GameClock.IsDaytime(_tick))
+        {
+            migrant.SetLocation(CitizenLocation.AtHome);
+        }
+        else
+        {
+            migrant.SetLocation(CitizenLocation.AtHome);
+        }
+        _log.Record(
+            _tick,
+            WorldEventKind.MigrantArrived,
+            WorldEventSubject.Citizen(migrant.Id, migrant.Name));
+        return MigrantResult.Success(migrant.Id);
+    }
+
+    /// <summary>
+    /// Recruits a deterministic individual rather than cloning the founder.
+    /// The allocated citizen id is the stable seed, so the generated identity
+    /// is reproducible and becomes ordinary persisted profile data.
+    /// </summary>
+    public MigrantResult TryRecruitMigrant(string? name = null)
+    {
+        if (Hero is null)
+        {
+            return MigrantResult.Fail(MigrantOutcome.InvalidProfile);
+        }
+
+        int nextId = NextCitizenId();
+        CitizenProfile profile = CreateMigrantProfile(nextId);
+        string generatedName = string.IsNullOrWhiteSpace(name)
+            ? MigrantNames[(nextId - 2) % MigrantNames.Length]
+            : name;
+        return TryRecruitMigrant(profile, generatedName);
+    }
+
+    private int NextCitizenId()
+    {
+        int nextId = 2;
+        while (_citizens.ContainsKey(new CitizenId(nextId)))
+        {
+            nextId++;
+        }
+        return nextId;
+    }
+
+    private static CitizenProfile CreateMigrantProfile(int seed)
+    {
+        LineageDefinition lineage =
+            ProfileCatalog.Lineages[seed % ProfileCatalog.Lineages.Count];
+        GenderId gender = seed % 2 == 0
+            ? GenderId.Feminine
+            : GenderId.Masculine;
+        bool created = CitizenProfile.TryCreate(
+            lineage.Id,
+            gender,
+            SelectThree(ProfileCatalog.Aptitudes, seed),
+            SelectThree(ProfileCatalog.ProfessionFamilies, seed + 2),
+            ProfileCatalog.ElementalAffinities[
+                seed % ProfileCatalog.ElementalAffinities.Count].Id,
+            ProfileCatalog.CombatStyles[
+                seed % ProfileCatalog.CombatStyles.Count].Id,
+            new[]
+            {
+                ProfileCatalog.WeaponPreferences[
+                    seed % ProfileCatalog.WeaponPreferences.Count].Id,
+                ProfileCatalog.WeaponPreferences[
+                    (seed + 1) % ProfileCatalog.WeaponPreferences.Count].Id,
+            },
+            SelectThree(ProfileCatalog.PersonalityTraits, seed + 4),
+            ProfileCatalog.PoliticalOrientations[
+                seed % ProfileCatalog.PoliticalOrientations.Count].Id,
+            ProfileCatalog.SpiritualPostures[
+                seed % ProfileCatalog.SpiritualPostures.Count].Id,
+            out CitizenProfile? profile,
+            out string error);
+        return created
+            ? profile!
+            : throw new InvalidOperationException(
+                $"Generated migrant profile was invalid: {error}");
+    }
+
+    private static TId[] SelectThree<TId>(
+        IReadOnlyList<ProfileOption<TId>> options,
+        int offset)
+        where TId : struct
+    {
+        return new[]
+        {
+            options[offset % options.Count].Id,
+            options[(offset + 1) % options.Count].Id,
+            options[(offset + 2) % options.Count].Id,
+        };
+    }
 
     public CityWorld CreateRestartedCityKeepingHero()
     {
@@ -154,7 +404,8 @@ public sealed class CityWorld
             PrincipalHeroId,
             name,
             appearanceSeed: StableAppearanceSeed(name, request.Profile.Lineage),
-            profile: request.Profile);
+            profile: request.Profile,
+            origin: CitizenOrigin.AstralFounder);
         hero.GrantRole(RoleId.Hero, _tick);
         RegisterCitizen(hero);
         return HeroCreationResult.Success(hero.Id);
@@ -648,7 +899,12 @@ public sealed class CityWorld
     {
         if (amount <= 0) return 0;
         Citizen? hero = Hero;
-        if (hero is null || hero.CurrentAssignment.HasValue) return 0;
+        if (hero is null
+            || hero.CurrentAssignment.HasValue
+            || IsCitizenOnActiveExpedition(hero.Id))
+        {
+            return 0;
+        }
         if (!_buildings.TryGetValue(forestId, out var forest)) return 0;
         if (forest.Kind != BuildingKind.Forest) return 0;
         int gathered;
@@ -683,6 +939,7 @@ public sealed class CityWorld
             _log.Record(_tick, WorldEventKind.StockProduced,
                 WorldEventSubject.Building(forest.Id, forest.DisplayName), gathered, cause);
             RaiseBuildingChanged(forestId);
+            EnsureFoundingShelterContributor();
         }
         return gathered;
     }
@@ -712,7 +969,8 @@ public sealed class CityWorld
         var list = new List<Citizen>();
         foreach (var citizen in _citizens.Values)
         {
-            if (!citizen.CurrentAssignment.HasValue)
+            if (!citizen.CurrentAssignment.HasValue
+                && !IsCitizenOnActiveExpedition(citizen.Id))
             {
                 list.Add(citizen);
             }
@@ -912,13 +1170,23 @@ public sealed class CityWorld
         {
             if (project.Kind != ConstructionKind.BasicShelter
                 || project.AssignedCount > 0
-                || project.Progress >= project.RequiredWork)
+                || project.Progress >= project.RequiredWork
+                || !HasRemainingInputsAvailable(project))
             {
                 continue;
             }
             return _assignments.AssignToProject(project.Id, hero.Id, _tick).IsSuccess;
         }
         return false;
+    }
+
+    private bool HasRemainingInputsAvailable(ConstructionProject project)
+    {
+        foreach (RecipeInput input in project.RemainingInputs)
+        {
+            if (_resources.Available(input.Resource) < input.Amount) return false;
+        }
+        return true;
     }
 
     /// <summary>
@@ -1118,6 +1386,92 @@ public sealed class CityWorld
         CompleteFinishedProjects();
         DemolishDepletedForests();
         DecrementAllWellFed();
+        CompleteFinishedExpeditions();
+    }
+
+    private void CompleteFinishedExpeditions()
+    {
+        if (_expeditions.Count == 0) return;
+        ExpeditionId? completed = null;
+        foreach (Expedition expedition in _expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active && expedition.IsComplete(_tick))
+            {
+                completed = expedition.Id;
+                break;
+            }
+        }
+        if (completed is null) return;
+
+        foreach (Expedition expedition in _expeditions.Values)
+        {
+            if (expedition.Status != ExpeditionStatus.Active || !expedition.IsComplete(_tick))
+            {
+                continue;
+            }
+            bool committed = _resources.Commit(expedition.ReservationId);
+            if (committed)
+            {
+                if (expedition.RewardKind == ExpeditionRewardKind.Migrant)
+                {
+                    Citizen? hero = Hero;
+                    MigrantResult migrant = hero is null
+                        ? MigrantResult.Fail(MigrantOutcome.InvalidProfile)
+                        : TryRecruitMigrant();
+                    if (migrant is { IsSuccess: true, MigrantId: CitizenId migrantId })
+                    {
+                        expedition.MarkReturnedMigrant(migrantId, 0);
+                        _log.Record(
+                            _tick,
+                            WorldEventKind.ExpeditionReturned,
+                            WorldEventSubject.Expedition(
+                                expedition.Id.Value,
+                                expedition.DisplayName),
+                            0,
+                            expedition.DispatchEventId);
+                    }
+                    else
+                    {
+                        expedition.MarkFailed();
+                        _log.Record(
+                            _tick,
+                            WorldEventKind.ExpeditionFailed,
+                            WorldEventSubject.Expedition(
+                                expedition.Id.Value,
+                                expedition.DisplayName),
+                            causeEventId: expedition.DispatchEventId);
+                    }
+                }
+                else
+                {
+                    _resources.DepositToCityInventory(
+                        expedition.RewardResource,
+                        expedition.RewardAmount);
+                    expedition.MarkReturnedSupplies(expedition.RewardAmount);
+                    _log.Record(
+                        _tick,
+                        WorldEventKind.ExpeditionReturned,
+                        WorldEventSubject.Expedition(
+                            expedition.Id.Value,
+                            expedition.DisplayName),
+                        expedition.RewardAmount,
+                        expedition.DispatchEventId);
+                }
+            }
+            else
+            {
+                _resources.Release(expedition.ReservationId);
+                expedition.MarkFailed();
+                _log.Record(
+                    _tick,
+                    WorldEventKind.ExpeditionFailed,
+                    WorldEventSubject.Expedition(expedition.Id.Value, expedition.DisplayName),
+                    causeEventId: expedition.DispatchEventId);
+            }
+            ExpeditionChanged?.Invoke(
+                this,
+                new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+        }
     }
 
     /// <summary>
@@ -1724,7 +2078,15 @@ public sealed class CityWorld
                 initialWellFedTicks: cs.WellFedRemainingTicks,
                 appearanceVariant: string.IsNullOrEmpty(cs.AppearanceVariant)
                     ? (AppearanceVariantId?)null
-                    : new AppearanceVariantId(cs.AppearanceVariant));
+                    : new AppearanceVariantId(cs.AppearanceVariant),
+                origin: Enum.TryParse(
+                    cs.Origin,
+                    ignoreCase: true,
+                    out CitizenOrigin origin)
+                        ? origin
+                        : cs.Roles.Any(role => role.Id == RoleId.Hero.Value)
+                            ? CitizenOrigin.AstralFounder
+                            : CitizenOrigin.Mortal);
             if (cs.CurrentAssignment.HasValue)
             {
                 citizen.AssignTo(new BuildingId(cs.CurrentAssignment.Value));
@@ -1881,6 +2243,48 @@ public sealed class CityWorld
             restoredInventory[resource] = amount;
         }
         _inventory.Restore(restoredInventory);
+
+        _expeditions.Clear();
+        _nextExpeditionId = 1;
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            _ = Enum.TryParse(expedition.SupplyResource, true, out ResourceType supply);
+            _ = Enum.TryParse(expedition.RewardResource, true, out ResourceType reward);
+            _ = Enum.TryParse(expedition.Status, true, out ExpeditionStatus status);
+            _ = Enum.TryParse(
+                string.IsNullOrEmpty(expedition.RewardKind)
+                    ? ExpeditionRewardKind.Supplies.ToString()
+                    : expedition.RewardKind,
+                true,
+                out ExpeditionRewardKind rewardKind);
+            var restored = new Expedition(
+                new ExpeditionId(expedition.Id),
+                expedition.DisplayName,
+                new CitizenId(expedition.LeadCitizenId),
+                expedition.StartTick,
+                expedition.EndTick,
+                supply,
+                expedition.SupplyAmount,
+                reward,
+                expedition.RewardAmount,
+                rewardKind,
+                new ResourceReservationId(expedition.ReservationId),
+                status);
+            if (expedition.ReturnedAmount is int amount)
+            {
+                if (rewardKind == ExpeditionRewardKind.Migrant
+                    && expedition.DeliveredMigrantId is int migrantId)
+                {
+                    restored.MarkReturnedMigrant(new CitizenId(migrantId), amount);
+                }
+                else
+                {
+                    restored.MarkReturnedSupplies(amount);
+                }
+            }
+            _expeditions.Add(restored.Id, restored);
+            if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
+        }
     }
 
     /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>

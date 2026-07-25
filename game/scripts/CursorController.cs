@@ -1,3 +1,4 @@
+#nullable enable
 using Godot;
 
 namespace WorldofGoses;
@@ -15,17 +16,25 @@ namespace WorldofGoses;
 public partial class CursorController : Node
 {
     private const string CursorPath = "res://assets/ui/icons/24/cursor.svg";
+    private const string GatherCursorPath =
+        "res://assets/ui/cursors/kenney-pixel/axe.png";
     private static readonly Vector2 CursorHotspot = new(2, 2);
+    private static readonly Vector2 GatherHotspot = new(3, 13);
+
+    private Texture2D? _arrowCursor;
+    private Texture2D? _interactiveCursor;
 
     public override void _Ready()
     {
         LineageThemeRegistry.ActiveLineageChanged += OnLineageChanged;
+        GetTree().NodeAdded += OnNodeAdded;
         ApplyCursor();
     }
 
     public override void _ExitTree()
     {
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageChanged;
+        GetTree().NodeAdded -= OnNodeAdded;
     }
 
     private void OnLineageChanged(string lineage) => ApplyCursor();
@@ -65,7 +74,66 @@ public partial class CursorController : Node
             }
         }
 
-        var tintedTexture = ImageTexture.CreateFromImage(tintedImage);
-        Input.SetCustomMouseCursor(tintedTexture, Input.CursorShape.Arrow, CursorHotspot);
+        _arrowCursor = ImageTexture.CreateFromImage(tintedImage);
+
+        Image interactiveImage = tintedImage.Duplicate() as Image ?? tintedImage;
+        Color interactiveAccent = accent.Lightened(0.38f);
+        for (int y = 0; y < interactiveImage.GetHeight(); y++)
+        {
+            for (int x = 0; x < interactiveImage.GetWidth(); x++)
+            {
+                Color px = interactiveImage.GetPixel(x, y);
+                if (px.A <= 0f) continue;
+                interactiveImage.SetPixel(
+                    x,
+                    y,
+                    new Color(
+                        interactiveAccent.R,
+                        interactiveAccent.G,
+                        interactiveAccent.B,
+                        px.A));
+            }
+        }
+        _interactiveCursor = ImageTexture.CreateFromImage(interactiveImage);
+        RestoreSurfaceCursor();
+    }
+
+    public void UseGatherCursor()
+    {
+        Texture2D? gather = ResourceLoader.Load<Texture2D>(GatherCursorPath);
+        if (gather is null) return;
+        Input.SetCustomMouseCursor(gather, Input.CursorShape.Arrow, GatherHotspot);
+        Input.SetCustomMouseCursor(gather, Input.CursorShape.PointingHand, GatherHotspot);
+    }
+
+    public void RestoreSurfaceCursor()
+    {
+        if (_arrowCursor is not null)
+        {
+            Input.SetCustomMouseCursor(
+                _arrowCursor,
+                Input.CursorShape.Arrow,
+                CursorHotspot);
+        }
+        if (_interactiveCursor is not null)
+        {
+            Input.SetCustomMouseCursor(
+                _interactiveCursor,
+                Input.CursorShape.PointingHand,
+                CursorHotspot);
+        }
+    }
+
+    private static void OnNodeAdded(Node node)
+    {
+        if (node is BaseButton button)
+        {
+            button.MouseDefaultCursorShape = Control.CursorShape.PointingHand;
+            return;
+        }
+        if (node is LineEdit or TextEdit)
+        {
+            ((Control)node).MouseDefaultCursorShape = Control.CursorShape.Ibeam;
+        }
     }
 }

@@ -1,0 +1,82 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MigrantPanel.cs" id="1_migrant"]
+
+[node name="MigrantPanel" type="Control"]
+visible = false
+z_index = 21
+custom_minimum_size = Vector2(600, 460)
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -230.0
+offset_right = 300.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1_migrant")
+
+[node name="Surface" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = "OverlayPanel"
+
+[node name="Margin" type="MarginContainer" parent="Surface"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Layout" type="VBoxContainer" parent="Surface/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "ScreenTitle"
+text = "Citizens"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "BodyText"
+text = "City roster"
+autowrap_mode = 3
+
+[node name="CitizenList" type="ScrollContainer" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="Surface/Margin/Layout/CitizenList"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="DetailLabel" type="Label" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_type_variation = "BodyText"
+text = "Select a citizen."
+autowrap_mode = 3
+
+[node name="RecruitButton" type="Button" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = "ButtonPrimary"
+text = "Recruit citizen"
+
+[node name="CloseButton" type="Button" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_type_variation = "ButtonText"
+text = "Close"

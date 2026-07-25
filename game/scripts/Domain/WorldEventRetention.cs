@@ -17,7 +17,12 @@ public static class WorldEventRetention
         or WorldEventKind.BuildingCreated
         or WorldEventKind.WellFedExpired
         or WorldEventKind.ProductionBlocked
-        or WorldEventKind.ForestDemolished;
+        or WorldEventKind.ForestDemolished
+        or WorldEventKind.ExpeditionDispatched
+        or WorldEventKind.MigrantArrived
+        or WorldEventKind.ExpeditionReturned
+        or WorldEventKind.ExpeditionFailed
+        or WorldEventKind.ExpeditionCancelled;
 
     public static IReadOnlyList<WorldEvent> SelectForPersistence(
         IReadOnlyList<WorldEvent> events)

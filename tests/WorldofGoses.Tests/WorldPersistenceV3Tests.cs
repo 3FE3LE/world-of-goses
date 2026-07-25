@@ -89,7 +89,17 @@ public class WorldPersistenceV3Tests
         Assert.Equal(12, v12Save.Version);
         Assert.All(v12Save.Citizens, c => Assert.Equal("standard", c.AppearanceVariant));
 
-        var restored = CityWorld.FromSave(v12Save);
+        var v13Save = WorldPersistence.MigrateV12ToV13(v12Save);
+        Assert.Equal(13, v13Save.Version);
+        Assert.NotNull(v13Save.Expeditions);
+        Assert.Empty(v13Save.Expeditions);
+
+        var v14Save = WorldPersistence.MigrateV13ToV14(v13Save);
+        Assert.Equal(14, v14Save.Version);
+        Assert.DoesNotContain(v14Save.Buildings,
+            b => b.Kind == BuildingKind.Forest.ToString());
+
+        var restored = CityWorld.FromSave(v14Save);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

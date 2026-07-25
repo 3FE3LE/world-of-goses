@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=12 format=3]
+[gd_resource type="Theme" load_steps=17 format=3]
 
 
 [ext_resource type="FontFile" path="res://assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf" id="1_geist"]
@@ -12,6 +12,61 @@
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/green_pressed.tres" id="12_green_pressed"]
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/red.tres" id="13_red"]
 [ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/red_pressed.tres" id="14_red_pressed"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.055, 0.067, 0.09, 0.965)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.43, 0.37, 0.25, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_elevated"]
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+bg_color = Color(0.035, 0.043, 0.064, 0.985)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.83, 0.66, 0.3, 1)
+shadow_color = Color(0, 0, 0, 0.55)
+shadow_size = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+bg_color = Color(0.025, 0.032, 0.048, 0.97)
+border_width_bottom = 2
+border_color = Color(0.72, 0.57, 0.27, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.91, 0.55, 1)
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll"]
+bg_color = Color(0.02, 0.027, 0.042, 0.72)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.31, 0.28, 0.22, 0.9)
 
 [resource]
 
@@ -57,7 +112,7 @@ ButtonText/styles/normal = ExtResource("7_yellow")
 ButtonText/styles/hover = ExtResource("8_yellow_pressed")
 ButtonText/styles/pressed = ExtResource("8_yellow_pressed")
 ButtonText/styles/disabled = ExtResource("9_grey")
-ButtonText/styles/focus = ExtResource("7_yellow")
+ButtonText/styles/focus = SubResource("StyleBoxFlat_focus")
 ButtonText/constants/h_separation = 8
 ButtonText/constants/v_separation = 4
 
@@ -72,7 +127,7 @@ ButtonPrimary/styles/normal = ExtResource("11_green")
 ButtonPrimary/styles/hover = ExtResource("12_green_pressed")
 ButtonPrimary/styles/pressed = ExtResource("12_green_pressed")
 ButtonPrimary/styles/disabled = ExtResource("9_grey")
-ButtonPrimary/styles/focus = ExtResource("11_green")
+ButtonPrimary/styles/focus = SubResource("StyleBoxFlat_focus")
 ButtonPrimary/constants/h_separation = 12
 ButtonPrimary/constants/v_separation = 6
 
@@ -84,7 +139,7 @@ ButtonWarning/styles/normal = ExtResource("13_red")
 ButtonWarning/styles/hover = ExtResource("14_red_pressed")
 ButtonWarning/styles/pressed = ExtResource("14_red_pressed")
 ButtonWarning/styles/disabled = ExtResource("9_grey")
-ButtonWarning/styles/focus = ExtResource("13_red")
+ButtonWarning/styles/focus = SubResource("StyleBoxFlat_focus")
 ButtonWarning/constants/h_separation = 8
 ButtonWarning/constants/v_separation = 4
 
@@ -134,18 +189,24 @@ NumericText/fonts/font = ExtResource("3_pixelify")
 NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 
 StatusStrip/base_type = "PanelContainer"
-StatusStrip/styles/panel = ExtResource("9_grey")
+StatusStrip/styles/panel = SubResource("StyleBoxFlat_hud")
 
-Panel/styles/panel = ExtResource("7_yellow")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
 
 PanelAction/base_type = "PanelContainer"
-PanelAction/styles/panel = ExtResource("11_green")
+PanelAction/styles/panel = SubResource("StyleBoxFlat_panel")
 
 PanelWarning/base_type = "PanelContainer"
-PanelWarning/styles/panel = ExtResource("13_red")
+PanelWarning/styles/panel = SubResource("StyleBoxFlat_panel")
 
 PanelIdle/base_type = "PanelContainer"
-PanelIdle/styles/panel = ExtResource("9_grey")
+PanelIdle/styles/panel = SubResource("StyleBoxFlat_panel")
+
+PanelCard/base_type = "PanelContainer"
+PanelCard/styles/panel = SubResource("StyleBoxFlat_panel")
+
+OverlayPanel/base_type = "PanelContainer"
+OverlayPanel/styles/panel = SubResource("StyleBoxFlat_panel_elevated")
 
 LineEdit/font_sizes/font_size = 18
 LineEdit/fonts/font = ExtResource("3_pixelify")
@@ -160,4 +221,4 @@ ProgressBar/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 ProgressBar/styles/background = ExtResource("9_grey")
 ProgressBar/styles/fill = ExtResource("11_green")
 
-ScrollContainer/styles/panel = ExtResource("7_yellow")
+ScrollContainer/styles/panel = SubResource("StyleBoxFlat_scroll")

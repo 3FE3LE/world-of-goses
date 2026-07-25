@@ -1,3 +1,4 @@
+using System;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;
@@ -21,11 +22,29 @@ public class CityResourceLedgerTests
         WorldSave migrated = WorldPersistence.MigrateV10ToV11(legacy);
         Assert.Equal(11, migrated.Version);
         var toCurrent = WorldPersistence.MigrateV11ToV12(migrated);
+        toCurrent = WorldPersistence.MigrateV12ToV13(toCurrent);
+        toCurrent = WorldPersistence.MigrateV13ToV14(toCurrent);
 
-        Assert.Equal(12, toCurrent.Version);
+        Assert.Equal(14, toCurrent.Version);
         Assert.Equal(0, forest.Stock);
         Assert.Equal(7, toCurrent.CityInventory[ResourceType.Wood.ToString()]);
         WorldPersistence.Validate(toCurrent);
+    }
+
+    [Fact]
+    public void MigrateV12ToV13_AppendsEmptyExpeditionList()
+    {
+        WorldSave save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
+        save.Version = 12;
+        save.Expeditions = null!;
+
+        WorldSave migrated = WorldPersistence.MigrateV12ToV13(save);
+        migrated = WorldPersistence.MigrateV13ToV14(migrated);
+
+        Assert.Equal(14, migrated.Version);
+        Assert.NotNull(migrated.Expeditions);
+        Assert.Empty(migrated.Expeditions);
+        WorldPersistence.Validate(migrated);
     }
 
     [Fact]
@@ -125,11 +144,94 @@ public class CityResourceLedgerTests
     }
 
     [Fact]
+    public void Validate_RejectsOrphanExpeditionReservation()
+    {
+        WorldSave save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
+        save.ResourceReservations.Add(new ResourceReservationSave
+        {
+            Id = save.ResourceReservations.Count + 1,
+            Resource = ResourceType.Iron.ToString(),
+            Amount = 1,
+            OwnerKind = ResourceReservationOwnerKind.Expedition.ToString(),
+            OwnerEntityId = 9999,
+        });
+
+        Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
+    }
+
+    [Fact]
+    public void StartExpedition_ReservesSuppliesAndCommitsOnReturn()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+
+        Citizen hero = world.Hero!;
+        var request = ExpeditionRequest.Reconnaissance(hero.Id);
+        ExpeditionStartResult result = world.StartExpedition(request);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, world.Resources.Available(ResourceType.Wood));
+        for (int i = 0; i < request.DurationTicks; i++)
+        {
+            world.AdvanceWorldTick();
+        }
+
+        Expedition expedition = world.Expeditions[result.ExpeditionId!.Value];
+        Assert.Equal(ExpeditionStatus.Returned, expedition.Status);
+        Assert.Empty(world.Resources.Reservations);
+        Assert.Equal(1, world.Resources.Available(ResourceType.Stone));
+    }
+
+    [Fact]
+    public void ActiveExpedition_RemovesLeaderFromCityWorkAndMacroStage()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        Citizen hero = world.Hero!;
+
+        ExpeditionStartResult result =
+            world.StartExpedition(ExpeditionRequest.Reconnaissance(hero.Id));
+
+        Assert.True(result.IsSuccess);
+        Assert.True(world.IsCitizenOnActiveExpedition(hero.Id));
+        Assert.DoesNotContain(world.AvailableCitizens(), citizen => citizen.Id == hero.Id);
+        Assert.Equal(0, world.GatherWood(new BuildingId(100), unitId: 0, amount: 1));
+
+        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+        CityMacroSnapshot.CitizenItem projectedHero = Assert.Single(snapshot.Citizens);
+        Assert.True(projectedHero.IsOnExpedition);
+        Assert.False(projectedHero.IsAvailable);
+    }
+
+    [Fact]
+    public void ActiveExpedition_RoundTripsAndCancellationRestoresLeaderAvailability()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        CitizenId heroId = world.Hero!.Id;
+        ExpeditionStartResult started =
+            world.StartExpedition(ExpeditionRequest.Reconnaissance(heroId));
+        Assert.True(started.IsSuccess);
+
+        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+            WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
+
+        Assert.True(restored.IsCitizenOnActiveExpedition(heroId));
+        Assert.True(restored.CancelExpedition(started.ExpeditionId!.Value));
+        Assert.False(restored.IsCitizenOnActiveExpedition(heroId));
+        Assert.Contains(restored.AvailableCitizens(), citizen => citizen.Id == heroId);
+        Assert.False(CityMacroSnapshot.From(restored).Citizens[0].IsOnExpedition);
+    }
+
+    [Fact]
     public void Persistence_RestoresReservationsIronStockAndNextReservationId()
     {
         CityWorld world = TestHelpers.NewProductionWorld();
         int ironBefore = world.TotalStockOf(ResourceType.Iron);
-        var owner = new ResourceReservationOwner(ResourceReservationOwnerKind.Expedition, 21);
+        var owner = new ResourceReservationOwner(ResourceReservationOwnerKind.ConstructionProject, 9);
         Assert.True(world.Resources.TryReserve(ResourceType.Iron, 7, owner,
             out ResourceReservation? first));
 

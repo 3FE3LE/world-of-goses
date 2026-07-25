@@ -25,6 +25,7 @@ public partial class CityWorldController : Node
 {
     private const string VisualCaptureEnvironmentVariable = "WOG_VISUAL_CAPTURE";
     private const string VisualCaptureCommandLineArgument = "--wog-visual-capture";
+    private bool _onboardingCompletionPending;
 
     [Signal]
     public delegate void SelectionChangedEventHandler(int selectionState);
@@ -59,6 +60,12 @@ public partial class CityWorldController : Node
 
     [Signal]
     public delegate void ProjectStateChangedEventHandler(int projectId);
+
+    [Signal]
+    public delegate void ExpeditionStateChangedEventHandler(int expeditionId);
+
+    [Signal]
+    public delegate void CitizensChangedEventHandler();
 
     /// <summary>
     /// Fired after a successful auto-save. Carries the wall-clock
@@ -175,6 +182,7 @@ public partial class CityWorldController : Node
         if (PersistenceEnabled) TryLoadFromDisk();
         _world.BuildingChanged += OnDomainBuildingChanged;
         _world.ProjectChanged += OnDomainProjectChanged;
+        _world.ExpeditionChanged += OnDomainExpeditionChanged;
         if (_world.Hero is { } hero)
         {
             LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(hero.Profile.Lineage);
@@ -183,7 +191,7 @@ public partial class CityWorldController : Node
 
     public override void _Process(double delta)
     {
-        if (_world.NeedsOnboarding) return;
+        if (_world.NeedsOnboarding || _onboardingCompletionPending) return;
 
         AdvanceLiveSimulation(delta);
 
@@ -217,6 +225,7 @@ public partial class CityWorldController : Node
     {
         _world.BuildingChanged -= OnDomainBuildingChanged;
         _world.ProjectChanged -= OnDomainProjectChanged;
+        _world.ExpeditionChanged -= OnDomainExpeditionChanged;
     }
 
     public override void _Notification(int what)
@@ -234,6 +243,22 @@ public partial class CityWorldController : Node
     {
         if (!PersistenceWritesEnabled) return;
         TryAutoSave();
+    }
+
+    public bool TrySaveNow()
+    {
+        if (!PersistenceWritesEnabled) return true;
+        try
+        {
+            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            return true;
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"Save failed: {ex.Message}");
+            return false;
+        }
     }
 
     public bool ResetPrimarySlotAndRestart()
@@ -306,7 +331,8 @@ public partial class CityWorldController : Node
         return true;
     }
 
-    public bool NeedsOnboarding() => _world.NeedsOnboarding;
+    public bool NeedsOnboarding() =>
+        _world.NeedsOnboarding || _onboardingCompletionPending;
 
     public bool HasHero() => _world.Hero is not null;
 
@@ -314,6 +340,19 @@ public partial class CityWorldController : Node
 
     public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
     {
+        if (_onboardingCompletionPending && _world.Hero is Citizen pendingHero)
+        {
+            if (!TrySaveNow())
+            {
+                return HeroCreationResult.Fail(HeroCreationOutcome.SaveFailed);
+            }
+            _onboardingCompletionPending = false;
+            LineageThemeRegistry.ActiveLineage =
+                LineageThemeRegistry.IdOf(pendingHero.Profile.Lineage);
+            EmitSignal(SignalName.HeroCreated, pendingHero.Id.Value);
+            return HeroCreationResult.Success(pendingHero.Id);
+        }
+
         var result = _world.TryCreateHero(request);
         if (!result.IsSuccess || !result.CitizenId.HasValue) return result;
 
@@ -322,9 +361,14 @@ public partial class CityWorldController : Node
         // would otherwise deadlock a fresh world.
         _world.SeedStartingForests();
 
+        _onboardingCompletionPending = true;
+        if (!TrySaveNow())
+        {
+            return HeroCreationResult.Fail(HeroCreationOutcome.SaveFailed);
+        }
+        _onboardingCompletionPending = false;
         LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(request.Profile.Lineage);
         EmitSignal(SignalName.HeroCreated, result.CitizenId.Value.Value);
-        SaveNow();
         return result;
     }
 
@@ -462,62 +506,20 @@ public partial class CityWorldController : Node
         }
     }
 
-    private bool TryLoadFromPrimarySlot()
+    internal bool TryLoadFromPrimarySlot(string? slotsDirectoryOverride = null)
     {
-        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot)) return false;
+        string slotsDirectory = slotsDirectoryOverride ?? WorldPersistence.SlotsDirectory;
+        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot, slotsDirectory)) return false;
         // Load raw JSON so the migration helpers can see the original
         // version before Validate rejects it. Validate runs after
         // migration completes.
         var path = System.IO.Path.Combine(
-            WorldPersistence.SlotsDirectory,
+            slotsDirectory,
             $"save_slot_{WorldPersistence.PrimarySaveSlot}.json");
         var save = WorldPersistence.DeserializeFromJson(System.IO.File.ReadAllText(path));
-        // Pre-v4 saves predate the Gender identity field. Walk them
-        // through the migration helpers before restore so the load
-        // path is non-fatal across schema bumps.
-        while (save.Version < WorldSave.CurrentVersion)
-        {
-            if (save.Version == 2)
-            {
-                save = WorldPersistence.MigrateV2ToV3(save);
-            }
-            else if (save.Version == 3)
-            {
-                save = WorldPersistence.MigrateV3ToV4(save);
-            }
-            else if (save.Version == 4)
-            {
-                save = WorldPersistence.MigrateV4ToV5(save);
-            }
-            else if (save.Version == 5)
-            {
-                save = WorldPersistence.MigrateV5ToV6(save);
-            }
-            else if (save.Version == 6)
-            {
-                save = WorldPersistence.MigrateV6ToV7(save);
-            }
-            else if (save.Version == 7)
-            {
-                save = WorldPersistence.MigrateV7ToV8(save);
-            }
-            else if (save.Version == 8)
-            {
-                save = WorldPersistence.MigrateV8ToV9(save);
-            }
-            else if (save.Version == 9)
-            {
-                save = WorldPersistence.MigrateV9ToV10(save);
-            }
-            else if (save.Version == 10)
-            {
-                save = WorldPersistence.MigrateV10ToV11(save);
-            }
-            else
-            {
-                break;
-            }
-        }
+        int originalVersion = save.Version;
+        save = WorldPersistence.MigrateToCurrent(save);
+        bool migrated = save.Version != originalVersion;
         WorldPersistence.Validate(save);
         _world.Restore(save);
         // Retroactive seed for saves predating the wood-gathering
@@ -528,6 +530,10 @@ public partial class CityWorldController : Node
         _world.SeedStartingForests();
         _world.EnsureFoundingShelterContributor();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
+        if (migrated && PersistenceWritesEnabled)
+        {
+            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot, slotsDirectory);
+        }
         return true;
     }
 
@@ -565,4 +571,46 @@ public partial class CityWorldController : Node
 
     private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e) =>
         EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
+
+    public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
+    {
+        var result = _world.StartExpedition(request);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
+    public CityWorld.MigrantResult TryRecruitMigrant(CitizenProfile profile, string? name = null)
+    {
+        var result = _world.TryRecruitMigrant(profile, name);
+        if (result.IsSuccess)
+        {
+            SaveNow();
+            EmitSignal(SignalName.CitizensChanged);
+        }
+        return result;
+    }
+
+    public CityWorld.MigrantResult TryRecruitMigrant(string? name = null)
+    {
+        var result = _world.TryRecruitMigrant(name);
+        if (result.IsSuccess)
+        {
+            SaveNow();
+            EmitSignal(SignalName.CitizensChanged);
+        }
+        return result;
+    }
+
+    public bool CancelExpedition(ExpeditionId id)
+    {
+        if (_world.CancelExpedition(id))
+        {
+            SaveNow();
+            return true;
+        }
+        return false;
+    }
+
+    private void OnDomainExpeditionChanged(object? sender, ExpeditionChangedEventArgs e) =>
+        EmitSignal(SignalName.ExpeditionStateChanged, e.ExpeditionId.Value);
 }

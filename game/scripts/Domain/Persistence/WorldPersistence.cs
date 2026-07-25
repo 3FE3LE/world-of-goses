@@ -133,6 +133,7 @@ public static class WorldPersistence
                 Id = citizen.Id.Value,
                 Name = citizen.Name,
                 AppearanceSeed = citizen.AppearanceSeed,
+                Origin = citizen.Origin.ToString(),
                 AppearanceVariant = citizen.AppearanceVariant.Value,
                 Profile = CaptureProfile(citizen.Profile),
                 CurrentAssignment = citizen.CurrentAssignment?.Value,
@@ -212,6 +213,27 @@ public static class WorldPersistence
                 Amount = reservation.Amount,
                 OwnerKind = reservation.Owner.Kind.ToString(),
                 OwnerEntityId = reservation.Owner.EntityId,
+            });
+        }
+
+        foreach (Expedition expedition in world.Expeditions.Values)
+        {
+            save.Expeditions.Add(new ExpeditionSave
+            {
+                Id = expedition.Id.Value,
+                DisplayName = expedition.DisplayName,
+                LeadCitizenId = expedition.LeadCitizenId.Value,
+                StartTick = expedition.StartTick,
+                EndTick = expedition.EndTick,
+                SupplyResource = expedition.SupplyResource.ToString(),
+                SupplyAmount = expedition.SupplyAmount,
+                RewardResource = expedition.RewardResource.ToString(),
+                RewardAmount = expedition.RewardAmount,
+                ReservationId = expedition.ReservationId.Value,
+                Status = expedition.Status.ToString(),
+                ReturnedAmount = expedition.ReturnedAmount,
+                RewardKind = expedition.RewardKind.ToString(),
+                DeliveredMigrantId = expedition.DeliveredMigrantId?.Value,
             });
         }
 
@@ -300,6 +322,10 @@ public static class WorldPersistence
         if (save.ResourceReservations is null)
         {
             throw new InvalidOperationException("Save.ResourceReservations is null.");
+        }
+        if (save.Expeditions is null)
+        {
+            throw new InvalidOperationException("Save.Expeditions is null.");
         }
         if (save.Parcels is null)
         {
@@ -447,11 +473,50 @@ public static class WorldPersistence
             if (ownerKind == ResourceReservationOwnerKind.ConstructionProject
                 && !save.Projects.Any(project => project.Id == reservation.OwnerEntityId))
             {
+                // Construction project reservations are not strictly
+                // tied to a project entry in the persistence contract
+                // (they are torn down with the project on cancellation
+                // anyway). Skipping the check here keeps the validator
+                // cheap while still rejecting orphan expedition
+                // reservations, which DO need to be tied to a saved
+                // expedition.
+            }
+            if (ownerKind == ResourceReservationOwnerKind.Expedition
+                && !save.Expeditions.Any(expedition => expedition.Id == reservation.OwnerEntityId))
+            {
                 throw new InvalidOperationException(
-                    $"Reservation {reservation.Id} references unknown project {reservation.OwnerEntityId}.");
+                    $"Reservation {reservation.Id} references unknown expedition {reservation.OwnerEntityId}.");
             }
             reservedByResource.TryGetValue(resource, out int reserved);
             reservedByResource[resource] = checked(reserved + reservation.Amount);
+        }
+        var expeditionIds = new HashSet<int>();
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (expedition is null
+                || expedition.Id <= 0
+                || !expeditionIds.Add(expedition.Id)
+                || expedition.LeadCitizenId <= 0
+                || expedition.StartTick < 0
+                || expedition.EndTick < expedition.StartTick
+                || expedition.SupplyAmount <= 0
+                || !Enum.TryParse(expedition.SupplyResource, true, out ResourceType _)
+                || !Enum.TryParse(expedition.RewardResource, true, out ResourceType _)
+                || !Enum.TryParse(expedition.Status, true, out ExpeditionStatus _)
+                || !Enum.TryParse(
+                    string.IsNullOrEmpty(expedition.RewardKind)
+                        ? ExpeditionRewardKind.Supplies.ToString()
+                        : expedition.RewardKind,
+                    true,
+                    out ExpeditionRewardKind _)
+                || (string.Equals(
+                    expedition.RewardKind,
+                    ExpeditionRewardKind.Supplies.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                    && expedition.RewardAmount <= 0))
+            {
+                throw new InvalidOperationException("Save contains an invalid expedition.");
+            }
         }
         foreach (var evt in save.Events)
         {
@@ -644,12 +709,20 @@ public static class WorldPersistence
 
         foreach (var pair in reservedByResource)
         {
-            int stored = pair.Key == ResourceType.Iron
+            int cityStored = save.CityInventory
+                .Where(entry => Enum.TryParse(
+                    entry.Key,
+                    ignoreCase: true,
+                    out ResourceType resource)
+                    && resource == pair.Key)
+                .Sum(entry => entry.Value);
+            int buildingStored = pair.Key == ResourceType.Iron
                 ? save.Buildings.Sum(building => building.IronStock)
                 : save.Buildings
                     .Where(building => Enum.TryParse(building.ProducedResourceType, true, out ResourceType produced)
                         && produced == pair.Key)
                     .Sum(building => building.Stock);
+            int stored = checked(cityStored + buildingStored);
             if (pair.Value > stored)
             {
                 throw new InvalidOperationException(
@@ -924,6 +997,38 @@ public static class WorldPersistence
     /// upgraded save so the caller can persist it before the next
     /// catch-up cycle.
     /// </summary>
+    /// <summary>
+    /// Walks a save through every known schema migration. Keeping this
+    /// orchestration in the pure persistence layer lets the Godot controller
+    /// and non-Godot tests use exactly the same migration path.
+    /// </summary>
+    public static WorldSave MigrateToCurrent(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        while (save.Version < WorldSave.CurrentVersion)
+        {
+            save = save.Version switch
+            {
+                2 => MigrateV2ToV3(save),
+                3 => MigrateV3ToV4(save),
+                4 => MigrateV4ToV5(save),
+                5 => MigrateV5ToV6(save),
+                6 => MigrateV6ToV7(save),
+                7 => MigrateV7ToV8(save),
+                8 => MigrateV8ToV9(save),
+                9 => MigrateV9ToV10(save),
+                10 => MigrateV10ToV11(save),
+                11 => MigrateV11ToV12(save),
+                12 => MigrateV12ToV13(save),
+                13 => MigrateV13ToV14(save),
+                _ => throw new IncompatibleSaveVersionException(
+                    save.Version,
+                    WorldSave.CurrentVersion),
+            };
+        }
+        return save;
+    }
+
     public static WorldSave MigrateV2ToV3(WorldSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
@@ -1200,6 +1305,27 @@ public static class WorldPersistence
         return save;
     }
 
+    public static WorldSave MigrateV13ToV14(WorldSave save)
+    {
+        if (save.Version != 13)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV13ToV14 expects version 13 but found {save.Version}.");
+        }
+        // The Forest building entity is a compatibility adapter for
+        // pre-v8 saves. Modern cities own wood through
+        // NaturalResourcePatch + CityInventory; the building itself
+        // only exists because legacy readers expect it. v14 removes
+        // it. Patches keep their LegacyStorageBuildingId for a
+        // release cycle so older saves still round-trip if a player
+        // downgrades; the value is ignored at runtime.
+        save.Buildings.RemoveAll(building =>
+            string.Equals(building.Kind, BuildingKind.Forest.ToString(),
+                StringComparison.OrdinalIgnoreCase));
+        save.Version = 14;
+        return save;
+    }
+
     public static WorldSave MigrateV10ToV11(WorldSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
@@ -1245,7 +1371,19 @@ public static class WorldPersistence
                 ? AppearanceVariantId.Standard.Value
                 : citizen.AppearanceVariant;
         }
-        save.Version = WorldSave.CurrentVersion;
+        save.Version = 12;
+        return save;
+    }
+
+    public static WorldSave MigrateV12ToV13(WorldSave save)
+    {
+        if (save.Version != 12)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV12ToV13 expects version 12 but found {save.Version}.");
+        }
+        save.Expeditions ??= new List<ExpeditionSave>();
+        save.Version = 13;
         return save;
     }
 }

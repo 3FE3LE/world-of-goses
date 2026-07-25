@@ -180,8 +180,16 @@ public partial class BuildingDetailView : Control
         _productionPanel.GetParent().AddChild(_homeSummary);
     }
 
-    private void OnSlotCitizenClicked(int citizenIdValue) =>
+    private void OnSlotCitizenClicked(int citizenIdValue)
+    {
+        var snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+        if (snapshot?.IsHome == true)
+        {
+            _controller.SelectHero();
+            return;
+        }
         _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
+    }
 
     private void OnAssignRequested(int citizenIdValue)
     {

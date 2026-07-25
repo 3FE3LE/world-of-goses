@@ -26,6 +26,7 @@ public sealed class Citizen
     public int AppearanceSeed { get; }
     public AppearanceVariantId AppearanceVariant { get; private set; }
     public CitizenProfile Profile { get; }
+    public CitizenOrigin Origin { get; }
     public BuildingId? CurrentAssignment { get; private set; }
     public Availability Availability => CurrentAssignment.HasValue
         ? Availability.Assigned
@@ -69,7 +70,8 @@ public sealed class Citizen
         int? initialStamina = null,
         int? maxStamina = null,
         int initialWellFedTicks = 0,
-        AppearanceVariantId? appearanceVariant = null)
+        AppearanceVariantId? appearanceVariant = null,
+        CitizenOrigin origin = CitizenOrigin.Mortal)
     {
         ArgumentNullException.ThrowIfNull(profile);
         Id = id;
@@ -77,6 +79,7 @@ public sealed class Citizen
         AppearanceSeed = appearanceSeed;
         AppearanceVariant = appearanceVariant ?? AppearanceVariantId.Standard;
         Profile = profile;
+        Origin = origin;
         MaxStamina = maxStamina ?? StaminaRules.MaxStamina;
         CurrentStamina = initialStamina ?? MaxStamina;
         WellFedRemainingTicks = initialWellFedTicks;

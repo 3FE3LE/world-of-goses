@@ -16,19 +16,22 @@ internal sealed class CitizenAssignmentService
     private readonly IDictionary<BuildingId, ConstructionProject> _projects;
     private readonly Action<BuildingId> _buildingChanged;
     private readonly Action<BuildingId> _projectChanged;
+    private readonly CityWorld _cityWorld;
 
     public CitizenAssignmentService(
         IDictionary<CitizenId, Citizen> citizens,
         IDictionary<BuildingId, Building> buildings,
         IDictionary<BuildingId, ConstructionProject> projects,
         Action<BuildingId> buildingChanged,
-        Action<BuildingId> projectChanged)
+        Action<BuildingId> projectChanged,
+        CityWorld cityWorld)
     {
         _citizens = citizens;
         _buildings = buildings;
         _projects = projects;
         _buildingChanged = buildingChanged;
         _projectChanged = projectChanged;
+        _cityWorld = cityWorld;
     }
 
     public AssignmentResult AssignToBuilding(
@@ -49,6 +52,10 @@ internal sealed class CitizenAssignmentService
             return AssignmentResult.Fail(AssignmentOutcome.AlreadyAssigned, citizenId, buildingId);
         }
         if (citizen.CurrentAssignment.HasValue)
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, buildingId);
+        }
+        if (_cityWorld.IsCitizenOnActiveExpedition(citizenId))
         {
             return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, buildingId);
         }
@@ -98,6 +105,10 @@ internal sealed class CitizenAssignmentService
             return AssignmentResult.Fail(AssignmentOutcome.AlreadyAssigned, citizenId, projectId);
         }
         if (citizen.CurrentAssignment.HasValue)
+        {
+            return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, projectId);
+        }
+        if (_cityWorld.IsCitizenOnActiveExpedition(citizenId))
         {
             return AssignmentResult.Fail(AssignmentOutcome.CitizenUnavailable, citizenId, projectId);
         }

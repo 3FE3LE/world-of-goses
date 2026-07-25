@@ -46,6 +46,7 @@ public partial class PanelHeader : HBoxContainer
 
         _closeButton = new IconButton
         {
+            Name = "CloseButton",
             IconPath = CloseIconPath,
             ButtonText = string.Empty,
             CustomMinimumSize = new Vector2(40, 40),
@@ -54,6 +55,12 @@ public partial class PanelHeader : HBoxContainer
         };
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         AddChild(_closeButton);
+    }
+
+    internal void PressCloseForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _closeButton.EmitSignal(BaseButton.SignalName.Pressed);
     }
 
     /// <summary>Updates the title text after construction.</summary>

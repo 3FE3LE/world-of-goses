@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -21,6 +22,7 @@ public partial class ResourceTree : TextureButton
 
     public int ForestId { get; private set; }
     public int UnitId { get; private set; }
+    private CursorController _cursorController = null!;
 
     public void Configure(int forestId, int unitId, int visualVariant)
     {
@@ -34,12 +36,14 @@ public partial class ResourceTree : TextureButton
 
     public override void _Ready()
     {
+        _cursorController = GetNode<CursorController>("/root/CursorController");
         IgnoreTextureSize = true;
         StretchMode = StretchModeEnum.Scale;
         FocusMode = FocusModeEnum.All;
         Pressed += OnPressed;
         MouseEntered += OnMouseEntered;
         MouseExited += OnMouseExited;
+        FocusEntered += OnFocusEntered;
     }
 
     public override void _ExitTree()
@@ -47,7 +51,11 @@ public partial class ResourceTree : TextureButton
         Pressed -= OnPressed;
         MouseEntered -= OnMouseEntered;
         MouseExited -= OnMouseExited;
-        Input.SetCustomMouseCursor(null, Input.CursorShape.Arrow);
+        FocusEntered -= OnFocusEntered;
+        if (IsInstanceValid(_cursorController))
+        {
+            _cursorController.RestoreSurfaceCursor();
+        }
     }
 
     private void OnPressed() =>
@@ -69,14 +77,16 @@ public partial class ResourceTree : TextureButton
         AcceptEvent();
     }
 
-    private static void OnMouseEntered()
+    private void OnMouseEntered()
     {
-        Texture2D cursor = GD.Load<Texture2D>(AxeCursorPath);
-        Input.SetCustomMouseCursor(cursor, Input.CursorShape.Arrow, new Vector2(3, 13));
+        _cursorController.UseGatherCursor();
+        UiMotion.Pulse(this, LineageThemeRegistry.IconAccent);
     }
 
-    private static void OnMouseExited() =>
-        Input.SetCustomMouseCursor(null, Input.CursorShape.Arrow);
+    private void OnMouseExited() => _cursorController.RestoreSurfaceCursor();
+
+    private void OnFocusEntered() =>
+        UiMotion.Pulse(this, LineageThemeRegistry.IconAccent);
 
     internal static AtlasTexture CreateRegion(Texture2D atlas, int column, int row) =>
         new()

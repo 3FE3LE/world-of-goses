@@ -164,6 +164,23 @@ reorganiza la lista, los IDs no se renumeran.
   a su obra/edificio y el mismo carrier parte desde allí al quedar libre. El menú
   añade un soft reset que conserva fundador/perfil y reinicia solo la ciudad.
   Build limpio, 392/392 pruebas y arranque headless correcto.
+- **2026-07-24** — Auditoría de estabilización posterior a expediciones y
+  migración/reclutamiento. Confirmados tres defectos de integración: el líder
+  de una expedición activa sigue proyectándose en la ciudad, los paneles
+  `ExpeditionPanel` y `MigrantPanel` no tienen superficie visual propia y el
+  retorno se muestra como tick interno. Se abre `H-27` para corregirlos antes
+  de ampliar el sistema; `P-Migrant` se reduce al roster e integración del
+  segundo ciudadano porque la ruta de reclutamiento ya existe.
+- **2026-07-24** — La verificación del árbol actual falla al compilar en
+  `CityWorld.cs:1331`: el fallback de recompensa migrante intenta invocar el
+  constructor privado de `CitizenProfile`. La misma rama desreferencia
+  `MigrantId` antes de comprobar `MigrantResult.IsSuccess`. Se abre `C-11`
+  como bloqueo previo a cualquier validación funcional.
+- **2026-07-24** — M-23 cerrado: pase visual transversal del HUD y paneles.
+  El theme compartido adopta superficies oscuras opacas, bordes cálidos,
+  jerarquía elevada para modales y foco visible independiente del color.
+  Macro actions, pausa, construcción, detalle, recursos, recon y Citizens
+  reutilizan las mismas variaciones sin cambiar rutas ni comportamiento.
 - Próxima revisión sugerida: tras cerrar M-14 (cross-cutting) o durante el
   próximo PR de UI.
 
@@ -173,23 +190,67 @@ reorganiza la lista, los IDs no se renumeran.
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
-| 🔴        | 0          | 0        | 0          | 10     | 0          |
-| 🟠        | 1          | 1        | 0          | 23     | 1          |
-| 🟡        | 3          | 1        | 0          | 12     | 3          |
+| 🔴        | 0          | 0        | 0          | 12     | 0          |
+| 🟠        | 2          | 2        | 0          | 29     | 2          |
+| 🟡        | 4          | 1        | 0          | 15     | 3          |
 | 🟢        | 0          | 0        | 0          | 1      | 0          |
+
+> **Cambio de 2026-07-24 (auditoría + correcciones):** se cerró el bache
+> de migración v11→v12 que reiniciaba el onboarding silenciosamente; se
+> estabilizó la primera partida (modo macro ignora bosques, HUD no solapa
+> con árboles, depósito/coste total separados en UI, autoasignación del
+> fundador sólo cuando los `RemainingInputs` están disponibles, Home no
+> intenta desasignar residentes, foco no cae en controles deshabilitados);
+> y se introdujo la primera versión de expedición abstracta con reserva,
+> tiempo live/offline, Chronicle causal y schema v13. Cifra real de la
+> corrida: **406/406 pruebas superadas**.
+>
+> **Verificación de estabilización 2026-07-24:** build limpio, **409/409**
+> pruebas superadas y matrices de expedición idle/active/returned y migración
+> válidas en las tres resoluciones. El “No responde” del fixture returned fue
+> causado por adelantar 14.400 ticks síncronos en el hilo principal; el fixture
+> ahora prueba la misma transición con una expedición de un tick y completa la
+> matriz de tres ventanas en 9,1 s.
 
 ### Cola activa (orden sugerido)
 
-1. **H-25** — Convertir los recursos naturales en estado persistente de parcela con unidades, agotamiento y regeneración.
-2. **M-22** — Cerrar la integración selectiva de los assets descargados y el alcance real del menú.
-3. **M-14** — Construir la matriz de regresión visual (cross-cutting; cierra los acceptance criteria visuales del resto).
-4. **H-11** — Definir una política única de capas y oclusión.
-5. **M-12** — `OverlayHost` con slots y prioridad para banners, toasts y tutorial.
-6. **M-11** — Reintentar safe area para HUD y macro actions (enfoque alternativo: aplicar `Offset*` en el script, no vía wrapper).
+1. **M-25** — Implementar gramática compartida de motion y feedback causal.
+2. **H-28** — Firmar visualmente el onboarding astral en una captura windowed
+   válida.
+3. **M-14** — Firmar humanamente la matriz visual de los paneles y transiciones
+   idle → active → returned/cancelled.
+4. **P-FirstRun** — Firmar el recorrido humano fresh → gather → shelter.
+5. **H-11** — Definir una política única de capas y oclusión.
+6. **M-12** — `OverlayHost` con slots y prioridad para banners, toasts y tutorial.
+7. **M-11** — Reintentar safe area para HUD y macro actions.
+8. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
 
 ---
 
 ## 2. En curso
+
+### 🟠 H-28 — Onboarding astral narrativo y llegada del fundador
+
+- **Estado:** Implementación funcional completa; pendiente firma gráfica y
+  asset de caída definitivo.
+- **Prioridad:** 🟠 Alta
+- **Categoría:** producto / dominio / UI / persistencia
+- **Avance:** doce elecciones causales con IDs estables y scoring oculto,
+  pregunta nominal no puntuada, revelación única de linaje/sprite, falsa
+  pregunta interrumpida, transición al tablero, impacto placeholder y tarjeta
+  energética del fundador. Contenido, pesos, sesión, cálculo, UI, creación y
+  llegada están separados. `CitizenOrigin.AstralFounder` persiste sin crear una
+  entidad paralela. El guardado inicial completa antes de emitir `HeroCreated`
+  y puede reintentarse sin duplicar al fundador.
+- **Animación:** los assets auditados no contienen `Fall`. La llegada reutiliza
+  `hurt_down`: reproduce el desfallecimiento durante el descenso, mantiene su
+  último frame al aterrizar y vuelve a `idle_down` después de una pausa
+  configurable, sin duplicar arte.
+- **Verificación:** build limpio, 424/424 tests y fixtures headless
+  `astral-start`, `astral-identity` y `founder-arrival`. La matriz windowed no
+  puede firmarse porque el escritorio devuelve un cliente Godot 50×50.
+- **Pendiente:** revisión humana 1280×720 y extremos, mouse/teclado/gamepad,
+  ajuste de composición tras una captura válida.
 
 ### 🟡 M-14 — Matriz de regresión visual para UI
 
@@ -238,40 +299,6 @@ reorganiza la lista, los IDs no se renumeran.
 - **Criterios de aceptación:** cada PR de UI adjunta la matriz aplicable y compara
   rects/capturas; ningún cierre se basa únicamente en headless boot.
 
-### 🟠 H-25 — Recursos naturales aún dependen de `BuildingKind.Forest`
-
-- **Estado:** En curso. El schema v8 introduce `CityParcel` y
-  `NaturalResourcePatch` como estado persistente separado de construcciones.
-  La migración v7 → v8 convierte cada Forest legacy en una parcela desbloqueada
-  y un patch de madera, y la vista macro deriva sus árboles del patch. El schema
-  v7 ya conservaba unidades de árbol estables y la
-  última visita semántica del ciudadano (`forestId + unitId + logicalSlot`).
-  Gather agota el
-  slot seleccionado; tras refresh o reload, el trabajador permanece en ese
-  lugar incluso cuando un tick retira el Forest agotado, y su marcador/nombre
-  forman una sola representación. Las partidas v6 migran cada reserva agregada
-  a unidades compatibles. Los refresh de construcción/producción preservan un
-  viaje activo y solo reconstruyen la actividad después de ejecutar su callback
-  de llegada. Cada árbol fundador contiene ahora 40 wood; las ocho parcelas
-  iniciales son persistentes y cada unidad natural ocupa un lote estable dentro
-  de su parcela. El placement manual muestra solo lotes libres, permite
-  seleccionar/confirmar/cancelar y persiste la elección. Una reparación de
-  carga recoloca placements legacy que coincidían con un árbol vivo.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** dominio / territorio
-- **Pendiente:** retirar el adaptador de almacenamiento
-  `BuildingKind.Forest` (se conserva para que recetas y partidas actuales no
-  pierdan madera). La regeneración/offline catch-up ya está implementada y
-  validada: crecimiento al amanecer, hasta una unidad nueva por patch en un lote
-  libre, sin crecer bajo edificios/proyectos y con snapshot final equivalente.
-- **Criterios de aceptación:** parcela persistente mínima; patch de recurso
-  separado de una construcción con detail view; unidades visibles derivadas de
-  reserva; agotamiento que elimina la unidad seleccionada; ciclo de regeneración
-  compatible con progreso offline; contrato reutilizable para piedra
-  superficial y recursos posteriores.
-
----
-
 ### 🟠 H-26 — Parcelas edificables con huella sólida y corredores
 
 - **Estado:** En curso. El dominio ya define una parcela como 3×3 solares
@@ -306,6 +333,77 @@ reorganiza la lista, los IDs no se renumeran.
 ---
 
 ## 3. Pendientes
+
+### 🟡 M-25 — Gramática visual de motion y feedback causal
+
+- **Estado:** primer corte implementado; pendiente firma visual humana y
+  feedback de importancia grande.
+- **Prioridad:** 🟡 Media
+- **Categoría:** polish / UI / presentación
+- **Afecta:** `ModalHost.cs`, `PauseMenu.cs`, `ConstructionPanel.cs`,
+  `ResourceActionMenu.cs`, `MacroBuildingView.cs`, `BuildingPlot.cs`,
+  `OfflineReportPanel.cs`, `AttentionBanner.cs` y un componente C# compartido
+  de transiciones.
+- **Hallazgo:** contraste, cursores y superficies ya son coherentes, pero casi
+  todos los cambios de pantalla todavía usan `Show/Hide` instantáneo. Solo
+  onboarding, perfil y llegada tienen movimiento. Construir, reunir, asignar,
+  recibir un evento o abrir un modal no comparten una respuesta visual.
+- **Dirección:** movimiento Godot cuantizado y breve sobre la presentación:
+  scrim 0→72 %, panel con fade + desplazamiento vertical de 8 px, cierre
+  inverso, presión de botón de 1–2 px, flash corto en el chip afectado y
+  selección de mundo con contorno/pulso. Sin blur, bloom, física visual ni
+  movimiento subpíxel persistente.
+- **Shaders acotados:** reservar `canvas_item` para un outline/dither de
+  selección o transición astral reemplazable. No aplicar postprocesado global
+  ni efectos continuos a paneles.
+- **Feedback por importancia:**
+  - pequeño: hover/foco, click y actualización de chip;
+  - medio: gather autorizado, asignación, construcción desbloqueada;
+  - grande: obra completada, retorno de expedición y llegada de ciudadano.
+- **Primer corte verificable:** animar `ModalHost` una sola vez para
+  Construction, Recon y Citizens; añadir feedback de selección compartido a
+  árbol, lote y edificio; destacar el evento causal nuevo en Chronicle/HUD.
+- **Avance 2026-07-24:** `UiMotion` centraliza duraciones e intensidades.
+  `ModalHost` anima scrim y panel con fade y pasos verticales enteros
+  8→4→0 px, incluido cierre inverso y restauración de foco. Construction,
+  Recon y Citizens lo reciben sin código específico. Árbol, lote y edificio
+  comparten pulso de selección mouse/foco; Chronicle enfatiza solo la entrada
+  causal realmente nueva y el sello Saved pulsa únicamente al cambiar.
+- **Verificación:** build limpio, 424/424 tests y fixtures headless de
+  Construction, Recon, Citizens, recursos y macro sin errores Godot. La
+  advertencia del almacén de certificados continúa siendo externa.
+- **Corrección tras revisión humana:** la posición del modal ahora se captura
+  después del layout diferido; Construction conserva el centro. Recon y
+  Citizens usan un `Control` estable con `PanelContainer` interno para que el
+  mínimo del contenido no expanda `ScreenContent`. El fixture
+  `modal-layout-close` comprueba contención de ambos paneles y pulsa la X real
+  de Construction; termina con host y contenido ocultos.
+- **Criterios de aceptación:** las tres clases de feedback vuelven a reposo,
+  no bloquean input, respetan navegación mouse/teclado/gamepad, mantienen
+  posiciones enteras en mundo, no alteran ticks ni dominio, y pasan fixtures
+  a 1024×576, 1280×720 y 1600×900.
+- **Accesibilidad futura:** concentrar duraciones e intensidades para permitir
+  `Reduced motion` y `Reduced flashing` sin reescribir cada pantalla.
+- **Relacionados:** M-14, H-11, M-12, M-23, M-24.
+
+### 🟠 P-FirstRun — Estabilización de la primera partida
+
+- **Estado:** Pendiente. Esta iteración ya introdujo `MacroMode` ignorando
+  bosques, separación de depósito/coste total, HUD-safe terrain rect,
+  autoasignación staged del fundador, Home click que enruta a `SelectHero`
+  y foco que evita controles deshabilitados. Falta ejecutar la matriz
+  visual humana para cerrar y cubrir Forest depleted, close paths y
+  firma keyboard/gamepad.
+- **Prioridad:** 🟠 Alta
+- **Categoría:** UX / arquitectura
+- **Afecta:** `CityMacroSnapshot.cs`, `CityMacroView.cs`,
+  `OrthogonalParcelTerrain.cs`, `ConstructionSnapshot.cs`,
+  `ConstructionPanel.cs`, `BuildingDetailView.cs`.
+- **Criterios de aceptación:** la matriz visual humana valida las tres
+  resoluciones para el recorrido fresh → gather → shelter → materiales
+  restantes → obra completa. Las firmas de teclado/gamepad y los close
+  paths quedan firmadas.
+- **Relacionados:** H-26, M-11, M-12.
 
 ### 🟡 M-22 — Inventario descargado documentado, integración incompleta
 
@@ -401,6 +499,164 @@ macro inicial no sustituye las demás vistas afectadas.
 ---
 
 ## 6. Hechas
+
+### 🟡 M-24 — Cursor pixel contextual persistente
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** `game/scripts/CursorController.cs` y
+  `game/scripts/ResourceTree.cs`.
+- **Resumen:** el autoload registra cursores pixel para mundo y controles
+  interactivos, aplica `PointingHand` a botones nuevos y conserva `IBeam` en
+  campos de texto. Los árboles solicitan temporalmente la hacha y restauran el
+  cursor global al salir, en vez de eliminarlo con un cursor nulo.
+
+### 🟡 M-23 — Pase visual transversal de UI y HUD
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** `game/assets/ui/default_theme.tres`, `CityPrototype.tscn`,
+  `PauseMenu.tscn`, `LineageShowcase.tscn`, `ResourceActionMenu.tscn`,
+  `ExpeditionPanel.tscn` y `MigrantPanel.tscn`.
+- **Resumen:** los paneles claros que competían con texto crema fueron
+  reemplazados por superficies oscuras opacas con borde cálido. Se añadieron
+  variaciones `PanelCard`, `OverlayPanel` y un `StatusStrip` consistente; la
+  barra macro ahora tiene superficie propia y todos los botones muestran un
+  contorno de foco de alto contraste para teclado/gamepad.
+
+### 🟠 P-Migrant — Roster runtime e integración del segundo ciudadano
+
+- **Cerrado:** 2026-07-24; la firma visual windowed continúa bajo M-14.
+- **Resumen:** `Citizens` ofrece roster seleccionable con rol, estado,
+  ubicación, asignación, linaje, afinidades y stamina. El alta pública genera
+  nombre y perfil propios de forma determinista a partir del nuevo CitizenId,
+  sin clonar al fundador; la sobrecarga explícita se conserva para fixtures.
+  Los residentes asignados mantienen identidad visible en el tablero.
+- **Prueba económica:** reclutar → asignar a Farm → guardar/cargar → catch-up
+  offline produce el mismo stock, stamina y experiencia que los ticks live.
+- **Verificación:** build limpio, 412/412 tests y fixture headless correcto.
+  La matriz windowed sigue bloqueada por un cliente de escritorio 50×50 y no se
+  declara firmada.
+
+### 🔴 C-11 — Build y recompensa migrante de expedición
+
+- **Cerrado:** 2026-07-24
+- **Resumen:** La rama de retorno ya no invoca el constructor privado de
+  `CitizenProfile` ni lee un `MigrantId` fallido. La recompensa migrante falla
+  de forma coherente si el alta no puede completarse y la validación de
+  reservas persistidas incluye inventario de ciudad y stock de edificios.
+- **Verificación:** build con 0 errores/advertencias y 409/409 tests.
+
+### 🟠 H-27 — Estabilización de expediciones y paneles de ciudad
+
+- **Cerrado:** 2026-07-24; queda la firma humana global de M-14.
+- **Resumen:** El ciudadano expedicionario queda fuera del stage, del gather y
+  de las asignaciones hasta retorno/cancelación, incluso tras save/load. Recon
+  vuelve a consumir 1 Wood y retornar 1 Stone. Expedición y migración usan
+  superficies oscuras legibles, foco modal restaurable y botones con jerarquía;
+  salida/retorno se expresan como día y hora, sin ticks internos.
+- **Rendimiento:** el fixture `expedition-returned` bloqueaba el hilo principal
+  al simular 14.400 ticks durante `_Ready`; ahora usa una expedición de un tick.
+  Su matriz 1024×576 / 1280×720 / 1600×900 completa en 9,1 s.
+- **Verificación:** build 0/0, 409/409 tests y matrices automatizadas de
+  `expedition-idle`, `expedition-active`, `expedition-returned` y `migrant`.
+
+### 🟠 C-MigrationV11 — Loader no aplicaba la migración v11→v12
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** `game/scripts/Domain/Persistence/WorldPersistence.cs` (nuevo
+  `MigrateToCurrent` que recorre todas las migraciones puras),
+  `game/scripts/CityWorldController.cs` (loader reducido a la llamada
+  agregada, nueva seam `TryLoadFromPrimarySlot(string? slotsDirectoryOverride)`
+  y autosave cuando la slot se migró), `tests/WorldofGoses.Tests/ControllerLoadSeamTests.cs`
+  (regresión con slot v11 temporal y validación posterior como v12).
+- **Resumen:** Una partida v11 dejaba de cargarse en silencio y volvía a
+  onboarding. El loader ahora pasa por `MigrateToCurrent` y persiste la
+  versión migrada. La seam con directorio temporal permite a xUnit
+  reproducir el recorrido real sin `SceneTree` ni `LocalAppData`.
+
+### 🟡 C-FirstRun — Estabilización de la primera partida
+
+- **Cerrado:** 2026-07-24 (subset de UI); pendiente la firma visual humana
+  completa (ver `P-FirstRun`).
+- **Cambió:** `game/scripts/CityMacroSnapshot.cs` (nuevo
+  `CivilBuildingCount`), `game/scripts/CityMacroView.cs` (usa el contador
+  civil para `DetermineMacroMode`), `game/scripts/OrthogonalParcelTerrain.cs`
+  (rect con franja HUD superior e inferior reservadas),
+  `game/scripts/ConstructionSnapshot.cs` (`Available` desde
+  `Resources.Available`), `game/scripts/ConstructionPanel.cs`
+  (`DescribeMaterials` distingue depósito/total, `RenderBlueprint` evita
+  foco en controles deshabilitados, `DescribeProjectStatus` muestra
+  `Waiting for materials`),
+  `game/scripts/Domain/CityWorld.cs` (`EnsureFoundingShelterContributor`
+  espera a que los `RemainingInputs` estén disponibles, `GatherWood`
+  reintenta la auto-asignación tras recolectar),
+  `game/scripts/BuildingDetailView.cs` (Home click enruta a `SelectHero`),
+  `tests/WorldofGoses.Tests/FirstRunRegressionTests.cs` (seis tests
+  nuevos: modo macro con bosques, disponibilidad con reservas, staged
+  autoassign, rect por resolución).
+- **Resumen:** Una partida recién fundada con bosques vuelve al modo
+  `Empty` con su CTA correcto; los árboles ya no roban clicks al
+  `MacroActions`; el panel de construcción comunica depósito y coste
+  total por separado y la obra ya no se queda esperando un material
+  invisible; Home no intenta desasignar residentes y el foco no cae
+  en controles deshabilitados.
+
+### 🟠 C-ForestAdapterRetired — `BuildingKind.Forest` ya no existe en runtime
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** `game/scripts/Domain/Persistence/WorldPersistence.cs`
+  (nuevo `MigrateV13ToV14` que elimina todos los `BuildingKind.Forest`),
+  `game/scripts/Domain/Persistence/WorldSave.cs` (schema a v14 con nota
+  histórica), `tests/WorldofGoses.Tests/*` (cadena v2…v14 extendida
+  y asserts del nuevo estado).
+- **Resumen:** Una partida v13 que guarde la próxima vez se eleva a v14 y
+  el adaptador de almacenamiento del bosque se elimina del runtime. La
+  madera persiste vía `NaturalResourcePatches` y `CityInventory`; las
+  recetas y la regeneración siguen leyendo el mismo dominio.
+
+### 🟠 C-Migrant — Reclutamiento del segundo ciudadano y primera ciudad viva
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** `game/scripts/Domain/WorldEvent.cs` (nuevo
+  `WorldEventKind.MigrantArrived`),
+  `game/scripts/Domain/CityWorld.cs` (nuevo `TryRecruitMigrant`,
+  `MigrantResult` y `MigrantOutcome`),
+  `game/scripts/Domain/WorldEventRetention.cs` y
+  `game/scripts/Ui/WorldEventTextFormatter.cs` y
+  `game/scripts/OfflineReportPanel.cs` (formateo e icono),
+  `game/scripts/CityWorldController.cs` (nueva ruta pública
+  `TryRecruitMigrant`, autosave y señal `CitizensChanged`),
+  `game/scripts/MigrantPanel.cs` y `game/scenes/Components/MigrantPanel.tscn`
+  (nuevo panel modal con `ModalHost`, foco y botón `Migrant` en
+  `MacroActions/Actions`),
+  `tests/WorldofGoses.Tests/FirstRunRegressionTests.cs` (nuevo test
+  `RecruitMigrant_AddsNonHeroCitizenAndEvent`).
+- **Resumen:** El jugador puede reclutar un ciudadano no-héroe con el
+  perfil del fundador y verlo en `AtHome`, sin asignación y con
+  Chronicle causal. La slot se migra a v14 con la partida
+  `tick 65443` del headless boot; el test de migración y de
+  reclutamiento quedan verdes. La próxima iteración debe entregar la
+  `RosterView` y conectar la expedición como fuente narrativa de
+  ciudadanos.
+
+### 🟠 C-ExpeditionV13 — Primera expedición abstracta persistente
+
+- **Cerrado:** 2026-07-24
+- **Cambió:** nuevos `ExpeditionId`, `ExpeditionStatus`,
+  `ExpeditionRequest` (factory `Reconnaissance`), `Expedition`,
+  `ExpeditionChangedEventArgs`, `ExpeditionSave`; `WorldEventKind`
+  extendido con `ExpeditionDispatched`/`Returned`/`Failed`/`Cancelled`;
+  `CityWorld` añade `Expeditions`, `StartExpedition`, `CancelExpedition`,
+  `CompleteFinishedExpeditions`; `CitizenAssignmentService` consulta
+  `IsCitizenOnActiveExpedition` para bloquear asignaciones; persistencia
+  v13 con `MigrateV12ToV13`, validator para expediciones y reservas
+  huérfanas, captura/restauración de expediciones activas; nuevo
+  `ExpeditionPanel` con `ModalHost` y botón `ExpeditionMenuButton` en
+  `MacroActions`; tests de migración, ledger y expedición.
+- **Resumen:** El jugador puede enviar al fundador en una
+  “Reconnaissance” que reserva 1 Wood, ejecuta live/offline por 4 días
+  de juego, retorna con 1 Stone y registra un par
+  `ExpeditionDispatched`/`ExpeditionReturned` con `CauseEventId`. La
+  partida se persiste como v13 y sobrevive a un reinicio.
 
 ### 🔴 C-1 — Onboarding no explica qué hacer tras crear el héroe
 
@@ -747,6 +1003,13 @@ macro inicial no sustituye las demás vistas afectadas.
 ---
 
 ## 7. Canceladas / Superadas
+
+### 🟠 H-25 — Recursos naturales dependían de `BuildingKind.Forest`
+
+- **Cerrado:** 2026-07-24
+- **Motivo:** superado por `C-ForestAdapterRetired`. La migración v13→v14
+  elimina el adaptador y conserva madera en `NaturalResourcePatches` y
+  `CityInventory`; mantener H-25 activo duplicaba trabajo ya cerrado.
 
 ### 🟠 S-2 — `BuildingSpriteCarrier`
 

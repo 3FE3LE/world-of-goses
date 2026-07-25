@@ -23,36 +23,101 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **385 / 385 passing**.
-- The latest standalone headless attempt was blocked by Godot 4.7.1 log-file
-  contention while the graphical instance was open; the windowed visual matrix
-  loaded the scene and current slot without scene, resource, signal, or C# errors.
+- xUnit suite: **424 / 424 passing** (run after the astral-founder onboarding,
+  v13 de expedición abstracta, v14 de retiro del adaptador Forest y la primera
+  ruta pública de reclutamiento).
+- The latest standalone headless attempt (2026-07-24) loaded slot 0 at
+  tick 65443 without any C# or Godot error and printed
+  `World of Goses prototype starting.`. The headless boot is reproducible
+  with `C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe
+  --headless --path game --quit-after 3`; the previous log-file
+  contention only appeared when the graphical instance was open in
+  parallel. The slot primary has been migrated in-memory from a v8 era
+  save to v14 during the same boot.
 - `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
   captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
   review passed viewport containment and exposed M-16, a citizen label/icon overlap.
-- The current slice combines founding-hero onboarding with gender selection,
+- The current slice combines a twelve-fragment astral-founder onboarding with
+  hidden scoring, final name/body presentation, lineage reveal, board fall,
+  founder title card,
   the hero sprite walking on the empty field, interactive construction for
   Basic Shelter / Farm / Quarry, data-driven recipes with min/max stock
   policy, causal event logging with `CauseEventId` chains, wood gathering
   from founding Forests, 16 animated LPC lineage character variants, and the
   completed presentation-boundary/UI interaction stabilization slice.
+- The shared UI theme now provides opaque dark reading surfaces, warm
+  pixel-aligned borders, elevated modal cards, a dedicated HUD/action strip,
+  and a high-contrast focus outline that does not rely on button color alone.
+  Pause, construction, building detail, resource actions, reconnaissance,
+  and citizen roster panels reuse these semantic variations without changing
+  their node paths or gameplay behavior.
+- The cursor autoload owns persistent pixel cursors for the world and
+  interactive controls. Buttons receive the interactive cursor as they enter
+  the scene tree, text fields retain the I-beam, and gatherable trees
+  temporarily replace both pointer shapes with the axe before restoring the
+  lineage-tinted cursor instead of clearing it.
+- Visual-polish proof `M-25` now has its first implementation cut:
+  `UiMotion` centralizes short presentation timings; `ModalHost` gives
+  Construction, Recon, and Citizens a shared scrim fade and integer-stepped
+  8→4→0 px entrance with inverse close; tree, lot, and building selection
+  share a brief pulse; new Chronicle entries and changed save stamps receive
+  one causal emphasis. It explicitly avoids global post-processing,
+  persistent subpixel movement, and presentation code that mutates simulation
+  state. Modal position is captured only after container layout; Recon and
+  Citizens use stable Control roots with internal panel surfaces so their
+  content minimum cannot expand the gameplay viewport. A dedicated headless
+  fixture validates containment and the real Construction X close chain.
+  Large event feedback and the full windowed human signature remain pending.
+- The first abstract reconnaissance expedition ships behind a new
+  `ExpeditionMenuButton` and `ExpeditionPanel`: it reserves 1 Wood, runs
+  4 in-game days deterministically via `CityWorld.AdvanceWorldTick`,
+  commits on return, deposits 1 Stone into the city inventory, and
+  publishes `WorldEventKind.ExpeditionDispatched`/`ExpeditionReturned`
+  events with `CauseEventId` chains. Save schema bumped to v13 with
+  `WorldSave.Expeditions` and `MigrateV12ToV13`. The panel is wired to
+  `ModalHost` with scrim, ESC, and X close, and exposes Dispatch,
+  Cancel, and Close buttons on an opaque reading surface. While away, the
+  leader is absent from the macro stage and unavailable for gathering or
+  assignments; this state survives save/load. Departure and return are shown
+  as world day/time rather than internal ticks. Causal Chronicle rows show the dispatch
+  and return with the captured `CauseEventId` chain.
+- The first citizen recruitment slice ships behind a new `MigrantMenuButton`
+  and `MigrantPanel`, presented to the player as **Citizens**. It reuses the
+  founder's profile to add a non-hero
+  citizen, persists the new entity, fires the `CitizensChanged` signal,
+  and publishes a `WorldEventKind.MigrantArrived` event so the Chronicle
+  records the arrival. The new citizen starts at `AtHome` with full
+  stamina and no assignment, ready to be assigned to Farm, Quarry, or a
+  construction project through those existing detail panels. The same modal
+  now provides a selectable roster showing role, status, assignment, and
+  stamina. Non-hero citizens retain their name/status marker on the macro
+  stage after assignment instead of becoming anonymous dots. Player-facing
+  recruitment deterministically generates a distinct name and valid profile
+  from the new citizen id rather than cloning the founder. Tests prove the
+  assigned migrant preserves identity and assignment through save/load and
+  yields the same stock, stamina, and experience under live ticks and offline
+  catch-up. Windowed composition still awaits the M-14 human signature.
+- Save schema bumped to v14 by `MigrateV13ToV14`, which drops every
+  `BuildingKind.Forest` entity. The world keeps wood through
+  `NaturalResourcePatches` and `CityInventory`, so the slot round-trips
+  without losing resources. The Forest compatibility adapter is retired.
 
-## 2. Founding-hero slice (with gender identity)
+## 2. Astral founding-hero slice
 
-A fresh `CityWorld` contains no citizens and no buildings. The player completes a six-step onboarding flow that chooses:
-
-- Name, one of eight working lineages, and one of two body variants (Feminine / Masculine).
-- Three personal aptitudes.
-- Three professional families from the twelve-family vocabulary.
-- One elemental affinity.
-- One combat style and one or two weapon preferences.
-- Three personality traits.
-- One political orientation and one spiritual posture.
+A fresh `CityWorld` contains no citizens and no buildings. The player completes
+twelve continuous narrative choices without seeing lineage names, sprites,
+professions, weapons, politics, or scores. Stable answer ids are recomputed
+into lineage, three aptitudes, three professional affinities, element, combat
+style, two weapon preferences, three traits, personal political tendency,
+spiritual posture, risk profile, leadership style, and internal identity axes.
+The thirteenth, unscored step asks for name and Feminine/Masculine body
+presentation after revealing only the resulting lineage and sprite.
 
 The body variant replaces the previous `appearanceSeed & 1` derivation so the
 player picks the sprite explicitly; the seed still encodes visual variety
-inside a variant. Completing the flow creates exactly one `Citizen` with the
-`Hero` role, full stamina, no assignment, and `AtHome` location, and seeds two
+inside a variant. Completing the flow creates exactly one `Citizen` with
+`CitizenOrigin.AstralFounder`, the `Hero` role, full stamina, no assignment,
+and `AtHome` location, and seeds two
 Forests (id 100, 101) with `WoodReserve = 8` each. The hero profile is visible
 in a responsive read-only profile screen showing the imported LPC sprite in its
 idle animation; the macro view shows the hero sprite walking side-to-side in
@@ -180,7 +245,7 @@ operations because they create/remove world entities.
 
 ## 8. Persistence
 
-- Schema version is now **7**.
+- Schema version is now **13**.
 - A v4 citizen save includes a complete `CitizenProfileSave` plus
   `Gender`, competencies, roles, assignment, stamina, and WellFed state. A v4
   building save includes the reactive policy triplet `MinStock`, `MaxStock`,
@@ -202,30 +267,47 @@ operations because they create/remove world entities.
 - Schema v9 persists non-overlapping parcel lots, spans, orientation, and
   footprint profiles for projects and buildings. Project completion retains
   the same placement identity.
+- Schema v10..v12 introduce the founding forest parcel, the city-owned
+  gathered inventory, and the cosmetic appearance variant per citizen. The
+  controller walks every migration from v2 through v12 on raw JSON before
+  `Validate`, so older saves upgrade non-fatally.
+- Schema v13 persists active reconnaissance expeditions: `Expeditions`
+  holds one row per expedition with `LeadCitizenId`, supply and reward
+  resources, start/end tick, reservation id, status, and the captured
+  dispatch event id. `MigrateV12ToV13` adds an empty expedition list and
+  bumps the schema. The controller wires `ExpeditionStateChanged` and
+  autosaver the slot whenever the user dispatches or cancels an
+  expedition. Reservations owned by `Expedition` are validated against
+  this list and rejected when the id is unknown.
 - Macro buildings and projects are positioned from their persisted parcel/lot
   instead of an insertion-order horizontal row. The current plot widget is
   rendered at 0.5 macro scale while logical footprints remain authoritative.
-- The controller walks every migration from v2 through v9 on raw JSON before
+- The controller walks every migration from v2 through v13 on raw JSON before
   `Validate`, so older saves upgrade non-fatally.
-- A playable v9 snapshot must contain exactly one hero citizen; zero
+- A playable v13 snapshot must contain exactly one hero citizen; zero
   buildings is valid. v3 saves default missing `Gender` to Masculine so the
   hero's body variant stays stable across the bump.
 - After a successful hero creation, the normal atomic write replaces the slot
   and preserves the previous file as `.bak`.
-- Partial onboarding is not saved in this slice. Closing before confirmation
-  starts the flow again without destroying the old slot.
+- Partial onboarding remains in memory until confirmation. Closing before
+  confirmation starts the flow again without destroying the old slot. If the
+  initial save fails after citizen creation, the view keeps every answer and
+  retries the write without creating another founder.
 - Structural and cross-entity validation runs before restore.
 
 `CityResourceLedger` now centralizes totals, deposits, atomic recipe drawdown,
 and location-aware runtime reservations over the existing building stores.
 Reservations can be released, committed, or transferred between a construction
 project and future expedition owner. Schema v7 restores reservations and their
-ID sequence, so committed supplies survive close and offline catch-up.
+ID sequence, so committed supplies survive close and offline catch-up. The
+v13 expedition slice reuses this reservation model: the supply cost is held
+during the active window and committed on a successful return (or released
+on cancel/failure) without moving the goods.
 
 ## 9. Presentation, themes, and navigation
 
 `CityWorldController` emits `HeroCreated`, `WorldTickAdvanced`, project-change,
-event-log, selection, and building signals. `OnboardingView` and
+event-log, selection, and building signals. `AstralOnboardingView` and
 `HeroProfileView` are reusable Control scenes. They use containers, scrolling,
 explicit focusable controls, and a single back path so the flow works with
 mouse, keyboard, and gamepad.
@@ -315,8 +397,11 @@ keeping the triplet intact for future slices that re-expose it.
 - The project has a correct 1280×720 responsive canvas and nearest canvas-texture
   filtering, but integer camera/sprite placement and per-import filtering have
   not been verified end to end; the presentation is not yet proven pixel-perfect.
-- Combat, expeditions, health, relationships, institutions, migration, and
-  environmental alignment remain future systems.
+- Combat, full expedition expansion, health, relationships, institutions,
+  migration, and environmental alignment remain future systems. The first
+  abstract reconnaissance is implemented and persistent, but the broader
+  expedition pipeline (multi-member, multi-stage, cost-bearing, combat
+  risk) is still future work.
 - Building art remains provisional. Detailed citizens now use the imported LPC
   set; Forest plots render without art (no `forest_idle.png` yet) so the
   detail view shows only the gather panel.
@@ -328,21 +413,27 @@ keeping the triplet intact for future slices that re-expose it.
   gathers 2 wood on arrival. Minimal parcel locked/unlocked state and per-tree
   patch identity are now persistent; construction placement, 40-wood balance,
   regeneration, and offline resource catch-up remain pending.
+- The first-run pass tightened discoverability: `MacroMode` ignores Forests,
+  `CalculateTerrainRect` reserves a HUD-safe band, deposit vs total cost are
+  separated in the construction panel, the founder auto-assignment only
+  activates once `RemainingInputs` are available, Home click routes to the
+  hero profile, and disabled controls no longer steal focus. These match
+  the v13 schema bump; the migration chain covers v11→v12 and v12→v13.
 - There is no automated Godot UI test harness; headless boot and manual flow
   verification remain required.
 
 ## 11. Recommended next slice
 
-The parcel/lot foundation and click-to-select construction placement are now
-proved without free dragging. The next bounded city-growth slice should add
-deterministic natural-resource regeneration and make the same result hold for
-offline catch-up. It should preserve stable unit/lots, expose the next
-regeneration time without expanding the persistent HUD, and avoid creating a
-second resource system.
+The first abstract reconnaissance expedition is now persistent, deterministic
+across live and offline ticks, and explains itself through the Chronicle. The
+following bounded city-growth slice should add a real route to a second
+citizen (recruitment or migration) and surface a roster with competency,
+stamina, location, and assignment, so the player can govern composition
+instead of watching a single hero juggle the city.
 
-After regeneration is equivalent live/offline, retire the
-`BuildingKind.Forest` compatibility-storage adapter so natural-resource patches
-own reserve state while gathered inventory follows the shared resource ledger.
+After recruitment lands, retire the `BuildingKind.Forest`
+compatibility-storage adapter and connect `H-26` (transitable mesh,
+corridors, navigation) so the city can grow without free dragging.
 
 ## 12. Verification commands
 
@@ -353,13 +444,13 @@ From `C:\dev\world-of-goses`:
 cd game
 dotnet build
 
-# 2. Run the full test suite. Expect 330 passing.
+# 2. Run the full test suite. Expect 406 passing (last verified run).
 cd ../tests/WorldofGoses.Tests
 dotnet test
 
 # 3. Headless boot — confirms the current local slot and scene load.
 #    The automated persistence tests, not an arbitrary local slot, prove
-#    the v2 → v3 → v4 migrations.
+#    the v2 → … → v13 migrations end to end.
 C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe `
   --headless --path ..\..\game --quit-after 3
 ```
@@ -397,7 +488,9 @@ The current baseline was verified with:
   C# or scene errors; shutdown reported only `Scan thread aborted` while the
   editor filesystem scan was being stopped by `--quit-after`.
 
-The manual onboarding flow must still be exercised in a graphical Godot run.
+The new onboarding and arrival fixtures pass headless scene execution. Their
+windowed composition and keyboard/gamepad route still require a graphical
+signature because the current desktop capture reports a 50×50 client.
 
 ## 15. Open product questions
 
@@ -427,7 +520,10 @@ These are open design questions, not permission to reintroduce a starter seed.
 
 - Domain: `game/scripts/Domain/`
 - Persistence: `game/scripts/Domain/Persistence/`
-- Onboarding: `game/scripts/OnboardingView.cs`, `game/scenes/OnboardingView.tscn`
+- Onboarding: `game/scripts/AstralOnboardingView.cs`,
+  `game/scripts/Domain/FounderNarrative*.cs`,
+  `game/scripts/FounderArrivalSequence.cs`,
+  `game/scenes/OnboardingView.tscn`
 - Hero profile: `game/scripts/HeroProfileView.cs`, `game/scenes/HeroProfileView.tscn`
 - Construction: `game/scripts/ConstructionPanel.cs`, domain construction types
 - Forest gather: `game/scripts/ForestGatherPanel.cs`

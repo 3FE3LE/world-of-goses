@@ -8,4 +8,5 @@ public enum HeroCreationOutcome
     WorldNotEmpty = 2,
     InvalidName = 3,
     MissingProfile = 4,
+    SaveFailed = 5,
 }

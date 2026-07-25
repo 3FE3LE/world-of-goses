@@ -143,6 +143,8 @@ public sealed class ParcelPlacementPersistenceTests
         WorldSave current = WorldPersistence.MigrateV9ToV10(migrated);
         current = WorldPersistence.MigrateV10ToV11(current);
         current = WorldPersistence.MigrateV11ToV12(current);
+        current = WorldPersistence.MigrateV12ToV13(current);
+        current = WorldPersistence.MigrateV13ToV14(current);
         WorldPersistence.Validate(current);
     }
 
@@ -174,6 +176,8 @@ public sealed class ParcelPlacementPersistenceTests
         Assert.Equal(new[] { 40, 40 }, patch.UnitReserves);
         migrated = WorldPersistence.MigrateV10ToV11(migrated);
         migrated = WorldPersistence.MigrateV11ToV12(migrated);
+        migrated = WorldPersistence.MigrateV12ToV13(migrated);
+        migrated = WorldPersistence.MigrateV13ToV14(migrated);
         WorldPersistence.Validate(migrated);
     }
 }

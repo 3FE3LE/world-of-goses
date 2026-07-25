@@ -42,6 +42,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 mouse_filter = 0
+theme_type_variation = "OverlayPanel"
 
 [node name="Margin" type="MarginContainer" parent="Center/Card"]
 layout_mode = 2

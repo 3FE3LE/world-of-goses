@@ -362,9 +362,14 @@ Local persistence is implemented through plain DTOs and
 `CityResourceLedger` is the common location-aware facade over these physical
 stores. It does not copy stock into a global counter: entries retain their
 building and storage kind. It provides atomic recipe consumption and runtime
-reservations owned by a construction project or future expedition. Schema v7
+reservations owned by a construction project or an expedition. Schema v7
 persists reservations, typed owners, and IDs; restore validates commitments
 against physical stock and resumes allocation after the largest retained ID.
+Schema v13 reuses the same model for expeditions: the supply cost is held
+during the active window and committed on a successful return (or released
+on cancel/failure) without moving the goods. The validator rejects any
+`Expedition`-owned reservation whose id is not present in
+`WorldSave.Expeditions`.
 Natural-resource patches persist each visible unit independently and attach it
 to a stable parcel. Forest compatibility state still owns gathered Wood stock
 while recipes transition to a parcel-independent city store. Citizen visits
@@ -401,6 +406,30 @@ generated during catch-up. Schema v5 persists at most 128 significant events.
 Per-tick production/progress and day/night noise are excluded; repeated adjacent
 steady states are compacted, and causes outside the retained subset are cleared.
 Restore preserves retained IDs and resumes allocation after the largest ID.
+Schema v13 introduces four persistent kinds: `ExpeditionDispatched`,
+`ExpeditionReturned`, `ExpeditionFailed`, and `ExpeditionCancelled`. The
+expedition's dispatch event id is captured on `Expedition.SetDispatchEventId`
+and reused as the `CauseEventId` of the matching return or failure, so the
+Chronicle surfaces a one-row chain per expedition. Schema v14 adds
+`MigrantArrived` and retires the `BuildingKind.Forest` building entity;
+wood lives in `NaturalResourcePatches` and `CityInventory`, so the migration
+keeps existing reserves without losing the player's gathered stock.
+
+### Recruitment
+
+`CityWorld.TryRecruitMigrant(CitizenProfile, string?)` is the first public
+route for a non-hero citizen. It allocates a fresh `CitizenId` beyond every
+existing citizen, instantiates a `Citizen` with the founder's profile, places
+it at `AtHome` without assignment, and publishes `MigrantArrived`. The
+controller exposes a `TryRecruitMigrant` wrapper with autosave and the
+`CitizensChanged` signal so the UI can refresh rosters and macro views. The
+roster view and assignments are presented through the existing
+`AssignmentPanel` and `BuildingDetailView`; a dedicated `MigrantPanel`
+mediates the action via `ModalHost`, reusing the same focus chain as the
+expedition panel. Recruitment is the foundation for the next slice:
+expeditions returning with a `MigrantArrived` outcome instead of a generic
+`Stone` reward, and a `RosterView` that lists every non-hero citizen with
+competency, stamina, and assignment.
 
 ### Boundary enforcement
 
@@ -419,7 +448,26 @@ Godot-free read models: `CityStatusSnapshot`, `ConstructionSnapshot`, and
 shell, worker slots, assignment panel, production panel, and forest gather panel
 render those snapshots instead of traversing `CityWorld` or retaining domain
 entities. Commands still flow through the controller and domain; snapshots are
-read-only copies and never become a second source of truth.
+read-only copies and never become a second source of truth. The v14 slot
+enumerates every citizen through the same `CityMacroSnapshot.CitizenItem`
+record, so the future `RosterView` will render without re-querying
+`CityWorld`.
+
+### Founder narrative boundary
+
+The astral onboarding keeps authored content and hidden weights in
+`FounderNarrativeCatalog`, stable answers in `FounderNarrativeSession`, and
+full recomputation in `FounderNarrativeScorer`. These domain types do not
+import Godot. `AstralOnboardingView` owns layout, focus, progressive board
+reveal, and text fades. `FounderArrivalSequence` owns only the fall, placeholder
+impact, and title-card presentation.
+
+The result enters the world through `HeroCreationRequest` and creates one
+ordinary `Citizen` with the Hero role. `CitizenOrigin.AstralFounder` is compact
+persisted metadata, not a parallel founder entity. The first free
+`ConstructionLot` remains the authoritative fall/building-site relation.
+`HeroCreated` is emitted only after the initial atomic save succeeds; a failed
+save keeps the answer session and retries without creating a second citizen.
 
 ## 9. UI themes and resolution
 
@@ -453,12 +501,23 @@ Offline reports capture a log cursor before the batch, so new event kinds do
 not require category-specific counters and cannot replay older events.
 
 The current offline simulation batches deterministic ticks. Its intended
-evolution is event-based:
+evolution is event-based. The v13 reconnaissance slice is the first domain
+feature to lean on that boundary: `CityWorld.CompleteFinishedExpeditions` is
+invoked from `AdvanceWorldTick`, so live and offline progress through the
+same canonical tick. The reservation is committed deterministically (the
+reward amount is `Min(targetAmount, reservationAmount)` and never rolls);
+the only event-driven slice left undone is the scheduler that would let
+cities skip ahead to the next interesting tick without iterating. The
+expected event kinds, the `CauseEventId` wiring, and the persistence
+contract are all in place; the remaining work is the active-world
+event-driven scheduling itself.
 
 - The world does not tick every real second.
 - Discrete events are produced as time elapses (e.g. "one armor set
   completed", "coal ran out", "an expedition returned", "the hospital
-  reached critical capacity").
+  reached critical capacity"). The v13 reconnaissance slice already
+  publishes `ExpeditionDispatched`/`Returned`/`Failed`/`Cancelled` through
+  this same log; only the time-jump scheduling remains.
 - Events are causal — each event refers to the state that caused it.
 - The event log is the source of truth for the causal report.
 

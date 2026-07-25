@@ -87,7 +87,7 @@ public partial class MacroCitizenActivity : Node2D
 
         _ = buildingCount;
         _ = projectCount;
-        if (citizens.Count > 0 && _hero is not null)
+        if (citizens.Count > 0 && _hero is not null && !citizens[0].IsOnExpedition)
         {
             Vector2 heroPosition = heroAnchorGlobal.HasValue
                 ? PixelMotion.Snap(ToLocal(heroAnchorGlobal.Value))
@@ -99,6 +99,7 @@ public partial class MacroCitizenActivity : Node2D
 
         for (int i = 1; i < citizens.Count; i++)
         {
+            if (citizens[i].IsOnExpedition) continue;
             int denominator = Mathf.Max(citizens.Count, 1);
             float angle = Mathf.Pi * (0.15f + 0.7f * (i / (float)denominator));
             float radius = 220f;
@@ -125,11 +126,9 @@ public partial class MacroCitizenActivity : Node2D
             };
             dot.AddToGroup(PresentationConstants.GroupMacroCitizenDot);
             marker.AddChild(dot);
-            if (!citizens[i].IsAvailable) continue;
-
-            // An unassigned citizen is physically AtHome in the domain. On
-            // the macro view, keep that state visible by naming its existing
-            // population marker instead of letting it become an anonymous dot.
+            // Every resident keeps an identity label on the macro view. This
+            // is particularly important once a migrant is assigned: an
+            // occupied citizen must not collapse back into an anonymous dot.
             string statusIcon = CitizenStatusIcon(citizens[i]);
             var row = new HBoxContainer
             {

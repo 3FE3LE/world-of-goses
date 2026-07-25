@@ -12,6 +12,19 @@ public sealed record CityMacroSnapshot(
     IReadOnlyList<CityMacroSnapshot.PlotItem> Projects,
     IReadOnlyList<WorldEvent> Events)
 {
+    public int CivilBuildingCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (var item in Buildings)
+            {
+                if (item.Kind != BuildingKind.Forest) count++;
+            }
+            return count;
+        }
+    }
+
     public sealed record HeroVisual(CitizenId Id, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
 
     /// <summary>
@@ -20,8 +33,11 @@ public sealed record CityMacroSnapshot(
     /// without re-querying the domain.
     /// </summary>
     public sealed record CitizenItem(
+        CitizenId Id,
         string Name,
+        bool IsHero,
         bool IsAvailable,
+        bool IsOnExpedition,
         BuildingId? CurrentAssignment,
         CitizenLocation Location,
         int CurrentStamina,
@@ -159,9 +175,13 @@ public sealed record CityMacroSnapshot(
         var citizens = new List<CitizenItem>();
         foreach (var resident in world.Citizens.Values)
         {
+            bool isOnExpedition = world.IsCitizenOnActiveExpedition(resident.Id);
             citizens.Add(new CitizenItem(
+                resident.Id,
                 resident.Name,
-                !resident.CurrentAssignment.HasValue,
+                resident.IsHero,
+                !resident.CurrentAssignment.HasValue && !isOnExpedition,
+                isOnExpedition,
                 resident.CurrentAssignment,
                 resident.CurrentLocation,
                 resident.CurrentStamina,

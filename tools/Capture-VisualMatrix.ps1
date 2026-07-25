@@ -61,6 +61,7 @@ public static class VisualMatrixWindowCapture
 foreach ($resolution in $resolutions) {
     $slug = "$($resolution.Width)x$($resolution.Height)"
     $framePath = Join-Path $resolvedOutput "$StateName-$slug.png"
+    $logPath = Join-Path $resolvedOutput "$StateName-$slug-godot.log"
     $previousCaptureMode = [System.Environment]::GetEnvironmentVariable(
         "WOG_VISUAL_CAPTURE",
         [System.EnvironmentVariableTarget]::Process)
@@ -71,6 +72,7 @@ foreach ($resolution in $resolutions) {
     try {
         $arguments = @(
             "--path", $projectPath.Path,
+            "--log-file", $logPath,
             $ScenePath,
             "--resolution", $slug,
             "--position", "0,0",

@@ -2,6 +2,7 @@
 using System;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -28,6 +29,7 @@ public partial class CityStatusPanel : PanelContainer
     private HBoxContainer _row = null!;
     private IconChip? _savedChip;
     private long _lastSavedUnixMillis;
+    private long _lastEmphasizedSavedUnixMillis;
     private CityWorldController? _controller;
 
     public override void _Ready()
@@ -122,6 +124,11 @@ public partial class CityStatusPanel : PanelContainer
             _savedChip.UpdateText(text);
         }
         _row.MoveChild(_savedChip, _row.GetChildCount() - 1);
+        if (_lastEmphasizedSavedUnixMillis != _lastSavedUnixMillis)
+        {
+            _lastEmphasizedSavedUnixMillis = _lastSavedUnixMillis;
+            UiMotion.Pulse(_savedChip, LineageThemeRegistry.IconAccent);
+        }
     }
 
     private static string FormatSavedTime(long unixMillis)

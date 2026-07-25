@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -71,7 +72,109 @@ public partial class CityPrototype : Node
                 GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
                     .ShowPlacementForVisualRegression();
                 break;
+            case "expedition-idle":
+                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
+                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Idle);
+                break;
+            case "expedition-active":
+                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
+                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Active);
+                break;
+            case "expedition-returned":
+                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
+                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Returned);
+                break;
+            case "migrant":
+                GetNode<MigrantPanel>(
+                    "GameUiShell/ScreenContent/CityMacroView/MigrantPanel")
+                    .ShowForVisualRegression();
+                break;
+            case "modal-layout-close":
+                ValidateModalLayoutAndClosePaths();
+                break;
+            case "astral-start":
+                GetNode<AstralOnboardingView>("OnboardingView")
+                    .ShowForVisualRegression(0);
+                break;
+            case "astral-ground":
+                GetNode<AstralOnboardingView>("OnboardingView")
+                    .ShowForVisualRegression(10);
+                break;
+            case "astral-identity":
+                GetNode<AstralOnboardingView>("OnboardingView")
+                    .ShowForVisualRegression(12);
+                break;
+            case "founder-arrival":
+                ShowFounderArrivalForVisualRegression();
+                break;
         }
+    }
+
+    private async void ValidateModalLayoutAndClosePaths()
+    {
+        GD.Print("Modal layout/close fixture started.");
+        CityMacroView city = GetNode<CityMacroView>(
+            "GameUiShell/ScreenContent/CityMacroView");
+        ModalHost host = GetNode<ModalHost>(
+            "GameUiShell/ScreenContent/CityMacroView/ModalHost");
+        ExpeditionPanel expedition = GetNode<ExpeditionPanel>(
+            "GameUiShell/ScreenContent/CityMacroView/ExpeditionPanel");
+        MigrantPanel migrant = GetNode<MigrantPanel>(
+            "GameUiShell/ScreenContent/CityMacroView/MigrantPanel");
+        ConstructionPanel construction = GetNode<ConstructionPanel>(
+            "GameUiShell/ScreenContent/CityMacroView/Center/ConstructionPanel");
+
+        expedition.Open();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        ValidateContained("ExpeditionPanel", expedition, city);
+        expedition.Close();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+
+        migrant.ShowForVisualRegression();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        ValidateContained("MigrantPanel", migrant, city);
+        migrant.Close();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+
+        city.ShowConstructionScrollForVisualRegression();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        ValidateContained("ConstructionPanel", construction, city);
+        construction.PressHeaderCloseForVisualRegression();
+        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        if (host.IsOpen || construction.Visible)
+        {
+            GD.PushError("Modal close fixture: construction X did not close ModalHost.");
+        }
+        else
+        {
+            GD.Print("Modal layout/close fixture passed.");
+        }
+    }
+
+    private static void ValidateContained(
+        string label,
+        Control content,
+        Control parent)
+    {
+        Rect2 parentRect = parent.GetGlobalRect();
+        Rect2 contentRect = content.GetGlobalRect();
+        if (!parentRect.Encloses(contentRect))
+        {
+            GD.PushError(
+                $"{label} escaped macro viewport. Parent={parentRect}, content={contentRect}.");
+        }
+    }
+
+    private void ShowFounderArrivalForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityMacroView city = GetNode<CityMacroView>(
+            "GameUiShell/ScreenContent/CityMacroView");
+        if (controller.World.Hero is not Citizen founder) return;
+        city.PrepareFounderArrival();
+        var arrival = new FounderArrivalSequence();
+        AddChild(arrival);
+        arrival.Begin(founder, city.GetFoundingArrivalGlobalPosition());
     }
 
     private static OfflineProgressionReport BuildVisualOfflineReport()

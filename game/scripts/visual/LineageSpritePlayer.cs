@@ -35,6 +35,21 @@ public partial class LineageSpritePlayer : AnimatedSprite2D
     public void PlayShoot(Vector2 direction) => PlayDirectional(AnimationState.Shoot, direction);
     public void PlaySpellcast(Vector2 direction) => PlayDirectional(AnimationState.Spellcast, direction);
 
+    public void PlayFall(Vector2 direction)
+    {
+        _facing = NormalizeDirection(direction, _facing);
+        Play(AnimationName(AnimationState.Hurt, _facing));
+    }
+
+    public void HoldLanded(Vector2 direction)
+    {
+        _facing = NormalizeDirection(direction, _facing);
+        string landed = AnimationName(AnimationState.Hurt, _facing);
+        Play(landed);
+        Frame = Mathf.Max(0, SpriteFrames.GetFrameCount(landed) - 1);
+        Pause();
+    }
+
     /// <summary>
     /// Resumes the idle animation in the last known facing direction.
     /// Useful when a one-shot animation finishes and the carrier should

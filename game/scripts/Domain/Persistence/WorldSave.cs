@@ -36,9 +36,11 @@ public sealed class WorldSave
     ///   <item><description>v10 — one bounded natural-resource unit per parcel lot.</description></item>
     ///   <item><description>v11 — city-owned gathered inventory.</description></item>
     ///   <item><description>v12 — cosmetic appearance variant per citizen.</description></item>
+    ///   <item><description>v13 — persisted abstract reconnaissance expeditions.</description></item>
+    ///   <item><description>v14 — retired the `BuildingKind.Forest` compatibility adapter. Wood lives in `NaturalResourcePatches` and `CityInventory`; the Forest building entity no longer exists.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 12;
+    public const int CurrentVersion = 14;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -60,4 +62,5 @@ public sealed class WorldSave
     public List<NaturalResourcePatchSave> NaturalResourcePatches { get; set; } = new();
     public List<ParcelPlacementSave> ParcelPlacements { get; set; } = new();
     public Dictionary<string, int> CityInventory { get; set; } = new();
+    public List<ExpeditionSave> Expeditions { get; set; } = new();
 }

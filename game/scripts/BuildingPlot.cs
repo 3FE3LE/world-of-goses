@@ -230,9 +230,9 @@ public partial class BuildingPlot : Control
         _hitOutline.Hide();
         AddChild(_hitOutline);
         UpdateInteractionGeometry();
-        _button.MouseEntered += _hitOutline.Show;
+        _button.MouseEntered += OnInteractionEntered;
         _button.MouseExited += _hitOutline.Hide;
-        _button.FocusEntered += _hitOutline.Show;
+        _button.FocusEntered += OnInteractionEntered;
         _button.FocusExited += _hitOutline.Hide;
         _button.Pressed += () =>
         {
@@ -242,6 +242,12 @@ public partial class BuildingPlot : Control
         AddChild(_button);
 
         GD.Print($"BuildingPlot {Name} ready: BuildingIdValue={BuildingIdValue} BuildingNameValue='{BuildingNameValue}' UnderConstruction={IsUnderConstruction} HasArt={BuildingTexturePath is not null}");
+    }
+
+    private void OnInteractionEntered()
+    {
+        _hitOutline.Show();
+        Ui.UiMotion.Pulse(_hitOutline, LineageThemeRegistry.IconAccent);
     }
 
     /// <summary>

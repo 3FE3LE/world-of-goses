@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -77,15 +78,21 @@ public partial class MacroBuildingView : Control
             Flat = true,
             FocusMode = FocusModeEnum.All,
         };
-        _button.MouseEntered += _outline.Show;
+        _button.MouseEntered += OnInteractionEntered;
         _button.MouseExited += _outline.Hide;
-        _button.FocusEntered += _outline.Show;
+        _button.FocusEntered += OnInteractionEntered;
         _button.FocusExited += _outline.Hide;
         _button.Pressed += () => EmitSignal(SignalName.Activated, EntityId);
         AddChild(_button);
 
         ApplyItem();
         ApplyGeometry();
+    }
+
+    private void OnInteractionEntered()
+    {
+        _outline.Show();
+        UiMotion.Pulse(_outline, LineageThemeRegistry.IconAccent);
     }
 
     public void Configure(CityMacroSnapshot.PlotItem item)

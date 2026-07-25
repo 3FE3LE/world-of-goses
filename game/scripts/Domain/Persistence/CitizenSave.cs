@@ -8,6 +8,7 @@ public sealed class CitizenSave
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public int AppearanceSeed { get; set; }
+    public string Origin { get; set; } = "";
     /// <summary>
     /// Cosmetic appearance profile id. Old saves deserialize as <c>null</c>;
     /// the loader resolves that to a deterministic default for the citizen.

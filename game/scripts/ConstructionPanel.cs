@@ -454,6 +454,12 @@ public partial class ConstructionPanel : PanelContainer
         CallDeferred(MethodName.ApplyVisualRegressionScroll);
     }
 
+    internal void PressHeaderCloseForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _header.PressCloseForVisualRegression();
+    }
+
     private void ApplyVisualRegressionScroll()
     {
         _bodyScroll.ScrollVertical = int.MaxValue;
@@ -549,6 +555,7 @@ public partial class ConstructionPanel : PanelContainer
                 : !_quarryButton.Disabled
                     ? _quarryButton
                     : _viewHeroButton;
+        if (_primaryFocus.Disabled) _primaryFocus = _viewHeroButton;
         _primaryFocus.GrabFocus();
     }
 
@@ -586,7 +593,9 @@ public partial class ConstructionPanel : PanelContainer
         _header.SetTitle(project.DisplayName);
         _title.Text = project.DisplayName;
         _description.Text = project.AssignedCount == 0
-            ? "Assign at least one available citizen below. Construction cannot advance without contributors."
+            ? project.RemainingInputs.Count > 0
+                ? $"Gather the remaining materials ({DescribeInputs(project.RemainingInputs)}) to start the worksite."
+                : "Assign at least one available citizen below. Construction cannot advance without contributors."
             : $"Contributors add work every {ConstructionRules.WorkIntervalTicks} seconds while the project is active.";
         _phaseLabel.Visible = true;
         _progress.Visible = true;
@@ -756,7 +765,11 @@ public partial class ConstructionPanel : PanelContainer
         ConstructionStopCause.Authorized =>
             $"Active — next contribution on a {ConstructionRules.WorkIntervalTicks}-tick interval",
         ConstructionStopCause.Paused => "Paused by the player",
-        ConstructionStopCause.NoWorkers => "Waiting for contributors",
+        ConstructionStopCause.NoWorkers => project.RemainingInputs.Count > 0
+            ? $"Waiting for materials — {DescribeInputs(project.RemainingInputs)}"
+            : "Waiting for contributors",
+        ConstructionStopCause.MissingMaterials =>
+            $"Waiting for materials — {DescribeInputs(project.RemainingInputs)}",
         ConstructionStopCause.WorkersExhausted => "Waiting: contributors exhausted",
         ConstructionStopCause.Night => "Resting during the night",
         ConstructionStopCause.Completed => "Completed",
@@ -782,7 +795,7 @@ public partial class ConstructionPanel : PanelContainer
         foreach (var material in option.Materials)
         {
             string resource = material.Resource.ToString().ToLowerInvariant();
-            parts.Add($"{material.Required} {resource} ({material.Available} available)");
+            parts.Add($"Deposit: {material.DepositRequired} {resource} now · Total: {material.Required} {resource} · Available: {material.Available}");
         }
         return string.Join(" + ", parts);
     }

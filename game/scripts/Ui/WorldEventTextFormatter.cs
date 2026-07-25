@@ -24,6 +24,11 @@ public static class WorldEventTextFormatter
         WorldEventKind.BuildingCreated => $"{subjectName} became a building",
         WorldEventKind.WellFedExpired => $"{subjectName} lost the WellFed buff",
         WorldEventKind.ProductionBlocked => $"{subjectName} waiting: missing inputs",
+        WorldEventKind.ExpeditionDispatched => $"{subjectName} dispatched with +{amount} supplies",
+        WorldEventKind.ExpeditionReturned => $"{subjectName} returned with +{amount}",
+        WorldEventKind.ExpeditionFailed => $"{subjectName} failed to return",
+        WorldEventKind.ExpeditionCancelled => $"{subjectName} was cancelled",
+        WorldEventKind.MigrantArrived => $"{subjectName} joined the city",
         _ => subjectName,
     };
 }

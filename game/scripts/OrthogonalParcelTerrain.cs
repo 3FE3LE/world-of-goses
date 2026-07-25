@@ -20,6 +20,8 @@ public partial class OrthogonalParcelTerrain : Control
     private const int DisplayTileSize = 32;
     private const int ParcelColumns = 4;
     private const int ParcelRows = 2;
+    private const float TopHudReservedHeight = 96f;
+    private const float BottomHudReservedHeight = 72f;
 
     private Texture2D _atlas = null!;
     private readonly List<ResourceTree> _trees = new();
@@ -108,7 +110,9 @@ public partial class OrthogonalParcelTerrain : Control
     internal static Rect2 CalculateTerrainRect(Vector2 viewportSize)
     {
         float width = Mathf.Max(0, viewportSize.X - 64);
-        float height = Mathf.Max(0, viewportSize.Y - 72);
+        float height = Mathf.Max(
+            0,
+            viewportSize.Y - TopHudReservedHeight - BottomHudReservedHeight);
         width = Mathf.Floor(width / (DisplayTileSize * ParcelColumns))
             * DisplayTileSize * ParcelColumns;
         height = Mathf.Floor(height / (DisplayTileSize * ParcelRows))
@@ -116,7 +120,11 @@ public partial class OrthogonalParcelTerrain : Control
         return new Rect2(
             new Vector2(
                 Mathf.Floor((viewportSize.X - width) * 0.5f),
-                Mathf.Floor((viewportSize.Y - height) * 0.5f) + 12),
+                TopHudReservedHeight
+                    + Mathf.Floor((viewportSize.Y
+                        - TopHudReservedHeight
+                        - BottomHudReservedHeight
+                        - height) * 0.5f)),
             new Vector2(width, height));
     }
 

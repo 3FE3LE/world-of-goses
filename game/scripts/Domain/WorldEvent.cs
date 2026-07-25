@@ -22,6 +22,11 @@ public enum WorldEventKind
     WellFedExpired,
     ProductionBlocked,
     ForestDemolished,
+    MigrantArrived,
+    ExpeditionDispatched,
+    ExpeditionReturned,
+    ExpeditionFailed,
+    ExpeditionCancelled,
 }
 
 /// <summary>

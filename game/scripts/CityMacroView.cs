@@ -47,6 +47,10 @@ public partial class CityMacroView : Control
     [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../MacroActions/Actions/ConstructionMenuButton";
     [Export] public NodePath GameMenuButtonPath { get; set; } = "../MacroActions/Actions/GameMenuButton";
+    [Export] public NodePath ExpeditionMenuButtonPath { get; set; } = "../MacroActions/Actions/ExpeditionMenuButton";
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = "ExpeditionPanel";
+    [Export] public NodePath MigrantMenuButtonPath { get; set; } = "../MacroActions/Actions/MigrantMenuButton";
+    [Export] public NodePath MigrantPanelPath { get; set; } = "MigrantPanel";
     [Export] public NodePath AttentionBannerPath { get; set; } = "../../../AttentionBanner";
 
     private CityWorldController _controller = null!;
@@ -64,6 +68,10 @@ public partial class CityMacroView : Control
     private bool _offlineReportShown;
     private IconButton _constructionMenuButton = null!;
     private IconButton _gameMenuButton = null!;
+    private IconButton _expeditionMenuButton = null!;
+    private ExpeditionPanel _expeditionPanel = null!;
+    private IconButton _migrantMenuButton = null!;
+    private MigrantPanel _migrantPanel = null!;
     private AttentionBanner _attentionBanner = null!;
     private ConstructionPlacementOverlay _placementOverlay = null!;
     private bool _modalWantsOpen;
@@ -88,6 +96,10 @@ public partial class CityMacroView : Control
         _plotStage = GetNode<BuildingPlotStage>(PlotStagePath);
         _constructionMenuButton = GetNode<IconButton>(ConstructionMenuButtonPath);
         _gameMenuButton = GetNode<IconButton>(GameMenuButtonPath);
+        _expeditionMenuButton = GetNode<IconButton>(ExpeditionMenuButtonPath);
+        _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
+        _migrantMenuButton = GetNode<IconButton>(MigrantMenuButtonPath);
+        _migrantPanel = GetNode<MigrantPanel>(MigrantPanelPath);
         _attentionBanner = GetNode<AttentionBanner>(AttentionBannerPath);
         _placementOverlay = new ConstructionPlacementOverlay
         {
@@ -115,8 +127,14 @@ public partial class CityMacroView : Control
 
         _heroAccessButton.FocusNeighborRight = _constructionMenuButton.GetPath();
         _constructionMenuButton.FocusNeighborLeft = _heroAccessButton.GetPath();
-        _constructionMenuButton.FocusNeighborRight = _gameMenuButton.GetPath();
-        _gameMenuButton.FocusNeighborLeft = _constructionMenuButton.GetPath();
+        _constructionMenuButton.FocusNeighborRight = _expeditionMenuButton.GetPath();
+        _expeditionMenuButton.FocusNeighborLeft = _constructionMenuButton.GetPath();
+        _expeditionMenuButton.FocusNeighborRight = _migrantMenuButton.GetPath();
+        _migrantMenuButton.FocusNeighborLeft = _expeditionMenuButton.GetPath();
+        _migrantMenuButton.FocusNeighborRight = _gameMenuButton.GetPath();
+        _gameMenuButton.FocusNeighborLeft = _migrantMenuButton.GetPath();
+        _expeditionMenuButton.Pressed += OnExpeditionMenuPressed;
+        _migrantMenuButton.Pressed += OnMigrantMenuPressed;
 
         Visible = !_controller.NeedsOnboarding();
         _macroActions.Visible = Visible;
@@ -150,6 +168,14 @@ public partial class CityMacroView : Control
         {
             _constructionMenuButton.Pressed -= OnConstructionMenuPressed;
         }
+        if (_expeditionMenuButton is not null)
+        {
+            _expeditionMenuButton.Pressed -= OnExpeditionMenuPressed;
+        }
+        if (_migrantMenuButton is not null)
+        {
+            _migrantMenuButton.Pressed -= OnMigrantMenuPressed;
+        }
         if (_terrain is not null)
         {
             _terrain.GatherRequested -= OnResourceGatherRequested;
@@ -182,7 +208,7 @@ public partial class CityMacroView : Control
         _modalWantsOpen = false;
         var snapshot = _controller.GetCityMacroSnapshot();
         UpdateConstructionMenuButton(DetermineMacroMode(
-            snapshot.Buildings.Count,
+            snapshot.CivilBuildingCount,
             snapshot.Projects.Count));
         // Restore the chronicle once the modal is dismissed so the
         // player can still read the offline report and live log.
@@ -215,11 +241,15 @@ public partial class CityMacroView : Control
         Vector2 targetPosition)
     {
         Citizen? hero = _controller.World.Hero;
-        if (hero is null || hero.CurrentAssignment.HasValue)
+        if (hero is null
+            || hero.CurrentAssignment.HasValue
+            || _controller.World.IsCitizenOnActiveExpedition(hero.Id))
         {
             string name = hero?.Name ?? "The founder";
             Notifier.ShowError(
-                $"{name} is already assigned. Unassign them before gathering wood.");
+                _controller.World.IsCitizenOnActiveExpedition(hero?.Id ?? default)
+                    ? $"{name} is away on an expedition."
+                    : $"{name} is already assigned. Unassign them before gathering wood.");
             return;
         }
         _activity.TravelHeroTo(
@@ -353,6 +383,7 @@ public partial class CityMacroView : Control
     {
         if (snapshot.Citizens.Count == 0) return null;
         CityMacroSnapshot.CitizenItem hero = snapshot.Citizens[0];
+        if (hero.IsOnExpedition) return null;
         if (hero.CurrentAssignment is BuildingId assignment
             && _plotStage.TryGetEntityGlobalPosition(
                 assignment,
@@ -408,6 +439,10 @@ public partial class CityMacroView : Control
     /// </summary>
     private void SyncModalHost()
     {
+        if (_modalHost.IsOpen && _modalHost.Content != _constructionPanel)
+        {
+            return;
+        }
         if (_modalWantsOpen)
         {
             if (!_modalHost.IsOpen)
@@ -553,6 +588,28 @@ public partial class CityMacroView : Control
         Refresh();
     }
 
+    public Vector2 GetFoundingArrivalGlobalPosition()
+    {
+        IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
+        return lots.Count > 0
+            ? _terrain.GetLotGlobalCenter(lots[0])
+            : _terrain.GlobalPosition + _terrain.Size * 0.5f;
+    }
+
+    public void PrepareFounderArrival()
+    {
+        _activity.Hide();
+        _macroActions.Hide();
+        _emptyPanel.Hide();
+    }
+
+    public void CompleteFounderArrival()
+    {
+        _activity.Show();
+        _macroActions.Show();
+        Refresh();
+    }
+
     private void UpdateConstructionMenuButton(MacroMode mode)
     {
         if (_modalHost.IsOpen)
@@ -591,6 +648,102 @@ public partial class CityMacroView : Control
 
     private void OnHeroClicked() => _controller.SelectHero();
 
+    private void OnExpeditionMenuPressed()
+    {
+        if (_expeditionMenuButton is null) return;
+        if (_modalHost.IsOpen) return;
+        _expeditionPanel.Open();
+    }
+
+    private void OnMigrantMenuPressed()
+    {
+        if (_migrantMenuButton is null) return;
+        if (_modalHost.IsOpen) return;
+        _migrantPanel.Open();
+    }
+
+    public enum ExpeditionFixtureState
+    {
+        Idle,
+        Active,
+        Returned,
+    }
+
+    public void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1")
+        {
+            return;
+        }
+        if (_controller.World.Hero?.CurrentAssignment is BuildingId assignment)
+        {
+            AssignmentResult result = _controller.World.TryUnassignCitizen(
+                assignment,
+                _controller.World.Hero.Id);
+            if (!result.IsSuccess)
+            {
+                _controller.World.TryUnassignFromProject(
+                    assignment,
+                    _controller.World.Hero.Id);
+            }
+        }
+        if (_controller.World.Resources.Available(ResourceType.Wood) < 1)
+        {
+            _controller.World.Resources.DepositToCityInventory(ResourceType.Wood, 1);
+        }
+        Expedition? active = null;
+        foreach (Expedition expedition in _controller.World.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active)
+            {
+                active = expedition;
+                break;
+            }
+        }
+        if (active is not null)
+        {
+            _controller.CancelExpedition(active.Id);
+        }
+        if (state == ExpeditionFixtureState.Idle)
+        {
+            _expeditionPanel.Open();
+            return;
+        }
+        ExpeditionRequest request =
+            ExpeditionRequest.Reconnaissance(_controller.World.Hero!.Id);
+        if (state == ExpeditionFixtureState.Returned)
+        {
+            // The visual fixture proves the returned state, not four days of
+            // simulation throughput. Keep the normal gameplay duration intact
+            // and use one canonical tick here so the window never blocks the
+            // Windows event loop while preparing a screenshot.
+            request = request with { DurationTicks = 1 };
+        }
+        if (!_controller.StartExpedition(request).IsSuccess)
+        {
+            return;
+        }
+        Expedition? target = null;
+        foreach (Expedition expedition in _controller.World.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active)
+            {
+                target = expedition;
+                break;
+            }
+        }
+        if (state == ExpeditionFixtureState.Active && target is not null)
+        {
+            _expeditionPanel.Open();
+            return;
+        }
+        if (state == ExpeditionFixtureState.Returned && target is not null)
+        {
+            _controller.World.AdvanceWorldTick();
+            _expeditionPanel.Open();
+        }
+    }
+
     private void OnPlotProjectClicked(int projectId)
     {
         _modalWantsOpen = true;
@@ -598,7 +751,7 @@ public partial class CityMacroView : Control
         SyncModalHost();
         var snapshot = _controller.GetCityMacroSnapshot();
         UpdateConstructionMenuButton(DetermineMacroMode(
-            snapshot.Buildings.Count,
+            snapshot.CivilBuildingCount,
             snapshot.Projects.Count));
     }
 

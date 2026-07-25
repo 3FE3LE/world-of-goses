@@ -132,6 +132,8 @@ public sealed class NaturalResourcePatchTests
         current = WorldPersistence.MigrateV9ToV10(current);
         current = WorldPersistence.MigrateV10ToV11(current);
         current = WorldPersistence.MigrateV11ToV12(current);
+        current = WorldPersistence.MigrateV12ToV13(current);
+        current = WorldPersistence.MigrateV13ToV14(current);
         WorldPersistence.Validate(current);
     }
 

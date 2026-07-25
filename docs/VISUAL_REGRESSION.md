@@ -4,6 +4,10 @@ This document is the reproducible visual-review contract for UI changes. A
 successful headless boot is necessary, but it does not prove layout, focus,
 occlusion, or readable content.
 
+Each launched resolution writes to its own Godot log inside the capture
+directory. This prevents a running editor or another matrix process from
+contending for the default `user://logs` file before the window is exposed.
+
 ## Capture command
 
 Run from the repository root with Godot 4.7.1 .NET:
@@ -71,6 +75,14 @@ fixture is written into each manifest entry.
 | Offline report | Catch-up with maximum representative rows | After loading fixture | Bottom-right anchoring, compact rows, internal scrolling |
 | ESC menu | `pause-menu` fixture | Yes | Scrim, title, Resume, disabled Settings placeholder, reset action, focus, and close paths |
 | Reset confirmation | `pause-menu-reset` fixture | Yes | Consequence copy, destructive hierarchy, safe cancel path, and no clipping |
+| Expedition idle | Dispatch button visible, no active expedition | After opening panel | Title, supply cost, return copy, Dispatch enabled, Cancel hidden |
+| Expedition active | Active expedition in flight | After opening panel | Status text shows departure and return as world day/time, Cancel visible, Dispatch disabled, focus recoverable |
+| Expedition returned | Active → Returned transition with one Stone deposited | After opening panel | Returned event visible in Chronicle, Expedition in City status, Dispatch re-enabled |
+| Migration | `migrant` fixture | Yes | Opaque reading surface, citizen count, Recruit/Close hierarchy, initial focus and no clipping |
+| Astral opening | `astral-start` fixture | Yes | No lineage leakage, four narrative choices, visible focus, fragments and readable fade-in |
+| Ground reveal | `astral-ground` fixture | Yes | Real board visible only through the configured 15% astral veil |
+| Founder identity | `astral-identity` fixture | Yes | Only the resulting lineage/sprite is revealed; name/body controls and result copy remain contained |
+| Founder arrival | `founder-arrival` fixture | Yes | Fall targets the first free construction lot, impact placeholder remains aligned, title card is original and readable |
 
 Every applicable row must be checked at all three harness resolutions. Changes
 to anchoring or safe-area behavior additionally require 2560×1080, 4:3, and a
@@ -117,3 +129,5 @@ introduced.
 | 2026-07-23 | `stable-tree-unit` | 1024×576, 1280×720, 1600×900 | Pass after arrival. The selected upper-left tree is absent while later tree slots remain in place. The citizen marker stays at the depleted slot after the gather-triggered refresh. Citizen marker and name now share one moving container. Capture mode migrated the loaded v6 fixture in memory without writing it. |
 | 2026-07-23 | `travel-refresh-guard`, `travel-refresh-arrival` | 1024×576, 1280×720, 1600×900 | Pass with Shelter and Farm complete and Quarry under construction. At 2 seconds the citizen remains mid-route despite project refresh events; at 6 seconds it has reached the upper-left resource slot. Active travel is no longer rebuilt by `CityMacroView.Refresh`. |
 | 2026-07-23 | `resource-menu-current`, `physical-gather` | 1024×576, 1280×720, 1600×900 | Pass through the real menu button rather than the direct fixture. A physical click on Gather closes the resource menu and advances the marker/name container by roughly 24 px within 350 ms (three 8 px cadence steps at 1024×576), confirming the contextual signal reaches `TravelHeroTo`. |
+| 2026-07-24 | `expedition-idle`, `expedition-active`, `expedition-returned` | 1024×576, 1280×720, 1600×900 | Automated pass after rejecting the initial translucent panels. The dark modal surface keeps all copy readable; active state shows departure/return as world day and time and removes the leader from the city. The returned fixture initially froze the UI by replaying 14,400 ticks synchronously; its equivalent one-tick transition now completes the three-resolution matrix in 9.1 s and restores the leader. Human focus/close signature remains tracked by M-14. |
+| 2026-07-24 | `migrant-panel` | 1024×576, 1280×720, 1600×900 | Automated layout pass. Current population, recruitment copy, Recruit, and Close remain legible and contained on the same opaque modal surface. Human keyboard/gamepad signature remains tracked by M-14. |

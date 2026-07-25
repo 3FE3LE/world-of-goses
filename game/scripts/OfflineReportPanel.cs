@@ -331,9 +331,12 @@ public partial class OfflineReportPanel : PanelContainer
 
         int visibleRows = _isExpanded ? MaxRows : 1;
         int skip = System.Math.Max(0, compactedEvents.Count - visibleRows);
+        EventRow? newestRow = null;
         for (int i = skip; i < compactedEvents.Count; i++)
         {
-            _list.AddChild(new EventRow(compactedEvents[i]));
+            var row = new EventRow(compactedEvents[i]);
+            _list.AddChild(row);
+            newestRow = row;
         }
 
         Show();
@@ -345,6 +348,10 @@ public partial class OfflineReportPanel : PanelContainer
         if (_isExpanded)
         {
             CallDeferred(MethodName.ApplyPendingLiveScroll);
+        }
+        if (!firstRender && newestRow is not null)
+        {
+            UiMotion.Pulse(newestRow, LineageThemeRegistry.IconAccent);
         }
     }
 
@@ -630,6 +637,7 @@ public partial class OfflineReportPanel : PanelContainer
         WorldEventKind.BuildingCreated => IconPaths.House,
         WorldEventKind.WellFedExpired => IconPaths.Clock,
         WorldEventKind.ProductionBlocked => IconPaths.Warning,
+        WorldEventKind.MigrantArrived => IconPaths.User,
         _ => null,
     };
 }

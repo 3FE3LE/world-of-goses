@@ -26,6 +26,8 @@
 [ext_resource type="Script" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/OrthogonalParcelTerrain.tscn" id="26_terrain"]
+[ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
+[ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="28_migrant"]
 
 [node name="CityPrototype" type="Node"]
 script = ExtResource("1_root")
@@ -47,6 +49,7 @@ script = ExtResource("24_shell")
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 mouse_filter = 2
+theme_type_variation = "StatusStrip"
 script = ExtResource("5_status")
 
 [node name="ScreenContent" type="Control" parent="GameUiShell"]
@@ -147,6 +150,7 @@ mouse_filter = 2
 custom_minimum_size = Vector2(520, 180)
 visible = false
 layout_mode = 2
+theme_type_variation = "PanelCard"
 
 [node name="Margin" type="MarginContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel"]
 layout_mode = 2
@@ -185,6 +189,7 @@ visible = false
 z_index = 21
 layout_mode = 2
 mouse_filter = 0
+theme_type_variation = "OverlayPanel"
 script = ExtResource("12_construction")
 
 [node name="BuildingPlotStage" type="Control" parent="GameUiShell/ScreenContent/CityMacroView"]
@@ -277,25 +282,24 @@ script = ExtResource("7_slots")
 [node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = "PanelCard"
 script = ExtResource("9_prod")
 
 [node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_vertical = 3
+theme_type_variation = "PanelCard"
 script = ExtResource("8_assign")
 
-[node name="MacroActions" type="MarginContainer" parent="GameUiShell/ScreenContent"]
+[node name="MacroActions" type="PanelContainer" parent="GameUiShell/ScreenContent"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 68.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 12
+theme_type_variation = "StatusStrip"
 
 [node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/MacroActions"]
 layout_mode = 2
@@ -334,6 +338,32 @@ text = "Menu"
 script = ExtResource("15_iconbtn")
 icon_path = "res://assets/ui/icons/24/menu.svg"
 button_text = "Menu"
+
+[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 44)
+mouse_filter = 0
+theme_type_variation = "ButtonText"
+tooltip_text = "Send the founder on a reconnaissance"
+text = "Recon"
+script = ExtResource("15_iconbtn")
+IconPath = "res://assets/ui/icons/24/leaf.svg"
+ButtonText = "Recon"
+
+[node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("27_expedition")]
+
+[node name="MigrantMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 44)
+mouse_filter = 0
+theme_type_variation = "ButtonText"
+tooltip_text = "Open the city roster or recruit a citizen"
+text = "Citizens"
+script = ExtResource("15_iconbtn")
+IconPath = "res://assets/ui/icons/24/user.svg"
+ButtonText = "Citizens"
+
+[node name="MigrantPanel" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("28_migrant")]
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" instance=ExtResource("11_profile")]
 

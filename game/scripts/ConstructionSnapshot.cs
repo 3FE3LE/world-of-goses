@@ -103,7 +103,7 @@ public sealed record ConstructionSnapshot(
                 foreach (var input in recipe.RequiredInputs)
                 {
                     materials.Add(new MaterialItem(input.Resource, input.Amount,
-                        world.TotalStockOf(input.Resource), ConstructionRules.DepositOf(input.Amount)));
+                        world.Resources.Available(input.Resource), ConstructionRules.DepositOf(input.Amount)));
                 }
             }
             options.Add(new OptionItem(kind, materials));
