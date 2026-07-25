@@ -46,6 +46,8 @@ mono_crash.*.json
 # ── Local IDE / editor configuration ────────────────────────────────────────
 .vscode/
 .idea/
+# Agent-created repository worktrees are local execution state.
+/.claude/worktrees/
 *.swp
 *.swo
 *~
