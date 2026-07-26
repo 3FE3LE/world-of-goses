@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -24,13 +25,17 @@ public partial class PauseMenu : Control
     private IconButton _softResetButton = null!;
     private IconButton _confirmResetButton = null!;
     private Button _cancelResetButton = null!;
+    private IconButton _languageButton = null!;
     private IconButton _openButton = null!;
+    private LocaleManager? _localeManager;
     private CityWorldController.SpeedChoice _speedBeforeOpen;
     private bool _scrimPressStarted;
     private bool _softResetRequested;
 
     public override void _Ready()
     {
+        OverlayLayers.Apply(this, OverlayLayers.PauseAndNotifier);
+
         _controller = GetNode<CityWorldController>(ControllerPath);
         _card = GetNode<PanelContainer>("Center/Card");
         _scrim = GetNode<ColorRect>("Scrim");
@@ -45,24 +50,19 @@ public partial class PauseMenu : Control
             "Center/Card/Margin/Shell/MainActions/ResetButton");
         _softResetButton = GetNode<IconButton>(
             "Center/Card/Margin/Shell/MainActions/SoftResetButton");
+        _languageButton = GetNode<IconButton>(
+            "Center/Card/Margin/Shell/MainActions/LanguageButton");
         _confirmResetButton = GetNode<IconButton>(
             "Center/Card/Margin/Shell/ResetConfirmation/ConfirmResetButton");
         _cancelResetButton = GetNode<Button>(
             "Center/Card/Margin/Shell/ResetConfirmation/CancelResetButton");
         _openButton = GetNode<IconButton>(OpenButtonPath);
+        _localeManager = GetNodeOrNull<LocaleManager>("/root/LocaleManager");
 
         _closeButton.SetIconAndLabel(IconPaths.Close, string.Empty);
-        _resumeButton.SetIconAndLabel(IconPaths.Play, "Resume");
-        GetNode<IconButton>(
-            "Center/Card/Margin/Shell/MainActions/SettingsButton")
-            .SetIconAndLabel(IconPaths.Cog, "Settings — coming next");
-        _resetButton.SetIconAndLabel(IconPaths.Trash, "Start over");
-        _softResetButton.SetIconAndLabel(
-            IconPaths.Reload,
-            "Restart city — keep founder");
-        _confirmResetButton.SetIconAndLabel(
-            IconPaths.Reload,
-            "Delete city and restart");
+        _resumeButton.SetIconAndLabel(IconPaths.Play, string.Empty);
+        _languageButton.Pressed += OnLanguageButtonPressed;
+        if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
 
         _card.AddThemeStyleboxOverride(
             "panel",
@@ -73,10 +73,25 @@ public partial class PauseMenu : Control
         _softResetButton.Pressed += ShowSoftResetConfirmation;
         _confirmResetButton.Pressed += ConfirmReset;
         _cancelResetButton.Pressed += HideResetConfirmation;
-        _openButton.SetIconAndLabel(IconPaths.Menu, "Menu");
+        RefreshLocalizedText();
         _openButton.Pressed += Toggle;
         _scrim.GuiInput += OnScrimGuiInput;
         Hide();
+    }
+
+    private void OnLanguageButtonPressed()
+    {
+        LocaleManager? locale = GetNodeOrNull<LocaleManager>("/root/LocaleManager");
+        if (locale is null) return;
+        locale.ToggleLocale();
+    }
+
+    private string GetLanguageLabel()
+    {
+        string localeName = _localeManager?.CurrentLocale == "es"
+            ? T("ui.common.language.spanish")
+            : T("ui.common.language.english");
+        return string.Format(T("ui.pause.language"), localeName);
     }
 
     public override void _ExitTree()
@@ -90,8 +105,10 @@ public partial class PauseMenu : Control
         }
         if (_confirmResetButton is not null) _confirmResetButton.Pressed -= ConfirmReset;
         if (_cancelResetButton is not null) _cancelResetButton.Pressed -= HideResetConfirmation;
+        if (_languageButton is not null) _languageButton.Pressed -= OnLanguageButtonPressed;
         if (_openButton is not null) _openButton.Pressed -= Toggle;
         if (_scrim is not null) _scrim.GuiInput -= OnScrimGuiInput;
+        if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -117,7 +134,10 @@ public partial class PauseMenu : Control
         if (confirmReset) ShowResetConfirmation();
     }
 
-    private void Open()
+    /// <summary>Opens the pause menu. Also called by the headless
+    /// <c>language-selector</c> fixture to capture the language
+    /// switcher without going through the open button.</summary>
+    public void Open()
     {
         _speedBeforeOpen = _controller.CurrentSpeed;
         _controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Paused);
@@ -132,7 +152,8 @@ public partial class PauseMenu : Control
         else Open();
     }
 
-    private void Close()
+    /// <summary>Closes the pause menu.</summary>
+    public void Close()
     {
         if (!Visible) return;
         Hide();
@@ -146,9 +167,9 @@ public partial class PauseMenu : Control
     {
         _softResetRequested = false;
         ConfigureResetConfirmation(
-            "Start a new city?",
-            "This permanently deletes the current local city and returns to hero onboarding.",
-            "Delete city and restart");
+            T("ui.pause.reset.title"),
+            T("ui.pause.reset.warning"),
+            T("ui.pause.reset.confirm"));
         ShowConfiguredResetConfirmation();
     }
 
@@ -156,9 +177,9 @@ public partial class PauseMenu : Control
     {
         _softResetRequested = true;
         ConfigureResetConfirmation(
-            "Restart this city?",
-            "Buildings, resources, and progress will be cleared. Your founder and onboarding choices will be kept.",
-            "Restart and keep founder");
+            T("ui.pause.soft_reset.title"),
+            T("ui.pause.soft_reset.warning"),
+            T("ui.pause.soft_reset.confirm"));
         ShowConfiguredResetConfirmation();
     }
 
@@ -187,6 +208,34 @@ public partial class PauseMenu : Control
         _mainActions.Show();
         if (Visible) _resumeButton.GrabFocus();
     }
+
+    private void OnLocaleChanged(string locale)
+    {
+        _ = locale;
+        RefreshLocalizedText();
+    }
+
+    private void RefreshLocalizedText()
+    {
+        GetNode<Label>("Center/Card/Margin/Shell/Heading/Title").Text = T("ui.pause.title");
+        _resumeButton.SetIconAndLabel(IconPaths.Play, T("ui.pause.resume"));
+        GetNode<IconButton>("Center/Card/Margin/Shell/MainActions/SettingsButton")
+            .SetIconAndLabel(IconPaths.Cog, T("ui.pause.settings_pending"));
+        _languageButton.SetIconAndLabel(IconPaths.Cog, GetLanguageLabel());
+        _resetButton.SetIconAndLabel(IconPaths.Trash, T("ui.pause.reset.action"));
+        _softResetButton.SetIconAndLabel(IconPaths.Reload, T("ui.pause.soft_reset.action"));
+        _openButton.SetIconAndLabel(IconPaths.Menu, T("ui.pause.open"));
+        _cancelResetButton.Text = T("ui.pause.cancel_reset");
+        _languageButton.TooltipText = T("ui.common.language.tooltip");
+
+        if (_resetConfirmation.Visible)
+        {
+            if (_softResetRequested) ShowSoftResetConfirmation();
+            else ShowResetConfirmation();
+        }
+    }
+
+    private string T(string key) => _localeManager?.Translate(key) ?? key;
 
     private void ConfirmReset()
     {

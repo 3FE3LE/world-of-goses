@@ -4,7 +4,6 @@
 
 [node name="MigrantPanel" type="Control"]
 visible = false
-z_index = 21
 custom_minimum_size = Vector2(600, 460)
 anchors_preset = 8
 anchor_left = 0.5

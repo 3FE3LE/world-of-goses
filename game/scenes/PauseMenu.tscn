@@ -8,7 +8,6 @@
 
 [node name="PauseMenu" type="Control"]
 visible = false
-z_index = 100
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -111,6 +110,18 @@ theme_type_variation = "ButtonText"
 script = ExtResource("2_icon_button")
 icon_path = "res://assets/ui/icons/24/cog.svg"
 button_text = "Settings — coming next"
+
+[node name="LanguageButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Switch the narrative language."
+text = "Language: English"
+icon = ExtResource("4_cog")
+theme_type_variation = "ButtonText"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/cog.svg"
+button_text = "Language: English"
 
 [node name="ResetButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
 custom_minimum_size = Vector2(160, 44)

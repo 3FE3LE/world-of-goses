@@ -37,11 +37,14 @@ public partial class AstralOnboardingView : Control
     private GenderId? _gender;
     private LineEdit? _nameEdit;
     private bool _identityStage;
+    private LocaleManager? _localeManager;
 
     public override void _Ready()
     {
         _controller = GetNode<CityWorldController>(ControllerPath);
         _cityView = GetNode<CityMacroView>(CityViewPath);
+        _localeManager = GetNodeOrNull<LocaleManager>("/root/LocaleManager");
+        if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
         BuildShell();
         Visible = _controller.NeedsOnboarding();
         if (Visible) RenderQuestion();
@@ -50,7 +53,7 @@ public partial class AstralOnboardingView : Control
     private void BuildShell()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        ZIndex = 80;
+        OverlayLayers.Apply(this, OverlayLayers.Onboarding);
 
         _astralVeil = new ColorRect
         {
@@ -120,8 +123,8 @@ public partial class AstralOnboardingView : Control
         };
         footer.AddThemeConstantOverride("separation", 10);
         shell.AddChild(footer);
-        _back = StandardButtons.NavigationButton("Atrás");
-        _next = StandardButtons.NavigationButton("Estabilizar fragmento");
+        _back = StandardButtons.NavigationButton(TrKey("ui.onboarding.back"));
+        _next = StandardButtons.NavigationButton(TrKey("ui.onboarding.stabilise"));
         _next.ThemeTypeVariation = "ButtonPrimary";
         _back.Pressed += OnBack;
         _next.Pressed += OnNext;
@@ -133,24 +136,27 @@ public partial class AstralOnboardingView : Control
     {
         FounderNarrativeQuestion question = FounderNarrativeCatalog.Questions[_step];
         ClearChoices();
-        _progress.Text = $"FRAGMENTOS ESTABILIZADOS {_session.Answers.Count:00} / 12";
+        _progress.Text = string.Format(
+            TrKey("ui.onboarding.progress"),
+            _session.Answers.Count,
+            FounderNarrativeCatalog.Questions.Count);
         BuildFragments();
-        _title.Text = question.Title;
-        _narrative.Text = question.Text;
+        _title.Text = TrKey(question.Title);
+        _narrative.Text = TrKey(question.Text);
         _consequence.Text = string.Empty;
         _error.Text = string.Empty;
         _astralVeil.Color = new Color(0.015f, 0.02f, 0.055f, 1f - question.TerrainReveal);
         _back.Disabled = _step == 0;
         _next.Text = _step == FounderNarrativeCatalog.Questions.Count - 1
-            ? "Dar forma a la memoria"
-            : "Estabilizar fragmento";
+            ? TrKey("ui.onboarding.shape_memory")
+            : TrKey("ui.onboarding.stabilise");
 
         _choiceButtons.Clear();
         foreach (FounderNarrativeChoice choice in question.Choices)
         {
             var button = new Button
             {
-                Text = choice.Text,
+                Text = TrKey(choice.Text),
                 CustomMinimumSize = new Vector2(0, 66),
                 Alignment = HorizontalAlignment.Left,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
@@ -191,7 +197,7 @@ public partial class AstralOnboardingView : Control
             button.ThemeTypeVariation = id == choiceId ? "ButtonPrimary" : "ButtonText";
         }
         FounderNarrativeChoice choice = FindChoice(question, choiceId);
-        _consequence.Text = choice.ImmediateConsequence;
+        _consequence.Text = TrKey(choice.ImmediateConsequence);
         FadeIn(_consequence, 0.18);
         _next.Disabled = false;
     }
@@ -206,6 +212,30 @@ public partial class AstralOnboardingView : Control
         if (_step <= 0) return;
         _step--;
         RenderQuestion();
+    }
+
+    /// <summary>
+    /// Resolves a translation key via the active <see cref="LocaleManager"/>
+    /// when one is registered, or returns the key literal otherwise
+    /// (graceful degradation during capture mode and headless boot
+    /// before the autoload has finished its own <c>_Ready</c>).
+    /// </summary>
+    private string TrKey(string key) =>
+        string.IsNullOrEmpty(key)
+            ? string.Empty
+            : GetNodeOrNull<LocaleManager>("/root/LocaleManager")?.Translate(key) ?? key;
+
+    private void OnLocaleChanged(string locale)
+    {
+        _ = locale;
+        _back.Text = TrKey("ui.onboarding.back");
+        if (_identityStage) RenderIdentity();
+        else RenderQuestion();
+    }
+
+    public override void _ExitTree()
+    {
+        if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
     }
 
     private void OnNext()
@@ -232,19 +262,16 @@ public partial class AstralOnboardingView : Control
         _identityStage = true;
         ClearChoices();
         _astralVeil.Color = new Color(0.015f, 0.02f, 0.055f, 0.25f);
-        _progress.Text = "FORMA RECONSTRUIDA";
-        _title.Text = "El nombre que atravesará contigo";
-        _narrative.Text =
-            "Tu forma será nueva. Tu voz pertenecerá a otro mundo.\n\n" +
-            "Puede que esa persona vuelva a encontrarte. Puede que nunca lo haga.\n\n" +
-            "Si alguna vez ocurre, ¿con qué nombre podrá reconocerte?";
+        _progress.Text = UiText.Get("FORMA RECONSTRUIDA");
+        _title.Text = UiText.Get("El nombre que atravesará contigo");
+        _narrative.Text = UiText.Get("ui.astral.identity.body");
         _consequence.Text = DescribeResult(_result!);
         _back.Disabled = false;
-        _next.Text = "Conservar este nombre";
+        _next.Text = UiText.Get("Conservar este nombre");
 
         _nameEdit = new LineEdit
         {
-            PlaceholderText = "Nombre del fundador",
+            PlaceholderText = UiText.Get("Nombre del fundador"),
             MaxLength = 32,
             Text = _founderName,
             CustomMinimumSize = new Vector2(0, 44),
@@ -272,7 +299,7 @@ public partial class AstralOnboardingView : Control
         {
             var button = StandardButtons.ChoiceButton(
                 text,
-                "Afecta la presentación del sprite, no el resultado narrativo.");
+                UiText.Get("Afecta la presentación del sprite, no el resultado narrativo."));
             button.Pressed += () =>
             {
                 _gender = id;
@@ -298,7 +325,7 @@ public partial class AstralOnboardingView : Control
     {
         _next.Disabled = !IsFounderNameValid(_founderName) || !_gender.HasValue;
         _error.Text = _next.Disabled
-            ? "El nombre debe tener entre 1 y 32 caracteres y no contener controles."
+            ? UiText.Get("El nombre debe tener entre 1 y 32 caracteres y no contener controles.")
             : string.Empty;
     }
 
@@ -310,7 +337,7 @@ public partial class AstralOnboardingView : Control
             new HeroCreationRequest(_founderName.Trim(), final.Profile, _gender.Value));
         if (!creation.IsSuccess)
         {
-            _error.Text = $"No fue posible conservar la nueva forma ({creation.Outcome}). Reintenta.";
+            _error.Text = UiText.Format("ui.astral.creation_failed", creation.Outcome);
             return;
         }
         _result = final;
@@ -323,10 +350,8 @@ public partial class AstralOnboardingView : Control
         _back.Hide();
         _next.Hide();
         _progress.Text = string.Empty;
-        _title.Text = "La forma está lista.";
-        _narrative.Text =
-            "La memoria permanece.\nEl mundo debajo de ti se aproxima.\n\n" +
-            "Y ahora… ¿qué harás con todo esto?";
+        _title.Text = UiText.Get("La forma está lista.");
+        _narrative.Text = UiText.Get("ui.astral.false_question.body");
         _consequence.Text = string.Empty;
         foreach (string beginning in new[]
         {
@@ -345,8 +370,8 @@ public partial class AstralOnboardingView : Control
 
     private void InterruptFalseQuestion()
     {
-        _title.Text = "Ah.";
-        _narrative.Text = "Ya llegamos.";
+        _title.Text = UiText.Get("Ah.");
+        _narrative.Text = UiText.Get("Ya llegamos.");
         ClearChoices();
         FadeIn(_title, 0.08);
         FadeIn(_narrative, 0.08);
@@ -403,7 +428,10 @@ public partial class AstralOnboardingView : Control
         int stabilised = _session.Answers.Count;
         if (!_identityStage)
         {
-            _progress.Text = $"FRAGMENTOS ESTABILIZADOS {stabilised:00} / 12";
+            _progress.Text = string.Format(
+                TrKey("ui.onboarding.progress"),
+                stabilised,
+                FounderNarrativeCatalog.Questions.Count);
         }
         for (int index = 0; index < 12; index++)
         {

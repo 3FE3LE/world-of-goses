@@ -21,6 +21,7 @@ LineageThemeSignals="*res://scripts/LineageThemeSignals.cs"
 CursorController="*res://scripts/CursorController.cs"
 Notifier="*res://scripts/Notifier.cs"
 CitizenSpriteBank="*res://scripts/CitizenSpriteBank.cs"
+LocaleManager="*res://scripts/Ui/LocaleManager.cs"
 
 [display]
 

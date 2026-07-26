@@ -5,7 +5,6 @@
 
 [node name="ResourceActionMenu" type="PanelContainer"]
 visible = false
-z_index = 8
 custom_minimum_size = Vector2(190, 0)
 mouse_filter = 0
 theme_type_variation = "OverlayPanel"

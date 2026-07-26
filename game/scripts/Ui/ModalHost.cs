@@ -61,6 +61,7 @@ public partial class ModalHost : Control
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
         Visible = false;
+        OverlayLayers.Apply(this, OverlayLayers.ModalScrim);
 
         _scrim = new ColorRect
         {

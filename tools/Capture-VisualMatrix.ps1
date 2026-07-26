@@ -140,6 +140,9 @@ foreach ($resolution in $resolutions) {
             Start-Sleep -Milliseconds 350
         }
 
+        # The screenshot is the primary artifact this harness exists to
+        # produce; capture it before the frame-time sample so a perf
+        # spike (measured below) never costs us the visual evidence.
         $bitmap = New-Object System.Drawing.Bitmap($actualWidth, $actualHeight)
         $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
         try {
@@ -149,6 +152,34 @@ foreach ($resolution in $resolutions) {
         finally {
             $graphics.Dispose()
             $bitmap.Dispose()
+        }
+
+        # Frame-time sampling (S-1.7). After 1 s of warm-up the
+        # scene is in steady state; sample 30 frames and write the
+        # deltas to frame-time.json next to the manifest. The
+        # budget check is intentionally lenient: we only warn when
+        # any sample exceeds 2x the budget from
+        # docs/PERFORMANCE_BUDGETS.md (40 ms, the worst-case scenario's
+        # spike budget) — a perf regression is worth surfacing but must
+        # not cost the screenshot that was already captured above.
+        $frameSamples = New-Object System.Collections.Generic.List[double]
+        $warmupStart = [System.Diagnostics.Stopwatch]::StartNew()
+        while ($warmupStart.ElapsedMilliseconds -lt 1000) {
+            Start-Sleep -Milliseconds 16
+        }
+        $sampleStart = [System.Diagnostics.Stopwatch]::StartNew()
+        $lastElapsedMs = 0.0
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Milliseconds 16
+            $nowElapsedMs = $sampleStart.Elapsed.TotalMilliseconds
+            $frameSamples.Add($nowElapsedMs - $lastElapsedMs)
+            $lastElapsedMs = $nowElapsedMs
+        }
+        $frameTimePath = Join-Path $resolvedOutput "$StateName-$slug-frame-time.json"
+        $frameSamples | ConvertTo-Json -AsArray | Set-Content -LiteralPath $frameTimePath -Encoding utf8
+        $maxFrame = ($frameSamples | Measure-Object -Maximum).Maximum
+        if ($maxFrame -gt 40.0) {
+            Write-Warning "Frame budget exceeded at $StateName ${slug}: max $maxFrame ms (> 40 ms spike budget)."
         }
     }
     finally {

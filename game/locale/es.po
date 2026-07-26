@@ -1,0 +1,1076 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: es\n"
+
+# Founding narrative (es) — extract from FounderNarrativeCatalog.cs
+# All keys used by the AstralOnboardingView, resolved at runtime
+# via LocaleManager.Translate(key).
+
+# Q("hand", ...)
+msgid "narrative.hand.title"
+msgstr "La mano que se aleja"
+
+msgid "narrative.hand.body"
+msgstr ""
+"El camino se parte entre ambos.\n"
+"La otra figura comienza a alejarse, arrastrada hacia una oscuridad distinta.\n"
+"Solo queda tiempo para un movimiento."
+
+msgid "narrative.hand.option.hold.label"
+msgstr "Aferrarme a su mano mientras todavía pueda sentirla."
+
+msgid "narrative.hand.option.hold.consequence"
+msgstr "La presión dura un instante más. Después, la distancia vuelve a crecer."
+
+msgid "narrative.hand.option.observe.label"
+msgstr "Observar la dirección, la distancia y cada cambio de la fractura."
+
+msgid "narrative.hand.option.observe.consequence"
+msgstr "La separación continúa, pero su trayectoria queda grabada."
+
+msgid "narrative.hand.option.stabilise.label"
+msgstr "Intentar estabilizar el camino antes de que termine de dividirse."
+
+msgid "narrative.hand.option.stabilise.consequence"
+msgstr "Los bordes obedecen durante un pulso. No es suficiente, pero fue real."
+
+msgid "narrative.hand.option.call.label"
+msgstr "Hacer que escuche dónde intentaré volver a encontrarle."
+
+msgid "narrative.hand.option.call.consequence"
+msgstr "Tu intención atraviesa la fractura, aunque no sabes qué parte llegó."
+
+# Q("word", ...)
+msgid "narrative.word.title"
+msgstr "La palabra que no termina"
+
+msgid "narrative.word.body"
+msgstr ""
+"Su voz todavía logra atravesar la fractura, pero las palabras llegan deformadas.\n"
+"Solo una parece conservar significado."
+
+msgid "narrative.word.option.find.label"
+msgstr "«Encuéntrame.»"
+
+msgid "narrative.word.option.find.consequence"
+msgstr "La palabra se convierte en dirección, aunque no promete llegada."
+
+msgid "narrative.word.option.return.label"
+msgstr "«Regresa.»"
+
+msgid "narrative.word.option.return.consequence"
+msgstr "Algo en ti se orienta hacia lo perdido."
+
+msgid "narrative.word.option.remember.label"
+msgstr "«Recuerda.»"
+
+msgid "narrative.word.option.remember.consequence"
+msgstr "Los recuerdos dejan de ser ruido y se aferran unos a otros."
+
+msgid "narrative.word.option.continue.label"
+msgstr "«Continúa.»"
+
+msgid "narrative.word.option.continue.consequence"
+msgstr "La fractura ya no parece una orden de detenerte."
+
+# Q("detail", ...)
+msgid "narrative.detail.title"
+msgstr "El último detalle intacto"
+
+msgid "narrative.detail.body"
+msgstr ""
+"Su silueta desaparece.\n"
+"La memoria permanece, pero ya no puede conservarlo todo con la misma claridad.\n"
+"Un detalle se niega a desvanecerse."
+
+msgid "narrative.detail.option.name.label"
+msgstr "La forma en que pronunciaba mi nombre."
+
+msgid "narrative.detail.option.name.consequence"
+msgstr "Tu identidad adquiere un borde al ser recordada por otra voz."
+
+msgid "narrative.detail.option.hands.label"
+msgstr "El movimiento de sus manos cuando reparábamos algo juntos."
+
+msgid "narrative.detail.option.hands.consequence"
+msgstr "Un gesto repetido reconstruye la idea de una obra compartida."
+
+msgid "narrative.detail.option.object.label"
+msgstr "El peso del objeto que ambos reconocíamos como nuestro."
+
+msgid "narrative.detail.option.object.consequence"
+msgstr "La memoria del objeto introduce una palabra nueva: peso."
+
+msgid "narrative.detail.option.journey.label"
+msgstr "La sensación de avanzar juntos sin conocer el destino."
+
+msgid "narrative.detail.option.journey.consequence"
+msgstr "El destino desaparece; el movimiento compartido no."
+
+# Q("old-form", ...)
+msgid "narrative.old-form.title"
+msgstr "La forma que queda atrás"
+
+msgid "narrative.old-form.body"
+msgstr ""
+"Dejas de sentir rostro, manos y respiración.\n"
+"Tu antigua forma ya no puede acompañarte.\n"
+"Aferrarte a ella podría arrastrar consigo lo que todavía permanece."
+
+msgid "narrative.old-form.option.exact.label"
+msgstr "Conservar su forma exacta mientras sea posible."
+
+msgid "narrative.old-form.option.exact.consequence"
+msgstr "La forma resiste como un contorno bajo presión."
+
+msgid "narrative.old-form.option.sensation.label"
+msgstr "Conservar únicamente las sensaciones que alguna vez produjo."
+
+msgid "narrative.old-form.option.sensation.consequence"
+msgstr "El contorno desaparece; la sensibilidad queda."
+
+msgid "narrative.old-form.option.separate.label"
+msgstr "Separar mi identidad de cualquier cuerpo que haya tenido."
+
+msgid "narrative.old-form.option.separate.consequence"
+msgstr "La identidad permanece sin necesitar una silueta."
+
+msgid "narrative.old-form.option.release.label"
+msgstr "Permitir que desaparezca para poder adoptar algo nuevo."
+
+msgid "narrative.old-form.option.release.consequence"
+msgstr "La antigua forma se disuelve sin llevarse la memoria."
+
+# Q("time", ...)
+msgid "narrative.time.title"
+msgstr "El tiempo adquiere orden"
+
+msgid "narrative.time.body"
+msgstr ""
+"Antes, todos tus recuerdos podían existir al mismo tiempo.\n"
+"Ahora comienzan a colocarse unos detrás de otros.\n"
+"Para conservarlos debes aceptar una manera de ordenarlos."
+
+msgid "narrative.time.option.cause.label"
+msgstr "Por aquello que ocurrió primero y lo que provocó después."
+
+msgid "narrative.time.option.cause.consequence"
+msgstr "Los recuerdos forman una cadena de causas."
+
+msgid "narrative.time.option.feeling.label"
+msgstr "Por la intensidad de lo que sentí en cada momento."
+
+msgid "narrative.time.option.feeling.consequence"
+msgstr "La intensidad se convierte en un reloj imperfecto."
+
+msgid "narrative.time.option.promises.label"
+msgstr "Por las promesas, acuerdos y deudas que dejaron entre nosotros."
+
+msgid "narrative.time.option.promises.consequence"
+msgstr "Cada acuerdo ocupa un lugar que no puede intercambiarse."
+
+msgid "narrative.time.option.places.label"
+msgstr "Por los lugares atravesados y los caminos que los conectaban."
+
+msgid "narrative.time.option.places.consequence"
+msgstr "La memoria se despliega como una ruta."
+
+# Q("mortality", ...)
+msgid "narrative.mortality.title"
+msgstr "La primera frontera"
+
+msgid "narrative.mortality.body"
+msgstr ""
+"Algo introduce una idea imposible dentro de tu conciencia:\n"
+"la forma que recibirás tendrá un final."
+
+msgid "narrative.mortality.option.weight.label"
+msgstr "Entonces cada decisión tendrá un peso que antes no tenía."
+
+msgid "narrative.mortality.option.weight.consequence"
+msgstr "La irreversibilidad convierte intención en responsabilidad."
+
+msgid "narrative.mortality.option.understand.label"
+msgstr "Entonces debo comprender ese límite antes de aceptarlo."
+
+msgid "narrative.mortality.option.understand.consequence"
+msgstr "El límite se mantiene delante de ti como una pregunta."
+
+msgid "narrative.mortality.option.others.label"
+msgstr "Entonces habrá que aprender a permanecer a través de otros."
+
+msgid "narrative.mortality.option.others.consequence"
+msgstr "La continuidad deja de ser individual."
+
+msgid "narrative.mortality.option.new.label"
+msgstr "Entonces también será posible comenzar de una forma completamente nueva."
+
+msgid "narrative.mortality.option.new.consequence"
+msgstr "El final contiene, por primera vez, la idea de un comienzo."
+
+# Q("world", ...)
+msgid "narrative.world.title"
+msgstr "El mundo te alcanza"
+
+msgid "narrative.world.body"
+msgstr ""
+"Por primera vez algo ajeno al tránsito toca tu conciencia.\n"
+"No tiene voz, pero puede sentirse de varias maneras.\n"
+"Una de ellas logra atravesarte con mayor claridad."
+
+msgid "narrative.world.option.earth.label"
+msgstr "Un peso que evita que mis fragmentos se dispersen."
+
+msgid "narrative.world.option.earth.consequence"
+msgstr "La presencia sostiene tus fragmentos."
+
+msgid "narrative.world.option.water.label"
+msgstr "Un flujo que cambia de forma sin perder continuidad."
+
+msgid "narrative.world.option.water.consequence"
+msgstr "La presencia se adapta sin desaparecer."
+
+msgid "narrative.world.option.fire.label"
+msgstr "Una temperatura que transforma aquello que toca."
+
+msgid "narrative.world.option.fire.consequence"
+msgstr "La presencia altera el borde de tu nueva forma."
+
+msgid "narrative.world.option.air.label"
+msgstr "Una corriente que encuentra una salida donde no parecía existir."
+
+msgid "narrative.world.option.air.consequence"
+msgstr "La presencia convierte el cierre en ruta."
+
+msgid "narrative.world.option.aether.label"
+msgstr "Una relación invisible entre fragmentos separados."
+
+msgid "narrative.world.option.aether.consequence"
+msgstr "La presencia conecta sin tocar."
+
+msgid "narrative.world.option.none.label"
+msgstr "Un silencio que no exige adoptar ninguna afinidad."
+
+msgid "narrative.world.option.none.consequence"
+msgstr "La presencia permite que el silencio permanezca."
+
+# Q("perception", ...)
+msgid "narrative.perception.title"
+msgstr "Lo primero que reconoce la nueva forma"
+
+msgid "narrative.perception.body"
+msgstr ""
+"Algo comienza a organizarse alrededor de tu conciencia.\n"
+"Todavía no es un cuerpo completo.\n"
+"Sin embargo, una percepción aparece antes que las demás."
+
+msgid "narrative.perception.option.ardhen.label"
+msgstr "El peso, la resistencia y el esfuerzo necesario para mover algo."
+
+msgid "narrative.perception.option.ardhen.consequence"
+msgstr "La forma aprende esfuerzo antes que movimiento."
+
+msgid "narrative.perception.option.eirune.label"
+msgstr "Los pulsos, heridas y ciclos que mantienen viva una forma."
+
+msgid "narrative.perception.option.eirune.consequence"
+msgstr "La forma reconoce que estar viva exige continuidad."
+
+msgid "narrative.perception.option.kovari.label"
+msgstr "Los ritmos, uniones y fallos que permiten desmontar un sistema."
+
+msgid "narrative.perception.option.kovari.consequence"
+msgstr "La forma distingue piezas donde antes solo había totalidad."
+
+msgid "narrative.perception.option.myrven.label"
+msgstr "Los gestos, contradicciones y significados que existen entre identidades."
+
+msgid "narrative.perception.option.myrven.consequence"
+msgstr "La forma reconoce que un rostro nunca contiene una sola lectura."
+
+# Q("orientation", ...)
+msgid "narrative.orientation.title"
+msgstr "La nueva forma busca orientación"
+
+msgid "narrative.orientation.body"
+msgstr ""
+"La estructura continúa completándose.\n"
+"Para no perderse necesita reconocer una relación fundamental con lo que la rodea."
+
+msgid "narrative.orientation.option.vaelun.label"
+msgstr "La distancia entre un lugar, un camino y la posibilidad de regresar."
+
+msgid "narrative.orientation.option.vaelun.consequence"
+msgstr "La forma encuentra dirección en la posibilidad del retorno."
+
+msgid "narrative.orientation.option.orveth.label"
+msgstr "El equilibrio entre aquello que se necesita, se conserva y se entrega."
+
+msgid "narrative.orientation.option.orveth.consequence"
+msgstr "La forma reconoce una reserva y su posible destinatario."
+
+msgid "narrative.orientation.option.caelith.label"
+msgstr "Las conexiones que permiten convertir fragmentos en conocimiento."
+
+msgid "narrative.orientation.option.caelith.consequence"
+msgstr "La forma enlaza observaciones que separadas no bastaban."
+
+msgid "narrative.orientation.option.theryn.label"
+msgstr "El estado emocional que mantiene unido o separa a un grupo."
+
+msgid "narrative.orientation.option.theryn.consequence"
+msgstr "La forma percibe tensión incluso sin conocer todavía a un grupo."
+
+# Q("threshold", ...)
+msgid "narrative.threshold.title"
+msgstr "El umbral se resiste"
+
+msgid "narrative.threshold.body"
+msgstr ""
+"La salida hacia el plano terrenal comienza a cerrarse.\n"
+"No es una criatura ni una voluntad.\n"
+"Es una fuerza que ocupa todo el espacio por el que debes atravesar."
+
+msgid "narrative.threshold.option.support.label"
+msgstr "Sostener su presión hasta que la abertura vuelva a estabilizarse."
+
+msgid "narrative.threshold.option.support.consequence"
+msgstr "La abertura tiembla, sostenida por tu resistencia."
+
+msgid "narrative.threshold.option.control.label"
+msgstr "Fijar límites y obligarla a desplazarse dentro de un espacio controlado."
+
+msgid "narrative.threshold.option.control.consequence"
+msgstr "El umbral cede dentro de límites que no esperaba."
+
+msgid "narrative.threshold.option.mobility.label"
+msgstr "Seguir su movimiento hasta encontrar una ruta alrededor."
+
+msgid "narrative.threshold.option.mobility.consequence"
+msgstr "La resistencia se convierte en un trayecto."
+
+msgid "narrative.threshold.option.precision.label"
+msgstr "Esperar hasta comprender el patrón exacto de su debilidad."
+
+msgid "narrative.threshold.option.precision.consequence"
+msgstr "El patrón aparece justo antes de desaparecer."
+
+msgid "narrative.threshold.option.assault.label"
+msgstr "Atravesarla antes de que tenga tiempo de cerrarse por completo."
+
+msgid "narrative.threshold.option.assault.consequence"
+msgstr "La fuerza te alcanza tarde; ya estás al otro lado."
+
+# Q("ground", ...)
+msgid "narrative.ground.title"
+msgstr "El peso bajo tus pies"
+
+msgid "narrative.ground.body"
+msgstr ""
+"Algo aparece debajo de ti.\n"
+"Todavía está demasiado lejos para llamarlo suelo.\n"
+"Por primera vez comprendes que el impacto podría destruir parte de lo que has conservado."
+
+msgid "narrative.ground.option.clarity.label"
+msgstr "Proteger la claridad de mi conciencia."
+
+msgid "narrative.ground.option.clarity.consequence"
+msgstr "Tus recuerdos se cierran alrededor de un núcleo estable."
+
+msgid "narrative.ground.option.shared.label"
+msgstr "Proteger el objeto o fragmento que compartíamos."
+
+msgid "narrative.ground.option.shared.consequence"
+msgstr "El fragmento ocupa el centro de tu caída."
+
+msgid "narrative.ground.option.move.label"
+msgstr "Conservar la capacidad de moverme cuando todo termine."
+
+msgid "narrative.ground.option.move.consequence"
+msgstr "La forma reserva movimiento para después del impacto."
+
+msgid "narrative.ground.option.mark.label"
+msgstr "Dejar una marca que permita reconocer el lugar exacto de mi llegada."
+
+msgid "narrative.ground.option.mark.consequence"
+msgstr "El punto de caída adquiere una coordenada y una intención."
+
+# Q("unchanged", ...)
+msgid "narrative.unchanged.title"
+msgstr "Aquello que no debe cambiar"
+
+msgid "narrative.unchanged.body"
+msgstr ""
+"La forma está casi completa.\n"
+"Tendrá otro rostro, otra voz y necesidades que nunca has conocido.\n"
+"Si todo lo demás puede cambiar, algo debe seguir siendo reconocible."
+
+msgid "narrative.unchanged.option.protect.label"
+msgstr "Aquello que decido proteger."
+
+msgid "narrative.unchanged.option.protect.consequence"
+msgstr "La nueva forma encuentra un límite que está dispuesta a sostener."
+
+msgid "narrative.unchanged.option.freedom.label"
+msgstr "La libertad de elegir en quién puedo convertirme."
+
+msgid "narrative.unchanged.option.freedom.consequence"
+msgstr "La forma termina de cerrarse sin cerrar tus posibilidades."
+
+msgid "narrative.unchanged.option.understand.label"
+msgstr "La necesidad de comprender antes de aceptar una respuesta."
+
+msgid "narrative.unchanged.option.understand.consequence"
+msgstr "La pregunta permanece incluso cuando la forma deja de cambiar."
+
+msgid "narrative.unchanged.option.paths.label"
+msgstr "La forma en que encuentro caminos incluso después de perderlos."
+
+msgid "narrative.unchanged.option.paths.consequence"
+msgstr "El terreno deja de ser una mancha y comienza a parecer un lugar."
+
+# UI common
+msgid "ui.common.language.tooltip"
+msgstr "Cambiar el idioma de la narrativa."
+
+msgid "ui.common.language.english"
+msgstr "Inglés"
+
+msgid "ui.common.language.spanish"
+msgstr "Español"
+
+msgid "ui.pause.title"
+msgstr "Menú de la ciudad"
+
+msgid "ui.pause.resume"
+msgstr "Continuar"
+
+msgid "ui.pause.settings_pending"
+msgstr "Ajustes — próximamente"
+
+msgid "ui.pause.language"
+msgstr "Idioma: {0}"
+
+msgid "ui.pause.reset.action"
+msgstr "Empezar de nuevo"
+
+msgid "ui.pause.soft_reset.action"
+msgstr "Reiniciar ciudad — conservar fundador"
+
+msgid "ui.pause.open"
+msgstr "Menú"
+
+msgid "ui.pause.cancel_reset"
+msgstr "Conservar ciudad actual"
+
+msgid "ui.pause.reset.title"
+msgstr "¿Empezar una ciudad nueva?"
+
+msgid "ui.pause.reset.warning"
+msgstr "Esto elimina permanentemente la ciudad local y vuelve a la creación del héroe."
+
+msgid "ui.pause.reset.confirm"
+msgstr "Eliminar ciudad y reiniciar"
+
+msgid "ui.pause.soft_reset.title"
+msgstr "¿Reiniciar esta ciudad?"
+
+msgid "ui.pause.soft_reset.warning"
+msgstr "Se borrarán edificios, recursos y progreso. El fundador y sus elecciones se conservarán."
+
+msgid "ui.pause.soft_reset.confirm"
+msgstr "Reiniciar y conservar fundador"
+
+msgid "ui.onboarding.back"
+msgstr "Atrás"
+
+msgid "ui.onboarding.stabilise"
+msgstr "Estabilizar fragmento"
+
+msgid "ui.onboarding.shape_memory"
+msgstr "Dar forma a la memoria"
+
+msgid "ui.onboarding.progress"
+msgstr "FRAGMENTOS ESTABILIZADOS {0:00} / {1}"
+
+# Formatos generales de runtime
+msgid "ui.time.day"
+msgstr "Día {0} · {1:00}:{2:00}"
+
+msgid "ui.speed.paused"
+msgstr "Pausado a {0}×. Continúa con el botón de reproducción."
+
+msgid "ui.speed.normal"
+msgstr "Velocidad normal (1×). Pulsa para cambiar a 2×."
+
+msgid "ui.speed.fast"
+msgstr "Velocidad rápida (2×). Pulsa para cambiar a 4×."
+
+msgid "ui.speed.fastest"
+msgstr "Velocidad máxima (4×). Pulsa para volver a 1×."
+
+msgid "ui.speed.change"
+msgstr "Pulsa para cambiar la velocidad."
+
+msgid "ui.status.assigned"
+msgstr "Asignado"
+
+msgid "ui.status.saved"
+msgstr "Guardado · {0}"
+
+msgid "ui.status.food_stock"
+msgstr "Comida: {0} / {1}"
+
+msgid "ui.status.wood_reserve"
+msgstr "Madera: {0} recolectada · {1} en bosques"
+
+msgid "ui.status.wood_stock"
+msgstr "Madera: {0} recolectada"
+
+msgid "ui.status.food"
+msgstr "Comida {0}/{1}"
+
+msgid "ui.status.wood"
+msgstr "Madera {0}"
+
+msgid "ui.status.build"
+msgstr "Obra {0}/{1}"
+
+msgid "ui.status.project"
+msgstr "{0} {1}/{2} ({3}) · {4}/{5}"
+
+msgid "ui.construction.percent"
+msgstr "Construcción · {0}%"
+
+msgid "ui.construction.cancelled"
+msgstr "Se canceló {0}."
+
+msgid "ui.construction.contributors"
+msgstr "Colaboradores: {0}/{1}"
+
+msgid "ui.construction.material"
+msgstr "Depósito: {0} {1} ahora · Total: {2} {1} · Disponible: {3}"
+
+msgid "ui.construction.choose_lot"
+msgstr "Elige un solar para {0}"
+
+msgid "ui.citizens.recruit_failed"
+msgstr "No se pudo reclutar: {0}"
+
+msgid "ui.citizens.count"
+msgstr "{0} ciudadanos · {1} no héroes"
+
+msgid "ui.citizens.roster_row"
+msgstr "{0} · {1} · {2}"
+
+msgid "ui.citizens.detail"
+msgstr "{0}\nEstado: {1}\nAsignación: {2}\nLinaje: {3}\nAfinidades: {4}\nEnergía: {5}/{6}\n\nAbre una granja, cantera u obra para asignar un ciudadano disponible."
+
+msgid "ui.citizens.construction_assignment"
+msgstr "{0} (en construcción)"
+
+msgid "ui.expedition.dispatch_failed"
+msgstr "No se pudo enviar: {0}"
+
+msgid "ui.expedition.schedule"
+msgstr "{0} partió el {1} y regresa el {2}."
+
+msgid "ui.resource.wood_remains"
+msgstr "Quedan {0} de madera"
+
+msgid "ui.tutorial.title"
+msgstr "Consejo {0} de {1} — {2}"
+
+msgid "ui.hero.step"
+msgstr "Paso {0} de {1}"
+
+msgid "ui.hero.maximum"
+msgstr "Puedes seleccionar como máximo {0}."
+
+msgid "ui.hero.creation_failed"
+msgstr "No se pudo crear el héroe ({0})."
+
+msgid "ui.astral.identity.body"
+msgstr "Tu forma será nueva. Tu voz pertenecerá a otro mundo.\n\nPuede que esa persona vuelva a encontrarte. Puede que nunca lo haga.\n\nSi alguna vez ocurre, ¿con qué nombre podrá reconocerte?"
+
+msgid "ui.astral.creation_failed"
+msgstr "No fue posible conservar la nueva forma ({0}). Reintenta."
+
+msgid "ui.astral.false_question.body"
+msgstr "La memoria permanece.\nEl mundo debajo de ti se aproxima.\n\nY ahora… ¿qué harás con todo esto?"
+
+msgid "ui.production.min_floor"
+msgstr "El mínimo debe ser al menos {0}."
+
+msgid "ui.production.max_ceiling"
+msgstr "El máximo debe ser como mucho {0}."
+
+msgid "ui.production.title"
+msgstr "{0} — {1}"
+
+msgid "ui.production.wood_stock"
+msgstr "Madera: {0} / {1} (reserva {2})"
+
+msgid "ui.production.stock"
+msgstr "{0}: {1} / {2}"
+
+msgid "ui.production.foraging_rate"
+msgstr "Ritmo de recolección: {0} {1} / tick ({2} trabajadores)"
+
+msgid "ui.production.rate"
+msgstr "Ritmo: {0} {1} / tick"
+
+msgid "ui.production.inputs_due"
+msgstr "Insumos requeridos: {0}"
+
+msgid "ui.production.storage_full"
+msgstr "Almacén lleno ({0} / {1})"
+
+# Formatos del Chronicle
+msgid "event.stock_produced"
+msgstr "{0} produjo +{1}"
+
+msgid "event.stock_capped"
+msgstr "{0} alcanzó el inventario objetivo"
+
+msgid "event.workers_exhausted"
+msgstr "{0} se detuvo: trabajadores agotados"
+
+msgid "event.worker_recovered"
+msgstr "{0} continuó: trabajadores recuperados"
+
+msgid "event.day_began"
+msgstr "Salió el sol — los trabajadores fueron a sus puestos"
+
+msgid "event.night_began"
+msgstr "Se puso el sol — los trabajadores volvieron a descansar"
+
+msgid "event.project_progressed"
+msgstr "{0} añadió +{1} de trabajo"
+
+msgid "event.project_paused"
+msgstr "{0} fue pausado por el jugador"
+
+msgid "event.project_resumed"
+msgstr "{0} fue reanudado por el jugador"
+
+msgid "event.project_completed"
+msgstr "{0} se completó"
+
+msgid "event.building_created"
+msgstr "{0} se convirtió en un edificio"
+
+msgid "event.well_fed_expired"
+msgstr "{0} perdió el efecto Bien alimentado"
+
+msgid "event.production_blocked"
+msgstr "{0} espera: faltan insumos"
+
+msgid "event.expedition_dispatched"
+msgstr "{0} partió con +{1} suministros"
+
+msgid "event.expedition_returned"
+msgstr "{0} regresó con +{1}"
+
+msgid "event.expedition_failed"
+msgstr "{0} no logró regresar"
+
+msgid "event.expedition_cancelled"
+msgstr "{0} fue cancelada"
+
+msgid "event.migrant_arrived"
+msgstr "{0} se unió a la ciudad"
+
+# Textos fijos de la UI general
+msgid "View hero"
+msgstr "Ver héroe"
+
+msgid "Open the hero profile"
+msgstr "Abrir el perfil del héroe"
+
+msgid "Construction"
+msgstr "Construcción"
+
+msgid "Construction progress"
+msgstr "Progreso de obra"
+
+msgid "Open the construction menu"
+msgstr "Abrir el menú de construcción"
+
+msgid "Menu"
+msgstr "Menú"
+
+msgid "Open the city menu (ESC)"
+msgstr "Abrir el menú de la ciudad (ESC)"
+
+msgid "Recon"
+msgstr "Explorar"
+
+msgid "Send the founder on a reconnaissance"
+msgstr "Enviar al fundador a explorar"
+
+msgid "Citizens"
+msgstr "Ciudadanos"
+
+msgid "Open the city roster or recruit a citizen"
+msgstr "Abrir el registro de la ciudad o reclutar un ciudadano"
+
+msgid "The city begins with one person"
+msgstr "La ciudad comienza con una persona"
+
+msgid "No buildings yet. Your hero is ready for the first decision."
+msgstr "Aún no hay edificios. Tu héroe está listo para la primera decisión."
+
+msgid "Select a tree and choose Gather. Your hero will walk to it automatically."
+msgstr "Selecciona un árbol y elige Recolectar. Tu héroe caminará hasta él automáticamente."
+
+msgid "Building"
+msgstr "Edificio"
+
+msgid "Back to city"
+msgstr "Volver a la ciudad"
+
+msgid "Return to the city view"
+msgstr "Volver a la vista de la ciudad"
+
+msgid "Close"
+msgstr "Cerrar"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Pause"
+msgstr "Pausar"
+
+msgid "Paused"
+msgstr "Pausado"
+
+msgid "Resume"
+msgstr "Continuar"
+
+msgid "Next"
+msgstr "Siguiente"
+
+msgid "Back"
+msgstr "Atrás"
+
+msgid "Skip"
+msgstr "Omitir"
+
+msgid "Got it"
+msgstr "Entendido"
+
+msgid "Confirm placement"
+msgstr "Confirmar ubicación"
+
+msgid "Close construction"
+msgstr "Cerrar construcción"
+
+msgid "Close the construction menu (work continues)."
+msgstr "Cerrar el menú de construcción (el trabajo continúa)."
+
+msgid "Open the construction menu."
+msgstr "Abrir el menú de construcción."
+
+msgid "Reconnaissance"
+msgstr "Exploración"
+
+msgid "Dispatch a reconnaissance."
+msgstr "Enviar una exploración."
+
+msgid "Dispatch"
+msgstr "Enviar"
+
+msgid "Dispatch a reconnaissance: consumes 1 Wood, returns with 1 Stone after 4 in-game days."
+msgstr "Enviar una exploración: consume 1 de madera y regresa con 1 de piedra tras 4 días del juego."
+
+msgid "City roster"
+msgstr "Registro de la ciudad"
+
+msgid "Select a citizen."
+msgstr "Selecciona un ciudadano."
+
+msgid "Recruit citizen"
+msgstr "Reclutar ciudadano"
+
+msgid "Create a hero first."
+msgstr "Crea primero un héroe."
+
+msgid "Recruit the first citizen to begin the roster."
+msgstr "Recluta al primer ciudadano para iniciar el registro."
+
+msgid "Hero"
+msgstr "Héroe"
+
+msgid "Citizen"
+msgstr "Ciudadano"
+
+msgid "None"
+msgstr "Ninguna"
+
+msgid "Unknown"
+msgstr "Desconocido"
+
+msgid "On expedition"
+msgstr "En expedición"
+
+msgid "Working"
+msgstr "Trabajando"
+
+msgid "At home"
+msgstr "En casa"
+
+msgid "Tree"
+msgstr "Árbol"
+
+msgid "Wood remains"
+msgstr "Madera restante"
+
+msgid "Patch growth at next dawn"
+msgstr "El terreno crece al próximo amanecer"
+
+msgid "Founder is already assigned"
+msgstr "El fundador ya está asignado"
+
+msgid "Gather"
+msgstr "Recolectar"
+
+msgid "Wood resource — click for actions"
+msgstr "Recurso de madera — pulsa para ver acciones"
+
+msgid "Workers"
+msgstr "Trabajadores"
+
+msgid "Assigned"
+msgstr "Asignados"
+
+msgid "Available"
+msgstr "Disponibles"
+
+msgid "(no workers)"
+msgstr "(sin trabajadores)"
+
+msgid "(no free citizens)"
+msgstr "(sin ciudadanos libres)"
+
+msgid "Production"
+msgstr "Producción"
+
+msgid "Reactive policy"
+msgstr "Política reactiva"
+
+msgid "Min"
+msgstr "Mín."
+
+msgid "Max"
+msgstr "Máx."
+
+msgid "Pause production"
+msgstr "Pausar producción"
+
+msgid "Resume production"
+msgstr "Continuar producción"
+
+msgid "Inputs due: none"
+msgstr "Insumos requeridos: ninguno"
+
+msgid "Workers rest here between shifts."
+msgstr "Los trabajadores descansan aquí entre turnos."
+
+msgid "Production paused by the player"
+msgstr "Producción pausada por el jugador"
+
+msgid "Resting during the night"
+msgstr "Descansando durante la noche"
+
+msgid "Waiting for contributors"
+msgstr "Esperando colaboradores"
+
+msgid "Contributors exhausted"
+msgstr "Colaboradores agotados"
+
+msgid "Waiting for inputs"
+msgstr "Esperando insumos"
+
+msgid "Authorised"
+msgstr "Autorizado"
+
+msgid "Under construction"
+msgstr "En construcción"
+
+msgid "Basic Shelter"
+msgstr "Refugio básico"
+
+msgid "Farm"
+msgstr "Granja"
+
+msgid "Quarry"
+msgstr "Cantera"
+
+msgid "Stone"
+msgstr "Piedra"
+
+msgid "Wood"
+msgstr "Madera"
+
+msgid "Food"
+msgstr "Comida"
+
+msgid "Create your hero"
+msgstr "Crea tu héroe"
+
+msgid "Create the hero"
+msgstr "Crear el héroe"
+
+msgid "Hero name"
+msgstr "Nombre del héroe"
+
+msgid "Complete the earlier steps to review the profile."
+msgstr "Completa los pasos anteriores para revisar el perfil."
+
+msgid "Hero profile"
+msgstr "Perfil del héroe"
+
+msgid "Chronicle — click to collapse"
+msgstr "Crónica — pulsa para contraer"
+
+msgid "Click to show only the newest event."
+msgstr "Pulsa para mostrar solo el evento más reciente."
+
+msgid "The city's recent events will be recorded here."
+msgstr "Aquí se registrarán los eventos recientes de la ciudad."
+
+msgid "Needs attention · newest entry at the bottom"
+msgstr "Requiere atención · evento más reciente al final"
+
+msgid "Newest entry at the bottom"
+msgstr "Evento más reciente al final"
+
+msgid "Open the building that needs attention."
+msgstr "Abrir el edificio que requiere atención."
+
+msgid "Click to remove this worker"
+msgstr "Pulsa para retirar a este trabajador"
+
+msgid "Close (ESC)"
+msgstr "Cerrar (ESC)"
+
+msgid "Return to the city."
+msgstr "Volver a la ciudad."
+
+msgid "Audio, display, accessibility, and controls will live here."
+msgstr "Aquí estarán el audio, la pantalla, la accesibilidad y los controles."
+
+msgid "Delete the current local city and return to onboarding."
+msgstr "Eliminar la ciudad local y volver a la creación del héroe."
+
+msgid "Clear the city while keeping the current founder and onboarding choices."
+msgstr "Vaciar la ciudad conservando el fundador y sus elecciones iniciales."
+
+msgid "Lineage theme showcase"
+msgstr "Muestra de temas de linaje"
+
+msgid "Lineage theme: ardhen"
+msgstr "Tema de linaje: ardhen"
+
+msgid "Switch between the eight lineages. Every bundle currently provides panel; the other surfaces intentionally demonstrate the deterministic same-lineage panel fallback."
+msgstr "Cambia entre los ocho linajes. Cada paquete aporta un panel; las demás superficies muestran intencionalmente el fallback determinista del mismo linaje."
+msgid "ui.chronicle.empty"
+msgstr "Los eventos recientes de la ciudad se registrarán aquí."
+
+msgid "ui.chronicle.collapse"
+msgstr "Crónica — clic para contraer"
+
+msgid "ui.chronicle.expand"
+msgstr "Crónica — clic para expandir ({0})"
+
+msgid "ui.chronicle.collapse_tooltip"
+msgstr "Haz clic para mostrar solo el evento más reciente."
+
+msgid "ui.chronicle.expand_tooltip"
+msgstr "Haz clic para abrir la crónica completa."
+
+msgid "ui.chronicle.decisions"
+msgstr "Decisiones pendientes ({0})"
+
+msgid "ui.chronicle.needs_attention"
+msgstr "Requiere atención · evento más reciente al final"
+
+msgid "ui.chronicle.newest_bottom"
+msgstr "Evento más reciente al final"
+
+msgid "ui.chronicle.welcome_stock"
+msgstr "Qué bueno verte · {0} simulados · +{1} reservas"
+
+msgid "ui.chronicle.welcome"
+msgstr "Qué bueno verte · {0} simulados"
+
+msgid "ui.chronicle.open"
+msgstr "{0} · abrir"
+
+msgid "ui.chronicle.open_tooltip"
+msgstr "Abre la construcción que requiere atención."
+
+msgid "Resources"
+msgstr "Recursos"
+
+msgid "In progress. Click the construction menu for details."
+msgstr "En curso. Abre el menú de construcción para ver los detalles."
+
+msgid "Paused. Resume from the construction menu."
+msgstr "En pausa. Reanuda desde el menú de construcción."
+
+msgid " · paused"
+msgstr " · en pausa"
+
+msgid " · full"
+msgstr " · lleno"
+
+msgid " · exhausted"
+msgstr " · agotados"
+
+msgid " · no workers"
+msgstr " · sin trabajadores"
+
+msgid " · night"
+msgstr " · noche"
+
+msgid " · missing inputs"
+msgstr " · faltan insumos"
+
+msgid "Afecta la presentación del sprite, no el resultado narrativo."
+msgstr "Afecta la presentación del sprite, no el resultado narrativo."
+
+msgid "Ah."
+msgstr "Ah."
+
+msgid "Conservar este nombre"
+msgstr "Conservar este nombre"
+
+msgid "Could not cancel the project."
+msgstr "No se pudo cancelar el proyecto."
+
+msgid "El nombre debe tener entre 1 y 32 caracteres y no contener controles."
+msgstr "El nombre debe tener entre 1 y 32 caracteres y no contener controles."
+
+msgid "El nombre que atravesará contigo"
+msgstr "El nombre que atravesará contigo"
+
+msgid "FORMA RECONSTRUIDA"
+msgstr "FORMA RECONSTRUIDA"
+
+msgid "La forma está lista."
+msgstr "La forma está lista."
+
+msgid "Min must be less than or equal to Max."
+msgstr "El mínimo debe ser menor o igual que el máximo."
+
+msgid "no material cost"
+msgstr "sin costo de materiales"
+
+msgid "Nombre del fundador"
+msgstr "Nombre del fundador"
+
+msgid "Ya llegamos."
+msgstr "Ya llegamos."

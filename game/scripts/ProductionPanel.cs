@@ -193,17 +193,17 @@ public partial class ProductionPanel : PanelContainer
     {
         if (min < MinStockFloor)
         {
-            error = $"Min must be at least {MinStockFloor}.";
+            error = UiText.Format("ui.production.min_floor", MinStockFloor);
             return false;
         }
         if (max > MaxStockCeiling)
         {
-            error = $"Max must be at most {MaxStockCeiling}.";
+            error = UiText.Format("ui.production.max_ceiling", MaxStockCeiling);
             return false;
         }
         if (min > max)
         {
-            error = "Min must be less than or equal to Max.";
+            error = UiText.Get("Min must be less than or equal to Max.");
             return false;
         }
         error = string.Empty;
@@ -220,10 +220,21 @@ public partial class ProductionPanel : PanelContainer
 
     public void Refresh(BuildingDetailSnapshot snapshot)
     {
-        _titleLabel.Text = $"{snapshot.DisplayName} — {snapshot.ResourceLabel}";
+        _titleLabel.Text = UiText.Format(
+            "ui.production.title",
+            UiText.Get(snapshot.DisplayName),
+            UiText.Get(snapshot.ResourceLabel));
         _stockLabel.Text = snapshot.IsForest
-            ? $"Wood: {snapshot.Stock} / {snapshot.StorageCapacity} (reserve {snapshot.WoodReserve})"
-            : $"{snapshot.ResourceLabel}: {snapshot.Stock} / {snapshot.StorageCapacity}";
+            ? UiText.Format(
+                "ui.production.wood_stock",
+                snapshot.Stock,
+                snapshot.StorageCapacity,
+                snapshot.WoodReserve)
+            : UiText.Format(
+                "ui.production.stock",
+                UiText.Get(snapshot.ResourceLabel),
+                snapshot.Stock,
+                snapshot.StorageCapacity);
 
         _stockBar.MinValue = 0;
         _stockBar.MaxValue = snapshot.StorageCapacity == 0 ? 1 : snapshot.StorageCapacity;
@@ -232,8 +243,15 @@ public partial class ProductionPanel : PanelContainer
         _rateLabel.Text = snapshot.StorageCapacity == 0
             ? "Resting site — no production"
             : snapshot.IsForest
-                ? $"Foraging rate: {snapshot.ProductionRate} {snapshot.ResourceUnit} / tick ({snapshot.AssignedCount} workers)"
-                : $"Rate: {snapshot.ProductionRate} {snapshot.ResourceUnit} / tick";
+                ? UiText.Format(
+                    "ui.production.foraging_rate",
+                    snapshot.ProductionRate,
+                    UiText.Get(snapshot.ResourceUnit),
+                    snapshot.AssignedCount)
+                : UiText.Format(
+                    "ui.production.rate",
+                    snapshot.ProductionRate,
+                    UiText.Get(snapshot.ResourceUnit));
 
         _inputsLabel.Text = DescribeInputsDue(snapshot);
         _statusLabel.Text = DescribePolicyState(snapshot);
@@ -242,10 +260,10 @@ public partial class ProductionPanel : PanelContainer
         _enabledToggle.SetPressedNoSignal(snapshot.ProductionEnabled);
         _enabledToggle.SetIconAndLabel(
             snapshot.ProductionEnabled ? IconPaths.Pause : IconPaths.Play,
-            snapshot.ProductionEnabled ? "Pause" : "Resume");
+            UiText.Get(snapshot.ProductionEnabled ? "Pause" : "Resume"));
         _enabledToggle.TooltipText = snapshot.ProductionEnabled
-            ? "Pause production"
-            : "Resume production";
+            ? UiText.Get("Pause production")
+            : UiText.Get("Resume production");
 
         // Reactive policy controls are hidden for non-productive
         // buildings (Home) and updated without firing the change
@@ -275,31 +293,32 @@ public partial class ProductionPanel : PanelContainer
     {
         if (snapshot.PendingInputs.Count == 0)
         {
-            return "Inputs due: none";
+            return UiText.Get("Inputs due: none");
         }
         var parts = new System.Collections.Generic.List<string>();
         foreach (var input in snapshot.PendingInputs)
         {
             parts.Add($"{input.Amount} {input.Resource.ToString().ToLowerInvariant()}");
         }
-        return $"Inputs due: {string.Join(" + ", parts)}";
+        return UiText.Format("ui.production.inputs_due", string.Join(" + ", parts));
     }
 
     private static string DescribePolicyState(BuildingDetailSnapshot snapshot)
     {
         if (snapshot.StorageCapacity == 0)
         {
-            return "Workers rest here between shifts.";
+            return UiText.Get("Workers rest here between shifts.");
         }
-        if (!snapshot.ProductionEnabled) return "Production paused by the player";
+        if (!snapshot.ProductionEnabled) return UiText.Get("Production paused by the player");
         return snapshot.StopCause switch
         {
-            ProductionStopCause.Night => "Resting during the night",
-            ProductionStopCause.NoWorkers => "Waiting for contributors",
-            ProductionStopCause.WorkersExhausted => "Contributors exhausted",
-            ProductionStopCause.TargetReached => $"Storage full ({snapshot.Stock} / {snapshot.StorageCapacity})",
-            ProductionStopCause.MissingInputs => "Waiting for inputs",
-            _ => "Authorised",
+            ProductionStopCause.Night => UiText.Get("Resting during the night"),
+            ProductionStopCause.NoWorkers => UiText.Get("Waiting for contributors"),
+            ProductionStopCause.WorkersExhausted => UiText.Get("Contributors exhausted"),
+            ProductionStopCause.TargetReached => UiText.Format(
+                "ui.production.storage_full", snapshot.Stock, snapshot.StorageCapacity),
+            ProductionStopCause.MissingInputs => UiText.Get("Waiting for inputs"),
+            _ => UiText.Get("Authorised"),
         };
     }
 }

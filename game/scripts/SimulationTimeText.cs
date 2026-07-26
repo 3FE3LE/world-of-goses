@@ -11,6 +11,15 @@ public static class SimulationTimeText
         double totalHours = GameClock.DayFraction(tick) * 24d;
         int hour = (int)totalHours;
         int minute = (int)((totalHours - hour) * 60d);
-        return $"Day {day} · {hour:D2}:{minute:D2}";
+        return $"Day {day} · {hour:00}:{minute:00}";
+    }
+
+    public static string FormatLocalized(int tick)
+    {
+        int day = GameClock.DayNumber(tick);
+        double totalHours = GameClock.DayFraction(tick) * 24d;
+        int hour = (int)totalHours;
+        int minute = (int)((totalHours - hour) * 60d);
+        return Ui.UiText.Format("ui.time.day", day, hour, minute);
     }
 }

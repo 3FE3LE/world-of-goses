@@ -55,7 +55,19 @@ public partial class CityStatusPanel : PanelContainer
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         _row.AddThemeConstantOverride("separation", ChipGap);
-        AddChild(_row);
+        // The status bar surface spans the full width of the GameUiShell
+        // VBox; wrap the chip row in a SafeAreaMarginContainer so the
+        // chip content stays inside the OS safe area on notched or
+        // rounded displays. Wrapping the OUTER panel with a margin
+        // container previously rendered a visible grey band and was
+        // reverted (TO_DO.md 2026-07-22).
+        var safeArea = new SafeAreaMarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        AddChild(safeArea);
+        safeArea.AddChild(_row);
 
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
@@ -113,7 +125,7 @@ public partial class CityStatusPanel : PanelContainer
             _savedChip = null;
             return;
         }
-        string text = $"Saved · {FormatSavedTime(_lastSavedUnixMillis)}";
+        string text = UiText.Format("ui.status.saved", FormatSavedTime(_lastSavedUnixMillis));
         if (_savedChip is null)
         {
             _savedChip = new IconChip(IconPaths.Check, text);
@@ -173,10 +185,13 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-        // Canvas stretching keeps the logical viewport at the reference size,
-        // so use the actual client width. An active project's detailed chip is
-        // long enough to overflow even at 1600 px; keep that state concise at
-        // every currently supported matrix resolution.
+        // The status bar is intentionally bounded: clock, speed controls,
+        // resources, and — only when a project exists — a concise project
+        // chip. The mobilisation, hero, and empty-state chips moved to
+        // their natural surface (BuildingDetailView, EmptyPanel); a
+        // building's own StopCause is visible on its detail view and
+        // plot tooltip. Upkeep is dormant; the chip that used to
+        // advertise it is gone.
         float windowWidth = DisplayServer.WindowGetSize().X;
         bool compact = ShouldUseCompactLayout(windowWidth, snapshot.Projects.Count > 0);
         _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
@@ -189,15 +204,6 @@ public partial class CityStatusPanel : PanelContainer
 
         BuildClockChip(snapshot);
         BuildResourcesChip(snapshot);
-        if (compact)
-        {
-            BuildCompactCityChip(snapshot);
-        }
-        else
-        {
-            BuildUpkeepChip(snapshot);
-            BuildMobilisationChip(snapshot);
-        }
 
         // Construction is intentionally singular in the current slice. Keep
         // one concise progress chip instead of allowing future projects to
@@ -205,15 +211,6 @@ public partial class CityStatusPanel : PanelContainer
         if (snapshot.Projects.Count > 0)
         {
             BuildProjectChip(snapshot.Projects[0], compact);
-        }
-
-        BuildAttentionChip(snapshot);
-        if (!compact) BuildFreeCitizensChip(snapshot);
-
-        if (snapshot.IsEmpty)
-        {
-            BuildHeroChip(snapshot);
-            BuildEmptyStateChip();
         }
 
         ApplySavedChip();
@@ -231,8 +228,8 @@ public partial class CityStatusPanel : PanelContainer
         // shifts the chip width when the digit count changes. Wrap the
         // chip in a fixed-width Control with clip_contents so the row
         // never reflows as the simulation advances.
-        var chip = new IconChip(iconPath, SimulationTimeText.Format(tick), "BuildingName");
-        chip.TooltipText = SimulationTimeText.Format(tick);
+        var chip = new IconChip(iconPath, SimulationTimeText.FormatLocalized(tick), "BuildingName");
+        chip.TooltipText = SimulationTimeText.FormatLocalized(tick);
         var wrap = new Control
         {
             CustomMinimumSize = new Vector2(ClockChipWidth, 0),
@@ -261,9 +258,11 @@ public partial class CityStatusPanel : PanelContainer
 
     private void BuildUpkeepChip(CityStatusSnapshot snapshot)
     {
-        int rate = snapshot.UpkeepPerTick;
-        if (rate <= 0) return;
-        _row.AddChild(new IconChip(IconPaths.Coin, $"-{rate} stone/tick (upkeep)"));
+        // Upkeep is dormant. Kept private to avoid leaving the public
+        // surface dangling for any external caller; the call site in
+        // Refresh() no longer invokes it. Remove this stub entirely
+        // when the seam is reactivated.
+        _ = snapshot;
     }
 
     private void BuildFoodChip(CityStatusSnapshot snapshot)
@@ -274,7 +273,7 @@ public partial class CityStatusPanel : PanelContainer
         int food = snapshot.FoodStock;
         int cap = snapshot.MaxFoodStock;
         if (cap <= 0) return;
-        _row.AddChild(new IconChip(IconPaths.Leaf, $"Food: {food} / {cap}"));
+        _row.AddChild(new IconChip(IconPaths.Leaf, UiText.Format("ui.status.food_stock", food, cap)));
     }
 
     private void BuildWoodChip(CityStatusSnapshot snapshot)
@@ -287,8 +286,8 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(new IconChip(
             IconPaths.Tree,
             reserve > 0
-                ? $"Wood: {stock} gathered · {reserve} in forests"
-                : $"Wood: {stock} gathered"));
+                ? UiText.Format("ui.status.wood_reserve", stock, reserve)
+                : UiText.Format("ui.status.wood_stock", stock)));
     }
 
     /// <summary>
@@ -305,121 +304,57 @@ public partial class CityStatusPanel : PanelContainer
         var breakdown = new System.Text.StringBuilder();
         if (hasFood)
         {
-            breakdown.Append($"Food: {snapshot.FoodStock} / {snapshot.MaxFoodStock}");
+            breakdown.Append(UiText.Format(
+                "ui.status.food_stock", snapshot.FoodStock, snapshot.MaxFoodStock));
         }
         if (hasWood)
         {
             if (breakdown.Length > 0) breakdown.Append('\n');
             breakdown.Append(snapshot.WoodReserve > 0
-                ? $"Wood: {snapshot.WoodStock} gathered · {snapshot.WoodReserve} in forests"
-                : $"Wood: {snapshot.WoodStock} gathered");
+                ? UiText.Format("ui.status.wood_reserve", snapshot.WoodStock, snapshot.WoodReserve)
+                : UiText.Format("ui.status.wood_stock", snapshot.WoodStock));
         }
 
         string headline = hasFood && snapshot.MaxFoodStock > 0
-            ? $"Food {snapshot.FoodStock}/{snapshot.MaxFoodStock}"
+            ? UiText.Format("ui.status.food", snapshot.FoodStock, snapshot.MaxFoodStock)
             : hasWood
-                ? $"Wood {snapshot.WoodStock}"
-                : "Resources";
+                ? UiText.Format("ui.status.wood", snapshot.WoodStock)
+                : UiText.Get("Resources");
 
         var chip = new IconChip(IconPaths.Leaf, headline);
         chip.TooltipText = breakdown.ToString();
         _row.AddChild(chip);
     }
 
-    private void BuildMobilisationChip(CityStatusSnapshot snapshot)
-    {
-        _row.AddChild(new IconChip(IconPaths.User,
-            $"{snapshot.CitizensAtWork} at work · {snapshot.CitizensAtHome} at home"));
-    }
-
     private void BuildProjectChip(CityStatusSnapshot.ProjectItem project, bool compact)
     {
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
         string label = compact
-            ? $"Build {project.Progress}/{project.RequiredWork}"
-            : $"{project.DisplayName} {project.Progress}/{project.RequiredWork} " +
-                $"({ConstructionRules.Describe(phase)}) · {project.AssignedCount}/{project.WorkerCapacity}";
-        if (!project.Enabled) label += " · paused";
+            ? UiText.Format("ui.status.build", project.Progress, project.RequiredWork)
+            : UiText.Format(
+                "ui.status.project",
+                UiText.Get(project.DisplayName),
+                project.Progress,
+                project.RequiredWork,
+                UiText.Get(ConstructionRules.Describe(phase)),
+                project.AssignedCount,
+                project.WorkerCapacity);
+        if (!project.Enabled) label += UiText.Get(" · paused");
         var chip = new IconChip(IconPaths.Building, label);
         chip.TooltipText = project.Enabled
-            ? $"In progress. Click the construction menu for details."
-            : "Paused. Resume from the construction menu.";
+            ? UiText.Get("In progress. Click the construction menu for details.")
+            : UiText.Get("Paused. Resume from the construction menu.");
         _row.AddChild(chip);
-    }
-
-    private void BuildCompactCityChip(CityStatusSnapshot snapshot)
-    {
-        var chip = new IconChip(
-            IconPaths.User,
-            $"Work {snapshot.CitizensAtWork} · Home {snapshot.CitizensAtHome} · Free {snapshot.FreeCitizenNames.Count}");
-        chip.TooltipText = snapshot.UpkeepPerTick > 0
-            ? $"Upkeep: {snapshot.UpkeepPerTick} stone/tick"
-            : "No current upkeep";
-        _row.AddChild(chip);
-    }
-
-    private void BuildBuildingChip(CityStatusSnapshot.BuildingItem building)
-    {
-        string range = building.StorageCapacity > 0
-            ? $" ({building.MinStock}-{building.MaxStock})"
-            : string.Empty;
-        string label = $"{building.DisplayName}: {building.Stock}/{building.StorageCapacity}" +
-            $"{range} {building.ResourceUnit} · {building.AssignedCount}/{building.WorkerCapacity} workers" +
-            StopCauseSuffix(building);
-        _row.AddChild(new IconChip(IconPaths.House, label));
-    }
-
-    private void BuildFreeCitizensChip(CityStatusSnapshot snapshot)
-    {
-        var chip = new IconChip(
-            IconPaths.User,
-            $"Free citizens: {snapshot.FreeCitizenNames.Count}");
-        if (snapshot.FreeCitizenNames.Count > 0)
-        {
-            chip.TooltipText = "Unassigned: " + string.Join(", ", snapshot.FreeCitizenNames);
-        }
-        _row.AddChild(chip);
-    }
-
-    private void BuildAttentionChip(CityStatusSnapshot snapshot)
-    {
-        int attentionCount = 0;
-        foreach (var building in snapshot.Buildings)
-        {
-            if (building.StopCause is ProductionStopCause.NoWorkers
-                or ProductionStopCause.WorkersExhausted
-                or ProductionStopCause.MissingInputs)
-            {
-                attentionCount++;
-            }
-        }
-        if (attentionCount > 0)
-        {
-            _row.AddChild(new IconChip(
-                IconPaths.Warning,
-                $"Needs attention: {attentionCount}"));
-        }
-    }
-
-    private void BuildHeroChip(CityStatusSnapshot snapshot)
-    {
-        string heroName = snapshot.HeroName ?? "not established";
-        _row.AddChild(new IconChip(IconPaths.User, $"Hero: {heroName}"));
-    }
-
-    private void BuildEmptyStateChip()
-    {
-        _row.AddChild(new IconChip(IconPaths.House, "No buildings yet"));
     }
 
     private static string StopCauseSuffix(CityStatusSnapshot.BuildingItem building) => building.StopCause switch
     {
-        ProductionStopCause.Paused => " · paused",
-        ProductionStopCause.TargetReached => " · full",
-        ProductionStopCause.WorkersExhausted => " · exhausted",
-        ProductionStopCause.NoWorkers => " · no workers",
-        ProductionStopCause.Night => " · night",
-        ProductionStopCause.MissingInputs => " · missing inputs",
+        ProductionStopCause.Paused => UiText.Get(" · paused"),
+        ProductionStopCause.TargetReached => UiText.Get(" · full"),
+        ProductionStopCause.WorkersExhausted => UiText.Get(" · exhausted"),
+        ProductionStopCause.NoWorkers => UiText.Get(" · no workers"),
+        ProductionStopCause.Night => UiText.Get(" · night"),
+        ProductionStopCause.MissingInputs => UiText.Get(" · missing inputs"),
         _ => string.Empty,
     };
 }

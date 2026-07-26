@@ -93,6 +93,8 @@ public partial class ConstructionPanel : PanelContainer
 
     public override void _Ready()
     {
+        OverlayLayers.Apply(this, OverlayLayers.Modal);
+
         var controllerNode = GetNodeOrNull<CityWorldController>(ControllerPath);
         if (controllerNode is null)
         {
@@ -178,11 +180,11 @@ public partial class ConstructionPanel : PanelContainer
         if (project is null) return;
         if (_controller.CancelProject(new BuildingId(projectId)))
         {
-            Notifier.Show($"Cancelled {project.DisplayName}.");
+            Notifier.Show(UiText.Format("ui.construction.cancelled", UiText.Get(project.DisplayName)));
         }
         else
         {
-            Notifier.ShowError("Could not cancel the project.");
+            Notifier.ShowError(UiText.Get("Could not cancel the project."));
         }
     }
 
@@ -624,7 +626,10 @@ public partial class ConstructionPanel : PanelContainer
         _progress.MaxValue = project.RequiredWork;
         _progress.Value = project.Progress;
         _statusLabel.Text = DescribeProjectStatus(project);
-        _contributors.Text = $"Contributors: {project.AssignedCount}/{project.WorkerCapacity}";
+        _contributors.Text = UiText.Format(
+            "ui.construction.contributors",
+            project.AssignedCount,
+            project.WorkerCapacity);
 
         ClearList(_assignList);
         ClearList(_availableList);
@@ -790,12 +795,17 @@ public partial class ConstructionPanel : PanelContainer
 
     private static string DescribeMaterials(ConstructionSnapshot.OptionItem option)
     {
-        if (option.Materials.Count == 0) return "no material cost";
+        if (option.Materials.Count == 0) return UiText.Get("no material cost");
         var parts = new List<string>();
         foreach (var material in option.Materials)
         {
             string resource = material.Resource.ToString().ToLowerInvariant();
-            parts.Add($"Deposit: {material.DepositRequired} {resource} now · Total: {material.Required} {resource} · Available: {material.Available}");
+            parts.Add(UiText.Format(
+                "ui.construction.material",
+                material.DepositRequired,
+                UiText.Get(resource),
+                material.Required,
+                material.Available));
         }
         return string.Join(" + ", parts);
     }

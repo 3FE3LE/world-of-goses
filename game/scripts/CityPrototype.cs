@@ -107,6 +107,13 @@ public partial class CityPrototype : Node
             case "founder-arrival":
                 ShowFounderArrivalForVisualRegression();
                 break;
+            case "language-selector":
+                GetNode<PauseMenu>("PauseMenu").Open();
+                break;
+            case "forest-depleted":
+                GetNode<CityWorldController>("CityWorldController")
+                    .DrainAllForestsForVisualRegression();
+                break;
         }
     }
 

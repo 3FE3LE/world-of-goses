@@ -58,6 +58,7 @@ public partial class OfflineReportPanel : PanelContainer
     {
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
         MouseFilter = MouseFilterEnum.Stop;
+        OverlayLayers.Apply(this, OverlayLayers.Chronicle);
         AddThemeStyleboxOverride(
             "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         AddThemeConstantOverride("margin_left", 16);
@@ -130,7 +131,7 @@ public partial class OfflineReportPanel : PanelContainer
         _list.AddThemeConstantOverride("separation", RowSpacing);
         _scroll.AddChild(_list);
 
-        _summary.Text = "The city's recent events will be recorded here.";
+        _summary.Text = UiText.Get("ui.chronicle.empty");
     }
 
     public override void _ExitTree()
@@ -199,11 +200,11 @@ public partial class OfflineReportPanel : PanelContainer
         _collapseButton.SetIconAndLabel(
             _isExpanded ? IconPaths.ChevronUp : IconPaths.ChevronDown,
             _isExpanded
-                ? "Chronicle — click to collapse"
-                : $"Chronicle — click to expand ({_compactedCount})");
+                ? UiText.Get("ui.chronicle.collapse")
+                : UiText.Format("ui.chronicle.expand", _compactedCount));
         _collapseButton.TooltipText = _isExpanded
-            ? "Click to show only the newest event."
-            : "Click to open the full chronicle.";
+            ? UiText.Get("ui.chronicle.collapse_tooltip")
+            : UiText.Get("ui.chronicle.expand_tooltip");
     }
 
     private void OnScrollGuiInput(InputEvent inputEvent)
@@ -252,7 +253,7 @@ public partial class OfflineReportPanel : PanelContainer
         {
             var header = new Label
             {
-                Text = $"Decisions needed ({decisions.Count})",
+                Text = UiText.Format("ui.chronicle.decisions", decisions.Count),
                 ThemeTypeVariation = "SectionTitle",
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
@@ -315,7 +316,7 @@ public partial class OfflineReportPanel : PanelContainer
         _compactedCount = compactedEvents.Count;
         if (liveDecisions.Count > 0)
         {
-            _summary.Text = "Needs attention · newest entry at the bottom";
+            _summary.Text = UiText.Get("ui.chronicle.needs_attention");
             foreach (var entry in liveDecisions)
             {
                 _list.AddChild(BuildDecisionRow(entry));
@@ -325,8 +326,8 @@ public partial class OfflineReportPanel : PanelContainer
         else
         {
             _summary.Text = events.Count == 0
-                ? "The city's recent events will be recorded here."
-                : "Newest entry at the bottom";
+                ? UiText.Get("ui.chronicle.empty")
+                : UiText.Get("ui.chronicle.newest_bottom");
         }
 
         int visibleRows = _isExpanded ? MaxRows : 1;
@@ -390,8 +391,8 @@ public partial class OfflineReportPanel : PanelContainer
     {
         string time = FormatTime(report.SimulatedTime);
         return report.StockAdded > 0
-            ? $"Welcome back · {time} simulated · +{report.StockAdded} stock"
-            : $"Welcome back · {time} simulated";
+            ? UiText.Format("ui.chronicle.welcome_stock", time, report.StockAdded)
+            : UiText.Format("ui.chronicle.welcome", time);
     }
 
     /// <summary>
@@ -452,8 +453,8 @@ public partial class OfflineReportPanel : PanelContainer
         {
             var button = new Button
             {
-                Text = $"{entry.Label} · open",
-                TooltipText = "Open the building that needs attention.",
+                Text = UiText.Format("ui.chronicle.open", entry.Label),
+                TooltipText = UiText.Get("ui.chronicle.open_tooltip"),
                 ThemeTypeVariation = "ButtonText",
                 CustomMinimumSize = new Vector2(0, 28),
                 FocusMode = FocusModeEnum.All,
@@ -591,7 +592,7 @@ public partial class OfflineReportPanel : PanelContainer
 
             var label = new Label
             {
-                Text = evt.Summary,
+                Text = WorldEventTextFormatter.FormatLocalized(evt.Kind, evt.SubjectName, evt.Amount),
                 ThemeTypeVariation = "BodySmall",
                 VerticalAlignment = VerticalAlignment.Center,
                 SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -606,7 +607,7 @@ public partial class OfflineReportPanel : PanelContainer
                 // A compacted row is dated by its most recent event; this is
                 // the moment the player cares about and avoids exposing raw
                 // simulation ticks as if they were meaningful UI language.
-                Text = SimulationTimeText.Format(evt.LastTick),
+                Text = SimulationTimeText.FormatLocalized(evt.LastTick),
                 ThemeTypeVariation = "BodySmall",
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,

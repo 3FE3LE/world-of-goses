@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -119,11 +120,11 @@ public partial class SpeedButton : Button
         string tooltip = _currentSpeed switch
         {
             CityWorldController.SpeedChoice.Paused =>
-                $"Paused at {(int)_lastRunningSpeed}×. Resume with the play button.",
-            CityWorldController.SpeedChoice.Normal => "Normal speed (1×). Click to switch to 2×.",
-            CityWorldController.SpeedChoice.Fast => "Fast speed (2×). Click to switch to 4×.",
-            CityWorldController.SpeedChoice.Fastest => "Fastest speed (4×). Click to switch back to 1×.",
-            _ => "Click to change speed.",
+                UiText.Format("ui.speed.paused", (int)_lastRunningSpeed),
+            CityWorldController.SpeedChoice.Normal => UiText.Get("ui.speed.normal"),
+            CityWorldController.SpeedChoice.Fast => UiText.Get("ui.speed.fast"),
+            CityWorldController.SpeedChoice.Fastest => UiText.Get("ui.speed.fastest"),
+            _ => UiText.Get("ui.speed.change"),
         };
         TooltipText = tooltip;
     }

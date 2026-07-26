@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -33,7 +34,7 @@ public partial class ConstructionPlacementOverlay : Control
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         MouseFilter = MouseFilterEnum.Stop;
-        ZIndex = 40;
+        OverlayLayers.Apply(this, OverlayLayers.PlacementOverlay);
 
         var scrim = new ColorRect
         {
@@ -78,7 +79,7 @@ public partial class ConstructionPlacementOverlay : Control
         {
             ThemeTypeVariation = "ButtonSecondary",
         };
-        ((IconButton)_cancelButton).SetIconAndLabel(IconPaths.Close, "Cancel");
+        ((IconButton)_cancelButton).SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
         footer.AddChild(_confirmButton);
         footer.AddChild(_cancelButton);
 
@@ -108,7 +109,9 @@ public partial class ConstructionPlacementOverlay : Control
         _kind = kind;
         _selectedLot = null;
         _confirmButton.Disabled = true;
-        _instruction.Text = $"Choose a lot for {ConstructionRules.DisplayNameFor(kind)}";
+        _instruction.Text = UiText.Format(
+            "ui.construction.choose_lot",
+            UiText.Get(ConstructionRules.DisplayNameFor(kind)));
         ClearLots();
         foreach (ConstructionLot lot in lots)
         {
@@ -165,7 +168,11 @@ public partial class ConstructionPlacementOverlay : Control
         EmitSignal(SignalName.PlacementCancelled);
     }
 
-    private void RepositionLots()
+    /// <summary>Internal, not private: <c>CityMacroView</c> also calls this
+    /// directly when <c>OrthogonalParcelTerrain.PanChanged</c> fires, since
+    /// panning repositions lots without changing this control's own
+    /// <c>Size</c> (so <c>Resized</c> never fires for it).</summary>
+    internal void RepositionLots()
     {
         foreach ((ConstructionLot lot, Button button) in _lotButtons)
         {

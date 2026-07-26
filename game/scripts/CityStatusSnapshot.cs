@@ -6,7 +6,6 @@ namespace WorldofGoses;
 
 public sealed record CityStatusSnapshot(
     int CurrentTick,
-    int UpkeepPerTick,
     int FoodStock,
     int MaxFoodStock,
     int WoodStock,
@@ -69,7 +68,11 @@ public sealed record CityStatusSnapshot(
             if (!citizen.CurrentAssignment.HasValue) freeNames.Add(citizen.Name);
         }
 
-        return new CityStatusSnapshot(world.CurrentTick, Upkeep.StonePerTick(world.Citizens.Count),
+        // Upkeep is dormant. Previously a chip rendered
+        // "{UpkeepPerTick} stone/tick (upkeep)" from this snapshot;
+        // the chip and the call site are gone, and the snapshot no
+        // longer carries the field.
+        return new CityStatusSnapshot(world.CurrentTick,
             world.FoodStock, world.MaxFoodStock, world.TotalWood, world.TotalWoodReserve,
             atWork, atHome, projects, buildings, freeNames, world.Hero?.Name,
             hasController, currentSpeed);

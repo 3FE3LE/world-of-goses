@@ -169,7 +169,7 @@ public partial class OnboardingView : Control
                 break;
         }
 
-        _stepLabel.Text = $"Step {_step + 1} of {LastStep + 1}";
+        _stepLabel.Text = UiText.Format("ui.hero.step", _step + 1, LastStep + 1);
         UpdateNavigation();
         _initialFocus?.GrabFocus();
     }
@@ -439,7 +439,7 @@ public partial class OnboardingView : Control
                     if (selected.Count >= maximum)
                     {
                         button.SetPressedNoSignal(false);
-                        _errorLabel.Text = $"You can select at most {maximum}.";
+                        _errorLabel.Text = UiText.Format("ui.hero.maximum", maximum);
                         return;
                     }
                     selected.Add(id);
@@ -491,7 +491,7 @@ public partial class OnboardingView : Control
             new HeroCreationRequest(_heroName, profile!, _gender!.Value));
         if (!result.IsSuccess)
         {
-            _errorLabel.Text = $"The hero could not be created ({result.Outcome}).";
+            _errorLabel.Text = UiText.Format("ui.hero.creation_failed", result.Outcome);
             return;
         }
         var signals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
@@ -564,7 +564,7 @@ public partial class OnboardingView : Control
         if (_reviewLabel is null) return;
         if (!_lineage.HasValue || !_gender.HasValue)
         {
-            _reviewLabel.Text = "Complete the earlier steps to review the profile.";
+            _reviewLabel.Text = UiText.Get("Complete the earlier steps to review the profile.");
             return;
         }
         UpdateReviewSprite();

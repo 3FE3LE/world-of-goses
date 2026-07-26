@@ -38,6 +38,18 @@ public sealed class Citizen
     /// reads this to decide which building shows the worker slot.
     /// </summary>
     public CitizenLocation CurrentLocation { get; private set; } = CitizenLocation.AtHome;
+
+    /// <summary>
+    /// Richer FSM-backed behavior state (S-1.5), validated against
+    /// <see cref="CitizenBehaviorRules"/>. <see cref="SetLocation"/> and
+    /// the stamina mutators drive it; expedition dispatch/return do not
+    /// yet (see <c>TO_DO.md</c> S-1.5) — those transitions stay
+    /// documented-only until that call site is wired.
+    /// </summary>
+    public CitizenBehaviorState Behavior => _behaviorFsm.Current;
+    private readonly FiniteStateMachine<CitizenBehaviorState> _behaviorFsm =
+        new(CitizenBehaviorState.Idle, CitizenBehaviorRules.IsDocumentedTransition);
+
     public BuildingId? LastVisitedResourceBuildingId { get; private set; }
     public int? LastVisitedResourceUnitId { get; private set; }
     public int? LastVisitedResourcePositionIndex { get; private set; }
@@ -122,7 +134,20 @@ public sealed class Citizen
     /// <see cref="CityWorld"/> during mobilisation at day/night
     /// transitions. Internal because only the world owns this.
     /// </summary>
-    internal void SetLocation(CitizenLocation location) => CurrentLocation = location;
+    internal void SetLocation(CitizenLocation location)
+    {
+        CurrentLocation = location;
+        if (location == CitizenLocation.AtWork)
+        {
+            _behaviorFsm.TryTransition(CitizenBehaviorState.Working, "Mobilised to work");
+        }
+        else
+        {
+            _behaviorFsm.TryTransition(
+                CurrentAssignment.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
+                "Mobilised to home");
+        }
+    }
 
     internal void VisitResource(BuildingId buildingId, int unitId, int positionIndex)
     {
@@ -216,6 +241,10 @@ public sealed class Citizen
     {
         if (amount <= 0) return;
         CurrentStamina = Math.Max(0, CurrentStamina - amount);
+        if (CurrentStamina == 0)
+        {
+            _behaviorFsm.TryTransition(CitizenBehaviorState.Injured, "Stamina depleted to zero");
+        }
     }
 
     /// <summary>
@@ -227,6 +256,10 @@ public sealed class Citizen
     {
         if (amount <= 0) return;
         CurrentStamina = Math.Min(MaxStamina, CurrentStamina + amount);
+        if (CurrentStamina > 0 && Behavior == CitizenBehaviorState.Injured)
+        {
+            _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Stamina restored to threshold");
+        }
     }
 
     /// <summary>

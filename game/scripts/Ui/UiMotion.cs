@@ -14,6 +14,11 @@ public static class UiMotion
     public const double ModalHideSeconds = 0.12;
     public const float ModalTravelPixels = 8f;
 
+    /// <summary>Total length of a "large event" feedback flash. Long
+    /// enough to read at the edge of the viewport but short enough to
+    /// not block the next input.</summary>
+    public const double LargeEventSeconds = 0.45;
+
     public static Tween RevealModal(
         Node owner,
         ColorRect scrim,
@@ -75,5 +80,29 @@ public static class UiMotion
         tween.TweenProperty(item, "modulate", Colors.White, 0.18)
             .SetTrans(Tween.TransitionType.Quad)
             .SetEase(Tween.EaseType.Out);
+    }
+
+    /// <summary>
+    /// Long-form flash reserved for events the player must notice
+    /// without the input ever stalling: a construction completing, an
+    /// expedition returning, a new citizen arriving. The modulation
+    /// dips to the lineage accent and then returns to white over
+    /// <see cref="LargeEventSeconds"/>. Does not block input.
+    /// </summary>
+    public static void FlashLarge(CanvasItem item, Color accent)
+    {
+        if (!GodotObject.IsInstanceValid(item)) return;
+        item.Modulate = Colors.White;
+        double rampUp = LargeEventSeconds * 0.4;
+        double rampDown = LargeEventSeconds - rampUp;
+        Tween tween = item.CreateTween();
+        tween.TweenProperty(
+            item, "modulate",
+            new Color(accent.R, accent.G, accent.B, 0.92f), rampUp)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.Out);
+        tween.TweenProperty(item, "modulate", Colors.White, rampDown)
+            .SetTrans(Tween.TransitionType.Quad)
+            .SetEase(Tween.EaseType.In);
     }
 }

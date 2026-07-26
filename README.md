@@ -176,6 +176,16 @@ target is a successful `dotnet build`.
 dotnet test
 ```
 
+Validate the English/Spanish gettext catalogs and ensure `messages.pot` is
+up to date from the repository root:
+
+```powershell
+.\tools\Test-LocalizationCatalog.ps1
+
+# Run only after intentionally adding or removing catalog entries.
+.\tools\Test-LocalizationCatalog.ps1 -UpdateTemplate
+```
+
 The domain layer (`Building`, `Citizen`, `BuildingProductionCalculator`,
 `CityWorld`) is fully covered by xUnit. Visual / interaction-layer
 behaviour (`BuildingPlot`, `CityMacroView`, `BuildingDetailView`) is exercised

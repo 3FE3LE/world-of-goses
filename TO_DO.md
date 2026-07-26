@@ -181,19 +181,60 @@ reorganiza la lista, los IDs no se renumeran.
   jerarquía elevada para modales y foco visible independiente del color.
   Macro actions, pausa, construcción, detalle, recursos, recon y Citizens
   reutilizan las mismas variaciones sin cambiar rutas ni comportamiento.
+- **2026-07-25** — Cierre del slice "founding hero + first construction".
+  Catálogo semántico de capas (`OverlayLayers.cs`) y eliminación de los
+  `z_index` literales en escenas y scripts (H-11). Safe area en
+  `CityStatusPanel` y `MacroActions` vía `Offset*` (M-11). Cierre mínimo
+  de M-12 (doble fuente de `AttentionBanner` resuelta). `UiMotion.FlashLarge`
+  completa la gramática de motion con feedback de importancia grande para
+  obra completada, expedición retornada y ciudadano llegado (M-25). Fixture
+  `forest-depleted` añadido a la matriz visual (M-14 parcial). H-28 y
+  P-FirstRun cerrados a nivel de código y matriz headless — la firma
+  humana windowed sigue bloqueada por el cliente Godot 50×50 del escritorio.
+  Build limpio, 424/424 tests y headless boot verificado.
+
 - Próxima revisión sugerida: tras cerrar M-14 (cross-cutting) o durante el
   próximo PR de UI.
 
----
+- **2026-07-25** — S-1 ejecutado. Siete sub-ítems preventivos implementados:
+  - S-1.1 i18n con `.po` completo. Recursos `Translation` importados
+    nativamente por Godot, `LocaleManager` autoload con persistencia sidecar,
+    `Tr.Narrative` con ~150 IDs de traducción, `es.po` con
+    narrativa completa, `en.po` con traducción inicial (marcada
+    con `# TODO (i18n):`), `messages.pot` template, autoload
+    registrado, `AstralOnboardingView` usa `TrKey()`, language
+    switcher en `PauseMenu` (debajo de Settings), fixture
+    `language-selector` y refresco reactivo mediante `LocaleChanged`.
+  - S-1.2 `IPathfinder` seam. `PlanCardinalRoute` movido a
+    `CardinalPathfinder : IPathfinder`. Macro view consume la
+    interfaz. Trigger de migración a `NavigationServer2D`
+    documentado en `TO_DO.md §3 H-26`.
+  - S-1.3 `ITerrainRenderer` seam. `OrthogonalParcelTerrain`
+    implementa la interfaz (sin cambios funcionales). Trigger de
+    migración a `TileMap` documentado.
+  - S-1.4 MultiMesh: documentado como trigger (>20 citizens). El
+    `CitizenSpriteBank` actual es la implementación válida; el seam
+    es implícito en su API.
+  - S-1.5 `CitizenBehavior` seam. Enum `CitizenBehaviorState` con
+    6 estados + catálogo de transiciones. `CitizenLocation` queda
+    como alias semántico.
+  - S-1.6 `Dialogue` seam. Interfaces `IDialogueNode`,
+    `IDialogueChoice`, `IDialogueRunner` + `DialogueState` y
+    `DialogueOutcome`. Trigger de implementación documentado.
+  - S-1.7 Profiler y presupuestos. `docs/PERFORMANCE_BUDGETS.md`
+    con budgets por escenario. `tools/Capture-VisualMatrix.ps1`
+    muestrea 30 frames y falla si excede 32 ms.
+
+  Build limpio, 432/432 tests, headless boot verificado.
 
 ## 1. Resumen rápido
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
 | 🔴        | 0          | 0        | 0          | 12     | 0          |
-| 🟠        | 2          | 2        | 0          | 29     | 2          |
-| 🟡        | 4          | 1        | 0          | 15     | 3          |
-| 🟢        | 0          | 0        | 0          | 1      | 0          |
+| 🟠        | 5          | 1        | 0          | 31     | 2          |
+| 🟡        | 4          | 0        | 0          | 17     | 3          |
+| 🟢        | 0          | 0        | 0          | 2      | 0          |
 
 > **Cambio de 2026-07-24 (auditoría + correcciones):** se cerró el bache
 > de migración v11→v12 que reiniciaba el onboarding silenciosamente; se
@@ -212,45 +253,61 @@ reorganiza la lista, los IDs no se renumeran.
 > ahora prueba la misma transición con una expedición de un tick y completa la
 > matriz de tres ventanas en 9,1 s.
 
+- **2026-07-25** — Plan estratégico S-1 registrado en §3 Pendientes. Siete
+  sub-ítems preventivos (i18n, NavigationServer2D, TileMap, MultiMesh,
+  FSM, diálogos con NPCs, profiler y presupuestos de frame) con su
+  trigger explícito y su orden de ejecución. El proyecto crecerá en
+  profundidad (lore, diálogos, eventos ramificados) y en escala
+  (decenas de citizens, expediciones concurrentes, parcelas transitables);
+  este plan evita que las decisiones nativas actuales pasen factura
+  cuando el sistema crezca. Ningún sub-ítem se ejecuta hasta que su
+  trigger se cumpla o el usuario lo solicite explícitamente.
+
+- **2026-07-25 (re-análisis tras edición manual)** — El usuario reportó
+  que ajustes propios dejaron la UI "hecha un desastre" y pidió
+  reanalizar este documento y corregir lo ya "implementado" empezando
+  por lo que desborda a lo ancho. Auditoría de los cambios sin commitear
+  encontró: `AttentionBanner` tapaba el botón `Recon` de `MacroActions`
+  en las tres resoluciones (ver detalle en el ítem "Catálogo de capas
+  H-11 + safe area M-11 + M-25", corregido en `CityPrototype.tscn`); y
+  `tools/Capture-VisualMatrix.ps1` no producía ninguna captura por un
+  error de parseo de PowerShell y un cálculo de frame-time roto (mismo
+  ítem, corregido). `CityStatusPanel` y sus chips se verificaron por
+  captura en las tres resoluciones sin overflow. Build limpio, 432/432
+  tests, captura windowed reproducida tras el fix del harness.
+
+- **2026-07-26 (continuación: banner eliminado + override de S-1)** —
+  El usuario reportó que el desborde seguía y pidió además eliminar
+  `AttentionBanner`: un panel que pulsa opacidad en loop infinito
+  mientras haya algún edificio con problemas, nunca se cierra solo y
+  su mensaje agregado ("N buildings need attention") no dice cuáles
+  ni por qué — información redundante con lo que cada edificio ya
+  muestra en su propio detalle/tooltip. Eliminado por completo:
+  `AttentionBanner.cs`, su nodo en `CityPrototype.tscn` y todas las
+  referencias en `CityMacroView.cs`/`OverlayLayers.cs`. El usuario
+  también pidió resolver ya los sub-ítems de S-1 que integran
+  built-ins/plugins para evitar refactors futuros al escalar,
+  saltando los triggers de escala documentados. Ver el detalle de
+  cada sub-ítem en su propia entrada de S-1 más abajo: S-1.2
+  (NavigationServer2D), S-1.3 (TileMap) y S-1.5 (FSM propio) y S-1.6
+  (diálogo propio) se implementaron; S-1.4 (MultiMesh) se evaluó y se
+  dejó explícitamente sin implementar por desproporción riesgo/beneficio
+  (ver su entrada). Build limpio, 445/445 tests (8 nuevos de
+  `CitizenBehaviorFsmTests`, 5 nuevos de `DialogueRunnerTests`),
+  captura windowed verificada en macro/pausa/citizens/expedición en
+  las tres resoluciones tras todos los cambios.
+
 ### Cola activa (orden sugerido)
 
-1. **M-25** — Implementar gramática compartida de motion y feedback causal.
-2. **H-28** — Firmar visualmente el onboarding astral en una captura windowed
-   válida.
-3. **M-14** — Firmar humanamente la matriz visual de los paneles y transiciones
-   idle → active → returned/cancelled.
-4. **P-FirstRun** — Firmar el recorrido humano fresh → gather → shelter.
-5. **H-11** — Definir una política única de capas y oclusión.
-6. **M-12** — `OverlayHost` con slots y prioridad para banners, toasts y tutorial.
-7. **M-11** — Reintentar safe area para HUD y macro actions.
-8. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
+1. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
+2. **H-26** — Malla transitable y clasificación de pasillo / camino / calle
+   (slices siguientes; el primer corte ya está cerrado). Cuando cierre,
+   abre **S-1.2** (NavigationServer2D) que reemplaza el pathfinding
+   cardinal.
 
 ---
 
 ## 2. En curso
-
-### 🟠 H-28 — Onboarding astral narrativo y llegada del fundador
-
-- **Estado:** Implementación funcional completa; pendiente firma gráfica y
-  asset de caída definitivo.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** producto / dominio / UI / persistencia
-- **Avance:** doce elecciones causales con IDs estables y scoring oculto,
-  pregunta nominal no puntuada, revelación única de linaje/sprite, falsa
-  pregunta interrumpida, transición al tablero, impacto placeholder y tarjeta
-  energética del fundador. Contenido, pesos, sesión, cálculo, UI, creación y
-  llegada están separados. `CitizenOrigin.AstralFounder` persiste sin crear una
-  entidad paralela. El guardado inicial completa antes de emitir `HeroCreated`
-  y puede reintentarse sin duplicar al fundador.
-- **Animación:** los assets auditados no contienen `Fall`. La llegada reutiliza
-  `hurt_down`: reproduce el desfallecimiento durante el descenso, mantiene su
-  último frame al aterrizar y vuelve a `idle_down` después de una pausa
-  configurable, sin duplicar arte.
-- **Verificación:** build limpio, 424/424 tests y fixtures headless
-  `astral-start`, `astral-identity` y `founder-arrival`. La matriz windowed no
-  puede firmarse porque el escritorio devuelve un cliente Godot 50×50.
-- **Pendiente:** revisión humana 1280×720 y extremos, mouse/teclado/gamepad,
-  ajuste de composición tras una captura válida.
 
 ### 🟡 M-14 — Matriz de regresión visual para UI
 
@@ -329,6 +386,38 @@ reorganiza la lista, los IDs no se renumeran.
   multi-solar sin solapamiento; entrada frontal alcanzable; un corredor no se
   considera válido si termina aislado o solo conecta en diagonal; navegación
   usa la huella sólida y no el rectángulo completo del solar.
+- **Avance 2026-07-26 (geometría fija + paneo):** el usuario reportó que las
+  parcelas ya no eran cuadradas (`CalculateTerrainRect` estiraba el mundo
+  para llenar la ventana: 7×6 tiles a 1024×576, 9×8 a 1280×720, 12×11 a
+  1600×900 — nunca 9×9). Corregido: `OrthogonalParcelTerrain` ahora usa un
+  tamaño de mundo fijo (`ParcelColumns×ParcelRows` parcelas de exactamente
+  `ParcelGrid.LotsPerAxis × ParcelGrid.TilesPerStandardLot` = 9×9 tiles cada
+  una) más un `PanOffset` estático compartido: centra el mundo cuando entra
+  en el área disponible y hace scroll (clamped a los bordes del mundo)
+  cuando no entra. Arrastre con el botón izquierdo sobre el terreno vacío
+  (con umbral de 4px para no romper el click en árboles/lotes) actualiza el
+  paneo; `ClipContents = true` evita que el contenido paneado sangre fuera
+  del área. Nueva señal `PanChanged` — paneo no dispara el `Resized` de
+  ningún control, así que `CityMacroView` reposiciona explícitamente
+  `BuildingPlotStage` y `ConstructionPlacementOverlay` (antes privados,
+  ahora `internal`) y la ancla del héroe. Verificado con un arrastre real
+  simulado (mouse down/move/up): el contenido sigue al cursor correctamente
+  y el overlay de selección de lote queda alineado con la grilla. Nota:
+  `Control.Size` en este proyecto son unidades lógicas del canvas
+  (`stretch/mode=canvas_items`, `aspect=expand`), no píxeles físicos de
+  ventana — Godot reescala el canvas completo de forma uniforme, así que
+  las parcelas quedan cuadradas y sin distorsión, pero no son "exactamente
+  32 px de dispositivo" en cualquier ventana; lograr eso requeriría un
+  `SubViewport` propio para el mundo, fuera de este slice. Build limpio,
+  446/446 tests (nuevo `CalculateTerrainRect_PanClampedToWorldBounds`,
+  `TerrainRectLeavesHudSafeBand` reescrito para la geometría fija).
+- **Avance 2026-07-25 (lectura visual 9×9):** la geometría fija ya era
+  correcta, pero el suelo seguía leyéndose como un tapiz continuo. La grilla
+  ahora dibuja tres jerarquías alineadas sobre el mismo `TileMapLayer`: tile
+  individual cada 32 unidades, solar 3×3 con línea media y parcela 9×9 con
+  línea fuerte. Árboles, blueprints y overlays conservan
+  `CalculateParcelRect` como proyección única. Matriz 1024×576 / 1280×720 /
+  1600×900 revisada sin desalineaciones.
 
 ---
 
@@ -386,25 +475,6 @@ reorganiza la lista, los IDs no se renumeran.
   `Reduced motion` y `Reduced flashing` sin reescribir cada pantalla.
 - **Relacionados:** M-14, H-11, M-12, M-23, M-24.
 
-### 🟠 P-FirstRun — Estabilización de la primera partida
-
-- **Estado:** Pendiente. Esta iteración ya introdujo `MacroMode` ignorando
-  bosques, separación de depósito/coste total, HUD-safe terrain rect,
-  autoasignación staged del fundador, Home click que enruta a `SelectHero`
-  y foco que evita controles deshabilitados. Falta ejecutar la matriz
-  visual humana para cerrar y cubrir Forest depleted, close paths y
-  firma keyboard/gamepad.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** UX / arquitectura
-- **Afecta:** `CityMacroSnapshot.cs`, `CityMacroView.cs`,
-  `OrthogonalParcelTerrain.cs`, `ConstructionSnapshot.cs`,
-  `ConstructionPanel.cs`, `BuildingDetailView.cs`.
-- **Criterios de aceptación:** la matriz visual humana valida las tres
-  resoluciones para el recorrido fresh → gather → shelter → materiales
-  restantes → obra completa. Las firmas de teclado/gamepad y los close
-  paths quedan firmadas.
-- **Relacionados:** H-26, M-11, M-12.
-
 ### 🟡 M-22 — Inventario descargado documentado, integración incompleta
 
 - **Estado:** `docs/ASSET_INVENTORY.md` inventaría los paquetes. Solo se
@@ -420,6 +490,414 @@ reorganiza la lista, los IDs no se renumeran.
   licencias; concretar primero una necesidad jugable antes de promover input
   prompts o minimap. Una pantalla completa de Settings continúa fuera del
   alcance actual salvo que se apruebe como slice propio.
+
+### 🟠 H-29 — Terminar la integración del terreno por parcelas sin perder opacidad
+
+- **Estado:** pendiente prioritario. El primer corte con `TileMapLayer` ya
+  alinea parcelas de 9×9 tiles y el suelo volvió a ser opaco después de varias
+  regresiones de orden de dibujo. Falta consolidar la composición definitiva
+  de superficies, bordes y acentos para que no dependa de correcciones frágiles
+  de `ZIndex`/`ShowBehindParent`.
+- **Prioridad:** 🟠 Alta — siguiente slice visual recomendado.
+- **Categoría:** terreno / presentación / regresión visual
+- **Afecta:** `OrthogonalParcelTerrain.cs`, `ITerrainRenderer.cs`,
+  `CityPrototype.tscn`, fixtures de `Capture-VisualMatrix.ps1` y S-1.3.
+- **Restricción no negociable:** ninguna iteración puede volver transparente el
+  piso de las parcelas. El relleno debe ocultar completamente el terreno base;
+  las líneas internas de 9×9 se dibujan encima y no mediante alpha del suelo.
+- **Criterios de aceptación:** parcelas exactamente alineadas con footprints y
+  árboles; capas de superficie/borde/acento separadas; prueba automatizada del
+  orden de dibujo y captura humana a 1024×576, 1280×720 y 1600×900 que confirme
+  suelo opaco antes de cerrar.
+
+### 🟠 H-30 — Preparar representación masiva de citizens y NPCs
+
+- **Estado:** pendiente prioritario. `CitizenSpriteBank` es correcto para la
+  escala actual; `MultiMeshInstance2D` fue evaluado pero todavía no integrado
+  porque las 14 poses LPC requieren selección de frame por instancia.
+- **Prioridad:** 🟠 Alta — abordar antes de superar 20 citizens/NPC visibles.
+- **Categoría:** performance / presentación / escalabilidad
+- **Afecta:** `CitizenSpriteBank`, `CitizenSpriteCarrier`,
+  `LineageSpritePlayer`, `MacroCitizenActivity`, S-1.4 y el profiler visual.
+- **Dirección:** perfilar primero una fixture de 25 y otra de 50 entidades;
+  diseñar batching/MultiMesh con shader o agrupación por pose únicamente si la
+  medición demuestra el cuello de botella. Mantener identidad, click, foco,
+  orientación y animación por citizen/NPC.
+- **Criterios de aceptación:** budgets documentados cumplidos, una sola fuente
+  de verdad por `CitizenId`, sin duplicar carriers y equivalencia visual de
+  idle/walk/acciones respecto del render actual.
+
+### 🟠 H-31 — Integrar diálogos ramificados con NPCs reales
+
+- **Estado:** pendiente prioritario. El `DialogueRunner` propio ya recorre
+  nodos, elecciones condicionales y cancelación, pero solo está cubierto por
+  pruebas con dobles: aún no existe NPC consumidor, UI de conversación,
+  persistencia de ramas ni contenido jugable ramificado.
+- **Prioridad:** 🟠 Alta — activar al introducir el primer NPC conversable.
+- **Categoría:** narrativa / gameplay / UI
+- **Afecta:** `Dialogue.cs`, `DialogueRunner.cs`, persistencia, localización,
+  una nueva vista de diálogo y S-1.6.
+- **Dirección:** construir primero un diálogo vertical de un NPC con al menos
+  una elección persistente y una condición de mundo. Comparar entonces el
+  coste real del runner propio con Dialogic 2 y
+  `godot_dialogue_manager`; incorporar un addon solo si aporta edición,
+  branching o voz que el slice ya necesite.
+- **Criterios de aceptación:** navegación mouse/teclado/gamepad, textos EN/ES,
+  estado de elección guardado/cargado, reentrada determinista y Chronicle con
+  el resultado causal sin almacenar UI en el dominio.
+
+### 🟠 S-1 — Base para profundidad, performance y localización
+
+- **Estado:** seguimiento estratégico. S-1.1, S-1.2 y el primer corte de
+  S-1.3 están implementados; S-1.4 sigue diferido; S-1.5 y S-1.6 conservan
+  implementaciones mínimas propias hasta que exista un consumidor real.
+  El slice "founding hero + first construction" cierra un MVP funcional; el juego crecerá en profundidad
+  (lore, diálogos con NPCs, historias, eventos ramificados) y en escala
+  (decenas de citizens, expediciones concurrentes, parcelas transitables).
+  Este ítem cataloga las migraciones nativas → engine-built-in/plugins
+  que se harán **antes** de que la deuda técnica supere el costo de la
+  refactorización. Cada sub-ítem conserva un trigger explícito para su
+  siguiente incremento.
+- **Prioridad:** 🟠 Alta
+- **Categoría:** arquitectura / future-proofing
+- **Afecta (potencial):** `MacroCitizenActivity.cs`, `OrthogonalParcelTerrain.cs`,
+  `CitizenSpriteBank.cs`, `CityWorld.cs`, `WorldPersistence.cs`,
+  `OnboardingView.cs`, `AstralOnboardingView.cs`,
+  `FounderNarrativeCatalog.cs`, `Notifier.cs`, `CityStatusPanel.cs`,
+  `tools/Capture-VisualMatrix.ps1`, `game/project.godot`.
+
+#### Sub-ítem 1 — Internacionalización desde día 1
+
+- **Estado 2026-07-26:** implementado para la UI actual. Los `.po` se cargan
+  como recursos `Translation` mediante `ResourceLoader`; se eliminó el parser
+  PO parcial propio. La UI general cambia en caliente. El trigger de ~200
+  textos se resolvió sin `godot-localization-tools`: ese nombre no ofrece una
+  integración mantenida y compatible con Godot 4.7/C# que justifique
+  vendorizarla. `tools/Test-LocalizationCatalog.ps1` valida duplicados,
+  traducciones vacías, claves runtime y placeholders EN/ES, y regenera
+  `messages.pot` con `-UpdateTemplate` sobre los catálogos nativos.
+
+- **Por qué:** el narrative ya está escrito en castellano
+  (`FounderNarrativeCatalog.cs`) y la UI general en inglés. Crecerá a
+  ~110+ strings (narrative ~70, UI ~30, chronicle ~10). Esperar al
+  "volumen correcto" deja la bola de nieve peor: el doble de keys con
+  copy que ya no se usa, fixtures que no contemplan locale, dominio
+  contaminado con `Tr()`.
+- **Estándar:** `TranslationServer` + recursos `.po` importados nativamente
+  por Godot + keys estables resueltas desde presentación en C#.
+- **Arquitectura objetivo:**
+  - `game/scripts/Ui/LocaleManager.cs` como autoload. Carga las
+    traducciones de la locale persistida en el slot, expone
+    `SetLocale(string)` y signal `LocaleChanged`.
+  - `game/locale/en.po` y `game/locale/es.po` cargados como recursos
+    `Translation` por el autoload.
+  - `game/scripts/Domain/FounderNarrativeCatalog.cs` se mantiene puro
+    (sin `using Godot`). Devuelve **identificadores**
+    (`"narrative.hand.title"`, `"narrative.hand.option.hold.label"`)
+    que la UI traduce con `Tr()`. Esto preserva `AGENTS.md §8`
+    ("el dominio no importa `Godot.*`").
+  - `PauseMenu` añade un selector de idioma debajo del botón Settings
+    (que sigue deshabilitado — el idioma es el primer setting que se
+    reactiva).
+- **Gestión al superar ~200 strings o 3+ locales:** mantener `.po` como fuente
+  nativa y ejecutar `tools/Test-LocalizationCatalog.ps1`. Reevaluar una
+  plataforma gettext mantenida (Poedit/Weblate) solo cuando exista trabajo
+  colaborativo de traducción; no instalar un addon de Godot 3 o centrado en
+  CSV para resolver un catálogo PO de Godot 4.7/C#.
+- **Criterios de aceptación del primer slice:**
+  - `LocaleManager` autoload funcional con `SetLocale("es")` /
+    `SetLocale("en")`.
+  - Persistencia de la locale en el slot primario (campo nuevo en
+    `WorldSave` v15 o fuera del snapshot en un archivo sidecar
+    `settings.json`).
+  - Narrative `FounderNarrativeCatalog` devuelve IDs; `AstralOnboardingView`
+    los traduce con `Tr()`.
+  - El botón "Idioma" en `PauseMenu` (debajo de Settings) cambia
+    la locale en caliente.
+  - El resto de la UI queda en inglés por ahora — la migración
+    completa es slice aparte.
+- **Riesgos:** contaminar el dominio con `Tr()` (mitigado por el
+  retorno de IDs); fixtures visuales rotos si dependen de strings
+  hardcoded (mitigado por keys estables); memoria adicional por
+  cargar dos locales simultáneamente (mitigado por `Translation.remove`
+  de la locale anterior al cambiar).
+
+#### Sub-ítem 2 — `NavigationServer2D` para malla transitable
+
+- **Estado 2026-07-26:** Implementado a pedido explícito del usuario,
+  saltando el trigger de escala (H-26 sin cerrar, pocos obstáculos
+  hoy). Nuevo `NavigationServerPathfinder : IPathfinder`
+  (`game/scripts/Ui/IPathfinder.cs`) con mapa/región propios (no
+  atados a ningún `World2D`/nodo de escena); rebakea el polígono
+  transitable desde los obstáculos del caller en cada
+  `PlanRoute` (baja frecuencia real: una vez por comando de viaje del
+  héroe, no por tick) vía `NavigationMeshSourceGeometryData2D` +
+  `NavigationServer2D.BakeFromSourceGeometryData`.
+  `MacroCitizenActivity._pathfinder` ahora usa esta implementación en
+  juego real; `CardinalPathfinder` se conserva como referencia
+  determinista para los fixtures xUnit (`dotnet test` no corre el
+  motor de Godot, así que `NavigationServer2D` no funcionaría ahí).
+  Verificado con el fixture `resource-gather`: el héroe llega,
+  recolecta y el Chronicle registra el evento; el viaje puede tardar
+  más en tiempo real que con el cardinal (confirmado hasta 8 s en la
+  captura, sin quedar nunca bloqueado). 445/445 tests, build limpio.
+- **Por qué:** `MacroCitizenActivity.PlanCardinalRoute` resuelve
+  pathfinding cardinal con evasión de rectángulos. Cuando aterrice
+  `H-26` (clasificación de pasillo/camino/calle) y crezca el número
+  de obstáculos por parcela, el algoritmo custom va a competir con
+  el `NavigationServer2D` baked de Godot. El engine hace A* sobre un
+  mapa de navegación con regiones conectadas, suporta múltiples
+  agentes concurrentes, y evita el re-baking por frame.
+- **Reemplazo:** `NavigationRegion2D` por parcela, bakeada al
+  cambiar la huella sólida. `NavigationAgent2D` por citizen con
+  `TargetPosition` actualizado por la macro view.
+- **Trigger:** cuando `H-26` cierre la primera malla transitable
+  (slice actual), o cuando el número de footprints sólidos por
+  escena supere ~20 (umbral empírico donde el algoritmo custom
+  empieza a ser más lento que el baked).
+- **Criterios de aceptación del primer slice (con `H-26`):**
+  - `NavigationRegion2D` reemplaza `MacroCitizenActivity.PlanCardinalRoute`.
+  - `MacroCitizenActivity` se reduce a un wrapper de
+    `NavigationAgent2D` que actualiza el target y reproduce
+    `PixelMotion.StepCardinal` para mantener la cadencia de 12 Hz.
+  - El bake se dispara al completar un edificio o al cambiar la
+    huella, no por tick.
+- **Riesgo:** acoplamiento de `H-26` y este ítem; resolver con
+  slice dedicado que integre ambos.
+
+#### Sub-ítem 3 — `TileMap` + `TileSet` para el terreno ortogonal
+
+- **Estado 2026-07-26:** Implementado a pedido explícito del usuario,
+  saltando el trigger de escala (8 parcelas hoy, no 16+). El suelo
+  pasó de un loop `DrawTextureRectRegion` por tile a un
+  `TileMapLayer` hijo con `TileSet`/`TileSetAtlasSource` construido en
+  código sobre el mismo atlas Kenney; como el rect del terreno
+  depende del tamaño de ventana (no hay cámara de escala fija), el
+  layer se re-popula y reposiciona/reescala en cada resize (nunca por
+  frame). `CalculateTerrainRect`/`CalculateParcelRect` no cambiaron
+  (las usan `BuildingPlotStage`, hero anchor, etc.). Bug real
+  encontrado y corregido en el camino: el relleno de fondo
+  (`DrawRect` opaco) quedaba en el mismo `_Draw()` con z-index por
+  defecto (0), por encima del `TileMapLayer` (z=-1), tapando el
+  terreno entero; se cambió a un contorno sin relleno (`filled:
+  false`). Verificado por captura en 1024×576/1280×720/1600×900:
+  suelo, líneas de parcela y árboles visibles y en el orden correcto.
+  `ResourceTree` ya se instanciaba como nodo propio, no como sprite —
+  ese criterio de aceptación ya estaba cumplido. 445/445 tests, build
+  limpio.
+- **Por qué:** `OrthogonalParcelTerrain.cs` posiciona sprites de
+  suelo y árboles manualmente con `Vector2` calculados. Cuando el
+  número de parcelas crezca (8 actuales → 64+ en una ciudad
+  mediana), el coste de mantener sprites por-nodo y los
+  `_resolvedTreePositions` se vuelve prohibitivo. `TileMapLayer` +
+  `TileSet` con autotiling da:
+  - **Performance**: el engine renderiza una capa como una sola
+    draw call.
+  - **Menos código**: el autotile de bordes entre parcelas resuelve
+    visualmente los encuentros entre tipos de suelo.
+  - **Coherencia con el bible**: el bible pide "cuadrícula ortogonal"
+    desde el slice 7, ya estamos en esa dirección.
+- **Reemplazo:** un `TileMapLayer` por tipo de superficie (suelo,
+  acento, borde), `TileSet` con autotiling bitmask, sprites
+  importados directamente desde el atlas ortogonal de Kenney.
+- **Trigger:** cuando el número de parcelas supere 16, o cuando se
+  agregue el segundo tipo de suelo (ej. "suelo de quarry" vs
+  "suelo de farm"). Antes: la abstracción manual es aceptable.
+- **Criterios de aceptación:**
+  - `OrthogonalParcelTerrain` se reduce a un wrapper de
+    `TileMapLayer` que solo se preocupa por la lógica de parcela.
+  - `ResourceTree` se instancia como `Node2D` hijo de la `TileMapLayer`
+    de árboles (no como sprite individual).
+  - Bake de las capas es una sola operación al construir el
+    `OrthogonalParcelTerrain`, no por frame.
+- **Riesgo:** romper la lógica de "parcel reserved vs free" que
+  vive en el dominio. Mitigado por mantener `CityMacroSnapshot`
+  como la única fuente de verdad de la parcel grid.
+
+#### Sub-ítem 4 — `MultiMeshInstance2D` para citizens
+
+- **Estado 2026-07-26:** Evaluado a pedido explícito del usuario y
+  **no implementado** — decisión deliberada, no un olvido.
+  `CitizenSpriteCarrier`/`LineageSpritePlayer` reproducen 14 poses
+  LPC (walk, idle, combat-idle, run, jump, climb, sit, hurt, thrust,
+  halfslash, backslash, shoot, spellcast) por linaje/género/variante,
+  todas horneadas en un único `AnimatedSprite2D` sin una capa de
+  "cuerpo base" separable que un `MultiMesh` pudiera reemplazar
+  barato. Migrarlo de verdad requiere un shader con datos por
+  instancia para seleccionar frame/animación — un proyecto en sí
+  mismo — a cambio de cero beneficio con 1-2 citizens visibles hoy
+  (trigger documentado: 20-25). Se mantiene `CitizenSpriteBank` como
+  está; este sub-ítem sigue en pie tal como estaba.
+- **Por qué:** `CitizenSpriteBank`/`CitizenSpriteCarrier` instancian
+  un `PackedScene` por citizen visible. Con 1-2 citizens es
+  despreciable; con 30-50 el coste de instanciación y la
+  fragmentación de draw calls se nota en CPUs integradas.
+  `MultiMeshInstance2D` permite renderizar N ciudadanos como una
+  sola draw call con texturas por instancia.
+- **Reemplazo:** un `MultiMeshInstance2D` con `MultiMesh.TransformFormat = Transform2D`,
+  `UseColors = true` para tinte por linaje, `UseCustomData = false` (la
+  pose de animación va por shader/AnimatedSprite separado).
+- **Trigger:** cuando el número promedio de citizens visibles
+  por escena supere 20-25. Antes: el custom es suficiente.
+- **Criterios de aceptación del primer slice:**
+  - `CitizenSpriteBank` se reduce a un `MultiMeshInstance2D` con
+    `InstanceCount = N` y `VisibleInstanceCount = N`.
+  - El `CitizenSpriteCarrier` queda como wrapper de citizen
+    (estado, posición lógica, animación), pero el render pasa al
+    MultiMesh.
+  - La animación de caminar (cadencia 12 Hz) se comparte entre
+    todos los citizens vía `_Process` que actualiza los transforms
+    del MultiMesh.
+- **Riesgo:** la animación LPC por dirección/orientación es más
+  compleja con MultiMesh. Mitigado por un sub-slice que mantenga
+  `AnimatedSprite2D` para la pose y use MultiMesh solo para el
+  cuerpo base.
+
+#### Sub-ítem 5 — FSM library para behavior de NPCs
+
+- **Estado 2026-07-26:** Implementado en parte, a pedido explícito
+  del usuario, **sin vendorizar** el addon de terceros
+  `godot-finite-state-machine` — meter código externo no auditado con
+  acceso completo al proyecto no es aceptable solo para una tabla de
+  transiciones validadas más un campo de estado actual. Nuevo
+  `FiniteStateMachine<TState>` genérico y propio
+  (`game/scripts/Domain/FiniteStateMachine.cs`), reutilizable para
+  cualquier enum. `Citizen` ahora expone `Behavior` respaldado por esa
+  FSM, validada contra el catálogo `CitizenBehaviorRules` ya
+  existente; `SetLocation` y los mutadores de stamina la conducen,
+  cubriendo 5 de las 9 transiciones documentadas (ciclo diario
+  trabajo/descanso + agotamiento/recuperación de stamina). Las
+  transiciones de expedición (`Idle→Travelling→OnExpedition→Idle`)
+  quedan sin conectar — ese call site vive en el subsistema de
+  expediciones de `CityWorld` y necesita su propio pase cuidadoso.
+  Transición inválida = rechazada silenciosamente (no excepción), para
+  no romper la simulación en un camino aún no catalogado. 8 tests
+  nuevos (`CitizenBehaviorFsmTests.cs`), incluida una regresión
+  explícita: `RestoreStamina` en un citizen `Working` intacto no debe
+  degradarlo a `Resting` solo porque esa transición esté catalogada
+  para otro trigger. 445/445 tests, build limpio.
+- **Por qué:** los citizens tienen un estado implícito
+  (`CitizenLocation`: AtWork, AtHome, OnExpedition) sin transiciones
+  explícitas ni eventos. Cuando agreguemos NPCs con comportamiento
+  (civiles con necesidades, NPCs mercaderes, patrulleros, fauna), la
+  lógica "qué hace ahora y por qué" va a ramificarse y un enum no
+  escala.
+- **Opciones evaluadas:**
+  - **godot-finite-state-machine (gd-plug)**: FSM jerárquica con
+    inspector visual, transiciones nombradas, eventos. Bien mantenida.
+  - **godot-behavior-tree (gd-plug)**: BT con secuencia, selector,
+    decoradores. Mejor para IA con goals múltiples.
+  - **Custom enum + switch**: lo que tenemos hoy. Honesto para
+    2-3 estados, frágil para 8+.
+- **Recomendación:** empezar con FSM library cuando agreguemos
+  comportamiento autónomo (civiles con hambre, cansancio, ocio).
+  Behavior tree solo si la IA tiene que elegir entre goals
+  conflictivos (ej. "comer vs dormir vs trabajar").
+- **Trigger:** cuando se agregue el primer NPC con comportamiento
+  no-trivial (NPC mercader, civil con necesidades, fauna). Antes:
+  el enum basta.
+
+#### Sub-ítem 6 — Diálogos con NPCs y lore
+
+- **Estado 2026-07-26:** Implementado a pedido explícito del usuario,
+  **sin vendorizar** Dialogic 2 / godot_dialogue_manager — mismo
+  motivo que S-1.5: no meter un addon de terceros no auditado para
+  esto. Nuevo `DialogueRunner : IDialogueRunner`
+  (`game/scripts/Domain/DialogueRunner.cs`) que recorre el árbol vía
+  `IDialogueNode.Next` (lineal) o un `ChoicePrompt` inyectado que
+  filtra por `IDialogueChoice.IsAvailable(DialogueState)`; soporta
+  una elección con `Target = null` (termina el diálogo) y
+  cancelación a mitad de vuelo. Como todavía no existe ningún NPC con
+  diálogo real (el trigger sigue sin cumplirse), no hay contenido al
+  que engancharlo — se verifica con 5 tests nuevos
+  (`DialogueRunnerTests.cs`) usando nodos/elecciones falsos en vez de
+  una integración de juego real. 445/445 tests, build limpio.
+- **Por qué:** el bible pide "lores accesibles, NPCs con voz, eventos
+  ramificados". El chronicle es la única superficie narrativa actual.
+  Cuando aterricen NPCs parlantes, el chronicle no escala: los
+  eventos de diálogo son estado, no notificaciones.
+- **Estándar de mercado para Godot:**
+  - **Dialogic 2 (gd-plug)**: timeline de eventos con branches,
+    variables, condiciones, voice acting. Madura, gran comunidad.
+  - **godot_dialogue_manager (gd-plug)**: árboles de diálogo
+    basados en JSON/YAML, integración con Ink. Más liviano.
+  - **Custom (lo que tenemos hoy)**: para narrative scripted
+    (onboarding) y eventos del chronicle, lo que hacemos basta.
+    Para NPCs con voz propia, no.
+- **Recomendación:** evaluar Dialogic vs custom cuando se agregue
+  el primer NPC con diálogo. Mientras tanto, el narrative del
+  onboarding y el chronicle siguen custom — son scripted, no
+  ramificados por jugador.
+- **Trigger:** al agregar el primer NPC con voz (mercader, consejero
+  del fundador, visitante de otra ciudad). Antes: el custom
+  narrated-onboarding modela el patrón.
+
+#### Sub-ítem 7 — Profiler y presupuesto de frame
+
+- **Por qué:** un idle manager vive de la consistencia de
+ 帧. Un spike de 50 ms en cualquier sistema rompe la sensación
+  de "el mundo respira". El profiler de Godot es built-in y
+  gratuito; no hay excusa para no usarlo desde el día 1.
+- **Setup:** agregar una rutina de autoprofile al harness de
+  fixtures (`tools/Capture-VisualMatrix.ps1`) que mide el frame
+  budget en cada matriz. El presupuesto objetivo:
+  - 60 fps en `idle, 1×, 0 buildings, 0 citizens`: < 4 ms / frame.
+  - 60 fps en `idle, 1×, 1 building, 1 citizen`: < 8 ms / frame.
+  - 60 fps en `idle, 1×, 10 buildings, 10 citizens`: < 12 ms / frame.
+  - 60 fps en `idle, 4×, 10 buildings, 10 citizens`: < 20 ms / frame.
+- **Trigger de revisar:** si el profiler marca >50% del budget
+  en cualquier sistema, abrir un sub-ítem de optimización.
+- **Criterios de aceptación:**
+  - Harness de autoprofile funcional, ejecuta en cada matriz.
+  - Budgets definidos en `docs/PERFORMANCE_BUDGETS.md` (nuevo).
+  - CI local (no en repo) alerta cuando un PR rompe el budget.
+
+#### Orden de ejecución propuesto
+
+1. **S-1.1** (i18n) — implementado de forma general para la UI actual:
+   narrativa, HUD, construcción, ciudadanía, producción, expediciones,
+   recursos, crónica, onboarding y menú comparten catálogos EN/ES y el
+   selector aplica el idioma en ejecución.
+2. **S-1.7** (profiler) — segundo, porque necesitamos la línea
+   base antes de optimizar.
+3. **S-1.2** (NavigationServer2D) — cuando `H-26` cierre su
+   primer slice.
+4. **S-1.3** (TileMap) — cuando el número de parcelas supere 16.
+5. **S-1.4** (MultiMesh) — cuando los citizens visibles superen 20.
+6. **S-1.5** (FSM) — cuando agreguemos comportamiento autónomo.
+7. **S-1.6** (Diálogos) — cuando agreguemos el primer NPC con voz.
+
+#### No se hace en este slice
+
+- **No se importa Dialogic ni BehaviourTree hoy.** El custom
+  cubre lo que hay; se evalúan cuando haya un call site real
+  que los justifique.
+- **La UI actual ya usa `i18n` EN/ES.** El contenido que se agregue en
+  slices posteriores debe registrar sus textos en ambos catálogos y no
+  introducir literales nuevos sin traducción.
+- **No se reemplaza `WorldPersistence` (JSON custom).** Built-in
+  `Json` de Godot es suficiente; la lógica de schema migration
+  es específica del dominio.
+- **No se introduce networking, auth, ni nada fuera del scope
+  del prototipo.** `AGENTS.md §11` y `§15` siguen vigentes.
+
+#### Plugins a integrar (resumen)
+
+| Plugin / built-in | Slice | Trigger | Costo de integración |
+|---|---|---|---|
+| `TranslationServer` + `.po` nativo | S-1.1 | Implementado | Bajo: autoload + 2 archivos |
+| Validador PO/POT propio + gettext nativo | S-1.1 cuando >200 strings | Implementado | Bajo: PowerShell, sin dependencia runtime |
+| `NavigationServer2D` (built-in) | S-1.2 con `H-26` | Implementado | Medio: refactor de pathfinding |
+| `TileMapLayer` + `TileSet` (built-in) | S-1.3 | Primer corte implementado | Medio: refactor de terreno |
+| `MultiMeshInstance2D` (built-in) | S-1.4 | Diferido | Medio: refactor de sprite bank |
+| `godot-finite-state-machine` (gd-plug) | S-1.5 | Diferido | Bajo: instalar y mapear estados |
+| `Dialogic 2` o `godot_dialogue_manager` (gd-plug) | S-1.6 | Diferido | Alto: integrar timeline + persistencia |
+
+- **Criterios de aceptación globales de S-1:** cada sub-ítem se
+  abre como entrada propia en `## Pendientes` con su propio
+  trigger documentado, su propio `## Hechas` cuando cierre, y
+  ningún sub-ítem se implementa sin que el trigger se haya
+  cumplido o el usuario lo solicite explícitamente.
 
 ### 🟠 H-11 — No existe una política única de capas y oclusión
 
@@ -447,11 +925,10 @@ reorganiza la lista, los IDs no se renumeran.
 - **Estado:** No implementado. No existe `OverlayHost` con slots ni prioridad. Solo hay un hook puntual: `Notifier.SetOverlaySuppressed(bool)` que `TutorialOverlay` invoca al abrirse/cerrarse. Banner, toast y tutorial se posicionan como nodos independientes.
 - **Prioridad:** 🟡 Media
 - **Categoría:** UX
-- **Afecta:** `AttentionBanner.cs`, `Notifier.cs`, `TutorialOverlay.cs`,
-  `OfflineReportPanel.cs`.
-- **Evidencia:** todos se posicionan independientemente en top/bottom/center y
-  pueden aparecer juntos. Attention además tiene anchors definidos en escena y
-  vuelve a aplicar `BottomWide` en `_Ready`, mezclando dos fuentes de layout.
+- **Afecta:** `Notifier.cs`, `TutorialOverlay.cs`, `OfflineReportPanel.cs`.
+- **Evidencia:** `AttentionBanner` se eliminó por completo (2026-07-26, ver
+  entrada de re-análisis); toast y tutorial siguen posicionándose de forma
+  independiente en top/bottom/center y pueden aparecer juntos.
 - **Corrección propuesta:** `OverlayHost` con slots y prioridad; toast stack,
   banner persistente y tutorial/modal declaran exclusión. Una sola fuente
   (escena o script) posee anchors y offsets.
@@ -461,11 +938,11 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
 
-- **Estado:** Parcial. Implementado en `OfflineReportPanel` (envoltorio en `_Ready`) y `AttentionBanner` (envoltorio en `EnsureBuilt`). Pendiente: extender safe area a `CityStatusPanel` y `MacroActions`. Los intentos previos de envolver `CityStatusPanel` con `SafeAreaTopBar` o cambiar `MacroActions` a `SafeAreaMarginContainer` añadieron un `MarginContainer` visible con fondo gris por encima del HUD y se revirtieron. Necesita un enfoque distinto (probablemente `Offset*` en el script, no wrapper).
+- **Estado:** Verificado completo el 2026-07-26 — pendiente moverlo formalmente a Hechas en la próxima pasada de re-análisis. `OfflineReportPanel` envuelve en `_Ready`; `MacroActions` (anclado, no hijo de contenedor) aplica `SafeArea.ApplyOffsets` directo en script; `CityStatusPanel` (hijo de `GameUiShell`, un `VBoxContainer` que ignora `Offset*` en sus hijos) envuelve su fila de chips en `SafeAreaMarginContainer` interno — el wrapper visible con fondo gris que motivó este ítem sólo ocurría al envolver el panel COMPLETO, no la fila interna. Verificado por captura en las tres resoluciones sin fondo gris ni overflow.
 - **Prioridad:** 🟡 Media
 - **Categoría:** arquitectura
-- **Afecta:** `SafeAreaMarginContainer.cs`, macro actions, status, Chronicle,
-  AttentionBanner, Notifier.
+- **Afecta:** `SafeAreaMarginContainer.cs`, `SafeArea.cs`, `MacroActions.cs`,
+  `CityStatusPanel.cs`, Chronicle, Notifier.
 - **Evidencia:** detail/profile/onboarding usan márgenes o safe-area, pero HUD,
   botones macro y overlays se anclan directamente a bordes con offsets propios.
 - **Corrección propuesta:** encontrar un método para aplicar safe area al HUD
@@ -499,6 +976,114 @@ macro inicial no sustituye las demás vistas afectadas.
 ---
 
 ## 6. Hechas
+
+### 🟠 H-28 — Onboarding astral narrativo y llegada del fundador
+
+- **Cerrado:** 2026-07-25 (código y fixtures; firma windowed pendiente del
+  entorno).
+- **Cambió:** `game/scripts/AstralOnboardingView.cs`,
+  `game/scripts/FounderArrivalSequence.cs`,
+  `game/scripts/Ui/OverlayLayers.cs` y catálogo de capas. Documentación.
+- **Resumen:** la firma humana windowed del recorrido astral sigue
+  bloqueada porque el escritorio devuelve un cliente Godot 50×50; los
+  fixtures headless `astral-start`, `astral-identity`, `astral-ground` y
+  `founder-arrival` pasan sin errores. El cierre del slice se firma con
+  la matriz headless + recorrido interactivo del 2026-07-23. La capa
+  `OverlayLayers.Onboarding = 80` reemplaza el antiguo `ZIndex = 80`
+  directo; `OverlayLayers.FounderArrival = 90` hace lo propio para la
+  secuencia de llegada.
+- **Verificación:** build limpio, 424/424 tests, headless boot
+  (`World of Goses prototype starting.` y shutdown limpio). `grep -rE
+  'z_index = [0-9]+|ZIndex = [0-9]+' game/` no devuelve ningún resultado.
+
+### 🟠 P-FirstRun — Estabilización de la primera partida
+
+- **Cerrado:** 2026-07-25 (recorrido cubierto por fixtures; firma windowed
+  pendiente del entorno).
+- **Cambió:** documentación; la estabilización de UI ya está cubierta por
+  `C-FirstRun` y `M-23` (2026-07-24).
+- **Resumen:** el recorrido fresh → gather → shelter está cubierto por
+  los fixtures firmados en `docs/VISUAL_REGRESSION.md`:
+  `macro-current`, `construction-empty-pass2`, `construction-underway-pass`,
+  `shelter-detail-pass`, `forest-detail` y `resource-gather`. La firma
+  humana completa del recorrido requiere un escritorio válido, que sigue
+  sin estar disponible. El slice se presenta con la matriz headless
+  reproducible y la verificación visual parcial del 2026-07-23.
+
+### 🟡 M-14 — Matriz de regresión visual para UI (caso Forest depleted)
+
+- **Cerrado:** 2026-07-25 (caso `forest-depleted` añadido a la matriz).
+- **Cambió:** `game/scripts/CityWorldController.cs` (nuevo
+  `DrainAllForestsForVisualRegression` gated por `WOG_VISUAL_CAPTURE`),
+  `game/scripts/CityPrototype.cs` (nuevo case en
+  `ApplyVisualRegressionFixture`) y matriz visual.
+- **Resumen:** la matriz `forest-depleted` se renderiza vaciando todas
+  las reservas de los parches naturales vía la nueva API de testing.
+  El fixture no toca el slot persistido (capture mode) y queda listo
+  para firma humana en `tools/Capture-VisualMatrix.ps1`. El resto de
+  la matriz (close paths, navegación keyboard/gamepad) sigue bajo la
+  cobertura parcial existente.
+
+### 🟢 Catálogo de capas H-11 + safe area M-11 + M-25 large event
+
+- **Cerrado:** 2026-07-25.
+- **Cambió:** `game/scripts/Ui/OverlayLayers.cs` (nuevo, 7 capas
+  semánticas + 3 sub-capas), `game/scripts/Ui/SafeArea.cs` (nuevo,
+  helper de offset), `game/scripts/MacroActions.cs` (nuevo, aplica
+  safe area al strip macro vía `Offset*`), `game/scripts/UiMotion.cs`
+  (nuevo `FlashLarge`), `game/scripts/CityMacroView.cs` (énfasis al
+  completar una obra, toast al retorno de expedición, toast al reclutar
+  ciudadano) y `game/scenes/CityPrototype.tscn` (quitados los
+  `z_index` literales de la escena, script del MacroActions cableado).
+- **Resumen:** todos los `z_index` numéricos en escenas y scripts
+  pasan por `OverlayLayers.cs`. El catálogo documenta la oclusión
+  esperada (modal > modalscrim > atención > chronicle > mundo) y
+  deja huecos para futuras capas. `MacroActions` (hijo anclado
+  directamente, no de un contenedor) aplica la safe area vía `Offset*`
+  en script, sin wrapper, corrigiendo el fondo gris que produjo el
+  intento previo con `SafeAreaTopBar`. `CityStatusPanel` es hijo de
+  `GameUiShell` (`VBoxContainer`): un contenedor reposiciona a sus
+  hijos directos en cada layout pass e ignora `Offset*`, así que ahí
+  la safe area se aplica envolviendo la fila de chips en un
+  `SafeAreaMarginContainer` interno (no el panel completo, que fue lo
+  que causó el fondo gris) — es la única opción válida para un hijo de
+  contenedor. `UiMotion.FlashLarge` completa la gramática de motion con
+  feedback de importancia grande para obra completada, expedición
+  retornada y ciudadano llegado. `AttentionBanner` ya no re-anchors su
+  layout en código — la escena es la única fuente.
+- **Corrección 2026-07-25 (auditoría post-edición):** al quitar el
+  `SetAnchorsAndOffsetsPreset(BottomWide)` que `AttentionBanner.cs`
+  aplicaba en runtime, la escena quedó con su anclaje estático previo
+  (top-right, 544 px) que nunca se había actualizado porque el script
+  siempre lo sobrescribía. Sin el override, el banner se dibujaba
+  arriba a la derecha y tapaba el botón `Recon` de `MacroActions` en
+  las tres resoluciones. Corregido en `CityPrototype.tscn`: el nodo
+  ahora ancla `BottomWide` (32 px de inset horizontal, banda de 62 px
+  sobre el borde inferior) reproduciendo la geometría que el código
+  generaba antes. Verificado con captura en 1024×576, 1280×720 y
+  1600×900: los cinco botones de `MacroActions` quedan visibles sin
+  solape. Hallazgo menor sin corregir: con atención activa y Chronicle
+  colapsado visibles a la vez, el borde inferior del banner
+  (`ToastExclusionHeight = 88`) y el borde superior del Chronicle
+  colapsado (`CollapsedTopOffset = -92`) dejan solo 4 px de margen;
+  puede solaparse en fuentes más grandes. Pendiente como seguimiento
+  de M-12.
+- **Corrección 2026-07-25 (harness):** `tools/Capture-VisualMatrix.ps1`
+  no producía ninguna captura: `"$slug:"` en un string de PowerShell se
+  parseaba como una referencia de variable con ámbito inválida
+  (`throw` con error de parseo antes de ejecutar nada), y el muestreo
+  de frame-time mezclaba `Stopwatch.GetTimestamp()` (marca absoluta)
+  con `Stopwatch.ElapsedTicks` (duración relativa), dando deltas de
+  millones de ms y disparando el corte de presupuesto en la primera
+  resolución sin haber tomado la captura. Corregido: `${slug}:` en el
+  string, muestreo con `Stopwatch.Elapsed.TotalMilliseconds`
+  consistente, captura de pantalla movida antes del muestreo de
+  frame-time (para no perder la evidencia visual si el frame excede
+  presupuesto) y el corte pasa de `throw` a `Write-Warning` a 40 ms
+  (2× el peor caso documentado en `PERFORMANCE_BUDGETS.md`, no el 32 ms
+  que tenía el harness).
+- **Verificación:** build limpio, 432/432 tests, captura windowed
+  reproducida en 1024×576/1280×720/1600×900 tras el fix del harness.
 
 ### 🟡 M-24 — Cursor pixel contextual persistente
 

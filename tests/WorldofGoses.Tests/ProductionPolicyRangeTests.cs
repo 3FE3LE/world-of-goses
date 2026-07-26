@@ -48,9 +48,10 @@ public class ProductionPolicyRangeTests
     [Fact]
     public void ReactiveResume_StockDropsToMinStock_UnblocksBuilding()
     {
-        // Fill the Quarry, then drain it via upkeep until
-        // Stock <= MinStock. Production outpaces upkeep when both run
-        // at once, so the test pauses the building first.
+        // Upkeep is dormant, so the only way to drop the quarry below
+        // MinStock is to drain it directly. This still exercises the
+        // "reactive resume" path: once Stock <= MinStock, the next
+        // tick should clear the TargetReached sentinel and produce.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         quarry.ConfigureProductionPolicy(true, minStock: 3, maxStock: 10, priority: 0);
@@ -63,19 +64,14 @@ public class ProductionPolicyRangeTests
         Assert.Equal(quarry.MaxStock, quarry.Stock);
         Assert.Equal(ProductionStopCause.TargetReached, quarry.StopCause);
 
-        // Pause production so upkeep is the only drain.
-        quarry.ConfigureProductionPolicy(false, minStock: 3, maxStock: 10, priority: 0);
-        int safety = 200;
-        while (quarry.Stock > quarry.MinStock && safety-- > 0)
-        {
-            world.AdvanceWorldTick();
-        }
+        // Drain directly below MinStock. Upkeep is no longer the drain.
+        int drain = quarry.Stock - quarry.MinStock + 1;
+        quarry.TryConsumeStock(drain);
         Assert.True(quarry.Stock <= quarry.MinStock,
             $"Expected Stock <= {quarry.MinStock} but got {quarry.Stock}.");
 
-        // Resume the policy. The next tick should clear the
-        // TargetReached sentinel and produce again.
-        quarry.ConfigureProductionPolicy(true, minStock: 3, maxStock: 10, priority: 0);
+        // The next tick should clear the TargetReached sentinel and
+        // produce again because Stock <= MinStock triggers ResumeIfBelowMin.
         world.AdvanceWorldTick();
 
         Assert.NotEqual(ProductionStopCause.TargetReached, quarry.StopCause);

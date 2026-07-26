@@ -33,6 +33,8 @@ public partial class ExpeditionPanel : Control
 
     public override void _Ready()
     {
+        OverlayLayers.Apply(this, OverlayLayers.Modal);
+
         _controller = GetNode<CityWorldController>(ControllerPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _statusLabel = GetNode<Label>(StatusLabelPath);
@@ -99,7 +101,7 @@ public partial class ExpeditionPanel : Control
         ExpeditionStartResult result = _controller.StartExpedition(request);
         if (!result.IsSuccess)
         {
-            Notifier.ShowError($"Could not dispatch: {result.Outcome}");
+            Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
         }
         Refresh();
     }
@@ -143,9 +145,12 @@ public partial class ExpeditionPanel : Control
         _dispatchButton.Disabled = !canDispatch;
         _cancelButton.Visible = active is not null;
         _statusLabel.Text = active is null
-            ? "Dispatch a reconnaissance: consumes 1 Wood, returns with 1 Stone after 4 in-game days."
-            : $"{active.DisplayName} departed {SimulationTimeText.Format(active.StartTick)} "
-                + $"and returns {SimulationTimeText.Format(active.EndTick)}.";
+            ? UiText.Get("Dispatch a reconnaissance: consumes 1 Wood, returns with 1 Stone after 4 in-game days.")
+            : UiText.Format(
+                "ui.expedition.schedule",
+                UiText.Get(active.DisplayName),
+                SimulationTimeText.FormatLocalized(active.StartTick),
+                SimulationTimeText.FormatLocalized(active.EndTick));
     }
 
     private void FocusCurrentAction()

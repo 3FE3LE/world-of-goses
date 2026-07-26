@@ -245,6 +245,32 @@ public partial class CityWorldController : Node
         TryAutoSave();
     }
 
+    /// <summary>
+    /// Drains every natural resource patch so the macro view renders
+    /// the depleted state (no trees, empty parcel slots, but the
+    /// patches themselves remain for spatial indexing). Only callable
+    /// during a <c>WOG_VISUAL_CAPTURE</c> run; returns silently in
+    /// normal play to keep the visual regression path orthogonal to
+    /// game logic.
+    /// </summary>
+    public void DrainAllForestsForVisualRegression()
+    {
+        if (!IsVisualCaptureMode) return;
+        foreach (var patch in _world.NaturalResourcePatches.Values)
+        {
+            patch.Gather(int.MaxValue);
+        }
+        // Reflect the new state through the existing signals so the
+        // macro view re-renders without an autosave side-effect.
+        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+    }
+
+    private static bool IsVisualCaptureMode =>
+        string.Equals(
+            System.Environment.GetEnvironmentVariable(VisualCaptureEnvironmentVariable),
+            "1",
+            StringComparison.Ordinal);
+
     public bool TrySaveNow()
     {
         if (!PersistenceWritesEnabled) return true;

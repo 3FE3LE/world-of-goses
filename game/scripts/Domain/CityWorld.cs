@@ -1271,11 +1271,13 @@ public sealed class CityWorld
 
     /// <summary>
     /// One world tick. Canonical order: clock advance → mobilisation
-    /// at day/night boundary → upkeep → per-building behavior
-    /// (day: produce; night: rest) → per-project behaviour
-    /// (day: contribute at work intervals; night: rest) → buffs.
-    /// Project completion is deferred to the end of the tick so
-    /// the project dictionary is not mutated while iterating.
+    /// at day/night boundary → per-building behavior (day: produce;
+    /// night: rest) → per-project behaviour (day: contribute at
+    /// work intervals; night: rest) → buffs. Upkeep was previously
+    /// drained here; that placeholder is dormant until real
+    /// building-driven demand exists. Project completion is deferred
+    /// to the end of the tick so the project dictionary is not
+    /// mutated while iterating.
     /// </summary>
     public void AdvanceWorldTick()
     {
@@ -1291,7 +1293,6 @@ public sealed class CityWorld
             }
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
-        ApplyUpkeep();
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
@@ -1682,21 +1683,12 @@ public sealed class CityWorld
 
     private void ApplyUpkeep()
     {
-        int toConsume = Upkeep.StonePerTick(_citizens.Count);
-        for (int i = 0; i < toConsume; i++)
-        {
-            bool consumed = false;
-            foreach (var building in _buildings.Values)
-            {
-                if (building.Kind != BuildingKind.Quarry) continue;
-                if (building.TryConsumeStock(1))
-                {
-                    consumed = true;
-                    break;
-                }
-            }
-            if (!consumed) break; // no stone left anywhere
-        }
+        // Upkeep is dormant. The seam remains so a future slice can
+        // reactivate building-driven demand (e.g. Smithy tool wear,
+        // depot maintenance) without re-introducing the placeholder
+        // "abstract city upkeep" that previously drained Quarry stone
+        // for no playable reason. Re-enable here AND in
+        // TryAdvanceQuiescentTicks when real demand exists.
     }
 
     private void ApplyNightRest(Building building)
@@ -1916,17 +1908,8 @@ public sealed class CityWorld
 
     private void ApplyUpkeepBatch(int tickCount)
     {
-        long remaining = (long)Upkeep.StonePerTick(_citizens.Count) * tickCount;
-        if (remaining <= 0) return;
-
-        foreach (var building in _buildings.Values)
-        {
-            if (building.Kind != BuildingKind.Quarry || building.Stock <= 0) continue;
-            int consumed = (int)Math.Min(remaining, building.Stock);
-            building.TryConsumeStock(consumed);
-            remaining -= consumed;
-            if (remaining <= 0) return;
-        }
+        // Upkeep is dormant. See ApplyUpkeep above for the rationale.
+        _ = tickCount;
     }
 
     /// <summary>

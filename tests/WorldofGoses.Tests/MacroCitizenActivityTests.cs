@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses;
+using WorldofGoses.Ui;
 using Xunit;
 
 namespace WorldofGoses.Tests;
 
 public sealed class MacroCitizenActivityTests
 {
+    private static readonly IPathfinder Pathfinder = new CardinalPathfinder();
+
     [Fact]
     public void PlanCardinalRoute_AvoidsOccupiedBuildingFootprint()
     {
@@ -16,7 +19,7 @@ public sealed class MacroCitizenActivityTests
         var obstacle = new Rect2(50, 150, 100, 100);
 
         IReadOnlyList<Vector2> route =
-            MacroCitizenActivity.PlanCardinalRoute(start, target, new[] { obstacle });
+            Pathfinder.PlanRoute(start, target, new[] { obstacle });
 
         Assert.Equal(target, route[^1]);
         Assert.Contains(route, waypoint => waypoint.X < obstacle.Position.X);
@@ -30,7 +33,7 @@ public sealed class MacroCitizenActivityTests
         Vector2 target = new(95.7f, 44.2f);
 
         IReadOnlyList<Vector2> route =
-            MacroCitizenActivity.PlanCardinalRoute(start, target, Array.Empty<Rect2>());
+            Pathfinder.PlanRoute(start, target, Array.Empty<Rect2>());
 
         Assert.All(route, waypoint =>
         {

@@ -187,7 +187,7 @@ public partial class BuildingPlot : Control
 
         _overlay = new Label
         {
-            Text = ConstructionProgressLabel(ConstructionProgress, ConstructionRequiredWork),
+            Text = LocalizedConstructionProgressLabel(ConstructionProgress, ConstructionRequiredWork),
             HorizontalAlignment = HorizontalAlignment.Center,
             Size = new Vector2(
                 PresentationConstants.MacroPlotSize,
@@ -281,11 +281,11 @@ public partial class BuildingPlot : Control
         _overlay.Visible = underConstruction;
         if (underConstruction && !enabled)
         {
-            _overlay.Text = "Paused";
+            _overlay.Text = UiText.Get("Paused");
         }
         else
         {
-            _overlay.Text = ConstructionProgressLabel(progress, requiredWork);
+            _overlay.Text = LocalizedConstructionProgressLabel(progress, requiredWork);
         }
         _progressBar.Visible = underConstruction;
         _progressBar.MinValue = 0;
@@ -356,6 +356,13 @@ public partial class BuildingPlot : Control
         if (requiredWork <= 0) return "Under construction";
         int percent = (int)((long)System.Math.Clamp(progress, 0, requiredWork) * 100 / requiredWork);
         return $"Construction · {percent}%";
+    }
+
+    private static string LocalizedConstructionProgressLabel(int progress, int requiredWork)
+    {
+        if (requiredWork <= 0) return UiText.Get("Under construction");
+        int percent = (int)((long)System.Math.Clamp(progress, 0, requiredWork) * 100 / requiredWork);
+        return UiText.Format("ui.construction.percent", percent);
     }
 
     private void ApplyTexture()

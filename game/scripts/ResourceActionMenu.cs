@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -23,12 +24,14 @@ public partial class ResourceActionMenu : PanelContainer
 
     public override void _Ready()
     {
+        OverlayLayers.Apply(this, OverlayLayers.ContextMenu);
+
         _reserveLabel = GetNode<Label>("Margin/Content/ReserveLabel");
         _regenerationLabel = GetNode<Label>("Margin/Content/RegenerationLabel");
         _availabilityLabel = GetNode<Label>("Margin/Content/AvailabilityLabel");
         _gatherButton = GetNode<IconButton>("Margin/Content/GatherButton");
         _closeButton = GetNode<Button>("Margin/Content/CloseButton");
-        _gatherButton.SetIconAndLabel(ResourceTree.AxeCursorPath, "Gather");
+        _gatherButton.SetIconAndLabel(ResourceTree.AxeCursorPath, UiText.Get("Gather"));
         _gatherButton.Pressed += OnGatherPressed;
         _closeButton.Pressed += Hide;
         Hide();
@@ -53,7 +56,7 @@ public partial class ResourceActionMenu : PanelContainer
         _forestId = forestId;
         _unitId = unitId;
         _targetPosition = targetPosition;
-        _reserveLabel.Text = $"{reserve} wood remains";
+        _reserveLabel.Text = UiText.Format("ui.resource.wood_remains", reserve);
         _regenerationLabel.Text =
             $"Patch growth at next dawn · {ticksUntilRegeneration} ticks";
         _availabilityLabel.Text = unavailableReason;

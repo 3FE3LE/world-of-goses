@@ -64,11 +64,67 @@ public sealed class FirstRunRegressionTests
     [InlineData(1600, 900)]
     public void TerrainRectLeavesHudSafeBand(int width, int height)
     {
+        // Parcels are now fixed-scale (a virtual camera pans instead of the
+        // terrain stretching to fit the window), so reset the shared pan
+        // state first: an earlier test case must not leave this scrolled.
+        OrthogonalParcelTerrain.ResetPanForTests();
         Rect2 terrain = OrthogonalParcelTerrain.CalculateTerrainRect(
             new Vector2(width, height));
 
+        // At zero pan the world's top-left still respects the HUD margins,
+        // regardless of whether the fixed-size world fits this viewport.
         Assert.True(terrain.Position.Y >= 96);
-        Assert.True(terrain.End.Y <= height - 72);
+        Assert.True(terrain.Position.X >= 32);
+        // The world is always exactly ParcelColumns x ParcelRows parcels of
+        // ParcelGrid.LotsPerAxis x ParcelGrid.TilesPerStandardLot tiles —
+        // fixed, not derived from the viewport.
+        Assert.Equal(
+            OrthogonalParcelTerrain.ParcelColumns * OrthogonalParcelTerrain.ParcelPixelSize,
+            terrain.Size.X);
+        Assert.Equal(
+            OrthogonalParcelTerrain.ParcelRows * OrthogonalParcelTerrain.ParcelPixelSize,
+            terrain.Size.Y);
+    }
+
+    [Fact]
+    public void CalculateTerrainRect_PanClampedToWorldBounds()
+    {
+        OrthogonalParcelTerrain.ResetPanForTests();
+        // A viewport smaller than the fixed world needs to scroll; verify
+        // CalculateParcelRect for the last parcel is reachable at some pan
+        // within [0, worldSize - displaySize] without asserting on the
+        // private drag mechanics — only that the fixed geometry itself is
+        // internally consistent (parcel rects tile the world with no gaps
+        // or overlaps).
+        Rect2 terrain = OrthogonalParcelTerrain.CalculateTerrainRect(new Vector2(1024, 576));
+        for (int column = 0; column < OrthogonalParcelTerrain.ParcelColumns; column++)
+        {
+            for (int row = 0; row < OrthogonalParcelTerrain.ParcelRows; row++)
+            {
+                Rect2 parcel = OrthogonalParcelTerrain.CalculateParcelRect(
+                    new Vector2(1024, 576), column, row);
+                Assert.Equal(OrthogonalParcelTerrain.ParcelPixelSize, parcel.Size.X);
+                Assert.Equal(OrthogonalParcelTerrain.ParcelPixelSize, parcel.Size.Y);
+                Assert.Equal(
+                    terrain.Position.X + column * OrthogonalParcelTerrain.ParcelPixelSize,
+                    parcel.Position.X);
+                Assert.Equal(
+                    terrain.Position.Y + row * OrthogonalParcelTerrain.ParcelPixelSize,
+                    parcel.Position.Y);
+            }
+        }
+        OrthogonalParcelTerrain.ResetPanForTests();
+    }
+
+    [Fact]
+    public void ParcelPresentation_UsesNineByNineTilesAndThreeByThreeLots()
+    {
+        Assert.Equal(3, ParcelGrid.LotsPerAxis);
+        Assert.Equal(3, ParcelGrid.TilesPerStandardLot);
+        Assert.Equal(9, OrthogonalParcelTerrain.ParcelTileSpan);
+        Assert.Equal(
+            OrthogonalParcelTerrain.DisplayTileSize * 9,
+            OrthogonalParcelTerrain.ParcelPixelSize);
     }
 
     [Fact]

@@ -37,6 +37,8 @@ public partial class MigrantPanel : Control
 
     public override void _Ready()
     {
+        OverlayLayers.Apply(this, OverlayLayers.Modal);
+
         _controller = GetNode<CityWorldController>(ControllerPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _recruitButton = GetNode<Button>(RecruitButtonPath);
@@ -110,13 +112,13 @@ public partial class MigrantPanel : Control
     {
         if (_controller.World.Hero is null)
         {
-            Notifier.ShowError("Create a hero first.");
+            Notifier.ShowError(UiText.Get("Create a hero first."));
             return;
         }
         CityWorld.MigrantResult result = _controller.TryRecruitMigrant();
         if (!result.IsSuccess)
         {
-            Notifier.ShowError($"Could not recruit: {result.Outcome}");
+            Notifier.ShowError(UiText.Format("ui.citizens.recruit_failed", result.Outcome));
         }
         Refresh();
     }
@@ -162,13 +164,15 @@ public partial class MigrantPanel : Control
         }
 
         _recruitButton.Disabled = _controller.World.Hero is null;
-        _statusLabel.Text =
-            $"{_controller.World.Citizens.Count} citizens · {migrantCount} non-hero";
+        _statusLabel.Text = UiText.Format(
+            "ui.citizens.count",
+            _controller.World.Citizens.Count,
+            migrantCount);
         Citizen? selected = _selectedCitizenId.HasValue
             ? _controller.World.GetCitizen(_selectedCitizenId.Value)
             : null;
         _detailLabel.Text = selected is null
-            ? "Recruit the first citizen to begin the roster."
+            ? UiText.Get("Recruit the first citizen to begin the roster.")
             : DescribeCitizen(selected);
     }
 
@@ -190,54 +194,57 @@ public partial class MigrantPanel : Control
 
     private string DescribeRosterRow(Citizen citizen)
     {
-        string role = citizen.IsHero ? "Hero" : "Citizen";
-        return $"{citizen.Name} · {role} · {DescribeStatus(citizen)}";
+        string role = UiText.Get(citizen.IsHero ? "Hero" : "Citizen");
+        return UiText.Format("ui.citizens.roster_row", citizen.Name, role, DescribeStatus(citizen));
     }
 
     private string DescribeCitizen(Citizen citizen)
     {
         string assignment = citizen.CurrentAssignment.HasValue
             ? ResolveAssignmentName(citizen.CurrentAssignment.Value)
-            : "None";
-        return
-            $"{citizen.Name}\n" +
-            $"Status: {DescribeStatus(citizen)}\n" +
-            $"Assignment: {assignment}\n" +
-            $"Lineage: {ProfileCatalog.Get(citizen.Profile.Lineage).DisplayName}\n" +
-            $"Affinities: {DescribeAffinities(citizen.Profile)}\n" +
-            $"Stamina: {citizen.CurrentStamina}/{citizen.MaxStamina}\n\n" +
-            "Open a Farm, Quarry, or construction site to assign an available citizen.";
+            : UiText.Get("None");
+        return UiText.Format(
+            "ui.citizens.detail",
+            citizen.Name,
+            DescribeStatus(citizen),
+            assignment,
+            UiText.Get(ProfileCatalog.Get(citizen.Profile.Lineage).DisplayName),
+            DescribeAffinities(citizen.Profile),
+            citizen.CurrentStamina,
+            citizen.MaxStamina);
     }
 
     private static string DescribeAffinities(CitizenProfile profile) =>
         string.Join(", ",
-            ProfileCatalog.DisplayName(profile.ProfessionalAffinities[0]),
-            ProfileCatalog.DisplayName(profile.ProfessionalAffinities[1]),
-            ProfileCatalog.DisplayName(profile.ProfessionalAffinities[2]));
+            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[0])),
+            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[1])),
+            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[2])));
 
     private string DescribeStatus(Citizen citizen)
     {
         if (_controller.World.IsCitizenOnActiveExpedition(citizen.Id))
         {
-            return "On expedition";
+            return UiText.Get("On expedition");
         }
         if (citizen.CurrentAssignment.HasValue)
         {
             return citizen.CurrentLocation == CitizenLocation.AtWork
-                ? "Working"
-                : "Assigned";
+                ? UiText.Get("Working")
+                : UiText.Get("ui.status.assigned");
         }
         return citizen.CurrentLocation == CitizenLocation.AtHome
-            ? "At home"
+            ? UiText.Get("At home")
             : citizen.CurrentLocation.ToString();
     }
 
     private string ResolveAssignmentName(BuildingId assignmentId)
     {
         Building? building = _controller.World.GetBuilding(assignmentId);
-        if (building is not null) return building.DisplayName;
+        if (building is not null) return UiText.Get(building.DisplayName);
         ConstructionProject? project = _controller.World.GetProject(assignmentId);
-        return project is not null ? $"{project.DisplayName} (construction)" : "Unknown";
+        return project is not null
+            ? UiText.Format("ui.citizens.construction_assignment", UiText.Get(project.DisplayName))
+            : UiText.Get("Unknown");
     }
 
     private static StyleBoxFlat CreateReadingSurface() =>

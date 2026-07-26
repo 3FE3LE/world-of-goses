@@ -194,7 +194,11 @@ public partial class BuildingPlotStage : Control
         _plots.Add(plot);
     }
 
-    private void RepositionPlots()
+    /// <summary>Internal, not private: <c>CityMacroView</c> also calls this
+    /// directly when <c>OrthogonalParcelTerrain.PanChanged</c> fires, since
+    /// panning repositions plots without changing this control's own
+    /// <c>Size</c> (so <c>Resized</c> never fires for it).</summary>
+    internal void RepositionPlots()
     {
         int fallbackIndex = 0;
         foreach (MacroBuildingView plot in _plots)

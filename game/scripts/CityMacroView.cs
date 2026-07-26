@@ -51,13 +51,15 @@ public partial class CityMacroView : Control
     [Export] public NodePath ExpeditionPanelPath { get; set; } = "ExpeditionPanel";
     [Export] public NodePath MigrantMenuButtonPath { get; set; } = "../MacroActions/Actions/MigrantMenuButton";
     [Export] public NodePath MigrantPanelPath { get; set; } = "MigrantPanel";
-    [Export] public NodePath AttentionBannerPath { get; set; } = "../../../AttentionBanner";
 
     private CityWorldController _controller = null!;
     private MacroCitizenActivity _activity = null!;
     private CityStatusPanel _statusPanel = null!;
     private OfflineReportPanel _offlineReport = null!;
     private ModalHost _modalHost = null!;
+    // Building ids that have already received a "construction complete"
+    // emphasis so a repeated BuildingStateChanged does not re-flash.
+    private readonly HashSet<int> _emphasisedBuildingIds = new();
     private ConstructionPanel _constructionPanel = null!;
     private PanelContainer _emptyPanel = null!;
     private Label _emptyGuidanceLabel = null!;
@@ -72,7 +74,6 @@ public partial class CityMacroView : Control
     private ExpeditionPanel _expeditionPanel = null!;
     private IconButton _migrantMenuButton = null!;
     private MigrantPanel _migrantPanel = null!;
-    private AttentionBanner _attentionBanner = null!;
     private ConstructionPlacementOverlay _placementOverlay = null!;
     private bool _modalWantsOpen;
     private bool _heroLayoutRefreshQueued;
@@ -100,7 +101,6 @@ public partial class CityMacroView : Control
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _migrantMenuButton = GetNode<IconButton>(MigrantMenuButtonPath);
         _migrantPanel = GetNode<MigrantPanel>(MigrantPanelPath);
-        _attentionBanner = GetNode<AttentionBanner>(AttentionBannerPath);
         _placementOverlay = new ConstructionPlacementOverlay
         {
             Name = nameof(ConstructionPlacementOverlay),
@@ -109,6 +109,7 @@ public partial class CityMacroView : Control
 
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
         _controller.ProjectStateChanged += OnAnyProjectStateChanged;
+        _controller.ExpeditionStateChanged += OnAnyExpeditionStateChanged;
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
@@ -120,6 +121,7 @@ public partial class CityMacroView : Control
         _constructionPanel.PlacementRequested += OnPlacementRequested;
         _terrain.GatherRequested += OnResourceGatherRequested;
         _terrain.Resized += OnTerrainResized;
+        _terrain.PanChanged += OnTerrainPanChanged;
         _placementOverlay.PlacementConfirmed += OnPlacementConfirmed;
         _placementOverlay.PlacementCancelled += OnPlacementCancelled;
         _modalHost.Opened += OnModalHostOpened;
@@ -151,6 +153,7 @@ public partial class CityMacroView : Control
         {
             _controller.BuildingStateChanged -= OnAnyBuildingStateChanged;
             _controller.ProjectStateChanged -= OnAnyProjectStateChanged;
+            _controller.ExpeditionStateChanged -= OnAnyExpeditionStateChanged;
             _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
             _controller.SelectionChanged -= OnSelectionChanged;
             _controller.HeroCreated -= OnHeroCreated;
@@ -180,6 +183,7 @@ public partial class CityMacroView : Control
         {
             _terrain.GatherRequested -= OnResourceGatherRequested;
             _terrain.Resized -= OnTerrainResized;
+            _terrain.PanChanged -= OnTerrainPanChanged;
         }
         if (_constructionPanel is not null)
         {
@@ -357,11 +361,22 @@ public partial class CityMacroView : Control
             _offlineReport.ShowLog(snapshot.Events);
         }
 
-        UpdateAttentionBanner(snapshot);
-        if (_placementOverlay.Visible) _attentionBanner.Hide();
     }
 
     private void OnTerrainResized() => QueueHeroLayoutRefresh();
+
+    /// <summary>
+    /// Panning doesn't change any control's own <c>Size</c>, so plots, the
+    /// lot-selection overlay, and the hero anchor — all positioned from
+    /// <c>OrthogonalParcelTerrain.CalculateParcelRect</c> — never see their
+    /// own <c>Resized</c> fire for it. Reposition them explicitly.
+    /// </summary>
+    private void OnTerrainPanChanged()
+    {
+        _plotStage.RepositionPlots();
+        _placementOverlay.RepositionLots();
+        QueueHeroLayoutRefresh();
+    }
 
     private void QueueHeroLayoutRefresh()
     {
@@ -412,22 +427,6 @@ public partial class CityMacroView : Control
         return freeLots.Count > 0
             ? _terrain.GetLotGlobalCenter(freeLots[0])
             : null;
-    }
-
-    private void UpdateAttentionBanner(CityMacroSnapshot snapshot)
-    {
-        int attentionCount = 0;
-        var status = _controller.GetCityStatusSnapshot();
-        foreach (var building in status.Buildings)
-        {
-            if (building.StopCause is ProductionStopCause.NoWorkers
-                or ProductionStopCause.WorkersExhausted
-                or ProductionStopCause.MissingInputs)
-            {
-                attentionCount++;
-            }
-        }
-        _attentionBanner.Update(attentionCount);
     }
 
     /// <summary>
@@ -513,7 +512,6 @@ public partial class CityMacroView : Control
         _modalWantsOpen = false;
         SyncModalHost();
         _offlineReport.Hide();
-        _attentionBanner.Hide();
         _macroActions.Hide();
         _placementOverlay.Begin((ConstructionKind)constructionKind, lots);
     }
@@ -551,7 +549,6 @@ public partial class CityMacroView : Control
         RestoreChronicleVisibility();
         _modalWantsOpen = true;
         SyncModalHost();
-        UpdateAttentionBanner(_controller.GetCityMacroSnapshot());
     }
 
     /// <summary>
@@ -614,8 +611,11 @@ public partial class CityMacroView : Control
     {
         if (_modalHost.IsOpen)
         {
-            _constructionMenuButton.SetIconAndLabel(IconPaths.Close, "Close construction");
-            _constructionMenuButton.TooltipText = "Close the construction menu (work continues).";
+            _constructionMenuButton.SetIconAndLabel(
+                IconPaths.Close,
+                UiText.Get("Close construction"));
+            _constructionMenuButton.TooltipText =
+                UiText.Get("Close the construction menu (work continues).");
             return;
         }
 
@@ -639,7 +639,7 @@ public partial class CityMacroView : Control
         }
         else
         {
-            _constructionMenuButton.TooltipText = "Open the construction menu.";
+            _constructionMenuButton.TooltipText = UiText.Get("Open the construction menu.");
         }
     }
 
@@ -769,9 +769,42 @@ public partial class CityMacroView : Control
         }
     }
 
-    private void OnAnyBuildingStateChanged(int buildingId) => Refresh();
+    private void OnAnyBuildingStateChanged(int buildingId)
+    {
+        EmphasiseCompletedBuilding(buildingId);
+        Refresh();
+    }
 
     private void OnAnyProjectStateChanged(int projectId) => Refresh();
+
+    private void EmphasiseCompletedBuilding(int buildingId)
+    {
+        // Only flash a regular (non-project) building the first time we
+        // see it after a state change. The PlotStage owns the visual
+        // representation, so flashing it draws the player's eye to the
+        // newly-finished plot without depending on a per-plot API.
+        if (_emphasisedBuildingIds.Contains(buildingId)) return;
+        if (_controller?.World.GetBuilding(new BuildingId(buildingId)) is null) return;
+        _emphasisedBuildingIds.Add(buildingId);
+        UiMotion.FlashLarge(_plotStage, LineageThemeRegistry.IconAccent);
+    }
+
+    private void OnAnyExpeditionStateChanged(int expeditionId)
+    {
+        if (_controller is null) return;
+        foreach (Expedition expedition in _controller.World.Expeditions.Values)
+        {
+            if (expedition.Id.Value != expeditionId) continue;
+            if (expedition.Status == ExpeditionStatus.Returned)
+            {
+                string reward = expedition.RewardAmount > 0
+                    ? $"{expedition.RewardAmount} {expedition.RewardResource}"
+                    : "news";
+                Notifier.Show($"{expedition.DisplayName} returned with {reward}.");
+            }
+            break;
+        }
+    }
 
     private void OnWorldTickAdvanced(int tick)
     {

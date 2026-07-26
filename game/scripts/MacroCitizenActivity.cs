@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -35,6 +36,12 @@ public partial class MacroCitizenActivity : Node2D
     private float _travelAccumulator;
     private bool _heroHovered;
     private bool _travelling;
+    // Pathfinding abstraction (S-1.2). Live gameplay routes through
+    // NavigationServer2D; CardinalPathfinder remains available as the
+    // deterministic reference the xUnit fixtures call directly (no
+    // Godot engine loop runs in that context, so it can't use the
+    // server-backed implementation).
+    private readonly IPathfinder _pathfinder = new NavigationServerPathfinder();
 
     /// <summary>
     /// (Re)builds the macro population dots or places the walking
@@ -226,6 +233,11 @@ public partial class MacroCitizenActivity : Node2D
         _heroCarrier.Idle(Vector2.Down);
     }
 
+    public override void _ExitTree()
+    {
+        (_pathfinder as IDisposable)?.Dispose();
+    }
+
     public override void _Process(double delta)
     {
         if (_travelling)
@@ -316,7 +328,7 @@ public partial class MacroCitizenActivity : Node2D
             ? movingNode
             : _heroMarker;
         _travelArrived = arrived;
-        _travelRoute.AddRange(PlanCardinalRoute(start, target, localObstacles));
+        _travelRoute.AddRange(_pathfinder.PlanRoute(start, target, localObstacles));
         FaceNextTravelWaypoint();
     }
 
@@ -372,90 +384,6 @@ public partial class MacroCitizenActivity : Node2D
         _travelRoute.Clear();
         _travelWaypointIndex = 0;
         _travelAccumulator = 0f;
-    }
-
-    internal static IReadOnlyList<Vector2> PlanCardinalRoute(
-        Vector2 start,
-        Vector2 target,
-        IReadOnlyList<Rect2> obstacles)
-    {
-        start = PixelMotion.Snap(start);
-        target = PixelMotion.Snap(target);
-        var candidates = new List<List<Vector2>>
-        {
-            new() { new Vector2(target.X, start.Y), target },
-            new() { new Vector2(start.X, target.Y), target },
-        };
-
-        foreach (Rect2 obstacle in obstacles)
-        {
-            float above = Mathf.Floor(obstacle.Position.Y - 1f);
-            float below = Mathf.Ceil(obstacle.End.Y + 1f);
-            float left = Mathf.Floor(obstacle.Position.X - 1f);
-            float right = Mathf.Ceil(obstacle.End.X + 1f);
-            candidates.Add(new List<Vector2>
-            {
-                new(start.X, above), new(target.X, above), target,
-            });
-            candidates.Add(new List<Vector2>
-            {
-                new(start.X, below), new(target.X, below), target,
-            });
-            candidates.Add(new List<Vector2>
-            {
-                new(left, start.Y), new(left, target.Y), target,
-            });
-            candidates.Add(new List<Vector2>
-            {
-                new(right, start.Y), new(right, target.Y), target,
-            });
-        }
-
-        List<Vector2>? best = null;
-        float bestDistance = float.MaxValue;
-        foreach (List<Vector2> candidate in candidates)
-        {
-            Vector2 from = start;
-            float distance = 0f;
-            bool blocked = false;
-            foreach (Vector2 waypoint in candidate)
-            {
-                if (SegmentCrossesAny(from, waypoint, obstacles))
-                {
-                    blocked = true;
-                    break;
-                }
-                distance += from.DistanceTo(waypoint);
-                from = waypoint;
-            }
-            if (blocked || distance >= bestDistance) continue;
-            best = candidate;
-            bestDistance = distance;
-        }
-
-        return best ?? new List<Vector2> { target };
-    }
-
-    private static bool SegmentCrossesAny(
-        Vector2 from,
-        Vector2 to,
-        IReadOnlyList<Rect2> obstacles)
-    {
-        foreach (Rect2 obstacle in obstacles)
-        {
-            bool horizontal = Mathf.IsEqualApprox(from.Y, to.Y)
-                && from.Y > obstacle.Position.Y
-                && from.Y < obstacle.End.Y
-                && Mathf.Max(from.X, to.X) > obstacle.Position.X
-                && Mathf.Min(from.X, to.X) < obstacle.End.X;
-            bool vertical = Mathf.IsEqualApprox(from.X, to.X)
-                && from.X > obstacle.Position.X
-                && from.X < obstacle.End.X
-                && Mathf.Max(from.Y, to.Y) > obstacle.Position.Y
-                && Mathf.Min(from.Y, to.Y) < obstacle.End.Y;
-            if (horizontal || vertical) return true;
-        }
-        return false;
     }
 
     private static Vector2 GetTravelPosition(CanvasItem item) => item switch

@@ -143,11 +143,11 @@ public class OfflineProgressionTests
         Assert.Equal(5, report.TicksApplied);
         Assert.True(report.HadProgression);
         Assert.Equal(5, world.CurrentTick);
-        // With upkeep draining 1 stone/tick and Quarry producing 2/tick,
-        // net stock grows 1/tick; expected final stock is 6 (initial 0
-        // + 5 net). StockAdded counts production only (10), not the
-        // net change.
-        Assert.Equal(6, world.PrimaryBuilding.Stock);
+        // Upkeep is dormant: every tick the Quarry produces is added to
+        // the stock (no drain). Net stock grows 2/tick (Quarry rate),
+        // so 5 ticks leave 10 stone in the silo. StockAdded counts
+        // production only.
+        Assert.Equal(10, world.PrimaryBuilding.Stock);
         Assert.Equal(10, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
         Assert.Equal(branExpBefore + 5, bran.GetExperience(CompetencyId.Mining));
@@ -164,15 +164,13 @@ public class OfflineProgressionTests
 
         var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 100);
 
-        Assert.True(report.TicksApplied < 100);
+        // With upkeep dormant, the Quarry fills its 20-stone cap in
+        // ~10 ticks and the loop short-circuits. The test asserts "no
+        // phantom experience" by checking the hero's exp matches
+        // productive ticks.
+        Assert.Equal(10, report.TicksApplied);
         Assert.Equal(stoneCap, world.PrimaryBuilding.Stock);
-        // The hero's mining experience crosses the bonus threshold at tick
-        // 18 (3 base + 15 gained = 18 exp; floor(1*21/20) = 1, so total
-        // 2/tick; tick 18 exp = 21 → bonus fires). 17 ticks × 2 + 1 tick
-        // × 3 = 37 produced before target cap. StockAdded counts
-        // production only; the test asserts "no phantom experience"
-        // by checking the hero's exp matches productive ticks.
-        Assert.Equal(37, report.StockAdded);
+        Assert.Equal(stoneCap, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
         Assert.Equal(branExpBefore + report.TicksApplied, bran.GetExperience(CompetencyId.Mining));
     }
@@ -241,22 +239,25 @@ public class OfflineProgressionTests
     [Fact]
     public void Apply_WithFoodLoaded_RunsLongerThanExhaustedBaseline()
     {
+        // Upkeep is dormant, so the WellFed buff no longer changes the
+        // cap-reach timing — the Quarry fills in 10 ticks either way.
+        // This test still pins the "with food" branch, asserting that
+        // workers sustain (not exhausted after 5 ticks) and that the
+        // cap is reached.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var bran = world.GetCitizen(new CitizenId(1))!;
         var erin = world.GetCitizen(new CitizenId(2))!;
-        bran.ConsumeStamina(bran.CurrentStamina - 6);
-        erin.ConsumeStamina(erin.CurrentStamina - 6);
         // Pre-deposit enough food for both workers to eat every tick.
         world.DepositFood(StaminaRules.MaxStamina);
 
         var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
 
-        // With food (buff active) workers sustain; target reached in 18
-        // ticks (the hero's mining bonus kicks in at tick 18, producing 3).
-        Assert.Equal(18, report.TicksApplied);
-        Assert.Equal(37, report.StockAdded);
+        Assert.Equal(10, report.TicksApplied);
+        Assert.Equal(quarry.StorageCapacity, report.StockAdded);
         Assert.Equal(quarry.StorageCapacity, quarry.Stock);
+        Assert.True(bran.CurrentStamina > 0);
+        Assert.True(erin.CurrentStamina > 0);
     }
 
     [Fact]

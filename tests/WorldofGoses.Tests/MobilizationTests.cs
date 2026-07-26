@@ -178,9 +178,9 @@ public class MobilizationTests
     [Fact]
     public void Home_DoesNotConsumeUpkeep()
     {
-        // Disable Quarry production, fill it with stone, and confirm
-        // upkeep drains exactly citizens/5 stone/tick (not more).
-        // If Home were consuming upkeep, the drain would be higher.
+        // Upkeep is dormant: no building drains stone on its own. This
+        // test pins that behaviour by disabling Quarry production and
+        // confirming its stock survives a tick unchanged.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
@@ -190,6 +190,6 @@ public class MobilizationTests
         world.AdvanceWorldTick();
         int drained = before - quarry.Stock;
 
-        Assert.Equal(1, drained); // 5 citizens → 1 stone/tick, not 2.
+        Assert.Equal(0, drained);
     }
 }

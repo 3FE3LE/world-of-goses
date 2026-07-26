@@ -2,6 +2,7 @@
 using System;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -25,7 +26,7 @@ public partial class FounderArrivalSequence : Control
     public override void _Ready()
     {
         SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        ZIndex = 90;
+        OverlayLayers.Apply(this, OverlayLayers.FounderArrival);
         MouseFilter = MouseFilterEnum.Stop;
         _flash = new ColorRect
         {

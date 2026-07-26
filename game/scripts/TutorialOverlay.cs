@@ -49,6 +49,7 @@ public partial class TutorialOverlay : Control
         SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         MouseFilter = Control.MouseFilterEnum.Stop;
         Visible = false;
+        OverlayLayers.Apply(this, OverlayLayers.Tutorial);
 
         _controller = GetNode<CityWorldController>(ControllerPath);
         _controller.HeroCreated += OnHeroCreated;
@@ -201,12 +202,16 @@ public partial class TutorialOverlay : Control
     private void ApplyStep()
     {
         var step = Steps[_stepIndex];
-        _titleLabel.Text = $"Tip {_stepIndex + 1} of {Steps.Count} — {step.Title}";
-        _bodyLabel.Text = step.Body;
+        _titleLabel.Text = UiText.Format(
+            "ui.tutorial.title",
+            _stepIndex + 1,
+            Steps.Count,
+            UiText.Get(step.Title));
+        _bodyLabel.Text = UiText.Get(step.Body);
         bool isLast = _stepIndex == Steps.Count - 1;
         _nextButton.SetIconAndLabel(
             IconPaths.Check,
-            isLast ? "Got it" : "Next");
+            UiText.Get(isLast ? "Got it" : "Next"));
     }
 
     private void Dismiss()

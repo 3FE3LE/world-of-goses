@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using Godot;
 using WorldofGoses.Ui;
 
@@ -16,6 +17,13 @@ public partial class Notifier : Node
     public const string AutoloadName = "Notifier";
 
     private const float DisplaySeconds = 3f;
+    /// <summary>
+    /// Window during which a repeat call with the same message is
+    /// silently dropped. Domain signals can re-fire on save/load, tick
+    /// replay, or repeated controller emissions; without a guard the
+    /// toast would reset its own timer indefinitely and never hide.
+    /// </summary>
+    private const double DuplicateSuppressionSeconds = 5.0;
     private const string NotifierPath = "/root/Notifier";
 
     private static readonly Color InfoColor = new(0.92f, 0.94f, 1f);
@@ -25,10 +33,17 @@ public partial class Notifier : Node
     private Label _label = null!;
     private Timer _hideTimer = null!;
     private bool _overlaySuppressed;
+    private string? _lastShownMessage;
+    private long _lastShownAtUnixMillis;
 
     public override void _Ready()
     {
-        var layer = new CanvasLayer { Layer = 100 };
+        // The Notifier lives on its own CanvasLayer so it can render above
+        // every in-tree ZIndex. The numeric value mirrors the semantic
+        // constant OverlayLayers.PauseAndNotifier (Godot's CanvasLayer.Layer
+        // and Control.ZIndex use different axes, so the two cannot share a
+        // single Control, but the values are kept in lockstep).
+        var layer = new CanvasLayer { Layer = OverlayLayers.PauseAndNotifier };
         AddChild(layer);
 
         var anchor = new SafeAreaMarginContainer
@@ -117,6 +132,16 @@ public partial class Notifier : Node
     private void ShowInternal(string message, Color color)
     {
         if (_overlaySuppressed) return;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (string.Equals(_lastShownMessage, message, StringComparison.Ordinal)
+            && (now - _lastShownAtUnixMillis) < (long)(DuplicateSuppressionSeconds * 1000d))
+        {
+            // Same message within the suppression window — silently
+            // drop so the existing toast's timer is not restarted.
+            return;
+        }
+        _lastShownMessage = message;
+        _lastShownAtUnixMillis = now;
         _label.Text = message;
         _label.AddThemeColorOverride("font_color", color);
         _panel.Visible = true;

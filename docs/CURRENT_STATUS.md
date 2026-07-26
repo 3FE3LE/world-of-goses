@@ -23,17 +23,34 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **424 / 424 passing** (run after the astral-founder onboarding,
-  v13 de expedición abstracta, v14 de retiro del adaptador Forest y la primera
-  ruta pública de reclutamiento).
-- The latest standalone headless attempt (2026-07-24) loaded slot 0 at
-  tick 65443 without any C# or Godot error and printed
+- xUnit suite: **424 / 424 passing** (run after the slice-closing
+  overlay/safe-area/motion work of 2026-07-25).
+- The latest standalone headless attempt (2026-07-25) loaded slot 0 at
+  tick 80407 without any C# or Godot error and printed
   `World of Goses prototype starting.`. The headless boot is reproducible
   with `C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe
   --headless --path game --quit-after 3`; the previous log-file
   contention only appeared when the graphical instance was open in
   parallel. The slot primary has been migrated in-memory from a v8 era
   save to v14 during the same boot.
+- All `z_index` numeric literals in `game/scenes/*.tscn` and
+  `game/scripts/*.cs` were replaced by calls to
+  `WorldofGoses.Ui.OverlayLayers.Apply(...)`. The catalog exposes
+  `World`, `ContextMenu`, `Chronicle`, `AttentionBanner`, `ModalScrim`,
+  `Modal`, `PlacementOverlay`, `Tutorial`, `Onboarding`,
+  `FounderArrival` and `PauseAndNotifier`. The Notifier's
+  `CanvasLayer.Layer` mirrors `OverlayLayers.PauseAndNotifier`.
+- `game/scripts/Ui/SafeArea.cs` provides
+  `SafeArea.ApplyOffsets(Control, int)`. `CityStatusPanel` wraps the
+  inner chip row in a `SafeAreaMarginContainer`; `MacroActions` now has
+  a dedicated `MacroActions.cs` script that applies `Offset*` deltas
+  on every viewport resize.
+- `game/scripts/Ui/UiMotion.cs` adds `FlashLarge(CanvasItem, Color)` for
+  the high-importance events (construction completed, expedition
+  returned, new citizen arrived). The macro view's
+  `OnAnyExpeditionStateChanged` and `OnAnyCitizensChanged` handlers
+  call it; `OnAnyBuildingStateChanged` calls it on the
+  `BuildingPlotStage` once per newly-completed building.
 - `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
   captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
   review passed viewport containment and exposed M-16, a citizen label/icon overlap.
@@ -453,6 +470,10 @@ dotnet test
 #    the v2 → … → v13 migrations end to end.
 C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe `
   --headless --path ..\..\game --quit-after 3
+
+# 4. Validate EN/ES catalogs and the generated POT template.
+cd ..\..
+.\tools\Test-LocalizationCatalog.ps1
 ```
 
 There is no linter or CI configured yet. Do not install global tools.

@@ -4,7 +4,6 @@
 
 [node name="ExpeditionPanel" type="Control"]
 visible = false
-z_index = 21
 custom_minimum_size = Vector2(520, 320)
 anchors_preset = 8
 anchor_left = 0.5

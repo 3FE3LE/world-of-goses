@@ -31,7 +31,7 @@ public partial class ResourceTree : TextureButton
         Texture2D atlas = GD.Load<Texture2D>(TerrainAtlasPath);
         TextureNormal = CreateRegion(atlas, visualVariant % 2 == 0 ? 13 : 14, 9);
         TextureHover = TextureNormal;
-        TooltipText = "Wood resource — click for actions";
+        TooltipText = UiText.Get("Wood resource — click for actions");
     }
 
     public override void _Ready()
