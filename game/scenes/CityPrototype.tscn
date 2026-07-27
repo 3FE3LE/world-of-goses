@@ -1,42 +1,42 @@
-[gd_scene load_steps=28 format=3]
+[gd_scene format=3 uid="uid://dj04svvtnypgc"]
 
-[ext_resource type="Script" path="res://scripts/CityPrototype.cs" id="1_root"]
-[ext_resource type="Script" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
-[ext_resource type="Script" path="res://scripts/CityMacroView.cs" id="3_macro"]
-[ext_resource type="Script" path="res://scripts/MacroCitizenActivity.cs" id="4_activity"]
-[ext_resource type="Script" path="res://scripts/CityStatusPanel.cs" id="5_status"]
-[ext_resource type="Script" path="res://scripts/BuildingDetailView.cs" id="6_detail"]
-[ext_resource type="Script" path="res://scripts/VisibleWorkerSlots.cs" id="7_slots"]
-[ext_resource type="Script" path="res://scripts/AssignmentPanel.cs" id="8_assign"]
-[ext_resource type="Script" path="res://scripts/ProductionPanel.cs" id="9_prod"]
+[ext_resource type="Script" uid="uid://bpf10ffu5565l" path="res://scripts/CityPrototype.cs" id="1_root"]
+[ext_resource type="Script" uid="uid://c3fagjr4ji2fn" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
+[ext_resource type="Script" uid="uid://ckipova4hsgve" path="res://scripts/CityMacroView.cs" id="3_macro"]
+[ext_resource type="Script" uid="uid://bslh61cea5vs5" path="res://scripts/MacroCitizenActivity.cs" id="4_activity"]
+[ext_resource type="Script" uid="uid://dg08s8ridt3cc" path="res://scripts/CityStatusPanel.cs" id="5_status"]
+[ext_resource type="Script" uid="uid://c6us0i8on0g81" path="res://scripts/BuildingDetailView.cs" id="6_detail"]
+[ext_resource type="Script" uid="uid://c0cqvsl8xg311" path="res://scripts/VisibleWorkerSlots.cs" id="7_slots"]
+[ext_resource type="Script" uid="uid://dc5226ctlr3ew" path="res://scripts/AssignmentPanel.cs" id="8_assign"]
+[ext_resource type="Script" uid="uid://cjf0ik16alofu" path="res://scripts/ProductionPanel.cs" id="9_prod"]
 [ext_resource type="PackedScene" path="res://scenes/OnboardingView.tscn" id="10_onboarding"]
 [ext_resource type="PackedScene" path="res://scenes/HeroProfileView.tscn" id="11_profile"]
-[ext_resource type="Script" path="res://scripts/ConstructionPanel.cs" id="12_construction"]
-[ext_resource type="Script" path="res://scripts/BuildingPlotStage.cs" id="13_plotstage"]
-[ext_resource type="Script" path="res://scripts/HeroAccessButton.cs" id="14_heroaccess"]
-[ext_resource type="Script" path="res://scripts/IconButton.cs" id="15_iconbtn"]
-[ext_resource type="Script" path="res://scripts/KenneyBackground.cs" id="16_kenbg"]
-[ext_resource type="Script" path="res://scripts/OfflineReportPanel.cs" id="17_offrep"]
-[ext_resource type="Script" path="res://scripts/Ui/ModalHost.cs" id="18_modalhost"]
+[ext_resource type="Script" uid="uid://c5l8jwt4f0bea" path="res://scripts/ConstructionPanel.cs" id="12_construction"]
+[ext_resource type="Script" uid="uid://memvgrnjyj85" path="res://scripts/BuildingPlotStage.cs" id="13_plotstage"]
+[ext_resource type="Script" uid="uid://bo5b2cx83b77t" path="res://scripts/HeroAccessButton.cs" id="14_heroaccess"]
+[ext_resource type="Script" uid="uid://u7jawqyectws" path="res://scripts/IconButton.cs" id="15_iconbtn"]
+[ext_resource type="Script" uid="uid://mywcitsjkael" path="res://scripts/KenneyBackground.cs" id="16_kenbg"]
+[ext_resource type="Script" uid="uid://bmfly2pbx8r42" path="res://scripts/OfflineReportPanel.cs" id="17_offrep"]
+[ext_resource type="Script" uid="uid://b6vfsbr4sw38f" path="res://scripts/Ui/ModalHost.cs" id="18_modalhost"]
 [ext_resource type="PackedScene" path="res://scenes/Components/BackToCityButton.tscn" id="19_backbutton"]
-[ext_resource type="Script" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="20_safearea"]
-[ext_resource type="PackedScene" path="res://scenes/Components/ViewHeroButton.tscn" id="21_viewhero"]
-[ext_resource type="Script" path="res://scripts/TutorialOverlay.cs" id="22_tutorial"]
-[ext_resource type="Script" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
+[ext_resource type="Script" uid="uid://crg4evm3yqil0" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="20_safearea"]
+[ext_resource type="Script" uid="uid://ddl7rbis6mpnf" path="res://scripts/TutorialOverlay.cs" id="22_tutorial"]
+[ext_resource type="Script" uid="uid://chwc1uluiw6sb" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/OrthogonalParcelTerrain.tscn" id="26_terrain"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="28_migrant"]
-[ext_resource type="Script" path="res://scripts/MacroActions.cs" id="29_macroactions"]
+[ext_resource type="Script" uid="uid://b74ulvnbqucfd" path="res://scripts/MacroActions.cs" id="29_macroactions"]
+[ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
 
-[node name="CityPrototype" type="Node"]
+[node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
+metadata/_edit_horizontal_guides_ = [-68.0]
 
-[node name="CityWorldController" type="Node" parent="."]
+[node name="CityWorldController" type="Node" parent="." unique_id=620506926]
 script = ExtResource("2_ctrl")
 
-[node name="GameUiShell" type="VBoxContainer" parent="."]
-layout_mode = 3
+[node name="GameUiShell" type="VBoxContainer" parent="." unique_id=68476101]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -45,40 +45,27 @@ grow_vertical = 2
 theme_override_constants/separation = 0
 script = ExtResource("24_shell")
 
-[node name="CityStatusPanel" type="PanelContainer" parent="GameUiShell"]
+[node name="CityStatusPanel" type="PanelContainer" parent="GameUiShell" unique_id=1259124350]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = "StatusStrip"
+theme_type_variation = &"StatusStrip"
 script = ExtResource("5_status")
 
-[node name="ScreenContent" type="Control" parent="GameUiShell"]
+[node name="ScreenContent" type="Control" parent="GameUiShell" unique_id=2019693930]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="TutorialOverlay" type="Control" parent="."]
-layout_mode = 3
+[node name="CityMacroView" type="Control" parent="GameUiShell/ScreenContent" unique_id=977401515]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
-script = ExtResource("22_tutorial")
-
-[node name="PauseMenu" parent="." instance=ExtResource("25_pause_menu")]
-
-[node name="CityMacroView" type="Control" parent="GameUiShell/ScreenContent"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 0
 script = ExtResource("3_macro")
 
-[node name="Background" type="TextureRect" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="Background" type="TextureRect" parent="GameUiShell/ScreenContent/CityMacroView" unique_id=587011377]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -87,14 +74,14 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("16_kenbg")
-TexturePath = "res://assets/ui/kenney/9-slice/ancient_grey.png"
 
-[node name="OrthogonalParcelTerrain" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("26_terrain")]
+[node name="OrthogonalParcelTerrain" parent="GameUiShell/ScreenContent/CityMacroView" unique_id=20932625 instance=ExtResource("26_terrain")]
+layout_mode = 1
 
-[node name="MacroCitizenActivity" type="Node2D" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="MacroCitizenActivity" type="Node2D" parent="GameUiShell/ScreenContent/CityMacroView" unique_id=1415032630]
 script = ExtResource("4_activity")
 
-[node name="OfflineReportPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="OfflineReportPanel" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1450691085]
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
@@ -107,10 +94,9 @@ offset_right = -16.0
 offset_bottom = -16.0
 grow_horizontal = 0
 grow_vertical = 0
-mouse_filter = 0
 script = ExtResource("17_offrep")
 
-[node name="ModalHost" type="Control" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="ModalHost" type="Control" parent="GameUiShell/ScreenContent" unique_id=1131647978]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -118,10 +104,9 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 script = ExtResource("18_modalhost")
 
-[node name="Center" type="CenterContainer" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="Center" type="CenterContainer" parent="GameUiShell/ScreenContent" unique_id=904834888]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -130,52 +115,51 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="EmptyPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
-custom_minimum_size = Vector2(520, 180)
+[node name="EmptyPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/Center" unique_id=1408991335]
 visible = false
+custom_minimum_size = Vector2(520, 180)
 layout_mode = 2
-theme_type_variation = "PanelCard"
+theme_type_variation = &"PanelCard"
 
-[node name="Margin" type="MarginContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel"]
+[node name="Margin" type="MarginContainer" parent="GameUiShell/ScreenContent/Center/EmptyPanel" unique_id=1659601729]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 20
 
-[node name="Content" type="VBoxContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin"]
+[node name="Content" type="VBoxContainer" parent="GameUiShell/ScreenContent/Center/EmptyPanel/Margin" unique_id=1817021040]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/Center/EmptyPanel/Margin/Content" unique_id=727258965]
 layout_mode = 2
-theme_type_variation = "ScreenTitle"
+theme_type_variation = &"ScreenTitle"
 text = "The city begins with one person"
 horizontal_alignment = 1
 
-[node name="EmptyStateLabel" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="EmptyStateLabel" type="Label" parent="GameUiShell/ScreenContent/Center/EmptyPanel/Margin/Content" unique_id=1467475140]
 layout_mode = 2
-theme_type_variation = "BodyText"
+theme_type_variation = &"BodyText"
 text = "No buildings yet. Your hero is ready for the first decision."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="GuidanceLabel" type="Label" parent="GameUiShell/ScreenContent/CityMacroView/Center/EmptyPanel/Margin/Content"]
+[node name="GuidanceLabel" type="Label" parent="GameUiShell/ScreenContent/Center/EmptyPanel/Margin/Content" unique_id=505823547]
+modulate = Color(1, 1, 1, 0.85)
 layout_mode = 2
-theme_type_variation = "BodySmall"
+theme_type_variation = &"BodySmall"
 text = "Select a tree and choose Gather. Your hero will walk to it automatically."
 horizontal_alignment = 1
 autowrap_mode = 2
-modulate = Color(1, 1, 1, 0.85)
 
-[node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/CityMacroView/Center"]
+[node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/Center" unique_id=2074700493]
 visible = false
 layout_mode = 2
-mouse_filter = 0
-theme_type_variation = "OverlayPanel"
+theme_type_variation = &"OverlayPanel"
 script = ExtResource("12_construction")
 
-[node name="BuildingPlotStage" type="Control" parent="GameUiShell/ScreenContent/CityMacroView"]
+[node name="BuildingPlotStage" type="Control" parent="GameUiShell/ScreenContent" unique_id=123820949]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -186,18 +170,29 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("13_plotstage")
 
-[node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent"]
+[node name="ExpeditionPanel" parent="GameUiShell/ScreenContent" unique_id=1643693377 instance=ExtResource("27_expedition")]
+anchors_preset = 0
+ControllerPath = NodePath("../../../CityWorldController")
+
+[node name="MigrantPanel" parent="GameUiShell/ScreenContent" unique_id=79705751 instance=ExtResource("28_migrant")]
+anchors_preset = 0
+ControllerPath = NodePath("../../../CityWorldController")
+
+[node name="MacroStreetLiveView" type="Node2D" parent="GameUiShell/ScreenContent" unique_id=1900000001]
 visible = false
-layout_mode = 3
+script = ExtResource("30_streetlive")
+
+[node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent" unique_id=113990765]
+visible = false
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 script = ExtResource("6_detail")
 
-[node name="DetailBackground" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView"]
+[node name="DetailBackground" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1645245703]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -208,7 +203,7 @@ mouse_filter = 2
 script = ExtResource("16_kenbg")
 TexturePath = "res://assets/ui/kenney/9-slice/ancient_brown.png"
 
-[node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingDetailView"]
+[node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1087183704]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -216,139 +211,145 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("20_safearea")
-minimum_inset = 24
 
-[node name="Layout" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea"]
+[node name="Layout" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea" unique_id=40546750]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Header" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout"]
+[node name="Header" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout" unique_id=1347794521]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header"]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=924062929]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_type_variation = &"PanelTitle"
 text = "Building"
 vertical_alignment = 1
-theme_type_variation = "PanelTitle"
 
-[node name="BackButton" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" instance=ExtResource("19_backbutton")]
+[node name="BackButton" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=1925650650 instance=ExtResource("19_backbutton")]
 layout_mode = 2
+theme_type_variation = &"ButtonText"
 
-[node name="Content" type="HFlowContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout"]
+[node name="Content" type="HFlowContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout" unique_id=136504885]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 16
 
-[node name="Main" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
+[node name="Main" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content" unique_id=1660492331]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=2051222363]
 visible = false
 custom_minimum_size = Vector2(128, 128)
 layout_mode = 2
 mouse_filter = 2
-stretch_mode = 6
 expand_mode = 1
+stretch_mode = 6
 
-[node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=903310030]
 custom_minimum_size = Vector2(440, 144)
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("7_slots")
 
-[node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=875224296]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = "PanelCard"
+theme_type_variation = &"PanelCard"
 script = ExtResource("9_prod")
 
-[node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
+[node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content" unique_id=581695296]
 custom_minimum_size = Vector2(240, 0)
 layout_mode = 2
 size_flags_vertical = 3
-theme_type_variation = "PanelCard"
+theme_type_variation = &"PanelCard"
 script = ExtResource("8_assign")
 
-[node name="MacroActions" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+[node name="MacroActions" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_bottom = 68.0
 grow_horizontal = 2
 mouse_filter = 2
-theme_type_variation = "StatusStrip"
+theme_type_variation = &"StatusStrip"
 script = ExtResource("29_macroactions")
 
-[node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/MacroActions"]
+[node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/MacroActions" unique_id=2007280117]
 layout_mode = 2
 theme_override_constants/separation = 40
 
-[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
-layout_mode = 2
+[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=352864886]
 custom_minimum_size = Vector2(160, 44)
-mouse_filter = 0
-theme_type_variation = "ButtonText"
+layout_mode = 2
 tooltip_text = "Open the hero profile"
+theme_type_variation = &"ButtonText"
 text = "View hero"
 script = ExtResource("14_heroaccess")
-icon_path = "res://assets/ui/icons/24/user.svg"
-button_text = "View hero"
 ControllerPath = NodePath("../../../../../CityWorldController")
 
-[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
-layout_mode = 2
+[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=388338105]
 custom_minimum_size = Vector2(200, 44)
-mouse_filter = 0
-theme_type_variation = "ButtonText"
+layout_mode = 2
 tooltip_text = "Open the construction menu"
+theme_type_variation = &"ButtonText"
 text = "Construction"
 script = ExtResource("15_iconbtn")
-icon_path = "res://assets/ui/icons/24/building.svg"
-button_text = "Construction"
 
-[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
-layout_mode = 2
+[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=456502058]
 custom_minimum_size = Vector2(140, 44)
-mouse_filter = 0
-theme_type_variation = "ButtonText"
+layout_mode = 2
 tooltip_text = "Open the city menu (ESC)"
+theme_type_variation = &"ButtonText"
 text = "Menu"
 script = ExtResource("15_iconbtn")
-icon_path = "res://assets/ui/icons/24/menu.svg"
-button_text = "Menu"
 
-[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
-layout_mode = 2
+[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=623378802]
 custom_minimum_size = Vector2(180, 44)
-mouse_filter = 0
-theme_type_variation = "ButtonText"
+layout_mode = 2
 tooltip_text = "Send the founder on a reconnaissance"
+theme_type_variation = &"ButtonText"
 text = "Recon"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/leaf.svg"
 ButtonText = "Recon"
 
-[node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("27_expedition")]
-
-[node name="MigrantMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
-layout_mode = 2
+[node name="MigrantMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=604425186]
 custom_minimum_size = Vector2(180, 44)
-mouse_filter = 0
-theme_type_variation = "ButtonText"
+layout_mode = 2
 tooltip_text = "Open the city roster or recruit a citizen"
+theme_type_variation = &"ButtonText"
 text = "Citizens"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/user.svg"
 ButtonText = "Citizens"
 
-[node name="MigrantPanel" parent="GameUiShell/ScreenContent/CityMacroView" instance=ExtResource("28_migrant")]
+[node name="PerspectiveToggleButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=1900000002]
+custom_minimum_size = Vector2(180, 44)
+layout_mode = 2
+tooltip_text = "Toggle the experimental street-perspective view (F9)"
+theme_type_variation = &"ButtonText"
+text = "Perspective"
+script = ExtResource("15_iconbtn")
+IconPath = "res://assets/ui/icons/24/expand.svg"
+ButtonText = "Perspective"
 
-[node name="HeroProfileView" parent="GameUiShell/ScreenContent" instance=ExtResource("11_profile")]
+[node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
+layout_mode = 1
 
-[node name="OnboardingView" parent="." instance=ExtResource("10_onboarding")]
+[node name="TutorialOverlay" type="Control" parent="." unique_id=1018743098]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("22_tutorial")
+
+[node name="PauseMenu" parent="." unique_id=1513436726 instance=ExtResource("25_pause_menu")]
+
+[node name="OnboardingView" parent="." unique_id=1152483645 instance=ExtResource("10_onboarding")]

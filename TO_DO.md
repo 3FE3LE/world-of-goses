@@ -227,12 +227,20 @@ reorganiza la lista, los IDs no se renumeran.
 
   Build limpio, 432/432 tests, headless boot verificado.
 
+- **2026-07-26** — Abierto H-32: migración de la vista macro a una
+  perspectiva pseudo-3D por calles (dirección documentada en el design
+  bible, prototipos aislados validados, e integración real como vista por
+  defecto con clic-a-detalle y recolección de madera funcionando). Ver
+  detalle completo en la entrada de H-32 en §2. Build limpio, 436/436
+  tests, headless boot verificado, save real intacto tras las pruebas de
+  solo lectura. Próximos pasos documentados en la propia entrada.
+
 ## 1. Resumen rápido
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
 | 🔴        | 0          | 0        | 0          | 12     | 0          |
-| 🟠        | 5          | 1        | 0          | 31     | 2          |
+| 🟠        | 5          | 2        | 0          | 31     | 2          |
 | 🟡        | 4          | 0        | 0          | 17     | 3          |
 | 🟢        | 0          | 0        | 0          | 2      | 0          |
 
@@ -418,6 +426,69 @@ reorganiza la lista, los IDs no se renumeran.
   línea fuerte. Árboles, blueprints y overlays conservan
   `CalculateParcelRect` como proyección única. Matriz 1024×576 / 1280×720 /
   1600×900 revisada sin desalineaciones.
+
+### 🟠 H-32 — Migración de la vista macro a perspectiva pseudo-3D por calles
+
+- **Estado:** en curso, avance sustancial. Dirección documentada en el
+  design bible (`03_CITY_TERRITORY_AND_GROWTH.md`,
+  `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` "Ciudad macro (perspectiva por
+  calles)", `04_CITIZENS_PROFESSIONS_AND_HEROES.md` "Cámara-sigue",
+  `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` "Cámara y mundo caminable").
+  Prototipos aislados validados (`game/scenes/prototypes/`,
+  `game/scripts/Prototypes/`): `StreetDepthProjection.cs` (matemática de
+  escala/convergencia por profundidad, punto de fuga relativo al jugador —
+  no a un centro fijo del mundo), `MacroStreetWorld.cs` (navegación
+  cuantizada validada con placeholders), `RealCityStreetPreview.cs`
+  (proyección validada con datos reales de solo lectura, sin escribir el
+  save). Integración real: `MacroStreetLiveView.cs` es ahora la **vista
+  macro por defecto** en `CityPrototype.tscn` (F9 / botón "Perspective" en
+  `MacroActions` alternan a la vista plana como respaldo), conectada al
+  `CityWorldController` real. Clic en edificio completado abre el
+  `BuildingDetailView` real; recolección de madera portada (árboles
+  individuales vía `ParcelGrid.NaturalResourceLot`, mismo `ResourceActionMenu`
+  reusado como instancia propia, sin animación de viaje del héroe —
+  simplificación aceptada). Se resolvió un hallazgo estructural:
+  `ModalHost`/`ExpeditionPanel`/`MigrantPanel`/`BuildingPlotStage`/
+  `ConstructionPlacementOverlay`/`Center` (`EmptyPanel`/`ConstructionPanel`)
+  eran hijos exclusivos de `CityMacroView` — un hijo no puede ser visible si
+  su padre no lo es, así que quedaban invisibles con la perspectiva activa.
+  Se reparentaron como hermanos bajo `ScreenContent`
+  (`CityMacroView.cs`/`CityPrototype.cs`/`CityPrototype.tscn` actualizados,
+  sin tocar `OrthogonalParcelTerrain.cs`/`BuildingPlotStage.cs`/
+  `ConstructionPlacementOverlay.cs`). Encontrado y corregido después: `_plotStage`/
+  `_emptyPanel`/`_offlineReport` seguían refrescándose en segundo plano
+  independientemente de qué vista estuviera activa, interceptando clics
+  sobre la perspectiva — `MacroStreetLiveView` ahora los oculta al activarse
+  y usa el método público `CityMacroView.OnReturnedToCity()` para
+  restaurarlos al volver a la vista plana.
+- **Prioridad:** 🟠 Alta — el usuario pidió explícitamente completar la
+  migración, no solo este slice.
+- **Categoría:** arquitectura / presentación / gameplay
+- **Afecta:** `game/scripts/Prototypes/*.cs` (nuevos), `CityMacroView.cs`,
+  `CityPrototype.cs`, `CityPrototype.tscn`, design bible §03/04/08/10.
+- **Próximos pasos (orden sugerido):**
+  1. Clic en un proyecto en construcción en curso desde la perspectiva
+     (hoy abre el panel de construcción solo desde la vista plana).
+  2. Texto de guía de estado vacío ("Select a tree and choose Gather...")
+     equivalente en la perspectiva, para una partida nueva desde cero (no
+     bloquea el save actual, que ya tiene ciudad construida).
+  3. Resolver el anclaje de edificios/complejos con `LotHeight > 1`
+     (hoy se anclan a su calle más cercana al visor — simplificación
+     documentada, no la asignación final).
+  4. Evaluar retirar por completo la vista plana
+     (`CityMacroView`/`OrthogonalParcelTerrain`/`BuildingPlotStage`/
+     `ConstructionPlacementOverlay`) y el toggle F9 una vez los pasos
+     anteriores cierren — implica migrar/reescribir la porción de los ~436
+     tests xUnit y la matriz de regresión visual
+     (`tools/Capture-VisualMatrix.ps1`) que asumen la geometría plana
+     (`CalculateTerrainRect`/`CalculateParcelRect`).
+- **Criterios de aceptación:** ciudad completa navegable y jugable
+  (construcción, asignación, gather, expediciones) únicamente desde la
+  perspectiva, sin regresión funcional respecto a la vista plana actual, y
+  con la matriz de regresión visual/tests actualizados a la nueva geometría.
+- **Riesgo:** alcance grande tocando código de producción probado; cada
+  paso debe verificarse con `dotnet test` (436/436 hoy) y un smoke real
+  windowed antes de continuar al siguiente.
 
 ---
 

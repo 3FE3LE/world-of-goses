@@ -36,21 +36,25 @@ public partial class CityMacroView : Control
     [Export] public NodePath ActivityPath { get; set; } = "MacroCitizenActivity";
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
-    [Export] public NodePath OfflineReportPath { get; set; } = "OfflineReportPanel";
-    [Export] public NodePath ModalHostPath { get; set; } = "ModalHost";
-    [Export] public NodePath EmptyPanelPath { get; set; } = "Center/EmptyPanel";
+    // Overlay/HUD nodes below are siblings, not children: a Control cannot
+    // be visible while an ancestor isn't, so they must not live under this
+    // Control if they're expected to show while this view is hidden (e.g.
+    // the perspective world-view is active instead).
+    [Export] public NodePath OfflineReportPath { get; set; } = "../OfflineReportPanel";
+    [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
+    [Export] public NodePath EmptyPanelPath { get; set; } = "../Center/EmptyPanel";
     [Export] public NodePath EmptyGuidanceLabelPath { get; set; } =
-        "Center/EmptyPanel/Margin/Content/GuidanceLabel";
+        "../Center/EmptyPanel/Margin/Content/GuidanceLabel";
     [Export] public NodePath TerrainPath { get; set; } = "OrthogonalParcelTerrain";
     [Export] public NodePath HeroAccessButtonPath { get; set; } = "../MacroActions/Actions/HeroAccessButton";
     [Export] public NodePath MacroActionsPath { get; set; } = "../MacroActions";
-    [Export] public NodePath PlotStagePath { get; set; } = "BuildingPlotStage";
+    [Export] public NodePath PlotStagePath { get; set; } = "../BuildingPlotStage";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } = "../MacroActions/Actions/ConstructionMenuButton";
     [Export] public NodePath GameMenuButtonPath { get; set; } = "../MacroActions/Actions/GameMenuButton";
     [Export] public NodePath ExpeditionMenuButtonPath { get; set; } = "../MacroActions/Actions/ExpeditionMenuButton";
-    [Export] public NodePath ExpeditionPanelPath { get; set; } = "ExpeditionPanel";
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = "../ExpeditionPanel";
     [Export] public NodePath MigrantMenuButtonPath { get; set; } = "../MacroActions/Actions/MigrantMenuButton";
-    [Export] public NodePath MigrantPanelPath { get; set; } = "MigrantPanel";
+    [Export] public NodePath MigrantPanelPath { get; set; } = "../MigrantPanel";
 
     private CityWorldController _controller = null!;
     private MacroCitizenActivity _activity = null!;
@@ -88,7 +92,7 @@ public partial class CityMacroView : Control
         _offlineReport = GetNode<OfflineReportPanel>(OfflineReportPath);
         _offlineReport.SetController(_controller);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
-        _constructionPanel = GetNode<ConstructionPanel>("Center/ConstructionPanel");
+        _constructionPanel = GetNode<ConstructionPanel>("../Center/ConstructionPanel");
         _emptyPanel = GetNode<PanelContainer>(EmptyPanelPath);
         _emptyGuidanceLabel = GetNode<Label>(EmptyGuidanceLabelPath);
         _terrain = GetNode<OrthogonalParcelTerrain>(TerrainPath);
@@ -105,7 +109,13 @@ public partial class CityMacroView : Control
         {
             Name = nameof(ConstructionPlacementOverlay),
         };
-        AddChild(_placementOverlay);
+        // Sibling, not child: a Control can't be visible while an ancestor
+        // isn't, and this overlay must still show while the perspective
+        // world-view (not this Control) is the one currently visible.
+        // Deferred: ScreenContent is still mid-_Ready() for its own
+        // children (this node included) at this point, and Godot rejects
+        // add_child on a parent that is "busy setting up children".
+        GetParent().CallDeferred(Node.MethodName.AddChild, _placementOverlay);
 
         _controller.BuildingStateChanged += OnAnyBuildingStateChanged;
         _controller.ProjectStateChanged += OnAnyProjectStateChanged;

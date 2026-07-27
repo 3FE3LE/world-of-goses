@@ -45,7 +45,7 @@ public partial class CityPrototype : Node
                 break;
             case "offline-report":
                 GetNode<OfflineReportPanel>(
-                    "GameUiShell/ScreenContent/CityMacroView/OfflineReportPanel")
+                    "GameUiShell/ScreenContent/OfflineReportPanel")
                     .ShowVisualRegressionReport(BuildVisualOfflineReport());
                 break;
             case "pause-menu":
@@ -86,7 +86,7 @@ public partial class CityPrototype : Node
                 break;
             case "migrant":
                 GetNode<MigrantPanel>(
-                    "GameUiShell/ScreenContent/CityMacroView/MigrantPanel")
+                    "GameUiShell/ScreenContent/MigrantPanel")
                     .ShowForVisualRegression();
                 break;
             case "modal-layout-close":
@@ -123,13 +123,13 @@ public partial class CityPrototype : Node
         CityMacroView city = GetNode<CityMacroView>(
             "GameUiShell/ScreenContent/CityMacroView");
         ModalHost host = GetNode<ModalHost>(
-            "GameUiShell/ScreenContent/CityMacroView/ModalHost");
+            "GameUiShell/ScreenContent/ModalHost");
         ExpeditionPanel expedition = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/CityMacroView/ExpeditionPanel");
+            "GameUiShell/ScreenContent/ExpeditionPanel");
         MigrantPanel migrant = GetNode<MigrantPanel>(
-            "GameUiShell/ScreenContent/CityMacroView/MigrantPanel");
+            "GameUiShell/ScreenContent/MigrantPanel");
         ConstructionPanel construction = GetNode<ConstructionPanel>(
-            "GameUiShell/ScreenContent/CityMacroView/Center/ConstructionPanel");
+            "GameUiShell/ScreenContent/Center/ConstructionPanel");
 
         expedition.Open();
         await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);

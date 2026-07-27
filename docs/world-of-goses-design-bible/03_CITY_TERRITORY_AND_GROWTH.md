@@ -5,10 +5,49 @@
 La pantalla principal muestra parcelas, edificios, caminos, rutas, recursos,
 zonas bloqueadas, infraestructura y actividad urbana desde una perspectiva
 ortogonal elevada. La cuadrícula y las siluetas se leen de frente y desde
-arriba; la dirección pseudoisométrica queda descartada para preservar claridad,
-coste de producción de assets y compatibilidad con parcelas desbloqueables.
+arriba; la dirección pseudoisométrica (proyección diagonal) queda descartada
+para preservar claridad, coste de producción de assets y compatibilidad con
+parcelas desbloqueables. Esto no excluye la perspectiva pseudo-3D por calles
+descrita abajo: es una vista frontal con escala por profundidad (estilo
+juegos de carreras Atari), no una proyección isométrica/diagonal.
 
 Los habitantes macro son representaciones de 4 a 8 píxeles. Comunican tránsito y vida, pero no representan uno a uno toda la población ni ejecutan simulación completa.
+
+### Dirección futura: mundo macro caminable
+
+La vista macro evoluciona de panel estático a un mundo caminable con cámara,
+en vez de un lienzo fijo — con una perspectiva pseudo-3D por calles (ver
+`08_VISUAL_UI_AND_ASSET_GUIDELINES.md`, "Ciudad macro (perspectiva por
+calles)"): los elementos más lejos (arriba en pantalla) se ven más pequeños y
+angostos; los más cerca (abajo), más grandes y anchos, al estilo de las
+pistas de carreras Atari. La ciudad se organiza en calles — filas discretas
+de profundidad, distintas de la "calle" de `H-26` (corredor de 2 tiles para
+navmesh; ver desambiguación en el doc visual). Avanzar/retroceder en
+profundidad es una transición escalonada entre calles adyacentes, con una
+animación breve y cuantizada, nunca un scroll continuo; el desplazamiento
+horizontal dentro de una calle es cuantizado pero medianamente libre.
+
+**Seleccionar un ciudadano** (con `CitizenId` real) es independiente de la
+cámara: sirve para ver su info y delegarlo a una zona/asignación, y no mueve
+la cámara por sí solo. La **cámara libre** (pan/zoom) sigue disponible en todo
+momento, haya o no un ciudadano seleccionado — en la ciudad macro, ese paneo
+libre es él mismo cuantizado/escalonado por calle, no un arrastre continuo.
+
+**Cámara-sigue** es un modo aparte que el jugador activa explícitamente (un
+toggle) sobre el ciudadano ya seleccionado. Es una función de observación, no
+de control: el ciudadano sigue moviéndose por su propia agenda/asignación
+(delegación), el jugador solo decide a quién mirar, y puede desactivar el
+seguimiento en cualquier momento para volver a pan/zoom libre. No aplica a los
+puntos macro genéricos de 4-8 píxeles, solo a un ciudadano explícitamente
+seleccionado y con seguimiento activado.
+
+La selección de parcelas y edificios por clic se mantiene igual; ahora ocurre
+dentro de un mundo con cámara en vez de sobre una vista estática. Ver
+"Profundidad y desniveles" en `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` para la
+mecánica visual, y "Cámara y mundo caminable" en
+`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` para la arquitectura técnica. Esta
+es una dirección documentada para una fase de integración posterior; el
+prototipo actual permanece vigente hasta entonces.
 
 ## Escenas detalladas de edificios
 

@@ -71,6 +71,10 @@ scenes/
 │   ├── MineDetailView.tscn
 │   ├── FarmDetailView.tscn
 │   └── HospitalDetailView.tscn
+├── gardens/
+│   └── GardenDetailView.tscn
+├── gathering/
+│   └── GatheringDetailView.tscn
 ├── citizens/
 │   ├── CitizenDetailedView.tscn
 │   └── CitizenPortraitView.tscn
@@ -81,6 +85,9 @@ scenes/
 └── ui/
 ```
 
+`CityMacroView.tscn` pasa a ser un mundo caminable con cámara (ver "Cámara y
+mundo caminable" abajo) en vez de una vista estática.
+
 ## Pixel perfect
 
 - Resolución lógica: 1280 × 720.
@@ -88,6 +95,40 @@ scenes/
 - Posiciones enteras.
 - Escala entera.
 - Sin coordenadas fraccionarias para bordes.
+
+## Cámara y mundo caminable
+
+Dirección futura (no implementada aún): el mundo (ciudad macro y escenas
+detalladas de edificios/jardines/gathering) vive bajo un `Camera2D`/`Node2D`;
+el HUD permanece en un `CanvasLayer` independiente que la cámara nunca afecta.
+Esto reemplaza la decisión previa de evitar `Camera2D` para no mover el HUD:
+con esta separación de capas, el HUD sigue estable sin necesidad de mantener
+el mundo sin cámara.
+
+Dos modos de cámara, independientes de la selección de ciudadano — ver detalle
+en `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` ("Profundidad y desniveles") y
+`04_CITIZENS_PROFESSIONS_AND_HEROES.md` ("Cámara-sigue"):
+
+- Cámara libre (pan/zoom): siempre disponible, haya o no un ciudadano
+  seleccionado. Seleccionar un ciudadano (info/delegación) no la desactiva ni
+  la reemplaza.
+- Cámara-sigue-ciudadano-seleccionado: toggle explícito aparte, solo posible
+  con un ciudadano ya seleccionado; es observación, no control de movimiento,
+  y se puede desactivar en cualquier momento para volver a cámara libre.
+
+**Dos modelos de profundidad, no uno solo** (ver
+`08_VISUAL_UI_AND_ASSET_GUIDELINES.md`, "Profundidad y desniveles"):
+interiores (edificio/jardín/gathering) usan elevación plana
+(`TileMapLayer` por nivel + Y-sort); la ciudad macro usa perspectiva pseudo-3D
+por calles (escala no-uniforme por profundidad, navegación escalonada). Ambos
+prototipados de forma aislada:
+`game/scenes/prototypes/WalkableWorldPrototype.tscn` (interiores) y
+`game/scenes/prototypes/MacroStreetPerspectivePrototype.tscn` (macro),
+ninguno integrado aún a la escena principal.
+
+El prototipo actual (`OrthogonalParcelTerrain.cs`, Control-first sin
+`Camera2D`) sigue vigente hasta que se aborde la fase de integración técnica
+de esta dirección.
 
 ## Guardado
 
@@ -181,3 +222,12 @@ Usar un ciudadano existente convertido en héroe.
 - Música.
 - Primer bioma.
 - Primer conflicto sistémico.
+- Convención de tileset con elevación: cuántos niveles, alto en píxeles por
+  nivel, y tiles de rampa/escalera/puente — pendiente de definir en la fase
+  de integración técnica de "Cámara y mundo caminable".
+- Convención de proyección pseudo-3D por calle (ciudad macro): factores de
+  achicamiento vertical/horizontal por profundidad, cuántas calles visibles
+  simultáneamente, número final de calles de la ciudad.
+- Colisión de nombres: "calle" (fila de profundidad de la perspectiva macro)
+  vs. "calle" de `H-26` (corredor de 2 tiles para navmesh) — reconciliar o
+  renombrar cuando se retome `H-26`/`S-1.2`.

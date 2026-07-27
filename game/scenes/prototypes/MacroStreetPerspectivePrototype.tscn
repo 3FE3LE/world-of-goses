@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetWorld.cs" id="1"]
+
+[node name="MacroStreetPerspectivePrototype" type="Node2D"]
+
+[node name="FixedCamera" type="Camera2D" parent="."]
+position = Vector2(320, 230)
+current = true
+
+[node name="MacroStreetWorld" type="Node2D" parent="."]
+script = ExtResource("1")

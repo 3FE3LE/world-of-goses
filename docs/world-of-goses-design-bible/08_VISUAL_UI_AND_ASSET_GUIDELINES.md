@@ -56,6 +56,75 @@ Párrafos, descripciones y tooltips
 - Canvas inicial orientativo: 96 × 96.
 - Mayor inversión en animación, equipo, heridas y efectos.
 
+## Profundidad y desniveles
+
+Dirección futura: mundo 2D puro con sensación de profundidad — no 2.5D ni un
+motor 3D. El mecanismo difiere según la escala visual; coexisten dos
+sub-modelos, no uno solo.
+
+Jardines y puntos de gathering se suman a la lista de escenas detalladas
+instanciadas, junto a minas, granjas, hospitales y talleres.
+
+Esta es una dirección documentada para una fase de integración técnica
+posterior; no implica cambios inmediatos al prototipo actual salvo lo ya
+prototipado (ver `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`).
+
+### Interiores (elevación plana)
+
+Aplica a escena de edificio, jardín y gathering: desniveles (cuestas,
+escalones, puentes, saltos de un tile hacia abajo), al estilo de la
+navegación de Pokémon Blanco/Negro 2.
+
+Mecanismo:
+
+- Capas de `TileMapLayer` por nivel de elevación.
+- Y-sort para que personajes y bordes elevados se oculten o revelen
+  correctamente según la posición.
+- Tiles de transición (escaleras, rampas) conectan niveles distintos.
+
+Cada escena puede tener su propio rango de elevaciones, coherente con las
+unidades base ya definidas abajo.
+
+### Ciudad macro (perspectiva por calles)
+
+Aplica solo a la ciudad macro — un espacio grande, no contenido, donde la
+elevación plana no comunica distancia. En vez de eso: escala pseudo-3D por
+profundidad, al estilo de las pistas y obstáculos de los juegos de carreras
+Atari (Pole Position, Out Run). Sigue siendo 2D puro (sprites/tiles
+reescalados por código, no un motor 3D ni geometría extruida) — no
+contradice "No 2.5D como dirección principal".
+
+- Un elemento más arriba en pantalla (más lejos) se ve **más pequeño y más
+  angosto**; más abajo (más cerca), **más grande y más ancho**. El
+  angostamiento horizontal es un achicamiento adicional al vertical, no el
+  mismo factor — así se lee como convergencia de perspectiva, no solo un
+  sprite chico.
+- La ciudad se organiza en "calles": filas discretas de profundidad.
+  **Desambiguación importante:** esta "calle" (fila de profundidad de la
+  vista macro) no es la "calle" de `H-26` en `TO_DO.md` (corredor de 2 tiles
+  de ancho para navmesh/pathfinding). Comparten nombre por coincidencia de
+  vocabulario, no por diseño — no asumir que son el mismo concepto al
+  retomar `H-26`/`S-1.2`.
+- Navegación vertical (avanzar/retroceder en profundidad): **escalonada**,
+  nunca un scroll continuo — pasar de una calle a la adyacente (anterior o
+  posterior) es una transición discreta, con una animación breve y
+  cuantizada (varios pasos, no un tween continuo ni un corte instantáneo)
+  que reescala y reacomoda los edificios visibles a su nueva profundidad.
+- Navegación horizontal dentro de una calle: cuantizada (misma cadencia que
+  el resto del "Pixel-motion grammar" abajo), "medianamente libre" — no
+  salta de calle, solo se mueve dentro de la actual.
+
+### Cámara (ambos sub-modelos)
+
+Libre (pan/zoom) siempre disponible, haya o no un ciudadano seleccionado.
+Seleccionar un ciudadano (info/delegación) no activa la cámara por sí solo;
+el jugador debe activar explícitamente el modo cámara-sigue como toggle
+aparte (ver `04_CITIZENS_PROFESSIONS_AND_HEROES.md`, "Cámara-sigue"). En la
+ciudad macro, el "paneo libre" es él mismo cuantizado/escalonado por calle
+(no un arrastre continuo 1:1) — ver "Pixel-motion grammar". Todos los modos
+respetan posiciones y escala entera ("Pixel perfect" en
+`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`).
+
 ## Unidad base
 
 ```text
@@ -86,6 +155,12 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
   12 Hz visual cadence, advancing by 8 pixels per step.
 - Macro travel follows cardinal routes and must not cross occupied building
   footprints.
+- **World-camera pan/observation follows the same discrete cadence as
+  character locomotion — it is not a continuous 1:1 mouse-drag.** Fluid,
+  continuously-interpolated motion is the explicit exception, not the
+  default, for any world navigation (camera included), so base movement
+  stays visually consistent with how a future combat/ability system would
+  likely telegraph its own motion.
 - UI scrolling may remain smooth. Continuous character fades or subpixel
   locomotion require an explicit visual exception.
 

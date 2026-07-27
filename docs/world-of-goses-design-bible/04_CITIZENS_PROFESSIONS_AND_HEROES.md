@@ -102,6 +102,20 @@ CitizenView = representación visual temporal
 
 No debe existir un nodo Godot activo por ciudadano.
 
+## Cámara-sigue
+
+En el mundo macro y en las escenas detalladas caminables, seleccionar un
+ciudadano (para ver su info o delegarlo a una zona/asignación) **no** activa
+la cámara por sí solo. La cámara libre (pan/zoom) sigue disponible siempre,
+con o sin selección. Seguir con la cámara al ciudadano seleccionado es un modo
+aparte que el jugador activa/desactiva explícitamente (toggle).
+
+Es una función de observación/UI, no un modo de control directo de
+movimiento: el ciudadano conserva su propia IA/agenda y sigue moviéndose por
+delegación aunque la cámara lo esté siguiendo. Aplica igual a cualquier
+`Citizen`, no solo a héroes; no crea una subclase controlable ni separa
+héroes de habitantes.
+
 ## Cinco capas de competencia
 
 El desarrollo profesional es la interacción de cinco capas:
