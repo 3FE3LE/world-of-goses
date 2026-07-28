@@ -199,13 +199,13 @@ public partial class ConstructionPanel : PanelContainer
     private void OnAssignToProject(int projectId, int citizenId)
     {
         var result = _controller.TryAssignCitizenToProject(new BuildingId(projectId), new CitizenId(citizenId));
-        if (!result.IsSuccess) _errorLabel.Text = FormatAssignmentError(result.Outcome);
+        if (!result.IsSuccess) _errorLabel.Text = AssignmentErrorText.Format(result.Outcome);
     }
 
     private void OnUnassignFromProject(int projectId, int citizenId)
     {
         var result = _controller.TryUnassignCitizenFromProject(new BuildingId(projectId), new CitizenId(citizenId));
-        if (!result.IsSuccess) _errorLabel.Text = FormatAssignmentError(result.Outcome);
+        if (!result.IsSuccess) _errorLabel.Text = AssignmentErrorText.Format(result.Outcome);
     }
 
     private void BuildShell()
@@ -349,29 +349,29 @@ public partial class ConstructionPanel : PanelContainer
             variation: "ButtonPrimary");
         _farmButton = NewFooterButton(
             iconPath: IconPaths.Leaf,
-            label: "Build Farm",
+            label: UiText.Get("Build Farm"),
             variation: "ButtonPrimary");
         _quarryButton = NewFooterButton(
             iconPath: IconPaths.Building,
-            label: "Build Quarry",
+            label: UiText.Get("Build Quarry"),
             variation: "ButtonPrimary");
         _pauseButton = NewFooterButton(
             iconPath: IconPaths.Pause,
-            label: "Pause",
+            label: UiText.Get("Pause"),
             variation: "ButtonText");
         _resumeButton = NewFooterButton(
             iconPath: IconPaths.Play,
-            label: "Resume",
+            label: UiText.Get("Resume"),
             variation: "ButtonText");
         _cancelButton = NewFooterButton(
             iconPath: IconPaths.Close,
-            label: "Cancel project",
+            label: UiText.Get("Cancel project"),
             variation: "ButtonText");
-        _cancelButton.TooltipText = "Cancel the project. The deposit is lost and the site is cleared.";
+        _cancelButton.TooltipText = UiText.Get("Cancel the project. The deposit is lost and the site is cleared.");
         _viewHeroButton = StandardButtons.ViewHeroButton();
         _viewBuildingButton = NewFooterButton(
             iconPath: IconPaths.House,
-            label: "View shelter",
+            label: UiText.Get("View shelter"),
             variation: "ButtonPrimary");
         _authorizeButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.BasicShelter);
@@ -486,8 +486,9 @@ public partial class ConstructionPanel : PanelContainer
     private void RenderBlueprint(ConstructionSnapshot snapshot)
     {
         bool hasHome = snapshot.HasHome;
-        _header.SetTitle(hasHome ? "Choose the next construction" : "Build the first shelter");
-        _title.Text = hasHome ? "Choose the next construction" : "Build the first shelter";
+        string blueprintTitle = UiText.Get(hasHome ? "Choose the next construction" : "Build the first shelter");
+        _header.SetTitle(blueprintTitle);
+        _title.Text = blueprintTitle;
         // Preview the shelter art so the player knows what they are about to build.
         var shelterArt = BuildingArt.GetTexturePath(ConstructionKind.BasicShelter);
         if (shelterArt is { } path)
@@ -499,9 +500,9 @@ public partial class ConstructionPanel : PanelContainer
         {
             _constructionPreview.Visible = false;
         }
-        _description.Text = hasHome
+        _description.Text = UiText.Get(hasHome
             ? "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
-            : "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction.";
+            : "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction.");
         _phaseLabel.Visible = false;
         _progress.Visible = false;
         _statusLabel.Visible = false;
@@ -515,33 +516,33 @@ public partial class ConstructionPanel : PanelContainer
         var farm = snapshot.OptionFor(ConstructionKind.Farm);
         var quarry = snapshot.OptionFor(ConstructionKind.Quarry);
         _requirementsLabel.Text = hasHome
-            ? $"Farm — {DescribeMaterials(farm)}\nQuarry — {DescribeMaterials(quarry)}"
-            : $"Basic Shelter — {DescribeMaterials(shelter)}";
+            ? UiText.Format("ui.construction.requirements_two", DescribeMaterials(farm), DescribeMaterials(quarry))
+            : UiText.Format("ui.construction.requirements_one", DescribeMaterials(shelter));
         _authorizeButton.Visible = !hasHome;
         bool authorizeEnabled = canAuthorise && shelter.CanPayDeposit;
         _authorizeButton.Disabled = !authorizeEnabled;
-        _authorizeButton.TooltipText = authorizeEnabled
+        _authorizeButton.TooltipText = UiText.Get(authorizeEnabled
             ? "Authorise the Basic Shelter."
-            : "Needs 1 wood — gather from a Forest first.";
+            : "Needs 1 wood — gather from a Forest first.");
         // Farm and Quarry are now always visible so the player can see
         // the upcoming options. They are disabled until the Basic
         // Shelter exists; the tooltip explains the dependency.
         _farmButton.Visible = true;
         bool farmEnabled = canAuthorise && hasHome && farm.CanPayDeposit;
         _farmButton.Disabled = !farmEnabled;
-        _farmButton.TooltipText = !hasHome
+        _farmButton.TooltipText = UiText.Get(!hasHome
             ? "Build the Basic Shelter first to unlock the Farm."
             : farmEnabled
                 ? "Build a Farm."
-                : "Not enough materials to authorise a Farm.";
+                : "Not enough materials to authorise a Farm.");
         _quarryButton.Visible = true;
         bool quarryEnabled = canAuthorise && hasHome && quarry.CanPayDeposit;
         _quarryButton.Disabled = !quarryEnabled;
-        _quarryButton.TooltipText = !hasHome
+        _quarryButton.TooltipText = UiText.Get(!hasHome
             ? "Build the Basic Shelter first to unlock the Quarry."
             : quarryEnabled
                 ? "Build a Quarry."
-                : "Not enough materials to authorise a Quarry.";
+                : "Not enough materials to authorise a Quarry.");
         DetectEnableTransition(authorizeEnabled, ref _wasAuthorizeEnabled, _authorizeButton);
         DetectEnableTransition(farmEnabled, ref _wasFarmEnabled, _farmButton);
         DetectEnableTransition(quarryEnabled, ref _wasQuarryEnabled, _quarryButton);
@@ -596,9 +597,9 @@ public partial class ConstructionPanel : PanelContainer
         _title.Text = project.DisplayName;
         _description.Text = project.AssignedCount == 0
             ? project.RemainingInputs.Count > 0
-                ? $"Gather the remaining materials ({DescribeInputs(project.RemainingInputs)}) to start the worksite."
-                : "Assign at least one available citizen below. Construction cannot advance without contributors."
-            : $"Contributors add work every {ConstructionRules.WorkIntervalTicks} seconds while the project is active.";
+                ? UiText.Format("ui.construction.gather_remaining", DescribeInputs(project.RemainingInputs))
+                : UiText.Get("Assign at least one available citizen below. Construction cannot advance without contributors.")
+            : UiText.Format("ui.construction.contributors_interval", ConstructionRules.WorkIntervalTicks);
         _phaseLabel.Visible = true;
         _progress.Visible = true;
         _statusLabel.Visible = true;
@@ -615,7 +616,7 @@ public partial class ConstructionPanel : PanelContainer
         }
         _requirementsLabel.Visible = project.RemainingInputs.Count > 0;
         _requirementsLabel.Text = project.RemainingInputs.Count > 0
-            ? $"Still needed — {DescribeInputs(project.RemainingInputs)}"
+            ? UiText.Format("ui.construction.still_needed", DescribeInputs(project.RemainingInputs))
             : string.Empty;
         _assignList.Visible = true;
         _availableList.Visible = true;
@@ -651,15 +652,16 @@ public partial class ConstructionPanel : PanelContainer
     private void RenderCompleted(ConstructionSnapshot snapshot)
     {
         BuildingId? shelterId = snapshot.HomeBuildingId;
-        _header.SetTitle("Basic Shelter completed");
-        _title.Text = "Basic Shelter completed";
+        string completedTitle = UiText.Get("Basic Shelter completed");
+        _header.SetTitle(completedTitle);
+        _title.Text = completedTitle;
         if (shelterId.HasValue)
         {
-            _description.Text = "The Basic Shelter is ready. Open the building to assign it as resting site.";
+            _description.Text = UiText.Get("The Basic Shelter is ready. Open the building to assign it as resting site.");
         }
         else
         {
-            _description.Text = "A Basic Shelter is ready.";
+            _description.Text = UiText.Get("A Basic Shelter is ready.");
         }
         _phaseLabel.Visible = false;
         _progress.Visible = false;
@@ -683,10 +685,10 @@ public partial class ConstructionPanel : PanelContainer
 
     private void PopulateAssigned(ConstructionSnapshot.ProjectItem project)
     {
-        AddSectionHeader(_assignList, "Assigned");
+        AddSectionHeader(_assignList, UiText.Get("Assigned"));
         if (project.AssignedCount == 0)
         {
-            AddListLabel(_assignList, "No contributors yet.");
+            AddListLabel(_assignList, UiText.Get("No contributors yet."));
             return;
         }
         foreach (var citizen in project.AssignedCitizens)
@@ -694,8 +696,8 @@ public partial class ConstructionPanel : PanelContainer
             var row = InstantiateAssignmentRow(
                 citizen.Id.Value,
                 citizen.Name,
-                "Remove",
-                $"Remove {citizen.Name} from the project");
+                UiText.Get("Remove"),
+                UiText.Format("ui.construction.remove_from_project", citizen.Name));
             row.ActionRequested += id =>
                 EmitSignal(SignalName.UnassignFromProjectRequested, project.Id.Value, id);
             _assignList.AddChild(row);
@@ -706,15 +708,15 @@ public partial class ConstructionPanel : PanelContainer
         ConstructionSnapshot.ProjectItem project,
         IReadOnlyList<ConstructionSnapshot.CitizenItem> availableCitizens)
     {
-        AddSectionHeader(_availableList, "Available");
+        AddSectionHeader(_availableList, UiText.Get("Available"));
         bool atCapacity = project.AssignedCount >= project.WorkerCapacity;
         foreach (var citizen in availableCitizens)
         {
             var row = InstantiateAssignmentRow(
                 citizen.Id.Value,
                 citizen.Name,
-                "Assign",
-                $"Assign {citizen.Name} to the project",
+                UiText.Get("Assign"),
+                UiText.Format("ui.construction.assign_to_project", citizen.Name),
                 disabled: atCapacity);
             row.ActionRequested += id =>
                 EmitSignal(SignalName.AssignToProjectRequested, project.Id.Value, id);
@@ -722,7 +724,7 @@ public partial class ConstructionPanel : PanelContainer
         }
         if (_availableList.GetChildCount() == 1)
         {
-            AddListLabel(_availableList, atCapacity ? "Project at capacity." : "No free citizens.");
+            AddListLabel(_availableList, UiText.Get(atCapacity ? "Project at capacity." : "No free citizens."));
         }
     }
 
@@ -768,29 +770,18 @@ public partial class ConstructionPanel : PanelContainer
     private static string DescribeProjectStatus(ConstructionSnapshot.ProjectItem project) => project.StopCause switch
     {
         ConstructionStopCause.Authorized =>
-            $"Active — next contribution on a {ConstructionRules.WorkIntervalTicks}-tick interval",
-        ConstructionStopCause.Paused => "Paused by the player",
+            UiText.Format("ui.construction.active_interval", ConstructionRules.WorkIntervalTicks),
+        ConstructionStopCause.Paused => UiText.Get("Paused by the player"),
         ConstructionStopCause.NoWorkers => project.RemainingInputs.Count > 0
-            ? $"Waiting for materials — {DescribeInputs(project.RemainingInputs)}"
-            : "Waiting for contributors",
+            ? UiText.Format("ui.construction.waiting_materials", DescribeInputs(project.RemainingInputs))
+            : UiText.Get("Waiting for contributors"),
         ConstructionStopCause.MissingMaterials =>
-            $"Waiting for materials — {DescribeInputs(project.RemainingInputs)}",
-        ConstructionStopCause.WorkersExhausted => "Waiting: contributors exhausted",
-        ConstructionStopCause.Night => "Resting during the night",
-        ConstructionStopCause.Completed => "Completed",
-        ConstructionStopCause.NoHero => "No hero available",
+            UiText.Format("ui.construction.waiting_materials", DescribeInputs(project.RemainingInputs)),
+        ConstructionStopCause.WorkersExhausted => UiText.Get("Waiting: contributors exhausted"),
+        ConstructionStopCause.Night => UiText.Get("Resting during the night"),
+        ConstructionStopCause.Completed => UiText.Get("Completed"),
+        ConstructionStopCause.NoHero => UiText.Get("No hero available"),
         _ => project.StopCause.ToString(),
-    };
-
-    private static string FormatAssignmentError(AssignmentOutcome outcome) => outcome switch
-    {
-        AssignmentOutcome.AtCapacity => "Project is at worker capacity.",
-        AssignmentOutcome.AlreadyAssigned => "Citizen is already a contributor.",
-        AssignmentOutcome.CitizenUnavailable => "Citizen is assigned elsewhere.",
-        AssignmentOutcome.NotAssigned => "Citizen is not assigned here.",
-        AssignmentOutcome.CitizenNotFound => "Citizen no longer exists.",
-        AssignmentOutcome.BuildingNotFound => "Worksite no longer exists.",
-        _ => "Assignment rejected.",
     };
 
     private static string DescribeMaterials(ConstructionSnapshot.OptionItem option)
@@ -815,7 +806,7 @@ public partial class ConstructionPanel : PanelContainer
         var parts = new List<string>();
         foreach (var input in inputs)
         {
-            parts.Add($"{input.Amount} {input.Resource.ToString().ToLowerInvariant()}");
+            parts.Add($"{input.Amount} {UiText.Get(input.Resource.ToString().ToLowerInvariant())}");
         }
         return string.Join(" + ", parts);
     }
@@ -823,15 +814,15 @@ public partial class ConstructionPanel : PanelContainer
     internal static string FormatAuthorizationError(ConstructionAuthorizationOutcome outcome) => outcome switch
     {
         ConstructionAuthorizationOutcome.MissingMaterials =>
-            "Missing materials. Check the requirements above.",
-        ConstructionAuthorizationOutcome.HomeRequired => "Build the Basic Shelter first.",
-        ConstructionAuthorizationOutcome.AlreadyAuthorized => "Finish or cancel the current project first.",
-        ConstructionAuthorizationOutcome.NoHero => "Create the founding hero first.",
-        ConstructionAuthorizationOutcome.HomeAlreadyBuilt => "The Basic Shelter already exists.",
+            UiText.Get("Missing materials. Check the requirements above."),
+        ConstructionAuthorizationOutcome.HomeRequired => UiText.Get("Build the Basic Shelter first."),
+        ConstructionAuthorizationOutcome.AlreadyAuthorized => UiText.Get("Finish or cancel the current project first."),
+        ConstructionAuthorizationOutcome.NoHero => UiText.Get("Create the founding hero first."),
+        ConstructionAuthorizationOutcome.HomeAlreadyBuilt => UiText.Get("The Basic Shelter already exists."),
         ConstructionAuthorizationOutcome.WorldNotEmpty =>
-            "The founding shelter can only start in the initial world.",
+            UiText.Get("The founding shelter can only start in the initial world."),
         ConstructionAuthorizationOutcome.NoAvailableLot =>
-            "No unlocked parcel has a free building lot.",
-        _ => "Construction could not be authorized.",
+            UiText.Get("No unlocked parcel has a free building lot."),
+        _ => UiText.Get("Construction could not be authorized."),
     };
 }

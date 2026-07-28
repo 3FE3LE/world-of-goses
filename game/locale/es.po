@@ -579,6 +579,30 @@ msgstr "{0} partió el {1} y regresa el {2}."
 msgid "ui.resource.wood_remains"
 msgstr "Quedan {0} de madera"
 
+msgid "ui.selection.tree_title"
+msgstr "Árbol"
+
+msgid "ui.selection.building_workers"
+msgstr "{0}/{1} trabajadores"
+
+msgid "ui.selection.building_home"
+msgstr "{0}/{1} descansando"
+
+msgid "ui.tree.regrows_at"
+msgstr "Vuelve a crecer {0}"
+
+msgid "ui.camera.follow_label"
+msgstr "Seguir al fundador"
+
+msgid "ui.camera.free_label"
+msgstr "Cámara libre"
+
+msgid "ui.camera.follow_tooltip"
+msgstr "La cámara sigue al fundador. Clic para desplazarte libremente (F)."
+
+msgid "ui.camera.free_tooltip"
+msgstr "La cámara está libre. Clic para volver a seguir al fundador (F)."
+
 msgid "ui.tutorial.title"
 msgstr "Consejo {0} de {1} — {2}"
 
@@ -605,9 +629,6 @@ msgstr "El mínimo debe ser al menos {0}."
 
 msgid "ui.production.max_ceiling"
 msgstr "El máximo debe ser como mucho {0}."
-
-msgid "ui.production.title"
-msgstr "{0} — {1}"
 
 msgid "ui.production.wood_stock"
 msgstr "Madera: {0} / {1} (reserva {2})"
@@ -1074,3 +1095,702 @@ msgstr "Nombre del fundador"
 
 msgid "Ya llegamos."
 msgstr "Ya llegamos."
+
+msgid "ui.hero_profile.title"
+msgstr "Perfil del héroe"
+
+msgid "ui.hero_profile.no_hero"
+msgstr "Aún no se ha creado ningún héroe."
+
+msgid "ui.hero_profile.role"
+msgstr "Rol: Héroe"
+
+msgid "ui.hero_profile.lineage_disclaimer"
+msgstr "El linaje describe caminos habituales de partida. No bloquea ninguna profesión, no impone un techo permanente ni otorga producción automática."
+
+msgid "ui.hero_profile.aptitudes_heading"
+msgstr "Aptitudes personales"
+
+msgid "ui.hero_profile.affinities_heading"
+msgstr "Afinidades profesionales"
+
+msgid "ui.hero_profile.common_paths"
+msgstr "Caminos habituales de {0}: {1}"
+
+msgid "ui.hero_profile.combat_heading"
+msgstr "Elemento y combate"
+
+msgid "ui.hero_profile.elemental_affinity"
+msgstr "Afinidad elemental: {0}"
+
+msgid "ui.hero_profile.combat_style"
+msgstr "Estilo de combate: {0}"
+
+msgid "ui.hero_profile.weapon_preferences"
+msgstr "Preferencia de armas: {0}"
+
+msgid "ui.hero_profile.gender"
+msgstr "Género: {0}"
+
+msgid "ui.hero_profile.personality_heading"
+msgstr "Personalidad y cosmovisión"
+
+msgid "ui.hero_profile.traits"
+msgstr "Rasgos: {0}"
+
+msgid "ui.hero_profile.political_orientation"
+msgstr "Orientación política: {0}"
+
+msgid "ui.hero_profile.spiritual_posture"
+msgstr "Postura espiritual: {0}"
+
+msgid "ui.hero_profile.condition_heading"
+msgstr "Condición actual"
+
+msgid "ui.hero_profile.stamina"
+msgstr "Resistencia: {0}/{1}"
+
+msgid "ui.hero_profile.at_home"
+msgstr "En casa"
+
+msgid "ui.hero_profile.at_work"
+msgstr "En el trabajo"
+
+msgid "Feminine"
+msgstr "Femenino"
+
+msgid "Masculine"
+msgstr "Masculino"
+
+msgid "Body-aware builders, extractors, rescuers and operational coordinators."
+msgstr "Constructores, extractores, rescatistas y coordinadores operativos con fuerte conciencia corporal."
+
+msgid "Often learn through posture, weight, rhythm, vibration and practical repetition."
+msgstr "Suelen aprender a través de la postura, el peso, el ritmo, la vibración y la repetición práctica."
+
+msgid "Observers of living systems, medicine, cultivation and ecological recovery."
+msgstr "Observadores de sistemas vivos, medicina, cultivo y recuperación ecológica."
+
+msgid "Often learn by connecting organisms, cycles, water, soil and long-term consequences."
+msgstr "Suelen aprender conectando organismos, ciclos, agua, suelo y consecuencias a largo plazo."
+
+msgid "Engineers, maintainers and makers drawn to systems that can be understood and repaired."
+msgstr "Ingenieros, mantenedores y creadores atraídos por sistemas que pueden entenderse y repararse."
+
+msgid "Often learn through components, diagnosis, adaptation, disassembly and iterative repair."
+msgstr "Suelen aprender a través de componentes, diagnóstico, adaptación, desmontaje y reparación iterativa."
+
+msgid "Interpreters of people, roles, conflict, identity and public life."
+msgstr "Intérpretes de las personas, los roles, el conflicto, la identidad y la vida pública."
+
+msgid "Often learn by observing behaviour, changing perspectives and navigating social context."
+msgstr "Suelen aprender observando el comportamiento, cambiando de perspectiva y moviéndose por el contexto social."
+
+msgid "Explorers, navigators, prospectors and connectors between distant communities."
+msgstr "Exploradores, navegantes, prospectores y nexos entre comunidades distantes."
+
+msgid "Often learn through movement, terrain, weather, routes and adaptation away from fixed infrastructure."
+msgstr "Suelen aprender a través del movimiento, el terreno, el clima, las rutas y la adaptación lejos de infraestructura fija."
+
+msgid "Stewards of exchange, reserves, hospitality and the movement of value."
+msgstr "Administradores del intercambio, las reservas, la hospitalidad y el movimiento de valor."
+
+msgid "Often learn through records, scarcity, risk, negotiation and service networks."
+msgstr "Suelen aprender a través de registros, escasez, riesgo, negociación y redes de servicio."
+
+msgid "Researchers, educators, diagnosticians and institutional planners."
+msgstr "Investigadores, educadores, diagnosticadores y planificadores institucionales."
+
+msgid "Often learn through models, comparison, documentation, hypotheses and cross-disciplinary analysis."
+msgstr "Suelen aprender a través de modelos, comparación, documentación, hipótesis y análisis interdisciplinario."
+
+msgid "Carers, coordinators, artists and protectors of group cohesion."
+msgstr "Cuidadores, coordinadores, artistas y protectores de la cohesión grupal."
+
+msgid "Often learn through shared practice, emotional communication, crisis response and collective memory."
+msgstr "Suelen aprender a través de la práctica compartida, la comunicación emocional, la respuesta a crisis y la memoria colectiva."
+
+msgid "Observation"
+msgstr "Observación"
+
+msgid "Empathy"
+msgstr "Empatía"
+
+msgid "Manual precision"
+msgstr "Precisión manual"
+
+msgid "Strength"
+msgstr "Fuerza"
+
+msgid "Orientation"
+msgstr "Orientación"
+
+msgid "Memory"
+msgstr "Memoria"
+
+msgid "Creativity"
+msgstr "Creatividad"
+
+msgid "Self-control"
+msgstr "Autocontrol"
+
+msgid "Risk tolerance"
+msgstr "Tolerancia al riesgo"
+
+msgid "Adaptability"
+msgstr "Adaptabilidad"
+
+msgid "Extraction"
+msgstr "Extracción"
+
+msgid "Construction & infrastructure"
+msgstr "Construcción e infraestructura"
+
+msgid "Agriculture & living systems"
+msgstr "Agricultura y sistemas vivos"
+
+msgid "Medicine & care"
+msgstr "Medicina y cuidado"
+
+msgid "Engineering & manufacturing"
+msgstr "Ingeniería y manufactura"
+
+msgid "Exploration & survival"
+msgstr "Exploración y supervivencia"
+
+msgid "Logistics"
+msgstr "Logística"
+
+msgid "Commerce & administration"
+msgstr "Comercio y administración"
+
+msgid "Research & education"
+msgstr "Investigación y educación"
+
+msgid "Social relations"
+msgstr "Relaciones sociales"
+
+msgid "Security & combat"
+msgstr "Seguridad y combate"
+
+msgid "Arts & culture"
+msgstr "Artes y cultura"
+
+msgid "Water"
+msgstr "Agua"
+
+msgid "Fire"
+msgstr "Fuego"
+
+msgid "Earth"
+msgstr "Tierra"
+
+msgid "Air"
+msgstr "Aire"
+
+msgid "Aether"
+msgstr "Éter"
+
+msgid "Defensive support"
+msgstr "Apoyo defensivo"
+
+msgid "Territorial control"
+msgstr "Control territorial"
+
+msgid "Mobility"
+msgstr "Movilidad"
+
+msgid "Precision"
+msgstr "Precisión"
+
+msgid "Direct assault"
+msgstr "Asalto directo"
+
+msgid "Polearm"
+msgstr "Arma de asta"
+
+msgid "Heavy weapons"
+msgstr "Armas pesadas"
+
+msgid "Blades"
+msgstr "Hojas"
+
+msgid "Ranged weapons"
+msgstr "Armas a distancia"
+
+msgid "Shield"
+msgstr "Escudo"
+
+msgid "Unarmed"
+msgstr "Desarmado"
+
+msgid "Patient"
+msgstr "Paciente"
+
+msgid "Protective"
+msgstr "Protector"
+
+msgid "Reflective"
+msgstr "Reflexivo"
+
+msgid "Curious"
+msgstr "Curioso"
+
+msgid "Disciplined"
+msgstr "Disciplinado"
+
+msgid "Cooperative"
+msgstr "Cooperativo"
+
+msgid "Ambitious"
+msgstr "Ambicioso"
+
+msgid "Cautious"
+msgstr "Cauteloso"
+
+msgid "Bold"
+msgstr "Audaz"
+
+msgid "Reserved"
+msgstr "Reservado"
+
+msgid "Compassionate"
+msgstr "Compasivo"
+
+msgid "Pragmatic"
+msgstr "Pragmático"
+
+msgid "Independent"
+msgstr "Independiente"
+
+msgid "Diplomatic"
+msgstr "Diplomático"
+
+msgid "Tenacious"
+msgstr "Tenaz"
+
+msgid "Restless"
+msgstr "Inquieto"
+
+msgid "Communitarian"
+msgstr "Comunitario"
+
+msgid "Autonomist"
+msgstr "Autonomista"
+
+msgid "Institutional"
+msgstr "Institucional"
+
+msgid "Traditionalist"
+msgstr "Tradicionalista"
+
+msgid "Reformist"
+msgstr "Reformista"
+
+msgid "Mercantile"
+msgstr "Mercantil"
+
+msgid "Ecological"
+msgstr "Ecologista"
+
+msgid "Security-oriented"
+msgstr "Orientado a la seguridad"
+
+msgid "Devout"
+msgstr "Devoto"
+
+msgid "Contemplative"
+msgstr "Contemplativo"
+
+msgid "Syncretic"
+msgstr "Sincrético"
+
+msgid "Agnostic"
+msgstr "Agnóstico"
+
+msgid "Skeptical"
+msgstr "Escéptico"
+
+msgid "Secular"
+msgstr "Secular"
+
+msgid "A Basic Shelter is ready."
+msgstr "Un Refugio Básico está listo."
+
+msgid "Assign"
+msgstr "Asignar"
+
+msgid "Assign at least one available citizen below. Construction cannot advance without contributors."
+msgstr "Asigna al menos un ciudadano disponible abajo. La construcción no puede avanzar sin contribuyentes."
+
+msgid "Assignment rejected."
+msgstr "Asignación rechazada."
+
+msgid "Basic Shelter completed"
+msgstr "Refugio Básico completado"
+
+msgid "Body variant used by the imported sprite."
+msgstr "Variante corporal usada por el sprite importado."
+
+msgid "Build Farm"
+msgstr "Construir granja"
+
+msgid "Build Quarry"
+msgstr "Construir cantera"
+
+msgid "Build the Basic Shelter first."
+msgstr "Construye primero el Refugio Básico."
+
+msgid "Cancel project"
+msgstr "Cancelar proyecto"
+
+msgid "Cancel the project. The deposit is lost and the site is cleared."
+msgstr "Cancela el proyecto. El depósito se pierde y el sitio se despeja."
+
+msgid "Citizen is already a contributor."
+msgstr "El ciudadano ya es contribuyente."
+
+msgid "Citizen is assigned elsewhere."
+msgstr "El ciudadano está asignado en otro lugar."
+
+msgid "Citizen is not assigned here."
+msgstr "El ciudadano no está asignado aquí."
+
+msgid "Citizen no longer exists."
+msgstr "El ciudadano ya no existe."
+
+msgid "Combat style — choose one"
+msgstr "Estilo de combate — elige uno"
+
+msgid "Complete every single-choice section."
+msgstr "Completa cada sección de elección única."
+
+msgid "Completed"
+msgstr "Completado"
+
+msgid "Construction could not be authorized."
+msgstr "No se pudo autorizar la construcción."
+
+msgid "Create the founding hero first."
+msgstr "Crea primero al héroe fundador."
+
+msgid "Element and combat"
+msgstr "Elemento y combate"
+
+msgid "Elemental affinity — choose one"
+msgstr "Afinidad elemental — elige una"
+
+msgid "Enter a name between 1 and 32 characters."
+msgstr "Ingresa un nombre de entre 1 y 32 caracteres."
+
+msgid "Finish or cancel the current project first."
+msgstr "Termina o cancela primero el proyecto actual."
+
+msgid "Gender — choose one"
+msgstr "Género — elige uno"
+
+msgid "Identity"
+msgstr "Identidad"
+
+msgid "Individual aptitudes and professional affinities can reinforce or contradict lineage tendencies."
+msgstr "Las aptitudes individuales y las afinidades profesionales pueden reforzar o contradecir las tendencias del linaje."
+
+msgid "Lineage — choose one"
+msgstr "Linaje — elige uno"
+
+msgid "Missing materials. Check the requirements above."
+msgstr "Faltan materiales. Revisa los requisitos arriba."
+
+msgid "No contributors yet."
+msgstr "Aún no hay contribuyentes."
+
+msgid "No founder is available to gather."
+msgstr "No hay ningún fundador disponible para recolectar."
+
+msgid "No hero available"
+msgstr "No hay héroe disponible"
+
+msgid "No unlocked parcel has a free building lot."
+msgstr "Ninguna parcela desbloqueada tiene un lote de construcción libre."
+
+msgid "none selected"
+msgstr "ninguno seleccionado"
+
+msgid "not selected"
+msgstr "no seleccionado"
+
+msgid "Paused by the player"
+msgstr "Pausado por el jugador"
+
+msgid "Personal paths"
+msgstr "Caminos personales"
+
+msgid "Personality"
+msgstr "Personalidad"
+
+msgid "Political orientation — choose one"
+msgstr "Orientación política — elige una"
+
+msgid "Political orientation and spiritual posture are separate, descriptive choices."
+msgstr "La orientación política y la postura espiritual son elecciones descriptivas independientes."
+
+msgid "Profile review"
+msgstr "Resumen del perfil"
+
+msgid "Project is at worker capacity."
+msgstr "El proyecto está en su capacidad máxima de trabajadores."
+
+msgid "Remove"
+msgstr "Quitar"
+
+msgid "Resting site — no production"
+msgstr "Sitio de descanso — sin producción"
+
+msgid "Something blocks the way — walk along the street to a gap first."
+msgstr "Algo bloquea el paso — camina por la calle hasta encontrar un hueco."
+
+msgid "Spiritual posture — choose one"
+msgstr "Postura espiritual — elige una"
+
+msgid "The Basic Shelter already exists."
+msgstr "El Refugio Básico ya existe."
+
+msgid "The Basic Shelter is ready. Open the building to assign it as resting site."
+msgstr "El Refugio Básico está listo. Abre el edificio para asignarlo como sitio de descanso."
+
+msgid "The founding shelter can only start in the initial world."
+msgstr "El refugio fundacional solo puede iniciarse en el mundo inicial."
+
+msgid "These are starting tendencies only. Any profession remains learnable."
+msgstr "Estas son solo tendencias de partida. Cualquier profesión sigue siendo aprendible."
+
+msgid "These choices describe preference. They do not prevent the hero from learning another weapon or role."
+msgstr "Estas elecciones describen preferencia. No impiden que el héroe aprenda otra arma o rol."
+
+msgid "This tree no longer has wood available."
+msgstr "Este árbol ya no tiene madera disponible."
+
+msgid "Traits create tendencies and tensions. None is inherently virtuous or defective."
+msgstr "Los rasgos crean tendencias y tensiones. Ninguno es intrínsecamente virtuoso o defectuoso."
+
+msgid "View shelter"
+msgstr "Ver refugio"
+
+msgid "Waiting: contributors exhausted"
+msgstr "Esperando: contribuyentes agotados"
+
+msgid "Worksite no longer exists."
+msgstr "El sitio de obra ya no existe."
+
+msgid "Worldview and review"
+msgstr "Cosmovisión y resumen"
+
+msgid "Your lineage describes a common starting context, not a profession or destiny."
+msgstr "Tu linaje describe un contexto habitual de partida, no una profesión ni un destino."
+
+msgid "ui.assignment.assign_to"
+msgstr "Asignar a {0}"
+
+msgid "ui.assignment.assigned_count"
+msgstr "Asignados: {0} / {1}"
+
+msgid "ui.assignment.no_free_citizens"
+msgstr "(sin ciudadanos libres)"
+
+msgid "ui.assignment.no_workers"
+msgstr "(sin trabajadores)"
+
+msgid "ui.assignment.remove_from"
+msgstr "Quitar de {0}"
+
+msgid "ui.assignment.visible_inside"
+msgstr "Visibles: {0} · Adentro: {1}"
+
+msgid "ui.assignment.workers_title"
+msgstr "Trabajadores"
+
+msgid "ui.astral.result_affinities"
+msgstr "Afinidades: {0}"
+
+msgid "ui.astral.result_aptitudes"
+msgstr "Aptitudes: {0}"
+
+msgid "ui.astral.result_combat"
+msgstr "Confrontación: {0}"
+
+msgid "ui.astral.result_element"
+msgstr "Afinidad: {0}"
+
+msgid "ui.astral.result_traits"
+msgstr "Rasgos: {0}"
+
+msgid "ui.building_detail.assignment_rejected"
+msgstr "Asignación rechazada (código {0})."
+
+msgid "ui.building_detail.capacity_empty"
+msgstr "Capacidad: {0} · Nadie está descansando aquí."
+
+msgid "ui.building_detail.capacity_resting_many"
+msgstr "Capacidad: {0} · {1} ciudadanos descansando aquí."
+
+msgid "ui.building_detail.capacity_resting_one"
+msgstr "Capacidad: {0} · {1} ciudadano descansando aquí."
+
+msgid "ui.construction.active_interval"
+msgstr "Activo — próxima contribución en un intervalo de {0} ticks"
+
+msgid "ui.construction.assign_to_project"
+msgstr "Asignar a {0} al proyecto"
+
+msgid "ui.construction.contributors_interval"
+msgstr "Los contribuyentes añaden trabajo cada {0} segundos mientras el proyecto está activo."
+
+msgid "ui.construction.gather_remaining"
+msgstr "Recolecta los materiales restantes ({0}) para iniciar la obra."
+
+msgid "ui.construction.remove_from_project"
+msgstr "Quitar a {0} del proyecto"
+
+msgid "ui.construction.requirements_one"
+msgstr "Refugio Básico — {0}"
+
+msgid "ui.construction.requirements_two"
+msgstr "Granja — {0}\nCantera — {1}"
+
+msgid "ui.construction.still_needed"
+msgstr "Aún se necesita — {0}"
+
+msgid "ui.construction.waiting_materials"
+msgstr "Esperando materiales — {0}"
+
+msgid "ui.gather.already_assigned"
+msgstr "{0} ya está asignado. Quítale la asignación antes de recolectar madera."
+
+msgid "ui.gather.away_on_expedition"
+msgstr "{0} está de expedición."
+
+msgid "ui.gather.gathered_wood"
+msgstr "Se recolectaron {0} de madera."
+
+msgid "ui.hero.affinities_choose"
+msgstr "Afinidades profesionales — elige exactamente 3 ({0}/3)"
+
+msgid "ui.hero.aptitudes_choose"
+msgstr "Aptitudes personales — elige exactamente 3 ({0}/3)"
+
+msgid "ui.hero.common_marked_paths"
+msgstr "Caminos marcados habituales: {0}."
+
+msgid "ui.hero.review_affinities"
+msgstr "Afinidades profesionales: {0}"
+
+msgid "ui.hero.review_aptitudes"
+msgstr "Aptitudes: {0}"
+
+msgid "ui.hero.review_element"
+msgstr "Elemento: {0}"
+
+msgid "ui.hero.review_gender"
+msgstr "Género: {0}"
+
+msgid "ui.hero.review_lineage"
+msgstr "Linaje: {0}"
+
+msgid "ui.hero.review_name"
+msgstr "Nombre: {0}"
+
+msgid "ui.hero.review_politics"
+msgstr "Política: {0}"
+
+msgid "ui.hero.review_spirituality"
+msgstr "Espiritualidad: {0}"
+
+msgid "ui.hero.review_traits"
+msgstr "Rasgos: {0}"
+
+msgid "ui.hero.traits_choose"
+msgstr "Rasgos — elige exactamente 3 ({0}/3)"
+
+msgid "ui.hero.weapons_choose"
+msgstr "Preferencia de armas — elige 1 o 2 ({0}/2)"
+
+msgid "Choose the next construction"
+msgstr "Elige la siguiente construcción"
+
+msgid "Build the first shelter"
+msgstr "Construye el primer refugio"
+
+msgid "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
+msgstr "Elige un edificio productivo. Su obra aparecerá automáticamente en la ciudad; abre el progreso de Construcción para asignar contribuyentes."
+
+msgid "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction."
+msgstr "Autoriza el Refugio Básico — una vivienda modesta que desbloquea la construcción productiva."
+
+msgid "Authorise the Basic Shelter."
+msgstr "Autoriza el Refugio Básico."
+
+msgid "Needs 1 wood — gather from a Forest first."
+msgstr "Necesita 1 de madera — recolecta primero en un Bosque."
+
+msgid "Build the Basic Shelter first to unlock the Farm."
+msgstr "Construye primero el Refugio Básico para desbloquear la Granja."
+
+msgid "Build a Farm."
+msgstr "Construye una Granja."
+
+msgid "Not enough materials to authorise a Farm."
+msgstr "No hay suficientes materiales para autorizar una Granja."
+
+msgid "Build the Basic Shelter first to unlock the Quarry."
+msgstr "Construye primero el Refugio Básico para desbloquear la Cantera."
+
+msgid "Build a Quarry."
+msgstr "Construye una Cantera."
+
+msgid "Not enough materials to authorise a Quarry."
+msgstr "No hay suficientes materiales para autorizar una Cantera."
+
+msgid "Project at capacity."
+msgstr "Proyecto en capacidad máxima."
+
+msgid "No free citizens."
+msgstr "No hay ciudadanos libres."
+
+msgid "Conservaré…"
+msgstr "Conservaré…"
+
+msgid "Buscaré…"
+msgstr "Buscaré…"
+
+msgid "Intentaré comprender…"
+msgstr "Intentaré comprender…"
+
+msgid "Comenzaré de nuevo…"
+msgstr "Comenzaré de nuevo…"
+
+msgid "wood"
+msgstr "madera"
+
+msgid "stone"
+msgstr "piedra"
+
+msgid "food"
+msgstr "comida"
+
+msgid "iron"
+msgstr "hierro"
+
+msgid "potions"
+msgstr "pociones"
+
+msgid "Forest"
+msgstr "Bosque"
+
+msgid "Rest"
+msgstr "Descanso"
+
+msgid "rest"
+msgstr "descanso"
+
+msgid "ui.building_detail.full_label"
+msgstr "{0} ({1})"

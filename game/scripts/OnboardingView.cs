@@ -89,7 +89,7 @@ public partial class OnboardingView : Control
 
         var title = new Label
         {
-            Text = "Create your hero",
+            Text = UiText.Get("Create your hero"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         title.ThemeTypeVariation = "ScreenTitle";
@@ -131,9 +131,9 @@ public partial class OnboardingView : Control
         footer.AddThemeConstantOverride("separation", 10);
         shell.AddChild(footer);
 
-        _backButton = StandardButtons.NavigationButton("Back");
-        _nextButton = StandardButtons.NavigationButton("Next");
-        _confirmButton = StandardButtons.NavigationButton("Create the hero");
+        _backButton = StandardButtons.NavigationButton(UiText.Get("Back"));
+        _nextButton = StandardButtons.NavigationButton(UiText.Get("Next"));
+        _confirmButton = StandardButtons.NavigationButton(UiText.Get("Create the hero"));
         _confirmButton.ThemeTypeVariation = "ButtonPrimary";
         _backButton.Pressed += OnBackPressed;
         _nextButton.Pressed += OnNextPressed;
@@ -185,10 +185,12 @@ public partial class OnboardingView : Control
 
     private void BuildIdentityStep()
     {
-        AddHeading("Identity", "Your lineage describes a common starting context, not a profession or destiny.");
+        AddHeading(
+            UiText.Get("Identity"),
+            UiText.Get("Your lineage describes a common starting context, not a profession or destiny."));
         var name = new LineEdit
         {
-            PlaceholderText = "Hero name",
+            PlaceholderText = UiText.Get("Hero name"),
             Text = _heroName,
             MaxLength = 32,
             CustomMinimumSize = new Vector2(0, 42),
@@ -218,7 +220,7 @@ public partial class OnboardingView : Control
         _page.AddChild(_heroPreviewSlot);
         ShowHeroPreview();
 
-        AddSectionTitle("Lineage — choose one");
+        AddSectionTitle(UiText.Get("Lineage — choose one"));
         Label description = AddDescription(string.Empty);
         AddSingleChoiceGrid(
             ProfileCatalog.Lineages.Select(value =>
@@ -234,12 +236,13 @@ public partial class OnboardingView : Control
             });
         if (_lineage.HasValue) description.Text = FormatLineage(ProfileCatalog.Get(_lineage.Value));
 
-        AddSectionTitle("Gender — choose one");
+        AddSectionTitle(UiText.Get("Gender — choose one"));
+        string genderBodyVariantTooltip = UiText.Get("Body variant used by the imported sprite.");
         AddSingleChoiceGrid(
             new[]
             {
-                new ProfileOption<GenderId>(GenderId.Feminine, "Feminine", "Body variant used by the imported sprite."),
-                new ProfileOption<GenderId>(GenderId.Masculine, "Masculine", "Body variant used by the imported sprite."),
+                new ProfileOption<GenderId>(GenderId.Feminine, UiText.Get("Feminine"), genderBodyVariantTooltip),
+                new ProfileOption<GenderId>(GenderId.Masculine, UiText.Get("Masculine"), genderBodyVariantTooltip),
             },
             _gender,
             selected =>
@@ -276,62 +279,62 @@ public partial class OnboardingView : Control
     private void BuildAptitudesStep()
     {
         AddHeading(
-            "Personal paths",
-            "Individual aptitudes and professional affinities can reinforce or contradict lineage tendencies.");
-        AddSectionTitle($"Personal aptitudes — choose exactly 3 ({_aptitudes.Count}/3)");
+            UiText.Get("Personal paths"),
+            UiText.Get("Individual aptitudes and professional affinities can reinforce or contradict lineage tendencies."));
+        AddSectionTitle(UiText.Format("ui.hero.aptitudes_choose", _aptitudes.Count));
         AddMultipleChoiceGrid(ProfileCatalog.Aptitudes, _aptitudes, 3);
-        AddSectionTitle($"Professional affinities — choose exactly 3 ({_professions.Count}/3)");
+        AddSectionTitle(UiText.Format("ui.hero.affinities_choose", _professions.Count));
         AddMultipleChoiceGrid(ProfileCatalog.ProfessionFamilies, _professions, 3);
     }
 
     private void BuildCombatStep()
     {
         AddHeading(
-            "Element and combat",
-            "These choices describe preference. They do not prevent the hero from learning another weapon or role.");
-        AddSectionTitle("Elemental affinity — choose one");
+            UiText.Get("Element and combat"),
+            UiText.Get("These choices describe preference. They do not prevent the hero from learning another weapon or role."));
+        AddSectionTitle(UiText.Get("Elemental affinity — choose one"));
         AddSingleChoiceGrid(ProfileCatalog.ElementalAffinities, _element, value =>
         {
             _element = value;
             UpdateNavigation();
         });
-        AddSectionTitle("Combat style — choose one");
+        AddSectionTitle(UiText.Get("Combat style — choose one"));
         AddSingleChoiceGrid(ProfileCatalog.CombatStyles, _combatStyle, value =>
         {
             _combatStyle = value;
             UpdateNavigation();
         });
-        AddSectionTitle($"Weapon preferences — choose 1 or 2 ({_weapons.Count}/2)");
+        AddSectionTitle(UiText.Format("ui.hero.weapons_choose", _weapons.Count));
         AddMultipleChoiceGrid(ProfileCatalog.WeaponPreferences, _weapons, 2);
     }
 
     private void BuildTraitsStep()
     {
         AddHeading(
-            "Personality",
-            "Traits create tendencies and tensions. None is inherently virtuous or defective.");
-        AddSectionTitle($"Traits — choose exactly 3 ({_traits.Count}/3)");
+            UiText.Get("Personality"),
+            UiText.Get("Traits create tendencies and tensions. None is inherently virtuous or defective."));
+        AddSectionTitle(UiText.Format("ui.hero.traits_choose", _traits.Count));
         AddMultipleChoiceGrid(ProfileCatalog.PersonalityTraits, _traits, 3);
     }
 
     private void BuildWorldviewStep()
     {
         AddHeading(
-            "Worldview and review",
-            "Political orientation and spiritual posture are separate, descriptive choices.");
-        AddSectionTitle("Political orientation — choose one");
+            UiText.Get("Worldview and review"),
+            UiText.Get("Political orientation and spiritual posture are separate, descriptive choices."));
+        AddSectionTitle(UiText.Get("Political orientation — choose one"));
         AddSingleChoiceGrid(ProfileCatalog.PoliticalOrientations, _politics, value =>
         {
             _politics = value;
             UpdateNavigation();
         });
-        AddSectionTitle("Spiritual posture — choose one");
+        AddSectionTitle(UiText.Get("Spiritual posture — choose one"));
         AddSingleChoiceGrid(ProfileCatalog.SpiritualPostures, _spirituality, value =>
         {
             _spirituality = value;
             UpdateNavigation();
         });
-        AddSectionTitle("Profile review");
+        AddSectionTitle(UiText.Get("Profile review"));
         AddReviewCard();
         _reviewLabel = AddDescription(string.Empty);
         UpdateReview();
@@ -403,7 +406,7 @@ public partial class OnboardingView : Control
         var grid = NewChoiceGrid();
         foreach (var option in options)
         {
-            var button = StandardButtons.ChoiceButton(option.DisplayName, option.Description);
+            var button = StandardButtons.ChoiceButton(UiText.Get(option.DisplayName), UiText.Get(option.Description));
             button.ToggleMode = true;
             button.ButtonGroup = group;
             button.SetPressedNoSignal(selected.HasValue
@@ -428,7 +431,7 @@ public partial class OnboardingView : Control
         var grid = NewChoiceGrid();
         foreach (var option in options)
         {
-            var button = StandardButtons.ChoiceButton(option.DisplayName, option.Description);
+            var button = StandardButtons.ChoiceButton(UiText.Get(option.DisplayName), UiText.Get(option.Description));
             button.ToggleMode = true;
             button.SetPressedNoSignal(selected.Contains(option.Id));
             TId id = option.Id;
@@ -534,13 +537,13 @@ public partial class OnboardingView : Control
         error = string.Empty;
         if (!IsNameValid(_heroName))
         {
-            error = "Enter a name between 1 and 32 characters.";
+            error = UiText.Get("Enter a name between 1 and 32 characters.");
             return false;
         }
         if (!_lineage.HasValue || !_gender.HasValue || !_element.HasValue
             || !_combatStyle.HasValue || !_politics.HasValue || !_spirituality.HasValue)
         {
-            error = "Complete every single-choice section.";
+            error = UiText.Get("Complete every single-choice section.");
             return false;
         }
 
@@ -570,16 +573,19 @@ public partial class OnboardingView : Control
         UpdateReviewSprite();
 
         _reviewLabel.Text =
-            $"Name: {_heroName.Trim()}\n" +
-            $"Lineage: {ProfileCatalog.Get(_lineage.Value).DisplayName}\n" +
-            $"Gender: {_gender.Value}\n" +
-            $"Aptitudes: {Join(_aptitudes.Select(ProfileCatalog.DisplayName))}\n" +
-            $"Professional affinities: {Join(_professions.Select(ProfileCatalog.DisplayName))}\n" +
-            $"Element: {Display(_element, ProfileCatalog.DisplayName)}\n" +
-            $"Combat: {Display(_combatStyle, ProfileCatalog.DisplayName)} · {Join(_weapons.Select(ProfileCatalog.DisplayName))}\n" +
-            $"Traits: {Join(_traits.Select(ProfileCatalog.DisplayName))}\n" +
-            $"Politics: {Display(_politics, ProfileCatalog.DisplayName)}\n" +
-            $"Spirituality: {Display(_spirituality, ProfileCatalog.DisplayName)}";
+            UiText.Format("ui.hero.review_name", _heroName.Trim()) + "\n" +
+            UiText.Format("ui.hero.review_lineage", ProfileCatalog.Get(_lineage.Value).DisplayName) + "\n" +
+            UiText.Format("ui.hero.review_gender", UiText.Get(_gender.Value.ToString())) + "\n" +
+            UiText.Format("ui.hero.review_aptitudes", JoinLocalized(_aptitudes.Select(ProfileCatalog.DisplayName))) + "\n" +
+            UiText.Format("ui.hero.review_affinities", JoinLocalized(_professions.Select(ProfileCatalog.DisplayName))) + "\n" +
+            UiText.Format("ui.hero.review_element", DisplayLocalized(_element, ProfileCatalog.DisplayName)) + "\n" +
+            UiText.Format(
+                "ui.hero.review_combat",
+                DisplayLocalized(_combatStyle, ProfileCatalog.DisplayName),
+                JoinLocalized(_weapons.Select(ProfileCatalog.DisplayName))) + "\n" +
+            UiText.Format("ui.hero.review_traits", JoinLocalized(_traits.Select(ProfileCatalog.DisplayName))) + "\n" +
+            UiText.Format("ui.hero.review_politics", DisplayLocalized(_politics, ProfileCatalog.DisplayName)) + "\n" +
+            UiText.Format("ui.hero.review_spirituality", DisplayLocalized(_spirituality, ProfileCatalog.DisplayName));
     }
 
     private static bool IsNameValid(string value)
@@ -590,16 +596,16 @@ public partial class OnboardingView : Control
     }
 
     private static string FormatLineage(LineageDefinition lineage) =>
-        $"{lineage.Summary}\n{lineage.LearningApproach}\n\n" +
-        $"Common marked paths: {Join(lineage.MarkedAffinities.Select(ProfileCatalog.DisplayName))}.\n" +
-        "These are starting tendencies only. Any profession remains learnable.";
+        $"{UiText.Get(lineage.Summary)}\n{UiText.Get(lineage.LearningApproach)}\n\n" +
+        UiText.Format("ui.hero.common_marked_paths", JoinLocalized(lineage.MarkedAffinities.Select(ProfileCatalog.DisplayName))) + "\n" +
+        UiText.Get("These are starting tendencies only. Any profession remains learnable.");
 
-    private static string Display<TId>(TId? value, Func<TId, string> display)
-        where TId : struct => value.HasValue ? display(value.Value) : "not selected";
+    private static string DisplayLocalized<TId>(TId? value, Func<TId, string> display)
+        where TId : struct => value.HasValue ? UiText.Get(display(value.Value)) : UiText.Get("not selected");
 
-    private static string Join(IEnumerable<string> values)
+    private static string JoinLocalized(IEnumerable<string> values)
     {
-        string[] materialised = values.ToArray();
-        return materialised.Length == 0 ? "none selected" : string.Join(", ", materialised);
+        string[] materialised = values.Select(UiText.Get).ToArray();
+        return materialised.Length == 0 ? UiText.Get("none selected") : string.Join(", ", materialised);
     }
 }

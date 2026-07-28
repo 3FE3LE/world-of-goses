@@ -34,6 +34,12 @@ public sealed record HeroProfileSnapshot(
 
         CitizenProfile profile = hero.Profile;
         LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
+        // Raw English catalog text on purpose — this record is exercised
+        // directly by Godot-free xUnit tests (UiSnapshotTests), so it must
+        // not depend on WorldofGoses.Ui.UiText (which calls into Godot's
+        // TranslationServer and crashes outside the engine). Translation
+        // happens at display time in HeroProfileView, the same layer that
+        // owns every other UiText.Get/Format call in this project.
         return new HeroProfileSnapshot(
             hero.Id,
             hero.Name,

@@ -91,8 +91,8 @@ public partial class OfflineReportPanel : PanelContainer
         _collapseButton = new IconButton
         {
             IconPath = IconPaths.ChevronUp,
-            ButtonText = "Chronicle — click to collapse",
-            TooltipText = "Click to show only the newest event.",
+            ButtonText = UiText.Get("Chronicle — click to collapse"),
+            TooltipText = UiText.Get("Click to show only the newest event."),
             ThemeTypeVariation = "ButtonText",
             CustomMinimumSize = new Vector2(0, 40),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,

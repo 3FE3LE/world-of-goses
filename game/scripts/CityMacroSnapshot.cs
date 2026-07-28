@@ -44,7 +44,10 @@ public sealed record CityMacroSnapshot(
         int MaxStamina,
         BuildingId? LastVisitedResourceBuildingId,
         int? LastVisitedResourceUnitId,
-        int? LastVisitedResourcePositionIndex);
+        int? LastVisitedResourcePositionIndex,
+        LineageId Lineage,
+        GenderId Gender,
+        AppearanceVariantId Appearance);
 
     public sealed record PlotItem(
         BuildingId Id,
@@ -188,7 +191,10 @@ public sealed record CityMacroSnapshot(
                 resident.MaxStamina,
                 resident.LastVisitedResourceBuildingId,
                 resident.LastVisitedResourceUnitId,
-                resident.LastVisitedResourcePositionIndex));
+                resident.LastVisitedResourcePositionIndex,
+                resident.Profile.Lineage,
+                resident.Profile.Gender,
+                resident.AppearanceVariant));
         }
 
         return new CityMacroSnapshot(

@@ -50,7 +50,7 @@ public partial class ProductionPanel : PanelContainer
 
         _titleLabel = new Label
         {
-            Text = "Production",
+            Text = UiText.Get("Production"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         _titleLabel.ThemeTypeVariation = "PanelTitle";
@@ -64,14 +64,14 @@ public partial class ProductionPanel : PanelContainer
         stockRow.AddThemeConstantOverride("separation", 8);
         root.AddChild(stockRow);
 
-        _stockLabel = new Label { Text = "Stock: 0 / 0" };
+        _stockLabel = new Label { Text = string.Empty };
         _stockLabel.ThemeTypeVariation = "BodyText";
         stockRow.AddChild(_stockLabel);
 
         _enabledToggle = StandardButtons.IconAction(
             IconPaths.Pause,
-            "Pause",
-            tooltip: "Pause production");
+            UiText.Get("Pause"),
+            tooltip: UiText.Get("Pause production"));
         _enabledToggle.ToggleMode = true;
         _enabledToggle.Toggled += OnPolicyToggle;
         stockRow.AddChild(_enabledToggle);
@@ -85,11 +85,11 @@ public partial class ProductionPanel : PanelContainer
         };
         root.AddChild(_stockBar);
 
-        _rateLabel = new Label { Text = "Rate: 0 / tick" };
+        _rateLabel = new Label { Text = string.Empty };
         _rateLabel.ThemeTypeVariation = "NumericText";
         root.AddChild(_rateLabel);
 
-        _inputsLabel = new Label { Text = "Inputs due: none" };
+        _inputsLabel = new Label { Text = UiText.Get("Inputs due: none") };
         _inputsLabel.ThemeTypeVariation = "BodySmall";
         root.AddChild(_inputsLabel);
 
@@ -102,7 +102,7 @@ public partial class ProductionPanel : PanelContainer
 
         var policyHeader = new Label
         {
-            Text = "Reactive policy",
+            Text = UiText.Get("Reactive policy"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         policyHeader.ThemeTypeVariation = "PanelTitle";
@@ -118,8 +118,8 @@ public partial class ProductionPanel : PanelContainer
 
         _minStockBox = BuildPolicyBox("Min");
         _maxStockBox = BuildPolicyBox("Max");
-        policyRow.AddChild(BuildPolicyColumn("Min", _minStockBox));
-        policyRow.AddChild(BuildPolicyColumn("Max", _maxStockBox));
+        policyRow.AddChild(BuildPolicyColumn(UiText.Get("Min"), _minStockBox));
+        policyRow.AddChild(BuildPolicyColumn(UiText.Get("Max"), _maxStockBox));
 
         _minStockBox.ValueChanged += OnMinStockChanged;
         _maxStockBox.ValueChanged += OnMaxStockChanged;
@@ -220,10 +220,10 @@ public partial class ProductionPanel : PanelContainer
 
     public void Refresh(BuildingDetailSnapshot snapshot)
     {
-        _titleLabel.Text = UiText.Format(
-            "ui.production.title",
-            UiText.Get(snapshot.DisplayName),
-            UiText.Get(snapshot.ResourceLabel));
+        // Title stays the static "Production" set in _Ready(): the
+        // building's own name/resource already shows in this screen's
+        // header (BuildingDetailView._title), so repeating it here was
+        // pure redundant text.
         _stockLabel.Text = snapshot.IsForest
             ? UiText.Format(
                 "ui.production.wood_stock",
@@ -241,7 +241,7 @@ public partial class ProductionPanel : PanelContainer
         _stockBar.Value = snapshot.Stock;
 
         _rateLabel.Text = snapshot.StorageCapacity == 0
-            ? "Resting site — no production"
+            ? UiText.Get("Resting site — no production")
             : snapshot.IsForest
                 ? UiText.Format(
                     "ui.production.foraging_rate",

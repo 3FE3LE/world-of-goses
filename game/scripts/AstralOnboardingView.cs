@@ -293,8 +293,8 @@ public partial class AstralOnboardingView : Control
         _choices.AddChild(genderRow);
         foreach ((GenderId id, string text) in new[]
         {
-            (GenderId.Feminine, "Feminine"),
-            (GenderId.Masculine, "Masculine"),
+            (GenderId.Feminine, UiText.Get("Feminine")),
+            (GenderId.Masculine, UiText.Get("Masculine")),
         })
         {
             var button = StandardButtons.ChoiceButton(
@@ -358,7 +358,7 @@ public partial class AstralOnboardingView : Control
             "Conservaré…", "Buscaré…", "Intentaré comprender…", "Comenzaré de nuevo…",
         })
         {
-            var incomplete = StandardButtons.ChoiceButton(beginning, string.Empty);
+            var incomplete = StandardButtons.ChoiceButton(UiText.Get(beginning), string.Empty);
             incomplete.Disabled = true;
             _choices.AddChild(incomplete);
             FadeIn(incomplete, 0.35 + _choices.GetChildCount() * 0.18);
@@ -465,17 +465,17 @@ public partial class AstralOnboardingView : Control
 
     private static string DescribeResult(FounderNarrativeResult result) =>
         $"{ProfileCatalog.Get(result.Lineage).DisplayName}\n" +
-        $"{ProfileCatalog.Get(result.Lineage).Summary}\n\n" +
-        $"Aptitudes: {Join(result.Aptitudes, ProfileCatalog.DisplayName)}\n" +
-        $"Rasgos: {Join(result.Traits, ProfileCatalog.DisplayName)}\n" +
-        $"Afinidades: {Join(result.ProfessionalAffinities, ProfileCatalog.DisplayName)}\n" +
-        $"Afinidad: {ProfileCatalog.DisplayName(result.Element)}\n" +
-        $"Confrontación: {ProfileCatalog.DisplayName(result.CombatStyle)}";
+        $"{UiText.Get(ProfileCatalog.Get(result.Lineage).Summary)}\n\n" +
+        UiText.Format("ui.astral.result_aptitudes", JoinLocalized(result.Aptitudes, ProfileCatalog.DisplayName)) + "\n" +
+        UiText.Format("ui.astral.result_traits", JoinLocalized(result.Traits, ProfileCatalog.DisplayName)) + "\n" +
+        UiText.Format("ui.astral.result_affinities", JoinLocalized(result.ProfessionalAffinities, ProfileCatalog.DisplayName)) + "\n" +
+        UiText.Format("ui.astral.result_element", UiText.Get(ProfileCatalog.DisplayName(result.Element))) + "\n" +
+        UiText.Format("ui.astral.result_combat", UiText.Get(ProfileCatalog.DisplayName(result.CombatStyle)));
 
-    private static string Join<T>(IReadOnlyList<T> values, Func<T, string> name)
+    private static string JoinLocalized<T>(IReadOnlyList<T> values, Func<T, string> name)
     {
         var names = new string[values.Count];
-        for (int index = 0; index < values.Count; index++) names[index] = name(values[index]);
+        for (int index = 0; index < values.Count; index++) names[index] = UiText.Get(name(values[index]));
         return string.Join(", ", names);
     }
 

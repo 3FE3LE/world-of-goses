@@ -7,10 +7,13 @@ namespace WorldofGoses;
 /// <summary>Interactive visual unit for a Forest reserve.</summary>
 public partial class ResourceTree : TextureButton
 {
-    private const string TerrainAtlasPath =
+    internal const string TerrainAtlasPath =
         "res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png";
     public const string AxeCursorPath =
         "res://assets/ui/cursors/kenney-pixel/axe.png";
+    internal const int TreeAtlasColumnA = 13;
+    internal const int TreeAtlasColumnB = 14;
+    internal const int TreeAtlasRow = 9;
     private const int SourceTileSize = 16;
     private const int SourceStride = 17;
 
@@ -92,10 +95,14 @@ public partial class ResourceTree : TextureButton
         new()
         {
             Atlas = atlas,
-            Region = new Rect2(
-                column * SourceStride,
-                row * SourceStride,
-                SourceTileSize,
-                SourceTileSize),
+            Region = AtlasRegionRect(column, row),
         };
+
+    /// <summary>Source rect of one 16×16 tile in the shared Kenney atlas.</summary>
+    internal static Rect2 AtlasRegionRect(int column, int row) =>
+        new(
+            column * SourceStride,
+            row * SourceStride,
+            SourceTileSize,
+            SourceTileSize);
 }

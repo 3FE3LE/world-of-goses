@@ -36,9 +36,10 @@ what ships next, this file wins.
 - All `z_index` numeric literals in `game/scenes/*.tscn` and
   `game/scripts/*.cs` were replaced by calls to
   `WorldofGoses.Ui.OverlayLayers.Apply(...)`. The catalog exposes
-  `World`, `ContextMenu`, `Chronicle`, `AttentionBanner`, `ModalScrim`,
+  `World`, `ContextMenu`, `Chronicle`, `ModalScrim`,
   `Modal`, `PlacementOverlay`, `Tutorial`, `Onboarding`,
-  `FounderArrival` and `PauseAndNotifier`. The Notifier's
+  `FounderArrival` and `PauseAndNotifier` (`AttentionBanner` was removed
+  along with the banner itself on 2026-07-26). The Notifier's
   `CanvasLayer.Layer` mirrors `OverlayLayers.PauseAndNotifier`.
 - `game/scripts/Ui/SafeArea.cs` provides
   `SafeArea.ApplyOffsets(Control, int)`. `CityStatusPanel` wraps the
@@ -46,11 +47,11 @@ what ships next, this file wins.
   a dedicated `MacroActions.cs` script that applies `Offset*` deltas
   on every viewport resize.
 - `game/scripts/Ui/UiMotion.cs` adds `FlashLarge(CanvasItem, Color)` for
-  the high-importance events (construction completed, expedition
-  returned, new citizen arrived). The macro view's
-  `OnAnyExpeditionStateChanged` and `OnAnyCitizensChanged` handlers
-  call it; `OnAnyBuildingStateChanged` calls it on the
-  `BuildingPlotStage` once per newly-completed building.
+  high-importance events. Its only call site today is construction
+  completed (`CityMacroView.EmphasiseCompletedBuilding`, once per
+  newly-completed building on the `BuildingPlotStage`); expedition
+  returned still surfaces as a toast only and new-citizen arrival has no
+  visual feedback yet — both remain open under `TO_DO.md` M-25.
 - `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
   captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
   review passed viewport containment and exposed M-16, a citizen label/icon overlap.

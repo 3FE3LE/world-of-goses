@@ -51,7 +51,7 @@ public partial class PanelHeader : HBoxContainer
             ButtonText = string.Empty,
             CustomMinimumSize = new Vector2(40, 40),
             FocusMode = Control.FocusModeEnum.All,
-            TooltipText = "Close (ESC)",
+            TooltipText = UiText.Get("Close (ESC)"),
         };
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         AddChild(_closeButton);

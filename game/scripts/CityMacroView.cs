@@ -220,6 +220,10 @@ public partial class CityMacroView : Control
     private void OnModalHostClosed()
     {
         _modalWantsOpen = false;
+        // ConstructionMenuButton's label and the chronicle both belong to
+        // whichever world view is active; MacroStreetLiveView owns this
+        // same signal for its own label update while it's visible.
+        if (!Visible) return;
         var snapshot = _controller.GetCityMacroSnapshot();
         UpdateConstructionMenuButton(DetermineMacroMode(
             snapshot.CivilBuildingCount,
@@ -288,6 +292,9 @@ public partial class CityMacroView : Control
     /// </summary>
     private void RestoreChronicleVisibility()
     {
+        // The chronicle belongs to this view's layout; never resurface it
+        // over the perspective view or a detail screen.
+        if (!Visible) return;
         var snapshot = _controller.GetCityMacroSnapshot();
         _offlineReport.ShowLog(snapshot.Events);
     }
@@ -301,6 +308,13 @@ public partial class CityMacroView : Control
 
     private void Refresh()
     {
+        // While hidden (perspective world-view active, or a detail screen
+        // open) this view must not drive its sibling overlays: _emptyPanel/
+        // _plotStage/_offlineReport would resurface on top of whatever is
+        // actually on screen and silently eat its clicks. Every caller that
+        // re-activates this view calls Show() first, so a refresh is never
+        // lost — it happens on return.
+        if (!Visible) return;
         CitizenSpriteBank.Instance.PruneExcept(_controller.World.Citizens.Keys);
         var snapshot = _controller.GetCityMacroSnapshot();
         _statusPanel.Refresh(_controller);
@@ -489,6 +503,11 @@ public partial class CityMacroView : Control
 
     private void OnConstructionMenuPressed()
     {
+        // ConstructionMenuButton is shared with MacroStreetLiveView, which
+        // owns this event while the perspective view is active — see its
+        // own OnConstructionMenuPressed. Only the currently-visible world
+        // view may react.
+        if (!Visible) return;
         if (_modalHost.IsOpen)
         {
             _modalWantsOpen = false;
@@ -513,6 +532,8 @@ public partial class CityMacroView : Control
 
     private void OnPlacementRequested(int constructionKind)
     {
+        // Shared ConstructionPanel signal — see OnConstructionMenuPressed.
+        if (!Visible) return;
         IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
         if (lots.Count == 0)
         {
@@ -818,8 +839,11 @@ public partial class CityMacroView : Control
 
     private void OnWorldTickAdvanced(int tick)
     {
+        // The HUD is shared by both world views; the chronicle is not —
+        // ShowLog() calls Show() unconditionally, so gating it on this
+        // view's visibility is what keeps it off the perspective view.
         _statusPanel.Refresh(_controller);
-        if (!_modalHost.IsOpen && !_placementOverlay.Visible)
+        if (Visible && !_modalHost.IsOpen && !_placementOverlay.Visible)
         {
             _offlineReport.ShowLog(_controller.GetCityMacroSnapshot().Events);
         }

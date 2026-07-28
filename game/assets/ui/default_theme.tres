@@ -1,29 +1,27 @@
-[gd_resource type="Theme" load_steps=17 format=3]
+[gd_resource type="Theme" format=3 uid="uid://dauq0wyuin3x2"]
 
+[ext_resource type="FontFile" uid="uid://b41wjd1ekopsn" path="res://assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf" id="1_geist"]
+[ext_resource type="FontFile" uid="uid://b583hx8jknsq4" path="res://assets/ui/fonts/Jersey10-Regular.ttf" id="2_jersey"]
+[ext_resource type="FontFile" uid="uid://xruh8pqqqhsq" path="res://assets/ui/fonts/PixelifySans-Regular.ttf" id="3_pixelify"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/yellow.tres" id="7_yellow"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/yellow_pressed.tres" id="8_yellow_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/grey.tres" id="9_grey"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green.tres" id="11_green"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green_pressed.tres" id="12_green_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red.tres" id="13_red"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red_pressed.tres" id="14_red_pressed"]
 
-[ext_resource type="FontFile" path="res://assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf" id="1_geist"]
-[ext_resource type="FontFile" path="res://assets/ui/fonts/Jersey10-Regular.ttf" id="2_jersey"]
-[ext_resource type="FontFile" path="res://assets/ui/fonts/PixelifySans-Regular.ttf" id="3_pixelify"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/yellow.tres" id="7_yellow"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/yellow_pressed.tres" id="8_yellow_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/grey.tres" id="9_grey"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/grey_pressed.tres" id="10_grey_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/green.tres" id="11_green"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/green_pressed.tres" id="12_green_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/red.tres" id="13_red"]
-[ext_resource type="StyleBoxTexture" path="res://assets/ui/kenney/9-slice/red_pressed.tres" id="14_red_pressed"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-content_margin_left = 14.0
-content_margin_top = 12.0
-content_margin_right = 14.0
-content_margin_bottom = 12.0
-bg_color = Color(0.055, 0.067, 0.09, 0.965)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.43, 0.37, 0.25, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.91, 0.55, 1)
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_elevated"]
 content_margin_left = 18.0
@@ -39,26 +37,17 @@ border_color = Color(0.83, 0.66, 0.3, 1)
 shadow_color = Color(0, 0, 0, 0.55)
 shadow_size = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 14.0
-content_margin_top = 7.0
+content_margin_top = 12.0
 content_margin_right = 14.0
-content_margin_bottom = 7.0
-bg_color = Color(0.025, 0.032, 0.048, 0.97)
+content_margin_bottom = 12.0
+bg_color = Color(0.055, 0.067, 0.09, 0.965)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.72, 0.57, 0.27, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
-bg_color = Color(0, 0, 0, 0)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.91, 0.55, 1)
-expand_margin_left = 2.0
-expand_margin_top = 2.0
-expand_margin_right = 2.0
-expand_margin_bottom = 2.0
+border_color = Color(0.43, 0.37, 0.25, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll"]
 bg_color = Color(0.02, 0.027, 0.042, 0.72)
@@ -68,157 +57,138 @@ border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.31, 0.28, 0.22, 0.9)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
+content_margin_left = 14.0
+content_margin_top = 7.0
+content_margin_right = 14.0
+content_margin_bottom = 7.0
+bg_color = Color(0.025, 0.032, 0.048, 0.97)
+border_width_bottom = 2
+border_color = Color(0.72, 0.57, 0.27, 1)
+
 [resource]
-
-Label/font_sizes/font_size = 18
-Label/fonts/font = ExtResource("3_pixelify")
-Label/colors/font_color = Color(0.96, 0.92, 0.82, 1)
-
-GameTitle/base_type = "Label"
-GameTitle/font_sizes/font_size = 48
-GameTitle/fonts/font = ExtResource("1_geist")
-GameTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
-GameTitle/constants/line_spacing = 4
-
-ScreenTitle/base_type = "Label"
-ScreenTitle/font_sizes/font_size = 36
-ScreenTitle/fonts/font = ExtResource("1_geist")
-ScreenTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
-
-EventTitle/base_type = "Label"
-EventTitle/font_sizes/font_size = 40
-EventTitle/fonts/font = ExtResource("1_geist")
-EventTitle/colors/font_color = Color(1, 0.847, 0.49, 1)
-
-PanelTitle/base_type = "Label"
-PanelTitle/font_sizes/font_size = 26
-PanelTitle/fonts/font = ExtResource("2_jersey")
-PanelTitle/colors/font_color = Color(0.96, 0.93, 0.86, 1)
-
-SectionTitle/base_type = "Label"
-SectionTitle/font_sizes/font_size = 22
-SectionTitle/fonts/font = ExtResource("2_jersey")
-SectionTitle/colors/font_color = Color(0.92, 0.86, 0.74, 1)
-
-ButtonText/base_type = "Button"
-ButtonText/font_sizes/font_size = 20
-ButtonText/fonts/font = ExtResource("2_jersey")
-ButtonText/colors/font_color = Color(0.07, 0.05, 0.03, 1)
-ButtonText/colors/font_hover_color = Color(0.05, 0.035, 0.02, 1)
-ButtonText/colors/font_pressed_color = Color(0.03, 0.02, 0.01, 1)
-ButtonText/colors/font_focus_color = Color(0.07, 0.05, 0.03, 1)
-ButtonText/colors/font_disabled_color = Color(0.4, 0.36, 0.3, 1)
-ButtonText/styles/normal = ExtResource("7_yellow")
-ButtonText/styles/hover = ExtResource("8_yellow_pressed")
-ButtonText/styles/pressed = ExtResource("8_yellow_pressed")
-ButtonText/styles/disabled = ExtResource("9_grey")
-ButtonText/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonText/constants/h_separation = 8
-ButtonText/constants/v_separation = 4
-
-ButtonPrimary/base_type = "Button"
-ButtonPrimary/font_sizes/font_size = 22
-ButtonPrimary/fonts/font = ExtResource("2_jersey")
-ButtonPrimary/colors/font_color = Color(0.12, 0.1, 0.07, 1)
-ButtonPrimary/colors/font_hover_color = Color(0.08, 0.06, 0.03, 1)
-ButtonPrimary/colors/font_pressed_color = Color(0.04, 0.03, 0.015, 1)
-ButtonPrimary/colors/font_focus_color = Color(0.12, 0.1, 0.07, 1)
-ButtonPrimary/styles/normal = ExtResource("11_green")
-ButtonPrimary/styles/hover = ExtResource("12_green_pressed")
-ButtonPrimary/styles/pressed = ExtResource("12_green_pressed")
-ButtonPrimary/styles/disabled = ExtResource("9_grey")
-ButtonPrimary/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonPrimary/constants/h_separation = 12
-ButtonPrimary/constants/v_separation = 6
-
-ButtonWarning/base_type = "Button"
-ButtonWarning/font_sizes/font_size = 18
-ButtonWarning/fonts/font = ExtResource("2_jersey")
-ButtonWarning/colors/font_color = Color(0.95, 0.92, 0.86, 1)
-ButtonWarning/styles/normal = ExtResource("13_red")
-ButtonWarning/styles/hover = ExtResource("14_red_pressed")
-ButtonWarning/styles/pressed = ExtResource("14_red_pressed")
-ButtonWarning/styles/disabled = ExtResource("9_grey")
-ButtonWarning/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonWarning/constants/h_separation = 8
-ButtonWarning/constants/v_separation = 4
-
-TabText/base_type = "Label"
-TabText/font_sizes/font_size = 18
-TabText/fonts/font = ExtResource("2_jersey")
-TabText/colors/font_color = Color(0.94, 0.9, 0.79, 1)
-
-BuildingName/base_type = "Label"
-BuildingName/font_sizes/font_size = 22
-BuildingName/fonts/font = ExtResource("2_jersey")
-BuildingName/colors/font_color = Color(0.96, 0.93, 0.86, 1)
-
-BodyText/base_type = "Label"
-BodyText/font_sizes/font_size = 18
-BodyText/fonts/font = ExtResource("3_pixelify")
-BodyText/colors/font_color = Color(0.93, 0.9, 0.82, 1)
-
-BodySmall/base_type = "Label"
+BodySmall/base_type = &"Label"
+BodySmall/colors/font_color = Color(0.86, 0.83, 0.74, 1)
 BodySmall/font_sizes/font_size = 16
 BodySmall/fonts/font = ExtResource("3_pixelify")
-BodySmall/colors/font_color = Color(0.86, 0.83, 0.74, 1)
-
-ErrorText/base_type = "Label"
-ErrorText/font_sizes/font_size = 16
-ErrorText/fonts/font = ExtResource("3_pixelify")
-ErrorText/colors/font_color = Color(0.937, 0.561, 0.478, 1)
-
-TooltipText/base_type = "Label"
-TooltipText/font_sizes/font_size = 16
-TooltipText/fonts/font = ExtResource("3_pixelify")
-TooltipText/colors/font_color = Color(0.96, 0.92, 0.82, 1)
-
-DialogText/base_type = "Label"
+BodyText/base_type = &"Label"
+BodyText/colors/font_color = Color(0.93, 0.9, 0.82, 1)
+BodyText/font_sizes/font_size = 18
+BodyText/fonts/font = ExtResource("3_pixelify")
+BuildingName/base_type = &"Label"
+BuildingName/colors/font_color = Color(0.96, 0.93, 0.86, 1)
+BuildingName/font_sizes/font_size = 22
+BuildingName/fonts/font = ExtResource("2_jersey")
+ButtonPrimary/base_type = &"Button"
+ButtonPrimary/colors/font_color = Color(0.12, 0.1, 0.07, 1)
+ButtonPrimary/colors/font_focus_color = Color(0.12, 0.1, 0.07, 1)
+ButtonPrimary/colors/font_hover_color = Color(0.08, 0.06, 0.03, 1)
+ButtonPrimary/colors/font_pressed_color = Color(0.04, 0.03, 0.015, 1)
+ButtonPrimary/constants/h_separation = 12
+ButtonPrimary/constants/v_separation = 6
+ButtonPrimary/font_sizes/font_size = 22
+ButtonPrimary/fonts/font = ExtResource("2_jersey")
+ButtonPrimary/styles/disabled = ExtResource("9_grey")
+ButtonPrimary/styles/focus = SubResource("StyleBoxFlat_focus")
+ButtonPrimary/styles/hover = ExtResource("12_green_pressed")
+ButtonPrimary/styles/normal = ExtResource("11_green")
+ButtonPrimary/styles/pressed = ExtResource("12_green_pressed")
+ButtonText/base_type = &"Button"
+ButtonText/colors/font_color = Color(0.07, 0.05, 0.03, 1)
+ButtonText/colors/font_disabled_color = Color(0.4, 0.36, 0.3, 1)
+ButtonText/colors/font_focus_color = Color(0.07, 0.05, 0.03, 1)
+ButtonText/colors/font_hover_color = Color(0.05, 0.035, 0.02, 1)
+ButtonText/colors/font_pressed_color = Color(0.03, 0.02, 0.01, 1)
+ButtonText/constants/h_separation = 8
+ButtonText/constants/v_separation = 4
+ButtonText/font_sizes/font_size = 20
+ButtonText/fonts/font = ExtResource("2_jersey")
+ButtonText/styles/disabled = ExtResource("9_grey")
+ButtonText/styles/focus = SubResource("StyleBoxFlat_focus")
+ButtonText/styles/hover = ExtResource("8_yellow_pressed")
+ButtonText/styles/normal = ExtResource("7_yellow")
+ButtonText/styles/pressed = ExtResource("8_yellow_pressed")
+ButtonWarning/base_type = &"Button"
+ButtonWarning/colors/font_color = Color(0.95, 0.92, 0.86, 1)
+ButtonWarning/constants/h_separation = 8
+ButtonWarning/constants/v_separation = 4
+ButtonWarning/font_sizes/font_size = 18
+ButtonWarning/fonts/font = ExtResource("2_jersey")
+ButtonWarning/styles/disabled = ExtResource("9_grey")
+ButtonWarning/styles/focus = SubResource("StyleBoxFlat_focus")
+ButtonWarning/styles/hover = ExtResource("14_red_pressed")
+ButtonWarning/styles/normal = ExtResource("13_red")
+ButtonWarning/styles/pressed = ExtResource("14_red_pressed")
+DialogText/base_type = &"Label"
+DialogText/colors/font_color = Color(0.94, 0.9, 0.78, 1)
 DialogText/font_sizes/font_size = 18
 DialogText/fonts/font = ExtResource("3_pixelify")
-DialogText/colors/font_color = Color(0.94, 0.9, 0.78, 1)
-
-TableText/base_type = "Label"
-TableText/font_sizes/font_size = 16
-TableText/fonts/font = ExtResource("3_pixelify")
-TableText/colors/font_color = Color(0.9, 0.86, 0.76, 1)
-
-NumericText/base_type = "Label"
-NumericText/font_sizes/font_size = 18
-NumericText/fonts/font = ExtResource("3_pixelify")
-NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
-
-StatusStrip/base_type = "PanelContainer"
-StatusStrip/styles/panel = SubResource("StyleBoxFlat_hud")
-
-Panel/styles/panel = SubResource("StyleBoxFlat_panel")
-
-PanelAction/base_type = "PanelContainer"
-PanelAction/styles/panel = SubResource("StyleBoxFlat_panel")
-
-PanelWarning/base_type = "PanelContainer"
-PanelWarning/styles/panel = SubResource("StyleBoxFlat_panel")
-
-PanelIdle/base_type = "PanelContainer"
-PanelIdle/styles/panel = SubResource("StyleBoxFlat_panel")
-
-PanelCard/base_type = "PanelContainer"
-PanelCard/styles/panel = SubResource("StyleBoxFlat_panel")
-
-OverlayPanel/base_type = "PanelContainer"
-OverlayPanel/styles/panel = SubResource("StyleBoxFlat_panel_elevated")
-
+ErrorText/base_type = &"Label"
+ErrorText/colors/font_color = Color(0.937, 0.561, 0.478, 1)
+ErrorText/font_sizes/font_size = 16
+ErrorText/fonts/font = ExtResource("3_pixelify")
+EventTitle/base_type = &"Label"
+EventTitle/colors/font_color = Color(1, 0.847, 0.49, 1)
+EventTitle/font_sizes/font_size = 40
+EventTitle/fonts/font = ExtResource("1_geist")
+GameTitle/base_type = &"Label"
+GameTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
+GameTitle/constants/line_spacing = 4
+GameTitle/font_sizes/font_size = 48
+GameTitle/fonts/font = ExtResource("1_geist")
+Label/colors/font_color = Color(0.96, 0.92, 0.82, 1)
+Label/font_sizes/font_size = 18
+Label/fonts/font = ExtResource("3_pixelify")
+LineEdit/colors/caret_color = Color(1, 0.937, 0.776, 1)
+LineEdit/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 LineEdit/font_sizes/font_size = 18
 LineEdit/fonts/font = ExtResource("3_pixelify")
-LineEdit/colors/font_color = Color(0.93, 0.9, 0.82, 1)
-LineEdit/colors/caret_color = Color(1, 0.937, 0.776, 1)
-LineEdit/styles/normal = ExtResource("9_grey")
 LineEdit/styles/focus = ExtResource("7_yellow")
-
+LineEdit/styles/normal = ExtResource("9_grey")
+NumericText/base_type = &"Label"
+NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
+NumericText/font_sizes/font_size = 18
+NumericText/fonts/font = ExtResource("3_pixelify")
+OverlayPanel/base_type = &"PanelContainer"
+OverlayPanel/styles/panel = SubResource("StyleBoxFlat_panel_elevated")
+Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelAction/base_type = &"PanelContainer"
+PanelAction/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelCard/base_type = &"PanelContainer"
+PanelCard/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelIdle/base_type = &"PanelContainer"
+PanelIdle/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelTitle/base_type = &"Label"
+PanelTitle/colors/font_color = Color(0.96, 0.93, 0.86, 1)
+PanelTitle/font_sizes/font_size = 26
+PanelTitle/fonts/font = ExtResource("2_jersey")
+PanelWarning/base_type = &"PanelContainer"
+PanelWarning/styles/panel = SubResource("StyleBoxFlat_panel")
+ProgressBar/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 ProgressBar/font_sizes/font_size = 16
 ProgressBar/fonts/font = ExtResource("2_jersey")
-ProgressBar/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 ProgressBar/styles/background = ExtResource("9_grey")
 ProgressBar/styles/fill = ExtResource("11_green")
-
+ScreenTitle/base_type = &"Label"
+ScreenTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
+ScreenTitle/font_sizes/font_size = 36
+ScreenTitle/fonts/font = ExtResource("1_geist")
 ScrollContainer/styles/panel = SubResource("StyleBoxFlat_scroll")
+SectionTitle/base_type = &"Label"
+SectionTitle/colors/font_color = Color(0.92, 0.86, 0.74, 1)
+SectionTitle/font_sizes/font_size = 22
+SectionTitle/fonts/font = ExtResource("2_jersey")
+StatusStrip/base_type = &"PanelContainer"
+StatusStrip/styles/panel = SubResource("StyleBoxFlat_hud")
+TabText/base_type = &"Label"
+TabText/colors/font_color = Color(0.94, 0.9, 0.79, 1)
+TabText/font_sizes/font_size = 18
+TabText/fonts/font = ExtResource("2_jersey")
+TableText/base_type = &"Label"
+TableText/colors/font_color = Color(0.9, 0.86, 0.76, 1)
+TableText/font_sizes/font_size = 16
+TableText/fonts/font = ExtResource("3_pixelify")
+TooltipText/base_type = &"Label"
+TooltipText/colors/font_color = Color(0.96, 0.92, 0.82, 1)
+TooltipText/font_sizes/font_size = 16
+TooltipText/fonts/font = ExtResource("3_pixelify")

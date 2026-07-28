@@ -176,6 +176,7 @@ public sealed class CityWorld
             request.RewardKind,
             reservation.Id);
         _expeditions.Add(id, expedition);
+        hero.DispatchOnExpedition();
         WorldEvent dispatch = _log.Record(
             _tick,
             WorldEventKind.ExpeditionDispatched,
@@ -197,6 +198,7 @@ public sealed class CityWorld
         }
         _resources.Release(expedition.ReservationId);
         expedition.MarkCancelled();
+        ReturnLeadFromExpedition(expedition);
         _log.Record(
             _tick,
             WorldEventKind.ExpeditionCancelled,
@@ -205,6 +207,15 @@ public sealed class CityWorld
             this,
             new ExpeditionChangedEventArgs(id, expedition.Status));
         return true;
+    }
+
+    /// <summary>S-1.5 follow-up: the FSM counterpart to every expedition end state (returned/failed/cancelled).</summary>
+    private void ReturnLeadFromExpedition(Expedition expedition)
+    {
+        if (_citizens.TryGetValue(expedition.LeadCitizenId, out Citizen? lead))
+        {
+            lead.ReturnFromExpedition();
+        }
     }
 
     public enum MigrantOutcome
@@ -1422,6 +1433,7 @@ public sealed class CityWorld
                     if (migrant is { IsSuccess: true, MigrantId: CitizenId migrantId })
                     {
                         expedition.MarkReturnedMigrant(migrantId, 0);
+                        ReturnLeadFromExpedition(expedition);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionReturned,
@@ -1434,6 +1446,7 @@ public sealed class CityWorld
                     else
                     {
                         expedition.MarkFailed();
+                        ReturnLeadFromExpedition(expedition);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionFailed,
@@ -1449,6 +1462,7 @@ public sealed class CityWorld
                         expedition.RewardResource,
                         expedition.RewardAmount);
                     expedition.MarkReturnedSupplies(expedition.RewardAmount);
+                    ReturnLeadFromExpedition(expedition);
                     _log.Record(
                         _tick,
                         WorldEventKind.ExpeditionReturned,
@@ -1463,6 +1477,7 @@ public sealed class CityWorld
             {
                 _resources.Release(expedition.ReservationId);
                 expedition.MarkFailed();
+                ReturnLeadFromExpedition(expedition);
                 _log.Record(
                     _tick,
                     WorldEventKind.ExpeditionFailed,

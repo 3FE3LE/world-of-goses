@@ -87,4 +87,48 @@ public class CitizenBehaviorFsmTests
         c.ConsumeStamina(c.MaxStamina);
         Assert.Equal(CitizenBehaviorState.Idle, c.Behavior);
     }
+
+    [Fact]
+    public void StartExpedition_TransitionsHeroToOnExpedition()
+    {
+        CityWorld world = NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        Citizen hero = world.Hero!;
+        Assert.Equal(CitizenBehaviorState.Idle, hero.Behavior);
+
+        ExpeditionStartResult result = world.StartExpedition(ExpeditionRequest.Reconnaissance(hero.Id));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(CitizenBehaviorState.OnExpedition, hero.Behavior);
+    }
+
+    [Fact]
+    public void CompletedExpedition_ReturnsHeroToIdle()
+    {
+        CityWorld world = NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        Citizen hero = world.Hero!;
+        var request = ExpeditionRequest.Reconnaissance(hero.Id);
+        world.StartExpedition(request);
+
+        for (int i = 0; i < request.DurationTicks; i++) world.AdvanceWorldTick();
+
+        Assert.Equal(CitizenBehaviorState.Idle, hero.Behavior);
+    }
+
+    [Fact]
+    public void CancelledExpedition_ReturnsHeroToIdle()
+    {
+        CityWorld world = NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        Citizen hero = world.Hero!;
+        ExpeditionStartResult started = world.StartExpedition(ExpeditionRequest.Reconnaissance(hero.Id));
+
+        Assert.True(world.CancelExpedition(started.ExpeditionId!.Value));
+
+        Assert.Equal(CitizenBehaviorState.Idle, hero.Behavior);
+    }
 }

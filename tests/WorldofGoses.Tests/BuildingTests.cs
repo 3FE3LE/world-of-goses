@@ -191,6 +191,51 @@ public class BuildingTests
     }
 
     [Fact]
+    public void TickMaxStockWatch_FiresAfterCooldownTicksAtMaxStock()
+    {
+        var b = NewBuilding(storageCapacity: 5);
+        b.TryAssign(new CitizenId(1));
+        b.AddStock(5);
+        for (int i = 0; i < Building.MaxStockReleaseCooldown - 1; i++)
+        {
+            Assert.False(b.TickMaxStockWatch());
+        }
+        Assert.True(b.TickMaxStockWatch());
+    }
+
+    /// <summary>
+    /// Regression for a real bug the user hit: a building the auto-release
+    /// watch already emptied once (stock still pinned at MaxStock, nothing
+    /// ever consuming it — e.g. a Farm with no citizens eating) kept its
+    /// stale hold-ticks counter at/above the cooldown, since
+    /// <see cref="Building.TickMaxStockWatch"/> only resets it when stock
+    /// drops below the cap — which can't happen while nobody's assigned.
+    /// Assigning a brand-new citizen there re-triggered the release on the
+    /// very next tick, unassigning them again before they ever produced
+    /// anything — from the player's perspective, "the assignment doesn't
+    /// stick."
+    /// </summary>
+    [Fact]
+    public void TryAssign_AfterPriorAutoRelease_GetsAFreshCooldownWindow()
+    {
+        var b = NewBuilding(storageCapacity: 5);
+        b.TryAssign(new CitizenId(1));
+        b.AddStock(5);
+        for (int i = 0; i < Building.MaxStockReleaseCooldown; i++)
+        {
+            b.TickMaxStockWatch();
+        }
+        Assert.True(b.TickMaxStockWatch(), "sanity: the watch is primed to fire again immediately");
+        b.TryUnassign(new CitizenId(1));
+
+        b.TryAssign(new CitizenId(2));
+
+        Assert.False(
+            b.TickMaxStockWatch(),
+            "a freshly assigned worker must not be auto-released before a full cooldown window elapses");
+    }
+
+    [Fact]
     public void ConfigureProductionPolicy_UpdatesAuthorizationAndRange()
     {
         var building = NewBuilding(storageCapacity: 20);

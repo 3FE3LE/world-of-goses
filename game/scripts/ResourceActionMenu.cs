@@ -4,8 +4,15 @@ using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
-/// <summary>Small contextual menu anchored to an in-world resource.</summary>
-public partial class ResourceActionMenu : PanelContainer
+/// <summary>
+/// Bare icon-only action button anchored to an in-world resource — no
+/// panel, frame, or text, matching the reference minimalist interaction
+/// style (a single button with the corresponding action icon, nothing
+/// else). Right-click triggered; left-click instead selects the resource
+/// and shows its details in <see cref="SelectionInfoPanel"/> — see
+/// <see cref="Prototypes.MacroStreetLiveView"/>.
+/// </summary>
+public partial class ResourceActionMenu : IconButton
 {
     [Signal]
     public delegate void GatherRequestedEventHandler(
@@ -13,41 +20,27 @@ public partial class ResourceActionMenu : PanelContainer
         int unitId,
         Vector2 targetPosition);
 
-    private Label _reserveLabel = null!;
-    private Label _regenerationLabel = null!;
-    private Label _availabilityLabel = null!;
-    private IconButton _gatherButton = null!;
-    private Button _closeButton = null!;
     private int _forestId;
     private int _unitId;
     private Vector2 _targetPosition;
 
     public override void _Ready()
     {
+        base._Ready();
         OverlayLayers.Apply(this, OverlayLayers.ContextMenu);
-
-        _reserveLabel = GetNode<Label>("Margin/Content/ReserveLabel");
-        _regenerationLabel = GetNode<Label>("Margin/Content/RegenerationLabel");
-        _availabilityLabel = GetNode<Label>("Margin/Content/AvailabilityLabel");
-        _gatherButton = GetNode<IconButton>("Margin/Content/GatherButton");
-        _closeButton = GetNode<Button>("Margin/Content/CloseButton");
-        _gatherButton.SetIconAndLabel(ResourceTree.AxeCursorPath, UiText.Get("Gather"));
-        _gatherButton.Pressed += OnGatherPressed;
-        _closeButton.Pressed += Hide;
+        SetIconAndLabel(ResourceTree.AxeCursorPath, string.Empty);
+        Pressed += OnGatherPressed;
         Hide();
     }
 
     public override void _ExitTree()
     {
-        _gatherButton.Pressed -= OnGatherPressed;
-        _closeButton.Pressed -= Hide;
+        Pressed -= OnGatherPressed;
     }
 
     public void Open(
         int forestId,
         int unitId,
-        int reserve,
-        int ticksUntilRegeneration,
         Vector2 targetPosition,
         Vector2 localAnchor,
         bool canGather,
@@ -56,13 +49,8 @@ public partial class ResourceActionMenu : PanelContainer
         _forestId = forestId;
         _unitId = unitId;
         _targetPosition = targetPosition;
-        _reserveLabel.Text = UiText.Format("ui.resource.wood_remains", reserve);
-        _regenerationLabel.Text =
-            $"Patch growth at next dawn · {ticksUntilRegeneration} ticks";
-        _availabilityLabel.Text = unavailableReason;
-        _availabilityLabel.Visible = !canGather;
-        _gatherButton.Disabled = !canGather;
-        _gatherButton.TooltipText = canGather ? string.Empty : unavailableReason;
+        Disabled = !canGather;
+        TooltipText = canGather ? UiText.Get("Gather") : unavailableReason;
         Show();
         ResetSize();
         Vector2 wanted = localAnchor + new Vector2(20, -36);
@@ -70,8 +58,7 @@ public partial class ResourceActionMenu : PanelContainer
         Position = new Vector2(
             Mathf.Clamp(wanted.X, 8, Mathf.Max(8, parent.Size.X - Size.X - 8)),
             Mathf.Clamp(wanted.Y, 8, Mathf.Max(8, parent.Size.Y - Size.Y - 8)));
-        if (canGather) _gatherButton.GrabFocus();
-        else _closeButton.GrabFocus();
+        if (canGather) GrabFocus();
     }
 
     private void OnGatherPressed()

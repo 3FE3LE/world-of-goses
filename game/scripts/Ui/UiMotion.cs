@@ -19,6 +19,24 @@ public static class UiMotion
     /// not block the next input.</summary>
     public const double LargeEventSeconds = 0.45;
 
+    public const double BuildingEntrySeconds = 0.16;
+
+    /// <summary>
+    /// Plain fade-in, no scale/pivot animation — the "camera push" toward
+    /// a clicked building happens on the map itself before this content
+    /// ever shows (<c>MacroStreetLiveView.BeginBuildingEntry</c>), so this
+    /// view doesn't need its own zoom too (2026-07-27: it used to, but
+    /// that zoomed the UI panel instead of the world the user actually
+    /// asked to zoom toward).
+    /// </summary>
+    public static Tween FadeIn(CanvasItem content)
+    {
+        content.Modulate = new Color(1f, 1f, 1f, 0f);
+        Tween tween = content.CreateTween();
+        tween.TweenProperty(content, "modulate:a", 1f, BuildingEntrySeconds);
+        return tween;
+    }
+
     public static Tween RevealModal(
         Node owner,
         ColorRect scrim,

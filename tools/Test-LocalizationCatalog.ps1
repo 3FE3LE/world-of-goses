@@ -18,7 +18,12 @@ $catalogPaths = @(
 function Read-PoCatalog {
     param([Parameter(Mandatory)][string]$Path)
 
-    $entries = [ordered]@{}
+    # Ordinal (case-sensitive) comparer: Godot's TranslationServer matches
+    # msgid keys case-sensitively at runtime (gettext semantics), so "wood"
+    # and "Wood" are legitimately distinct keys. A plain PowerShell @{}
+    # hashtable compares string keys case-INsensitively by default, which
+    # would misreport same-word-different-case msgids as duplicates.
+    $entries = [System.Collections.Generic.Dictionary[string, int]]::new([System.StringComparer]::Ordinal)
     $lineNumber = 0
     foreach ($line in Get-Content -LiteralPath $Path -Encoding utf8) {
         $lineNumber++
@@ -26,7 +31,7 @@ function Read-PoCatalog {
 
         $id = $Matches[1]
         if ([string]::IsNullOrEmpty($id)) { continue }
-        if ($entries.Contains($id)) {
+        if ($entries.ContainsKey($id)) {
             throw "$Path contains duplicate msgid '$id' at line $lineNumber."
         }
         $entries[$id] = $lineNumber
@@ -37,7 +42,11 @@ function Read-PoCatalog {
 function Read-PoTranslations {
     param([Parameter(Mandatory)][string]$Path)
 
-    $translations = @{}
+    # Same case-sensitive rationale as Read-PoCatalog above — a plain @{}
+    # would silently collide "wood" and "Wood" translations (last one read
+    # wins), masking that they are two distinct, independently-translated
+    # runtime keys.
+    $translations = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
     $currentId = $null
     $collectingTranslation = $false
     $translation = [System.Text.StringBuilder]::new()
@@ -96,7 +105,7 @@ foreach ($sourceFile in $sourceFiles) {
 $errors = [System.Collections.Generic.List[string]]::new()
 foreach ($catalogPath in $catalogPaths) {
     foreach ($key in $sourceKeys) {
-        if (-not $catalogs[$catalogPath].Contains($key)) {
+        if (-not $catalogs[$catalogPath].ContainsKey($key)) {
             $errors.Add("$(Split-Path -Leaf $catalogPath) is missing runtime key '$key'.")
         }
     }
@@ -110,7 +119,7 @@ foreach ($catalogPath in $catalogPaths) {
 $enPath = $catalogPaths[0]
 $esPath = $catalogPaths[1]
 foreach ($id in $catalogs[$enPath].Keys) {
-    if (-not $catalogs[$esPath].Contains($id)) { continue }
+    if (-not $catalogs[$esPath].ContainsKey($id)) { continue }
     $enPlaceholders = Get-FormatPlaceholders -Text $translations[$enPath][$id]
     $esPlaceholders = Get-FormatPlaceholders -Text $translations[$esPath][$id]
     if (($enPlaceholders -join '|') -ne ($esPlaceholders -join '|')) {

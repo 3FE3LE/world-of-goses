@@ -543,8 +543,6 @@ public partial class OrthogonalParcelTerrain : Control, ITerrainRenderer
         _actionMenu.Open(
             forestId,
             unitId,
-            forest.WoodUnitReserves[unitId],
-            forest.TicksUntilRegeneration,
             targetPosition,
             targetPosition - GlobalPosition,
             _canGather,

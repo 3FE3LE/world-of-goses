@@ -235,14 +235,68 @@ reorganiza la lista, los IDs no se renumeran.
   tests, headless boot verificado, save real intacto tras las pruebas de
   solo lectura. Próximos pasos documentados en la propia entrada.
 
+- **2026-07-27** — Auditoría global código↔documento (cuatro barridos:
+  H-32, H-26/H-29, S-1/H-30/H-31, y UI H-11/M-11/M-12/M-25/M-22) más el
+  slice de gameplay/UX de la perspectiva pedido por el usuario:
+  - **H-32, defectos corregidos:** F9 bidireccional y overlays de la vista
+    plana que reaparecían por tick sobre la perspectiva (guards de
+    visibilidad en `CityMacroView`). Detalle en la entrada de H-32.
+  - **H-32, plano de calles:** edificios/árboles anclados detrás de su
+    calle (la calle es el corredor frontal libre), árboles con los tiles
+    Kenney reales + cursor de hacha + menú de acción reanclado, fundador
+    renderizado con su carrier canónico LPC, y Gather con ruteo cuantizado
+    por calles (`StreetRoutePlanner`, cruces solo por huecos viables; W/S
+    manual respeta la misma regla). 11 tests nuevos. 447/447.
+  - **Correcciones documentales de la auditoría:** la entrada Pendientes de
+    H-11 (duplicado obsoleto de un cierre del 2026-07-25) se eliminó; M-11
+    se movió a Hechas; H-26 aclara que el schema vigente es v14 (v9 fue el
+    que introdujo los placements); S-1.7 registra su estado real (40 ms +
+    `Write-Warning`, muestreo que no mide frames del engine — pendiente
+    real); la afirmación de que `FlashLarge` cubría expedición/ciudadano se
+    corrigió (solo cubre obra completada; el resto sigue en M-25); los
+    marcadores `# TODO (i18n)` de `en.po` que citaba S-1.1 ya no existen
+    (el único es la instrucción de convención del encabezado);
+    `docs/CURRENT_STATUS.md` corregido (capa `AttentionBanner` inexistente
+    y call sites de `FlashLarge`).
+  - **Purga:** primeras cerradas vencidas eliminadas según la política de
+    dos días (todas las de 2026-07-22/24); tabla de resumen recalculada.
+  - Hallazgos que quedan abiertos con dueño: fragilidad de orden de dibujo
+    y comentarios erróneos de `OrthogonalParcelTerrain` (H-29), cruce del
+    modelo de corredores H-26 ↔ `StreetRoutePlanner` (nota en Cola activa),
+    paridad del Chronicle en la perspectiva (paso 3 de H-32), y ausencia de
+    licencia MIT junto a los 28 iconos Pixelarticons promovidos (M-22 —
+    el inventario decía 3 iconos; son 28).
+
+- **2026-07-27 (continuación: bug real de clic + migración pedida por el
+  usuario)** — El usuario reportó en juego real que el clic sobre un árbol
+  no abría las opciones de gathering aunque el hover mostraba el cursor de
+  hacha, y pidió migrar por completo (adaptado) el sistema de parcela y
+  construcción con placement a la perspectiva, más un piso con tiles que
+  respete la profundidad. La causa del bug de clic era estructural, no de
+  `MacroStreetLiveView`: `ScreenContent` (contenedor padre de ambas vistas
+  macro) nunca tuvo `mouse_filter` seteado, así que con el default `Stop`
+  tragaba todo clic/motion antes de `_UnhandledInput` — afectaba también
+  (y probablemente siempre afectó, sin que nadie lo hubiera probado con un
+  clic real) el clic sobre edificios completados. Corregido con una línea
+  en `CityPrototype.tscn`. Implementado además: piso de calle como tiles
+  individuales proyectados por profundidad con el mismo patrón de color de
+  `OrthogonalParcelTerrain`, y el sistema de construcción/placement
+  completo (`ConstructionMenuButton`, `ConstructionPanel`, selección de
+  lote con resalte y Confirm/Cancel) nativo de la perspectiva, verificado
+  de punta a punta con clics OS simulados. Ver detalle en H-32 §2. Build
+  limpio, 447/447 tests, headless boot con el save real verificado.
+
 ## 1. Resumen rápido
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
-| 🔴        | 0          | 0        | 0          | 12     | 0          |
-| 🟠        | 5          | 2        | 0          | 31     | 2          |
-| 🟡        | 4          | 0        | 0          | 17     | 3          |
-| 🟢        | 0          | 0        | 0          | 2      | 0          |
+| 🔴        | 0          | 0        | 0          | 0      | 0          |
+| 🟠        | 4          | 2        | 0          | 2      | 0          |
+| 🟡        | 3          | 1        | 0          | 2      | 0          |
+| 🟢        | 0          | 0        | 0          | 1      | 0          |
+
+> La tabla cuenta solo las entradas presentes en el archivo: la purga del
+> 2026-07-27 eliminó las cerradas del 2026-07-22/24 (política de dos días).
 
 > **Cambio de 2026-07-24 (auditoría + correcciones):** se cerró el bache
 > de migración v11→v12 que reiniciaba el onboarding silenciosamente; se
@@ -307,11 +361,16 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### Cola activa (orden sugerido)
 
-1. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
-2. **H-26** — Malla transitable y clasificación de pasillo / camino / calle
+1. **H-32** — Pasos restantes de la perspectiva (clic en proyecto en
+   construcción, guía de estado vacío, paridad del Chronicle, anclaje
+   `LotHeight > 1`, evaluación de retiro de la vista plana).
+2. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
+3. **H-26** — Malla transitable y clasificación de pasillo / camino / calle
    (slices siguientes; el primer corte ya está cerrado). Cuando cierre,
    abre **S-1.2** (NavigationServer2D) que reemplaza el pathfinding
-   cardinal.
+   cardinal. Nota 2026-07-27: `StreetRoutePlanner` (H-32) ya aplica la
+   lectura de "cruce viable entre construcciones" a escala de calle macro;
+   reconciliar ambos modelos al retomar este ítem.
 
 ---
 
@@ -372,7 +431,8 @@ reorganiza la lista, los IDs no se renumeran.
   Los perfiles provisionales A (0.5 tile lateral + 2 tiles sólidos + 0.5
   lateral) y B (3 tiles sólidos) conservan un tile frontal. Las pruebas cubren
   A+A = camino, A+B = pasillo, B+B = bloqueado y espacios deliberados para
-  calles. El schema v9 persiste para cada edificio/proyecto
+  calles. El schema persiste para cada edificio/proyecto (introducido en v9;
+  la versión vigente es v14 — ver `WorldSave.CurrentVersion`)
   `parcelId + lot + span + orientation + footprintProfile`; autorizar reserva
   el primer solar libre, cancelar lo libera y completar conserva la misma
   ocupación. La migración v8 → v9 distribuye la ciudad legacy en orden estable
@@ -446,8 +506,8 @@ reorganiza la lista, los IDs no se renumeran.
   `CityWorldController` real. Clic en edificio completado abre el
   `BuildingDetailView` real; recolección de madera portada (árboles
   individuales vía `ParcelGrid.NaturalResourceLot`, mismo `ResourceActionMenu`
-  reusado como instancia propia, sin animación de viaje del héroe —
-  simplificación aceptada). Se resolvió un hallazgo estructural:
+  reusado como instancia propia; la simplificación "sin animación de viaje
+  del héroe" quedó superada el 2026-07-27 — ver el avance de esa fecha). Se resolvió un hallazgo estructural:
   `ModalHost`/`ExpeditionPanel`/`MigrantPanel`/`BuildingPlotStage`/
   `ConstructionPlacementOverlay`/`Center` (`EmptyPanel`/`ConstructionPanel`)
   eran hijos exclusivos de `CityMacroView` — un hijo no puede ser visible si
@@ -466,29 +526,617 @@ reorganiza la lista, los IDs no se renumeran.
 - **Categoría:** arquitectura / presentación / gameplay
 - **Afecta:** `game/scripts/Prototypes/*.cs` (nuevos), `CityMacroView.cs`,
   `CityPrototype.cs`, `CityPrototype.tscn`, design bible §03/04/08/10.
+- **Avance 2026-07-27 (plano de calles + hero real + ruteo):** corregidos
+  los dos defectos de integración detectados en la auditoría del mismo día:
+  F9 ahora alterna en ambos sentidos (antes `_UnhandledInput` retornaba con
+  el nodo oculto y F9 solo funcionaba perspectiva→plana; sigue bloqueado
+  durante onboarding y con una vista de detalle abierta) y la vista plana ya
+  no resucita sus overlays sobre la perspectiva por tick/evento de dominio
+  (`CityMacroView.Refresh`/`RestoreChronicleVisibility`/`OnWorldTickAdvanced`
+  ahora se autoguardan por visibilidad; la perspectiva conserva el
+  re-ocultado defensivo). Además, a pedido del usuario, la perspectiva
+  adopta el plano de calles definido (bible §08 + lectura de corredores de
+  H-26): la calle es la banda frontal libre de cada fila de lotes, así que
+  edificios y árboles anclan su base DETRÁS de su calle (ya no montados
+  sobre ella); los árboles usan los mismos tiles Kenney de la vista plana
+  (`ResourceTree.AtlasRegionRect`, filtro Nearest, ~44 px base escalados por
+  profundidad) con cursor de hacha en hover y el `ResourceActionMenu`
+  reanclado al espacio de `ScreenContent` (antes abría desplazado por la
+  banda del HUD); el avatar naranja se reemplazó por el carrier canónico del
+  fundador (`CitizenSpriteBank`, escala 0.25 macro × escala de profundidad,
+  anclado a los pies, walk/idle/slash reales); y Gather ya no resuelve
+  instantáneo: `StreetRoutePlanner` (nuevo, puro, sin Godot) planifica una
+  ruta cuantizada por calles — lateral por la calle actual hasta un cruce
+  viable, cruce escalonado de a una calle, y así hasta el árbol — donde un
+  cruce solo es viable por los huecos que dejan las construcciones/árboles
+  de la banda intermedia; W/S manual respeta la misma regla (aviso cuando
+  está bloqueado). 11 tests nuevos (`StreetRoutePlannerTests` ×8,
+  `StreetDepthProjectionTests` ×3 — primera cobertura de la proyección).
+  Build limpio, 447/447 tests, headless boot verificado con el save real.
+- **Avance 2026-07-27 (bug real de clic-a-gather + piso con tiles +
+  construcción/placement migrados):** el usuario reportó que el hover sobre
+  un árbol sí mostraba el cursor de hacha pero el clic no abría las
+  opciones de gathering. La causa raíz no era de `MacroStreetLiveView`:
+  `GameUiShell/ScreenContent` (el `Control` padre de ambas vistas macro)
+  nunca tuvo `mouse_filter` seteado, así que usaba el default `Stop` —
+  eso capturaba todo mouse motion/click sobre el área de juego a nivel de
+  GUI, antes de que llegara a `_UnhandledInput`. Sus hermanos
+  (`Background`, `Center`, `CityStatusPanel`, `MacroActions`,
+  `BuildingDetailView/DetailBackground`) sí tenían `mouse_filter = 2`
+  (Ignore); `ScreenContent` se quedó fuera de ese patrón. Diagnosticado
+  comparando `_Input` (recibía los eventos) contra `_UnhandledInput` (casi
+  nunca los recibía) con clics OS simulados vía
+  `tools/Capture-VisualMatrix.ps1 -NormalizedClicks`, confirmado y
+  corregido con una línea en `CityPrototype.tscn`
+  (`mouse_filter = 2` en `ScreenContent`). Esto también arregla
+  (retroactivamente) el clic sobre edificios completados: el `Hecho` previo
+  para ese punto de H-32 estaba verificado solo por lectura de código, no
+  por un clic real, y probablemente nunca funcionó en juego interactivo.
+  A pedido explícito del usuario ("la vista anterior ya no es de mi
+  interés… migrar en su totalidad, adaptado, el sistema de parcela y
+  construcción con placement, y el piso con tiles respetando la
+  perspectiva"): (1) el piso de cada calle ahora se dibuja como tiles
+  individuales (`DrawTiledFloor`, granularidad
+  `ParcelGrid.TilesPerStandardLot`) con el mismo patrón/colores de
+  `OrthogonalParcelTerrain.RebuildGround` (`#385a3d`/`#3f6343`, misma
+  fórmula de alternancia `(i*3+fila*5)%11`), cada tile proyectado
+  individualmente por profundidad — reemplaza el rect sólido único
+  anterior; (2) sistema de construcción con placement migrado por completo
+  a la perspectiva: `ConstructionMenuButton`/`ConstructionPanel`/
+  `ModalHost` ahora también son manejados por `MacroStreetLiveView` (cada
+  handler compartido con `CityMacroView` se autoguarda por `Visible`, mismo
+  patrón que `Refresh()`), y un nuevo modo de selección de lote
+  propio — equivalente a `ConstructionPlacementOverlay` pero sin depender
+  de `CalculateParcelRect` — proyecta cada `ConstructionLot` disponible en
+  su posición calle/lateral real (mismo mapeo que `AddPlot`), lo dibuja
+  como marcador clickeable con resalte al seleccionar, y reutiliza los
+  botones reales `Confirm placement`/`Cancel` (ESC también cancela).
+  Confirmar llama a `TryAuthorizeConstruction` real; cancelar reabre el
+  panel de blueprint, igual que el flujo plano. Verificado en vivo con
+  clics OS simulados de principio a fin: abrir Construction → elegir Build
+  Farm → seleccionar lote (resalte amarillo) → Confirm placement → el
+  nuevo proyecto aparece en la calle elegida y el HUD muestra
+  `Build 0/960`. Confirmado que estas pruebas no tocan el save real:
+  `CityWorldController.PersistenceWritesEnabled` se desactiva con el flag
+  `--wog-visual-capture` que el harness siempre inyecta. Build limpio,
+  447/447 tests, headless boot con el save real verificado.
+- **Alcance explícitamente NO cubierto en el avance anterior** (retiro de la
+  vista plana sigue siendo un paso deliberado y posterior, no implícito en
+  "migrar la funcionalidad"): `CityMacroView`/`OrthogonalParcelTerrain`/
+  `BuildingPlotStage`/`ConstructionPlacementOverlay` y los tests/matriz
+  visual que asumen su geometría siguen intactos como respaldo de código
+  (ya no hay UI para volver a esa vista — ver avance siguiente). Tampoco se
+  migró: Recon/expediciones, Citizens/roster, Menu/pause — esos paneles son
+  modales UI-agnósticos de vista y ya funcionan igual desde ambas (no
+  requerían migración).
+- **Avance 2026-07-27 (segunda ronda, corrección de calidad tras feedback en
+  juego real):** el usuario jugó el avance anterior y reportó seis problemas
+  concretos. Todos corregidos:
+  1. **Piso "plano" y de una sola fila** — el piso anterior dibujaba una
+     banda delgada de `RoadHeightPx=20px` por calle, dejando un hueco gris
+     entre calles (donde vive el lote de 3 tiles de profundidad con el
+     edificio/árbol) sin ningún tile debajo. `DrawTiledFloor` ahora dibuja
+     las `ParcelGrid.TilesPerStandardLot` (3) sub-filas de profundidad de
+     cada calle como piso continuo, cada sub-fila con sus propios bordes de
+     profundidad (`StreetDepthProjection.RowScreenY` en los límites
+     `street+k/3`) y su propia escala horizontal — el piso ahora narrows/
+     recede tile por tile, sin huecos, y `roadTop` (donde anclan
+     edificios/árboles) pasa a ser el borde lejano de la ÚLTIMA sub-fila
+     (`depth=street+1`, justo donde empieza la siguiente calle) en vez de
+     una banda arbitraria pequeña — refleja que el lote vive detrás de su
+     calle con la profundidad real de 3 tiles.
+  2. **Pathfinding bordea todo el conjunto de árboles** — causa real:
+     `StreetRoutePlanner.Plan` buscaba el cruce viable más cercano a la
+     posición LATERAL ACTUAL del héroe (el origen), no al destino; con una
+     fila densa de árboles esto hace que el héroe cruce cerca de donde
+     empezó y luego camine TODA la distancia lateral restante sin ninguna
+     evitación adicional, leyéndose como si bordeara el grupo entero.
+     Corregido: cada cruce ahora se busca cerca de `toLateral` (el destino
+     final), así el héroe apunta hacia el objetivo desde el principio.
+     Nuevo test de regresión `Plan_PrefersCrossingNearDestination_NotNearOrigin`
+     que falla con el comportamiento anterior y pasa con el corregido.
+  3. **El citizen hace pop-out/in en vez de mostrar el desplazamiento** —
+     la motion cuantizada corría en `_PhysicsProcess`, cuyo delta puede
+     desincronizarse del framerate realmente renderizado (Godot ejecuta
+     varios pasos de física de "catch-up" entre dos frames renderizados si
+     el framerate de render cae), colapsando visualmente varios pasos de
+     8px en un solo frame — se ve como un salto. Movido a `_Process`
+     (delta siempre igual a lo que se renderiza), mismo patrón que
+     `CitizenSpriteCarrier` ya usa para su propia interpolación.
+  4. **Assets de construcción eran rectángulos cafés** — ahora usa los
+     mismos placeholders reales que la vista plana
+     (`BuildingArt.GetTexturePath`: `home_idle.png`/`quarry_idle.png`/
+     `farm_idle.png`), con un tinte gris (`UnderConstructionModulate`) para
+     proyectos en obra; sin cambios de asset, solo consumidos también desde
+     la perspectiva.
+  5. **Sin vista de detalle de edificios** — resultó ser el MISMO bug de
+     `ScreenContent.mouse_filter` corregido en el avance anterior: verificado
+     en vivo que el clic sobre un edificio completado SÍ abre
+     `BuildingDetailView` (con asignación de citizens/producción) y que
+     "Back to city" regresa correctamente a la perspectiva. Se encontró y
+     corrigió un bug relacionado en el camino: `BuildingDetailView.OnBackPressed`
+     llamaba directamente a `CityMacroView.OnReturnedToCity()` (herencia de
+     cuando la vista plana era la única), lo que resucitaba la vista plana
+     por encima de la perspectiva cada vez que se volvía de un detalle. Esa
+     llamada directa se quitó; `CityWorldController.ReturnToCity()` ya
+     dispara `SelectionChanged`, que `MacroStreetLiveView` ya escucha
+     correctamente.
+  6. **Zoom con scroll del mouse no funciona** — no existía ninguna
+     implementación de zoom en ninguna de las dos vistas. Implementado
+     zoom cuantizado (pasos discretos de `ZoomStep=0.15`, rango
+     `[0.7,1.6]`, nunca un slider continuo, coherente con la preferencia de
+     motion cuantizada) vía `Scale` del propio `Node2D`, preservando el
+     punto de fuga (`CenterX,BaseY`) fijo en pantalla al hacer zoom. Esto
+     requirió convertir clic/hover de espacio global a local
+     (`ToLocal(...)`) antes de comparar contra los rects, y el ancla del
+     menú de gather a `ToGlobal(...)` antes de convertir al espacio de
+     `ScreenContent` — ambos eran asunciones válidas solo mientras
+     `Scale==1`.
+  - **Además, a pedido explícito ("no pretendo volver a la otra vista, esta
+    será la que se quedará")**: se quitó el botón "Perspective" de
+    `MacroActions` y el atajo F9 de `MacroStreetLiveView`. La perspectiva
+    es ahora la única vista macro alcanzable desde la UI/teclado; el código
+    de la vista plana permanece intacto solo como respaldo de los tests y
+    la matriz visual (ver punto 5 de próximos pasos).
+  - Verificado en vivo con clics OS simulados: piso con profundidad visible
+    sin huecos, clic en árbol → menú de gather → Gather → recolecta con la
+    ruta corregida; clic en edificio → `BuildingDetailView` → "Back to
+    city" → perspectiva (no vista plana). Build limpio, **448/448 tests**
+    (1 nuevo: el test de regresión del pathfinding), headless boot con el
+    save real verificado.
+- **Avance 2026-07-27 (tercera ronda, tiles reales + bug de profundidad
+  inconsistente):** el usuario jugó de nuevo y reportó dos problemas más
+  sobre el piso con tiles del avance anterior:
+  1. **Tiles "planos", no trapezoidales** — los tiles se dibujaban con
+     `DrawRect` usando una única `horizontalScale` por fila (misma
+     profundidad para ambos bordes), dando rectángulos uniformemente
+     escalados en vez de trapezoides reales con lados convergentes hacia
+     el punto de fuga. `DrawTiledFloor` ahora usa `DrawColoredPolygon` con
+     4 vértices propios por tile (borde cercano vs. lejano, cada uno con su
+     propia `HorizontalScale` evaluada en su propia profundidad), dando el
+     trapecio real (base más ancha, lado superior más angosto, lados
+     inclinados) pedido — estilo Pole Position/Out Run. Como
+     `HorizontalScale` es función pura de la profundidad, el borde lejano
+     de una sub-fila coincide exactamente con el borde cercano de la
+     siguiente (y con el de la calle siguiente), así que los tiles calzan
+     sin costuras.
+  2. **Edificios/árboles "fuera del plano", se desplazan al caminar
+     lateralmente** — causa real: el ancla de edificios/árboles usaba
+     `depth=street` (el borde cercano de la calle, para la posición X) pero
+     `roadTop` (el borde lejano del lote completo, `depth=street+1`, para
+     la posición Y) — dos profundidades DISTINTAS para X e Y del mismo
+     sprite. Como el escalado horizontal depende de la profundidad, esto
+     hacía que el edificio se posicionara con la escala X de una
+     profundidad que no correspondía a su propia posición Y, y el
+     desajuste crecía proporcionalmente con `_heroLateral` — por eso solo
+     se notaba al desplazarse lateralmente, coincidiendo con el reporte de
+     "el pathfinding se rompió" del usuario (en realidad el pathfinding
+     estaba bien; el sprite se dibujaba una calle más adelante de donde
+     realmente ocupaba/bloqueaba). Corregido: nuevo `AnchorDepth(depth)` =
+     `depth + 0.5 tile` (el baseline cerca del frente del lote, como pidió
+     el usuario, no al fondo) usado para AMBOS ejes en la misma llamada a
+     `Project(...)`, eliminando el parámetro `roadTop` por completo de
+     `DrawStreetRow`/`DrawPlacementLots`.
+  - Verificado en vivo: piso con trapecios reales visible (forma
+    triangular/de calle clásica, no un rombo de rectángulos apilados);
+    clic en árbol lejano lateral → Gather → tras esperar a que la ruta
+    complete (varios clics de espera adicionales, ya que la primera
+    captura fue demasiado temprana y no mostraba avance), la cámara sigue
+    al héroe y los edificios permanecen sobre su fila de tiles sin
+    flotar, incluso con un desplazamiento lateral considerable. Build
+    limpio, 448/448 tests, headless boot con el save real verificado.
+- **Avance 2026-07-27 (cuarta ronda, pixel-art + pathfinding multi-fila +
+  bug real de asignación de citizens):** tres reportes más del usuario:
+  1. **Trapecio matemáticamente perfecto contrasta con el pixel art** —
+     `DrawColoredPolygon` da un lado inclinado perfectamente suave
+     (anti-aliased), leyéndose como arte vectorial en vez de pixel art.
+     Reemplazado por `DrawPixelStaircaseTrapezoid`: aproxima el trapecio
+     como una "escalera" de franjas horizontales pequeñas, cada una un
+     rect plano (ancho constante dentro de la franja, sin interpolar), con
+     vértices redondeados a una grilla de 4 px (`PixelStepPx`) — así el
+     lado inclinado avanza a saltos (como el piso perspectivo de un juego
+     pixel-art real, ej. Pole Position/Out Run de 8-16 bits) en vez de una
+     diagonal matemáticamente lisa.
+  2. **Pathfinding sigue rodeando filas de árboles** (mejoró pero no se
+     resolvió del todo con el fix de la ronda anterior) — causa adicional:
+     cada cruce entre calles se optimizaba de forma INDEPENDIENTE (banda
+     por banda), así que con varias filas de árboles de por medio, el
+     héroe podía terminar haciendo zigzag entre huecos en posiciones
+     laterales distintas por fila. `StreetRoutePlanner.Plan` ahora primero
+     intenta un ÚNICO corredor lateral que atraviese TODAS las bandas
+     intermedias simultáneamente (cerca del destino); solo si ningún
+     lateral único las despeja todas cae al método banda-por-banda
+     anterior (que sí puede zigzaguear). Nuevo test
+     `Plan_PrefersASingleCorridorAcrossMultipleBands_NoZigzag`. Esto reduce
+     el zigzag para el caso común pero **no lo elimina del todo** — un
+     navmesh real (ver pregunta del usuario sobre S-1.2/S-1.5 abajo)
+     seguiría siendo la solución robusta para el caso en que ninguna
+     posición lateral despeje todas las filas a la vez.
+  3. **Bug real: asignar el citizen a una obra hace que aparezca al
+     instante y luego "se mueva en loop sin razón"** — encontrado el bug
+     de arquitectura de fondo: `EnsureHeroCarrier` nunca consultaba
+     `hero.CurrentAssignment`; en cada tick de mundo (muy frecuente)
+     forzaba al carrier compartido de vuelta a estado `Macro` y lo
+     posicionaba según la navegación LIBRE del jugador (`_heroStreet`/
+     `_heroLateral`), sin relación alguna con dónde estaba realmente
+     asignado el citizen — exactamente la "doble instancia" que el usuario
+     sospechaba, aunque no era una instancia duplicada del flyweight
+     (`CitizenSpriteBank` sigue siendo una sola instancia por citizen,
+     ese trabajo previo sigue vigente) sino DOS SISTEMAS peleando por
+     posicionar la MISMA instancia compartida en cada tick. Corregido con
+     seguimiento de cambio (`_lastKnownAssignment`): al detectar una
+     asignación NUEVA, se planea una ruta (mismo motor de
+     `StreetRoutePlanner` que gather) desde la posición actual hasta la
+     calle/lateral de la obra, y al llegar se asienta en idle — igual que
+     la vista plana, donde un worker asignado se muestra en su lugar de
+     trabajo en la vista macro, no vagando. Mientras está asignado, W/S y
+     el movimiento lateral manual quedan bloqueados (el fundador está
+     ocupado, no puede pasear). Verificado en vivo: asignar → volver a la
+     ciudad → el citizen camina gradualmente hacia la granja en capturas
+     sucesivas con más tiempo de espera → posición IDÉNTICA entre 8 y 20
+     clics de espera adicionales, confirmando que se asienta y no queda en
+     loop.
+  - **Sobre la pregunta del usuario (¿ayudaría un addon/tool nativo de
+    S-1.2/S-1.5?):** no para el bug #3 — ese era un problema de propiedad/
+    coordinación entre `MacroStreetLiveView` (esta vista) y el resto de
+    sistemas sobre quién posiciona el carrier compartido, no algo que un
+    plugin de pathfinding o de FSM resuelva; el fix tenía que vivir en el
+    código de esta vista y ya se hizo. Para el bug #2 (pathfinding), la
+    respuesta es matizada: S-1.2 (`NavigationServer2D`) ya está
+    implementado, pero para la VISTA PLANA (`MacroCitizenActivity` vía
+    `NavigationServerPathfinder`) — la perspectiva usa su propio
+    `StreetRoutePlanner`, un heurístico voraz separado. Adoptar un navmesh
+    real (misma idea que S-1.2, aplicada a la perspectiva) SÍ resolvería
+    el zigzag entre filas de forma más robusta que la heurística de
+    "corredor compartido" que se acaba de agregar — es un candidato de
+    mejora futura razonable, pero implica modelar el mundo de la
+    perspectiva como malla 2D real y hornearla, un esfuerzo aparte (no
+    incluido en este avance). S-1.5 (FSM de comportamiento) tampoco aplica
+    aquí: modela estados del citizen (Idle/Working/Resting/etc.), no la
+    propiedad del sprite compartido.
+  - Build limpio, 449/449 tests (2 nuevos), headless boot con el save real
+    verificado.
+- **Avance 2026-07-27 (quinta ronda, pathfinding directo + bug de dominio
+  real en auto-liberación de workers):** dos reportes más, ambos con causa
+  raíz encontrada y corregida:
+  1. **El citizen camina hacia el punto de asignación pero no queda
+     asignado — se queda "en la entrada"** — el usuario acertó que esto NO
+     era un problema de esta vista: causa real en el DOMINIO
+     (`game/scripts/Domain/Building.cs`), afecta también a la vista
+     plana. `Building.TickMaxStockWatch()` cuenta ticks consecutivos con
+     `Stock >= MaxStock` y libera a los workers (M-17) al llegar a
+     `MaxStockReleaseCooldown` (6); el contador solo se resetea cuando el
+     stock CAE por debajo del máximo — algo que nunca ocurre mientras no
+     hay nadie asignado consumiéndolo/produciendo. Una granja que ya había
+     sido vaciada una vez por este mecanismo (stock estancado en el tope,
+     contador ya en 6+) reasignaba un citizen NUEVO y el vigilante lo
+     liberaba de nuevo en el siguiente tick — antes de que el nuevo worker
+     produjera nada. Corregido: `Building.TryAssign` ahora resetea el
+     contador a 0 en cada asignación exitosa — un worker recién asignado
+     siempre obtiene la ventana de gracia completa. Dos tests nuevos en
+     `BuildingTests.cs`, incluida la regresión exacta del bug
+     (`TryAssign_AfterPriorAutoRelease_GetsAFreshCooldownWindow`).
+     Verificado en vivo con el save real: asignar al citizen a la granja
+     que antes lo expulsaba de inmediato ahora lo mantiene asignado,
+     produciendo (`Rate: 2 Food/tick`, stock bajando de 20/20 a 19/20 y
+     subiendo de nuevo) en vez de "Waiting for contributors".
+  2. **"¿Por qué no caminar directo entre los árboles si es más rápido?"**
+     — el usuario cuestionó directamente el diseño de evitación de
+     obstáculos: dado que el movimiento LATERAL dentro de una calle nunca
+     evitó árboles/edificios, ¿por qué el CRUCE entre calles sí lo hacía,
+     si caminar derecho es más rápido y ya "funciona" visualmente? Aceptado
+     el argumento: `StreetRoutePlanner` se reescribió por completo,
+     eliminando toda la infraestructura de evitación (`Interval`,
+     `IsCrossingBlocked`, `FindViableCrossing`, `FindSharedCorridor` y el
+     `_bandOccupancy`/`AddBandInterval`/`GetBandOccupancy` de
+     `MacroStreetLiveView`, todo código muerto una vez quitada la
+     evitación). El plan ahora es directo y diagonal: una calle cruzada
+     por waypoint, con el lateral interpolado proporcionalmente al avance
+     (converge hacia el destino a través de toda la secuencia de cruces en
+     vez de cruzar en un lateral fijo y recién después deslizarse de
+     lado). W/S manual también cruza siempre, sin el aviso de "Something
+     blocks the way". 6 tests reescritos (de 10 anteriores; la cobertura
+     de evitación ya no aplica).
+  - Build limpio, 447/447 tests, headless boot con el save real
+    verificado.
+- **Avance 2026-07-27 (sexta ronda, corrección de la ronda anterior +
+  minimalismo de UI + animación de entrada a edificios):** el usuario
+  corrigió la ronda 5: NO quería quitar la evitación de obstáculos —
+  quería que se REFINARA para la nueva geometría, y manualmente movía al
+  héroe por los huecos visibles entre assets. Además pidió un menú de
+  gather más minimalista y esa misma revisión para la vista de detalle de
+  edificios, más una animación de zoom con paneo de cámara al entrar a un
+  edificio.
+  1. **Evitación de obstáculos restaurada y con el bug real corregido** —
+     `StreetRoutePlanner` recupera `Interval`/`IsCrossingBlocked`/
+     `FindViableCrossing`/`FindSharedCorridor` (versión de la ronda 3:
+     corredor compartido multi-banda con fallback banda-por-banda) y
+     `MacroStreetLiveView` recupera `_bandOccupancy`/`AddBandInterval`/
+     `GetBandOccupancy`. La causa real de "rodea la fila entera" no era
+     la evitación en sí: `CrossingScanStepPx` (30 px, un tercio de
+     `LotUnitPx`) divide exactamente 90 px (la separación entre árboles),
+     así que el escaneo caía siempre en el mismo offset relativo a CADA
+     árbol de la fila — si fallaba en encontrar el hueco de ~18 px junto a
+     un árbol, fallaba junto a todos, forzando la búsqueda a escapar la
+     fila COMPLETA en vez de cruzar entre dos árboles adyacentes. Bajado a
+     6 px — lo bastante fino para no saltarse ningún hueco realista.
+     Nuevo test `NarrowGapBetweenAdjacentTreesInADenseRow_IsFound_NotSkippedOver`
+     con una fila de 5 árboles que reproduce exactamente el bug (falla con
+     scanStep=30, pasa con 6). W/S manual recupera el aviso "Something
+     blocks the way" al intentar cruzar un tramo sin hueco.
+  2. **Menú de gather minimalista** — `ResourceActionMenu.tscn`: se quitó
+     el título "Tree" (redundante, el jugador ya sabe qué clicó) y la
+     línea de regeneración (movida a tooltip del label de reserva); Gather
+     y Close ahora van lado a lado en una fila compacta en vez de
+     apilados; el panel bajó de 190px a 148px de ancho mínimo y de
+     márgenes 12/10 a 8/6.
+  3. **Mismo repaso en la vista de detalle** — `ProductionPanel` mostraba
+     "Farm — Food" duplicando el título "Farm (Food)" que ya muestra el
+     header de `BuildingDetailView`; ahora dice solo "Production" (rótulo
+     de sección estático, sin duplicar el nombre del edificio). Eliminada
+     la clave de localización `ui.production.title` (sin más usos) de
+     en.po/es.po; catálogo revalidado y `messages.pot` regenerado
+     (`tools/Test-LocalizationCatalog.ps1 -UpdateTemplate`).
+  4. **Animación de zoom + paneo al entrar a un edificio** —
+     `UiMotion.RevealBuildingEntry` (nuevo): escala `BuildingDetailView`
+     desde 0.72 hasta 1.0 alrededor de un `PivotOffset` — la posición en
+     pantalla donde se clickeó el edificio, no el centro — así el punto
+     clickeado queda fijo mientras el resto del contenido "crece" a su
+     alrededor, leyéndose como que la cámara empuja hacia ese lugar
+     específico en vez de un zoom genérico centrado. `MacroStreetLiveView`
+     pasa el origen del clic vía el nuevo `BuildingDetailView.SetEntryOrigin`
+     justo antes de `SelectBuilding`. Sin nuevos ejes/estados: reutiliza el
+     mismo patrón de `Tween` cuantizado que `UiMotion.RevealModal` ya
+     usaba.
+  - Build limpio, 452/452 tests (2 nuevos: la corrección de granularidad
+    del pathfinding y la fila densa de árboles), headless boot con el
+    save real verificado. Verificado en vivo: menú de gather compacto con
+    Gather/× lado a lado; clic en edificio → zoom hacia el punto
+    clickeado → vista de detalle con "Production" sin duplicar el nombre.
+- **Avance 2026-07-27 (séptima ronda, gather menu realmente minimalista +
+  cursor sin redundancia + cierre por clic afuera):** el usuario refinó el
+  pedido anterior — el botón Gather seguía dejando espacio en los bordes,
+  el texto "Gather" debía ser solo tooltip (icono de hacha únicamente), el
+  cursor de hacha sobre el botón era redundante con el icono del propio
+  botón (debía mostrar la manito estándar, como cualquier elemento
+  interactivo), y el botón "Close" debía desaparecer a favor de cerrar con
+  clic afuera del panel.
+  1. **Botón Gather solo-icono con tooltip** — `ResourceActionMenu.tscn`:
+     `GatherButton` ahora tiene `text=""` (antes "Gather" visible) con
+     `tooltip_text="Gather"`, `SizeFlagsHorizontal=Fill` para ocupar el
+     ancho completo sin huecos laterales. `CloseButton`/el `HBoxContainer`
+     "Actions" se eliminaron por completo — el `Gather` queda como único
+     hijo de `Content`.
+  2. **Cierre por clic afuera + Escape, sin botón "Cerrar"** —
+     `MacroStreetLiveView.TryClick` ahora oculta `_actionMenu` al inicio
+     si está visible (un clic que llega a este método nunca cayó SOBRE el
+     menú, ya que su propio filtro de mouse Stop lo habría consumido antes
+     — así que llegar aquí ya significa "afuera"); si el clic también
+     acierta un árbol/edificio distinto, la lógica normal reabre para ese
+     nuevo objetivo justo después. `_UnhandledInput` añade Escape
+     (`ui_cancel`) como cierre alternativo, mismo patrón que
+     `ConstructionPlacementOverlay`.
+  3. **Cursor sin icono duplicado** — encontrada la causa real: el
+     autoload `CursorController` ya da a TODO `BaseButton` un cursor de
+     "manito" distinto por defecto (`OnNodeAdded` + `RestoreSurfaceCursor`)
+     — el pedido del usuario de "manito en todo lo interactivo" ya estaba
+     implementado globalmente. El bug era que `UseGatherCursor()` (llamado
+     al pasar el mouse sobre un árbol) sobreescribe TANTO `Arrow` como
+     `PointingHand` con la imagen del hacha — y como el menú abierto
+     intercepta el mouse a nivel de Control (su propio filtro Stop), el
+     movimiento del mouse desde el árbol hacia el botón nunca vuelve a
+     pasar por `MacroStreetLiveView.UpdateTreeHover`, así que el override
+     de hacha quedaba pegado indefinidamente sobre el botón — mostrando el
+     hacha dos veces (cursor + icono del botón). Corregido: `OpenGatherMenu`
+     llama a `ClearTreeHover()` justo al abrir, restaurando el cursor
+     estándar antes de que el mouse llegue al botón.
+  - Build limpio, 452/452 tests, headless boot con el save real
+    verificado. Verificado en vivo: "40 wood remains" en una sola línea,
+    botón Gather (solo icono de hacha) ocupando el ancho completo sin
+    huecos laterales, panel bajado a 130px de ancho mínimo.
+- **Avance 2026-07-27 (octava ronda, selección con panel HUD + clic
+  izq/der separado + acción realmente sin marco):** el usuario adjuntó una
+  imagen de referencia (dos botones cuadrados solo-icono, sin marco ni
+  texto, flotando sobre un recurso) y pidió separar dos responsabilidades
+  que hasta ahora compartía el clic izquierdo: **seleccionar** (ver
+  información) vs. **actuar** (gather). Nuevo modelo de interacción, solo
+  para la vista perspectiva (la vista plana es fixture/legado, sin tocar):
+  1. **Clic izquierdo = seleccionar.** `MacroStreetLiveView.TryClick` ya
+     no abre el menú de gather al acertar un árbol — llama a
+     `SelectTree(tree)`, que puebla un nuevo panel de HUD persistente
+     (`SelectionInfoPanel`, esquina inferior izquierda) con el ícono real
+     del árbol (recortado del mismo atlas Kenney vía
+     `ResourceTree.CreateRegion`), "Tree" como título, madera disponible
+     (`ui.resource.wood_remains`, reutilizada) y la fecha/hora de
+     regeneración calculada reutilizando el mismo formateador que ya usa
+     el reloj del HUD superior (`SimulationTimeText.FormatLocalized(tick
+     actual + TicksUntilRegeneration)` — sin reinventar el cálculo de
+     día/hora). Clic en edificio sigue igual (abre `BuildingDetailView`
+     directo — ya es una superficie de info más completa que un panel de
+     esquina). Clic en terreno vacío llama a `ClearSelection()` — el panel
+     se oculta. `RefreshPlots()` refresca el panel si el árbol
+     seleccionado sigue vivo (nuevos ticks pueden cambiar la madera
+     restante) o lo deselecciona si ya no existe (unidad agotada).
+  2. **Clic derecho = actuar.** Nuevo caso en `_UnhandledInput` para
+     `MouseButton.Right`; `TryRightClick` es el único lugar que abre
+     `ResourceActionMenu` (antes vivía en el clic izquierdo). También
+     selecciona el árbol (mantiene el panel de info sincronizado con lo
+     que se está accionando).
+  3. **`ResourceActionMenu` sin marco, de verdad.** El pedido anterior ya
+     había quitado el texto "Gather" y el botón "Close", pero seguía
+     siendo un `PanelContainer` con borde/tema `OverlayPanel` alrededor de
+     un solo botón — exactamente el "marco innecesario" que la imagen de
+     referencia mostraba que NO debía existir. Reescrito: la clase ahora
+     extiende `IconButton` directamente (`ResourceActionMenu : IconButton`)
+     y la escena (`ResourceActionMenu.tscn`) tiene como raíz un `Button`
+     de 40×40 — sin `PanelContainer`, `MarginContainer` ni labels. Las
+     etiquetas de reserva/disponibilidad que antes vivían aquí se movieron
+     al nuevo panel de selección (más apropiado: son info, no parte de la
+     acción); `Open(...)` perdió los parámetros `reserve`/
+     `ticksUntilRegeneration` en consecuencia. La vista plana
+     (`OrthogonalParcelTerrain.OnTreePressed`, fixture-only) se actualizó
+     al mismo llamado de 6 argumentos para seguir compilando.
+  4. **Nuevas claves de localización**: `ui.selection.tree_title` ("Tree"/
+     "Árbol") y `ui.tree.regrows_at` ("Regrows {0}"/"Vuelve a crecer {0}")
+     en `en.po`/`es.po`; `messages.pot` regenerado (341 IDs, 111 claves en
+     runtime).
+  5. **Nueva capa de overlay**: `OverlayLayers.SelectionInfo = 9` (entre
+     `ContextMenu` y `Chronicle`), documentando dónde vive este panel en
+     el catálogo de capas.
+  6. **Herramienta de captura extendida**: `tools/Capture-VisualMatrix.ps1`
+     ahora acepta un prefijo `R:`/`L:` en `-NormalizedClicks` (p. ej.
+     `"R:0.5,0.6"`) para simular clic derecho — antes solo soportaba clic
+     izquierdo, insuficiente para verificar este cambio y cualquier
+     interacción de clic derecho futura.
+  - Verificado en vivo con capturas reales (clics OS simulados, juego
+    pausado para descartar eventos automáticos del mundo interfiriendo
+    con la ventana de verificación): clic izquierdo en árbol → panel de
+    selección aparece con "Tree / 40 wood remains / Regrows Day 70 ·
+    00:00", sin abrir el menú de gather; clic derecho en el mismo árbol →
+    aparece solo el botón-icono de hacha (sin marco), panel de selección
+    se mantiene sincronizado; clic en edificio tras tener un árbol
+    seleccionado → abre `BuildingDetailView` con su animación de entrada
+    normalmente; clic en terreno vacío tras seleccionar → oculta tanto el
+    panel de selección como el botón de acción si estaba abierto. Build
+    limpio, 452/452 tests, headless boot con el save real verificado.
+  - **Nota de proceso**: durante la verificación, una secuencia de dos
+    clics con el mundo SIN pausar produjo un falso positivo (un panel
+    modal grande aparecía tras el segundo clic sin relación aparente con
+    su posición) — resultó ser un evento autónomo del mundo (no una
+    regresión de este cambio); pausar la simulación antes de la secuencia
+    de clics eliminó el ruido y confirmó el comportamiento real.
+- **Avance 2026-07-27 (novena ronda, construcciones con el mismo modelo
+  select/act + zoom de entrada movido al MAPA y escalonado + toggle de
+  cámara libre/seguimiento + terreno menos empinado):** el usuario jugó de
+  nuevo y pidió cuatro cosas en un solo turno:
+  1. **"Lo mismo para las construcciones."** Clic izquierdo en un edificio
+     ya no abre `BuildingDetailView` directo — llama a
+     `SelectBuildingPlot(buildingId)`, que reutiliza
+     `_controller.GetBuildingDetailSnapshot(...)` (ya existía, sin nueva
+     plumbing) para poblar el mismo `SelectionInfoPanel` con el ícono real
+     del edificio, su `FullDisplayLabel` como título y "N/M workers" (o
+     "N/M resting" para Home) como detalle — nuevas claves
+     `ui.selection.building_workers`/`ui.selection.building_home`. Clic
+     derecho en un edificio es ahora la única forma de "entrar"
+     (`BeginBuildingEntry`, ver punto 2). El ícono del panel
+     (`TextureRect`) pasó de `StretchMode.Keep` (tamaño nativo — con un
+     edificio grande se desbordaba fuera del panel) a
+     `KeepAspectCentered`/`FitWidthProportional`, para que tanto el sprite
+     16×16 de un árbol como una textura de edificio mucho más grande
+     encajen igual en la caja de 40×40.
+  2. **El zoom de entrada vive en el MAPA, no en la vista de detalle, y es
+     escalonado.** El usuario señaló correctamente que el zoom+paneo al
+     entrar a una construcción animaba `BuildingDetailView` (un `Control`
+     de UI) en vez del mundo — y que se sentía "muy lineal" en vez de
+     escalonado como el resto del movimiento. Ambos problemas compartían
+     una causa: `UiMotion.RevealBuildingEntry` era un `Tween` continuo con
+     easing Quad sobre el `Scale` de la VISTA, no de la cámara del mapa.
+     Solución: `MacroStreetLiveView.BeginBuildingEntry` empuja la cámara
+     (este mismo `Node2D`) hacia la posición del edificio clickeado en
+     exactamente `BuildingEntryZoomSteps` (5) pasos discretos a la cadencia
+     de 12 Hz compartida (`ZoomTowardPivot`, la generalización con pivote
+     arbitrario de lo que `AdjustZoom` ya hacía con el punto de fuga fijo)
+     — el mismo "sentir escalonado" que el desplazamiento del citizen y de
+     calle. Solo al completarse los 5 pasos se llama
+     `_controller.SelectBuilding(...)`. `BuildingDetailView` ya no anima
+     su propio `Scale`/`PivotOffset` — `UiMotion.RevealBuildingEntry` se
+     reemplazó por `UiMotion.FadeIn` (solo opacidad); se eliminaron
+     `SetEntryOrigin`/`_pendingEntryOrigin` de `BuildingDetailView` (dead
+     code una vez que el pivote vive y se consume enteramente en el mapa).
+     El zoom se resetea (`ResetZoom`) cada vez que la vista se desactiva,
+     para que volver a la ciudad no la deje con el zoom pegado.
+  3. **Toggle de cámara libre/seguimiento** (documentado en el design
+     bible §04 "Cámara-sigue" y ya validado en un prototipo aislado —
+     `WalkableWorldCamera.cs` — pero nunca conectado a la vista en
+     producción). Nuevo botón "Follow founder"/"Free camera" en
+     `MacroActions` + tecla F. Arquitectura: el punto de fuga ahora lee de
+     `CameraLateral`/`CameraDepthAnchor` (propiedades calculadas) en vez
+     de `_heroLateral`/`_depthAnchor` directamente; en modo seguimiento
+     (default) devuelven exactamente los valores del fundador — CERO
+     cambio de comportamiento respecto a antes. En modo libre devuelven
+     `_freeCameraLateral`/`_cameraDepthAnchor`, un estado
+     independiente, movido por las mismas teclas (W/S, flechas) pero SIN
+     las validaciones de "el fundador está ocupado" (una cámara libre no
+     es un cuerpo caminando — el fundador sigue su propia ruta/IA en
+     segundo plano, ajeno a hacia dónde mira la cámara). El fundador se
+     proyecta como cualquier otro sprite del mundo en modo libre
+     (`depth = _depthAnchor - CameraDepthAnchor`, `lateral = _heroLateral
+     - CameraLateral`) en vez de fijo siempre en el centro. El modo
+     construcción/placement fuerza temporalmente el seguimiento (los lotes
+     se renderizan alrededor del fundador) y restaura el modo previo al
+     terminar.
+  4. **Terreno menos empinado, sin tocar el pixel-art.** El usuario notó
+     que los tiles más lejanos al punto de fuga se ven "estirados" y pidió
+     reducir la "altura"/ángulo del terreno — explícitamente SIN afectar
+     la pixelación que le gustó. Como la técnica de "escalera de píxeles"
+     (`DrawPixelStaircaseTrapezoid`) solo consume las coordenadas que le
+     da `StreetDepthProjection`, ajustar esa proyección no la toca en
+     absoluto. Cambios en `StreetDepthProjection.cs`:
+     `VerticalDepthFactor` 0.85→0.90, `HorizontalDepthFactor` 0.80→0.87
+     (la brecha entre ambos controla cuánto se distorsiona el aspecto de
+     cada tile con la profundidad — se redujo de 0.05 a 0.03, manteniendo
+     la propiedad requerida por los tests de que horizontal siga
+     encogiendo más rápido que vertical), `BaseRowSpacingPx` 96→80,
+     `HorizonY` 80→200 (menor recorrido vertical total = inclinación más
+     plana). El efecto es más notorio cuantas más filas de calles haya
+     visibles — en el save actual (una ciudad pequeña, ~4 filas) el cambio
+     es sutil pero medible; queda abierto seguir afinando estas
+     constantes con una ciudad más grande.
+  - **Lección de proceso importante**: al verificar con clics OS
+    simulados, una secuencia "clic derecho, luego clic izquierdo" resultó
+    consistentemente en que el clic izquierdo NUNCA llegara a
+    `_UnhandledInput` (0/5 intentos, con o sin pausa, con delays de hasta
+    2s) — mientras que clic-izquierdo-tras-clic-izquierdo y clic-derecho
+    en solitario funcionan de forma fiable. Diagnosticado como una
+    limitación del propio harness (`mouse_event` con flags
+    RIGHTDOWN/RIGHTUP parece dejar a Windows creyendo que el botón derecho
+    sigue "presionado" para eventos sintéticos posteriores) — NO un bug
+    del juego: se confirmó visualmente que clic derecho abre el botón de
+    gather/hace zoom y entra al edificio correctamente cada vez; solo la
+    verificación automatizada del clic SIGUIENTE a un clic derecho no es
+    fiable con esta técnica. Ver [[verify-clicks-with-real-clicks]] para
+    la entrada de memoria actualizada con este caso.
+  - Build limpio, 452/452 tests, headless boot con el save real
+    verificado. Verificado en vivo: selección de edificio (ícono +
+    "Basic Shelter (Rest)" + "0/3 resting"), entrada con zoom escalonado
+    en el mapa seguido de transición a `BuildingDetailView`, botón de modo
+    de cámara alternando correctamente entre "Follow founder"/"Free
+    camera" con su tooltip localizado.
 - **Próximos pasos (orden sugerido):**
   1. Clic en un proyecto en construcción en curso desde la perspectiva
-     (hoy abre el panel de construcción solo desde la vista plana).
+     (hoy abre el panel de construcción solo desde la vista plana; con el
+     sistema de placement ya migrado, este es el siguiente hueco obvio).
   2. Texto de guía de estado vacío ("Select a tree and choose Gather...")
      equivalente en la perspectiva, para una partida nueva desde cero (no
      bloquea el save actual, que ya tiene ciudad construida).
-  3. Resolver el anclaje de edificios/complejos con `LotHeight > 1`
+  3. Paridad del Chronicle/reporte offline en la perspectiva: con los
+     guards nuevos, el reporte y el log viven solo en la vista plana; la
+     perspectiva necesita su propia superficie (o compartir la existente
+     de forma explícita, no por accidente de refresh).
+  4. Resolver el anclaje de edificios/complejos con `LotHeight > 1`
      (hoy se anclan a su calle más cercana al visor — simplificación
      documentada, no la asignación final).
-  4. Evaluar retirar por completo la vista plana
+  5. Evaluar retirar por completo el CÓDIGO de la vista plana
      (`CityMacroView`/`OrthogonalParcelTerrain`/`BuildingPlotStage`/
-     `ConstructionPlacementOverlay`) y el toggle F9 una vez los pasos
-     anteriores cierren — implica migrar/reescribir la porción de los ~436
-     tests xUnit y la matriz de regresión visual
-     (`tools/Capture-VisualMatrix.ps1`) que asumen la geometría plana
-     (`CalculateTerrainRect`/`CalculateParcelRect`).
+     `ConstructionPlacementOverlay`) una vez los pasos anteriores cierren —
+     la UI ya no ofrece forma de llegar a ella, pero el código y los ~448
+     tests/matriz visual (`tools/Capture-VisualMatrix.ps1`) que asumen su
+     geometría (`CalculateTerrainRect`/`CalculateParcelRect`) siguen
+     intactos; retirarlos implica migrar/reescribir esa porción de tests.
 - **Criterios de aceptación:** ciudad completa navegable y jugable
   (construcción, asignación, gather, expediciones) únicamente desde la
-  perspectiva, sin regresión funcional respecto a la vista plana actual, y
+  perspectiva, sin regresión funcional respecto a la vista plana anterior, y
   con la matriz de regresión visual/tests actualizados a la nueva geometría.
 - **Riesgo:** alcance grande tocando código de producción probado; cada
-  paso debe verificarse con `dotnet test` (436/436 hoy) y un smoke real
+  paso debe verificarse con `dotnet test` (448/448 hoy) y un smoke real
   windowed antes de continuar al siguiente.
+- **Lección de proceso:** el veredicto "Hecho" de un flujo de clic no se da
+  por bueno solo con lectura de código o con headless boot — requiere un
+  clic real (interactivo o simulado por OS) verificado hasta el efecto de
+  dominio. El bug de clic-a-gather y el de "sin vista de detalle" fueron el
+  MISMO bug estructural (`ScreenContent.mouse_filter`), descubierto solo
+  por reporte directo del usuario jugando, no por la auditoría previa del
+  mismo día.
 
 ---
 
@@ -502,8 +1150,8 @@ reorganiza la lista, los IDs no se renumeran.
 - **Categoría:** polish / UI / presentación
 - **Afecta:** `ModalHost.cs`, `PauseMenu.cs`, `ConstructionPanel.cs`,
   `ResourceActionMenu.cs`, `MacroBuildingView.cs`, `BuildingPlot.cs`,
-  `OfflineReportPanel.cs`, `AttentionBanner.cs` y un componente C# compartido
-  de transiciones.
+  `OfflineReportPanel.cs` y un componente C# compartido de transiciones
+  (`AttentionBanner.cs` ya no existe — eliminado el 2026-07-26).
 - **Hallazgo:** contraste, cursores y superficies ya son coherentes, pero casi
   todos los cambios de pantalla todavía usan `Show/Hide` instantáneo. Solo
   onboarding, perfil y llegada tienen movimiento. Construir, reunir, asignar,
@@ -692,6 +1340,164 @@ reorganiza la lista, los IDs no se renumeran.
   hardcoded (mitigado por keys estables); memoria adicional por
   cargar dos locales simultáneamente (mitigado por `Translation.remove`
   de la locale anterior al cambiar).
+- **Avance 2026-07-27 — vista de perfil de héroe traducida:** el usuario
+  señaló que a `HeroProfileView` le faltaba traducción completa; estaba
+  100% en inglés hardcoded (título, encabezados de sección, disclaimer de
+  linaje, todas las líneas de formato) y, más de fondo, todo el contenido
+  DINÁMICO que muestra viene de `ProfileCatalog.cs` (dominio puro,
+  ~85 strings: resumen y forma de aprender de cada uno de los 8 linajes,
+  10 aptitudes, 12 familias profesionales, 6 afinidades elementales, 5
+  estilos de combate, 6 preferencias de arma, 16 rasgos de personalidad, 8
+  orientaciones políticas, 6 posturas espirituales) — nunca pasaba por
+  `UiText`.
+  - Texto estático de `HeroProfileView.cs` envuelto con
+    `UiText.Get`/`Format` (20 claves nuevas bajo `ui.hero_profile.*`).
+  - Contenido dinámico: **intento inicial equivocado** — envolver
+    `ProfileCatalog.DisplayName(...)` con `UiText.Get` directamente dentro
+    de `HeroProfileSnapshot.From(...)` (que vive en namespace raíz
+    `WorldofGoses`, no en `.Domain`, así que compila bien) rompió
+    `UiSnapshotTests.HeroProfileSnapshot_ProjectsPresentationData` con un
+    **crash real** (no solo un test fallido) — ese test construye el
+    snapshot directamente en un proceso xUnit sin motor Godot, y
+    `UiText.Get` llama a `Godot.TranslationServer.Translate(...)`, que no
+    existe fuera del engine. Corregido: `HeroProfileSnapshot` se revirtió
+    a devolver texto crudo en inglés (sigue siendo Godot-free y testeable
+    tal como antes); la traducción se aplica en `HeroProfileView.Render()`
+    — la misma capa que ya posee cada otra llamada a `UiText` en el
+    proyecto — vía un nuevo helper `JoinLocalized` (traduce cada elemento
+    de una lista antes de unirlos con coma) y `UiText.Get(...)` en cada
+    string individual (afinidad elemental, estilo de combate, orientación
+    política, postura espiritual). El nombre propio del linaje (p. ej.
+    "Ardhen") NO se traduce — es un nombre, no una descripción.
+  - `GenderId` (enum, sin helper de display name propio) se traduce vía
+    `UiText.Get(hero.Gender.ToString())` — mismo patrón "el texto en
+    inglés es la clave" que ya usan `"Gather"`/`"Cancel"` en el proyecto;
+    nuevas claves `"Feminine"`/`"Masculine"`.
+  - Añadidas ~107 entradas msgid/msgstr nuevas a `en.po`/`es.po`
+    (135 claves runtime totales, 453 IDs en `messages.pot` tras
+    regenerar). Las traducciones de linaje/aptitud/afinidad/rasgo se
+    escribieron a mano (no son autogeneradas) — traducciones de
+    contenido, no solo de UI.
+  - Verificado en vivo: la pantalla de perfil de héroe con locale español
+    (el save de prueba ya arranca en `es` — confirmado también que el
+    botón nuevo de cámara del H-32 ya sale como "Seguir al fundador" en
+    ese idioma) muestra "Perfil del héroe", "Rol: Héroe", resumen y forma
+    de aprender del linaje Vaelun en español, "Aptitudes personales" /
+    "Afinidades profesionales" con sus valores traducidos
+    ("Orientación, Adaptabilidad, Observación", etc.). Build limpio,
+    452/452 tests (el crash de `UiSnapshotTests` NUNCA debió llegar a
+    verificación en vivo — se detectó corriendo la suite completa antes de
+    dar por cerrado el cambio), catálogo de localización válido.
+  - **Nota para futuras traducciones de contenido de dominio:** cuando un
+    record/snapshot vive fuera de `Domain/` pero es exercised directamente
+    por tests xUnit (buscar en `tests/` antes de asumir), tratarlo como si
+    fuera dominio puro a efectos de `UiText`/Godot — la traducción de
+    datos catalogados debe aplicarse en la vista, nunca en el snapshot.
+- **Avance 2026-07-27 — barrido completo de textos sin traducir en el
+  resto de pantallas.** El usuario pidió revisar si quedaban más textos sin
+  traducir además del perfil de héroe. Se lanzó una auditoría (fork) sobre
+  todo `game/scripts/` (excluyendo `Domain/`) que encontró ~15 archivos con
+  literales en inglés sin pasar por `UiText`. Corregidos, de mayor a menor
+  alcance en el loop jugable:
+  - **`AssignmentPanel.cs`**: título "Workers", encabezados
+    "Assigned"/"Available", resumen de conteo, botones "Remove"/"Assign" +
+    tooltips, estados vacíos.
+  - **`ConstructionPanel.cs`** (el archivo con más texto suelto): título y
+    descripción del blueprint (con **dos ternarios** cuyo string literal
+    NO fue detectado por el script de "claves faltantes" hasta una segunda
+    pasada — ver nota de proceso abajo), tooltips de los tres botones de
+    autorizar (shelter/farm/quarry, incluyendo ternarios anidados),
+    descripción del progreso, "Basic Shelter completed", encabezados
+    Assigned/Available + tooltips de fila, y los switches completos de
+    `ConstructionStopCause`/`ConstructionAuthorizationOutcome`.
+  - **`BuildingDetailView.cs`**: resumen de "Home" con pluralización
+    correcta (antes concatenaba una "s" en inglés directo al string, lo
+    cual nunca funcionaría en español — ahora son 3 claves separadas
+    `capacity_empty`/`capacity_resting_one`/`capacity_resting_many`),
+    mensaje de asignación rechazada, y el título del edificio
+    (`FullDisplayLabel`, ver nota de `DisplayName`/`ResourceLabel` abajo).
+  - **`AssignmentOutcome` duplicado**: `ConstructionPanel.cs` y
+    `BuildingDetailView.cs` tenían el MISMO switch privado
+    `FormatAssignmentError` copiado y pegado — extraído a
+    `AssignmentErrorText.cs` (helper compartido nuevo), eliminando la
+    duplicación de las 7 claves de traducción.
+  - **`ProductionPanel.cs`**: placeholders iniciales antes del primer
+    `Refresh()` ("Pause"/tooltip, "Reactive policy", "Min"/"Max",
+    "Resting site — no production").
+  - **`VisibleWorkerSlot.cs`** / **`Ui/PanelHeader.cs`**: tooltips
+    ("Click to remove this worker", "Close (ESC)" — este último se usa en
+    CADA panel modal, alto impacto).
+  - **`Prototypes/MacroStreetLiveView.cs`**: botón "Confirm placement",
+    los 3 mensajes de gather (fundador no disponible/en expedición/ya
+    asignado), "Gathered {0} wood.", mensaje de calle bloqueada, y el
+    título del panel de selección de edificio (mismo `FullDisplayLabel`).
+  - **`OfflineReportPanel.cs`** / **`TutorialOverlay.cs`**: placeholders
+    iniciales de botones (Chronicle collapse, Skip/Next).
+  - **`OnboardingView.cs`** (creación de héroe clásica, una vez por
+    partida): barrido completo — título, los 5 `AddHeading`, todos los
+    `AddSectionTitle` (incluyendo los que llevan contador dinámico, p. ej.
+    "choose exactly 3 (N/3)"), el par Feminine/Masculine (gap ya conocido
+    del audit), el bloque completo de `UpdateReview` (10 líneas, antes
+    100% concatenación cruda en inglés) y `FormatLineage`.
+  - **`AstralOnboardingView.cs`**: el gap conocido de
+    Feminine/Masculine + `DescribeResult` (usaba literales en ESPAÑOL
+    directo — "Aptitudes:", "Rasgos:", etc. — porque esta pantalla nació
+    en castellano; ahora esos literales son la clave y `en.po` lleva la
+    traducción al inglés) + las 4 frases de "pregunta falsa"
+    ("Conservaré…", etc.) que nunca se cablearon a `UiText.Get`.
+  - **Nombres de recursos/edificios sin traducir**: `DescribeMaterials`/
+    `DescribeInputs` en `ConstructionPanel.cs` ya llamaban
+    `UiText.Get(resource)` con el nombre del enum en minúsculas
+    ("wood"/"food"/"stone"...) pero esas claves NUNCA existieron en el
+    catálogo — se veían literalmente en inglés en medio de una oración en
+    español. Añadidas. También se tradujo `BuildingDetailSnapshot.
+    FullDisplayLabel` ("Farm (Food)" → "Granja (Comida)") reconstruyendo
+    el formato en la vista (`UiText.Format("ui.building_detail.full_label",
+    UiText.Get(DisplayName), UiText.Get(ResourceLabel))`) en los DOS sitios
+    que lo consumían (`BuildingDetailView`/`MacroStreetLiveView`), en vez
+    de traducir el string ya concatenado por el dominio.
+  - **Bug real encontrado en la propia herramienta de validación**:
+    `tools/Test-LocalizationCatalog.ps1` usaba un hashtable de PowerShell
+    (`@{}`) para detectar `msgid` duplicados — PowerShell compara claves de
+    string de forma **insensible a mayúsculas por defecto**, mientras que
+    `Godot.TranslationServer` (en tiempo de ejecución real) SÍ distingue
+    mayúsculas. Esto hacía que el validador reportara un falso positivo de
+    "duplicado" en cuanto intenté añadir `"wood"` (minúscula, para uso
+    dentro de una oración) junto al `"Wood"` (mayúscula) ya existente — dos
+    claves legítimamente distintas para el mismo idioma. Corregido:
+    `Read-PoCatalog`/`Read-PoTranslations` ahora usan
+    `Dictionary<string,int>`/`Dictionary<string,string>` con
+    `StringComparer.Ordinal` explícito, igual que ya hacía el `$allIds`
+    del mismo script — sin este fix, cualquier futuro par
+    mismo-texto-distinta-mayúscula habría fallado igual (o peor, en el
+    caso de las traducciones, se habrían pisado silenciosamente sin ni
+    siquiera un error).
+  - **Nota de proceso — punto ciego real en el detector de claves
+    faltantes**: el script de detección de claves usa una regex que solo
+    encuentra `UiText.Get("literal")`/`UiText.Format("literal", ...)`
+    cuando el argumento es un string literal INMEDIATO tras el paréntesis
+    — `UiText.Get(condición ? "a" : "b")` no lo detecta en absoluto (ni el
+    caso "a" ni el "b"), incluyendo ternarios anidados. Esto causó que
+    varias claves de `ConstructionPanel.cs` (títulos/descripciones del
+    modo Blueprint) quedaran SIN traducir en una primera pasada — se veían
+    perfectamente bien en la lista de "claves faltantes" (porque no
+    aparecían ahí en absoluto) pero seguían en inglés en pantalla. Se
+    detectó solo al verificar visualmente el panel en español, NO por el
+    validador. Lección: tras envolver texto con `UiText`, buscar
+    manualmente patrones `UiText\.(Get|Format)\([a-zA-Z_!]` (paréntesis
+    seguido de algo que no sea una comilla) en los archivos tocados, y
+    SIEMPRE verificar visualmente en vivo — el validador de claves es una
+    red de seguridad parcial, no prueba de que el texto realmente se vea
+    traducido.
+  - Build limpio, 452/452 tests, catálogo válido (580 IDs en plantilla,
+    255 claves runtime). Verificado en vivo en español: panel de
+    Construcción (título, descripción, requisitos con "madera"/"comida"
+    traducidos, botones Construir granja/cantera), panel de Asignación
+    dentro de `BuildingDetailView` (Producción, Política reactiva,
+    Min./Máx., Trabajadores/Asignados/Disponibles, título "Granja
+    (Comida)" completamente traducido).
+  - Quedan sin tocar deliberadamente (fixture/legado, no alcanzable en
+    juego): `CityMacroView.cs`, `ConstructionPlacementOverlay.cs`.
 
 #### Sub-ítem 2 — `NavigationServer2D` para malla transitable
 
@@ -735,82 +1541,252 @@ reorganiza la lista, los IDs no se renumeran.
     huella, no por tick.
 - **Riesgo:** acoplamiento de `H-26` y este ítem; resolver con
   slice dedicado que integre ambos.
+- **Avance 2026-07-27 — redirigido a la vista de perspectiva (la que
+  realmente se juega).** Antes de tocar código se investigó (fork de
+  auditoría) si el estado "implementado" de arriba seguía teniendo
+  sentido, dado que H-32 (rondas anteriores de esta misma sesión) retiró
+  la vista plana (`CityMacroView`) de la UI por completo. Confirmado:
+  `MacroCitizenActivity`/`NavigationServerPathfinder` NO se ejecutan en
+  ningún flujo de juego real hoy — `CityMacroView` queda oculta apenas
+  `MacroStreetLiveView` activa la perspectiva (que corre después en el
+  árbol de escena y gana), así que ese código solo lo ejercitan
+  `tools/Capture-VisualMatrix.ps1` (fixtures) y los 5 tests que en
+  realidad prueban `CardinalPathfinder`, no `NavigationServerPathfinder`.
+  Terminar el refactor "tal como está descrito arriba" habría sido pulir
+  una ruta muerta. En cambio, el propio `StreetRoutePlanner.cs` (el
+  pathfinding real de la vista de perspectiva) ya documentaba en su
+  propio comentario que un navmesh real sería "la mejora futura" sobre
+  su heurística greedy de corredor-compartido/gap-más-cercano, que
+  todavía puede zigzaguear cuando ningún lateral único cruza limpio
+  TODAS las bandas intermedias a la vez. Se le preguntó al usuario y
+  confirmó: redirigir el esfuerzo del navmesh hacia `StreetRoutePlanner`.
+  - Nuevo `StreetNavigationServerPlanner.cs` (Godot-dependiente,
+    `game/scripts/Prototypes/`) — espejo exacto del patrón ya validado de
+    `NavigationServerPathfinder`: mapa/región propios, rebake completo en
+    cada `Plan()` (una vez por comando de viaje — gather o nueva
+    asignación —, nunca por tick). El espacio de la malla es (lateral,
+    calle × 200px) — las calles se escalan a una unidad "real" en vez de
+    índices enteros desnudos para que el cell-size de bake por defecto se
+    comporte igual en ambos ejes. El "outline" transitable es un rect
+    [min,max] × [callesRelevantes]; cada intervalo ocupado de una banda se
+    agrega como "obstruction outline" ya inflado por `clearance` — solo
+    se hornea el rango de calles relevante (origen/destino ±1), no la
+    ciudad completa.
+  - `StreetRoutePlanner.cs` (Godot-free, sigue intacto y con sus 11 tests
+    originales sin tocar) ganó un método nuevo puro y testeable,
+    `ConvertNavmeshPathToWaypoints`: convierte la polilínea cruda que
+    devuelve `NavigationServer2D.MapGetPath` (que puede cortar en
+    diagonal, cualquier ángulo) en la MISMA forma de `Waypoint` que ya
+    consume `MacroStreetLiveView.AdvanceRouteTick` — "camina por esta
+    calle hasta X, luego cruza" en cada calle intermedia — muestreando la
+    lateral del camino real en cada cruce de calle entera. Esto es
+    deliberado: el héroe nunca corta en diagonal a través de la malla
+    (rompería la gramática de movimiento cuantizado/no-fluido), la malla
+    solo decide QUÉ secuencia de posiciones laterales usar en cada
+    cruce — decisión que la heurística greedy anterior no siempre
+    acertaba en el caso multi-banda.
+  - `MacroStreetLiveView.cs`: nuevo campo `_navmeshPlanner`
+    (instanciado en `_Ready`, `Dispose()` en `_ExitTree`) + helper privado
+    `PlanHeroRoute(...)` que reemplaza las dos llamadas directas a
+    `StreetRoutePlanner.Plan` (`OnGatherRequested`,
+    `BeginWalkToAssignment`): intenta el navmesh primero, cae al
+    planificador greedy SOLO si el navmesh no encuentra ningún camino en
+    absoluto (geometría totalmente sellada) — mismo espíritu de "una ruta
+    de mejor esfuerzo vence a un héroe varado" que ya tenía el
+    planificador original.
+  - **Por qué mantener DOS planificadores en vez de reemplazar uno por
+    otro**: `StreetRoutePlanner.cs` documenta explícitamente "Deliberately
+    Godot-free so xUnit covers it directly" — llamar a
+    `NavigationServer2D` (un singleton del motor) ahí adentro habría roto
+    sus 11 tests existentes con el MISMO crash que ya se encontró dos
+    veces esta sesión (ver [[localize-at-display-not-snapshot]]):
+    `dotnet test` no tiene motor de Godot corriendo. Se replicó el patrón
+    YA establecido en este mismo proyecto
+    (`IPathfinder`/`CardinalPathfinder`/`NavigationServerPathfinder`):
+    una implementación pura+testeada, una implementación real+sin tests
+    directos (verificada por inspección de código + boot en vivo).
+  - 5 tests nuevos para `ConvertNavmeshPathToWaypoints` (mismo calle, cruce
+    recto sin ajuste lateral, cruce único con ajuste lateral, cruce
+    multi-calle muestreando el punto exacto de cada frontera, y el
+    fallback cuando el camino nunca alcanza la profundidad de una calle
+    intermedia). 457/457 tests (452 + 5), build limpio, boot headless con
+    el save real verificado sin errores de `NavigationServer2D`.
+  - **Limitación de verificación honesta**: NO se pudo confirmar en vivo,
+    vía clic simulado, que el navmesh realmente produce una ruta real en
+    lugar de caer siempre al fallback — la secuencia "clic derecho para
+    abrir el menú de recolectar, luego clic izquierdo en el botón" sigue
+    sin poder automatizarse en este entorno (ver
+    [[verify-clicks-with-real-clicks]]); se probó de nuevo con la API
+    moderna `SendInput` además de `mouse_event`, con un evento de
+    liberación redundante y reposicionamiento del cursor — mismo
+    resultado: CUALQUIER clic después de un clic derecho, sin importar el
+    objetivo o la API usada, no llega a `_UnhandledInput`. La confianza
+    en la corrección se apoya en: (a) los 5 tests nuevos que cubren
+    exactamente la lógica de conversión más propensa a errores de
+    interpolación, (b) múltiples boots limpios sin ningún error de
+    `NavigationServer2D` en el log (confirma que `MapCreate`/
+    `RegionCreate`/bake no fallan), y (c) revisión de código cuidadosa del
+    espejo con `NavigationServerPathfinder`. Pendiente: verificación
+    interactiva real por el usuario, o una vía de automatización que no
+    dependa de encadenar un clic tras un clic derecho.
 
-#### Sub-ítem 3 — `TileMap` + `TileSet` para el terreno ortogonal
+#### Sub-ítem 3 — Terreno con textura real y biomas en la vista pseudo-3D
 
-- **Estado 2026-07-26:** Implementado a pedido explícito del usuario,
-  saltando el trigger de escala (8 parcelas hoy, no 16+). El suelo
-  pasó de un loop `DrawTextureRectRegion` por tile a un
-  `TileMapLayer` hijo con `TileSet`/`TileSetAtlasSource` construido en
-  código sobre el mismo atlas Kenney; como el rect del terreno
-  depende del tamaño de ventana (no hay cámara de escala fija), el
-  layer se re-popula y reposiciona/reescala en cada resize (nunca por
-  frame). `CalculateTerrainRect`/`CalculateParcelRect` no cambiaron
-  (las usan `BuildingPlotStage`, hero anchor, etc.). Bug real
-  encontrado y corregido en el camino: el relleno de fondo
-  (`DrawRect` opaco) quedaba en el mismo `_Draw()` con z-index por
-  defecto (0), por encima del `TileMapLayer` (z=-1), tapando el
-  terreno entero; se cambió a un contorno sin relleno (`filled:
-  false`). Verificado por captura en 1024×576/1280×720/1600×900:
-  suelo, líneas de parcela y árboles visibles y en el orden correcto.
-  `ResourceTree` ya se instanciaba como nodo propio, no como sprite —
-  ese criterio de aceptación ya estaba cumplido. 445/445 tests, build
-  limpio.
-- **Por qué:** `OrthogonalParcelTerrain.cs` posiciona sprites de
-  suelo y árboles manualmente con `Vector2` calculados. Cuando el
-  número de parcelas crezca (8 actuales → 64+ en una ciudad
-  mediana), el coste de mantener sprites por-nodo y los
-  `_resolvedTreePositions` se vuelve prohibitivo. `TileMapLayer` +
-  `TileSet` con autotiling da:
-  - **Performance**: el engine renderiza una capa como una sola
-    draw call.
-  - **Menos código**: el autotile de bordes entre parcelas resuelve
-    visualmente los encuentros entre tipos de suelo.
-  - **Coherencia con el bible**: el bible pide "cuadrícula ortogonal"
-    desde el slice 7, ya estamos en esa dirección.
-- **Reemplazo:** un `TileMapLayer` por tipo de superficie (suelo,
-  acento, borde), `TileSet` con autotiling bitmask, sprites
-  importados directamente desde el atlas ortogonal de Kenney.
-- **Trigger:** cuando el número de parcelas supere 16, o cuando se
-  agregue el segundo tipo de suelo (ej. "suelo de quarry" vs
-  "suelo de farm"). Antes: la abstracción manual es aceptable.
-- **Criterios de aceptación:**
-  - `OrthogonalParcelTerrain` se reduce a un wrapper de
-    `TileMapLayer` que solo se preocupa por la lógica de parcela.
-  - `ResourceTree` se instancia como `Node2D` hijo de la `TileMapLayer`
-    de árboles (no como sprite individual).
-  - Bake de las capas es una sola operación al construir el
-    `OrthogonalParcelTerrain`, no por frame.
-- **Riesgo:** romper la lógica de "parcel reserved vs free" que
-  vive en el dominio. Mitigado por mantener `CityMacroSnapshot`
-  como la única fuente de verdad de la parcel grid.
+- **Redirigido 2026-07-27** (mismo patrón que S-1.2): el objetivo
+  original de este sub-ítem — migrar `OrthogonalParcelTerrain.cs` a
+  `TileMapLayer`/`TileSet` — apuntaba a la vista plana
+  (`CityMacroView`), retirada de la UI desde H-32. Ese trabajo de
+  2026-07-26 (TileMapLayer sobre el suelo plano) sigue en el código
+  como respaldo de `tools/Capture-VisualMatrix.ps1`, pero no es
+  alcanzable en juego. A pedido explícito del usuario, este sub-ítem
+  se re-scope a la vista real y actual: `MacroStreetLiveView`, la
+  "perspectiva por calles" pseudo-3D con proyección de profundidad
+  (`StreetDepthProjection`) y suelo tipo staircase pixel-art
+  (Pole Position/Out Run-style). No hay un nombre de industria más
+  específico que ese; el propio bible ya usa "perspectiva por calles"
+  y es tan preciso como cualquier término externo ("2.5D"/pseudo-3D
+  scaling son sinónimos genéricos, no algo más concreto).
+- **Por qué `TileMapLayer` NO aplica aquí:** cada tile del suelo de
+  `DrawTiledFloor` es un trapecio recalculado en cada redraw a partir
+  de la cámara (lateral offset + escala no uniforme por profundidad,
+  `StreetDepthProjection.HorizontalScale`); no es una celda de grid
+  con posición fija. `TileMapLayer`/`TileSet` asumen exactamente lo
+  opuesto: una única transformación afín por capa y coordenadas de
+  celda estáticas. Forzar `TileMapLayer` aquí requeriría un quad
+  por-tile con transform propio recalculado cada frame — algo que
+  `TileMapLayer` no expone — o degradar el proyector de profundidad.
+  Migrar literalmente habría roto la perspectiva o el look
+  "staircase" pixel-art que el usuario explícitamente pidió preservar.
+- **Implementado 2026-07-27 — fase 1 (bioma + textura estática):**
+  `DrawTiledFloor`/`DrawPixelStaircaseTrapezoid` ya no rellenan con
+  color plano (`GroundTileColorA/B`); muestrean el mismo atlas Kenney
+  que ya usan los árboles (`ResourceTree.TerrainAtlasPath`/
+  `AtlasRegionRect`), vía `DrawTextureRectRegion` por cada stripe del
+  staircase (cada stripe recorta su propia franja vertical de la
+  región fuente de 16×16, no la textura completa estirada, para que
+  el tile se lea coherente de punta a punta en vez de repetirse por
+  stripe). `StreetGroundAtlasColumn(street)` asigna un bioma
+  determinístico por calle ciclando Grass(col 5)/Dirt(col 6)/
+  Stone(col 7) — sin estado nuevo de dominio/save, puramente
+  presentacional, mismo espíritu que el comentario propio de
+  `OrthogonalParcelTerrain` de que el arte de terreno nunca debe
+  convertirse en estado de simulación. La columna "Dirt" se eligió
+  deliberadamente igual a la que usará la fase 2 (desgaste), para no
+  necesitar una cuarta textura cuando llegue el pisoteo procedural.
+  El "alternate" checkerboard que antes elegía entre dos colores
+  planos ahora elige entre `GroundAtlasRowA`/`RowB` (dos variantes del
+  mismo material), preservando el hash de `OrthogonalParcelTerrain`.
+  Verificado con captura real (`tools/Capture-VisualMatrix.ps1` /
+  script de verificación equivalente): las 6 calles muestran
+  grass/dirt/stone/grass/dirt/stone en profundidad, staircase y
+  proyector intactos, edificios/árboles/héroe anclados correctamente.
+  457/457 tests, build limpio.
+  - **Bug real encontrado y corregido en el camino:** `((street % 3)
+    + 3) % 3 switch { ... }` — sin paréntesis alrededor de todo el
+    módulo — compila y corre sin error, pero el operando del `switch`
+    se ató solo al literal `3` final, no a la expresión completa
+    (`X % 3 switch {...}` se parsea como `X % (3 switch {...})`, no
+    `(X % 3) switch {...}`). Producía un bioma visualmente incorrecto
+    (franjas de agua turquesa en vez de tierra/piedra) sin ningún
+    error de compilación — solo visible al capturar la vista real y
+    comparar el RGB exacto contra el atlas. Corregido envolviendo el
+    módulo completo entre paréntesis antes del `switch`. Ver
+    [[verify-clicks-with-real-clicks]]: otro caso de "el código
+    compila y los tests pasan" no siendo suficiente sin una captura
+    visual real.
+- **Implementado 2026-07-27 — fase 2 (desgaste procedural / caminos):**
+  `Domain/TerrainWearGrid.cs` (sin `using Godot`) trackea un nivel de
+  desgaste 0..1 por `(street, tileIndex)`, incrementado
+  `WearPerTrample`(0.05) por pisada hasta cruzar `DirtThreshold`(0.5).
+  `MacroStreetLiveView._terrainWear` se marca en los 3 puntos donde el
+  héroe cambia `_heroStreet`/`_heroLateral`: `AdvanceRouteTick` (ruta
+  automática de gather/asignación), `StepHeroStreet` y
+  `TryStepHeroLateral` (pasos manuales) — vía un único helper
+  `TrampleHeroTile()`/`TileIndexAtLateral(lateral)` (misma
+  granularidad de tile que `DrawTiledFloor`, mismo espacio lateral
+  "global" que ya usa `StreetRoutePlanner`). `DrawTiledFloor` sólo
+  aplica el desgaste a `tileRow == 0` (la banda frontal caminable de
+  la calle — el resto de la profundidad del lote, donde están
+  árboles/edificios, nunca se pisa) y, si está desgastado, sustituye
+  la columna de bioma por `DirtAtlasColumn` sin importar el bioma base
+  — el mismo tile que usará "Dirt" como calle entera, reutilizado. Sin
+  estado de dominio nuevo en `CityMacroSnapshot`/save: deliberadamente
+  session-scoped (no `TerrainWearSave`, se resetea cada boot) — ver el
+  comentario propio de `TerrainWearGrid` sobre por qué. Verificado
+  visualmente sembrando desgaste sintético en una tile conocida
+  (`street=0, tileIndex=5/6`) y confirmando el parche de tierra
+  correcto en captura real, luego revertido antes de commitear — la
+  única vía práctica dado que acumular 10 pisadas reales sobre el
+  mismo tile vía clicks simulados no es viable con las limitaciones ya
+  documentadas en [[verify-clicks-with-real-clicks]]. 4 tests nuevos
+  (`TerrainWearGridTests`), 461/461 en total, build limpio.
+- **Riesgo:** ninguno para la lógica de dominio — todo el cambio de
+  fase 1 y 2 es presentacional dentro de `MacroStreetLiveView`/
+  `TerrainWearGrid`, no toca `CityMacroSnapshot` ni la parcel grid. El
+  desgaste no persiste entre sesiones (decisión deliberada, no un
+  olvido); si en el futuro se quiere que sobreviva un reload, hace
+  falta un `TerrainWearSave` en `Domain/Persistence/` análogo a los
+  existentes.
 
 #### Sub-ítem 4 — `MultiMeshInstance2D` para citizens
 
-- **Estado 2026-07-26:** Evaluado a pedido explícito del usuario y
-  **no implementado** — decisión deliberada, no un olvido.
-  `CitizenSpriteCarrier`/`LineageSpritePlayer` reproducen 14 poses
-  LPC (walk, idle, combat-idle, run, jump, climb, sit, hurt, thrust,
-  halfslash, backslash, shoot, spellcast) por linaje/género/variante,
-  todas horneadas en un único `AnimatedSprite2D` sin una capa de
-  "cuerpo base" separable que un `MultiMesh` pudiera reemplazar
-  barato. Migrarlo de verdad requiere un shader con datos por
-  instancia para seleccionar frame/animación — un proyecto en sí
-  mismo — a cambio de cero beneficio con 1-2 citizens visibles hoy
-  (trigger documentado: 20-25). Se mantiene `CitizenSpriteBank` como
-  está; este sub-ítem sigue en pie tal como estaba.
-- **Por qué:** `CitizenSpriteBank`/`CitizenSpriteCarrier` instancian
-  un `PackedScene` por citizen visible. Con 1-2 citizens es
-  despreciable; con 30-50 el coste de instanciación y la
-  fragmentación de draw calls se nota en CPUs integradas.
-  `MultiMeshInstance2D` permite renderizar N ciudadanos como una
-  sola draw call con texturas por instancia.
-- **Reemplazo:** un `MultiMeshInstance2D` con `MultiMesh.TransformFormat = Transform2D`,
+- **Redirigido 2026-07-27:** investigado a pedido del usuario, en el
+  mismo espíritu que S-1.2/S-1.3 — pero acá el problema era más
+  profundo que un target muerto. La premisa completa del sub-ítem
+  ("con 30-50 citizens visibles el costo de instanciar un
+  `PackedScene` por citizen se nota") no tenía nada que optimizar
+  todavía: `MacroStreetLiveView` (la vista real) solo renderizaba al
+  héroe; el único código que mostraba VARIOS citizens ambientales
+  (`MacroCitizenActivity`) estaba conectado exclusivamente a
+  `CityMacroView`, la vista plana ya retirada — el mismo patrón de
+  H-32 orfanando código, ahora sobre una feature entera, no solo una
+  técnica de render. El reclutamiento (`CityWorld.TryRecruitMigrant`)
+  sí es real y ya funciona; la población crecía en el dominio sin
+  nunca verse caminando por la calle.
+- **Implementado 2026-07-27 — presencia ambiente de citizens:** el
+  prerequisito que faltaba. `CityMacroSnapshot.CitizenItem` ahora
+  lleva `Lineage`/`Gender`/`Appearance` (antes solo `HeroVisual` los
+  tenía), necesarios para crear un `CitizenSpriteCarrier` por
+  cualquier citizen, no solo el héroe.
+  `MacroStreetLiveView.RefreshCitizenVisuals(snapshot)` — llamado
+  junto a `EnsureHeroCarrier` en `RefreshPlots()` — agrupa los
+  citizens no-héroe con `CurrentAssignment` (y no en expedición) por
+  edificio, y para cada uno reusa exactamente la misma infraestructura
+  que el héroe (`CitizenSpriteBank.Instance.GetOrCreate`/`Mount`,
+  `VisualState.Macro`): aparecen al ser asignados, desaparecen al ser
+  desasignados o partir de expedición — sin route-walking, se
+  posicionan directamente en su lugar de trabajo (a diferencia del
+  héroe, que sí camina hasta su asignación vía
+  `BeginWalkToAssignment`). Varios workers en el mismo edificio se
+  abren en abanico lateralmente (`WorkerLateralSpacingPx`) para no
+  superponerse. `UpdateWorkerVisuals()` (llamado desde `_Draw()` junto
+  a `UpdateHeroVisual()`) los ancla a la profundidad de la CALLE
+  (`depth`, no `AnchorDepth(depth)` como el edificio) — medio tile
+  más cerca del espectador que el propio edificio — para que se vean
+  parados al frente, no tapados por el sprite del edificio.
+  Verificado reclutando y asignando un citizen sintético en vivo
+  (revertido después, no quedó en el save): visible parado frente a
+  su lugar de trabajo, distinto y no superpuesto con el edificio. Sin
+  cambios a `_pathfinder`/dominio; 461/461 tests, build limpio.
+- **Por qué NO se tocó MultiMesh:** con el sistema recién nacido, el
+  conteo de citizens visibles hoy sigue muy por debajo del trigger de
+  20-25 documentado — no hay datos reales todavía para justificar la
+  migración. `CitizenSpriteCarrier`/`LineageSpritePlayer` siguen
+  reproduciendo 14 poses LPC horneadas en un único `AnimatedSprite2D`
+  sin capa de "cuerpo base" separable; migrar de verdad seguiría
+  requiriendo un shader con datos por instancia — un proyecto en sí
+  mismo. Instanciar un `PackedScene`/`CitizenSpriteCarrier` por
+  citizen sigue siendo lo correcto mientras el conteo sea bajo (mismo
+  razonamiento de "no over-engineer" que ya se aplicó acá).
+- **Reemplazo (sin cambios, sigue en pie tal como estaba):** un
+  `MultiMeshInstance2D` con `MultiMesh.TransformFormat = Transform2D`,
   `UseColors = true` para tinte por linaje, `UseCustomData = false` (la
   pose de animación va por shader/AnimatedSprite separado).
 - **Trigger:** cuando el número promedio de citizens visibles
-  por escena supere 20-25. Antes: el custom es suficiente.
-- **Criterios de aceptación del primer slice:**
+  por escena supere 20-25 — ahora sí medible en la vista real, ya
+  que existe presencia ambiente de citizens para contar. Antes: el
+  custom instancing es suficiente.
+- **Criterios de aceptación del primer slice (sin cambios):**
   - `CitizenSpriteBank` se reduce a un `MultiMeshInstance2D` con
     `InstanceCount = N` y `VisibleInstanceCount = N`.
   - El `CitizenSpriteCarrier` queda como wrapper de citizen
@@ -822,7 +1798,8 @@ reorganiza la lista, los IDs no se renumeran.
 - **Riesgo:** la animación LPC por dirección/orientación es más
   compleja con MultiMesh. Mitigado por un sub-slice que mantenga
   `AnimatedSprite2D` para la pose y use MultiMesh solo para el
-  cuerpo base.
+  cuerpo base. Ningún riesgo nuevo por la presencia ambiente en sí:
+  es presentacional, no toca `CityWorld`/asignaciones.
 
 #### Sub-ítem 5 — FSM library para behavior de NPCs
 
@@ -847,6 +1824,32 @@ reorganiza la lista, los IDs no se renumeran.
   explícita: `RestoreStamina` en un citizen `Working` intacto no debe
   degradarlo a `Resting` solo porque esa transición esté catalogada
   para otro trigger. 445/445 tests, build limpio.
+- **Completado 2026-07-27 — transiciones de expedición:** a diferencia
+  de S-1.2/S-1.3/S-1.4, este pase no necesitó redirect — es dominio
+  puro, sin dependencia de qué vista esté viva. Verifiqué primero que
+  `StartExpedition` exige `!hero.CurrentAssignment.HasValue`, y que
+  por la propia lógica de `SetLocation` un citizen desasignado en casa
+  siempre es `Idle` (nunca `Resting`/`Injured`, que requieren
+  asignación) — así que el primer salto `Idle→Travelling` nunca se
+  topa con una transición no catalogada. `Citizen.DispatchOnExpedition()`
+  (nuevo, interno) encadena `Travelling` y `OnExpedition` en la misma
+  llamada — no hay demora de viaje modelada todavía, así que
+  `Travelling` se visita pero no se permanece en él; eso es un hueco
+  honesto documentado, no un bug. `Citizen.ReturnFromExpedition()`
+  (nuevo, interno) vuelve a `Idle`. `CityWorld` los llama: `hero.DispatchOnExpedition()`
+  tras crear la expedición en `StartExpedition`; un nuevo helper
+  privado `ReturnLeadFromExpedition(expedition)` (busca al líder por
+  `LeadCitizenId` en `_citizens`) llamado desde `CancelExpedition` y
+  desde los 3 desenlaces de `CompleteFinishedExpeditions`
+  (retorno con migrante, retorno con suministros, fallo). Con esto:
+  **8 de 9 transiciones documentadas conectadas** (antes 5). La única
+  que sigue sin call site es `Working→Travelling` ("Cancelled
+  assignment + new target") — no existe hoy un flujo de dominio que
+  cancele una asignación y camine a un nuevo target en el mismo paso;
+  queda catalogada pero no cableada, mismo criterio que antes. 3 tests
+  nuevos (`CitizenBehaviorFsmTests.cs`: dispatch→OnExpedition,
+  completar expedición→Idle, cancelar expedición→Idle), 464/464 tests,
+  build limpio.
 - **Por qué:** los citizens tienen un estado implícito
   (`CitizenLocation`: AtWork, AtHome, OnExpedition) sin transiciones
   explícitas ni eventos. Cuando agreguemos NPCs con comportamiento
@@ -905,8 +1908,46 @@ reorganiza la lista, los IDs no se renumeran.
 
 #### Sub-ítem 7 — Profiler y presupuesto de frame
 
-- **Por qué:** un idle manager vive de la consistencia de
- 帧. Un spike de 50 ms en cualquier sistema rompe la sensación
+- **Estado 2026-07-27 (auditoría):** parcial y con una brecha sustantiva.
+  El umbral real del harness es **40 ms con `Write-Warning`** (deliberado:
+  la captura no debe perderse por un spike), no los 32 ms/`throw` que
+  registró la entrada de S-1 del 2026-07-25. Más grave: el muestreo de
+  30 "frames" mide los intervalos de `Start-Sleep` de PowerShell en el
+  proceso host, no frames del engine — un spike real dentro de Godot es
+  invisible para esta métrica. `docs/PERFORMANCE_BUDGETS.md` además
+  contradice al script en tres puntos (dice "falla la captura/exit 1",
+  menciona un memory profiler y un muestreo vía `Engine.GetFramesPerSecond`
+  que no existen). Pendiente: medir frames reales (p. ej. volcando
+  `Performance.TIME_PROCESS` desde una fixture) y reconciliar el doc.
+- **Completado 2026-07-27 — frames reales + doc reconciliado:**
+  `CityWorldController.SampleFrameTimeForVisualCapture()` (nuevo) llama
+  `Performance.GetMonitor(Performance.Monitor.TimeProcess)` — el costo
+  real por frame del engine — desde `_Process`, solo cuando
+  `WOG_VISUAL_CAPTURE=1`, e imprime `[WOG-FRAME-TIME] <ms>` (tope de
+  300 muestras, ~5s a 60fps, para no crecer el log sin límite si la
+  ventana queda abierta). `Capture-VisualMatrix.ps1` ya no mide sus
+  propios intervalos de `Start-Sleep`: espera a que el screenshot esté
+  listo + 500ms extra, y toma las últimas 30 líneas `[WOG-FRAME-TIME]`
+  del log real (`Select-String` + `double.TryParse` con
+  `InvariantCulture`). **Bug real encontrado corriendo una captura de
+  verdad (no leyendo código):** el juego formateaba el valor con la
+  cultura del SO (`F3` sin cultura explícita); en una máquina con
+  locale de coma decimal (como esta, es-*), cada muestra fallaba el
+  parseo silenciosamente y `frame-time.json` volvía vacío. Corregido
+  formateando con `CultureInfo.InvariantCulture` en el origen.
+  Verificado: captura real produce 30 muestras numéricas válidas en
+  `frame-time.json`, sin warnings. `docs/PERFORMANCE_BUDGETS.md`
+  reconciliado en los 3 puntos que el guion no respaldaba: el chequeo
+  es `Write-Warning` (nunca falla la captura), el mecanismo real es
+  `Performance.Monitor.TimeProcess` vía el log (no
+  `Engine.GetFramesPerSecond()`), y el memory profiler/
+  `Mono.GetTotalMemory()` nunca existió — marcado explícitamente como
+  no implementado en vez de aspiracional-como-si-ya-estuviera. 464/464
+  tests, build limpio (el cambio de dominio es solo presentacional,
+  ningún test nuevo necesario más allá de la verificación de captura
+  en vivo).
+- **Por qué:** un idle manager vive de la consistencia de frame a
+  frame. Un spike de 50 ms en cualquier sistema rompe la sensación
   de "el mundo respira". El profiler de Godot es built-in y
   gratuito; no hay excusa para no usarlo desde el día 1.
 - **Setup:** agregar una rutina de autoprofile al harness de
@@ -919,9 +1960,13 @@ reorganiza la lista, los IDs no se renumeran.
 - **Trigger de revisar:** si el profiler marca >50% del budget
   en cualquier sistema, abrir un sub-ítem de optimización.
 - **Criterios de aceptación:**
-  - Harness de autoprofile funcional, ejecuta en cada matriz.
-  - Budgets definidos en `docs/PERFORMANCE_BUDGETS.md` (nuevo).
-  - CI local (no en repo) alerta cuando un PR rompe el budget.
+  - Harness de autoprofile funcional, ejecuta en cada matriz — **hecho
+    2026-07-27**, con muestras reales del engine, no del host.
+  - Budgets definidos en `docs/PERFORMANCE_BUDGETS.md` — **hecho**,
+    ya existía y quedó reconciliado con el guion real.
+  - CI local (no en repo) alerta cuando un PR rompe el budget —
+    **pendiente**, no implementado; hoy el `Write-Warning` solo se ve
+    corriendo el harness manualmente.
 
 #### Orden de ejecución propuesto
 
@@ -970,27 +2015,6 @@ reorganiza la lista, los IDs no se renumeran.
   ningún sub-ítem se implementa sin que el trigger se haya
   cumplido o el usuario lo solicite explícitamente.
 
-### 🟠 H-11 — No existe una política única de capas y oclusión
-
-- **Estado:** No implementado todavía; sin constantes semánticas de capas ni catálogo. El síntoma original (sprites atravesando panels) está mitigado por el refactor de `CitizenSpriteBank` (los carriers viven en el subtree del view, no en un `CanvasLayer` global), no por una política de capas.
-- **Prioridad:** 🟠 Alta
-- **Categoría:** arquitectura
-- **Afecta:** `CityPrototype.tscn`, `CitizenSpriteBank.cs`, `ModalHost.cs`,
-  `TutorialOverlay.cs`, `AttentionBanner.cs`, `OfflineReportPanel.cs`.
-- **Evidencia:** se usan valores locales `z_index` 10, 15, 20, 21 y 50 sin un
-  catálogo; el `CitizenSpriteBank` vive en un `CanvasLayer` 50, por lo que un
-  citizen puede dibujarse por encima de scrims, modales, HUD o tutorial aunque
-  conceptualmente deba quedar dentro de una pantalla.
-- **Corrección propuesta:** declarar capas semánticas compartidas
-  (`World`, `Screen`, `PersistentHud`, `ModalScrim`, `Modal`, `Toast`,
-  `Tutorial`) y documentar qué puede ocluir a qué. Evitar que carriers de
-  contenido usen una capa superior global; usar un host visual por pantalla o
-  sincronizar su canvas con la capa activa.
-- **Criterios de aceptación:** modal y tutorial siempre cubren/desactivan el
-  contenido inferior; sprites nunca atraviesan panels o scrims; no quedan
-  números de capa mágicos en escenas/scripts.
-- **Relacionados:** C-9, H-12, M-12.
-
 ### 🟡 M-12 — Banners, toasts y tutorial no comparten zonas de exclusión
 
 - **Estado:** No implementado. No existe `OverlayHost` con slots ni prioridad. Solo hay un hook puntual: `Notifier.SetOverlaySuppressed(bool)` que `TutorialOverlay` invoca al abrirse/cerrarse. Banner, toast y tutorial se posicionan como nodos independientes.
@@ -1006,31 +2030,6 @@ reorganiza la lista, los IDs no se renumeran.
 - **Criterios de aceptación:** disparar save toast + error + attention + tutorial
   sin solapamiento ni captura accidental de input.
 - **Relacionados:** H-11, M-11.
-
-### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
-
-- **Estado:** Verificado completo el 2026-07-26 — pendiente moverlo formalmente a Hechas en la próxima pasada de re-análisis. `OfflineReportPanel` envuelve en `_Ready`; `MacroActions` (anclado, no hijo de contenedor) aplica `SafeArea.ApplyOffsets` directo en script; `CityStatusPanel` (hijo de `GameUiShell`, un `VBoxContainer` que ignora `Offset*` en sus hijos) envuelve su fila de chips en `SafeAreaMarginContainer` interno — el wrapper visible con fondo gris que motivó este ítem sólo ocurría al envolver el panel COMPLETO, no la fila interna. Verificado por captura en las tres resoluciones sin fondo gris ni overflow.
-- **Prioridad:** 🟡 Media
-- **Categoría:** arquitectura
-- **Afecta:** `SafeAreaMarginContainer.cs`, `SafeArea.cs`, `MacroActions.cs`,
-  `CityStatusPanel.cs`, Chronicle, Notifier.
-- **Evidencia:** detail/profile/onboarding usan márgenes o safe-area, pero HUD,
-  botones macro y overlays se anclan directamente a bordes con offsets propios.
-- **Corrección propuesta:** encontrar un método para aplicar safe area al HUD
-  y a las acciones macro sin introducir un wrapper visible. Probablemente
-  ajustar `Offset*` del `CityStatusPanel` y `MacroActions` en `_Ready`
-  consultando `DisplayServer.GetDisplaySafeArea()` directamente.
-- **Criterios de aceptación:** simular insets en los cuatro bordes y verificar
-  que ninguna acción, alerta o texto crítico queda fuera.
-- **Relacionados:** C-9, H-16, H-17.
-
-| Tutorial/overlays | captura | captura | captura | tutorial + attention + intento de toast |
-
-En cada celda aplicable se comprueban: rect completo dentro del viewport,
-header y acción de cierre visibles, foco de teclado/gamepad, ausencia de
-solapamientos, y scroll únicamente dentro de secciones de datos no acotados.
-La revisión registra resolución, estado/fixture y resultado; una captura del
-macro inicial no sustituye las demás vistas afectadas.
 
 ---
 
@@ -1122,6 +2121,13 @@ macro inicial no sustituye las demás vistas afectadas.
   feedback de importancia grande para obra completada, expedición
   retornada y ciudadano llegado. `AttentionBanner` ya no re-anchors su
   layout en código — la escena es la única fuente.
+- **Corrección 2026-07-27 (auditoría):** la frase anterior sobreafirma.
+  `FlashLarge` tiene un único call site real: obra completada
+  (`CityMacroView.EmphasiseCompletedBuilding`). Expedición retornada usa
+  solo un toast (`Notifier.Show`) y ciudadano llegado no tiene ningún
+  feedback (no existe `OnAnyCitizensChanged` en `CityMacroView`). Los dos
+  call sites faltantes quedan bajo M-25 (§3), cuyo Estado ya los declara
+  pendientes. `docs/CURRENT_STATUS.md` se corrigió en la misma pasada.
 - **Corrección 2026-07-25 (auditoría post-edición):** al quitar el
   `SetAnchorsAndOffsetsPreset(BottomWide)` que `AttentionBanner.cs`
   aplicaba en runtime, la escena quedó con su anclaje estático previo
@@ -1156,536 +2162,27 @@ macro inicial no sustituye las demás vistas afectadas.
 - **Verificación:** build limpio, 432/432 tests, captura windowed
   reproducida en 1024×576/1280×720/1600×900 tras el fix del harness.
 
-### 🟡 M-24 — Cursor pixel contextual persistente
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** `game/scripts/CursorController.cs` y
-  `game/scripts/ResourceTree.cs`.
-- **Resumen:** el autoload registra cursores pixel para mundo y controles
-  interactivos, aplica `PointingHand` a botones nuevos y conserva `IBeam` en
-  campos de texto. Los árboles solicitan temporalmente la hacha y restauran el
-  cursor global al salir, en vez de eliminarlo con un cursor nulo.
-
-### 🟡 M-23 — Pase visual transversal de UI y HUD
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** `game/assets/ui/default_theme.tres`, `CityPrototype.tscn`,
-  `PauseMenu.tscn`, `LineageShowcase.tscn`, `ResourceActionMenu.tscn`,
-  `ExpeditionPanel.tscn` y `MigrantPanel.tscn`.
-- **Resumen:** los paneles claros que competían con texto crema fueron
-  reemplazados por superficies oscuras opacas con borde cálido. Se añadieron
-  variaciones `PanelCard`, `OverlayPanel` y un `StatusStrip` consistente; la
-  barra macro ahora tiene superficie propia y todos los botones muestran un
-  contorno de foco de alto contraste para teclado/gamepad.
-
-### 🟠 P-Migrant — Roster runtime e integración del segundo ciudadano
-
-- **Cerrado:** 2026-07-24; la firma visual windowed continúa bajo M-14.
-- **Resumen:** `Citizens` ofrece roster seleccionable con rol, estado,
-  ubicación, asignación, linaje, afinidades y stamina. El alta pública genera
-  nombre y perfil propios de forma determinista a partir del nuevo CitizenId,
-  sin clonar al fundador; la sobrecarga explícita se conserva para fixtures.
-  Los residentes asignados mantienen identidad visible en el tablero.
-- **Prueba económica:** reclutar → asignar a Farm → guardar/cargar → catch-up
-  offline produce el mismo stock, stamina y experiencia que los ticks live.
-- **Verificación:** build limpio, 412/412 tests y fixture headless correcto.
-  La matriz windowed sigue bloqueada por un cliente de escritorio 50×50 y no se
-  declara firmada.
-
-### 🔴 C-11 — Build y recompensa migrante de expedición
-
-- **Cerrado:** 2026-07-24
-- **Resumen:** La rama de retorno ya no invoca el constructor privado de
-  `CitizenProfile` ni lee un `MigrantId` fallido. La recompensa migrante falla
-  de forma coherente si el alta no puede completarse y la validación de
-  reservas persistidas incluye inventario de ciudad y stock de edificios.
-- **Verificación:** build con 0 errores/advertencias y 409/409 tests.
-
-### 🟠 H-27 — Estabilización de expediciones y paneles de ciudad
-
-- **Cerrado:** 2026-07-24; queda la firma humana global de M-14.
-- **Resumen:** El ciudadano expedicionario queda fuera del stage, del gather y
-  de las asignaciones hasta retorno/cancelación, incluso tras save/load. Recon
-  vuelve a consumir 1 Wood y retornar 1 Stone. Expedición y migración usan
-  superficies oscuras legibles, foco modal restaurable y botones con jerarquía;
-  salida/retorno se expresan como día y hora, sin ticks internos.
-- **Rendimiento:** el fixture `expedition-returned` bloqueaba el hilo principal
-  al simular 14.400 ticks durante `_Ready`; ahora usa una expedición de un tick.
-  Su matriz 1024×576 / 1280×720 / 1600×900 completa en 9,1 s.
-- **Verificación:** build 0/0, 409/409 tests y matrices automatizadas de
-  `expedition-idle`, `expedition-active`, `expedition-returned` y `migrant`.
-
-### 🟠 C-MigrationV11 — Loader no aplicaba la migración v11→v12
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** `game/scripts/Domain/Persistence/WorldPersistence.cs` (nuevo
-  `MigrateToCurrent` que recorre todas las migraciones puras),
-  `game/scripts/CityWorldController.cs` (loader reducido a la llamada
-  agregada, nueva seam `TryLoadFromPrimarySlot(string? slotsDirectoryOverride)`
-  y autosave cuando la slot se migró), `tests/WorldofGoses.Tests/ControllerLoadSeamTests.cs`
-  (regresión con slot v11 temporal y validación posterior como v12).
-- **Resumen:** Una partida v11 dejaba de cargarse en silencio y volvía a
-  onboarding. El loader ahora pasa por `MigrateToCurrent` y persiste la
-  versión migrada. La seam con directorio temporal permite a xUnit
-  reproducir el recorrido real sin `SceneTree` ni `LocalAppData`.
-
-### 🟡 C-FirstRun — Estabilización de la primera partida
-
-- **Cerrado:** 2026-07-24 (subset de UI); pendiente la firma visual humana
-  completa (ver `P-FirstRun`).
-- **Cambió:** `game/scripts/CityMacroSnapshot.cs` (nuevo
-  `CivilBuildingCount`), `game/scripts/CityMacroView.cs` (usa el contador
-  civil para `DetermineMacroMode`), `game/scripts/OrthogonalParcelTerrain.cs`
-  (rect con franja HUD superior e inferior reservadas),
-  `game/scripts/ConstructionSnapshot.cs` (`Available` desde
-  `Resources.Available`), `game/scripts/ConstructionPanel.cs`
-  (`DescribeMaterials` distingue depósito/total, `RenderBlueprint` evita
-  foco en controles deshabilitados, `DescribeProjectStatus` muestra
-  `Waiting for materials`),
-  `game/scripts/Domain/CityWorld.cs` (`EnsureFoundingShelterContributor`
-  espera a que los `RemainingInputs` estén disponibles, `GatherWood`
-  reintenta la auto-asignación tras recolectar),
-  `game/scripts/BuildingDetailView.cs` (Home click enruta a `SelectHero`),
-  `tests/WorldofGoses.Tests/FirstRunRegressionTests.cs` (seis tests
-  nuevos: modo macro con bosques, disponibilidad con reservas, staged
-  autoassign, rect por resolución).
-- **Resumen:** Una partida recién fundada con bosques vuelve al modo
-  `Empty` con su CTA correcto; los árboles ya no roban clicks al
-  `MacroActions`; el panel de construcción comunica depósito y coste
-  total por separado y la obra ya no se queda esperando un material
-  invisible; Home no intenta desasignar residentes y el foco no cae
-  en controles deshabilitados.
-
-### 🟠 C-ForestAdapterRetired — `BuildingKind.Forest` ya no existe en runtime
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** `game/scripts/Domain/Persistence/WorldPersistence.cs`
-  (nuevo `MigrateV13ToV14` que elimina todos los `BuildingKind.Forest`),
-  `game/scripts/Domain/Persistence/WorldSave.cs` (schema a v14 con nota
-  histórica), `tests/WorldofGoses.Tests/*` (cadena v2…v14 extendida
-  y asserts del nuevo estado).
-- **Resumen:** Una partida v13 que guarde la próxima vez se eleva a v14 y
-  el adaptador de almacenamiento del bosque se elimina del runtime. La
-  madera persiste vía `NaturalResourcePatches` y `CityInventory`; las
-  recetas y la regeneración siguen leyendo el mismo dominio.
-
-### 🟠 C-Migrant — Reclutamiento del segundo ciudadano y primera ciudad viva
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** `game/scripts/Domain/WorldEvent.cs` (nuevo
-  `WorldEventKind.MigrantArrived`),
-  `game/scripts/Domain/CityWorld.cs` (nuevo `TryRecruitMigrant`,
-  `MigrantResult` y `MigrantOutcome`),
-  `game/scripts/Domain/WorldEventRetention.cs` y
-  `game/scripts/Ui/WorldEventTextFormatter.cs` y
-  `game/scripts/OfflineReportPanel.cs` (formateo e icono),
-  `game/scripts/CityWorldController.cs` (nueva ruta pública
-  `TryRecruitMigrant`, autosave y señal `CitizensChanged`),
-  `game/scripts/MigrantPanel.cs` y `game/scenes/Components/MigrantPanel.tscn`
-  (nuevo panel modal con `ModalHost`, foco y botón `Migrant` en
-  `MacroActions/Actions`),
-  `tests/WorldofGoses.Tests/FirstRunRegressionTests.cs` (nuevo test
-  `RecruitMigrant_AddsNonHeroCitizenAndEvent`).
-- **Resumen:** El jugador puede reclutar un ciudadano no-héroe con el
-  perfil del fundador y verlo en `AtHome`, sin asignación y con
-  Chronicle causal. La slot se migra a v14 con la partida
-  `tick 65443` del headless boot; el test de migración y de
-  reclutamiento quedan verdes. La próxima iteración debe entregar la
-  `RosterView` y conectar la expedición como fuente narrativa de
-  ciudadanos.
-
-### 🟠 C-ExpeditionV13 — Primera expedición abstracta persistente
-
-- **Cerrado:** 2026-07-24
-- **Cambió:** nuevos `ExpeditionId`, `ExpeditionStatus`,
-  `ExpeditionRequest` (factory `Reconnaissance`), `Expedition`,
-  `ExpeditionChangedEventArgs`, `ExpeditionSave`; `WorldEventKind`
-  extendido con `ExpeditionDispatched`/`Returned`/`Failed`/`Cancelled`;
-  `CityWorld` añade `Expeditions`, `StartExpedition`, `CancelExpedition`,
-  `CompleteFinishedExpeditions`; `CitizenAssignmentService` consulta
-  `IsCitizenOnActiveExpedition` para bloquear asignaciones; persistencia
-  v13 con `MigrateV12ToV13`, validator para expediciones y reservas
-  huérfanas, captura/restauración de expediciones activas; nuevo
-  `ExpeditionPanel` con `ModalHost` y botón `ExpeditionMenuButton` en
-  `MacroActions`; tests de migración, ledger y expedición.
-- **Resumen:** El jugador puede enviar al fundador en una
-  “Reconnaissance” que reserva 1 Wood, ejecuta live/offline por 4 días
-  de juego, retorna con 1 Stone y registra un par
-  `ExpeditionDispatched`/`ExpeditionReturned` con `CauseEventId`. La
-  partida se persiste como v13 y sobrevive a un reinicio.
-
-### 🔴 C-1 — Onboarding no explica qué hacer tras crear el héroe
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (nuevo `GuidanceLabel` en `EmptyPanel`), `game/scripts/CityMacroView.cs` (`UpdateEmptyPanelGuidance`, tooltip contextual en `ConstructionMenuButton`).
-- **Resumen:** El `EmptyPanel` ahora muestra un callout que se actualiza cada `Refresh()` según el estado de la madera. El botón "Build shelter" del header también muestra un tooltip que explica "necesitas 1 wood" cuando los materiales son insuficientes. El jugador obtiene una pista textual y otra al pasar el cursor.
-
-### 🔴 C-2 — Gathering de madera no es descubrible
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (nodo `GatherWoodButton`), `game/scripts/CityMacroView.cs` (`UpdateGatherWoodButton`, `OnGatherWoodPressed`).
-- **Resumen:** `EmptyPanel` ahora contiene un botón "Gather 2 wood" que se habilita solo cuando hay un Forest con `WoodReserve > 0`. El botón llama a `CityWorldController.GatherWood` sobre el primer Forest útil y notifica al jugador vía `Notifier`. La acción queda sustituida por el flujo normal de asignar trabajadores una vez que el jugador tiene al menos un edificio.
-
-### 🔴 C-3 — El héroe camina durante interacciones
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/MacroCitizenActivity.cs` (nuevo `_heroHovered`, `_heroHitboxPx`, `UpdateHoverState`).
-- **Resumen:** Cuando el cursor entra en el bounding box 128×128 del sprite, el sinusoid se pausa y el cursor cambia a `PointingHand`. Al salir, el héroe reanuda el ciclo. El cambio refuerza la affordance de "esto es interactivo". La pausa cuando el `HeroProfileView` está abierto queda implícita: la macro view está oculta y el sprite no es visible.
-
-### 🔴 C-4 — Acceso redundante al perfil del héroe
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (eliminado `HeroProfileButton` del `EmptyPanel`), `game/scripts/CityMacroView.cs` (referencias cambiadas a `HeroAccessButton`).
-- **Resumen:** El botón de "View hero" dentro del `EmptyPanel` se eliminó porque el `HeroAccessButton` persistente ya está visible en esa vista. El `_viewHeroButton` interno del `ConstructionPanel` se conserva porque el scrim del modal bloquea el botón persistente. La cadena de foco (`FocusNeighborRight`/`Left`) ahora enlaza `HeroAccessButton` ↔ `ConstructionMenuButton`.
-
-### 🔴 C-5 — `OfflineReportPanel` y `ModalHost` colisionan en z-index
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (`z_index` 30 → 10), `game/scripts/CityMacroView.cs` (suscripciones a `ModalHost.Opened`/`Closed`, `OnModalHostOpened`, `RestoreChronicleVisibility`).
-- **Resumen:** El chronicle ahora se dibuja por debajo del modal y se oculta automáticamente cuando el modal se abre. Al cerrarse, se restaura con `ShowLog` para mantener el flujo de eventos.
-
-### 🔴 C-6 — `ConstructionPanel` no se actualiza al cambiar la madera
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ConstructionPanel.cs` (`_wasAuthorizeEnabled`, `_wasFarmEnabled`, `_wasQuarryEnabled`, `_pulseTween`, `DetectEnableTransition`, `PulseButton`, tooltips contextuales en los botones).
-- **Resumen:** El `Refresh()` ya reaccionaba a `BuildingStateChanged`. La mejora detecta la transición `disabled → enabled` en cada uno de los tres botones de autorización y dispara un breve tween verde (`modulate` 0.15 s + 0.45 s). Además, los tooltips ahora explican por qué un botón está deshabilitado ("Needs 1 wood — gather from a Forest first.").
-
-### 🔴 C-7 — `ProductionPanel` no expone la política reactiva
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ProductionPanel.cs` (sección "Reactive policy", `SpinBox` Min/Max, `ValidatePolicy`), `game/scripts/BuildingDetailView.cs` (`OnPolicyConfigureRequested`, `ConfigureProductionPolicy`).
-- **Resumen:** El panel ahora muestra dos `SpinBox` (Min/Max) bajo el toggle de producción. Validan `Min ≤ Max` con error inline y persisten al dominio vía `ConfigureProductionPolicy`. La sección se oculta en edificios sin capacidad (`StorageCapacity == 0`). `Priority` queda en el dominio pero no se expone en UI (sigue el plan: almacenado pero no actuado).
-
-### 🔴 C-8 — Fallos de asignación silenciosos en `BuildingDetailView`
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Notifier.cs` (autoload nuevo), `game/project.godot` (registro de `Notifier`), `game/scripts/BuildingDetailView.cs` (reemplazo de `GD.Print` por `Notifier.ShowError`, `FormatAssignmentError` local).
-- **Resumen:** Nuevo autoload `Notifier` con dos métodos: `Show` (info) y `ShowError` (warning). Aparece como un toast en la parte inferior central, con auto-hide a los 3 s. `BuildingDetailView` ahora muestra mensajes legibles cuando un assignment es rechazado. El `ConstructionPanel` mantiene su `_errorLabel` interno, pero todos los flujos de feedback de la `BuildingDetailView` pasan por el `Notifier`.
-
-### 🟠 H-1 — Plot no muestra progreso durante construcción
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/BuildingPlot.cs` (`_progressBar`, `UpdateText`, tooltip contextual).
-- **Resumen:** Cada plot bajo construcción muestra una `ProgressBar` de 8 px de alto bajo el sprite, con un tooltip que indica el ratio numérico (`progress / required`). Las animaciones de pulse y los tooltips se actualizan en cada `Configure` desde `BuildingPlotStage`.
-
-### 🟠 H-2 — `CityStatusPanel` puede saturarse
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityStatusPanel.cs` (`BuildResourcesChip`, `IconChip.UpdateText`, `IconChip` `MouseFilter=Pass`).
-- **Resumen:** Food + Wood ahora viven en un único `IconChip` "Resources" con tooltip que desglosa ambas cantidades. El resto de chips siguen viéndose, pero la barra ya no excede 1280 px en condiciones normales.
-
-### 🟠 H-3 — Sin control de velocidad de simulación
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityWorldController.cs` (`SpeedChoice`, `SetSimulationSpeed`, `SimulationSpeedChanged`), `game/scripts/CityStatusSnapshot.cs` (`HasController`, `CurrentSpeed`), `game/scripts/CityStatusPanel.cs` (`BuildSpeedControl`, `AddSpeedButton`).
-- **Resumen:** Cuatro botones compactos (Pause, 1×, 2×, 4×) junto al chip de clock. El activo queda destacado y deshabilitado. `SimulationTickIntervalSeconds` se ajusta automáticamente; Paused = 0 hace que la loop de `_Process` no emita ticks.
-
-### 🟠 H-18 — Control de velocidad inconsistente durante pausa
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityWorldController.cs`, `game/scripts/PlayPauseButton.cs`, `game/scripts/SpeedButton.cs`.
-- **Resumen:** Play/pause ahora muestra la acción disponible, restaura la última velocidad activa y no fuerza 1× al reanudar. El selector mantiene visible el multiplicador elegido pero queda deshabilitado durante pausa, por lo que ya no contradice su responsabilidad ni reanuda accidentalmente. El controlador rechaza valores fuera de 0×/1×/2×/4×.
-
-### 🟠 H-19 — Costura única para avance temporal offline
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/WorldTimeAdvance.cs`, `game/scripts/Domain/OfflineProgression.cs`, `tests/WorldofGoses.Tests/WorldEventLogTests.cs`.
-- **Resumen:** `WorldTimeAdvance` decide entre fast-forward de un solo lote para mundos inactivos y stepping canónico para mundos activos. `OfflineProgression` ya no posee el loop completo ni cuenta categorías concretas para detectar novedades: un cursor del log devuelve exactamente los eventos del batch. Una regresión cubre eventos preexistentes de categorías no productivas.
-
-### 🟠 H-20 — Batching causal para ciudades quiescentes
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/CityWorld.cs`, `game/scripts/Domain/WorldTimeAdvance.cs`, `tests/WorldofGoses.Tests/WorldTimeAdvanceTests.cs`.
-- **Resumen:** Una ciudad con edificios/proyectos pero sin asignaciones agrupa todos los ticks que permanecen dentro de la misma fase día/noche. Upkeep, WellFed, stop causes y reloj se aplican en lote; amanecer/atardecer, proyectos completables y bosques demolibles conservan stepping canónico. Una prueba de tres días + 217 ticks compara snapshot JSON y secuencia completa de eventos contra `AdvanceWorldTick`; sólo los seis límites temporales requieren stepping. Mundos con trabajadores asignados permanecen deliberadamente en el camino canónico hasta H-21.
-
-### 🟠 H-21 — Extraer simuladores cohesivos de `CityWorld`
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/CitizenAssignmentService.cs`, `game/scripts/Domain/BuildingProductionSimulation.cs`, `game/scripts/Domain/ConstructionSimulation.cs`, `game/scripts/Domain/CityWorld.cs`.
-- **Resumen:** `CityWorld` conserva su API pública y propiedad del agregado, pero delega consistencia de asignaciones, tick productivo y tick de construcción a tres colaboradores internos puros. Recursos, eventos, autorización, persistencia y transición proyecto→edificio permanecen en la fachada mediante callbacks estrechos. El archivo bajó de más de 1.800 a aproximadamente 1.580 líneas sin introducir Godot, service locator, event bus ni nuevas dependencias.
-
-### 🟠 H-22 — Eventos causales tipados, compactables y persistibles
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/WorldEvent.cs`, `WorldEventLog.cs`,
-  `WorldEventRetention.cs`, `Domain/Persistence/WorldEventSave.cs`,
-  `WorldPersistence.cs`, `CityWorld.cs`, `game/scripts/Ui/WorldEventTextFormatter.cs`.
-- **Resumen:** sujetos y causas usan identidad tipada; nombres y copy dejaron de
-  ser identidad/dato causal. El schema v5 persiste un máximo de 128 eventos
-  significativos, compacta estados repetidos, elimina causas no retenidas y
-  restaura la secuencia de IDs. Producción/progreso incremental y día/noche
-  permanecen disponibles para reportes de sesión pero no inflan el historial durable.
-
-### 🟠 H-23 — Ledger de recursos con ubicación, reserva y consumo atómico
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/CityResourceLedger.cs`, tipos
-  `ResourceLocation*`/`ResourceReservation*`, `CityWorld.cs`,
-  `ConstructionSimulation.cs`, `Domain/Persistence/ResourceReservationSave.cs`,
-  `BuildingSave.cs`, `WorldSave.cs` y `WorldPersistence.cs`.
-- **Resumen:** el ledger proyecta almacenes físicos por ubicación sin duplicar
-  cantidades, centraliza depósito y consumo atómico de recetas, y permite reservar,
-  transferir, liberar o consumir suministros con propietario tipado. Schema v6
-  persiste reservas, secuencia de IDs e `IronStock`; la validación impide reservas
-  huérfanas o superiores al stock físico.
-
-### 🟠 H-4 — Cancelar vs cerrar no está diferenciado
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ConstructionPanel.cs` (`_cancelButton`, `CancelProjectRequested`, `OnCancelButtonPressed`, `OnCancelProjectRequested`).
-- **Resumen:** El footer añade "Cancel project" con icono `Close`. Es visible solo en `Underway`. Al pulsarlo, `CityWorldController.CancelProject` libera el proyecto y un `Notifier` confirma el resultado. La X del header sigue indicando "Close — work continues" mediante el tooltip.
-
-### 🟠 H-5 — Citizens no muestran contexto en el macro view
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityMacroSnapshot.cs` (`CitizenItem` con `Location`, `CurrentStamina`, `MaxStamina`), `game/scripts/MacroCitizenActivity.cs` (`CitizenStatusIcon`, fila con icono + label).
-- **Resumen:** El nombre de cada citizen en el macro view ahora se acompaña de un icono — casa/build según `CurrentLocation`, warning si `CurrentStamina <= 0`. La macro view se refresca con cada `WorldTickAdvanced` para mantener el estado al día.
-
-### 🟠 H-7 — `ConstructionPanel` esconde opciones hasta tener shelter
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ConstructionPanel.cs` (`RenderBlueprint` siempre muestra Farm/Quarry; `_farmButton.Visible = true`, `_quarryButton.Visible = true`).
-- **Resumen:** Los tres botones aparecen siempre. Farm/Quarry se renderizan deshabilitados con candado y tooltip "Build the Basic Shelter first to unlock the Farm/Quarry" hasta que el shelter esté construido, manteniendo al jugador informado del orden canónico.
-
-### 🟠 H-8 — "Decisions needed" no es accionable
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/OfflineReportPanel.cs` (`SetController`, `DecisionNeeded`, `BuildDecisionRow`, `ResolveBuildingId`), `game/scripts/CityMacroView.cs` (`_offlineReport.SetController(_controller)`).
-- **Resumen:** Los grupos de "Decisions needed" ahora son botones cuando el subject name resuelve a un building activo; al pulsar, `CityWorldController.SelectBuilding` abre el detail view. Si el subject ya no existe (Forest demolida), se renderiza como label tradicional.
-
-### 🟠 H-9 — Sin onboarding de la UI en sí
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/TutorialOverlay.cs` (nuevo), `game/scripts/CityWorldController.cs` (señal `HeroCreated`), `game/scenes/CityPrototype.tscn` (nodo `TutorialOverlay` z_index=50).
-- **Resumen:** Tras `HeroCreated`, aparece un overlay con scrim y tres tarjetas secuenciales (status bar, hero, primera construcción). Botones Skip / Next navegan. Memoria in-session (no se repite en la misma partida).
-
-### 🟠 H-10 — Sin feedback de autosave
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityWorldController.cs` (señal `WorldSaved(long unixMillis)`), `game/scripts/CityStatusPanel.cs` (`AttachController`, `OnWorldSaved`, `ApplySavedChip`, `IconChip.UpdateText`).
-- **Resumen:** Cada vez que `TryAutoSave` tiene éxito, el chip "Saved · HH:mm" aparece en el extremo derecho del status bar. Se actualiza en sitio sin recrear el nodo.
-
-### 🟡 M-16 — El icono macro ocultaba el inicio del nombre del ciudadano
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/MacroCitizenActivity.cs`,
-  `tools/Capture-VisualMatrix.ps1`, `docs/VISUAL_REGRESSION.md`.
-- **Resumen:** el icono de estado ahora se escala dentro de una celda 16×16 y
-  mantiene 6 px de separación respecto al nombre. La recaptura muestra `zeventh`
-  completo en 1024×576, 1280×720 y 1600×900. El harness lleva su ventana Godot
-  al frente antes de capturar para no aceptar imágenes tapadas por otras apps.
-
-### 🟡 M-1 — Botón "Found the city" en el onboarding es ambiguo
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/OnboardingView.cs` ("Found the city" → "Create the hero").
-- **Resumen:** El botón final del paso 5 ahora dice "Create the hero", consistente con el título del flujo "Create your hero".
-
-### 🟡 M-2 — `OnboardingView` puede cortar opciones en pantallas bajas
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/OnboardingView.cs` (`NewChoiceGrid` ahora detecta altura del viewport).
-- **Resumen:** En alturas < 720 px, las grids de opciones colapsan a una sola columna. El footer con Back/Next/Confirm sigue siendo sticky y visible.
-
-### 🟡 M-3 — `HeroProfileView` "Current condition" es plano
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/HeroProfileView.cs` (`AddStaminaBar`, `AddIconBody` para elemental affinity).
-- **Resumen:** "Current condition" ahora incluye una `ProgressBar` de stamina, fila de icono heart para stamina, fila para location (casa/build), y fila para el elemental affinity con icono sun.
-
-### 🟡 M-4 — Home building no muestra información útil
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/BuildingDetailView.cs` (`RefreshHomeSummary`).
-- **Resumen:** Cuando el building es Home, en lugar de paneles vacíos se renderiza un `PanelContainer` con "Capacity: X · N citizens resting here." La sección usa el mismo `LineageThemeRegistry.ComponentPanel` que el resto de la pantalla.
-
-### 🟡 M-5 — `ConstructionPanel` tiene `PanelHeader` y `Title` redundantes
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ConstructionPanel.cs` (`_title.Visible = false`).
-- **Resumen:** El `_title` interno ya no se renderiza. El `PanelHeader` queda como única fuente del título.
-
-### 🟡 M-6 — Sprite del héroe sin hover state
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/MacroCitizenActivity.cs` (`HeroClicked` signal, `_UnhandledInput`), `game/scripts/CityMacroView.cs` (`OnHeroClicked`).
-- **Resumen:** El sprite del héroe ahora es clickable. Al hacer click en el, `_controller.SelectHero()` abre el profile. El cursor ya cambia a `PointingHand` en hover (heredado de C-3).
-
-### 🟡 M-7 — `OfflineReportPanel` collapse/expand confuso
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/OfflineReportPanel.cs` (copy del header y tooltip).
-- **Resumen:** El header del chronicle ahora dice "Chronicle — click to collapse" / "Chronicle — click to expand (N)", haciendo explícito que es clickable y mostrando el conteo de eventos. Tooltip reforzado.
-
-### 🟡 M-9 — `CityStatusPanel` no resalta atenciones urgentes
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/AttentionBanner.cs` (nuevo), `game/scripts/CityMacroView.cs` (`UpdateAttentionBanner`), `game/scenes/CityPrototype.tscn` (nodo `AttentionBanner` z_index=15).
-- **Resumen:** Un banner pulsante aparece en la parte inferior central cuando hay buildings con `NoWorkers`/`WorkersExhausted`/`MissingInputs`. El pulse Tween alterna alpha 0.55 ↔ 1 cada 0.9 s. Mensaje claro: "N buildings need attention — open the chronicle."
-
-### 🟢 W-1..W-3 — Slash + entrada/salida con walk en `VisibleWorkerSlot`
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/VisibleWorkerSlot.cs` (estados `Entering/Working/Exiting`, `StartEntry`, `StartSlashLoop`, `OnSpriteAnimationFinished`), `game/scripts/VisibleWorkerSlots.cs` (`ComputeBorderForIndex`, `SlotBorder`).
-- **Resumen:** Cada worker asignado entra caminando desde el borde lateral del contenedor (slots 0-1 desde la izquierda, slot 2 desde la derecha) durante 0.7 s, llega al centro y reproduce `slash_down` en bucle (`AnimationFinished` re-dispara la animación porque el sprite no la marca loop). Al removerlo, deja el slash, gira al borde opuesto y camina 0.7 s hasta desaparecer. Toda la coreografía usa `LineageSpritePlayer.PlayWalk`/`PlaySlash` + `Tween` sobre `sprite.position`, sin tocar el slot padre.
-
-### 🟠 S-1 — `CitizenSpriteBank` + `CitizenSpriteCarrier`
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `CitizenSpriteBank`, `CitizenSpriteCarrier`, los slots de workers, `MacroCitizenActivity`, `HeroProfileView` y sus snapshots.
-- **Resumen:** Macro, detalle de edificio y perfil reutilizan el mismo sprite persistente por `CitizenId`. La reasignación durante una salida revierte el movimiento del carrier existente y los cambios de contexto no crean otra instancia. Se eliminó el preview duplicado del empty panel.
-- **Refuerzo 2026-07-22:** `CitizenSpriteCarrier.Initialize` quedó restringido al ensamblado y el banco cancela/oculta un carrier antes de reemplazarlo o eliminarlo, evitando que un visual diferido sobreviva visible durante el frame de sustitución.
-
-### 🟡 S-4 — Auditoría de ciclo de vida post-refactor
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `CitizenSpriteBank.PruneExcept`, validación de identidad visual y `docs/ARCHITECTURE.md §7b`.
-- **Resumen:** La asignación sigue siendo perezosa y el banco conserva como máximo un carrier por ciudadano visualizado. Los carriers ajenos al mundo activo se eliminan y un ID reutilizado con linaje o género distintos reemplaza su visual anterior. No se atribuye una mejora de FPS: no existía un escenario perfilado que la justificara.
-
-### 🔴 C-9 — Falta un shell transversal que reserve HUD y contenido
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (nodo `GameUiShell` con `CityStatusPanel` + `ScreenContent`), `game/scripts/BuildingDetailView.cs` (`LayoutPreset.FullRect` en `_Ready`).
-- **Resumen:** `GameUiShell` es un `VBoxContainer` tipado con `CityStatusPanel` (`custom_minimum_size = Vector2(0, 40)`) como primer slot y `ScreenContent` (`Control` con `size_flags_vertical = 3`) como segundo. Valida al iniciar que ambos slots directos existan y estén ordenados, y expone referencias tipadas. Macro, detail y profile viven bajo `ScreenContent`; `BuildingDetailView` aplica `LayoutPreset.FullRect` en su `_Ready` y ya no compensa el HUD con offsets. `OnboardingView` y `TutorialOverlay` son hermanos del shell — cubren el HUD por diseño; `ModalHost` pertenece a la pantalla macro porque su alcance actual es ese flujo.
-
-### 🔴 C-10 — `BuildingDetailView` no tiene un presupuesto vertical responsive
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (subtree `BuildingDetailView > SafeArea > Layout`), `game/scripts/AssignmentPanel.cs` (`BuildListScroll`).
-- **Resumen:** `Layout` es un `VBoxContainer` con `Header` fijo arriba y `Content` como `HFlowContainer` de dos columnas (`Main` + `AssignmentPanel`). Ningún `ScrollContainer` envuelve la vista completa; el scroll queda relegado a las listas de datos (`AssignmentPanel._assignedList` y `_availableList`). Caveat: el colapso a una columna es implícito vía `HFlowContainer`; no hay breakpoint explícito. La matriz 1024×576 / 1600×900 no está capturada.
-
-### 🟠 H-12 — El escenario de workers usa coordenadas libres y no puede recortar
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/VisibleWorkerSlots.cs` (`ClipContents = true`, `CustomMinimumSize` derivado), `game/scripts/CitizenSpriteBank.cs` (mounting en el subtree del view).
-- **Resumen:** `VisibleWorkerSlots._Ready` activa `ClipContents` y un mínimo derivado de capacidad (3 × `DetailedCitizenWidth + padding`, alto `SlotHeight + 2*padding`). El carrier se monta con `CitizenSpriteBank.Instance.Mount(carrier, this)` dentro del Control recortado, no en un `CanvasLayer` global, así que el rect del stage lo contiene. Caveat: `SpriteCenterY = 68f` y `SlotHeight = 152` están hard-coded; funcionalmente correcto.
-
-### 🟠 H-13 — `CityStatusPanel` vuelve a saturarse con ancho reducido
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityStatusPanel.cs` (`Refresh()` reactivo, `BuildCompactCityChip`, `OnViewportSizeChanged`).
-- **Resumen:** `Refresh()` consulta `GetViewportRect().Size.X < 1150f` y aplica separación reducida (8 vs 18) más chip combinado "Work · Home · Free" en lugar de los separados. Project y Free Citizens se ocultan en modo compacto. `OnViewportSizeChanged` re-llama a `Refresh`. Caveat: no hay captura automatizada que confirme el umbral visualmente.
-- **Refuerzo 2026-07-22:** M-14 reabrió el ítem al capturar un proyecto activo:
-  el viewport lógico ocultaba el ancho real y el chip detallado desbordaba hasta
-  1600×900. `ShouldUseCompactLayout` usa el ancho físico y fuerza resumen cuando
-  hay proyecto; validado visualmente en 1024/1280/1600 y con cuatro casos xUnit.
-
-### 🟠 H-14 — Las listas de Assignment crecen sin scroll ni límite
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/AssignmentPanel.cs` (`BuildListScroll`, `ScrollContainer` con `VerticalScrollMode = Auto`).
-- **Resumen:** `_assignedList` y `_availableList` ahora viven dentro de `ScrollContainer`s con `CustomMinimumSize` explícito (`(0, 88)` y `(0, 132, expand)`). Resumen y headers permanecen como `Label` fijos sobre los scrollers. Caveat: no hay wiring de auto-scroll al foco con gamepad; el acceptance criterion "preservar foco y hacer auto-scroll al elemento enfocado" queda parcial.
-
-### 🟠 H-15 — Chronicle ocluye plots y mezcla overlay con panel persistente
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/OfflineReportPanel.cs` (constantes `CollapsedTopOffset`/`ExpandedTopOffset`, header `IconButton` toggle, `visibleRows` por estado), `game/scripts/CityMacroView.cs` (`OnModalHostOpened`).
-- **Resumen:** El chronicle inicia colapsado, ocupa solo el header + la fila más reciente (`visibleRows = _isExpanded ? MaxRows : 1`) y se oculta automáticamente cuando `ModalHost` se abre. Caveat: el panel colapsado sigue anclado a `bottom-right` con `offset_left=-376, offset_right=-16`; no es un dock de ancho reservado, solo un overlay no invasivo.
-
-### 🟠 H-16 — Accesos macro colocados con offsets absolutos
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scenes/CityPrototype.tscn` (nodo `MacroActions` con `MarginContainer` + `Actions` `HBoxContainer`), `game/scripts/CityMacroView.cs` (`FocusNeighborRight/Left`).
-- **Resumen:** `HeroAccessButton` y `ConstructionMenuButton` viven ahora bajo `ScreenContent/MacroActions/Actions` (HBoxContainer con `separation = 40`); ya no se posicionan con rects absolutos. Caveat: `MacroActions` es hermano de `CityMacroView`, no hijo — vive bajo `ScreenContent`, separado del view.
-
-### 🟡 M-15 — Scroll solo en secciones de información no acotada
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/BuildingDetailView.cs` (árbol sin `ScrollContainer` global), `game/scripts/AssignmentPanel.cs` (scroll solo en listas), `game/scripts/OfflineReportPanel.cs` (scroll solo en `_scroll`).
-- **Resumen:** `BuildingDetailView > SafeArea > Layout` no contiene `ScrollContainer` global; `Content` es un `HFlowContainer`. El scroll aparece exclusivamente en `AssignmentPanel._assignedList`/`_availableList` y en `OfflineReportPanel._scroll`. `OnboardingView` y `HeroProfileView` sí tienen scroll global porque su contenido es texto no acotado. Caveat: la regla se aplica implícitamente por convención; no hay registry central ni helper compartido.
-
-### 🟠 H-17 — Modales dependen de mínimos fijos sin fallback estrecho
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/ConstructionPanel.cs` (nuevo `_bodyScroll` + `_bodyContent`, refactor de `BuildShell`), `game/scripts/TutorialOverlay.cs` (nuevo `_bodyScroll`, body movido dentro del scroll).
-- **Resumen:** `ConstructionPanel` y `TutorialOverlay` ahora envuelven el body en `ScrollContainer` (`VerticalScrollMode = Auto`, `SizeFlagsVertical = ExpandFill`). Header y footer permanecen fijos fuera del scroll. El viewport max ya estaba cubierto por `ApplyResponsiveMinimumSize` / `ApplyResponsiveCardWidth`. Caveat: la validación visual con texto de prueba 50 % más largo y a 1024×576 sigue pendiente del harness de M-14.
-
-### 🟡 M-13 — Placeholders de plots dominan y desbalancean la ciudad
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/BuildingPlot.cs` (`PlaceholderStyle` con `Subline`, `_placeholderLabelStack` VBoxContainer, `_placeholderSubLabel`, `PlaceholderSize` constant, `InteractionRect` con flag `isPlaceholder`), `tests/WorldofGoses.Tests/BuildingPlotStageTests.cs` (test actualizado).
-- **Resumen:** `PlaceholderStyle` ahora tiene `Subline`; el placeholder se compone de un `VBoxContainer` con `Headline` (`SectionTitle`) + `Subline` (`BodySmall`, ej. "Click to gather wood"). `InteractionRect` recibe un flag `isPlaceholder` y devuelve el canvas del placeholder (192 - 2*24, 144×144) cuando corresponde — el hitbox de Forest ya coincide con el área visible. Test actualizado. Caveat: la comparación visual a 1280×720 con cinco plots sigue dependiendo del harness de M-14.
-
----
-
-### 🟡 M-16 — Forest no gatherable cuando no hay madera
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/CityMacroSnapshot.cs` (`PlotItem.Enabled` para forests), `game/scripts/BuildingPlot.cs` (`_button.Disabled`, tooltip, sublabel).
-- **Resumen:** `CityMacroSnapshot.From` setea `Enabled = (WoodReserve > 0)` para forests. `BuildingPlot.Configure` deshabilita el plot cuando `!enabled && !underConstruction`, cambia el tooltip a `"Forest has no wood available."` y el sublabel a `"Depleted"`. Plot sigue visible (reserva la ubicación para consumo de stock) pero no es interactivo.
-
-### 🟠 M-17 — Auto-release de workers al alcanzar max stock
-
-- **Cerrado:** 2026-07-22
-- **Cambió:** `game/scripts/Domain/Building.cs` (`MaxStockReleaseCooldown`, `MaxStockHoldTicks`, `TickMaxStockWatch`), `game/scripts/Domain/CityWorld.cs` (llamada en `AdvanceWorldTick`).
-- **Resumen:** `Building.TickMaxStockWatch` cuenta ticks consecutivos con `Stock >= MaxStock` (post-producción). Cuando el counter alcanza `MaxStockReleaseCooldown` (6), `ReleaseAssignedWorkers` desasigna a todos los citizens y los deja en `AtHome`. `Building.MaxStockHoldTicks` se resetea a 0 cuando el stock cae bajo el cap (consumo entre ticks). Esto evita que un pico de producción que llega a max vacíe el worksite sin razón.
-
-### 🟠 M-18 — Menú ESC y reinicio seguro del onboarding
-
-- **Cerrado:** 2026-07-23
-- **Cambió:** `game/scenes/PauseMenu.tscn`, `game/scripts/PauseMenu.cs`, `game/scripts/CityWorldController.cs`, `game/scripts/Domain/Persistence/WorldPersistence.cs`, `game/scenes/CityPrototype.tscn`, `tests/WorldofGoses.Tests/WorldPersistenceTests.cs`.
-- **Resumen:** ESC abre una escena modal reutilizable, pausa la simulación y permite cerrar con ESC, X, scrim o Resume. `Start over` exige confirmación, elimina solo el slot primario con sus sidecars y recarga la escena para volver al onboarding. `Settings` queda visible y deshabilitado como siguiente slice. Las fixtures `pause-menu` y `pause-menu-reset` pasaron revisión a 1024×576, 1280×720 y 1600×900 sin escribir en el guardado real.
-
-### 🟡 M-19 — Base ortogonal de terreno y parcelas
-
-- **Cerrado:** 2026-07-23
-- **Cambió:** `game/scenes/OrthogonalParcelTerrain.tscn`, `game/scripts/OrthogonalParcelTerrain.cs`, `game/scenes/CityPrototype.tscn`, `game/assets/terrain/kenney/roguelike-rpg/`, bible de territorio e inventario de assets.
-- **Resumen:** La vista macro adopta definitivamente una cuadrícula ortogonal elevada. Ocho parcelas provisionales, suelo CC0 a escala entera y árboles decorativos deterministas forman el terreno inicial sin introducir estado de simulación dentro de Godot. Quedan para slices posteriores el dominio de parcelas, bloqueo/desbloqueo y la vinculación entre árboles visibles, reserva, agotamiento y regeneración.
-
-### 🟠 M-20 — Árboles interactivos y acceso clicable al menú
-
-- **Cerrado:** 2026-07-23
-- **Cambió:** `ResourceTree`, `ResourceActionMenu`, `OrthogonalParcelTerrain`, `MacroCitizenActivity`, `CityMacroSnapshot`, `CityMacroView`, `PauseMenu`, `CityPrototype.tscn` y cursor CC0 de hacha.
-- **Resumen:** Los Forest ya no producen tarjetas macro. Su reserva genera árboles interactivos; hover instala el cursor de hacha, clic izquierdo o derecho abre el menú contextual, y Gather desplaza automáticamente la representación macro del héroe antes de recoger 2 wood. ESC y el nuevo botón Menu abren la misma pantalla de pausa. Persisten como trabajo posterior la identidad individual de cada árbol, 40 wood por árbol, duración de trabajo simulada y regeneración.
-
-### 🟠 M-21 — Interacción de árboles y progreso inicial bloqueados
-
-- **Cerrado:** 2026-07-23
-- **Cambió:** `CityPrototype.tscn`, `ConstructionPanel`, `CityMacroView`, `CityWorld`, `CityWorldController` y tests de construcción/UI.
-- **Resumen:** El contenedor central deja pasar el puntero hacia los árboles, por lo que hover y clic alcanzan el recurso. Autorizar el Basic Shelter asigna automáticamente al fundador disponible; al cargar, una reparación idempotente cubre partidas antiguas cuyo refugio quedó sin contribuyentes. El body del modal acepta la rueda sobre todo el panel y conserva header/footer fijos. Clic real y scroll inferior pasaron la matriz visual en 1024×576, 1280×720 y 1600×900.
-
-### 🟠 H-24 — Gramática de movimiento pixel-art y rutas con ocupación
-
-- **Cerrado:** 2026-07-23
-- **Cambió:** `PixelMotion`, `MacroCitizenActivity`, `CitizenSpriteCarrier`,
-  `BuildingPlotStage`, `CityMacroView`, `BuildingDetailView` y tests de ruta.
-- **Resumen:** Una primitiva compartida fija locomoción a 12 Hz, pasos cardinales
-  de 8 px y posiciones enteras. Gather calcula una ruta corta alrededor de los
-  footprints visibles en lugar de atravesar el Shelter. El paseo macro y las
-  entradas/salidas de ciudadanos usan la misma cadencia; la detail view deja de
-  aplicar un fade subpíxel. Ruta intermedia y composición detail pasaron la
-  matriz 1024×576, 1280×720 y 1600×900.
+### 🟡 M-11 — Safe area aplicada de forma parcial e inconsistente
+
+- **Cerrado:** 2026-07-27 (verificado completo el 2026-07-26; este cierre es
+  el movimiento documental pendiente).
+- **Cambió:** `SafeArea.cs`, `SafeAreaMarginContainer.cs`, `MacroActions.cs`,
+  `CityStatusPanel.cs`, `OfflineReportPanel.cs` (todo ya en el árbol desde
+  2026-07-25/26; sin cambios de código en este cierre).
+- **Resumen:** `MacroActions` (anclado, no hijo de contenedor) aplica
+  `SafeArea.ApplyOffsets` directo en script; `CityStatusPanel` (hijo del
+  `VBoxContainer` `GameUiShell`, que ignora `Offset*`) envuelve su fila de
+  chips en un `SafeAreaMarginContainer` interno — envolver el panel completo
+  era lo que producía el wrapper gris; `OfflineReportPanel` envuelve en
+  `_Ready`. Verificado por captura en 1024×576, 1280×720 y 1600×900 sin
+  fondo gris ni overflow.
 
 ---
 
 ## 7. Canceladas / Superadas
 
-### 🟠 H-25 — Recursos naturales dependían de `BuildingKind.Forest`
-
-- **Cerrado:** 2026-07-24
-- **Motivo:** superado por `C-ForestAdapterRetired`. La migración v13→v14
-  elimina el adaptador y conserva madera en `NaturalResourcePatches` y
-  `CityInventory`; mantener H-25 activo duplicaba trabajo ya cerrado.
-
-### 🟠 S-2 — `BuildingSpriteCarrier`
-
-- **Cancelado:** 2026-07-22
-- **Motivo:** `BuildingPlotStage.Render` ya reconcilia por `BuildingId`, actualiza el mismo `BuildingPlot` durante su vida y solo lo libera cuando la entidad deja de existir. Un segundo bank/autoload duplicaría ese ciclo de vida sin resolver un bug actual.
-
-### 🟡 S-3 — `ItemSpritePool`
-
-- **Cancelado:** 2026-07-22
-- **Motivo:** El prototipo no renderiza sprites efímeros de items y no hay allocation churn medido. El pool se reabrirá cuando exista un efecto repetido real y el profiler demuestre que instanciarlo es un coste relevante.
-
-### 🟡 M-8 — Forest plot sin art
-
-- **Cancelado:** 2026-07-22
-- **Motivo:** Bloqueado por el art pipeline. `forest_idle.png` no existe en `game/assets/buildings/` ni en `art/exports/buildings/`. El placeholder marrón funciona, pero el art real requiere el flujo de Pixelorama → exports → assets documentado en `docs/ART_PIPELINE.md`. El placeholder cumple su rol por ahora; re-abrir cuando arte ship.
-
-### 🟡 M-10 — Sin audio cues en eventos
-
-- **Cancelado:** 2026-07-22
-- **Motivo:** Bloqueado por falta de assets de audio. El proyecto no tiene carpeta `game/assets/audio/` poblada. El bible menciona audio como pendiente en `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md`. Re-abrir cuando exista una fuente de SFX aprobada.
+*(Vacío — las entradas cerradas el 2026-07-22/24 se purgaron el
+2026-07-27 según la política de dos días; Git conserva el historial.)*
 
 ---
 

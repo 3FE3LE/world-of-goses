@@ -284,6 +284,16 @@ public sealed class Building
             return AssignmentResult.Fail(AssignmentOutcome.AtCapacity, citizenId, Id);
         }
         _assigned.Add(citizenId);
+        // A newly assigned worker earns a fresh MaxStockReleaseCooldown
+        // window. Without this, a building the auto-release watch already
+        // emptied once (stock still pinned at MaxStock, nothing consuming
+        // it) kept its stale _maxStockHoldTicks counter sitting at/above
+        // the cooldown — TickMaxStockWatch only resets it when Stock drops
+        // below MaxStock, which never happens while unassigned — so
+        // assigning a brand-new citizen there re-triggered the auto-release
+        // on literally the next tick, unassigning them again before they
+        // ever produced anything.
+        _maxStockHoldTicks = 0;
         return AssignmentResult.Ok(citizenId, Id);
     }
 

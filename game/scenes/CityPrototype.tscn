@@ -55,6 +55,7 @@ script = ExtResource("5_status")
 [node name="ScreenContent" type="Control" parent="GameUiShell" unique_id=2019693930]
 layout_mode = 2
 size_flags_vertical = 3
+mouse_filter = 2
 
 [node name="CityMacroView" type="Control" parent="GameUiShell/ScreenContent" unique_id=977401515]
 layout_mode = 1
@@ -328,15 +329,15 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/user.svg"
 ButtonText = "Citizens"
 
-[node name="PerspectiveToggleButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=1900000002]
-custom_minimum_size = Vector2(180, 44)
+[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+custom_minimum_size = Vector2(190, 44)
 layout_mode = 2
-tooltip_text = "Toggle the experimental street-perspective view (F9)"
+tooltip_text = "Camera follows the founder. Click to pan freely (F)."
 theme_type_variation = &"ButtonText"
-text = "Perspective"
+text = "Follow founder"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/expand.svg"
-ButtonText = "Perspective"
+IconPath = "res://assets/ui/icons/24/user.svg"
+ButtonText = "Follow founder"
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
 layout_mode = 1

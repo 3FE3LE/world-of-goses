@@ -43,7 +43,7 @@ public partial class AssignmentPanel : PanelContainer
 
         var header = new Label
         {
-            Text = "Workers",
+            Text = UiText.Get("ui.assignment.workers_title"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
         header.ThemeTypeVariation = "PanelTitle";
@@ -55,7 +55,7 @@ public partial class AssignmentPanel : PanelContainer
 
         _root.AddChild(new HSeparator());
 
-        var assignedHeader = new Label { Text = "Assigned" };
+        var assignedHeader = new Label { Text = UiText.Get("Assigned") };
         assignedHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(assignedHeader);
         _assignedList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -63,7 +63,7 @@ public partial class AssignmentPanel : PanelContainer
 
         _root.AddChild(new HSeparator());
 
-        var availableHeader = new Label { Text = "Available" };
+        var availableHeader = new Label { Text = UiText.Get("Available") };
         availableHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(availableHeader);
         _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -98,8 +98,8 @@ public partial class AssignmentPanel : PanelContainer
     public void Refresh(BuildingDetailSnapshot snapshot)
     {
         _summary.Text =
-            $"Assigned: {snapshot.AssignedCount} / {snapshot.WorkerCapacity}\n" +
-            $"Visible: {snapshot.VisibleWorkerCount} · Inside: {snapshot.HiddenWorkerCount}";
+            UiText.Format("ui.assignment.assigned_count", snapshot.AssignedCount, snapshot.WorkerCapacity) + "\n" +
+            UiText.Format("ui.assignment.visible_inside", snapshot.VisibleWorkerCount, snapshot.HiddenWorkerCount);
 
         PopulateAssigned(snapshot);
         PopulateAvailable(snapshot);
@@ -115,7 +115,7 @@ public partial class AssignmentPanel : PanelContainer
 
         if (snapshot.AssignedCount == 0)
         {
-            var empty = new Label { Text = "(no workers)" };
+            var empty = new Label { Text = UiText.Get("ui.assignment.no_workers") };
             empty.ThemeTypeVariation = "BodySmall";
             _assignedList.AddChild(empty);
             return;
@@ -126,8 +126,8 @@ public partial class AssignmentPanel : PanelContainer
             var row = InstantiateRow(
                 citizen.Id.Value,
                 citizen.Name,
-                "Remove",
-                $"Remove from {snapshot.DisplayName}");
+                UiText.Get("Remove"),
+                UiText.Format("ui.assignment.remove_from", snapshot.DisplayName));
             row.ActionRequested += id => EmitSignal(SignalName.UnassignRequested, id);
             _assignedList.AddChild(row);
         }
@@ -143,7 +143,7 @@ public partial class AssignmentPanel : PanelContainer
 
         if (snapshot.AvailableCitizens.Count == 0)
         {
-            var empty = new Label { Text = "(no free citizens)" };
+            var empty = new Label { Text = UiText.Get("ui.assignment.no_free_citizens") };
             empty.ThemeTypeVariation = "BodySmall";
             _availableList.AddChild(empty);
             return;
@@ -155,8 +155,8 @@ public partial class AssignmentPanel : PanelContainer
             var row = InstantiateRow(
                 citizen.Id.Value,
                 citizen.Name,
-                "Assign",
-                $"Assign to {snapshot.DisplayName}",
+                UiText.Get("Assign"),
+                UiText.Format("ui.assignment.assign_to", snapshot.DisplayName),
                 disabled: !canAssign);
             row.ActionRequested += id => EmitSignal(SignalName.AssignRequested, id);
             _availableList.AddChild(row);

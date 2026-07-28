@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -21,7 +22,6 @@ public partial class BuildingDetailView : Control
     [Export] public NodePath ProductionPanelPath { get; set; } = "SafeArea/Layout/Content/Main/ProductionPanel";
     [Export] public NodePath BackButtonPath { get; set; } = "SafeArea/Layout/Header/BackButton";
     [Export] public NodePath TitlePath { get; set; } = "SafeArea/Layout/Header/Title";
-    [Export] public NodePath MacroViewPath { get; set; } = "../CityMacroView";
     [Export] public NodePath ArtHeaderPath { get; set; } = "SafeArea/Layout/Content/Main/BuildingArtHeader";
 
     private CityWorldController _controller = null!;
@@ -31,7 +31,6 @@ public partial class BuildingDetailView : Control
     private Button _backButton = null!;
     private Label _title = null!;
     private TextureRect _artHeader = null!;
-    private CityMacroView _macroView = null!;
     private PanelContainer? _homeSummary;
     private Label? _homeSummaryLabel;
     private BuildingId _currentBuilding;
@@ -51,7 +50,6 @@ public partial class BuildingDetailView : Control
         _backButton = RequireNode<Button>(BackButtonPath);
         _title = RequireNode<Label>(TitlePath);
         _artHeader = RequireNode<TextureRect>(ArtHeaderPath);
-        _macroView = GetNode<CityMacroView>(MacroViewPath);
 
         _slots.CitizenClicked += OnSlotCitizenClicked;
         _assignmentPanel.AssignRequested += OnAssignRequested;
@@ -90,16 +88,28 @@ public partial class BuildingDetailView : Control
         }
     }
 
+    /// <summary>
+    /// The camera push toward the clicked building now happens on the map
+    /// itself (<c>MacroStreetLiveView.BeginBuildingEntry</c>) before this
+    /// view ever opens, so by the time <see cref="ShowBuilding"/> runs the
+    /// "entering" sensation is already delivered — this view just needs a
+    /// quick fade, not its own zoom/pivot animation (which used to scale
+    /// this Control instead of the world, per 2026-07-27 user feedback).
+    /// </summary>
     public void ShowBuilding(BuildingId buildingId)
     {
         _currentBuilding = buildingId;
         Show();
-        Modulate = Colors.White;
         Refresh();
         _backButton.GrabFocus();
+        UiMotion.FadeIn(this);
     }
 
-    public void HideBuilding() => Hide();
+    public void HideBuilding()
+    {
+        Hide();
+        Modulate = Colors.White;
+    }
 
     private void Refresh()
     {
@@ -109,7 +119,8 @@ public partial class BuildingDetailView : Control
         // Title shows the full label: "Quarry (Stone)" rather than
         // just "Quarry" — gives each building a distinguishable name
         // in the detail view even when its visual asset is similar.
-        _title.Text = snapshot.FullDisplayLabel;
+        _title.Text = UiText.Format(
+            "ui.building_detail.full_label", UiText.Get(snapshot.DisplayName), UiText.Get(snapshot.ResourceLabel));
 
         // Texture header shows the building's art above the worker
         // slots. Hidden when the kind has no art yet (Smithy, PotionLab)
@@ -156,9 +167,12 @@ public partial class BuildingDetailView : Control
         int resting = snapshot.HiddenWorkerCount + snapshot.VisibleWorkerCount;
         int capacity = snapshot.WorkerCapacity;
         EnsureHomeSummary();
-        _homeSummaryLabel!.Text = resting == 0
-            ? $"Capacity: {capacity} · No one is resting here."
-            : $"Capacity: {capacity} · {resting} citizen{(resting == 1 ? string.Empty : "s")} resting here.";
+        _homeSummaryLabel!.Text = resting switch
+        {
+            0 => UiText.Format("ui.building_detail.capacity_empty", capacity),
+            1 => UiText.Format("ui.building_detail.capacity_resting_one", capacity, resting),
+            _ => UiText.Format("ui.building_detail.capacity_resting_many", capacity, resting),
+        };
         _homeSummary!.Visible = true;
     }
 
@@ -194,13 +208,13 @@ public partial class BuildingDetailView : Control
     private void OnAssignRequested(int citizenIdValue)
     {
         var result = _controller.TryAssignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
-        if (!result.IsSuccess) Notifier.ShowError(FormatAssignmentError(result.Outcome));
+        if (!result.IsSuccess) Notifier.ShowError(AssignmentErrorText.Format(result.Outcome));
     }
 
     private void OnUnassignRequested(int citizenIdValue)
     {
         var result = _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
-        if (!result.IsSuccess) Notifier.ShowError(FormatAssignmentError(result.Outcome));
+        if (!result.IsSuccess) Notifier.ShowError(AssignmentErrorText.Format(result.Outcome));
     }
 
     private void OnPolicyChangeRequested(bool enabled) =>
@@ -217,8 +231,11 @@ public partial class BuildingDetailView : Control
 
     private void OnBackPressed()
     {
+        // ReturnToCity's SelectionChanged signal already restores whichever
+        // world view should be visible (MacroStreetLiveView today) — a
+        // direct CityMacroView.OnReturnedToCity() call here used to
+        // unconditionally re-show the flat view on top of it.
         _controller.ReturnToCity();
-        _macroView.OnReturnedToCity();
         HideBuilding();
     }
 
@@ -259,18 +276,7 @@ public partial class BuildingDetailView : Control
     }
 
     private void OnAssignmentRejected(int reason) =>
-        Notifier.ShowError($"Assignment rejected (code {reason}).");
-
-    private static string FormatAssignmentError(AssignmentOutcome outcome) => outcome switch
-    {
-        AssignmentOutcome.AtCapacity => "Project is at worker capacity.",
-        AssignmentOutcome.AlreadyAssigned => "Citizen is already a contributor.",
-        AssignmentOutcome.CitizenUnavailable => "Citizen is assigned elsewhere.",
-        AssignmentOutcome.NotAssigned => "Citizen is not assigned here.",
-        AssignmentOutcome.CitizenNotFound => "Citizen no longer exists.",
-        AssignmentOutcome.BuildingNotFound => "Worksite no longer exists.",
-        _ => "Assignment rejected.",
-    };
+        Notifier.ShowError(UiText.Format("ui.building_detail.assignment_rejected", reason));
 
     private T RequireNode<T>(NodePath path) where T : class
     {

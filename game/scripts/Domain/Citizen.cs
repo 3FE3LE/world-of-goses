@@ -149,6 +149,32 @@ public sealed class Citizen
         }
     }
 
+    /// <summary>
+    /// Drives the two expedition-dispatch transitions (S-1.5 follow-up)
+    /// back to back: <see cref="CityWorld.StartExpedition"/> only ever
+    /// calls this on the hero, and only after confirming the hero is
+    /// unassigned — per <see cref="SetLocation"/>'s own logic that always
+    /// means <see cref="CitizenBehaviorState.Idle"/>, never <c>Resting</c>
+    /// or <c>Injured</c> (both require an assignment), so both hops are
+    /// always documented and never silently rejected. No travel-time delay
+    /// is modelled yet, so <c>Travelling</c> is visited but not lingered
+    /// in — see <c>TO_DO.md</c> S-1.5 for why that's an honest gap, not a bug.
+    /// </summary>
+    internal void DispatchOnExpedition()
+    {
+        _behaviorFsm.TryTransition(CitizenBehaviorState.Travelling, "Hero dispatched on expedition");
+        _behaviorFsm.TryTransition(CitizenBehaviorState.OnExpedition, "Expedition reaches Active state");
+    }
+
+    /// <summary>
+    /// Returns the citizen to <see cref="CitizenBehaviorState.Idle"/> when
+    /// their expedition ends — whether by natural completion, failure, or
+    /// cancellation; the catalog documents all three under the same
+    /// "returns or is cancelled" trigger.
+    /// </summary>
+    internal void ReturnFromExpedition() =>
+        _behaviorFsm.TryTransition(CitizenBehaviorState.Idle, "Expedition returns or is cancelled");
+
     internal void VisitResource(BuildingId buildingId, int unitId, int positionIndex)
     {
         LastVisitedResourceBuildingId = buildingId;

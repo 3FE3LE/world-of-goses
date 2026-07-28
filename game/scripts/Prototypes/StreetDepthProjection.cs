@@ -20,10 +20,21 @@ namespace WorldofGoses.Prototypes;
 /// </summary>
 public static class StreetDepthProjection
 {
-    public const float VerticalDepthFactor = 0.85f;
-    public const float HorizontalDepthFactor = 0.80f;
-    private const float BaseRowSpacingPx = 96f;
-    private const float HorizonY = 80f;
+    // 2026-07-27: flattened per user feedback — the original factors (0.85/0.80)
+    // plus an 80px horizon cap made the "road" tall and steep, so rows far
+    // from the viewer diverged in aspect (horizontal shrinking much faster
+    // than vertical) enough to read as visibly "stretched" rather than
+    // gently receding. A smaller gap between the two factors keeps the
+    // required non-uniform shrink (horizontal still shrinks faster — see
+    // StreetDepthProjectionTests.FartherRows_ShrinkNonUniformly) but far
+    // more gradually; raising the horizon shortens the total vertical
+    // throw, i.e. a shallower incline. The pixel-staircase rendering
+    // technique itself (DrawPixelStaircaseTrapezoid) is untouched by this —
+    // it only consumes whatever screen coordinates these formulas produce.
+    public const float VerticalDepthFactor = 0.90f;
+    public const float HorizontalDepthFactor = 0.87f;
+    private const float BaseRowSpacingPx = 80f;
+    private const float HorizonY = 200f;
 
     public static float VerticalScale(float depth) => Mathf.Pow(VerticalDepthFactor, depth);
 

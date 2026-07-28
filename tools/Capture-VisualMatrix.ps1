@@ -55,6 +55,8 @@ public static class VisualMatrixWindowCapture
     public const uint ShowWindow = 0x0040;
     public const uint LeftDown = 0x0002;
     public const uint LeftUp = 0x0004;
+    public const uint RightDown = 0x0008;
+    public const uint RightUp = 0x0010;
 }
 "@
 
@@ -123,8 +125,19 @@ foreach ($resolution in $resolutions) {
         Start-Sleep -Milliseconds 250
 
         foreach ($click in $NormalizedClicks) {
-            $parts = $click.Split(',')
-            if ($parts.Count -ne 2) { throw "Invalid normalized click '$click'. Use X,Y." }
+            # Optional "R:" prefix simulates a right click (e.g. "R:0.5,0.6");
+            # no prefix (or "L:") is a left click — the default.
+            $isRightClick = $false
+            $coords = $click
+            if ($click -match '^[Rr]:(.+)$') {
+                $isRightClick = $true
+                $coords = $Matches[1]
+            }
+            elseif ($click -match '^[Ll]:(.+)$') {
+                $coords = $Matches[1]
+            }
+            $parts = $coords.Split(',')
+            if ($parts.Count -ne 2) { throw "Invalid normalized click '$click'. Use [L:|R:]X,Y." }
             $normalX = [double]::Parse($parts[0], [Globalization.CultureInfo]::InvariantCulture)
             $normalY = [double]::Parse($parts[1], [Globalization.CultureInfo]::InvariantCulture)
             if ($normalX -lt 0 -or $normalX -gt 1 -or $normalY -lt 0 -or $normalY -gt 1) {
@@ -133,10 +146,10 @@ foreach ($resolution in $resolutions) {
             $screenX = $origin.X + [int]($actualWidth * $normalX)
             $screenY = $origin.Y + [int]($actualHeight * $normalY)
             [VisualMatrixWindowCapture]::SetCursorPos($screenX, $screenY) | Out-Null
-            [VisualMatrixWindowCapture]::mouse_event(
-                [VisualMatrixWindowCapture]::LeftDown, 0, 0, 0, [UIntPtr]::Zero)
-            [VisualMatrixWindowCapture]::mouse_event(
-                [VisualMatrixWindowCapture]::LeftUp, 0, 0, 0, [UIntPtr]::Zero)
+            $downFlag = if ($isRightClick) { [VisualMatrixWindowCapture]::RightDown } else { [VisualMatrixWindowCapture]::LeftDown }
+            $upFlag = if ($isRightClick) { [VisualMatrixWindowCapture]::RightUp } else { [VisualMatrixWindowCapture]::LeftUp }
+            [VisualMatrixWindowCapture]::mouse_event($downFlag, 0, 0, 0, [UIntPtr]::Zero)
+            [VisualMatrixWindowCapture]::mouse_event($upFlag, 0, 0, 0, [UIntPtr]::Zero)
             Start-Sleep -Milliseconds 350
         }
 
@@ -154,32 +167,45 @@ foreach ($resolution in $resolutions) {
             $bitmap.Dispose()
         }
 
-        # Frame-time sampling (S-1.7). After 1 s of warm-up the
-        # scene is in steady state; sample 30 frames and write the
-        # deltas to frame-time.json next to the manifest. The
-        # budget check is intentionally lenient: we only warn when
-        # any sample exceeds 2x the budget from
-        # docs/PERFORMANCE_BUDGETS.md (40 ms, the worst-case scenario's
-        # spike budget) — a perf regression is worth surfacing but must
-        # not cost the screenshot that was already captured above.
+        # Frame-time sampling (S-1.7, reworked 2026-07-27). The prior
+        # version measured PowerShell host Start-Sleep interval drift —
+        # blind to any real stall inside the Godot process (see TO_DO.md
+        # S-1.7's audit). CityWorldController.SampleFrameTimeForVisualCapture
+        # instead prints the engine's own Performance.Monitor.TimeProcess
+        # every frame (tagged, capped at 300 samples) whenever
+        # WOG_VISUAL_CAPTURE is set. By now the process has been running
+        # for several seconds (startup + optional clicks + screenshot), so
+        # plenty of real frames are already in the log; a short extra wait
+        # only guards the case where NormalizedClicks was empty and the
+        # screenshot came back almost immediately.
+        Start-Sleep -Milliseconds 500
+        $frameTimeTag = "[WOG-FRAME-TIME]"
         $frameSamples = New-Object System.Collections.Generic.List[double]
-        $warmupStart = [System.Diagnostics.Stopwatch]::StartNew()
-        while ($warmupStart.ElapsedMilliseconds -lt 1000) {
-            Start-Sleep -Milliseconds 16
-        }
-        $sampleStart = [System.Diagnostics.Stopwatch]::StartNew()
-        $lastElapsedMs = 0.0
-        for ($i = 0; $i -lt 30; $i++) {
-            Start-Sleep -Milliseconds 16
-            $nowElapsedMs = $sampleStart.Elapsed.TotalMilliseconds
-            $frameSamples.Add($nowElapsedMs - $lastElapsedMs)
-            $lastElapsedMs = $nowElapsedMs
+        if (Test-Path -LiteralPath $logPath) {
+            $tagLines = Select-String -LiteralPath $logPath -SimpleMatch $frameTimeTag
+            $lastLines = $tagLines | Select-Object -Last 30
+            foreach ($lineMatch in $lastLines) {
+                $valueText = $lineMatch.Line.Substring(
+                    $lineMatch.Line.IndexOf($frameTimeTag) + $frameTimeTag.Length).Trim()
+                [double]$parsed = 0
+                if ([double]::TryParse($valueText, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
+                    $frameSamples.Add($parsed)
+                }
+            }
         }
         $frameTimePath = Join-Path $resolvedOutput "$StateName-$slug-frame-time.json"
         $frameSamples | ConvertTo-Json -AsArray | Set-Content -LiteralPath $frameTimePath -Encoding utf8
-        $maxFrame = ($frameSamples | Measure-Object -Maximum).Maximum
-        if ($maxFrame -gt 40.0) {
-            Write-Warning "Frame budget exceeded at $StateName ${slug}: max $maxFrame ms (> 40 ms spike budget)."
+        if ($frameSamples.Count -eq 0) {
+            Write-Warning "No $frameTimeTag samples found in the log at $StateName ${slug} — frame budget not verified this run."
+        }
+        else {
+            # Deliberately Write-Warning, not a terminating failure: the
+            # screenshot above is the primary artifact this harness exists
+            # to produce, and a perf regression must never cost it.
+            $maxFrame = ($frameSamples | Measure-Object -Maximum).Maximum
+            if ($maxFrame -gt 40.0) {
+                Write-Warning "Frame budget exceeded at $StateName ${slug}: max $maxFrame ms (> 40 ms spike budget)."
+            }
         }
     }
     finally {

@@ -48,7 +48,7 @@ public partial class VisibleWorkerSlot : Control
                 PresentationConstants.DetailedCitizenWidth,
                 VisibleWorkerSlots.SlotHeight),
             Flat = true,
-            TooltipText = "Click to remove this worker",
+            TooltipText = UiText.Get("Click to remove this worker"),
         };
         _hitArea.Pressed += () => EmitSignal(SignalName.CitizenActivated, CitizenId.Value);
         AddChild(_hitArea);

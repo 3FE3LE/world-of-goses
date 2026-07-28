@@ -28,13 +28,46 @@ msgstr ""
 msgid "(no workers)"
 msgstr ""
 
+msgid "A Basic Shelter is ready."
+msgstr ""
+
+msgid "Adaptability"
+msgstr ""
+
+msgid "Aether"
+msgstr ""
+
 msgid "Afecta la presentación del sprite, no el resultado narrativo."
+msgstr ""
+
+msgid "Agnostic"
+msgstr ""
+
+msgid "Agriculture & living systems"
 msgstr ""
 
 msgid "Ah."
 msgstr ""
 
+msgid "Air"
+msgstr ""
+
+msgid "Ambitious"
+msgstr ""
+
+msgid "Arts & culture"
+msgstr ""
+
+msgid "Assign"
+msgstr ""
+
+msgid "Assign at least one available citizen below. Construction cannot advance without contributors."
+msgstr ""
+
 msgid "Assigned"
+msgstr ""
+
+msgid "Assignment rejected."
 msgstr ""
 
 msgid "At home"
@@ -43,7 +76,16 @@ msgstr ""
 msgid "Audio, display, accessibility, and controls will live here."
 msgstr ""
 
+msgid "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction."
+msgstr ""
+
+msgid "Authorise the Basic Shelter."
+msgstr ""
+
 msgid "Authorised"
+msgstr ""
+
+msgid "Autonomist"
 msgstr ""
 
 msgid "Available"
@@ -58,16 +100,88 @@ msgstr ""
 msgid "Basic Shelter"
 msgstr ""
 
+msgid "Basic Shelter completed"
+msgstr ""
+
+msgid "Blades"
+msgstr ""
+
+msgid "Body variant used by the imported sprite."
+msgstr ""
+
+msgid "Body-aware builders, extractors, rescuers and operational coordinators."
+msgstr ""
+
+msgid "Bold"
+msgstr ""
+
+msgid "Build a Farm."
+msgstr ""
+
+msgid "Build a Quarry."
+msgstr ""
+
+msgid "Build Farm"
+msgstr ""
+
+msgid "Build Quarry"
+msgstr ""
+
+msgid "Build the Basic Shelter first to unlock the Farm."
+msgstr ""
+
+msgid "Build the Basic Shelter first to unlock the Quarry."
+msgstr ""
+
+msgid "Build the Basic Shelter first."
+msgstr ""
+
+msgid "Build the first shelter"
+msgstr ""
+
 msgid "Building"
 msgstr ""
 
+msgid "Buscaré…"
+msgstr ""
+
 msgid "Cancel"
+msgstr ""
+
+msgid "Cancel project"
+msgstr ""
+
+msgid "Cancel the project. The deposit is lost and the site is cleared."
+msgstr ""
+
+msgid "Carers, coordinators, artists and protectors of group cohesion."
+msgstr ""
+
+msgid "Cautious"
+msgstr ""
+
+msgid "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
+msgstr ""
+
+msgid "Choose the next construction"
 msgstr ""
 
 msgid "Chronicle — click to collapse"
 msgstr ""
 
 msgid "Citizen"
+msgstr ""
+
+msgid "Citizen is already a contributor."
+msgstr ""
+
+msgid "Citizen is assigned elsewhere."
+msgstr ""
+
+msgid "Citizen is not assigned here."
+msgstr ""
+
+msgid "Citizen no longer exists."
 msgstr ""
 
 msgid "Citizens"
@@ -97,7 +211,28 @@ msgstr ""
 msgid "Close the construction menu (work continues)."
 msgstr ""
 
+msgid "Combat style — choose one"
+msgstr ""
+
+msgid "Comenzaré de nuevo…"
+msgstr ""
+
+msgid "Commerce & administration"
+msgstr ""
+
+msgid "Communitarian"
+msgstr ""
+
+msgid "Compassionate"
+msgstr ""
+
+msgid "Complete every single-choice section."
+msgstr ""
+
 msgid "Complete the earlier steps to review the profile."
+msgstr ""
+
+msgid "Completed"
 msgstr ""
 
 msgid "Confirm placement"
@@ -106,13 +241,28 @@ msgstr ""
 msgid "Conservar este nombre"
 msgstr ""
 
+msgid "Conservaré…"
+msgstr ""
+
 msgid "Construction"
+msgstr ""
+
+msgid "Construction & infrastructure"
+msgstr ""
+
+msgid "Construction could not be authorized."
 msgstr ""
 
 msgid "Construction progress"
 msgstr ""
 
+msgid "Contemplative"
+msgstr ""
+
 msgid "Contributors exhausted"
+msgstr ""
+
+msgid "Cooperative"
 msgstr ""
 
 msgid "Could not cancel the project."
@@ -121,13 +271,37 @@ msgstr ""
 msgid "Create a hero first."
 msgstr ""
 
+msgid "Create the founding hero first."
+msgstr ""
+
 msgid "Create the hero"
 msgstr ""
 
 msgid "Create your hero"
 msgstr ""
 
+msgid "Creativity"
+msgstr ""
+
+msgid "Curious"
+msgstr ""
+
+msgid "Defensive support"
+msgstr ""
+
 msgid "Delete the current local city and return to onboarding."
+msgstr ""
+
+msgid "Devout"
+msgstr ""
+
+msgid "Diplomatic"
+msgstr ""
+
+msgid "Direct assault"
+msgstr ""
+
+msgid "Disciplined"
 msgstr ""
 
 msgid "Dispatch"
@@ -139,10 +313,34 @@ msgstr ""
 msgid "Dispatch a reconnaissance."
 msgstr ""
 
+msgid "Earth"
+msgstr ""
+
+msgid "Ecological"
+msgstr ""
+
 msgid "El nombre debe tener entre 1 y 32 caracteres y no contener controles."
 msgstr ""
 
 msgid "El nombre que atravesará contigo"
+msgstr ""
+
+msgid "Element and combat"
+msgstr ""
+
+msgid "Elemental affinity — choose one"
+msgstr ""
+
+msgid "Empathy"
+msgstr ""
+
+msgid "Engineering & manufacturing"
+msgstr ""
+
+msgid "Engineers, maintainers and makers drawn to systems that can be understood and repaired."
+msgstr ""
+
+msgid "Enter a name between 1 and 32 characters."
 msgstr ""
 
 msgid "event.building_created"
@@ -199,10 +397,34 @@ msgstr ""
 msgid "event.workers_exhausted"
 msgstr ""
 
+msgid "Exploration & survival"
+msgstr ""
+
+msgid "Explorers, navigators, prospectors and connectors between distant communities."
+msgstr ""
+
+msgid "Extraction"
+msgstr ""
+
 msgid "Farm"
 msgstr ""
 
+msgid "Feminine"
+msgstr ""
+
+msgid "Finish or cancel the current project first."
+msgstr ""
+
+msgid "Fire"
+msgstr ""
+
 msgid "Food"
+msgstr ""
+
+msgid "food"
+msgstr ""
+
+msgid "Forest"
 msgstr ""
 
 msgid "FORMA RECONSTRUIDA"
@@ -214,7 +436,13 @@ msgstr ""
 msgid "Gather"
 msgstr ""
 
+msgid "Gender — choose one"
+msgstr ""
+
 msgid "Got it"
+msgstr ""
+
+msgid "Heavy weapons"
 msgstr ""
 
 msgid "Hero"
@@ -226,13 +454,37 @@ msgstr ""
 msgid "Hero profile"
 msgstr ""
 
+msgid "Identity"
+msgstr ""
+
 msgid "In progress. Click the construction menu for details."
+msgstr ""
+
+msgid "Independent"
+msgstr ""
+
+msgid "Individual aptitudes and professional affinities can reinforce or contradict lineage tendencies."
 msgstr ""
 
 msgid "Inputs due: none"
 msgstr ""
 
+msgid "Institutional"
+msgstr ""
+
+msgid "Intentaré comprender…"
+msgstr ""
+
+msgid "Interpreters of people, roles, conflict, identity and public life."
+msgstr ""
+
+msgid "iron"
+msgstr ""
+
 msgid "La forma está lista."
+msgstr ""
+
+msgid "Lineage — choose one"
 msgstr ""
 
 msgid "Lineage theme showcase"
@@ -241,16 +493,40 @@ msgstr ""
 msgid "Lineage theme: ardhen"
 msgstr ""
 
+msgid "Logistics"
+msgstr ""
+
+msgid "Manual precision"
+msgstr ""
+
+msgid "Masculine"
+msgstr ""
+
 msgid "Max"
 msgstr ""
 
+msgid "Medicine & care"
+msgstr ""
+
+msgid "Memory"
+msgstr ""
+
 msgid "Menu"
+msgstr ""
+
+msgid "Mercantile"
 msgstr ""
 
 msgid "Min"
 msgstr ""
 
 msgid "Min must be less than or equal to Max."
+msgstr ""
+
+msgid "Missing materials. Check the requirements above."
+msgstr ""
+
+msgid "Mobility"
 msgstr ""
 
 msgid "narrative.detail.body"
@@ -631,6 +907,9 @@ msgstr ""
 msgid "narrative.world.title"
 msgstr ""
 
+msgid "Needs 1 wood — gather from a Forest first."
+msgstr ""
+
 msgid "Needs attention · newest entry at the bottom"
 msgstr ""
 
@@ -643,13 +922,70 @@ msgstr ""
 msgid "No buildings yet. Your hero is ready for the first decision."
 msgstr ""
 
+msgid "No contributors yet."
+msgstr ""
+
+msgid "No founder is available to gather."
+msgstr ""
+
+msgid "No free citizens."
+msgstr ""
+
+msgid "No hero available"
+msgstr ""
+
 msgid "no material cost"
+msgstr ""
+
+msgid "No unlocked parcel has a free building lot."
 msgstr ""
 
 msgid "Nombre del fundador"
 msgstr ""
 
 msgid "None"
+msgstr ""
+
+msgid "none selected"
+msgstr ""
+
+msgid "Not enough materials to authorise a Farm."
+msgstr ""
+
+msgid "Not enough materials to authorise a Quarry."
+msgstr ""
+
+msgid "not selected"
+msgstr ""
+
+msgid "Observation"
+msgstr ""
+
+msgid "Observers of living systems, medicine, cultivation and ecological recovery."
+msgstr ""
+
+msgid "Often learn by connecting organisms, cycles, water, soil and long-term consequences."
+msgstr ""
+
+msgid "Often learn by observing behaviour, changing perspectives and navigating social context."
+msgstr ""
+
+msgid "Often learn through components, diagnosis, adaptation, disassembly and iterative repair."
+msgstr ""
+
+msgid "Often learn through models, comparison, documentation, hypotheses and cross-disciplinary analysis."
+msgstr ""
+
+msgid "Often learn through movement, terrain, weather, routes and adaptation away from fixed infrastructure."
+msgstr ""
+
+msgid "Often learn through posture, weight, rhythm, vibration and practical repetition."
+msgstr ""
+
+msgid "Often learn through records, scarcity, risk, negotiation and service networks."
+msgstr ""
+
+msgid "Often learn through shared practice, emotional communication, crisis response and collective memory."
 msgstr ""
 
 msgid "On expedition"
@@ -673,7 +1009,13 @@ msgstr ""
 msgid "Open the hero profile"
 msgstr ""
 
+msgid "Orientation"
+msgstr ""
+
 msgid "Patch growth at next dawn"
+msgstr ""
+
+msgid "Patient"
 msgstr ""
 
 msgid "Pause"
@@ -685,7 +1027,34 @@ msgstr ""
 msgid "Paused"
 msgstr ""
 
+msgid "Paused by the player"
+msgstr ""
+
 msgid "Paused. Resume from the construction menu."
+msgstr ""
+
+msgid "Personal paths"
+msgstr ""
+
+msgid "Personality"
+msgstr ""
+
+msgid "Polearm"
+msgstr ""
+
+msgid "Political orientation — choose one"
+msgstr ""
+
+msgid "Political orientation and spiritual posture are separate, descriptive choices."
+msgstr ""
+
+msgid "potions"
+msgstr ""
+
+msgid "Pragmatic"
+msgstr ""
+
+msgid "Precision"
 msgstr ""
 
 msgid "Production"
@@ -694,7 +1063,22 @@ msgstr ""
 msgid "Production paused by the player"
 msgstr ""
 
+msgid "Profile review"
+msgstr ""
+
+msgid "Project at capacity."
+msgstr ""
+
+msgid "Project is at worker capacity."
+msgstr ""
+
+msgid "Protective"
+msgstr ""
+
 msgid "Quarry"
+msgstr ""
+
+msgid "Ranged weapons"
 msgstr ""
 
 msgid "Reactive policy"
@@ -712,10 +1096,40 @@ msgstr ""
 msgid "Recruit the first citizen to begin the roster."
 msgstr ""
 
+msgid "Reflective"
+msgstr ""
+
+msgid "Reformist"
+msgstr ""
+
+msgid "Remove"
+msgstr ""
+
+msgid "Research & education"
+msgstr ""
+
+msgid "Researchers, educators, diagnosticians and institutional planners."
+msgstr ""
+
+msgid "Reserved"
+msgstr ""
+
 msgid "Resources"
 msgstr ""
 
+msgid "Rest"
+msgstr ""
+
+msgid "rest"
+msgstr ""
+
 msgid "Resting during the night"
+msgstr ""
+
+msgid "Resting site — no production"
+msgstr ""
+
+msgid "Restless"
 msgstr ""
 
 msgid "Resume"
@@ -730,22 +1144,76 @@ msgstr ""
 msgid "Return to the city."
 msgstr ""
 
+msgid "Risk tolerance"
+msgstr ""
+
+msgid "Secular"
+msgstr ""
+
+msgid "Security & combat"
+msgstr ""
+
+msgid "Security-oriented"
+msgstr ""
+
 msgid "Select a citizen."
 msgstr ""
 
 msgid "Select a tree and choose Gather. Your hero will walk to it automatically."
 msgstr ""
 
+msgid "Self-control"
+msgstr ""
+
 msgid "Send the founder on a reconnaissance"
+msgstr ""
+
+msgid "Shield"
+msgstr ""
+
+msgid "Skeptical"
 msgstr ""
 
 msgid "Skip"
 msgstr ""
 
+msgid "Social relations"
+msgstr ""
+
+msgid "Something blocks the way — walk along the street to a gap first."
+msgstr ""
+
+msgid "Spiritual posture — choose one"
+msgstr ""
+
+msgid "Stewards of exchange, reserves, hospitality and the movement of value."
+msgstr ""
+
 msgid "Stone"
 msgstr ""
 
+msgid "stone"
+msgstr ""
+
+msgid "Strength"
+msgstr ""
+
 msgid "Switch between the eight lineages. Every bundle currently provides panel; the other surfaces intentionally demonstrate the deterministic same-lineage panel fallback."
+msgstr ""
+
+msgid "Syncretic"
+msgstr ""
+
+msgid "Tenacious"
+msgstr ""
+
+msgid "Territorial control"
+msgstr ""
+
+msgid "The Basic Shelter already exists."
+msgstr ""
+
+msgid "The Basic Shelter is ready. Open the building to assign it as resting site."
 msgstr ""
 
 msgid "The city begins with one person"
@@ -754,7 +1222,46 @@ msgstr ""
 msgid "The city's recent events will be recorded here."
 msgstr ""
 
+msgid "The founding shelter can only start in the initial world."
+msgstr ""
+
+msgid "These are starting tendencies only. Any profession remains learnable."
+msgstr ""
+
+msgid "These choices describe preference. They do not prevent the hero from learning another weapon or role."
+msgstr ""
+
+msgid "This tree no longer has wood available."
+msgstr ""
+
+msgid "Traditionalist"
+msgstr ""
+
+msgid "Traits create tendencies and tensions. None is inherently virtuous or defective."
+msgstr ""
+
 msgid "Tree"
+msgstr ""
+
+msgid "ui.assignment.assign_to"
+msgstr ""
+
+msgid "ui.assignment.assigned_count"
+msgstr ""
+
+msgid "ui.assignment.no_free_citizens"
+msgstr ""
+
+msgid "ui.assignment.no_workers"
+msgstr ""
+
+msgid "ui.assignment.remove_from"
+msgstr ""
+
+msgid "ui.assignment.visible_inside"
+msgstr ""
+
+msgid "ui.assignment.workers_title"
 msgstr ""
 
 msgid "ui.astral.creation_failed"
@@ -764,6 +1271,48 @@ msgid "ui.astral.false_question.body"
 msgstr ""
 
 msgid "ui.astral.identity.body"
+msgstr ""
+
+msgid "ui.astral.result_affinities"
+msgstr ""
+
+msgid "ui.astral.result_aptitudes"
+msgstr ""
+
+msgid "ui.astral.result_combat"
+msgstr ""
+
+msgid "ui.astral.result_element"
+msgstr ""
+
+msgid "ui.astral.result_traits"
+msgstr ""
+
+msgid "ui.building_detail.assignment_rejected"
+msgstr ""
+
+msgid "ui.building_detail.capacity_empty"
+msgstr ""
+
+msgid "ui.building_detail.capacity_resting_many"
+msgstr ""
+
+msgid "ui.building_detail.capacity_resting_one"
+msgstr ""
+
+msgid "ui.building_detail.full_label"
+msgstr ""
+
+msgid "ui.camera.follow_label"
+msgstr ""
+
+msgid "ui.camera.follow_tooltip"
+msgstr ""
+
+msgid "ui.camera.free_label"
+msgstr ""
+
+msgid "ui.camera.free_tooltip"
 msgstr ""
 
 msgid "ui.chronicle.collapse"
@@ -826,6 +1375,12 @@ msgstr ""
 msgid "ui.common.language.tooltip"
 msgstr ""
 
+msgid "ui.construction.active_interval"
+msgstr ""
+
+msgid "ui.construction.assign_to_project"
+msgstr ""
+
 msgid "ui.construction.cancelled"
 msgstr ""
 
@@ -835,10 +1390,31 @@ msgstr ""
 msgid "ui.construction.contributors"
 msgstr ""
 
+msgid "ui.construction.contributors_interval"
+msgstr ""
+
+msgid "ui.construction.gather_remaining"
+msgstr ""
+
 msgid "ui.construction.material"
 msgstr ""
 
 msgid "ui.construction.percent"
+msgstr ""
+
+msgid "ui.construction.remove_from_project"
+msgstr ""
+
+msgid "ui.construction.requirements_one"
+msgstr ""
+
+msgid "ui.construction.requirements_two"
+msgstr ""
+
+msgid "ui.construction.still_needed"
+msgstr ""
+
+msgid "ui.construction.waiting_materials"
 msgstr ""
 
 msgid "ui.expedition.dispatch_failed"
@@ -847,13 +1423,124 @@ msgstr ""
 msgid "ui.expedition.schedule"
 msgstr ""
 
+msgid "ui.gather.already_assigned"
+msgstr ""
+
+msgid "ui.gather.away_on_expedition"
+msgstr ""
+
+msgid "ui.gather.gathered_wood"
+msgstr ""
+
+msgid "ui.hero_profile.affinities_heading"
+msgstr ""
+
+msgid "ui.hero_profile.aptitudes_heading"
+msgstr ""
+
+msgid "ui.hero_profile.at_home"
+msgstr ""
+
+msgid "ui.hero_profile.at_work"
+msgstr ""
+
+msgid "ui.hero_profile.combat_heading"
+msgstr ""
+
+msgid "ui.hero_profile.combat_style"
+msgstr ""
+
+msgid "ui.hero_profile.common_paths"
+msgstr ""
+
+msgid "ui.hero_profile.condition_heading"
+msgstr ""
+
+msgid "ui.hero_profile.elemental_affinity"
+msgstr ""
+
+msgid "ui.hero_profile.gender"
+msgstr ""
+
+msgid "ui.hero_profile.lineage_disclaimer"
+msgstr ""
+
+msgid "ui.hero_profile.no_hero"
+msgstr ""
+
+msgid "ui.hero_profile.personality_heading"
+msgstr ""
+
+msgid "ui.hero_profile.political_orientation"
+msgstr ""
+
+msgid "ui.hero_profile.role"
+msgstr ""
+
+msgid "ui.hero_profile.spiritual_posture"
+msgstr ""
+
+msgid "ui.hero_profile.stamina"
+msgstr ""
+
+msgid "ui.hero_profile.title"
+msgstr ""
+
+msgid "ui.hero_profile.traits"
+msgstr ""
+
+msgid "ui.hero_profile.weapon_preferences"
+msgstr ""
+
+msgid "ui.hero.affinities_choose"
+msgstr ""
+
+msgid "ui.hero.aptitudes_choose"
+msgstr ""
+
+msgid "ui.hero.common_marked_paths"
+msgstr ""
+
 msgid "ui.hero.creation_failed"
 msgstr ""
 
 msgid "ui.hero.maximum"
 msgstr ""
 
+msgid "ui.hero.review_affinities"
+msgstr ""
+
+msgid "ui.hero.review_aptitudes"
+msgstr ""
+
+msgid "ui.hero.review_element"
+msgstr ""
+
+msgid "ui.hero.review_gender"
+msgstr ""
+
+msgid "ui.hero.review_lineage"
+msgstr ""
+
+msgid "ui.hero.review_name"
+msgstr ""
+
+msgid "ui.hero.review_politics"
+msgstr ""
+
+msgid "ui.hero.review_spirituality"
+msgstr ""
+
+msgid "ui.hero.review_traits"
+msgstr ""
+
 msgid "ui.hero.step"
+msgstr ""
+
+msgid "ui.hero.traits_choose"
+msgstr ""
+
+msgid "ui.hero.weapons_choose"
 msgstr ""
 
 msgid "ui.onboarding.back"
@@ -931,13 +1618,19 @@ msgstr ""
 msgid "ui.production.storage_full"
 msgstr ""
 
-msgid "ui.production.title"
-msgstr ""
-
 msgid "ui.production.wood_stock"
 msgstr ""
 
 msgid "ui.resource.wood_remains"
+msgstr ""
+
+msgid "ui.selection.building_home"
+msgstr ""
+
+msgid "ui.selection.building_workers"
+msgstr ""
+
+msgid "ui.selection.tree_title"
 msgstr ""
 
 msgid "ui.speed.change"
@@ -985,7 +1678,13 @@ msgstr ""
 msgid "ui.time.day"
 msgstr ""
 
+msgid "ui.tree.regrows_at"
+msgstr ""
+
 msgid "ui.tutorial.title"
+msgstr ""
+
+msgid "Unarmed"
 msgstr ""
 
 msgid "Under construction"
@@ -997,13 +1696,25 @@ msgstr ""
 msgid "View hero"
 msgstr ""
 
+msgid "View shelter"
+msgstr ""
+
 msgid "Waiting for contributors"
 msgstr ""
 
 msgid "Waiting for inputs"
 msgstr ""
 
+msgid "Waiting: contributors exhausted"
+msgstr ""
+
+msgid "Water"
+msgstr ""
+
 msgid "Wood"
+msgstr ""
+
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"
@@ -1021,5 +1732,14 @@ msgstr ""
 msgid "Working"
 msgstr ""
 
+msgid "Worksite no longer exists."
+msgstr ""
+
+msgid "Worldview and review"
+msgstr ""
+
 msgid "Ya llegamos."
+msgstr ""
+
+msgid "Your lineage describes a common starting context, not a profession or destiny."
 msgstr ""

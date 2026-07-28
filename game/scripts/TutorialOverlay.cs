@@ -147,7 +147,7 @@ public partial class TutorialOverlay : Control
 
         var skip = new Button
         {
-            Text = "Skip",
+            Text = UiText.Get("Skip"),
             ThemeTypeVariation = "ButtonText",
             FocusMode = Control.FocusModeEnum.All,
         };
@@ -155,10 +155,10 @@ public partial class TutorialOverlay : Control
         footer.AddChild(skip);
 
         _nextButton = StandardButtons.IconAction(
-            IconPaths.ArrowLeft, "Next", variation: "ButtonText");
-        _nextButton.Text = "Next";
+            IconPaths.ArrowLeft, UiText.Get("Next"), variation: "ButtonText");
+        _nextButton.Text = UiText.Get("Next");
         // Swap the arrow direction so the label reads naturally.
-        _nextButton.SetIconAndLabel(IconPaths.Check, "Next");
+        _nextButton.SetIconAndLabel(IconPaths.Check, UiText.Get("Next"));
         _nextButton.Pressed += OnNextPressed;
         footer.AddChild(_nextButton);
     }

@@ -63,7 +63,7 @@ public partial class HeroProfileView : Control
 
         var title = new Label
         {
-            Text = "Hero profile",
+            Text = UiText.Get("ui.hero_profile.title"),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         title.ThemeTypeVariation = "ScreenTitle";
@@ -116,45 +116,42 @@ public partial class HeroProfileView : Control
         HeroProfileSnapshot? hero = _controller.GetHeroProfileSnapshot();
         if (hero is null)
         {
-            AddBody("No hero has been created yet.");
+            AddBody(UiText.Get("ui.hero_profile.no_hero"));
             return;
         }
 
         AddHeroSprite(hero);
         AddHeroName($"{hero.Name} · {hero.LineageName}");
-        AddBody("Role: Hero");
-        AddBody(hero.LineageSummary);
-        AddBody(hero.LearningApproach);
-        AddBody(
-            "Lineage describes common starting paths. It does not block any profession, " +
-            "set a permanent ceiling, or grant automatic production.");
+        AddBody(UiText.Get("ui.hero_profile.role"));
+        AddBody(UiText.Get(hero.LineageSummary));
+        AddBody(UiText.Get(hero.LearningApproach));
+        AddBody(UiText.Get("ui.hero_profile.lineage_disclaimer"));
 
-        AddHeading("Personal aptitudes");
-        AddBody(Join(hero.Aptitudes));
+        AddHeading(UiText.Get("ui.hero_profile.aptitudes_heading"));
+        AddBody(JoinLocalized(hero.Aptitudes));
 
-        AddHeading("Professional affinities");
-        AddBody(Join(hero.ProfessionalAffinities));
-        AddBody(
-            $"Common {hero.LineageName} paths: " + Join(hero.MarkedAffinities));
+        AddHeading(UiText.Get("ui.hero_profile.affinities_heading"));
+        AddBody(JoinLocalized(hero.ProfessionalAffinities));
+        AddBody(UiText.Format("ui.hero_profile.common_paths", hero.LineageName, JoinLocalized(hero.MarkedAffinities)));
 
-        AddHeading("Element and combat");
-        AddBody($"Elemental affinity: {hero.ElementalAffinity}");
-        AddBody($"Combat style: {hero.CombatStyle}");
-        AddBody($"Weapon preferences: {Join(hero.WeaponPreferences)}");
-        AddBody($"Gender: {hero.Gender}");
+        AddHeading(UiText.Get("ui.hero_profile.combat_heading"));
+        AddBody(UiText.Format("ui.hero_profile.elemental_affinity", UiText.Get(hero.ElementalAffinity)));
+        AddBody(UiText.Format("ui.hero_profile.combat_style", UiText.Get(hero.CombatStyle)));
+        AddBody(UiText.Format("ui.hero_profile.weapon_preferences", JoinLocalized(hero.WeaponPreferences)));
+        AddBody(UiText.Format("ui.hero_profile.gender", UiText.Get(hero.Gender.ToString())));
 
-        AddHeading("Personality and worldview");
-        AddBody($"Traits: {Join(hero.PersonalityTraits)}");
-        AddBody($"Political orientation: {hero.PoliticalOrientation}");
-        AddBody($"Spiritual posture: {hero.SpiritualPosture}");
+        AddHeading(UiText.Get("ui.hero_profile.personality_heading"));
+        AddBody(UiText.Format("ui.hero_profile.traits", JoinLocalized(hero.PersonalityTraits)));
+        AddBody(UiText.Format("ui.hero_profile.political_orientation", UiText.Get(hero.PoliticalOrientation)));
+        AddBody(UiText.Format("ui.hero_profile.spiritual_posture", UiText.Get(hero.SpiritualPosture)));
 
-        AddHeading("Current condition");
+        AddHeading(UiText.Get("ui.hero_profile.condition_heading"));
         AddStaminaBar(hero.CurrentStamina, hero.MaxStamina);
-        AddIconBody(IconPaths.Heart, $"Stamina: {hero.CurrentStamina}/{hero.MaxStamina}");
+        AddIconBody(IconPaths.Heart, UiText.Format("ui.hero_profile.stamina", hero.CurrentStamina, hero.MaxStamina));
         AddIconBody(
             hero.IsAtHome ? IconPaths.House : IconPaths.Building,
-            hero.IsAtHome ? "At home" : "At work");
-        AddIconBody(IconPaths.Sun, $"Elemental affinity: {hero.ElementalAffinity}");
+            UiText.Get(hero.IsAtHome ? "ui.hero_profile.at_home" : "ui.hero_profile.at_work"));
+        AddIconBody(IconPaths.Sun, UiText.Format("ui.hero_profile.elemental_affinity", UiText.Get(hero.ElementalAffinity)));
     }
 
     private void AddStaminaBar(int current, int max)
@@ -326,5 +323,6 @@ public partial class HeroProfileView : Control
 
     private void OnHeroCreated(int citizenId) => Render();
 
-    private static string Join(IEnumerable<string> values) => string.Join(", ", values);
+    private static string JoinLocalized(IEnumerable<string> values) =>
+        string.Join(", ", values.Select(UiText.Get));
 }

@@ -26,6 +26,9 @@ public static class OverlayLayers
     /// <summary>Contextual menu anchored to an in-world resource.</summary>
     public const int ContextMenu = 8;
 
+    /// <summary>Bottom-left anchored selection details (SelectionInfoPanel).</summary>
+    public const int SelectionInfo = 9;
+
     /// <summary>Bottom-right anchored event log (OfflineReportPanel).</summary>
     public const int Chronicle = 10;
 
