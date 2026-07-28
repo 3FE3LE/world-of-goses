@@ -14,7 +14,6 @@ internal sealed class BuildingProductionSimulation
     private readonly IReadOnlyDictionary<CitizenId, Citizen> _citizens;
     private readonly WorldEventLog _log;
     private readonly Func<int> _currentTick;
-    private readonly Func<int, bool> _tryConsumeFood;
     private readonly Func<Building, Recipe, ResourceType?> _tryConsumeInputs;
     private readonly Func<Building?, ResourceType?, WorldEvent?> _findCauseEvent;
     private readonly Action<BuildingId> _buildingChanged;
@@ -23,7 +22,6 @@ internal sealed class BuildingProductionSimulation
         IReadOnlyDictionary<CitizenId, Citizen> citizens,
         WorldEventLog log,
         Func<int> currentTick,
-        Func<int, bool> tryConsumeFood,
         Func<Building, Recipe, ResourceType?> tryConsumeInputs,
         Func<Building?, ResourceType?, WorldEvent?> findCauseEvent,
         Action<BuildingId> buildingChanged)
@@ -31,7 +29,6 @@ internal sealed class BuildingProductionSimulation
         _citizens = citizens;
         _log = log;
         _currentTick = currentTick;
-        _tryConsumeFood = tryConsumeFood;
         _tryConsumeInputs = tryConsumeInputs;
         _findCauseEvent = findCauseEvent;
         _buildingChanged = buildingChanged;
@@ -39,6 +36,27 @@ internal sealed class BuildingProductionSimulation
 
     public int SimulateTick(Building building)
     {
+        if (!building.ProductionEnabled || building.AssignedCount == 0)
+        {
+            building.StopCause = ResolveStopCauseWhenNotProducing(building);
+            return 0;
+        }
+
+        var presentWorkers = new List<Citizen>();
+        foreach (CitizenId citizenId in building.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out Citizen? citizen)
+                && citizen.CurrentLocation == CitizenLocation.AtWork)
+            {
+                presentWorkers.Add(citizen);
+            }
+        }
+        if (presentWorkers.Count == 0)
+        {
+            building.LastTickProduction = 0;
+            building.StopCause = ResolveAbsentWorkerCause(building);
+            return 0;
+        }
         if (!building.CanProduce)
         {
             building.StopCause = ResolveStopCauseWhenNotProducing(building);
@@ -48,6 +66,12 @@ internal sealed class BuildingProductionSimulation
         {
             building.LastTickProduction = 0;
             building.StopCause = ProductionStopCause.MissingInputs;
+            return 0;
+        }
+        if (!CityEconomyRules.IsProductionCycle(_currentTick()))
+        {
+            building.LastTickProduction = 0;
+            building.StopCause = ProductionStopCause.Authorized;
             return 0;
         }
 
@@ -68,14 +92,12 @@ internal sealed class BuildingProductionSimulation
             }
         }
 
-        ApplyFoodAndRegen(building);
-        ApplyStaminaCost(building);
+        ApplyStaminaCost(presentWorkers, building.Kind);
 
         var contributing = new List<Citizen>();
-        foreach (var citizenId in building.AssignedCitizenIds)
+        foreach (Citizen citizen in presentWorkers)
         {
-            if (_citizens.TryGetValue(citizenId, out var citizen)
-                && citizen.CurrentStamina > 0)
+            if (citizen.CurrentStamina > 0)
             {
                 contributing.Add(citizen);
             }
@@ -113,23 +135,6 @@ internal sealed class BuildingProductionSimulation
         return added;
     }
 
-    public void ApplyFoodAndRegen(Building building)
-    {
-        foreach (var citizenId in building.AssignedCitizenIds)
-        {
-            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
-            if (citizen.CurrentStamina < citizen.MaxStamina
-                && _tryConsumeFood(StaminaRules.FoodConsumedPerRegen))
-            {
-                citizen.RestoreStamina(StaminaRules.RegenFromFood(
-                    StaminaRules.FoodConsumedPerRegen,
-                    citizen));
-                citizen.RefreshWellFedBuff();
-            }
-            citizen.RestoreStamina(citizen.RegenPerTick());
-        }
-    }
-
     public static ProductionStopCause ResolveStopCauseWhenNotProducing(Building building)
     {
         if (!building.ProductionEnabled) return ProductionStopCause.Paused;
@@ -137,14 +142,31 @@ internal sealed class BuildingProductionSimulation
         return ProductionStopCause.TargetReached;
     }
 
-    private void ApplyStaminaCost(Building building)
+    private ProductionStopCause ResolveAbsentWorkerCause(Building building)
     {
-        foreach (var citizenId in building.AssignedCitizenIds)
+        bool hasRecovering = false;
+        foreach (CitizenId citizenId in building.AssignedCitizenIds)
         {
-            if (_citizens.TryGetValue(citizenId, out var citizen))
+            if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)) continue;
+            if (citizen.VitalStatus == CitizenVitalStatus.BlockedNoFood)
             {
-                citizen.ConsumeStamina(StaminaRules.CostForWorker(citizen, building.Kind));
+                return ProductionStopCause.WorkersBlockedNoFood;
             }
+            if (citizen.VitalStatus == CitizenVitalStatus.Recovering)
+            {
+                hasRecovering = true;
+            }
+        }
+        return hasRecovering
+            ? ProductionStopCause.WorkersRecovering
+            : ProductionStopCause.WorkersInTransit;
+    }
+
+    private static void ApplyStaminaCost(IReadOnlyList<Citizen> citizens, BuildingKind kind)
+    {
+        foreach (Citizen citizen in citizens)
+        {
+            citizen.ConsumeStamina(StaminaRules.CostForWorker(citizen, kind));
         }
     }
 }

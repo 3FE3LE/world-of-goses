@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace WorldofGoses.Domain.Persistence;
@@ -45,6 +46,12 @@ public sealed class WorldSave
     public int Version { get; set; } = CurrentVersion;
 
     /// <summary>
+    /// Additive tuning revision. Zero identifies snapshots written before
+    /// production batching and the first Farm/Quarry storage rebalance.
+    /// </summary>
+    public int EconomicBalanceVersion { get; set; }
+
+    /// <summary>
     /// UTC timestamp of the moment the save was written, in Unix
     /// milliseconds. 0 means "no timestamp recorded" — the loader
     /// treats that as zero elapsed so legacy saves never
@@ -63,4 +70,6 @@ public sealed class WorldSave
     public List<ParcelPlacementSave> ParcelPlacements { get; set; } = new();
     public Dictionary<string, int> CityInventory { get; set; } = new();
     public List<ExpeditionSave> Expeditions { get; set; } = new();
+    public int? PendingProspectSeed { get; set; }
+    public string? PendingProspectName { get; set; }
 }

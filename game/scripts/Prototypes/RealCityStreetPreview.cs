@@ -25,6 +25,8 @@ public partial class RealCityStreetPreview : Node2D
     private const float LotUnitPx = 130f; // logical px per lot, lateral and depth
     private const float RoadHeightPx = 24f;
     private const float AvatarSize = 24f;
+    private const int WorldParcelColumns = 4;
+    private const int WorldParcelRows = 2;
 
     // Same cadence discipline as MacroStreetWorld (design bible §08,
     // "Pixel-motion grammar"): no continuous tweening.
@@ -57,9 +59,9 @@ public partial class RealCityStreetPreview : Node2D
 
     public override void _Ready()
     {
-        _streetCount = OrthogonalParcelTerrain.ParcelRows * ParcelGrid.LotsPerAxis;
+        _streetCount = WorldParcelRows * ParcelGrid.LotsPerAxis;
         _lateralHalfWidthPx =
-            OrthogonalParcelTerrain.ParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
+            WorldParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
         LoadRealPlots();
         QueueRedraw();
     }
@@ -94,7 +96,7 @@ public partial class RealCityStreetPreview : Node2D
     /// </summary>
     private void AddPlots(IReadOnlyList<CityMacroSnapshot.PlotItem> items, bool isProject)
     {
-        float totalLotColumns = OrthogonalParcelTerrain.ParcelColumns * ParcelGrid.LotsPerAxis;
+        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
         foreach (CityMacroSnapshot.PlotItem item in items)
         {
             int street = item.ParcelRow * ParcelGrid.LotsPerAxis + item.LotRow;

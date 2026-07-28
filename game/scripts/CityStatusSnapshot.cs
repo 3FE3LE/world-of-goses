@@ -65,7 +65,7 @@ public sealed record CityStatusSnapshot(
         {
             if (citizen.CurrentLocation == CitizenLocation.AtWork) atWork++;
             else atHome++;
-            if (!citizen.CurrentAssignment.HasValue) freeNames.Add(citizen.Name);
+            if (citizen.IsAvailable) freeNames.Add(citizen.Name);
         }
 
         // Upkeep is dormant. Previously a chip rendered

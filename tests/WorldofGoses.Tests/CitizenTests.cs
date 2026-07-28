@@ -13,6 +13,8 @@ public class CitizenTests
         Assert.Empty(c.Competencies);
         Assert.Empty(c.Roles);
         Assert.Equal(Availability.Available, c.Availability);
+        Assert.Equal(CitizenAvailabilityReason.Available, c.AvailabilityReason);
+        Assert.Equal(CitizenCommitment.None, c.Commitment);
         Assert.Null(c.CurrentAssignment);
     }
 
@@ -96,10 +98,41 @@ public class CitizenTests
         var c = NewCitizen(1);
         Assert.Equal(Availability.Available, c.Availability);
 
-        c.AssignTo(new BuildingId(1));
+        Assert.True(c.TryCommitToBuilding(new BuildingId(1)));
         Assert.Equal(Availability.Assigned, c.Availability);
+        Assert.Equal(CitizenAvailabilityReason.AssignedToBuilding, c.AvailabilityReason);
 
-        c.ClearAssignment();
+        Assert.True(c.ReleaseCommitment(CitizenCommitmentKind.BuildingWork, 1));
         Assert.Equal(Availability.Available, c.Availability);
+    }
+
+    [Fact]
+    public void Expedition_InterruptsExecutionButPreservesStandingConstructionOrder()
+    {
+        var c = NewCitizen(1);
+
+        Assert.True(c.TryCommitToConstruction(new BuildingId(7)));
+        Assert.False(c.TryCommitToBuilding(new BuildingId(8)));
+        Assert.True(c.DispatchOnExpedition(new ExpeditionId(3)));
+        Assert.Equal(CitizenCommitmentKind.Expedition, c.Commitment.Kind);
+        Assert.Equal(new BuildingId(7), c.CurrentAssignment);
+        Assert.Equal(CitizenAvailabilityReason.OnExpedition, c.AvailabilityReason);
+
+        Assert.True(c.ReturnFromExpedition(new ExpeditionId(3)));
+        Assert.Equal(CitizenCommitmentKind.Construction, c.Commitment.Kind);
+        Assert.Equal(new BuildingId(7), c.CurrentAssignment);
+    }
+
+    [Fact]
+    public void ReleaseCommitment_RequiresMatchingKindAndEntity()
+    {
+        var c = NewCitizen(1);
+        Assert.True(c.TryCommitToBuilding(new BuildingId(4)));
+
+        Assert.False(c.ReleaseCommitment(CitizenCommitmentKind.Construction, 4));
+        Assert.False(c.ReleaseCommitment(CitizenCommitmentKind.BuildingWork, 5));
+        Assert.False(c.IsAvailable);
+        Assert.True(c.ReleaseCommitment(CitizenCommitmentKind.BuildingWork, 4));
+        Assert.True(c.IsAvailable);
     }
 }

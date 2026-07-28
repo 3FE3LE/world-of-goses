@@ -20,6 +20,11 @@ namespace WorldofGoses;
 public partial class CityStatusPanel : PanelContainer
 {
     private const int ChipGap = 18;
+    private const float StatusHorizontalPadding = 8f;
+    // Vertical breathing room comes from the global 8 px safe-area rule.
+    // Keep the ornamental resource itself at zero so the two layers do not
+    // accumulate padding.
+    private const float StatusVerticalPadding = 0f;
     /// <summary>Fixed width of the clock chip so the row never shifts when
     /// the day digit count changes (1–3 digits). Sized to fit
     /// "Day 99 · 23:59" at 22 px Jersey 10 plus the icon + gap.</summary>
@@ -42,7 +47,7 @@ public partial class CityStatusPanel : PanelContainer
     /// Creates the row and wires subscriptions the first time it runs.
     /// Safe to call multiple times — idempotent. Exists so that an
     /// early <see cref="Refresh"/> from a sibling that was instantiated
-    /// before us (e.g. <c>CityMacroView</c>) doesn't crash on a null
+    /// before us doesn't crash on a null
     /// <c>_row</c>.
     /// </summary>
     private void EnsureBuilt()
@@ -69,7 +74,7 @@ public partial class CityStatusPanel : PanelContainer
         AddChild(safeArea);
         safeArea.AddChild(_row);
 
-        AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        ApplyLineageStatusStyle();
         _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
         if (_themeSignals is not null)
         {
@@ -149,8 +154,28 @@ public partial class CityStatusPanel : PanelContainer
         return time.ToString("HH:mm");
     }
 
-    private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
-        "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+    private void OnLineageChanged(string lineage)
+    {
+        ApplyLineageStatusStyle();
+        ReapplyAccent();
+    }
+
+    /// <summary>
+    /// Keeps the active lineage's ornamental panel without inheriting the
+    /// generous card padding intended for large views. The resource is
+    /// duplicated so compacting the HUD never mutates panels elsewhere.
+    /// </summary>
+    private void ApplyLineageStatusStyle()
+    {
+        var style = (StyleBox)LineageThemeRegistry
+            .GetStyleBox(LineageThemeRegistry.ComponentPanel)
+            .Duplicate();
+        style.ContentMarginLeft = StatusHorizontalPadding;
+        style.ContentMarginTop = StatusVerticalPadding;
+        style.ContentMarginRight = StatusHorizontalPadding;
+        style.ContentMarginBottom = StatusVerticalPadding;
+        AddThemeStyleboxOverride("panel", style);
+    }
 
     private void OnLineageAccentChanged(string lineage) => ReapplyAccent();
 
@@ -355,6 +380,9 @@ public partial class CityStatusPanel : PanelContainer
         ProductionStopCause.NoWorkers => UiText.Get(" · no workers"),
         ProductionStopCause.Night => UiText.Get(" · night"),
         ProductionStopCause.MissingInputs => UiText.Get(" · missing inputs"),
+        ProductionStopCause.WorkersInTransit => UiText.Get(" · travelling"),
+        ProductionStopCause.WorkersRecovering => UiText.Get(" · recovering"),
+        ProductionStopCause.WorkersBlockedNoFood => UiText.Get(" · no food"),
         _ => string.Empty,
     };
 }
@@ -371,8 +399,8 @@ public partial class CityStatusPanel : PanelContainer
 public partial class IconChip : HBoxContainer
 {
     private const int IconTextGap = 8;
-    private const int IconSize = 14;
-    private const int ChipHeight = 24;
+    private const int IconSize = 12;
+    private const int ChipHeight = 20;
 
     private Label _label = null!;
 
@@ -390,7 +418,7 @@ public partial class IconChip : HBoxContainer
             MouseFilter = MouseFilterEnum.Ignore,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        iconCell.AddThemeConstantOverride("margin_top", 3);
+        iconCell.AddThemeConstantOverride("margin_top", 1);
         AddChild(iconCell);
 
         var icon = new TextureRect

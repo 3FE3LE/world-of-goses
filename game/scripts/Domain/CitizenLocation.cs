@@ -16,4 +16,5 @@ public enum CitizenLocation
 {
     AtWork = 0,
     AtHome = 1,
+    InTransit = 2,
 }

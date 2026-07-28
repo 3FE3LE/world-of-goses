@@ -31,6 +31,7 @@ public partial class CityWorldController : Node
     private const int FrameTimeSampleCap = 300; // ~5s at 60fps; bounds log growth if the window stays open.
     private int _frameTimeSamplesEmitted;
     private bool _onboardingCompletionPending;
+    private bool _suppressPersistenceWrites;
 
     [Signal]
     public delegate void SelectionChangedEventHandler(int selectionState);
@@ -171,6 +172,7 @@ public partial class CityWorldController : Node
 
     private bool PersistenceWritesEnabled =>
         PersistenceEnabled
+        && !_suppressPersistenceWrites
         && !Array.Exists(
             OS.GetCmdlineUserArgs(),
             argument => string.Equals(
@@ -323,12 +325,18 @@ public partial class CityWorldController : Node
         if (!PersistenceWritesEnabled) return false;
         try
         {
+            // ReloadCurrentScene is deferred by Godot. Suppress every write
+            // from this old controller before deleting the slot, otherwise an
+            // autosave/close notification in the teardown window can recreate
+            // the founder that the full reset just removed.
+            _suppressPersistenceWrites = true;
             WorldPersistence.DeleteSlot(WorldPersistence.PrimarySaveSlot);
             GetTree().ReloadCurrentScene();
             return true;
         }
         catch (Exception ex)
         {
+            _suppressPersistenceWrites = false;
             GD.PushWarning($"Could not reset the primary slot: {ex.Message}");
             return false;
         }
@@ -479,6 +487,12 @@ public partial class CityWorldController : Node
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
     }
+
+    public bool ConfirmCitizenArrivedAtAssignment(BuildingId buildingId, CitizenId citizenId) =>
+        _world.ConfirmCitizenArrivedAtAssignment(citizenId, buildingId);
+
+    public bool ConfirmCitizenArrivedHome(CitizenId citizenId) =>
+        _world.ConfirmCitizenArrivedHome(citizenId);
 
     public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
@@ -636,20 +650,9 @@ public partial class CityWorldController : Node
         return result;
     }
 
-    public CityWorld.MigrantResult TryRecruitMigrant(CitizenProfile profile, string? name = null)
+    public CityWorld.MigrantResult TryAcceptPendingProspect()
     {
-        var result = _world.TryRecruitMigrant(profile, name);
-        if (result.IsSuccess)
-        {
-            SaveNow();
-            EmitSignal(SignalName.CitizensChanged);
-        }
-        return result;
-    }
-
-    public CityWorld.MigrantResult TryRecruitMigrant(string? name = null)
-    {
-        var result = _world.TryRecruitMigrant(name);
+        var result = _world.TryAcceptPendingProspect();
         if (result.IsSuccess)
         {
             SaveNow();

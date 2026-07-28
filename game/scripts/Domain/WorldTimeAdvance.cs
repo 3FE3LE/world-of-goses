@@ -49,7 +49,7 @@ public static class WorldTimeAdvance
                 continue;
             }
 
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
             elapsedTicks++;
             steppedTicks++;
             bool anyProduced = false;

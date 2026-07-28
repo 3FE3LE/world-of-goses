@@ -561,6 +561,15 @@ msgstr "No se pudo reclutar: {0}"
 msgid "ui.citizens.count"
 msgstr "{0} ciudadanos · {1} no héroes"
 
+msgid "ui.citizens.count_with_housing"
+msgstr "{0}/{2} ciudadanos alojados · {1} no héroes"
+
+msgid "ui.citizens.housing_full"
+msgstr "Construye más alojamiento antes de reclutar otro ciudadano."
+
+msgid "ui.citizens.recruit_available"
+msgstr "Hay una plaza de alojamiento disponible."
+
 msgid "ui.citizens.roster_row"
 msgstr "{0} · {1} · {2}"
 
@@ -637,10 +646,10 @@ msgid "ui.production.stock"
 msgstr "{0}: {1} / {2}"
 
 msgid "ui.production.foraging_rate"
-msgstr "Ritmo de recolección: {0} {1} / tick ({2} trabajadores)"
+msgstr "Lote de recolección: {0} {1} cada {3}s ({2} trabajadores)"
 
 msgid "ui.production.rate"
-msgstr "Ritmo: {0} {1} / tick"
+msgstr "Lote: {0} {1} cada {2}s"
 
 msgid "ui.production.inputs_due"
 msgstr "Insumos requeridos: {0}"
@@ -910,6 +919,12 @@ msgstr "Esperando colaboradores"
 
 msgid "Contributors exhausted"
 msgstr "Colaboradores agotados"
+
+msgid "Contributor travelling to the site"
+msgstr "Colaborador en camino a la obra"
+
+msgid "Worker travelling to the building"
+msgstr "Trabajador en camino al edificio"
 
 msgid "Waiting for inputs"
 msgstr "Esperando insumos"
@@ -1657,6 +1672,39 @@ msgstr "Refugio Básico — {0}"
 msgid "ui.construction.requirements_two"
 msgstr "Granja — {0}\nCantera — {1}"
 
+msgid "ui.construction.requirements_three"
+msgstr "Granja — {0}\nCantera — {1}\nAyuntamiento — {2}"
+
+msgid "Build Town Hall"
+msgstr "Construir Ayuntamiento"
+
+msgid "Town Hall"
+msgstr "Ayuntamiento"
+
+msgid "ui.town_hall.no_prospect"
+msgstr "No hay ningún prospecto alojado. Una expedición puede encontrar uno."
+
+msgid "ui.town_hall.prospect_detail"
+msgstr "{0}\nLinaje: {1}\nAptitudes: {2}\nAfinidades profesionales: {3}\nArmas dominantes: {4}\nEstilo de combate: {5}"
+
+msgid "ui.town_hall.accept"
+msgstr "Acoger como ciudadano"
+
+msgid "ui.town_hall.no_housing"
+msgstr "El refugio no tiene plazas de alojamiento libres."
+
+msgid "ui.town_hall.accept_hint"
+msgstr "Acoge a este prospecto como ciudadano persistente."
+
+msgid "ui.expedition.town_hall_required"
+msgstr "Construye un Ayuntamiento antes de buscar un prospecto."
+
+msgid "ui.expedition.prospect_waiting"
+msgstr "El Ayuntamiento ya aloja a un prospecto."
+
+msgid "ui.expedition.seek_prospect_hint"
+msgstr "Consume 2 de comida en una expedición de cuatro días que puede regresar con un prospecto."
+
 msgid "ui.construction.still_needed"
 msgstr "Aún se necesita — {0}"
 
@@ -1794,3 +1842,18 @@ msgstr "descanso"
 
 msgid "ui.building_detail.full_label"
 msgstr "{0} ({1})"
+
+msgid " · recovering"
+msgstr " · recuperándose"
+
+msgid " · travelling"
+msgstr " · en camino"
+
+msgid " · no food"
+msgstr " · sin comida"
+
+msgid "Workers are recovering before resuming this order"
+msgstr "Los trabajadores se recuperan antes de reanudar esta orden"
+
+msgid "Workers cannot resume because no food is available"
+msgstr "Los trabajadores no pueden reanudar porque no hay comida disponible"

@@ -5,8 +5,9 @@ namespace WorldofGoses.Ui;
 [GlobalClass]
 public partial class SafeAreaMarginContainer : MarginContainer
 {
-    [Export] public int MinimumInset { get; set; } = 16;
+    [Export] public int MinimumInset { get; set; } = 8;
     [Export] public int MinimumTopInset { get; set; } = -1;
+    [Export] public int MinimumBottomInset { get; set; } = -1;
 
     public override void _Ready()
     {
@@ -33,7 +34,8 @@ public partial class SafeAreaMarginContainer : MarginContainer
         int top = Mathf.Max(minimumTop, Mathf.RoundToInt(safeArea.Position.Y * scaleY));
         int right = Mathf.Max(MinimumInset,
             Mathf.RoundToInt((windowSize.X - safeArea.End.X) * scaleX));
-        int bottom = Mathf.Max(MinimumInset,
+        int minimumBottom = MinimumBottomInset >= 0 ? MinimumBottomInset : MinimumInset;
+        int bottom = Mathf.Max(minimumBottom,
             Mathf.RoundToInt((windowSize.Y - safeArea.End.Y) * scaleY));
 
         AddThemeConstantOverride("margin_left", left);

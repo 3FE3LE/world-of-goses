@@ -11,4 +11,5 @@ public enum ConstructionAuthorizationOutcome
     HomeRequired = 5,
     MissingMaterials = 6,
     NoAvailableLot = 7,
+    BuildingAlreadyBuilt = 8,
 }

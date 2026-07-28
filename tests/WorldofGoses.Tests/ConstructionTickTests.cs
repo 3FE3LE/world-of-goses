@@ -243,10 +243,18 @@ public class ConstructionTickTests
         var project = FirstProject(world);
         var hero = world.Hero!;
         Assert.True(project.IsAssigned(hero.Id));
-        for (int i = 0; i < 6 * GameClock.TicksPerInGameDay; i++) world.AdvanceWorldTick();
+        int safety = 6 * GameClock.TicksPerInGameDay;
+        while (world.Projects.Count > 0 && safety-- > 0) world.AdvanceWorldTick();
 
         Assert.Empty(world.Projects);
         Assert.False(hero.CurrentAssignment.HasValue);
+        Assert.NotEqual(CitizenLocation.AtWork, hero.CurrentLocation);
+        if (hero.CurrentLocation == CitizenLocation.InTransit)
+        {
+            Assert.True(hero.IsReturningHome);
+            Assert.True(world.ConfirmCitizenArrivedHome(hero.Id));
+        }
+        Assert.Equal(CitizenLocation.AtHome, hero.CurrentLocation);
     }
 
     [Fact]

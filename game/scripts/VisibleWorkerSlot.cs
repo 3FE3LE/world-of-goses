@@ -22,6 +22,7 @@ public partial class VisibleWorkerSlot : Control
 
     private CitizenSpriteCarrier? _carrier;
     private string _citizenName = string.Empty;
+    private bool _idlePresentation;
     public bool IsExiting { get; private set; }
 
     // Field initializer so Configure() can set Text before _Ready().
@@ -57,11 +58,16 @@ public partial class VisibleWorkerSlot : Control
         AddChild(_nameLabel);
     }
 
-    public void Configure(BuildingId buildingId, CitizenId citizenId, string citizenName)
+    public void Configure(
+        BuildingId buildingId,
+        CitizenId citizenId,
+        string citizenName,
+        bool idlePresentation = false)
     {
         BuildingId = buildingId;
         CitizenId = citizenId;
         _citizenName = citizenName;
+        _idlePresentation = idlePresentation;
         if (_nameLabel != null)
         {
             _nameLabel.Text = citizenName;
@@ -85,6 +91,8 @@ public partial class VisibleWorkerSlot : Control
     public bool CarrierIsHidden => _carrier is null
         || _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
 
+    public bool CarrierIsWorking => _carrier?.State == CitizenSpriteCarrier.VisualState.Working;
+
     /// <summary>
     /// Walks the carrier from the entry border to the slot center,
     /// then settles into the slash loop. The hit area is enabled only
@@ -106,8 +114,7 @@ public partial class VisibleWorkerSlot : Control
         {
             if (IsExiting) return;
             _hitArea.Disabled = false;
-            _carrier?.SetState(CitizenSpriteCarrier.VisualState.Working);
-            _carrier?.Slash(Vector2.Down);
+            SetSettledState();
             onComplete?.Invoke();
         });
     }
@@ -162,9 +169,16 @@ public partial class VisibleWorkerSlot : Control
         {
             if (IsExiting) return;
             _hitArea.Disabled = false;
-            _carrier?.SetState(CitizenSpriteCarrier.VisualState.Working);
-            _carrier?.Slash(Vector2.Down);
+            SetSettledState();
             onComplete?.Invoke();
         });
+    }
+
+    private void SetSettledState()
+    {
+        _carrier?.SetState(_idlePresentation
+            ? CitizenSpriteCarrier.VisualState.Home
+            : CitizenSpriteCarrier.VisualState.Working);
+        if (!_idlePresentation) _carrier?.Slash(Vector2.Down);
     }
 }

@@ -15,6 +15,7 @@ namespace WorldofGoses;
 public partial class VisibleWorkerSlots : Control
 {
     [Signal] public delegate void CitizenClickedEventHandler(int citizenId);
+    [Signal] public delegate void CitizenArrivedEventHandler(int buildingId, int citizenId);
 
     private const int SlotPadding = 8;
     private const float SpriteCenterY = 68f;
@@ -52,12 +53,25 @@ public partial class VisibleWorkerSlots : Control
         {
             slots.Add(CitizenSlotInfo.From(c));
         }
-        RenderSlots(buildingId, slots);
+        RenderSlots(buildingId, slots, idlePresentation: false);
+    }
+
+    public void RenderIdle(
+        BuildingId buildingId,
+        IReadOnlyList<BuildingDetailSnapshot.CitizenItem> citizens)
+    {
+        var slots = new List<CitizenSlotInfo>(citizens.Count);
+        foreach (BuildingDetailSnapshot.CitizenItem citizen in citizens)
+        {
+            slots.Add(CitizenSlotInfo.From(citizen));
+        }
+        RenderSlots(buildingId, slots, idlePresentation: true);
     }
 
     private void RenderSlots(
         BuildingId buildingId,
-        IReadOnlyList<CitizenSlotInfo> visibleCitizens)
+        IReadOnlyList<CitizenSlotInfo> visibleCitizens,
+        bool idlePresentation)
     {
         // Reap freed slots (e.g., when a backing carrier's parent
         // was freed between frames).
@@ -79,6 +93,7 @@ public partial class VisibleWorkerSlots : Control
             }
             if (!wanted.Contains(slot.CitizenId.Value))
             {
+                if (slot.IsExiting) continue;
                 slot.HideTo(EntryBorder(slot), Vector2.Left, () =>
                 {
                     if (IsInstanceValid(slot) && slot.IsExiting)
@@ -107,11 +122,19 @@ public partial class VisibleWorkerSlots : Control
                 existingSlot.MountCarrier(this);
                 if (existingSlot.IsExiting)
                 {
-                    existingSlot.ResumeTo(SlotCenter(existingSlot));
+                    existingSlot.ResumeTo(SlotCenter(existingSlot), () => EmitArrival(existingSlot));
                 }
                 else if (existingSlot.CarrierIsHidden)
                 {
-                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot));
+                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot), () => EmitArrival(existingSlot));
+                }
+                else if (existingSlot.CarrierIsWorking)
+                {
+                    // Arrival callbacks can be interrupted when the canonical
+                    // flyweight carrier changes visual owner during the same
+                    // frame. Reconcile an already-settled carrier on refresh;
+                    // the domain command is intentionally idempotent.
+                    EmitArrival(existingSlot);
                 }
                 continue;
             }
@@ -122,7 +145,7 @@ public partial class VisibleWorkerSlots : Control
             slot.Size = new Vector2(
                 PresentationConstants.DetailedCitizenWidth,
                 SlotHeight);
-            slot.Configure(buildingId, citizen.Id, citizen.Name);
+            slot.Configure(buildingId, citizen.Id, citizen.Name, idlePresentation);
 
             var carrier = CitizenSpriteBank.Instance.GetOrCreate(citizen.Id, citizen.Lineage, citizen.Gender, citizen.Appearance);
             slot.AttachCarrier(carrier);
@@ -134,13 +157,16 @@ public partial class VisibleWorkerSlots : Control
 
             Vector2 slotCenter = SlotCenter(slot);
             Vector2 entryBorder = EntryBorder(slot);
-            slot.ShowAt(entryBorder, slotCenter);
+            slot.ShowAt(entryBorder, slotCenter, () => EmitArrival(slot));
 
             slotIndex++;
         }
 
         ReflowSlots(buildingId);
     }
+
+    private void EmitArrival(VisibleWorkerSlot slot) =>
+        EmitSignal(SignalName.CitizenArrived, slot.BuildingId.Value, slot.CitizenId.Value);
 
     /// <summary>
     /// Returns the slot's name label and hit area. The carrier is mounted

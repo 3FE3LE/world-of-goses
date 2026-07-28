@@ -286,11 +286,25 @@ reorganiza la lista, los IDs no se renumeran.
   de punta a punta con clics OS simulados. Ver detalle en H-32 §2. Build
   limpio, 447/447 tests, headless boot con el save real verificado.
 
+- **2026-07-28 — Reorientación al cierre del primer ciclo jugable:** se
+  consolidó la auditoría en `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` y se decidió
+  detener la ampliación horizontal. Las iteraciones posteriores corrigieron
+  llegada causal al trabajo, acceso por la entrada frontal, cadencia económica,
+  almacenamiento, asignación mutuamente exclusiva, retorno autónomo al Shelter
+  y el primer slice de trabajo interrumpible. `Citizen.WorkOrder` conserva la
+  orden del jugador durante saturación, necesidades vitales y expedición;
+  `CitizenVitalStatus` solo decide comer/descansar, nunca elige profesión ni
+  trabajo. Los viajes tienen confirmación visual y fallback abstracto de 30
+  ticks para equivalencia offline. Estado verificado: build sin errores ni
+  warnings, suite completa vigente y arranque headless correcto. El milestone y sus
+  gaps quedan fijados debajo para que `CitizenAgenda` y otros sistemas de
+  profundidad no desplacen el cierre del loop.
+
 ## 1. Resumen rápido
 
 | Prioridad | Pendientes | En curso | Bloqueados | Hechos | Cancelados |
 | --------: | ---------: | -------: | ---------: | -----: | ---------: |
-| 🔴        | 0          | 0        | 0          | 0      | 0          |
+| 🔴        | 6          | 0        | 0          | 0      | 0          |
 | 🟠        | 4          | 2        | 0          | 2      | 0          |
 | 🟡        | 3          | 1        | 0          | 2      | 0          |
 | 🟢        | 0          | 0        | 0          | 1      | 0          |
@@ -314,6 +328,252 @@ reorganiza la lista, los IDs no se renumeran.
 > causado por adelantar 14.400 ticks síncronos en el hilo principal; el fixture
 > ahora prueba la misma transición con una expedición de un tick y completa la
 > matriz de tres ventanas en 9,1 s.
+
+### Milestone VS-1 — Primer ciclo jugable completo y repetible
+
+> Esta sección es el contrato activo de producto y **no se purga** con la regla
+> de dos días de `Hechas`. Hasta cerrarla, cualquier sistema nuevo debe probar
+> que elimina un bloqueo del flujo objetivo. `CitizenAgenda`, profesiones
+> profundas, instituciones, política, múltiples biomas y contenido adicional
+> quedan subordinados a este milestone.
+
+#### Flujo objetivo
+
+```text
+Onboarding → caída → gathering → Shelter/Farm/Quarry → reclutamiento
+→ asignación → producción/consumo → preparación de expedición
+→ salida/encuentro/objetivo/regreso → consecuencias → territorio
+→ nueva decisión urbana → guardado/carga → repetición
+```
+
+#### Implementado y comprobado hasta 2026-07-28
+
+- Onboarding astral, fundador persistente, caída y primer gathering de Wood.
+- Construcción secuencial de Basic Shelter, Farm y Quarry con placements reales.
+- Reclutamiento mínimo y roster de ciudadanos persistentes.
+- Una sola entidad `Citizen`; rol, competencias, asignación, expedición y
+  necesidades se componen sobre ella.
+- `Citizen.Commitment` evita responsabilidades activas incompatibles y
+  `Citizen.WorkOrder` conserva la orden laboral decidida por el jugador durante
+  una interrupción temporal.
+- La asignación diurna comienza en `InTransit`. Producción, stamina y experiencia
+  esperan llegada semántica; Godot puede confirmarla al terminar la ruta y el
+  dominio aplica un fallback abstracto de 30 ticks para progreso offline.
+- Los ciudadanos se aproximan por la banda frontal del edificio; el fundador
+  queda oculto en macro mientras trabaja dentro y vuelve caminando al Shelter.
+- Farm, Quarry y gathering producen por ciclos de 10 ticks, no por frame/pico.
+  La comida tiene cadencia separada; capacidades provisionales Farm/Quarry son
+  60/80 y el cierre por stock espera 60 ticks.
+- Stock completo pausa la ejecución sin borrar la orden. Cuando reaparece
+  demanda, la orden vuelve a ser elegible.
+- Primer slice vital agnóstico a la actividad: stamina ≤20 interrumpe, regreso
+  causal al Shelter, comida + descanso, reanudación con stamina ≥70. Sin comida
+  queda `WorkersBlockedNoFood`; durante recuperación queda `WorkersRecovering`.
+- Una expedición puede interrumpir una orden y conservarla en save/load. Al
+  regresar exige recuperación y no reanuda antes del siguiente día.
+- Persistencia v14 conserva orden, compromiso, necesidad, ubicación, sentido y
+  comienzo del viaje, y límite temporal de reanudación. Campos nuevos aditivos.
+- Corrección de validación 2026-07-28: el fallback de 30 ticks queda restringido
+  al catch-up offline. En vivo, solo la llegada visual confirma `AtWork`/`AtHome`;
+  además, la ruta activa al Shelter no se replantea en cada snapshot.
+- Evidencia automática actual: 455/455 pruebas, build 0 errores/0 warnings,
+  Godot 4.7.1 headless carga el slot real y `git diff --check` no reporta errores.
+- Estabilización HUD 2026-07-28: control de velocidad con caja estable y cuatro
+  indicadores visibles a 4×; barra de estado ornamental por linaje con copia
+  compacta del recurso; safe area global de 8 px; navegación edge-to-edge sin
+  offsets superiores/laterales; botones Kenney normalizados a padding 16×4 para
+  icono+texto y 2×2 para acciones solo-icono. Los botones de navegación dejaron
+  de imponer anchos manuales y `HeroAccessButton` comparte la inicialización
+  canónica de `IconButton`.
+
+#### Hallazgos que condicionan los siguientes pasos
+
+- El prototipo conserva una sola `CitizenWorkOrder`, no una agenda de varias
+  directivas. Es suficiente para probar interrupción/reanudación; no resuelve
+  aún "pociones hasta N → investigar". `CitizenAgenda` queda en profundidad
+  posterior al vertical slice.
+- La expedición vigente es abstracta, de un solo líder y sin equipo real,
+  preparación por ciudadano, fases visibles completas, retirada ni resolución
+  de heridas/territorio.
+- `CitizenBehaviorState.Injured` todavía mezcla agotamiento cero con lesión. El
+  slice de consecuencias debe separar `Exhausted` de heridas persistentes.
+- `Recovery` existe como compromiso reservado, pero aún no hay condición de
+  herida, tratamiento, tiempo, coste ni historial personal completo.
+- Los trabajadores no héroes usan representación macro simplificada: su llegada
+  visual se reconcilia inmediatamente; falta validar varios ciudadanos viajando,
+  volviendo y cambiando de vista sin duplicar carriers ni teletransportes visibles.
+- La comida se obtiene del inventario urbano al llegar al Shelter. Esto prueba
+  causalidad/bloqueo, pero todavía no modela transporte, comedor, raciones ni
+  políticas. Esas extensiones no bloquean el primer loop.
+- La UI explica bloqueos del edificio, pero falta una superficie consistente que
+  explique por ciudadano: orden conservada, actividad actual, necesidad y próxima
+  acción.
+- El fallback abstracto de viaje permite offline determinista, pero sus 30 ticks
+  son tuning provisional y debe verificarse contra duración visual real.
+- Falta un recorrido humano completo desde onboarding hasta segunda decisión
+  después de una expedición; headless/tests no sustituyen esa firma.
+
+#### Cola de estabilización obligatoria
+
+##### 🔴 VS-0 — Congelar y validar la ciudad causal actual
+
+- **Estado:** Completado y validado por recorrido humano el 2026-07-28.
+- **Avance 2026-07-28:** dos regresiones end-to-end nuevas fijan save/load en
+  tránsito hacia el trabajo y hacia el Shelter. Live y mundo restaurado conservan
+  inicio/dirección del viaje, llegada, stock y stamina; la comida no se consume
+  antes de la llegada física. La pasada humana detectó desaparición prematura y
+  un loop lateral de tres tiles al volver: se separó llegada live/offline y se
+  impidió reiniciar una ruta de retorno activa. Una segunda pasada encontró que
+  el carrier flyweight conservaba simultáneamente el `GoTo` del slot interior y
+  la ruta procedural macro; la transferencia de vista ahora cancela el movimiento
+  anterior para que exista un solo escritor de posición. La tercera observación
+  precisó además un error geométrico: `WorkplaceEntranceStreet` restaba una calle
+  aunque `PlotBox.Street` ya representa la banda frontal del lote; el destino
+  ahora llega a esa banda antes de confirmar entrada. La siguiente comprobación
+  detectó una movilización innecesaria: asignar a un edificio en `MaxStock` ahora
+  conserva la orden pero mantiene al ciudadano en casa hasta que el stock vuelva
+  a requerir producción. Tras retirar la ruta visual plana y sus pruebas de
+  geometría obsoletas, la suite vigente es 448/448; queda firmar el recorrido
+  humano sobre la única vista en perspectiva.
+- **Regresión fresh start 2026-07-28:** el reset total ahora suprime escrituras
+  del controlador viejo antes de borrar el slot y recargar la escena, evitando
+  que el autosave reconstruya el fundador durante el teardown. La confirmación
+  de identidad también es idempotente ante una segunda activación encolada: si
+  el primer intento ya creó al héroe, continúa sin mostrar `AlreadyExists` y sin
+  sobrescribir su perfil.
+- **Regresión de primera obra 2026-07-28:** `MacroStreetLiveView.AddPlot`
+  confundía “no clicable” con “sin identidad” y guardaba `-1` para proyectos.
+  La ruta no encontraba el worksite y confirmaba llegada remota. `PlotBox` ahora
+  conserva siempre el ID de dominio y modela interactividad por separado; el
+  fundador debe caminar al lote antes de contribuir al Basic Shelter.
+- **Building-detail regression 2026-07-28:** removing a worker exposed three
+  presentation problems after the flat-view retirement: unstable Back
+  navigation, Chronicle leaking into detail, and a stretched/cropped building
+  preview inside an oversized sparse layout. The detail screen now keeps a
+  stable header, uses a compact two-column composition, renders art at 256×256
+  with preserved aspect ratio, and Chronicle is explicitly macro-only. A
+  follow-up removed the macro navigation strip from all subviews and placed the
+  title/Back header above the content, preventing top overlap. A subsequent UX
+  review rejected view-level scrolling: the body is fixed again, worker and
+  production panels are bottom-anchored and grow upward, and only the Assigned/
+  Available lists scroll after five rows. The building preview and citizen
+  stage now share one 256 px visual layer, ready to become an interior scene
+  later without stacking extra vertical sections.
+- **Perspective stabilization 2026-07-28:** placement no longer draws the nine
+  internal tile cells of a 3×3 lot; each candidate is one unified footprint
+  with 2 px stepped sides matching the terrain projection. Foot traffic now
+  reveals a narrow dirt trace and widens it progressively instead of replacing
+  a whole floor tile at 50% wear. Shelter arrival now hides the macro carrier
+  only after the domain confirms `AtHome`, preventing the entrance sit/loop,
+  and Chronicle localizes semantic building names before formatting events.
+  A follow-up found project completion released the work order without moving
+  the contributor out of `AtWork`; completion now starts a real return-home
+  transition (or preserves `AtHome` when night already moved them), so Shelter
+  arrival can be confirmed instead of immediately remounting the carrier. The
+  previously inert Explore toolbar button is now wired to toggle the existing
+  `ExpeditionPanel` through `ModalHost`.
+- **Bloquea:** toda ampliación de expediciones y consecuencias.
+- **Trabajo:** recorrido manual fresh save; asignar/reasignar durante batch;
+  llegada Farm/Quarry; stock lleno; retorno al Shelter; hambre sin/con comida;
+  cambio macro↔detalle; amanecer; save/load en cada tránsito; catch-up offline.
+- **Orden de firma restante:** (1) fresh save hasta Shelter/Farm/Quarry;
+  (2) Farm→Quarry durante jornada y llegada por entrada frontal; (3) edificio
+  lleno sin viaje innecesario; (4) agotamiento con comida y sin comida;
+  (5) retorno al Shelter y reanudación de la orden al recuperarse; (6) repetir
+  un tránsito cruzando macro↔detalle; (7) guardar/cargar durante ida y retorno;
+  (8) cerrar/reabrir con catch-up offline y comparar stock, comida y stamina.
+- **Correcciones incluidas:** cualquier loop, teleport, producción anticipada,
+  carrier duplicado, orden perdida o bloqueo sin explicación encontrado.
+- **Aceptación:** mismos resultados live/offline y ningún paso requiere editor,
+  fixture o comando de depuración.
+
+##### 🔴 VS-1 — Reclutamiento y asignación como decisión real
+
+- **Estado:** En progreso. Primer corte: el reclutamiento deja de ser ilimitado;
+  la navegación directa de reclutamiento fue retirada. El nuevo Ayuntamiento
+  se construye con madera y piedra, usa el placeholder marrón y aloja como máximo
+  un prospecto encontrado por expedición. El prospecto conserva identidad y
+  ficha técnica, no cuenta como ciudadano ni puede trabajar hasta ser acogido
+  desde el detalle del Ayuntamiento; la aceptación también exige vivienda libre.
+  El prospecto pendiente persiste en save/load.
+- **Trabajo:** reclutar al menos un segundo ciudadano en partida normal; asignar
+  y remover desde UI; incompatibilidad trabajo/construcción/expedición; ciudadano
+  concreto visible y persistente; presión de comida suficiente para elegir quién
+  produce, quién descansa y quién queda disponible.
+- **Aceptación:** el jugador no puede usar la misma persona simultáneamente y la
+  UI explica tanto indisponibilidad como coste de oportunidad.
+
+##### 🔴 VS-2 — Expedición completa mínima
+
+- **Estado:** Pendiente; la expedición actual solo prueba reserva/tiempo/retorno.
+- **Trabajo:** formación con ciudadanos reales; retirar temporalmente del trabajo;
+  preparación; salida; trayecto; un encuentro; objetivo; regreso; resolución;
+  recompensa o pérdida; cancelación/retirada mínima; Chronicle causal.
+- **Aceptación:** ninguna fase se salta directamente por UI y el retorno no se
+  reduce a un contador o toast.
+
+##### 🔴 VS-3 — Consecuencias y territorio
+
+- **Estado:** Pendiente.
+- **Trabajo:** estado territorial mínimo extensible (bloqueada → reconocida →
+  ruta asegurada → disponible); una consecuencia personal persistente; herida
+  distinta de agotamiento; indisponibilidad; recuperación en Shelter con tiempo
+  y recurso; cambio de rendimiento; historial del ciudadano; desbloqueo de una
+  parcela, ruta o posibilidad sistémica.
+- **Aceptación:** el regreso obliga a reorganizar la ciudad y produce una nueva
+  decisión significativa.
+
+##### 🔴 VS-4 — Persistencia completa del loop
+
+- **Estado:** Pendiente; save v14 cubre la base, no las consecuencias futuras.
+- **Trabajo:** persistir equipo expedicionario, fase, resultados, territorio,
+  condiciones, recuperación, historial y relaciones nuevas; validar referencias;
+  migración aditiva mínima; save/load durante salida, regreso y recuperación;
+  equivalencia offline por lotes/eventos discretos.
+- **Aceptación:** cerrar y abrir la aplicación en cualquier fase no duplica,
+  pierde ni contradice ciudadanos, reservas, cargas, heridas u órdenes.
+
+##### 🔴 VS-5 — Firma y repetición del vertical slice
+
+- **Estado:** Pendiente.
+- **Trabajo:** ejecutar desde onboarding hasta nueva decisión post-expedición,
+  guardar/cargar, iniciar un segundo ciclo sin reset, documentar tiempo real,
+  bloqueos y decisiones observadas; añadir fixtures solo donde protejan bugs
+  reales encontrados en la pasada humana.
+- **Aceptación:** se cumplen los 17 criterios de
+  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`; solo entonces se abre profundidad.
+
+#### Estado de los 17 criterios de aceptación
+
+| # | Criterio | Estado 2026-07-28 |
+| -: | --- | --- |
+| 1 | Onboarding y fundador persistente | ✅ Implementado |
+| 2 | Gathering y asentamiento inicial | ✅ Implementado |
+| 3 | Reclutar un nuevo habitante | 🟡 Prototipado; validar flujo normal |
+| 4 | Asignar y remover habitantes | ✅ Implementado; falta pasada humana multi-citizen |
+| 5 | Farm/Quarry producen causalmente | ✅ Implementado |
+| 6 | Consumo/presión genera decisiones | 🟡 Primer bloqueo vital implementado; falta calibración jugable |
+| 7 | Exclusión entre tareas incompatibles | ✅ Implementado en compromiso activo |
+| 8 | Formar expedición con ciudadanos reales | 🟡 Solo líder/fundador abstracto |
+| 9 | Salida, encuentro y regreso | 🟡 Tiempo/resultado existen; fases completas no |
+| 10 | Resultado modifica ciudad/persona/territorio | 🟡 Recursos/migrante; consecuencias incompletas |
+| 11 | Ciudadano herido o indisponible | ❌ Herida persistente no implementada |
+| 12 | Ciudad responde a consecuencia | ❌ No implementado end-to-end |
+| 13 | Desbloqueo territorial/sistémico | ❌ No conectado a expedición |
+| 14 | Guardar y cargar estado completo | 🟡 Base v14 sólida; faltan futuros estados del loop |
+| 15 | Nueva decisión significativa al final | ❌ No implementada |
+| 16 | Repetir sin reiniciar | ❌ No firmado |
+| 17 | Sin editor/debug | 🟡 Ciudad base sí; loop completo no existe aún |
+
+#### Profundidad explícitamente aplazada
+
+- `CitizenAgenda` con varias directivas, condiciones y prioridades.
+- Profesiones/competencias profundas, héroes, sinergias, linajes completos.
+- Enfermedades, venenos, maldiciones, discapacidades y tratamientos múltiples.
+- Instituciones, políticas de racionamiento, economía compleja y transporte.
+- Política/cultura avanzada, generaciones, árboles de habilidades, biomas y
+  campañas. Solo se adelanta una de estas piezas si un gap VS demuestra que es
+  técnicamente imprescindible para cerrar el loop.
 
 - **2026-07-25** — Plan estratégico S-1 registrado en §3 Pendientes. Siete
   sub-ítems preventivos (i18n, NavigationServer2D, TileMap, MultiMesh,
@@ -361,11 +621,14 @@ reorganiza la lista, los IDs no se renumeran.
 
 ### Cola activa (orden sugerido)
 
-1. **H-32** — Pasos restantes de la perspectiva (clic en proyecto en
+1. **VS-0** — Congelar y validar la ciudad causal actual con recorrido humano.
+2. **VS-1** — Cerrar reclutamiento/asignación/coste de oportunidad.
+3. **VS-2 → VS-5** — Expedición mínima, consecuencias, persistencia y firma.
+4. **H-32** — Solo pasos que bloqueen VS-0/VS-1 (clic en proyecto en
    construcción, guía de estado vacío, paridad del Chronicle, anclaje
    `LotHeight > 1`, evaluación de retiro de la vista plana).
-2. **M-22** — Cerrar la integración selectiva de assets y alcance del menú.
-3. **H-26** — Malla transitable y clasificación de pasillo / camino / calle
+5. **M-22** — Cerrar solo integración de assets que bloquee legibilidad del slice.
+6. **H-26** — Malla transitable y clasificación de pasillo / camino / calle
    (slices siguientes; el primer corte ya está cerrado). Cuando cierre,
    abre **S-1.2** (NavigationServer2D) que reemplaza el pathfinding
    cardinal. Nota 2026-07-27: `StreetRoutePlanner` (H-32) ya aplica la
@@ -1116,13 +1379,9 @@ reorganiza la lista, los IDs no se renumeran.
   4. Resolver el anclaje de edificios/complejos con `LotHeight > 1`
      (hoy se anclan a su calle más cercana al visor — simplificación
      documentada, no la asignación final).
-  5. Evaluar retirar por completo el CÓDIGO de la vista plana
-     (`CityMacroView`/`OrthogonalParcelTerrain`/`BuildingPlotStage`/
-     `ConstructionPlacementOverlay`) una vez los pasos anteriores cierren —
-     la UI ya no ofrece forma de llegar a ella, pero el código y los ~448
-     tests/matriz visual (`tools/Capture-VisualMatrix.ps1`) que asumen su
-     geometría (`CalculateTerrainRect`/`CalculateParcelRect`) siguen
-     intactos; retirarlos implica migrar/reescribir esa porción de tests.
+  5. **Completed 2026-07-28:** physically removed the flat route and its
+     geometry-only tests. Onboarding, construction and active fixtures now
+     target `MacroStreetLiveView`; no parallel visual fallback remains.
 - **Criterios de aceptación:** ciudad completa navegable y jugable
   (construcción, asignación, gather, expediciones) únicamente desde la
   perspectiva, sin regresión funcional respecto a la vista plana anterior, y

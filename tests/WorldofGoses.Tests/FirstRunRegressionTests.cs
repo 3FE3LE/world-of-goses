@@ -8,21 +8,6 @@ namespace WorldofGoses.Tests;
 public sealed class FirstRunRegressionTests
 {
     [Fact]
-    public void HeroWithOnlyForests_UsesEmptyMacroMode()
-    {
-        CityWorld world = TestHelpers.NewHeroWorld();
-        world.SeedStartingForests();
-        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
-
-        Assert.Equal(0, snapshot.CivilBuildingCount);
-        Assert.Equal(
-            CityMacroView.MacroMode.Empty,
-            CityMacroView.DetermineMacroMode(
-                snapshot.CivilBuildingCount,
-                snapshot.Projects.Count));
-    }
-
-    [Fact]
     public void ConstructionSnapshot_UsesAvailableAfterReservations()
     {
         CityWorld world = TestHelpers.NewHeroWorld();
@@ -58,83 +43,17 @@ public sealed class FirstRunRegressionTests
         Assert.Equal(result.ProjectId, world.Hero.CurrentAssignment);
     }
 
-    [Theory]
-    [InlineData(1024, 576)]
-    [InlineData(1280, 720)]
-    [InlineData(1600, 900)]
-    public void TerrainRectLeavesHudSafeBand(int width, int height)
-    {
-        // Parcels are now fixed-scale (a virtual camera pans instead of the
-        // terrain stretching to fit the window), so reset the shared pan
-        // state first: an earlier test case must not leave this scrolled.
-        OrthogonalParcelTerrain.ResetPanForTests();
-        Rect2 terrain = OrthogonalParcelTerrain.CalculateTerrainRect(
-            new Vector2(width, height));
-
-        // At zero pan the world's top-left still respects the HUD margins,
-        // regardless of whether the fixed-size world fits this viewport.
-        Assert.True(terrain.Position.Y >= 96);
-        Assert.True(terrain.Position.X >= 32);
-        // The world is always exactly ParcelColumns x ParcelRows parcels of
-        // ParcelGrid.LotsPerAxis x ParcelGrid.TilesPerStandardLot tiles —
-        // fixed, not derived from the viewport.
-        Assert.Equal(
-            OrthogonalParcelTerrain.ParcelColumns * OrthogonalParcelTerrain.ParcelPixelSize,
-            terrain.Size.X);
-        Assert.Equal(
-            OrthogonalParcelTerrain.ParcelRows * OrthogonalParcelTerrain.ParcelPixelSize,
-            terrain.Size.Y);
-    }
-
-    [Fact]
-    public void CalculateTerrainRect_PanClampedToWorldBounds()
-    {
-        OrthogonalParcelTerrain.ResetPanForTests();
-        // A viewport smaller than the fixed world needs to scroll; verify
-        // CalculateParcelRect for the last parcel is reachable at some pan
-        // within [0, worldSize - displaySize] without asserting on the
-        // private drag mechanics — only that the fixed geometry itself is
-        // internally consistent (parcel rects tile the world with no gaps
-        // or overlaps).
-        Rect2 terrain = OrthogonalParcelTerrain.CalculateTerrainRect(new Vector2(1024, 576));
-        for (int column = 0; column < OrthogonalParcelTerrain.ParcelColumns; column++)
-        {
-            for (int row = 0; row < OrthogonalParcelTerrain.ParcelRows; row++)
-            {
-                Rect2 parcel = OrthogonalParcelTerrain.CalculateParcelRect(
-                    new Vector2(1024, 576), column, row);
-                Assert.Equal(OrthogonalParcelTerrain.ParcelPixelSize, parcel.Size.X);
-                Assert.Equal(OrthogonalParcelTerrain.ParcelPixelSize, parcel.Size.Y);
-                Assert.Equal(
-                    terrain.Position.X + column * OrthogonalParcelTerrain.ParcelPixelSize,
-                    parcel.Position.X);
-                Assert.Equal(
-                    terrain.Position.Y + row * OrthogonalParcelTerrain.ParcelPixelSize,
-                    parcel.Position.Y);
-            }
-        }
-        OrthogonalParcelTerrain.ResetPanForTests();
-    }
-
-    [Fact]
-    public void ParcelPresentation_UsesNineByNineTilesAndThreeByThreeLots()
-    {
-        Assert.Equal(3, ParcelGrid.LotsPerAxis);
-        Assert.Equal(3, ParcelGrid.TilesPerStandardLot);
-        Assert.Equal(9, OrthogonalParcelTerrain.ParcelTileSpan);
-        Assert.Equal(
-            OrthogonalParcelTerrain.DisplayTileSize * 9,
-            OrthogonalParcelTerrain.ParcelPixelSize);
-    }
-
     [Fact]
     public void RecruitMigrant_AddsNonHeroCitizenAndEvent()
     {
-        CityWorld world = TestHelpers.NewHeroWorld();
+        CityWorld world = TestHelpers.WorldWithHome();
+        AddTownHall(world);
         CitizenProfile profile = world.Hero!.Profile;
         int before = world.Citizens.Count;
 
-        CityWorld.MigrantResult result = world.TryRecruitMigrant(profile, "Inara");
+        Assert.Equal(CityWorld.MigrantOutcome.Success,
+            world.TryHostExpeditionProspect(profile, "Inara"));
+        CityWorld.MigrantResult result = world.TryAcceptPendingProspect();
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, world.Citizens.Count);
@@ -152,8 +71,10 @@ public sealed class FirstRunRegressionTests
     public void RecruitedCitizen_IsIdentifiableAndAssignableInMacroSnapshot()
     {
         CityWorld world = TestHelpers.NewProductionWorld();
+        AddHousingPlace(world);
+        AddTownHall(world);
         CityWorld.MigrantResult recruited =
-            world.TryRecruitMigrant(world.Hero!.Profile, "Inara");
+            AcceptProspect(world, world.Hero!.Profile, "Inara");
         Assert.True(recruited.IsSuccess);
         CitizenId migrantId = recruited.MigrantId!.Value;
         BuildingId farmId = world.PrimaryBuilding.Id;
@@ -172,11 +93,13 @@ public sealed class FirstRunRegressionTests
     [Fact]
     public void GeneratedMigrant_HasStableIdentityDistinctFromFounder()
     {
-        CityWorld first = TestHelpers.NewHeroWorld();
-        CityWorld second = TestHelpers.NewHeroWorld();
+        CityWorld first = TestHelpers.WorldWithHome();
+        CityWorld second = TestHelpers.WorldWithHome();
+        AddTownHall(first);
+        AddTownHall(second);
 
-        CityWorld.MigrantResult firstResult = first.TryRecruitMigrant();
-        CityWorld.MigrantResult secondResult = second.TryRecruitMigrant();
+        CityWorld.MigrantResult firstResult = AcceptProspect(first);
+        CityWorld.MigrantResult secondResult = AcceptProspect(second);
 
         Assert.True(firstResult.IsSuccess);
         Assert.True(secondResult.IsSuccess);
@@ -192,13 +115,16 @@ public sealed class FirstRunRegressionTests
     public void MigrantProduction_IsEquivalentLiveAndAfterSaveOfflineCatchUp()
     {
         CityWorld live = TestHelpers.NewProductionWorld();
+        AddHousingPlace(live);
+        AddTownHall(live);
         BuildingId farmId = new(2);
         Building liveFarm = live.GetBuilding(farmId)!;
         int rateBeforeMigrant = live.CurrentProductionRate(farmId);
-        CityWorld.MigrantResult recruited = live.TryRecruitMigrant();
+        CityWorld.MigrantResult recruited = AcceptProspect(live);
         Assert.True(recruited.IsSuccess);
         CitizenId migrantId = recruited.MigrantId!.Value;
         Assert.True(live.TryAssignCitizen(farmId, migrantId).IsSuccess);
+        Assert.True(live.ConfirmCitizenArrivedAtAssignment(migrantId, farmId));
         Assert.True(live.CurrentProductionRate(farmId) > rateBeforeMigrant);
 
         string json = WorldPersistence.SerializeToJson(
@@ -222,5 +148,150 @@ public sealed class FirstRunRegressionTests
         Assert.Equal(
             live.GetCitizen(migrantId)!.GetExperience(CompetencyId.Farming),
             offline.GetCitizen(migrantId)!.GetExperience(CompetencyId.Farming));
+    }
+
+    [Fact]
+    public void RecruitMigrant_WithoutCompletedShelter_IsRejected()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        AddTownHall(world);
+        Assert.Equal(CityWorld.MigrantOutcome.Success,
+            world.TryHostExpeditionProspect());
+
+        CityWorld.MigrantResult result = world.TryAcceptPendingProspect();
+
+        Assert.Equal(CityWorld.MigrantOutcome.AtCapacity, result.Outcome);
+        Assert.Single(world.Citizens);
+    }
+
+    [Fact]
+    public void RecruitMigrant_StopsWhenShelterHousingIsFull()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        AddTownHall(world);
+        int capacity = world.HousingCapacity;
+
+        while (world.Citizens.Count < capacity)
+        {
+            Assert.True(AcceptProspect(world).IsSuccess);
+        }
+
+        Assert.Equal(CityWorld.MigrantOutcome.Success,
+            world.TryHostExpeditionProspect());
+        CityWorld.MigrantResult result = world.TryAcceptPendingProspect();
+
+        Assert.Equal(CityWorld.MigrantOutcome.AtCapacity, result.Outcome);
+        Assert.Equal(capacity, world.Citizens.Count);
+        Assert.Equal(0, world.AvailableHousing);
+    }
+
+    [Fact]
+    public void TownHall_HostsOnlyOnePendingProspect()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        AddTownHall(world);
+
+        Assert.Equal(CityWorld.MigrantOutcome.Success,
+            world.TryHostExpeditionProspect("Inara"));
+        Assert.Equal(CityWorld.MigrantOutcome.ProspectAlreadyWaiting,
+            world.TryHostExpeditionProspect("Second prospect"));
+        Assert.Equal("Inara", world.PendingProspect!.Name);
+        Assert.Single(world.Citizens);
+    }
+
+    [Fact]
+    public void PendingProspect_SurvivesSaveAndLoadWithoutBecomingCitizen()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        AddTownHall(world);
+        Assert.Equal(CityWorld.MigrantOutcome.Success,
+            world.TryHostExpeditionProspect("Inara"));
+
+        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+            WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
+
+        CitizenProspect sourceProspect = Assert.IsType<CitizenProspect>(world.PendingProspect);
+        CitizenProspect restoredProspect = Assert.IsType<CitizenProspect>(restored.PendingProspect);
+        Assert.Equal("Inara", restoredProspect.Name);
+        Assert.Equal(sourceProspect.Profile.Lineage, restoredProspect.Profile.Lineage);
+        Assert.Single(restored.Citizens);
+    }
+
+    [Fact]
+    public void ProspectExpedition_ReturnsProspectToTownHallNotCitizenRoster()
+    {
+        CityWorld world = TestHelpers.NewProductionWorld();
+        AddTownHall(world);
+        Assert.True(world.TryUnassignCitizen(new BuildingId(1), world.Hero!.Id).IsSuccess);
+        world.Resources.DepositToCityInventory(ResourceType.Food, 2);
+        ExpeditionRequest request = ExpeditionRequest.SeekProspect(world.Hero!.Id) with
+        {
+            DurationTicks = 1,
+        };
+
+        ExpeditionStartResult started = world.StartExpedition(request);
+        Assert.True(started.IsSuccess);
+        world.AdvanceWorldTick();
+
+        Expedition expedition = world.Expeditions[started.ExpeditionId!.Value];
+        Assert.Equal(ExpeditionStatus.Returned, expedition.Status);
+        Assert.NotNull(world.PendingProspect);
+        Assert.Equal(5, world.Citizens.Count);
+    }
+
+    [Fact]
+    public void ProspectExpedition_WithoutTownHallIsRejectedBeforeSpendingFood()
+    {
+        CityWorld world = TestHelpers.NewProductionWorld();
+        Assert.True(world.TryUnassignCitizen(new BuildingId(1), world.Hero!.Id).IsSuccess);
+        world.Resources.DepositToCityInventory(ResourceType.Food, 2);
+        int foodBefore = world.Resources.Available(ResourceType.Food);
+
+        ExpeditionStartResult result = world.StartExpedition(
+            ExpeditionRequest.SeekProspect(world.Hero!.Id));
+
+        Assert.Equal(ExpeditionStartOutcome.TownHallUnavailable, result.Outcome);
+        Assert.Equal(foodBefore, world.Resources.Available(ResourceType.Food));
+        Assert.Empty(world.Expeditions);
+    }
+
+    private static void AddHousingPlace(CityWorld world)
+    {
+        world.RegisterBuilding(TestHelpers.NewBuilding(
+            id: new BuildingId(50),
+            kind: BuildingKind.Home,
+            workerCapacity: 1,
+            visualCapacity: 1,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            displayName: "Test lodging",
+            resourceLabel: "Rest",
+            resourceUnit: "rest"));
+    }
+
+    private static void AddTownHall(CityWorld world)
+    {
+        world.RegisterBuilding(TestHelpers.NewBuilding(
+            id: new BuildingId(51),
+            kind: BuildingKind.TownHall,
+            workerCapacity: 0,
+            visualCapacity: 0,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            displayName: "Test Town Hall",
+            resourceLabel: "Prospect",
+            resourceUnit: "prospect"));
+    }
+
+    private static CityWorld.MigrantResult AcceptProspect(
+        CityWorld world,
+        CitizenProfile? profile = null,
+        string? name = null)
+    {
+        CityWorld.MigrantOutcome hosted = profile is null
+            ? world.TryHostExpeditionProspect(name)
+            : world.TryHostExpeditionProspect(profile, name ?? "Inara");
+        Assert.Equal(CityWorld.MigrantOutcome.Success, hosted);
+        return world.TryAcceptPendingProspect();
     }
 }

@@ -36,26 +36,30 @@ public static class WorldEventTextFormatter
     public static string FormatLocalized(WorldEvent evt) =>
         FormatLocalized(evt.Kind, evt.SubjectName, evt.Amount);
 
-    public static string FormatLocalized(WorldEventKind kind, string subjectName, int amount) => kind switch
+    public static string FormatLocalized(WorldEventKind kind, string subjectName, int amount)
     {
-        WorldEventKind.StockProduced => UiText.Format("event.stock_produced", subjectName, amount),
-        WorldEventKind.StockCapped => UiText.Format("event.stock_capped", subjectName),
-        WorldEventKind.WorkersExhausted => UiText.Format("event.workers_exhausted", subjectName),
-        WorldEventKind.WorkerRecovered => UiText.Format("event.worker_recovered", subjectName),
+        string localizedSubject = UiText.Get(subjectName);
+        return kind switch
+    {
+        WorldEventKind.StockProduced => UiText.Format("event.stock_produced", localizedSubject, amount),
+        WorldEventKind.StockCapped => UiText.Format("event.stock_capped", localizedSubject),
+        WorldEventKind.WorkersExhausted => UiText.Format("event.workers_exhausted", localizedSubject),
+        WorldEventKind.WorkerRecovered => UiText.Format("event.worker_recovered", localizedSubject),
         WorldEventKind.DayBegan => UiText.Get("event.day_began"),
         WorldEventKind.NightBegan => UiText.Get("event.night_began"),
-        WorldEventKind.ProjectProgressed => UiText.Format("event.project_progressed", subjectName, amount),
-        WorldEventKind.ProjectPaused => UiText.Format("event.project_paused", subjectName),
-        WorldEventKind.ProjectResumed => UiText.Format("event.project_resumed", subjectName),
-        WorldEventKind.ProjectCompleted => UiText.Format("event.project_completed", subjectName),
-        WorldEventKind.BuildingCreated => UiText.Format("event.building_created", subjectName),
-        WorldEventKind.WellFedExpired => UiText.Format("event.well_fed_expired", subjectName),
-        WorldEventKind.ProductionBlocked => UiText.Format("event.production_blocked", subjectName),
-        WorldEventKind.ExpeditionDispatched => UiText.Format("event.expedition_dispatched", subjectName, amount),
-        WorldEventKind.ExpeditionReturned => UiText.Format("event.expedition_returned", subjectName, amount),
-        WorldEventKind.ExpeditionFailed => UiText.Format("event.expedition_failed", subjectName),
-        WorldEventKind.ExpeditionCancelled => UiText.Format("event.expedition_cancelled", subjectName),
-        WorldEventKind.MigrantArrived => UiText.Format("event.migrant_arrived", subjectName),
-        _ => subjectName,
+        WorldEventKind.ProjectProgressed => UiText.Format("event.project_progressed", localizedSubject, amount),
+        WorldEventKind.ProjectPaused => UiText.Format("event.project_paused", localizedSubject),
+        WorldEventKind.ProjectResumed => UiText.Format("event.project_resumed", localizedSubject),
+        WorldEventKind.ProjectCompleted => UiText.Format("event.project_completed", localizedSubject),
+        WorldEventKind.BuildingCreated => UiText.Format("event.building_created", localizedSubject),
+        WorldEventKind.WellFedExpired => UiText.Format("event.well_fed_expired", localizedSubject),
+        WorldEventKind.ProductionBlocked => UiText.Format("event.production_blocked", localizedSubject),
+        WorldEventKind.ExpeditionDispatched => UiText.Format("event.expedition_dispatched", localizedSubject, amount),
+        WorldEventKind.ExpeditionReturned => UiText.Format("event.expedition_returned", localizedSubject, amount),
+        WorldEventKind.ExpeditionFailed => UiText.Format("event.expedition_failed", localizedSubject),
+        WorldEventKind.ExpeditionCancelled => UiText.Format("event.expedition_cancelled", localizedSubject),
+        WorldEventKind.MigrantArrived => UiText.Format("event.migrant_arrived", localizedSubject),
+        _ => localizedSubject,
     };
+    }
 }

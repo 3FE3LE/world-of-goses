@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -46,6 +47,7 @@ public partial class ConstructionPanel : PanelContainer
     private bool _wasAuthorizeEnabled;
     private bool _wasFarmEnabled;
     private bool _wasQuarryEnabled;
+    private bool _wasTownHallEnabled;
     private Tween? _pulseTween;
 
     private ScrollContainer _bodyScroll = null!;
@@ -64,6 +66,7 @@ public partial class ConstructionPanel : PanelContainer
     private IconButton _authorizeButton = null!;
     private IconButton _farmButton = null!;
     private IconButton _quarryButton = null!;
+    private IconButton _townHallButton = null!;
     private IconButton _pauseButton = null!;
     private IconButton _resumeButton = null!;
     private IconButton _cancelButton = null!;
@@ -355,6 +358,10 @@ public partial class ConstructionPanel : PanelContainer
             iconPath: IconPaths.Building,
             label: UiText.Get("Build Quarry"),
             variation: "ButtonPrimary");
+        _townHallButton = NewFooterButton(
+            iconPath: IconPaths.Building,
+            label: UiText.Get("Build Town Hall"),
+            variation: "ButtonPrimary");
         _pauseButton = NewFooterButton(
             iconPath: IconPaths.Pause,
             label: UiText.Get("Pause"),
@@ -379,6 +386,8 @@ public partial class ConstructionPanel : PanelContainer
             SignalName.AuthorizeRequested, (int)ConstructionKind.Farm);
         _quarryButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.Quarry);
+        _townHallButton.Pressed += () => EmitSignal(
+            SignalName.AuthorizeRequested, (int)ConstructionKind.TownHall);
         _pauseButton.Pressed += () => EmitSignal(SignalName.PauseRequested);
         _resumeButton.Pressed += () => EmitSignal(SignalName.ResumeRequested);
         _cancelButton.Pressed += OnCancelButtonPressed;
@@ -398,6 +407,7 @@ public partial class ConstructionPanel : PanelContainer
         footer.AddChild(_authorizeButton);
         footer.AddChild(_farmButton);
         footer.AddChild(_quarryButton);
+        footer.AddChild(_townHallButton);
         footer.AddChild(_viewBuildingButton);
 
         _primaryFocus = _authorizeButton;
@@ -515,8 +525,9 @@ public partial class ConstructionPanel : PanelContainer
         var shelter = snapshot.OptionFor(ConstructionKind.BasicShelter);
         var farm = snapshot.OptionFor(ConstructionKind.Farm);
         var quarry = snapshot.OptionFor(ConstructionKind.Quarry);
+        var townHall = snapshot.OptionFor(ConstructionKind.TownHall);
         _requirementsLabel.Text = hasHome
-            ? UiText.Format("ui.construction.requirements_two", DescribeMaterials(farm), DescribeMaterials(quarry))
+            ? UiText.Format("ui.construction.requirements_three", DescribeMaterials(farm), DescribeMaterials(quarry), DescribeMaterials(townHall))
             : UiText.Format("ui.construction.requirements_one", DescribeMaterials(shelter));
         _authorizeButton.Visible = !hasHome;
         bool authorizeEnabled = canAuthorise && shelter.CanPayDeposit;
@@ -543,9 +554,22 @@ public partial class ConstructionPanel : PanelContainer
             : quarryEnabled
                 ? "Build a Quarry."
                 : "Not enough materials to authorise a Quarry.");
+        _townHallButton.Visible = true;
+        bool townHallExists = _controller.World.Buildings.Values.Any(
+            building => building.Kind == BuildingKind.TownHall);
+        bool townHallEnabled = canAuthorise && hasHome && !townHallExists && townHall.CanPayDeposit;
+        _townHallButton.Disabled = !townHallEnabled;
+        _townHallButton.TooltipText = UiText.Get(!hasHome
+            ? "Build the Basic Shelter first to unlock the Town Hall."
+            : townHallExists
+                ? "The city already has a Town Hall."
+                : townHallEnabled
+                    ? "Build a Town Hall to host one expedition prospect."
+                    : "Not enough materials to authorise a Town Hall.");
         DetectEnableTransition(authorizeEnabled, ref _wasAuthorizeEnabled, _authorizeButton);
         DetectEnableTransition(farmEnabled, ref _wasFarmEnabled, _farmButton);
         DetectEnableTransition(quarryEnabled, ref _wasQuarryEnabled, _quarryButton);
+        DetectEnableTransition(townHallEnabled, ref _wasTownHallEnabled, _townHallButton);
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _cancelButton.Visible = false;
@@ -557,7 +581,9 @@ public partial class ConstructionPanel : PanelContainer
                 ? _farmButton
                 : !_quarryButton.Disabled
                     ? _quarryButton
-                    : _viewHeroButton;
+                    : !_townHallButton.Disabled
+                        ? _townHallButton
+                        : _viewHeroButton;
         if (_primaryFocus.Disabled) _primaryFocus = _viewHeroButton;
         _primaryFocus.GrabFocus();
     }
@@ -640,6 +666,7 @@ public partial class ConstructionPanel : PanelContainer
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
         _quarryButton.Visible = false;
+        _townHallButton.Visible = false;
         _viewBuildingButton.Visible = false;
         _pauseButton.Visible = project.Enabled;
         _resumeButton.Visible = !project.Enabled;
@@ -674,6 +701,7 @@ public partial class ConstructionPanel : PanelContainer
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
         _quarryButton.Visible = false;
+        _townHallButton.Visible = false;
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _cancelButton.Visible = false;
@@ -777,6 +805,7 @@ public partial class ConstructionPanel : PanelContainer
             : UiText.Get("Waiting for contributors"),
         ConstructionStopCause.MissingMaterials =>
             UiText.Format("ui.construction.waiting_materials", DescribeInputs(project.RemainingInputs)),
+        ConstructionStopCause.WorkersInTransit => UiText.Get("Contributor travelling to the site"),
         ConstructionStopCause.WorkersExhausted => UiText.Get("Waiting: contributors exhausted"),
         ConstructionStopCause.Night => UiText.Get("Resting during the night"),
         ConstructionStopCause.Completed => UiText.Get("Completed"),

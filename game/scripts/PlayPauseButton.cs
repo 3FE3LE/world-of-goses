@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -19,6 +20,7 @@ public partial class PlayPauseButton : Button
     [Export] public NodePath ControllerPath { get; set; } = "/root/CityPrototype/CityWorldController";
 
     private const int IconSize = 14;
+    private const int ButtonSize = 24;
 
     private CityWorldController? _controller;
     private TextureRect _icon = null!;
@@ -27,7 +29,9 @@ public partial class PlayPauseButton : Button
     {
         Text = string.Empty;
         Icon = null;
-        CustomMinimumSize = new Vector2(IconSize + 8, IconSize + 8);
+        CustomMinimumSize = new Vector2(ButtonSize, ButtonSize);
+        ClipContents = true;
+        CompactIconButtonStyle.Apply(this);
 
         _icon = new TextureRect
         {
@@ -35,7 +39,13 @@ public partial class PlayPauseButton : Button
             CustomMinimumSize = new Vector2(IconSize, IconSize),
             MouseFilter = MouseFilterEnum.Ignore,
         };
-        AddChild(_icon);
+        var center = new CenterContainer
+        {
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        center.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        AddChild(center);
+        center.AddChild(_icon);
 
         var controllerNode = GetNodeOrNull<CityWorldController>(ControllerPath);
         if (controllerNode is not null)

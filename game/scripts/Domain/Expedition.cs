@@ -77,6 +77,12 @@ public sealed class Expedition
         Status = ExpeditionStatus.Returned;
     }
 
+    internal void MarkReturnedProspect()
+    {
+        ReturnedAmount = 0;
+        Status = ExpeditionStatus.Returned;
+    }
+
     internal void MarkFailed()
     {
         ReturnedAmount = 0;

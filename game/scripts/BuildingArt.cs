@@ -82,6 +82,7 @@ public static class BuildingArt
         ConstructionKind.BasicShelter => BuildingKind.Home,
         ConstructionKind.Farm => BuildingKind.Farm,
         ConstructionKind.Quarry => BuildingKind.Quarry,
+        ConstructionKind.TownHall => BuildingKind.TownHall,
         _ => BuildingKind.Home,
     };
 }

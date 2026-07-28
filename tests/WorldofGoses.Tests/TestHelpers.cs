@@ -10,6 +10,23 @@ namespace WorldofGoses.Tests;
 /// </summary>
 internal static class TestHelpers
 {
+    public static void AdvanceToNextProductionCycle(CityWorld world)
+    {
+        do
+        {
+            world.AdvanceWorldTick();
+        }
+        while (!CityEconomyRules.IsProductionCycle(world.CurrentTick));
+    }
+
+    public static void AdvanceProductionCycles(CityWorld world, int cycleCount)
+    {
+        for (int cycle = 0; cycle < cycleCount; cycle++)
+        {
+            AdvanceToNextProductionCycle(world);
+        }
+    }
+
     public static CitizenProfile NewProfile(LineageId? lineage = null, GenderId? gender = null)
     {
         bool created = CitizenProfile.TryCreate(
@@ -52,6 +69,10 @@ internal static class TestHelpers
         world.GatherWood(new BuildingId(100), 4);
         var result = world.TryAuthorizeBasicShelter();
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
+        if (result.ProjectId is BuildingId projectId)
+        {
+            world.ConfirmCitizenArrivedAtAssignment(world.Hero!.Id, projectId);
+        }
         for (int i = 0; i < extraCitizens; i++)
         {
             world.RegisterCitizen(NewCitizen(100 + i));
@@ -224,6 +245,7 @@ internal static class TestHelpers
         {
             world.TryAssignToProject(projectId, citizen.Id);
         }
+        world.ConfirmCitizenArrivedAtAssignment(citizen.Id, projectId);
         int safety = 1000;
         while (project.Progress < project.RequiredWork && safety-- > 0)
         {

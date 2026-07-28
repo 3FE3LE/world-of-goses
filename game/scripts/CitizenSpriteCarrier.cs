@@ -87,6 +87,8 @@ public partial class CitizenSpriteCarrier : Node2D
         Vector2 delta = targetPosition - current;
         if (delta.LengthSquared() < 1f)
         {
+            CancelMotion();
+            Position = PixelMotion.Snap(targetPosition);
             onComplete?.Invoke();
             return;
         }

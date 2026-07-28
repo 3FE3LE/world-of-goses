@@ -120,7 +120,7 @@ public static class OfflineProgression
         int ticksApplied = 0;
         for (int t = 0; t < ticksToApply; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
             int produced = building.LastTickProduction;
             if (produced > 0)
             {
@@ -130,9 +130,16 @@ public static class OfflineProgression
             }
             else
             {
-                // Nothing added this tick (night, exhausted, paused,
-                // full + upkeep making no headroom). Stop counting.
-                break;
+                // A world tick is finer than a production cycle. Continue
+                // across ordinary between-cycle ticks; stop only on a state
+                // that cannot resume inside this isolated batch.
+                if (building.StopCause is ProductionStopCause.Paused
+                    or ProductionStopCause.TargetReached
+                    or ProductionStopCause.NoWorkers
+                    or ProductionStopCause.MissingInputs)
+                {
+                    break;
+                }
             }
         }
 

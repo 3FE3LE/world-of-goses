@@ -7,7 +7,7 @@ namespace WorldofGoses.Domain;
 /// Tracks foot-traffic wear per walkable floor tile (S-1.3 phase 2): grass
 /// worn down to dirt by repeated trampling, forming paths without any
 /// explicit "draw a path" logic. Presentation-only state — like
-/// <c>OrthogonalParcelTerrain</c>'s own ground tiles, this never feeds back
+/// presentation ground tiles, this never feeds back
 /// into simulation (no effect on gather rates, movement speed, etc.),
 /// deliberately session-scoped rather than added to <c>WorldSave</c> for now.
 /// </summary>
@@ -26,4 +26,7 @@ public sealed class TerrainWearGrid
 
     public bool IsWorn(int street, int tileIndex) =>
         _wear.TryGetValue((street, tileIndex), out float value) && value >= DirtThreshold;
+
+    public float WearAt(int street, int tileIndex) =>
+        _wear.TryGetValue((street, tileIndex), out float value) ? value : 0f;
 }

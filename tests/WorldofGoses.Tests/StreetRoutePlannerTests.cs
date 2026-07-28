@@ -29,6 +29,15 @@ public class StreetRoutePlannerTests
         Dictionary<int, IReadOnlyList<StreetRoutePlanner.Interval>> bands) =>
         band => bands.TryGetValue(band, out var intervals) ? intervals : Empty;
 
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(5, 5)]
+    public void WorkplaceEntranceStreet_IsThePlotFrontBand(int buildingStreet, int expected)
+    {
+        Assert.Equal(expected, MacroStreetLiveView.WorkplaceEntranceStreet(buildingStreet));
+    }
+
     [Fact]
     public void SameStreet_PlansSingleLateralWaypoint()
     {

@@ -1,5 +1,7 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -8,12 +10,7 @@ namespace WorldofGoses.Prototypes;
 
 /// <summary>
 /// The pseudo-3D "perspectiva por calles" macro view — the ONLY macro world
-/// view (2026-07-27: the flat <see cref="CityMacroView"/> fallback and its
-/// toggle were retired from the UI at the user's explicit request; the flat
-/// view's code/scene nodes remain only as the backing store for
-/// <c>tools/Capture-VisualMatrix.ps1</c>'s existing fixtures). Renders the
-/// live city via the same <see cref="CityWorldController"/> instance
-/// <see cref="CityMacroView"/> uses.
+/// view. This is the sole runtime representation of the city.
 ///
 /// Street plan (design bible §08 "Ciudad macro (perspectiva por calles)" +
 /// H-26's corridor reading): each calle is the free front band of a
@@ -74,6 +71,8 @@ public partial class MacroStreetLiveView : Node2D
     private const float CenterX = 640f;
     private const float BaseY = 580f; // ScreenContent-local: clear of the ~68px MacroActions band
     private const float LotUnitPx = 90f;
+    private const int WorldParcelColumns = 4;
+    private const int WorldParcelRows = 2;
 
     // Quantized zoom: discrete steps, never a continuous drag/slider.
     private const float ZoomStep = 0.15f;
@@ -114,13 +113,9 @@ public partial class MacroStreetLiveView : Node2D
 
     private const string ResourceActionMenuScenePath = "res://scenes/Components/ResourceActionMenu.tscn";
 
-    // Floor tiles sample the same Kenney atlas ResourceTree already uses for
+    // Floor tiles sample the Kenney atlas ResourceTree already uses for
     // trees (S-1.3 biome pass), keyed by street so the corridor reads as
-    // distinct ground per calle instead of one uniform color; granularity
-    // matches OrthogonalParcelTerrain's domain unit (one tile per
-    // ParcelGrid.TilesPerStandardLot slice of a lot), each projected
-    // individually so the panel narrows with depth like every other element
-    // in this view.
+    // distinct ground per calle.
     private const float TileUnitPx = LotUnitPx / 3f; // ParcelGrid.TilesPerStandardLot
     // Chunky pixel-grid step for the floor's staircase edges — see
     // DrawPixelStaircaseTrapezoid. Half of PixelMotion.StepPixels (8px):
@@ -147,22 +142,14 @@ public partial class MacroStreetLiveView : Node2D
     private static readonly Color PlacementSelectedColor = new("#f2c94ccc");
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
-    [Export] public NodePath CityMacroViewPath { get; set; } = "../CityMacroView";
-    // These three are only meaningful for the flat view, but CityMacroView's
-    // own Refresh() used to drive their Visible independently of which world
-    // view was on screen. Refresh()/chronicle updates are now guarded by the
-    // flat view's own visibility; the explicit hide here remains as the
-    // activation-time cleanup (siblings do not inherit CityMacroView's
-    // hidden state).
-    [Export] public NodePath PlotStagePath { get; set; } = "../BuildingPlotStage";
-    [Export] public NodePath EmptyPanelPath { get; set; } = "../Center/EmptyPanel";
-    [Export] public NodePath OfflineReportPath { get; set; } = "../OfflineReportPanel";
-    // Construction: shared with CityMacroView (both gate on their own
-    // Visible so only the active world view reacts — see
-    // CityMacroView.OnConstructionMenuPressed/OnPlacementRequested).
+    [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
+    [Export] public NodePath ChroniclePath { get; set; } = "../OfflineReportPanel";
     [Export] public NodePath ConstructionMenuButtonPath { get; set; } =
         "../MacroActions/Actions/ConstructionMenuButton";
     [Export] public NodePath ConstructionPanelPath { get; set; } = "../Center/ConstructionPanel";
+    [Export] public NodePath ExpeditionMenuButtonPath { get; set; } =
+        "../MacroActions/Actions/ExpeditionMenuButton";
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = "../ExpeditionPanel";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
     [Export] public NodePath MacroActionsPath { get; set; } = "../MacroActions";
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
@@ -170,13 +157,13 @@ public partial class MacroStreetLiveView : Node2D
         "../MacroActions/Actions/CameraModeButton";
 
     private CityWorldController _controller = null!;
-    private CityMacroView _cityMacroView = null!;
+    private CityStatusPanel _statusPanel = null!;
+    private OfflineReportPanel _chronicle = null!;
     private ResourceActionMenu _actionMenu = null!;
-    private Control _plotStage = null!;
-    private Control _emptyPanel = null!;
-    private Control _offlineReport = null!;
     private IconButton _constructionMenuButton = null!;
     private ConstructionPanel _constructionPanel = null!;
+    private IconButton _expeditionMenuButton = null!;
+    private ExpeditionPanel _expeditionPanel = null!;
     private ModalHost _modalHost = null!;
     private Control _macroActions = null!;
     private BuildingDetailView _buildingDetailView = null!;
@@ -209,10 +196,8 @@ public partial class MacroStreetLiveView : Node2D
     private float? _cameraDepthTarget;
     private float _cameraTransitionAccumulator;
 
-    // Placement mode: select-then-confirm lot picking for a construction
-    // blueprint, the perspective-native equivalent of
-    // ConstructionPlacementOverlay (which depends on flat CalculateParcelRect
-    // math and cannot render correctly over this view's projected geometry).
+    // Placement mode: select-then-confirm lot picking projected directly on
+    // the same terrain geometry as the city.
     private readonly record struct PlacementLotBox(
         ConstructionLot Lot, int Street, float LateralOffset, float Width, float Height);
     private readonly List<PlacementLotBox> _placementLots = new();
@@ -263,7 +248,8 @@ public partial class MacroStreetLiveView : Node2D
     private List<StreetRoutePlanner.Waypoint>? _route;
     private int _routeIndex;
     private (int ForestId, int UnitId)? _pendingGather;
-    private bool _pendingAssignmentSettle;
+    private BuildingId? _pendingAssignment;
+    private bool _pendingReturnHome;
     // Tracks the domain's own hero.CurrentAssignment so a route to the
     // workplace fires exactly once per NEW assignment (see
     // EnsureHeroCarrier) — without this, every world tick re-triggered the
@@ -272,6 +258,7 @@ public partial class MacroStreetLiveView : Node2D
     // expected to own it), producing an endless fight that looked like the
     // citizen looping in place for no reason.
     private BuildingId? _lastKnownAssignment;
+    private CitizenLocation? _lastKnownHeroLocation;
     private bool _treeHovered;
 
     private readonly record struct PlotBox(
@@ -281,7 +268,8 @@ public partial class MacroStreetLiveView : Node2D
         float Height,
         int BuildingId,
         BuildingKind Kind,
-        bool IsUnderConstruction);
+        bool IsUnderConstruction,
+        bool IsClickable);
 
     private readonly record struct TreeBox(
         int Street,
@@ -294,12 +282,16 @@ public partial class MacroStreetLiveView : Node2D
     public override void _Ready()
     {
         _controller = GetNode<CityWorldController>(ControllerPath);
-        _cityMacroView = GetNode<CityMacroView>(CityMacroViewPath);
-        _plotStage = GetNode<Control>(PlotStagePath);
-        _emptyPanel = GetNode<Control>(EmptyPanelPath);
-        _offlineReport = GetNode<Control>(OfflineReportPath);
+        _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
+        _statusPanel.AttachController(_controller);
+        _statusPanel.Refresh(_controller);
+        _chronicle = GetNode<OfflineReportPanel>(ChroniclePath);
+        _chronicle.SetController(_controller);
+        _chronicle.Hide();
         _constructionMenuButton = GetNode<IconButton>(ConstructionMenuButtonPath);
         _constructionPanel = GetNode<ConstructionPanel>(ConstructionPanelPath);
+        _expeditionMenuButton = GetNode<IconButton>(ExpeditionMenuButtonPath);
+        _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _macroActions = GetNode<Control>(MacroActionsPath);
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
@@ -309,16 +301,14 @@ public partial class MacroStreetLiveView : Node2D
         // Pixel-art atlas tiles scale up crisp instead of smearing.
         TextureFilter = TextureFilterEnum.Nearest;
 
-        _streetCount = OrthogonalParcelTerrain.ParcelRows * ParcelGrid.LotsPerAxis;
+        _streetCount = WorldParcelRows * ParcelGrid.LotsPerAxis;
         _lateralHalfWidthPx =
-            OrthogonalParcelTerrain.ParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
+            WorldParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
 
         _actionMenu = GD.Load<PackedScene>(ResourceActionMenuScenePath).Instantiate<ResourceActionMenu>();
         _actionMenu.GatherRequested += OnGatherRequested;
-        // Deferred for the same reason as CityMacroView's placement overlay:
-        // ScreenContent is still mid-_Ready() for its own children (this
-        // node included), and Godot rejects add_child on a parent that is
-        // "busy setting up children".
+        // ScreenContent is still mid-_Ready() for its children, so transient
+        // controls are attached after the scene-tree setup pass.
         GetParent().CallDeferred(Node.MethodName.AddChild, _actionMenu);
         _selectionInfoPanel = new SelectionInfoPanel();
         GetParent().CallDeferred(Node.MethodName.AddChild, _selectionInfoPanel);
@@ -331,11 +321,13 @@ public partial class MacroStreetLiveView : Node2D
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
         _constructionMenuButton.Pressed += OnConstructionMenuPressed;
+        _expeditionMenuButton.Pressed += OnExpeditionMenuPressed;
         _constructionPanel.PlacementRequested += OnPlacementRequested;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
         _modalHost.Closed += OnModalHostClosedForButtonLabel;
         _cameraModeButton.Pressed += ToggleCameraMode;
         UpdateCameraModeButtonLabel();
+        UpdateConstructionButtonLabel();
 
         RefreshPlots();
         Visible = false;
@@ -347,10 +339,7 @@ public partial class MacroStreetLiveView : Node2D
         // height.
         CallDeferred(MethodName.NormalizePosition);
 
-        // This is the only macro world view now: activate it up front unless
-        // onboarding still needs to run (mirrors CityMacroView's own initial
-        // visibility check — that view shows itself once onboarding
-        // finishes, via OnHeroCreated below).
+        // Activate up front unless onboarding still needs to run.
         if (!_controller.NeedsOnboarding())
         {
             ActivatePerspective();
@@ -382,9 +371,8 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Confirm/Cancel footer + instruction label for placement mode — the
-    /// only pieces of <c>ConstructionPlacementOverlay</c>'s chrome this view
-    /// still needs as real Controls; the lots themselves are drawn and
+    /// Confirm/Cancel footer + instruction label for placement mode. The
+    /// lots themselves are drawn and
     /// hit-tested like every other element in this view (see
     /// <see cref="_Draw"/>/<see cref="TryClick"/>), not as a button grid,
     /// since their position depends on the depth projection.
@@ -417,7 +405,7 @@ public partial class MacroStreetLiveView : Node2D
             ThemeTypeVariation = "ButtonPrimary",
             Disabled = true,
         };
-        _placementCancelButton = new IconButton { ThemeTypeVariation = "ButtonSecondary" };
+        _placementCancelButton = new IconButton { ThemeTypeVariation = "ButtonText" };
         ((IconButton)_placementCancelButton).SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
         footer.AddChild(_placementConfirmButton);
         footer.AddChild(_placementCancelButton);
@@ -430,28 +418,28 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Mirrors <c>CityMacroView.OnHeroCreated</c>: without this, completing
-    /// onboarding would only show the flat view (the one that actually
-    /// listens for this signal today), leaving this view hidden.
+    /// Makes the city visible once founder onboarding completes.
     /// </summary>
     private void OnHeroCreated(int citizenId) => ActivatePerspective();
 
     private void OnWorldChanged(int _)
     {
+        _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
+        RefreshChronicleIfActive();
     }
 
     private void OnWorldTickAdvanced(int _)
     {
+        _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
+        RefreshChronicleIfActive();
     }
 
     /// <summary>
-    /// See the class doc: this always runs after
-    /// <c>CityMacroView.OnSelectionChanged</c> and has the last word on
-    /// which world view is actually visible.
+    /// Keeps the city hidden while a detail/profile screen owns selection.
     /// </summary>
     private void OnSelectionChanged(int selectionState)
     {
@@ -459,34 +447,63 @@ public partial class MacroStreetLiveView : Node2D
             (CityWorldController.Selection)selectionState == CityWorldController.Selection.MacroView;
         if (!_selectionIsMacro)
         {
-            // Neither world view's own content belongs on screen while a
-            // detail/profile screen is open.
             Deactivate();
-            HideFlatOnlyOverlays();
             return;
         }
         ActivatePerspective();
     }
 
     /// <summary>
-    /// Shows this view and hides both the flat view and the three
-    /// flat-view-only overlays that would otherwise sit on top of it
-    /// (see <see cref="PlotStagePath"/> etc.).
+    /// Shows the canonical city view.
     /// </summary>
     private void ActivatePerspective()
     {
-        _cityMacroView.Hide();
-        HideFlatOnlyOverlays();
+        _macroActions.Show();
         _actionMenu.Hide();
         _selectionInfoPanel.Hide();
         Show();
         RefreshPlots();
+        _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
+    }
+
+    public Vector2 GetFoundingArrivalGlobalPosition()
+    {
+        IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
+        if (lots.Count == 0) return ToGlobal(new Vector2(CenterX, BaseY));
+
+        ConstructionLot lot = lots[0];
+        int street = lot.ParcelRow * ParcelGrid.LotsPerAxis + lot.LotRow;
+        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
+        float lotCenterColumn = lot.ParcelColumn * ParcelGrid.LotsPerAxis + lot.LotColumn + 0.5f;
+        float lateral = (lotCenterColumn - totalLotColumns * 0.5f) * LotUnitPx;
+        (Vector2 position, _) = StreetDepthProjection.Project(
+            AnchorDepth(street - CameraDepthAnchor),
+            lateral - CameraLateral,
+            CenterX,
+            BaseY);
+        return ToGlobal(position);
+    }
+
+    public void PrepareFounderArrival()
+    {
+        ActivatePerspective();
+        _macroActions.Hide();
+        _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+    }
+
+    public void CompleteFounderArrival()
+    {
+        ActivatePerspective();
+        _macroActions.Show();
+        EnsureHeroCarrier(_controller.GetCityMacroSnapshot());
     }
 
     /// <summary>Hides this view plus its own transient surfaces (menu, axe cursor, placement, selection, zoom).</summary>
     private void Deactivate()
     {
         Hide();
+        _macroActions.Hide();
+        _chronicle.Hide();
         _actionMenu.Hide();
         _selectionInfoPanel.Hide();
         _selectedTree = null;
@@ -494,6 +511,14 @@ public partial class MacroStreetLiveView : Node2D
         ClearTreeHover();
         if (_placementActive) EndPlacement();
         ResetZoom();
+    }
+
+    private void RefreshChronicleIfActive()
+    {
+        if (Visible && _selectionIsMacro)
+        {
+            _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
+        }
     }
 
     /// <summary>
@@ -509,18 +534,7 @@ public partial class MacroStreetLiveView : Node2D
         _pendingBuildingEntry = null;
     }
 
-    private void HideFlatOnlyOverlays()
-    {
-        _plotStage.Hide();
-        _emptyPanel.Hide();
-        _offlineReport.Hide();
-    }
-
-    /// <summary>
-    /// Shared with <c>CityMacroView.OnConstructionMenuPressed</c> via the
-    /// same button; each gates on its own <c>Visible</c> so only the active
-    /// world view reacts.
-    /// </summary>
+    /// <summary>Opens or closes construction from the city toolbar.</summary>
     private void OnConstructionMenuPressed()
     {
         if (!Visible) return;
@@ -541,7 +555,17 @@ public partial class MacroStreetLiveView : Node2D
         UpdateConstructionButtonLabel();
     }
 
-    /// <summary>Shared with <c>CityMacroView.OnPlacementRequested</c> via the same signal.</summary>
+    private void OnExpeditionMenuPressed()
+    {
+        if (_modalHost.IsOpen && _modalHost.Content == _expeditionPanel)
+        {
+            _expeditionPanel.Close();
+            return;
+        }
+        _expeditionPanel.Open();
+    }
+
+    /// <summary>Starts perspective-native lot placement.</summary>
     private void OnPlacementRequested(int constructionKind)
     {
         if (!Visible) return;
@@ -559,6 +583,20 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (!Visible) return;
         _modalHost.Close();
+    }
+
+    internal void ShowConstructionForVisualRegression(bool placement)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        ActivatePerspective();
+        if (placement)
+        {
+            OnPlacementRequested((int)ConstructionKind.Farm);
+            return;
+        }
+        _modalHost.Open(_constructionPanel);
+        _constructionPanel.Refresh();
+        _constructionPanel.ScrollBodyToEndForVisualRegression();
     }
 
     private void OnModalHostClosedForButtonLabel()
@@ -624,7 +662,7 @@ public partial class MacroStreetLiveView : Node2D
         _wasFreeCameraBeforePlacement = !_cameraFollowsHero;
         if (!_cameraFollowsHero) SetCameraFollowsHero(true);
 
-        float totalLotColumns = OrthogonalParcelTerrain.ParcelColumns * ParcelGrid.LotsPerAxis;
+        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
         _placementLots.Clear();
         foreach (ConstructionLot lot in lots)
         {
@@ -673,9 +711,8 @@ public partial class MacroStreetLiveView : Node2D
     private void OnPlacementCancelPressed() => CancelPlacement();
 
     /// <summary>
-    /// Cancelling returns to the blueprint-choice panel, matching
-    /// <c>CityMacroView.OnPlacementCancelled</c> — the player backed out of
-    /// a specific lot, not out of building altogether.
+    /// Cancelling returns to the blueprint-choice panel: the player backed
+    /// out of a specific lot, not out of building altogether.
     /// </summary>
     private void CancelPlacement()
     {
@@ -699,7 +736,7 @@ public partial class MacroStreetLiveView : Node2D
         _trees.Clear();
         _bandOccupancy.Clear();
         CityMacroSnapshot snapshot = _controller.GetCityMacroSnapshot();
-        float totalLotColumns = OrthogonalParcelTerrain.ParcelColumns * ParcelGrid.LotsPerAxis;
+        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
 
         foreach (CityMacroSnapshot.PlotItem item in snapshot.Buildings)
         {
@@ -716,9 +753,6 @@ public partial class MacroStreetLiveView : Node2D
         }
         if (Visible)
         {
-            // Belt-and-braces: world events must never resurface the flat
-            // view's overlays on top of the active perspective.
-            HideFlatOnlyOverlays();
             EnsureHeroCarrier(snapshot);
             RefreshCitizenVisuals(snapshot);
         }
@@ -758,12 +792,11 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>
     /// Each forest patch has one reserve per individual tree
-    /// (<c>WoodUnitReserves</c>); <c>ParcelGrid.NaturalResourceLot</c> (the
-    /// same helper <c>OrthogonalParcelTerrain.ResourceUnitCenter</c> uses)
-    /// gives each unit's own lot within the patch's parcel, so trees get
+    /// (<c>WoodUnitReserves</c>); <c>ParcelGrid.NaturalResourceLot</c>
+    /// gives each unit its own lot within the patch's parcel, so trees get
     /// the same calle/lateral projection as buildings instead of all
     /// bunching up at the patch's own (fixed 0,0) lot. Depleted units
-    /// (reserve 0) are skipped, matching <c>OrthogonalParcelTerrain.RebuildTrees</c>.
+    /// (reserve 0) are skipped.
     /// </summary>
     private void AddTrees(CityMacroSnapshot.PlotItem forest, float totalLotColumns)
     {
@@ -798,9 +831,10 @@ public partial class MacroStreetLiveView : Node2D
             lateralOffset,
             width,
             item.LotHeight * LotUnitPx,
-            clickable ? item.Id.Value : -1,
+            item.Id.Value,
             item.Kind,
-            item.IsUnderConstruction));
+            item.IsUnderConstruction,
+            clickable));
         AddBandInterval(street, lateralOffset - width * 0.5f, lateralOffset + width * 0.5f);
     }
 
@@ -983,8 +1017,7 @@ public partial class MacroStreetLiveView : Node2D
         // gathering.
         if (_actionMenu.Visible) _actionMenu.Hide();
 
-        // Placement mode is exclusive — mirrors ConstructionPlacementOverlay's
-        // fullscreen Stop-filtered scrim, which blocks every other click
+        // Placement mode is exclusive and blocks every other world click
         // while a lot is being chosen.
         if (_placementActive)
         {
@@ -1160,8 +1193,8 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Same validation <c>CityMacroView.OnResourceGatherRequested</c> uses
-    /// (hero unassigned and not on expedition). Unlike the first slice,
+    /// Gathering requires an unassigned hero who is not on expedition.
+    /// Unlike the first slice,
     /// confirming now routes the hero along the street network to the tree
     /// before gathering — see <see cref="OnGatherRequested"/>.
     /// </summary>
@@ -1210,6 +1243,8 @@ public partial class MacroStreetLiveView : Node2D
             Notifier.ShowError(UiText.Get("This tree no longer has wood available."));
             return;
         }
+        _pendingReturnHome = false;
+        _pendingAssignment = null;
         _pendingGather = (forestId, unitId);
         _route = PlanHeroRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
         _routeIndex = 0;
@@ -1288,9 +1323,26 @@ public partial class MacroStreetLiveView : Node2D
         _route = null;
         _routeIndex = 0;
         _heroWalking = false;
-        if (_pendingAssignmentSettle)
+        if (_pendingReturnHome)
         {
-            _pendingAssignmentSettle = false;
+            _pendingReturnHome = false;
+            _controller.ConfirmCitizenArrivedHome(_controller.World.Hero!.Id);
+            // Arrival means the citizen crossed the threshold. The macro
+            // carrier disappears inside; a later order remounts the same
+            // flyweight before planning its next route.
+            _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            return;
+        }
+        if (_pendingAssignment is BuildingId workplace)
+        {
+            bool arrived = _controller.ConfirmCitizenArrivedAtAssignment(
+                workplace,
+                _controller.World.Hero!.Id);
+            if (arrived
+                || _controller.World.Hero.CurrentLocation != CitizenLocation.InTransit)
+            {
+                _pendingAssignment = null;
+            }
             // Facing "into" the workplace (deeper on this row), matching
             // the gather pose's own orientation once arrived.
             _heroCarrier?.Idle(Vector2.Up);
@@ -1475,25 +1527,106 @@ public partial class MacroStreetLiveView : Node2D
                 _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             }
             _lastKnownAssignment = null;
+            _lastKnownHeroLocation = null;
             return;
         }
         CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
+        BuildingId? currentAssignment = snapshot.Citizens.Count > 0
+            ? snapshot.Citizens[0].CurrentAssignment
+            : null;
+        CitizenLocation heroLocation = snapshot.Citizens.Count > 0
+            ? snapshot.Citizens[0].Location
+            : CitizenLocation.AtHome;
+        bool hasShelter = snapshot.Buildings.Any(building =>
+            building.Kind == BuildingKind.Home && !building.IsUnderConstruction);
+        if (ShouldHideHeroInsideShelter(
+            currentAssignment,
+            heroLocation,
+            hasShelter,
+            hasRoute: _route is not null,
+            pendingReturnHome: _pendingReturnHome))
+        {
+            _heroCarrier.CancelMotion();
+            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            _lastKnownAssignment = null;
+            _lastKnownHeroLocation = heroLocation;
+            return;
+        }
+        if (currentAssignment.HasValue && heroLocation == CitizenLocation.AtWork)
+        {
+            _heroCarrier.CancelMotion();
+            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            _lastKnownAssignment = currentAssignment;
+            _lastKnownHeroLocation = heroLocation;
+            _pendingAssignment = null;
+            _pendingReturnHome = false;
+            _route = null;
+            _routeIndex = 0;
+            _heroWalking = false;
+            return;
+        }
         if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
             _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
             _heroCarrier.Idle(Vector2.Down);
         }
 
-        BuildingId? currentAssignment = snapshot.Citizens.Count > 0
-            ? snapshot.Citizens[0].CurrentAssignment
-            : null;
         if (currentAssignment != _lastKnownAssignment)
         {
+            if (_lastKnownAssignment.HasValue && currentAssignment is null)
+            {
+                BeginWalkHome();
+            }
             _lastKnownAssignment = currentAssignment;
             if (currentAssignment is BuildingId workplace) BeginWalkToAssignment(workplace);
         }
+        else if (currentAssignment.HasValue
+            && heroLocation == CitizenLocation.InTransit
+            && snapshot.Citizens[0].IsReturningHome
+            && ShouldBeginReturnHomeRoute(
+                _lastKnownHeroLocation,
+                hasRoute: _route is not null,
+                pendingReturnHome: _pendingReturnHome))
+        {
+            BeginWalkHome();
+        }
+        else if (currentAssignment is BuildingId unsettledWorkplace
+            && snapshot.Citizens.Count > 0
+            && snapshot.Citizens[0].Location == CitizenLocation.InTransit
+            && _route is null)
+        {
+            // A view transition can replace the flyweight carrier's previous
+            // movement callback. If the domain still says InTransit after the
+            // visual route disappeared, resume/reconcile instead of leaving
+            // the citizen permanently assigned but non-productive.
+            BeginWalkToAssignment(unsettledWorkplace);
+        }
+        _lastKnownHeroLocation = heroLocation;
         UpdateHeroVisual();
     }
+
+    internal static bool ShouldBeginReturnHomeRoute(
+        CitizenLocation? previousLocation,
+        bool hasRoute,
+        bool pendingReturnHome)
+    {
+        return previousLocation == CitizenLocation.AtWork
+            || (previousLocation == CitizenLocation.InTransit
+                && !hasRoute
+                && !pendingReturnHome);
+    }
+
+    internal static bool ShouldHideHeroInsideShelter(
+        BuildingId? currentAssignment,
+        CitizenLocation location,
+        bool hasShelter,
+        bool hasRoute,
+        bool pendingReturnHome) =>
+        currentAssignment is null
+        && location == CitizenLocation.AtHome
+        && hasShelter
+        && !hasRoute
+        && !pendingReturnHome;
 
     /// <summary>
     /// Ambient presence for assigned, non-hero citizens (S-1.4 follow-up:
@@ -1513,9 +1646,21 @@ public partial class MacroStreetLiveView : Node2D
     {
         var workersByBuilding = new Dictionary<int, List<CityMacroSnapshot.CitizenItem>>();
         var assignedCitizenIds = new HashSet<int>();
+        var arrivedWorkers = new List<(BuildingId BuildingId, CitizenId CitizenId)>();
+        var arrivedHome = new List<CitizenId>();
         foreach (CityMacroSnapshot.CitizenItem citizen in snapshot.Citizens)
         {
-            if (citizen.IsHero || citizen.IsOnExpedition || citizen.CurrentAssignment is not { } workplace) continue;
+            if (!citizen.IsHero
+                && citizen.Location == CitizenLocation.InTransit
+                && citizen.IsReturningHome)
+            {
+                arrivedHome.Add(citizen.Id);
+                continue;
+            }
+            if (citizen.IsHero
+                || citizen.IsOnExpedition
+                || citizen.Location == CitizenLocation.AtWork
+                || citizen.CurrentAssignment is not { } workplace) continue;
             assignedCitizenIds.Add(citizen.Id.Value);
             if (!workersByBuilding.TryGetValue(workplace.Value, out List<CityMacroSnapshot.CitizenItem>? workers))
             {
@@ -1548,6 +1693,10 @@ public partial class MacroStreetLiveView : Node2D
                     carrier.Idle(Vector2.Up);
                 }
                 _workerCarriers[worker.Id.Value] = new WorkerSlot(carrier, buildingId, index, workers.Count);
+                if (worker.Location == CitizenLocation.InTransit)
+                {
+                    arrivedWorkers.Add((new BuildingId(buildingId), worker.Id));
+                }
             }
         }
 
@@ -1569,6 +1718,14 @@ public partial class MacroStreetLiveView : Node2D
             }
         }
         UpdateWorkerVisuals();
+        foreach ((BuildingId buildingId, CitizenId citizenId) in arrivedWorkers)
+        {
+            _controller.ConfirmCitizenArrivedAtAssignment(buildingId, citizenId);
+        }
+        foreach (CitizenId citizenId in arrivedHome)
+        {
+            _controller.ConfirmCitizenArrivedHome(citizenId);
+        }
     }
 
     /// <summary>
@@ -1599,7 +1756,7 @@ public partial class MacroStreetLiveView : Node2D
             // AnchorDepth(depth)) — half a tile CLOSER to the viewer than
             // the building's own anchor, so the worker stands visibly in
             // front of the building instead of overlapping its sprite.
-            float depth = plotValue.Street - CameraDepthAnchor;
+            float depth = WorkplaceEntranceStreet(plotValue.Street) - CameraDepthAnchor;
             float fanOffset = (slot.Index - (slot.GroupSize - 1) * 0.5f) * WorkerLateralSpacingPx;
             float relativeOffset = plotValue.LateralOffset + fanOffset - CameraLateral;
             (Vector2 position, Vector2 scale) =
@@ -1619,6 +1776,13 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BeginWalkToAssignment(BuildingId workplace)
     {
+        // The canonical flyweight may still carry a GoTo started by the
+        // building-detail slot where the assignment was requested. Once the
+        // macro view takes route ownership, that interior movement must stop:
+        // otherwise CitizenSpriteCarrier._Process and UpdateHeroVisual write
+        // the same Position concurrently and the sprite oscillates just short
+        // of the entrance without either completion callback winning.
+        _heroCarrier?.CancelMotion();
         PlotBox? target = null;
         foreach (PlotBox plot in _plots)
         {
@@ -1626,12 +1790,68 @@ public partial class MacroStreetLiveView : Node2D
             target = plot;
             break;
         }
-        if (target is null) return;
+        if (target is null)
+        {
+            _controller.ConfirmCitizenArrivedAtAssignment(
+                workplace,
+                _controller.World.Hero!.Id);
+            return;
+        }
         _pendingGather = null;
-        _pendingAssignmentSettle = true;
-        _route = PlanHeroRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
+        _pendingReturnHome = false;
+        _pendingAssignment = workplace;
+        int entranceStreet = WorkplaceEntranceStreet(target.Value.Street);
+        _route = PlanHeroRoute(_heroStreet, _heroLateral, entranceStreet, target.Value.LateralOffset);
         _routeIndex = 0;
     }
+
+    /// <summary>
+    /// Gives a released founder a concrete next intention. Assignment is a
+    /// domain concern; this route is its visual consequence, so the citizen
+    /// walks back to the Shelter instead of freezing wherever the previous
+    /// workplace route was cancelled.
+    /// </summary>
+    private void BeginWalkHome()
+    {
+        // Route ownership can also transfer from an interior exit animation.
+        // Keep exactly one position writer for the shared citizen carrier.
+        _heroCarrier?.CancelMotion();
+        PlotBox? shelter = null;
+        foreach (PlotBox plot in _plots)
+        {
+            if (plot.Kind != BuildingKind.Home || plot.IsUnderConstruction) continue;
+            shelter = plot;
+            break;
+        }
+
+        _pendingGather = null;
+        _pendingAssignment = null;
+        _routeIndex = 0;
+        _heroWalking = false;
+        if (shelter is null)
+        {
+            _pendingReturnHome = false;
+            _route = null;
+            _heroCarrier?.Idle(Vector2.Down);
+            return;
+        }
+
+        _pendingReturnHome = true;
+        int entranceStreet = WorkplaceEntranceStreet(shelter.Value.Street);
+        _route = PlanHeroRoute(
+            _heroStreet,
+            _heroLateral,
+            entranceStreet,
+            shelter.Value.LateralOffset);
+    }
+
+    /// <summary>
+    /// A plot's street value already denotes the free front band of that lot
+    /// row. Subtracting one stopped the citizen on the preceding road and then
+    /// treated that visibly premature position as an arrival.
+    /// </summary>
+    internal static int WorkplaceEntranceStreet(int buildingStreet) =>
+        Math.Max(0, buildingStreet);
 
     /// <summary>
     /// Prefers the real <see cref="StreetNavigationServerPlanner"/> navmesh
@@ -1741,7 +1961,7 @@ public partial class MacroStreetLiveView : Node2D
 
         if (_placementActive)
         {
-            DrawPlacementLots(street, anchorDepth);
+            DrawPlacementLots(street, depth);
         }
 
         foreach (PlotBox plot in _plots)
@@ -1767,7 +1987,7 @@ public partial class MacroStreetLiveView : Node2D
             {
                 DrawRect(rect, BuildingColor);
             }
-            if (plot.BuildingId >= 0) _clickableRects.Add((rect, plot.BuildingId));
+            if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
         }
 
         foreach (TreeBox tree in _trees)
@@ -1833,24 +2053,34 @@ public partial class MacroStreetLiveView : Node2D
                 float tileCenterGlobal = (tileIndex + 0.5f) * TileUnitPx - _lateralHalfWidthPx;
                 float leftGlobal = tileCenterGlobal - TileUnitPx * 0.5f - CameraLateral;
                 float rightGlobal = tileCenterGlobal + TileUnitPx * 0.5f - CameraLateral;
-                // Same alternation formula as OrthogonalParcelTerrain.RebuildGround,
-                // parameterized by tile index / global tile row instead of
-                // column / row — both world views read as the same ground
-                // hash at the same tile granularity, now picking between the
+                // Deterministic terrain hash parameterized by tile index and
+                // global tile row, picking between the
                 // biome's two atlas variants instead of two flat colors.
                 bool alternate = (tileIndex * 3 + globalTileRow * 5) % 11 == 0;
                 int atlasRow = alternate ? GroundAtlasRowB : GroundAtlasRowA;
                 // Only tileRow 0 (the calle's own walkable front band) can
                 // wear into a path — the lot depth behind it (tileRow 1/2)
                 // is never trodden, it's where buildings/trees sit.
-                int atlasColumn = tileRow == 0 && _terrainWear.IsWorn(street, tileIndex)
-                    ? DirtAtlasColumn
-                    : baseAtlasColumn;
                 DrawPixelStaircaseTrapezoid(
                     yNear, yFar,
                     CenterX + leftGlobal * scaleNear, CenterX + rightGlobal * scaleNear,
                     CenterX + leftGlobal * scaleFar, CenterX + rightGlobal * scaleFar,
-                    _terrainAtlas, ResourceTree.AtlasRegionRect(atlasColumn, atlasRow));
+                    _terrainAtlas, ResourceTree.AtlasRegionRect(baseAtlasColumn, atlasRow));
+
+                float wear = tileRow == 0 ? _terrainWear.WearAt(street, tileIndex) : 0f;
+                if (wear <= 0f) continue;
+                // Reveal a narrow dirt trace first, then widen it with traffic.
+                // One passage affects only a couple of snapped pixels instead
+                // of replacing the whole tile at an arbitrary threshold.
+                float dirtWidthFactor = Mathf.Clamp(0.04f + wear * 0.96f, 0f, 1f);
+                float halfDirtWidth = TileUnitPx * dirtWidthFactor * 0.5f;
+                float dirtLeft = tileCenterGlobal - halfDirtWidth - CameraLateral;
+                float dirtRight = tileCenterGlobal + halfDirtWidth - CameraLateral;
+                DrawPixelStaircaseTrapezoid(
+                    yNear, yFar,
+                    CenterX + dirtLeft * scaleNear, CenterX + dirtRight * scaleNear,
+                    CenterX + dirtLeft * scaleFar, CenterX + dirtRight * scaleFar,
+                    _terrainAtlas, ResourceTree.AtlasRegionRect(DirtAtlasColumn, atlasRow));
             }
         }
     }
@@ -1858,9 +2088,8 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>
     /// Deterministic biome-per-calle assignment (S-1.3 phase 1): cycles
     /// Grass/Dirt/Stone across streets so the corridor shows visible ground
-    /// variety without any new domain/save state — purely presentational,
-    /// same spirit as <c>OrthogonalParcelTerrain</c>'s own comment that
-    /// terrain art must never become simulation state. <see cref="_terrainWear"/>
+    /// variety without any new domain/save state — purely presentational.
+    /// Terrain art must never become simulation state. <see cref="_terrainWear"/>
     /// (phase 2) overrides this per-tile in <see cref="DrawTiledFloor"/> for
     /// trampled tiles, without touching this method.
     /// </summary>
@@ -1949,27 +2178,83 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Renders each available construction lot as a selectable marker at
-    /// its projected calle/lateral position, the perspective-native
-    /// equivalent of <c>ConstructionPlacementOverlay</c>'s button grid.
+    /// Renders each available construction lot as its real 3x3 ground
+    /// footprint. Every cell projects its near and far edges independently,
+    /// so the blueprint shares the terrain's vanishing point instead of
+    /// becoming an axis-aligned screen rectangle after projecting only its
+    /// centre.
     /// </summary>
-    private void DrawPlacementLots(int street, float anchorDepth)
+    private void DrawPlacementLots(int street, float streetDepth)
     {
         foreach (PlacementLotBox lot in _placementLots)
         {
             if (lot.Street != street) continue;
-            float relativeOffset = lot.LateralOffset - CameraLateral;
-            (Vector2 position, Vector2 scale) =
-                StreetDepthProjection.Project(anchorDepth, relativeOffset, CenterX, BaseY);
-            var size = new Vector2(lot.Width * scale.X, lot.Height * scale.Y);
-            var rect = new Rect2(
-                new Vector2(position.X - size.X * 0.5f, position.Y - size.Y),
-                size);
             bool isSelected = _selectedPlacementLot is ConstructionLot selectedLot
                 && selectedLot == lot.Lot;
-            DrawRect(rect, isSelected ? PlacementSelectedColor : PlacementAvailableColor);
-            DrawRect(rect, new Color("#f4e7b2"), filled: false, width: 2);
-            _clickablePlacementRects.Add((rect, lot));
+            Color fill = isSelected ? PlacementSelectedColor : PlacementAvailableColor;
+            Color outline = new("#f4e7b2");
+            float lotLeft = lot.LateralOffset - lot.Width * 0.5f - CameraLateral;
+            float lotRight = lotLeft + lot.Width;
+            float depthNear = streetDepth;
+            float depthFar = streetDepth + 1f;
+            float yNear = StreetDepthProjection.RowScreenY(depthNear, BaseY);
+            float yFar = StreetDepthProjection.RowScreenY(depthFar, BaseY);
+            float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
+            float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
+            Vector2 nearLeft = new(CenterX + lotLeft * scaleNear, yNear);
+            Vector2 nearRight = new(CenterX + lotRight * scaleNear, yNear);
+            Vector2 farRight = new(CenterX + lotRight * scaleFar, yFar);
+            Vector2 farLeft = new(CenterX + lotLeft * scaleFar, yFar);
+
+            DrawSteppedPlacementFootprint(nearLeft, nearRight, farRight, farLeft, fill, outline);
+            Vector2 boundsMin = new(
+                Mathf.Min(Mathf.Min(nearLeft.X, nearRight.X), Mathf.Min(farLeft.X, farRight.X)),
+                Mathf.Min(yNear, yFar));
+            Vector2 boundsMax = new(
+                Mathf.Max(Mathf.Max(nearLeft.X, nearRight.X), Mathf.Max(farLeft.X, farRight.X)),
+                Mathf.Max(yNear, yFar));
+            _clickablePlacementRects.Add((new Rect2(boundsMin, boundsMax - boundsMin), lot));
         }
+    }
+
+    private void DrawSteppedPlacementFootprint(
+        Vector2 nearLeft,
+        Vector2 nearRight,
+        Vector2 farRight,
+        Vector2 farLeft,
+        Color fill,
+        Color outline)
+    {
+        const float stripeHeight = 2f;
+        float height = Mathf.Abs(farLeft.Y - nearLeft.Y);
+        int stripes = Mathf.Max(1, Mathf.CeilToInt(height / stripeHeight));
+        Vector2 previousLeft = PixelMotion.Snap(nearLeft);
+        Vector2 previousRight = PixelMotion.Snap(nearRight);
+        DrawLine(previousLeft, previousRight, outline, 2f, antialiased: false);
+
+        for (int index = 0; index < stripes; index++)
+        {
+            float t0 = index / (float)stripes;
+            float t1 = (index + 1) / (float)stripes;
+            Vector2 left0 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t0));
+            Vector2 right0 = PixelMotion.Snap(nearRight.Lerp(farRight, t0));
+            Vector2 left1 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t1));
+            Vector2 right1 = PixelMotion.Snap(nearRight.Lerp(farRight, t1));
+            float top = Mathf.Min(left0.Y, left1.Y);
+            float bottom = Mathf.Max(left0.Y, left1.Y);
+            DrawRect(new Rect2(
+                new Vector2(Mathf.Min(left0.X, left1.X), top),
+                new Vector2(
+                    Mathf.Max(right0.X, right1.X) - Mathf.Min(left0.X, left1.X),
+                    Mathf.Max(1f, bottom - top))), fill);
+
+            DrawLine(previousLeft, new Vector2(left1.X, previousLeft.Y), outline, 2f, false);
+            DrawLine(new Vector2(left1.X, previousLeft.Y), left1, outline, 2f, false);
+            DrawLine(previousRight, new Vector2(right1.X, previousRight.Y), outline, 2f, false);
+            DrawLine(new Vector2(right1.X, previousRight.Y), right1, outline, 2f, false);
+            previousLeft = left1;
+            previousRight = right1;
+        }
+        DrawLine(previousLeft, previousRight, outline, 2f, antialiased: false);
     }
 }

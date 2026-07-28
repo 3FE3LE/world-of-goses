@@ -78,6 +78,15 @@ public static class Recipes
                 },
                 Output: ResourceType.Stone),
 
+            [new RecipeId("construction.townhall")] = new Recipe(
+                new RecipeId("construction.townhall"),
+                RequiredInputs: new[]
+                {
+                    new RecipeInput(ResourceType.Wood, 10),
+                    new RecipeInput(ResourceType.Stone, 6),
+                },
+                Output: ResourceType.Stone),
+
             // Farm and Quarry currently pay through labour, stamina and time.
             // Material operating inputs return only when the prototype has a
             // real tools/fuel chain that the player can actually sustain.
@@ -107,6 +116,7 @@ public static class Recipes
         ConstructionKind.BasicShelter => new RecipeId("construction.basicshelter"),
         ConstructionKind.Farm => new RecipeId("construction.farm"),
         ConstructionKind.Quarry => new RecipeId("construction.quarry"),
+        ConstructionKind.TownHall => new RecipeId("construction.townhall"),
         _ => new RecipeId($"construction.{kind.ToString().ToLowerInvariant()}"),
     };
 

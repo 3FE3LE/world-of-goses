@@ -14,6 +14,7 @@ public sealed record BuildingDetailSnapshot(
     int Stock,
     int StorageCapacity,
     int ProductionRate,
+    int ProductionCycleTicks,
     bool ProductionEnabled,
     int MinStock,
     int MaxStock,
@@ -30,6 +31,7 @@ public sealed record BuildingDetailSnapshot(
 {
     public int AssignedCount => AssignedCitizens.Count;
     public bool IsHome => Kind == BuildingKind.Home;
+    public bool IsTownHall => Kind == BuildingKind.TownHall;
     public bool IsForest => Kind == BuildingKind.Forest;
 
     public sealed record CitizenItem(CitizenId Id, string Name, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
@@ -58,7 +60,8 @@ public sealed record BuildingDetailSnapshot(
 
         return new BuildingDetailSnapshot(building.Id, building.DisplayName, building.FullDisplayLabel,
             building.Kind, building.ResourceLabel, building.ResourceUnit, building.Stock,
-            building.StorageCapacity, world.CurrentProductionRate(building.Id), building.ProductionEnabled,
+            building.StorageCapacity, world.CurrentProductionRate(building.Id), CityEconomyRules.ProductionCycleTicks,
+            building.ProductionEnabled,
             building.MinStock, building.MaxStock, building.Priority, building.StopCause,
             building.WorkerCapacity, building.VisibleWorkerCount, building.HiddenWorkerCount,
             building.WoodReserve, new List<RecipeInput>(building.PendingInputs), assigned, available, visible);

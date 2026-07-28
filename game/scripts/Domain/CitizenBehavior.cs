@@ -70,12 +70,16 @@ public static class CitizenBehaviorRules
     public static readonly IReadOnlyList<CitizenBehaviorTransition> Transitions = new CitizenBehaviorTransition[]
     {
         new(CitizenBehaviorState.Idle,        CitizenBehaviorState.Working,     "Assigned to a production building"),
+        new(CitizenBehaviorState.Idle,        CitizenBehaviorState.Travelling,  "Assigned and travelling to work"),
+        new(CitizenBehaviorState.Resting,     CitizenBehaviorState.Travelling,  "Assigned and travelling to work"),
+        new(CitizenBehaviorState.Travelling,  CitizenBehaviorState.Working,     "Arrived at assignment"),
         new(CitizenBehaviorState.Working,     CitizenBehaviorState.Resting,     "Day ends / mobilisation"),
         new(CitizenBehaviorState.Working,     CitizenBehaviorState.Travelling,  "Cancelled assignment + new target"),
         new(CitizenBehaviorState.Resting,     CitizenBehaviorState.Working,     "Day begins / mobilisation"),
         new(CitizenBehaviorState.Idle,        CitizenBehaviorState.Travelling,  "Hero dispatched on expedition"),
         new(CitizenBehaviorState.Travelling,  CitizenBehaviorState.OnExpedition,"Expedition reaches Active state"),
         new(CitizenBehaviorState.OnExpedition,CitizenBehaviorState.Idle,        "Expedition returns or is cancelled"),
+        new(CitizenBehaviorState.OnExpedition,CitizenBehaviorState.Resting,     "Expedition returns to standing work plan"),
         new(CitizenBehaviorState.Working,     CitizenBehaviorState.Injured,     "Stamina depleted to zero"),
         new(CitizenBehaviorState.Injured,     CitizenBehaviorState.Resting,     "Stamina restored to threshold"),
     };

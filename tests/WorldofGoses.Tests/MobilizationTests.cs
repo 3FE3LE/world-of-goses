@@ -41,7 +41,7 @@ public class MobilizationTests
         // Skip to sunset (tick DayTicks = first night tick).
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         // After sunset, all citizens are at home regardless of assignment.
@@ -52,23 +52,23 @@ public class MobilizationTests
     }
 
     [Fact]
-    public void AdvanceWorldTick_AtSunrise_AssignedReturnToWorkUnassignedStayHome()
+    public void AdvanceWorldTick_AtSunrise_ReevaluatesEachStandingOrder()
     {
         var world = TestHelpers.NewProductionWorld();
         // First go to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
         // Then to next sunrise.
         for (int t = 0; t < GameClock.NightTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(1))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(2))!.CurrentLocation);
-        Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(3))!.CurrentLocation);
+        Assert.Equal(CitizenLocation.InTransit, world.GetCitizen(new CitizenId(3))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(4))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(5))!.CurrentLocation);
     }
@@ -76,20 +76,18 @@ public class MobilizationTests
     [Fact]
     public void Mobilization_DoesNotChangeCurrentAssignment()
     {
-        // Auto-release clears the hero's assignment before the day
-        // cycle ends. The mobilization pass then operates on a citizen
-        // with no current assignment, so it must not invent one.
+        // Stock saturation pauses execution but preserves the standing
+        // work order across day/night mobilisation.
         var world = TestHelpers.NewProductionWorld();
         var bran = world.GetCitizen(new CitizenId(1))!;
         var initialAssignment = bran.CurrentAssignment;
 
         for (int t = 0; t < GameClock.DayTicks + GameClock.NightTicks + 5; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
-        Assert.Null(bran.CurrentAssignment);
-        Assert.NotEqual(initialAssignment, bran.CurrentAssignment);
+        Assert.Equal(initialAssignment, bran.CurrentAssignment);
     }
 
     [Fact]
@@ -105,16 +103,101 @@ public class MobilizationTests
     }
 
     [Fact]
-    public void AssignDuringDay_MovesCitizenIntoBuildingImmediately()
+    public void AssignDuringDay_WaitsForArrivalBeforeProductionBegins()
     {
         var world = TestHelpers.WorldWithHome();
         var farm = world.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
         var citizen = world.Hero!;
 
+        int stockBefore = farm.Stock;
+        int rateBefore = world.CurrentProductionRate(farm.Id);
         Assert.True(world.TryAssignCitizen(farm.Id, citizen.Id).IsSuccess);
 
-        Assert.Equal(CitizenLocation.AtWork, citizen.CurrentLocation);
+        Assert.Equal(CitizenLocation.InTransit, citizen.CurrentLocation);
+        Assert.Equal(rateBefore, world.CurrentProductionRate(farm.Id));
         Assert.Contains(citizen.Id, world.GetCurrentlyVisibleOccupants(farm));
+        world.AdvanceWorldTick();
+        Assert.Equal(stockBefore, farm.Stock);
+        Assert.Equal(ProductionStopCause.WorkersInTransit, farm.StopCause);
+
+        Assert.True(world.ConfirmCitizenArrivedAtAssignment(citizen.Id, farm.Id));
+        Assert.Equal(CitizenLocation.AtWork, citizen.CurrentLocation);
+        Assert.True(world.CurrentProductionRate(farm.Id) > rateBefore);
+        TestHelpers.AdvanceToNextProductionCycle(world);
+        Assert.True(farm.Stock > stockBefore);
+    }
+
+    [Fact]
+    public void FullStorage_PreservesStandingOrderWithoutUnnecessaryTravel()
+    {
+        var world = new CityWorld();
+        Citizen citizen = TestHelpers.NewCitizen(42);
+        world.RegisterCitizen(citizen);
+        var farm = new Building(
+            new BuildingId(42),
+            "Arrival test farm",
+            BuildingKind.Farm,
+            ResourceType.Food,
+            CompetencyId.Farming,
+            workerCapacity: 1,
+            visualCapacity: 1,
+            baseProductionPerWorker: 1,
+            storageCapacity: 20,
+            resourceLabel: "Food",
+            resourceUnit: "food");
+        farm.AddStock(farm.MaxStock);
+        world.RegisterBuilding(farm);
+
+        Assert.True(world.TryAssignCitizen(farm.Id, citizen.Id).IsSuccess);
+        Assert.Equal(farm.Id, citizen.CurrentAssignment);
+        Assert.True(farm.IsAssigned(citizen.Id));
+        Assert.Equal(CitizenLocation.AtHome, citizen.CurrentLocation);
+
+        Assert.True(farm.TryConsumeStock(farm.Stock));
+        world.AdvanceWorldTick();
+
+        Assert.Equal(CitizenLocation.InTransit, citizen.CurrentLocation);
+    }
+
+    [Fact]
+    public void FullStorage_ReleasesArrivedWorkerButPreservesTravellingWorkerCommitment()
+    {
+        var world = new CityWorld();
+        Citizen arrived = TestHelpers.NewCitizen(42);
+        Citizen travelling = TestHelpers.NewCitizen(43);
+        world.RegisterCitizen(arrived);
+        world.RegisterCitizen(travelling);
+        var farm = new Building(
+            new BuildingId(42),
+            "Mixed arrival farm",
+            BuildingKind.Farm,
+            ResourceType.Food,
+            CompetencyId.Farming,
+            workerCapacity: 2,
+            visualCapacity: 2,
+            baseProductionPerWorker: 1,
+            storageCapacity: 20,
+            resourceLabel: "Food",
+            resourceUnit: "food");
+        world.RegisterBuilding(farm);
+
+        Assert.True(world.TryAssignCitizen(farm.Id, arrived.Id).IsSuccess);
+        Assert.True(world.ConfirmCitizenArrivedAtAssignment(arrived.Id, farm.Id));
+        farm.AddStock(farm.MaxStock);
+        Assert.True(world.TryAssignCitizen(farm.Id, travelling.Id).IsSuccess);
+
+        for (int tick = 0; tick < Building.MaxStockReleaseCooldown + 2; tick++)
+        {
+            world.AdvanceWorldTick();
+        }
+
+        Assert.Equal(farm.Id, arrived.CurrentAssignment);
+        Assert.Equal(CitizenLocation.InTransit, arrived.CurrentLocation);
+        Assert.True(arrived.IsReturningHome);
+        Assert.Equal(farm.Id, travelling.CurrentAssignment);
+        Assert.True(farm.IsAssigned(travelling.Id));
+        Assert.Equal(CitizenLocation.AtHome, travelling.CurrentLocation);
+        Assert.False(travelling.IsReturningHome);
     }
 
     [Fact]
@@ -125,7 +208,7 @@ public class MobilizationTests
 
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         var visible = world.GetCurrentlyVisibleOccupants(quarry);
@@ -153,7 +236,7 @@ public class MobilizationTests
 
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         var visible = world.GetCurrentlyVisibleOccupants(home);

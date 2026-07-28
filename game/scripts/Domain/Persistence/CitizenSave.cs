@@ -22,6 +22,20 @@ public sealed class CitizenSave
     /// and to make the JSON shape match the live citizen field.
     /// </summary>
     public int? CurrentAssignment { get; set; }
+    /// <summary>
+    /// Additive v14 field. Older v14 saves omit it; restore infers the
+    /// commitment from CurrentAssignment and active expeditions.
+    /// </summary>
+    public string? CommitmentKind { get; set; }
+    public int? CommitmentEntityId { get; set; }
+    /// <summary>Additive v15 standing order preserved across interruptions.</summary>
+    public string? WorkOrderKind { get; set; }
+    public int? WorkOrderEntityId { get; set; }
+    public string? VitalStatus { get; set; }
+    public int? TransitStartedAtTick { get; set; }
+    public string? CurrentLocation { get; set; }
+    public int ResumeWorkNotBeforeTick { get; set; }
+    public bool IsReturningHome { get; set; }
     public List<CompetencySave> Competencies { get; set; } = new();
     public List<RoleSave> Roles { get; set; } = new();
 

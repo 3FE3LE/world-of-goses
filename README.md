@@ -188,7 +188,7 @@ up to date from the repository root:
 
 The domain layer (`Building`, `Citizen`, `BuildingProductionCalculator`,
 `CityWorld`) is fully covered by xUnit. Visual / interaction-layer
-behaviour (`BuildingPlot`, `CityMacroView`, `BuildingDetailView`) is exercised
+behaviour (`MacroStreetLiveView`, `BuildingDetailView`) is exercised
 manually with **F5** in Godot and not by automated tests in this slice.
 
 ## 10. Repository structure
@@ -385,6 +385,25 @@ the prototype teaches us what the project actually needs.
     sunrise returns assigned citizens to work. Save restore seeds the
     initial location from the loaded tick so the visualisation matches
     the clock on the first frame after a load.
+12. ✅ **Interruptible citizen work** — a player-authored `Citizen.WorkOrder`
+    survives temporary expedition and life-support interruptions, while
+    `Citizen.Commitment` represents the mutually-exclusive current engagement.
+    Food/rest may suspend and later re-evaluate work but never choose a new job.
+    Assignment, gathering, expedition dispatch, save validation, and UI-facing
+    availability reasons now consume the same domain state; older v14 saves
+    infer it from their existing relationships.
+13. ✅ **Arrival-gated work** — daytime assignment reserves the citizen and
+    marks them `InTransit`; production, stamina cost, experience, construction
+    progress, and full-stock pausing wait for semantic arrival. Godot can
+    confirm its route on physical arrival; only offline catch-up uses the
+    deterministic domain travel duration, so live ticks cannot hide or start
+    producing with a citizen who is still visibly walking.
+14. ✅ **Batched founding economy** — the one-second world clock no longer
+    represents a completed labour action or meal. Farm, Quarry, and assigned
+    gathering resolve every 10 seconds; citizens eat at home when recovery or
+    the night meal cadence requires it, and production UI reports amounts per
+    batch. Founding Farm/Quarry storage
+    is 60/80, including a one-time additive rebalance for older snapshots.
 
 ## 15. Founding hero and next proof
 

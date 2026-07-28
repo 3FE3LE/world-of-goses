@@ -62,6 +62,7 @@ public static class ConstructionRules
     public const int FarmRequiredWork = 960;
 
     public const int QuarryRequiredWork = 1200;
+    public const int TownHallRequiredWork = 960;
 
     /// <summary>Maximum simultaneous contributors on the worksite.</summary>
     public const int WorkerCapacity = 4;
@@ -104,6 +105,7 @@ public static class ConstructionRules
         ConstructionKind.BasicShelter => RequiredWork,
         ConstructionKind.Farm => FarmRequiredWork,
         ConstructionKind.Quarry => QuarryRequiredWork,
+        ConstructionKind.TownHall => TownHallRequiredWork,
         _ => RequiredWork,
     };
 
@@ -112,6 +114,7 @@ public static class ConstructionRules
         ConstructionKind.BasicShelter => "Basic Shelter",
         ConstructionKind.Farm => "Farm",
         ConstructionKind.Quarry => "Quarry",
+        ConstructionKind.TownHall => "Town Hall",
         _ => "Construction",
     };
 

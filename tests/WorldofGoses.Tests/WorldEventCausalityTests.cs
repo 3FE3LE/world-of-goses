@@ -25,12 +25,12 @@ public class WorldEventCausalityTests
         // StockProduced for this building yet — DayBegan might be
         // earlier in the day, but FindCauseEvent only considers the
         // subject match; the first of day gets a fresh null).
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
         var firstProduced = FindLastProduced(world, quarry.DisplayName);
         Assert.NotNull(firstProduced);
 
         // Tick 2: second production. Cause should now reference tick 1.
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
         var secondProduced = FindLastProduced(world, quarry.DisplayName);
         Assert.NotEqual(firstProduced!.Id, secondProduced!.Id);
         Assert.Equal(firstProduced.Id, secondProduced.CauseEventId);
@@ -43,14 +43,14 @@ public class WorldEventCausalityTests
         var quarry = world.GetBuilding(new BuildingId(1))!;
 
         // Tick 1: produce Stone under the current labour/stamina contract.
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
         var lastProduced = FindLastProduced(world, quarry.DisplayName);
         Assert.NotNull(lastProduced);
 
         // Iron has no sustainable source in the playable bootstrap and
         // therefore cannot be an invisible operating requirement.
         world.TryConsumeResource(ResourceType.Iron, world.TotalStockOf(ResourceType.Iron));
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
         var nextProduced = FindLastProduced(world, quarry.DisplayName);
         Assert.NotNull(nextProduced);
         Assert.NotEqual(lastProduced!.Id, nextProduced!.Id);

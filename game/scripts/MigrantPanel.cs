@@ -84,7 +84,7 @@ public partial class MigrantPanel : Control
         if (_controller.World.Hero is not null
             && _controller.World.Citizens.Count < 2)
         {
-            _controller.TryRecruitMigrant();
+            _controller.TryAcceptPendingProspect();
         }
         Open();
     }
@@ -115,7 +115,7 @@ public partial class MigrantPanel : Control
             Notifier.ShowError(UiText.Get("Create a hero first."));
             return;
         }
-        CityWorld.MigrantResult result = _controller.TryRecruitMigrant();
+        CityWorld.MigrantResult result = _controller.TryAcceptPendingProspect();
         if (!result.IsSuccess)
         {
             Notifier.ShowError(UiText.Format("ui.citizens.recruit_failed", result.Outcome));
@@ -163,11 +163,19 @@ public partial class MigrantPanel : Control
             _citizenButtons[id] = button;
         }
 
-        _recruitButton.Disabled = _controller.World.Hero is null;
+        CityWorld world = _controller.World;
+        bool hasHero = world.Hero is not null;
+        _recruitButton.Disabled = !hasHero || world.AvailableHousing == 0;
+        _recruitButton.TooltipText = !hasHero
+            ? UiText.Get("Create a hero first.")
+            : world.AvailableHousing == 0
+                ? UiText.Get("ui.citizens.housing_full")
+                : UiText.Get("ui.citizens.recruit_available");
         _statusLabel.Text = UiText.Format(
-            "ui.citizens.count",
-            _controller.World.Citizens.Count,
-            migrantCount);
+            "ui.citizens.count_with_housing",
+            world.Citizens.Count,
+            migrantCount,
+            world.HousingCapacity);
         Citizen? selected = _selectedCitizenId.HasValue
             ? _controller.World.GetCitizen(_selectedCitizenId.Value)
             : null;

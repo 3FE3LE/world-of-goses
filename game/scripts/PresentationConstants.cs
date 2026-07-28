@@ -30,7 +30,7 @@ internal static class PresentationConstants
     public const string GroupMacroCitizenDot = "macro_citizen_dot";
     public const string GroupVisibleWorkerSlot = "visible_worker_slot";
 
-    /// <summary>Group name attached to every dynamic <c>BuildingPlot</c> created by <c>BuildingPlotStage</c>.</summary>
+    /// <summary>Group name attached to every dynamic <c>BuildingPlot</c>.</summary>
     public const string GroupBuildingPlot = "building_plot";
 
     /// <summary>Horizontal spacing in pixels between adjacent plots in the macro view plot stage.</summary>

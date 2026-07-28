@@ -145,6 +145,40 @@ not service locators and are not exposed across the Godot boundary. Further
 extraction requires a concrete slice; the aggregate still intentionally owns
 resource topology, causal history, persistence restore, and orchestration.
 
+Citizen responsibility is split between a durable player-authored
+`Citizen.WorkOrder` and the mutually-exclusive current `Citizen.Commitment`.
+Temporary expedition or vital-recovery execution can therefore suspend work
+without deleting its target. On return, the scheduler re-evaluates the standing
+order instead of resuming a stale action blindly. `CitizenVitalStatus` is
+survival-only: it may pause for food/rest, but never chooses a profession or a
+productive target. These additive fields remain compatible with older v14
+snapshots; restore infers a missing standing order from `CurrentAssignment`.
+
+Daytime assignment commits the citizen immediately but places their physical
+location in `InTransit`. Production and construction simulations count only
+assigned citizens whose location is `AtWork`. During live play, only Godot's
+physical route completion confirms arrival. Offline catch-up alone may complete
+the abstract 30-tick journey because no sprite callback exists while the game is
+closed. This separation prevents elapsed live ticks from hiding a carrier or
+starting production before its visible arrival. Neither path stores pixel
+coordinates. Recovery exposes `WorkersRecovering` or
+`WorkersBlockedNoFood`; once fed and above the resume threshold, the same
+standing order is re-evaluated and travelled again.
+
+`CityEconomyRules` separates the one-second clock resolution from economic
+events. Productive buildings resolve deterministic batches every ten ticks;
+food is considered on a separate meal cadence, so animation frames and clock
+ticks do not imply resource creation or consumption. Both live and offline
+progression use the same absolute-tick predicates. The additive
+`EconomicBalanceVersion` save field applies the first storage rebalance once to
+older snapshots without rewriting explicitly tuned capacities in new saves.
+
+Macro workplace routing targets the front approach band rather than the
+occupied building centre. A carrier is visible while travelling, hidden on the
+macro map while the citizen works inside, and mounted into the interior worker
+slot when building detail is open. This remains presentation state; the domain
+stores only `InTransit` or `AtWork`, never pixel coordinates.
+
 ## 6. State, rules, and animation
 
 The conceptual rule:
@@ -245,11 +279,11 @@ Godot remains responsible for translating this domain geometry to pixels.
 Schema v9 now persists each building/project placement as parcel ID, lot
 rectangle, orientation, and footprint-profile ID. A construction project
 reserves its lot when authorised, releases it on cancellation, and keeps the
-same placement when it becomes a building. Navigation-grid integration remains
-a subsequent slice. The macro snapshot now projects this
-placement, and `BuildingPlotStage` translates parcel/lot rectangles into
-responsive screen coordinates. The 192 px legacy plot control is displayed at
-0.5 macro scale; its widget size is not authoritative collision geometry.
+same placement when it becomes a building. The macro snapshot projects this
+placement and `MacroStreetLiveView` translates parcel/lot coordinates into the
+street-perspective world. The former flat plot stage and screen-rectangle
+placement overlay were removed; projected ground geometry is now the only
+runtime placement representation.
 
 ### Screen composition shell
 

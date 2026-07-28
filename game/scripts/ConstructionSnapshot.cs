@@ -89,12 +89,12 @@ public sealed record ConstructionSnapshot(
         foreach (var citizen in world.Citizens.Values)
         {
             if (current is not null && current.IsAssigned(citizen.Id)) continue;
-            if (citizen.CurrentAssignment.HasValue && citizen.CurrentAssignment != current?.Id) continue;
+            if (!citizen.IsAvailable && citizen.CurrentAssignment != current?.Id) continue;
             available.Add(new CitizenItem(citizen.Id, citizen.Name));
         }
 
         var options = new List<OptionItem>();
-        foreach (var kind in new[] { ConstructionKind.BasicShelter, ConstructionKind.Farm, ConstructionKind.Quarry })
+        foreach (var kind in new[] { ConstructionKind.BasicShelter, ConstructionKind.Farm, ConstructionKind.Quarry, ConstructionKind.TownHall })
         {
             var materials = new List<MaterialItem>();
             var recipe = Recipes.ConstructionRecipeFor(kind);

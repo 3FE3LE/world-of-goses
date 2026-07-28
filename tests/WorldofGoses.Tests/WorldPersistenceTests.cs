@@ -129,6 +129,22 @@ public class WorldPersistenceTests
     }
 
     [Fact]
+    public void LegacyEconomicBalance_ExpandsDefaultFarmAndQuarryStorage()
+    {
+        WorldSave legacy = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
+        legacy.EconomicBalanceVersion = 0;
+
+        CityWorld restored = CityWorld.FromSave(legacy);
+
+        Assert.Equal(
+            CityEconomyRules.QuarryStorageCapacity,
+            restored.GetBuilding(new BuildingId(1))!.StorageCapacity);
+        Assert.Equal(
+            CityEconomyRules.FarmStorageCapacity,
+            restored.GetBuilding(new BuildingId(2))!.StorageCapacity);
+    }
+
+    [Fact]
     public void Validate_V1Save_ThrowsIncompatibleVersion()
     {
         var save = new WorldSave { Version = 1 };

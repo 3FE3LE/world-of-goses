@@ -12,4 +12,5 @@ public enum ConstructionKind
     BasicShelter = 0,
     Farm = 1,
     Quarry = 2,
+    TownHall = 3,
 }

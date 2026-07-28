@@ -4,7 +4,7 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Permanent top-right button that opens the hero profile. Lives as
-/// a sibling of <c>CityMacroView</c>, <c>BuildingDetailView</c>, and
+/// a sibling of the macro city, <c>BuildingDetailView</c>, and
 /// <c>CityStatusPanel</c> under <c>CityPrototype</c>, so it remains
 /// visible across every view — the macro view, the building detail,
 /// and any future view. Clicking it routes through the controller,
@@ -32,6 +32,7 @@ public partial class HeroAccessButton : IconButton
 
     public override void _Ready()
     {
+        base._Ready();
         _controller = GetNodeOrNull<CityWorldController>(ControllerPath);
         if (_controller is null)
         {
@@ -47,6 +48,7 @@ public partial class HeroAccessButton : IconButton
 
     public override void _ExitTree()
     {
+        base._ExitTree();
         if (_controller is null) return;
         _controller.HeroCreated -= OnHeroStateChanged;
         _controller.SelectionChanged -= OnSelectionChanged;

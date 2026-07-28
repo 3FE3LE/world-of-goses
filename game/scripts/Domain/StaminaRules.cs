@@ -15,12 +15,9 @@ namespace WorldofGoses.Domain;
 /// </para>
 ///
 /// <para>
-/// Tick-order note (intentional): within a tick, citizens eat first,
-/// then pay the cost. A worker at <c>CurrentStamina == 0</c> who does
-/// have food available eats one unit, climbs to 1, then the cost
-/// knocks them back to 0. They contribute nothing this tick — a
-/// degenerate "ate for nothing" case, but the intuitive reading
-/// (citizens eat breakfast before working) is preserved.
+/// Cycle-order note: on a production cycle that is also a scheduled meal,
+/// citizens eat and recover before paying the labour cost. Ordinary clock
+/// ticks perform neither action.
 /// </para>
 /// </summary>
 public static class StaminaRules
@@ -28,13 +25,13 @@ public static class StaminaRules
     /// <summary>Default maximum stamina for any citizen.</summary>
     public const int MaxStamina = 100;
 
-    /// <summary>Default cost per worker per tick for any unknown building kind.</summary>
-    public const int DefaultCostPerWorkerPerTick = 2;
+    /// <summary>Default cost per worker per completed production cycle.</summary>
+    public const int DefaultCostPerWorkerPerCycle = 2;
 
     /// <summary>Stamina recovered per unit of food consumed.</summary>
-    public const int RegenPerFoodUnit = 1;
+    public const int RegenPerFoodUnit = 30;
 
-    /// <summary>Food units consumed per citizen per tick when regen happens.</summary>
+    /// <summary>Food units consumed per citizen at a scheduled meal.</summary>
     public const int FoodConsumedPerRegen = 1;
 
     /// <summary>
@@ -56,20 +53,20 @@ public static class StaminaRules
     /// At 1 Hz, 100 ticks = 100 real seconds. The buff decrements
     /// by 1 every world tick.
     /// </summary>
-    public const int WellFedBuffDuration = 100;
+    public const int WellFedBuffDuration = CityEconomyRules.MealIntervalTicks;
 
     private static readonly Dictionary<BuildingKind, int> CostByKind = new()
     {
         { BuildingKind.Quarry, 2 },
         { BuildingKind.Farm, 2 },
-        // Future kinds default to DefaultCostPerWorkerPerTick.
+        // Future kinds default to DefaultCostPerWorkerPerCycle.
     };
 
     /// <summary>
-    /// Cost per worker per tick for the given building kind.
+    /// Cost per worker per completed production cycle for the given building kind.
     /// </summary>
-    public static int CostPerWorkerPerTick(BuildingKind kind) =>
-        CostByKind.TryGetValue(kind, out var v) ? v : DefaultCostPerWorkerPerTick;
+    public static int CostPerWorkerPerCycle(BuildingKind kind) =>
+        CostByKind.TryGetValue(kind, out var v) ? v : DefaultCostPerWorkerPerCycle;
 
     /// <summary>
     /// Per-citizen cost. The signature takes the citizen so future
@@ -78,7 +75,7 @@ public static class StaminaRules
     /// ignored.
     /// </summary>
     public static int CostForWorker(Citizen citizen, BuildingKind kind) =>
-        CostPerWorkerPerTick(kind);
+        CostPerWorkerPerCycle(kind);
 
     /// <summary>
     /// Stamina recovered when <paramref name="foodRequested"/> food

@@ -15,7 +15,7 @@ public class RestoreMobilizationTests
         var world = TestHelpers.NewProductionWorld();
         for (int t = 0; t < 1500; t++) // hour 10 of day 1
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
         var save = WorldPersistence.Capture(world);
 
@@ -38,7 +38,7 @@ public class RestoreMobilizationTests
         // Tick 0 is daytime. Skip to mid-night of day 1.
         for (int t = 0; t < GameClock.DayTicks + 600; t++) // hour 4 of night
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
         var save = WorldPersistence.Capture(world);
 
@@ -56,7 +56,7 @@ public class RestoreMobilizationTests
         var world = TestHelpers.NewProductionWorld();
         for (int t = 0; t < 1500; t++) // hour 10 of day 1
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
         var save = WorldPersistence.Capture(world);
         var restored = CityWorld.FromSave(save);

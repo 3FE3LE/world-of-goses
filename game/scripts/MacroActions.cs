@@ -1,36 +1,23 @@
 #nullable enable
 using Godot;
-using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
 /// <summary>
-/// Top-right macro action strip (View hero, Construction, Menu, Recon,
-/// Citizens). Applies the OS display safe area as direct <c>Offset*</c>
-/// deltas in <c>_Ready</c> and on every viewport resize, so the action
-/// buttons stay inside notches and rounded corners without introducing
-/// a wrapping <c>MarginContainer</c> — the previous attempt rendered as
-/// a visible grey band above the HUD and was reverted (TO_DO.md 2026-07-22).
+/// Compact, edge-to-edge navigation strip directly below the city status bar.
+/// Its centered action row stays comfortably away from desktop edges while
+/// the dark surface itself spans the complete viewport width.
 /// </summary>
 [GlobalClass]
 public partial class MacroActions : PanelContainer
 {
+    private const float StripHeight = 42f;
+
     public override void _Ready()
     {
-        ApplySafeArea();
-        GetViewport().SizeChanged += ApplySafeArea;
-    }
-
-    public override void _ExitTree()
-    {
-        if (GetViewport() is { } viewport)
-        {
-            viewport.SizeChanged -= ApplySafeArea;
-        }
-    }
-
-    private void ApplySafeArea()
-    {
-        SafeArea.ApplyOffsets(this, minimumInsetPx: 16);
+        OffsetLeft = 0f;
+        OffsetTop = 0f;
+        OffsetRight = 0f;
+        OffsetBottom = StripHeight;
     }
 }

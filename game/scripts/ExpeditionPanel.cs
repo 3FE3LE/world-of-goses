@@ -22,6 +22,7 @@ public partial class ExpeditionPanel : Control
     [Export] public NodePath StatusLabelPath { get; set; } = "Surface/Margin/Layout/StatusLabel";
     [Export] public NodePath DispatchButtonPath { get; set; } = "Surface/Margin/Layout/DispatchButton";
     [Export] public NodePath CancelButtonPath { get; set; } = "Surface/Margin/Layout/CancelButton";
+    [Export] public NodePath ProspectButtonPath { get; set; } = "Surface/Margin/Layout/ProspectButton";
     [Export] public NodePath CloseButtonPath { get; set; } = "Surface/Margin/Layout/CloseButton";
 
     private CityWorldController _controller = null!;
@@ -29,6 +30,7 @@ public partial class ExpeditionPanel : Control
     private Label _statusLabel = null!;
     private Button _dispatchButton = null!;
     private Button _cancelButton = null!;
+    private Button _prospectButton = null!;
     private Button _closeButton = null!;
 
     public override void _Ready()
@@ -40,6 +42,7 @@ public partial class ExpeditionPanel : Control
         _statusLabel = GetNode<Label>(StatusLabelPath);
         _dispatchButton = GetNode<Button>(DispatchButtonPath);
         _cancelButton = GetNode<Button>(CancelButtonPath);
+        _prospectButton = GetNode<Button>(ProspectButtonPath);
         _closeButton = GetNode<Button>(CloseButtonPath);
         if (_modalHost is null)
         {
@@ -48,6 +51,7 @@ public partial class ExpeditionPanel : Control
 
         _dispatchButton.Pressed += OnDispatchPressed;
         _cancelButton.Pressed += OnCancelPressed;
+        _prospectButton.Pressed += OnProspectPressed;
         _closeButton.Pressed += OnClosePressed;
         _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
         _controller.BuildingStateChanged += _ => Refresh();
@@ -124,6 +128,18 @@ public partial class ExpeditionPanel : Control
         Refresh();
     }
 
+    private void OnProspectPressed()
+    {
+        if (_controller.World.Hero is null) return;
+        ExpeditionStartResult result = _controller.StartExpedition(
+            ExpeditionRequest.SeekProspect(_controller.World.Hero.Id));
+        if (!result.IsSuccess)
+        {
+            Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
+        }
+        Refresh();
+    }
+
     private void OnClosePressed() => Close();
 
     private void OnExpeditionStateChanged(int _) => Refresh();
@@ -140,9 +156,20 @@ public partial class ExpeditionPanel : Control
             }
         }
         bool heroAvailable = _controller.World.Hero is not null
-            && !_controller.World.Hero.CurrentAssignment.HasValue;
+            && _controller.World.Hero.IsAvailable;
         bool canDispatch = active is null && heroAvailable;
         _dispatchButton.Disabled = !canDispatch;
+        bool hasTownHall = System.Linq.Enumerable.Any(
+            _controller.World.Buildings.Values,
+            building => building.Kind == BuildingKind.TownHall);
+        _prospectButton.Disabled = !canDispatch
+            || !hasTownHall
+            || _controller.World.PendingProspect is not null;
+        _prospectButton.TooltipText = UiText.Get(!hasTownHall
+            ? "ui.expedition.town_hall_required"
+            : _controller.World.PendingProspect is not null
+                ? "ui.expedition.prospect_waiting"
+                : "ui.expedition.seek_prospect_hint");
         _cancelButton.Visible = active is not null;
         _statusLabel.Text = active is null
             ? UiText.Get("Dispatch a reconnaissance: consumes 1 Wood, returns with 1 Stone after 4 in-game days.")
@@ -159,7 +186,9 @@ public partial class ExpeditionPanel : Control
             ? _cancelButton
             : !_dispatchButton.Disabled
                 ? _dispatchButton
-                : _closeButton;
+                : !_prospectButton.Disabled
+                    ? _prospectButton
+                    : _closeButton;
         target.GrabFocus();
     }
 

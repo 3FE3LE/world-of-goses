@@ -23,10 +23,10 @@ what ships next, this file wins.
 
 - Godot `.NET` 4.7.1, C# on `.NET 8.0`.
 - `dotnet build` succeeds with 0 errors and 0 warnings.
-- xUnit suite: **424 / 424 passing** (run after the slice-closing
-  overlay/safe-area/motion work of 2026-07-25).
-- The latest standalone headless attempt (2026-07-25) loaded slot 0 at
-  tick 80407 without any C# or Godot error and printed
+- xUnit suite: **455 / 455 passing** after the city-causality, Town Hall,
+  prospect, street-view and HUD stabilization work on 2026-07-28.
+- The latest standalone headless attempt (2026-07-28) loaded slot 0 without
+  any C# or Godot error and printed
   `World of Goses prototype starting.`. The headless boot is reproducible
   with `C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64_console.exe
   --headless --path game --quit-after 3`; the previous log-file
@@ -47,11 +47,8 @@ what ships next, this file wins.
   a dedicated `MacroActions.cs` script that applies `Offset*` deltas
   on every viewport resize.
 - `game/scripts/Ui/UiMotion.cs` adds `FlashLarge(CanvasItem, Color)` for
-  high-importance events. Its only call site today is construction
-  completed (`CityMacroView.EmphasiseCompletedBuilding`, once per
-  newly-completed building on the `BuildingPlotStage`); expedition
-  returned still surfaces as a toast only and new-citizen arrival has no
-  visual feedback yet — both remain open under `TO_DO.md` M-25.
+  high-importance events. Feedback integration for construction completion,
+  expedition return and new-citizen arrival remains open under `TO_DO.md` M-25.
 - `tools/Capture-VisualMatrix.ps1` produces dimension-checked window-client
   captures at 1024×576, 1280×720, and 1600×900. The first `macro-current`
   review passed viewport containment and exposed M-16, a citizen label/icon overlap.
@@ -258,12 +255,42 @@ controller, persistence, UI, and test call sites are unchanged. Productive
 building ticks now run through `BuildingProductionSimulation`; resource and
 event ownership remain in the aggregate through narrow delegates.
 `ConstructionSimulation` now owns project work/rest ticks and transactional
-drawdown, completing H-21. Authorisation and project completion remain aggregate
-operations because they create/remove world entities.
+material drawdown, completing H-21. Authorisation and project completion remain
+aggregate operations because they create/remove world entities.
+
+New daytime assignments are physically `InTransit` until
+the Godot representation completes the route and confirms arrival through the
+controller. Productive buildings and construction projects report
+`WorkersInTransit` and do not consume inputs, stamina, or time-based work before
+that confirmation. Full storage cannot auto-release a worker who has not yet
+arrived.
+
+The first economy calibration now treats world ticks as clock resolution.
+Farm, Quarry, and staffed gathering produce once per 10-tick batch; a citizen
+can consume one food only on the 300-tick meal cadence, with a meaningful
+stamina recovery rather than one point per second. Newly completed Farm and
+Quarry storage is 60 and 80 respectively, and legacy unversioned economic
+snapshots receive the same minimum capacities on load. Full-stock worker
+release waits 60 ticks. UI rate copy states the batch interval explicitly.
+
+Workplace travel now approaches the front band of the building footprint.
+Citizens are visible on the macro map during transit, hidden once working
+inside, and visible in the selected building's interior detail. This removes
+the previous centre-of-obstacle route and makes flyweight ownership changes
+follow a single visible rule.
+
+Citizen work now distinguishes the player's durable `Citizen.WorkOrder` from
+the current `Citizen.Commitment`. Full stock, food/rest recovery, day/night, and
+an expedition can suspend execution without deleting the standing order.
+Citizens below the provisional stamina threshold return home, consume city food
+there, recover with hysteresis, and re-evaluate the order; missing food is an
+explicit production block. Expeditions preserve and persist the interrupted
+order, then require post-return recovery before the next-day reevaluation.
+Existing v14 saves remain loadable because all new fields are additive.
 
 ## 8. Persistence
 
-- Schema version is now **13**.
+- Schema version is now **14**.
 - A v4 citizen save includes a complete `CitizenProfileSave` plus
   `Gender`, competencies, roles, assignment, stamina, and WellFed state. A v4
   building save includes the reactive policy triplet `MinStock`, `MaxStock`,
@@ -336,6 +363,14 @@ runtime through `LineageThemeRegistry`; missing components fall back to the same
 lineage panel and then the project default. `LineageShowcase.tscn` exercises all
 eight packs and the expected component fallbacks. The reference viewport is
 1280×720 with responsive Control containers.
+
+The persistent HUD now uses an 8 px global safe-area baseline. The status bar
+keeps the active lineage ornament through a locally duplicated compact style,
+so large panel margins are not propagated to the HUD. Kenney icon+text buttons
+use 16 px horizontal and 4 px vertical content margins; icon-only simulation
+controls use local 2 px margins and explicit centering. The navigation surface
+is edge-to-edge, its actions size from their natural content, and no safe-area
+offset creates a gap below the status bar.
 
 The UI stabilization slice is closed. Shared navigation and assignment actions
 use canonical components/factories with visible text, consistent metrics,
@@ -423,16 +458,12 @@ keeping the triplet intact for future slices that re-expose it.
 - Building art remains provisional. Detailed citizens now use the imported LPC
   set; Forest plots render without art (no `forest_idle.png` yet) so the
   detail view shows only the gather panel.
-- The macro view now has a presentation-only orthogonal foundation: eight
-  provisional parcels and integer-scaled ground tiles. Forest entities are no
-  longer rendered as building cards: their current reserve projects into
-  interactive trees. Hover uses the CC0 axe cursor; left/right click opens the
-  resource menu; Gather moves the macro hero representation to the tree and
-  gathers 2 wood on arrival. Minimal parcel locked/unlocked state and per-tree
-  patch identity are now persistent; construction placement, 40-wood balance,
-  regeneration, and offline resource catch-up remain pending.
-- The first-run pass tightened discoverability: `MacroMode` ignores Forests,
-  `CalculateTerrainRect` reserves a HUD-safe band, deposit vs total cost are
+- `MacroStreetLiveView` is the sole runtime city representation. It projects
+  parcels, buildings, construction footprints and interactive Forest trees into
+  the street-perspective world. The retired flat renderer, plot stage, flat
+  placement overlay and duplicate citizen-motion adapter were deleted on
+  2026-07-28; onboarding and visual fixtures now target the perspective view.
+- The first-run pass tightened discoverability: deposit vs total cost are
   separated in the construction panel, the founder auto-assignment only
   activates once `RemainingInputs` are available, Home click routes to the
   hero profile, and disabled controls no longer steal focus. These match
@@ -442,16 +473,19 @@ keeping the triplet intact for future slices that re-expose it.
 
 ## 11. Recommended next slice
 
-The first abstract reconnaissance expedition is now persistent, deterministic
-across live and offline ticks, and explains itself through the Chronicle. The
-following bounded city-growth slice should add a real route to a second
-citizen (recruitment or migration) and surface a roster with competency,
-stamina, location, and assignment, so the player can govern composition
-instead of watching a single hero juggle the city.
+Do not expand the city horizontally. The next bounded slice is **VS-2: complete
+minimal expedition** from `TO_DO.md`: prepare a persisted party made of real
+`Citizen` IDs, remove its members from city work, advance through departure,
+travel, one encounter, objective or retreat, and a distinct return/resolution
+phase. The existing abstract reconnaissance, resource reservation, Chronicle,
+Town Hall and single pending prospect are seams to extend, not parallel systems
+to replace.
 
-After recruitment lands, retire the `BuildingKind.Forest`
-compatibility-storage adapter and connect `H-26` (transitable mesh,
-corridors, navigation) so the city can grow without free dragging.
+After VS-2, implement **VS-3 consequences and territory**: one persistent wound,
+time/resource recovery at Basic Shelter, one extensible route/parcel transition,
+and one resulting city decision. Multi-step `CitizenAgenda`, deep professions,
+additional buildings and broader content remain postponed until the 17 vertical
+slice criteria in `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` pass.
 
 ## 12. Verification commands
 
@@ -462,7 +496,7 @@ From `C:\dev\world-of-goses`:
 cd game
 dotnet build
 
-# 2. Run the full test suite. Expect 406 passing (last verified run).
+# 2. Run the full test suite. Expect 455 passing (last verified run).
 cd ../tests/WorldofGoses.Tests
 dotnet test
 
@@ -554,7 +588,7 @@ These are open design questions, not permission to reintroduce a starter seed.
 - Presentation snapshots: `game/scripts/*Snapshot.cs`
 - Lineage themes: `game/scripts/LineageThemeRegistry.cs`, `game/assets/ui/lineages/`
 - Lineage characters: `game/assets/characters/lineages/`, `game/scripts/visual/`
-- Walking hero: `game/scripts/MacroCitizenActivity.cs`
+- Walking hero and ambient workers: `game/scripts/Prototypes/MacroStreetLiveView.cs`
 - Main scene: `game/scenes/CityPrototype.tscn`
 - Tests: `tests/WorldofGoses.Tests/`
 - Canonical lineage design: [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md)

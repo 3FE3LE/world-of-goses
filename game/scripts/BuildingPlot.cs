@@ -251,7 +251,7 @@ public partial class BuildingPlot : Control
     }
 
     /// <summary>
-    /// Runtime configuration entry point used by <c>BuildingPlotStage</c>
+    /// Runtime configuration entry point for plot presentation
     /// when adding plots dynamically. Pass the texture path from
     /// <see cref="BuildingArt.GetTexturePath"/> when art exists; pass
     /// <c>null</c> to render the brown placeholder for kinds without

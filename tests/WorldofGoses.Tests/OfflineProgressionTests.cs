@@ -13,12 +13,12 @@ public class OfflineProgressionTests
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
-        var report = OfflineProgression.ApplyAll(world, ticksToApply: 5);
+        var report = OfflineProgression.ApplyAll(world, ticksToApply: CityEconomyRules.ProductionCycleTicks);
 
         Assert.True(report.HadProgression);
         Assert.True(quarry.Stock > 0);
         Assert.True(farm.Stock > 0);
-        Assert.Equal(5, world.CurrentTick);
+        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class OfflineProgressionTests
         var farm = world.GetBuilding(new BuildingId(2))!;
         farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
-        OfflineProgression.ApplyAll(world, ticksToApply: 5);
+        OfflineProgression.ApplyAll(world, ticksToApply: CityEconomyRules.ProductionCycleTicks);
 
         Assert.True(quarry.Stock > 0);
         Assert.Equal(0, farm.Stock);
@@ -138,19 +138,20 @@ public class OfflineProgressionTests
         var bran = world.GetCitizen(new CitizenId(1))!;
         var branExpBefore = bran.GetExperience(CompetencyId.Mining);
 
-        var report = OfflineProgression.Apply(world, buildingId, ticksToApply: 5);
+        var report = OfflineProgression.Apply(
+            world,
+            buildingId,
+            ticksToApply: CityEconomyRules.ProductionCycleTicks);
 
-        Assert.Equal(5, report.TicksApplied);
+        Assert.Equal(1, report.TicksApplied);
         Assert.True(report.HadProgression);
-        Assert.Equal(5, world.CurrentTick);
-        // Upkeep is dormant: every tick the Quarry produces is added to
-        // the stock (no drain). Net stock grows 2/tick (Quarry rate),
-        // so 5 ticks leave 10 stone in the silo. StockAdded counts
-        // production only.
-        Assert.Equal(10, world.PrimaryBuilding.Stock);
-        Assert.Equal(10, report.StockAdded);
+        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
+        // Ten clock ticks contain one productive batch. Two assigned Quarry
+        // workers add two Stone and gain one experience event each.
+        Assert.Equal(2, world.PrimaryBuilding.Stock);
+        Assert.Equal(2, report.StockAdded);
         Assert.Equal(0, report.StockWasted);
-        Assert.Equal(branExpBefore + 5, bran.GetExperience(CompetencyId.Mining));
+        Assert.Equal(branExpBefore + 1, bran.GetExperience(CompetencyId.Mining));
     }
 
     [Fact]
@@ -213,7 +214,7 @@ public class OfflineProgressionTests
     }
 
     [Fact]
-    public void Apply_ExhaustedWorkers_StopsAtExhaustionTick()
+    public void Apply_ExhaustedWorkers_WaitForFoodWithoutLosingStandingOrder()
     {
         // Pre-deplete the Quarry workers to exactly 6 stamina each
         // and disable the Farm so no food is produced for regen.
@@ -230,10 +231,12 @@ public class OfflineProgressionTests
 
         var report = OfflineProgression.Apply(world, quarry.Id, ticksToApply: 100);
 
-        Assert.Equal(5, report.TicksApplied);
-        Assert.Equal(10, report.StockAdded);
-        Assert.Equal(0, bran.CurrentStamina);
-        Assert.Equal(0, erin.CurrentStamina);
+        Assert.Equal(0, report.TicksApplied);
+        Assert.Equal(0, report.StockAdded);
+        Assert.Equal(CitizenVitalStatus.BlockedNoFood, bran.VitalStatus);
+        Assert.Equal(CitizenVitalStatus.BlockedNoFood, erin.VitalStatus);
+        Assert.Equal(quarry.Id, bran.CurrentAssignment);
+        Assert.Equal(quarry.Id, erin.CurrentAssignment);
     }
 
     [Fact]
@@ -261,7 +264,7 @@ public class OfflineProgressionTests
     }
 
     [Fact]
-    public void Apply_AfterExhaustion_BuildingStopCauseIsWorkersExhausted()
+    public void Apply_AfterExhaustion_ExplainsFoodBlock()
     {
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
@@ -274,6 +277,6 @@ public class OfflineProgressionTests
 
         OfflineProgression.Apply(world, quarry.Id, ticksToApply: 10);
 
-        Assert.Equal(ProductionStopCause.WorkersExhausted, quarry.StopCause);
+        Assert.Equal(ProductionStopCause.WorkersRecovering, quarry.StopCause);
     }
 }

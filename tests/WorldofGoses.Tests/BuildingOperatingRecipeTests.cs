@@ -25,7 +25,7 @@ public class BuildingOperatingRecipeTests
         world.TryConsumeResource(ResourceType.Iron, world.TotalStockOf(ResourceType.Iron));
         int stoneBefore = quarry.Stock;
 
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         Assert.True(quarry.LastTickProduction > 0);
         Assert.Equal(stoneBefore + quarry.LastTickProduction, quarry.Stock);

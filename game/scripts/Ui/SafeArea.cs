@@ -18,7 +18,7 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public static class SafeArea
 {
-    public static void ApplyOffsets(Control node, int minimumInsetPx = 16)
+    public static void ApplyOffsets(Control node, int minimumInsetPx = 8)
     {
         if (node is null) return;
         Vector2I window = DisplayServer.WindowGetSize();

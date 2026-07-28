@@ -63,7 +63,7 @@ Favorecer eventos discretos, cálculos por lote, datos compactos y estado bajo d
 ```text
 scenes/
 ├── city/
-│   ├── CityMacroView.tscn
+│   ├── MacroStreetLiveView.tscn
 │   ├── PlotView.tscn
 │   └── MacroCitizenDot.tscn
 ├── buildings/
@@ -85,8 +85,8 @@ scenes/
 └── ui/
 ```
 
-`CityMacroView.tscn` pasa a ser un mundo caminable con cámara (ver "Cámara y
-mundo caminable" abajo) en vez de una vista estática.
+`MacroStreetLiveView.tscn` represents the walkable camera world described in
+"Cámara y mundo caminable" below, rather than a static view.
 
 ## Pixel perfect
 
@@ -98,8 +98,8 @@ mundo caminable" abajo) en vez de una vista estática.
 
 ## Cámara y mundo caminable
 
-Dirección futura (no implementada aún): el mundo (ciudad macro y escenas
-detalladas de edificios/jardines/gathering) vive bajo un `Camera2D`/`Node2D`;
+Current direction: the world (macro city and detailed building/garden/gathering
+scenes) lives under a `Camera2D`/`Node2D`;
 el HUD permanece en un `CanvasLayer` independiente que la cámara nunca afecta.
 Esto reemplaza la decisión previa de evitar `Camera2D` para no mover el HUD:
 con esta separación de capas, el HUD sigue estable sin necesidad de mantener
@@ -120,15 +120,13 @@ en `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` ("Profundidad y desniveles") y
 `08_VISUAL_UI_AND_ASSET_GUIDELINES.md`, "Profundidad y desniveles"):
 interiores (edificio/jardín/gathering) usan elevación plana
 (`TileMapLayer` por nivel + Y-sort); la ciudad macro usa perspectiva pseudo-3D
-por calles (escala no-uniforme por profundidad, navegación escalonada). Ambos
-prototipados de forma aislada:
+por calles (escala no-uniforme por profundidad, navegación escalonada). Both
+were initially validated in isolation:
 `game/scenes/prototypes/WalkableWorldPrototype.tscn` (interiores) y
 `game/scenes/prototypes/MacroStreetPerspectivePrototype.tscn` (macro),
-ninguno integrado aún a la escena principal.
-
-El prototipo actual (`OrthogonalParcelTerrain.cs`, Control-first sin
-`Camera2D`) sigue vigente hasta que se aborde la fase de integración técnica
-de esta dirección.
+The perspective macro city is now integrated into the main scene as the only
+playable representation. The former flat renderer was removed and must not be
+reintroduced as a fallback or second construction/movement path.
 
 ## Guardado
 

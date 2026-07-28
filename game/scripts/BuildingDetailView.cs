@@ -17,12 +17,12 @@ public partial class BuildingDetailView : Control
     private const string SafeAreaNodePath = "SafeArea";
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
-    [Export] public NodePath SlotsPath { get; set; } = "SafeArea/Layout/Content/Main/VisibleWorkerSlots";
-    [Export] public NodePath AssignmentPanelPath { get; set; } = "SafeArea/Layout/Content/AssignmentPanel";
-    [Export] public NodePath ProductionPanelPath { get; set; } = "SafeArea/Layout/Content/Main/ProductionPanel";
+    [Export] public NodePath SlotsPath { get; set; } = "SafeArea/Layout/Content/Main/VisualStage/VisibleWorkerSlots";
+    [Export] public NodePath AssignmentPanelPath { get; set; } = "SafeArea/Layout/Content/Main/AssignmentPanel";
+    [Export] public NodePath ProductionPanelPath { get; set; } = "SafeArea/Layout/Content/Details/ProductionPanel";
     [Export] public NodePath BackButtonPath { get; set; } = "SafeArea/Layout/Header/BackButton";
     [Export] public NodePath TitlePath { get; set; } = "SafeArea/Layout/Header/Title";
-    [Export] public NodePath ArtHeaderPath { get; set; } = "SafeArea/Layout/Content/Main/BuildingArtHeader";
+    [Export] public NodePath ArtHeaderPath { get; set; } = "SafeArea/Layout/Content/Main/VisualStage/BuildingArtHeader";
 
     private CityWorldController _controller = null!;
     private VisibleWorkerSlots _slots = null!;
@@ -31,8 +31,13 @@ public partial class BuildingDetailView : Control
     private Button _backButton = null!;
     private Label _title = null!;
     private TextureRect _artHeader = null!;
+    private ColorRect _provisionalArt = null!;
+    private Label _provisionalArtLabel = null!;
     private PanelContainer? _homeSummary;
     private Label? _homeSummaryLabel;
+    private PanelContainer? _townHallPanel;
+    private Label? _prospectLabel;
+    private Button? _acceptProspectButton;
     private BuildingId _currentBuilding;
 
     public override void _Ready()
@@ -50,8 +55,27 @@ public partial class BuildingDetailView : Control
         _backButton = RequireNode<Button>(BackButtonPath);
         _title = RequireNode<Label>(TitlePath);
         _artHeader = RequireNode<TextureRect>(ArtHeaderPath);
+        _provisionalArt = new ColorRect
+        {
+            Color = new Color(0.42f, 0.27f, 0.16f),
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _provisionalArt.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _provisionalArtLabel = new Label
+        {
+            ThemeTypeVariation = "SectionTitle",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _provisionalArtLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _provisionalArt.AddChild(_provisionalArtLabel);
+        _artHeader.GetParent().AddChild(_provisionalArt);
+        _provisionalArt.MoveToFront();
+        _slots.MoveToFront();
 
         _slots.CitizenClicked += OnSlotCitizenClicked;
+        _slots.CitizenArrived += OnCitizenArrived;
         _assignmentPanel.AssignRequested += OnAssignRequested;
         _assignmentPanel.UnassignRequested += OnUnassignRequested;
         _productionPanel.PolicyChangeRequested += OnPolicyChangeRequested;
@@ -62,13 +86,19 @@ public partial class BuildingDetailView : Control
         _controller.BuildingSelected += OnBuildingSelected;
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.CitizenAssignmentRejected += OnAssignmentRejected;
+        _controller.CitizensChanged += OnCitizensChanged;
+        _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
 
         Hide();
     }
 
     public override void _ExitTree()
     {
-        if (_slots is not null) _slots.CitizenClicked -= OnSlotCitizenClicked;
+        if (_slots is not null)
+        {
+            _slots.CitizenClicked -= OnSlotCitizenClicked;
+            _slots.CitizenArrived -= OnCitizenArrived;
+        }
         if (_assignmentPanel is not null)
         {
             _assignmentPanel.AssignRequested -= OnAssignRequested;
@@ -85,6 +115,8 @@ public partial class BuildingDetailView : Control
             _controller.BuildingSelected -= OnBuildingSelected;
             _controller.SelectionChanged -= OnSelectionChanged;
             _controller.CitizenAssignmentRejected -= OnAssignmentRejected;
+            _controller.CitizensChanged -= OnCitizensChanged;
+            _controller.ExpeditionStateChanged -= OnExpeditionStateChanged;
         }
     }
 
@@ -116,6 +148,11 @@ public partial class BuildingDetailView : Control
         var snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
         if (snapshot is null) return;
 
+        // Navigation belongs to the stable header, never to the dynamic
+        // worker/assignment subtree rebuilt below.
+        _backButton.Show();
+        _backButton.MoveToFront();
+
         // Title shows the full label: "Quarry (Stone)" rather than
         // just "Quarry" — gives each building a distinguishable name
         // in the detail view even when its visual asset is similar.
@@ -130,11 +167,15 @@ public partial class BuildingDetailView : Control
         {
             _artHeader.Texture = ResourceLoader.Load<Texture2D>(texturePath);
             _artHeader.Visible = true;
+            _provisionalArt.Visible = false;
+            _artHeader.StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered;
         }
         else
         {
             _artHeader.Texture = null;
             _artHeader.Visible = false;
+            _provisionalArtLabel.Text = UiText.Get(snapshot.DisplayName);
+            _provisionalArt.Visible = true;
         }
 
         _slots.Render(_currentBuilding, snapshot.VisibleCitizens);
@@ -145,9 +186,16 @@ public partial class BuildingDetailView : Control
         // and they produce wood from the reserve, so they reuse the
         // AssignmentPanel + ProductionPanel pair.
         bool isHome = snapshot.IsHome;
-        _assignmentPanel.Visible = !isHome;
-        _productionPanel.Visible = !isHome;
+        bool isTownHall = snapshot.IsTownHall;
+        _assignmentPanel.Visible = !isHome && !isTownHall;
+        _productionPanel.Visible = !isHome && !isTownHall;
         if (_homeSummary is not null) _homeSummary.Visible = isHome;
+        if (_townHallPanel is not null) _townHallPanel.Visible = isTownHall;
+        if (isTownHall)
+        {
+            RefreshTownHall();
+            return;
+        }
         if (isHome)
         {
             RefreshHomeSummary(snapshot);
@@ -157,6 +205,91 @@ public partial class BuildingDetailView : Control
         _assignmentPanel.Refresh(snapshot);
         _productionPanel.Refresh(snapshot);
     }
+
+    private void RefreshTownHall()
+    {
+        EnsureTownHallPanel();
+        CitizenProspect? prospect = _controller.World.PendingProspect;
+        if (prospect is null)
+        {
+            _slots.Render(_currentBuilding, System.Array.Empty<BuildingDetailSnapshot.CitizenItem>());
+            _slots.Visible = false;
+            _prospectLabel!.Text = UiText.Get("ui.town_hall.no_prospect");
+            _acceptProspectButton!.Visible = false;
+            _townHallPanel!.Visible = true;
+            return;
+        }
+
+        CitizenProfile profile = prospect.Profile;
+        _slots.RenderIdle(
+            _currentBuilding,
+            new[]
+            {
+                new BuildingDetailSnapshot.CitizenItem(
+                    new CitizenId(prospect.Seed),
+                    prospect.Name,
+                    profile.Lineage,
+                    profile.Gender,
+                    AppearanceVariantId.Standard),
+            });
+        _slots.Visible = true;
+        _prospectLabel!.Text = UiText.Format(
+            "ui.town_hall.prospect_detail",
+            prospect.Name,
+            UiText.Get(ProfileCatalog.Get(profile.Lineage).DisplayName),
+            JoinNames(profile.Aptitudes, ProfileCatalog.DisplayName),
+            JoinNames(profile.ProfessionalAffinities, ProfileCatalog.DisplayName),
+            JoinNames(profile.WeaponPreferences, ProfileCatalog.DisplayName),
+            UiText.Get(ProfileCatalog.DisplayName(profile.CombatStyle)));
+        _acceptProspectButton!.Visible = true;
+        _acceptProspectButton.Disabled = _controller.World.AvailableHousing == 0;
+        _acceptProspectButton.TooltipText = UiText.Get(
+            _acceptProspectButton.Disabled
+                ? "ui.town_hall.no_housing"
+                : "ui.town_hall.accept_hint");
+        _townHallPanel!.Visible = true;
+    }
+
+    private static string JoinNames<T>(IEnumerable<T> values, System.Func<T, string> displayName) =>
+        string.Join(", ", System.Linq.Enumerable.Select(values, value => UiText.Get(displayName(value))));
+
+    private void EnsureTownHallPanel()
+    {
+        if (_townHallPanel is not null) return;
+        var layout = new VBoxContainer();
+        layout.AddThemeConstantOverride("separation", 12);
+        _prospectLabel = new Label
+        {
+            ThemeTypeVariation = "BodyText",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        _acceptProspectButton = new Button
+        {
+            Text = UiText.Get("ui.town_hall.accept"),
+            ThemeTypeVariation = "ButtonPrimary",
+        };
+        _acceptProspectButton.Pressed += OnAcceptProspect;
+        layout.AddChild(_prospectLabel);
+        layout.AddChild(_acceptProspectButton);
+        _townHallPanel = new PanelContainer { Name = "TownHallProspect" };
+        _townHallPanel.AddThemeStyleboxOverride(
+            "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        _townHallPanel.AddChild(layout);
+        _productionPanel.GetParent().AddChild(_townHallPanel);
+    }
+
+    private void OnAcceptProspect()
+    {
+        CityWorld.MigrantResult result = _controller.TryAcceptPendingProspect();
+        if (!result.IsSuccess)
+        {
+            Notifier.ShowError(UiText.Format("ui.citizens.recruit_failed", result.Outcome));
+        }
+        Refresh();
+    }
+
+    private void OnCitizensChanged() { if (Visible) Refresh(); }
+    private void OnExpeditionStateChanged(int _) { if (Visible) Refresh(); }
 
     private void RefreshHomeSummary(BuildingDetailSnapshot snapshot)
     {
@@ -197,12 +330,22 @@ public partial class BuildingDetailView : Control
     private void OnSlotCitizenClicked(int citizenIdValue)
     {
         var snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+        if (snapshot?.IsTownHall == true) return;
         if (snapshot?.IsHome == true)
         {
             _controller.SelectHero();
             return;
         }
         _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
+    }
+
+    private void OnCitizenArrived(int buildingIdValue, int citizenIdValue)
+    {
+        BuildingDetailSnapshot? snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+        if (snapshot?.IsTownHall == true) return;
+        _controller.ConfirmCitizenArrivedAtAssignment(
+            new BuildingId(buildingIdValue),
+            new CitizenId(citizenIdValue));
     }
 
     private void OnAssignRequested(int citizenIdValue)
@@ -233,7 +376,7 @@ public partial class BuildingDetailView : Control
     {
         // ReturnToCity's SelectionChanged signal already restores whichever
         // world view should be visible (MacroStreetLiveView today) — a
-        // direct CityMacroView.OnReturnedToCity() call here used to
+        // direct macro-view callback here used to
         // unconditionally re-show the flat view on top of it.
         _controller.ReturnToCity();
         HideBuilding();

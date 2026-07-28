@@ -220,10 +220,37 @@ public class CityResourceLedgerTests
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         Assert.True(restored.IsCitizenOnActiveExpedition(heroId));
+        Assert.Equal(CitizenCommitmentKind.Expedition, restored.Hero!.Commitment.Kind);
+        Assert.Equal(
+            started.ExpeditionId.GetValueOrDefault().Value,
+            restored.Hero.Commitment.EntityId);
+        Assert.Equal(CitizenAvailabilityReason.OnExpedition, restored.Hero.AvailabilityReason);
         Assert.True(restored.CancelExpedition(started.ExpeditionId!.Value));
         Assert.False(restored.IsCitizenOnActiveExpedition(heroId));
+        Assert.Equal(CitizenCommitment.None, restored.Hero.Commitment);
         Assert.Contains(restored.AvailableCitizens(), citizen => citizen.Id == heroId);
         Assert.False(CityMacroSnapshot.From(restored).Citizens[0].IsOnExpedition);
+    }
+
+    [Fact]
+    public void LegacyV14WithoutCommitmentFields_InfersActiveExpeditionCommitment()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        ExpeditionStartResult started = world.StartExpedition(
+            ExpeditionRequest.Reconnaissance(world.Hero!.Id));
+        WorldSave legacyV14 = WorldPersistence.Capture(world);
+        CitizenSave heroSave = Assert.Single(legacyV14.Citizens);
+        heroSave.CommitmentKind = null;
+        heroSave.CommitmentEntityId = null;
+
+        WorldPersistence.Validate(legacyV14);
+        CityWorld restored = CityWorld.FromSave(legacyV14);
+
+        Assert.Equal(CitizenCommitmentKind.Expedition, restored.Hero!.Commitment.Kind);
+        Assert.Equal(started.ExpeditionId!.Value.Value, restored.Hero.Commitment.EntityId);
+        Assert.True(restored.IsCitizenOnActiveExpedition(restored.Hero.Id));
     }
 
     [Fact]

@@ -17,9 +17,9 @@ public class CityWorldTests
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
-        Assert.Equal(1, world.CurrentTick);
+        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
         Assert.True(quarry.Stock > 0);
         Assert.True(farm.Stock > 0);
     }
@@ -32,7 +32,7 @@ public class CityWorldTests
         var farm = world.GetBuilding(new BuildingId(2))!;
         quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
 
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         Assert.Equal(0, quarry.Stock);
         Assert.True(farm.Stock > 0);
@@ -115,11 +115,12 @@ public class CityWorldTests
         var target = world.AvailableCitizens()[0];
 
         // Simulate the citizen being attached to a different building.
-        world.GetCitizen(target.Id)!.AssignTo(new BuildingId(99));
+        world.GetCitizen(target.Id)!.TryCommitToBuilding(new BuildingId(99));
 
         var result = world.TryAssignCitizen(buildingId, target.Id);
         Assert.False(result.IsSuccess);
         Assert.Equal(AssignmentOutcome.CitizenUnavailable, result.Outcome);
+        Assert.Equal(CitizenAvailabilityReason.AssignedToBuilding, result.UnavailableReason);
     }
 
     [Fact]
@@ -173,7 +174,7 @@ public class CityWorldTests
         var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
         int before = world.PrimaryBuilding.Stock;
-        int added = world.AdvanceProduction(buildingId);
+        int added = AdvanceBuildingToNextCycle(world, buildingId);
         Assert.True(added > 0);
         Assert.Equal(before + added, world.PrimaryBuilding.Stock);
     }
@@ -184,10 +185,9 @@ public class CityWorldTests
         var world = TestHelpers.NewProductionWorld();
         var buildingId = world.PrimaryBuilding.Id;
 
-        while (world.PrimaryBuilding.Stock < world.PrimaryBuilding.StorageCapacity
-               && world.AdvanceProduction(buildingId) > 0)
+        while (world.PrimaryBuilding.Stock < world.PrimaryBuilding.StorageCapacity)
         {
-            // fill until full
+            Assert.True(AdvanceBuildingToNextCycle(world, buildingId) > 0);
         }
 
         Assert.Equal(world.PrimaryBuilding.StorageCapacity, world.PrimaryBuilding.Stock);
@@ -206,7 +206,7 @@ public class CityWorldTests
         var competency = world.PrimaryBuilding.ProducedCompetencyId;
         int before = first.GetExperience(competency);
 
-        world.AdvanceProduction(buildingId);
+        AdvanceBuildingToNextCycle(world, buildingId);
 
         Assert.Equal(before + 1, first.GetExperience(competency));
     }
@@ -219,6 +219,17 @@ public class CityWorldTests
         Assert.True(world.NeedsOnboarding);
         Assert.Empty(world.Citizens);
         Assert.Empty(world.Buildings);
+    }
+
+    private static int AdvanceBuildingToNextCycle(CityWorld world, BuildingId buildingId)
+    {
+        int added = 0;
+        do
+        {
+            added = world.AdvanceProduction(buildingId);
+        }
+        while (!CityEconomyRules.IsProductionCycle(world.CurrentTick));
+        return added;
     }
 
     [Fact]

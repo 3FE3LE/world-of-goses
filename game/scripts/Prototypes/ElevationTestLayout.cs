@@ -6,7 +6,7 @@ namespace WorldofGoses.Prototypes;
 /// <summary>
 /// Prototype-only elevation test: two ground levels connected by a single
 /// ramp gap, built procedurally (same pattern as
-/// <c>OrthogonalParcelTerrain.BuildGroundTileSet</c>) so no art assets are
+/// the runtime terrain atlas setup) so no art assets are
 /// required to validate the mechanic. Attached to a <c>YSortEnabled</c>
 /// <see cref="Node2D"/> whose sibling children — the raised layer and the
 /// avatar authored in the scene — are what actually gets sorted. See

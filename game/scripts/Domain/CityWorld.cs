@@ -51,13 +51,11 @@ public sealed class CityWorld
             _buildings,
             _projects,
             RaiseBuildingChanged,
-            RaiseProjectChanged,
-            this);
+            RaiseProjectChanged);
         _production = new BuildingProductionSimulation(
             _citizens,
             _log,
             () => _tick,
-            TryConsumeFood,
             TryConsumeOperatingInputs,
             FindCauseEvent,
             RaiseBuildingChanged);
@@ -72,6 +70,7 @@ public sealed class CityWorld
 
     public int CurrentTick => _tick;
     public IReadOnlyDictionary<CitizenId, Citizen> Citizens => _citizens;
+    public CitizenProspect? PendingProspect { get; private set; }
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
     public IReadOnlyDictionary<ParcelId, CityParcel> Parcels => _parcels;
@@ -109,10 +108,16 @@ public sealed class CityWorld
 
     public bool IsCitizenOnActiveExpedition(CitizenId citizenId)
     {
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)
+            || citizen.Commitment.Kind != CitizenCommitmentKind.Expedition)
+        {
+            return false;
+        }
         foreach (Expedition expedition in _expeditions.Values)
         {
             if (expedition.Status == ExpeditionStatus.Active
-                && expedition.LeadCitizenId == citizenId)
+                && expedition.LeadCitizenId == citizenId
+                && citizen.Commitment.EntityId == expedition.Id.Value)
             {
                 return true;
             }
@@ -124,15 +129,26 @@ public sealed class CityWorld
     {
         Citizen? hero = Hero;
         if (hero is null) return ExpeditionStartResult.Fail(ExpeditionStartOutcome.NoHero);
+        if (request.RewardKind == ExpeditionRewardKind.Migrant
+            && (!_buildings.Values.Any(building => building.Kind == BuildingKind.TownHall)
+                || PendingProspect is not null))
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.TownHallUnavailable);
+        }
         if (!_citizens.ContainsKey(request.LeadCitizenId))
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.LeadCitizenNotFound);
         }
         if (request.LeadCitizenId != hero.Id
-            || hero.CurrentAssignment.HasValue
-            || IsCitizenOnActiveExpedition(hero.Id))
+            || hero.Commitment.Kind is CitizenCommitmentKind.Expedition
+                or CitizenCommitmentKind.Recovery
+            || hero.VitalStatus != CitizenVitalStatus.Stable)
         {
-            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.LeadUnavailable);
+            return ExpeditionStartResult.Fail(
+                ExpeditionStartOutcome.LeadUnavailable,
+                request.LeadCitizenId == hero.Id
+                    ? hero.AvailabilityReason
+                    : null);
         }
         if (request.DurationTicks <= 0
             || request.SupplyAmount <= 0
@@ -175,8 +191,14 @@ public sealed class CityWorld
             request.RewardAmount,
             request.RewardKind,
             reservation.Id);
+        if (!hero.DispatchOnExpedition(id))
+        {
+            _resources.Release(reservation.Id);
+            return ExpeditionStartResult.Fail(
+                ExpeditionStartOutcome.LeadUnavailable,
+                hero.AvailabilityReason);
+        }
         _expeditions.Add(id, expedition);
-        hero.DispatchOnExpedition();
         WorldEvent dispatch = _log.Record(
             _tick,
             WorldEventKind.ExpeditionDispatched,
@@ -214,7 +236,7 @@ public sealed class CityWorld
     {
         if (_citizens.TryGetValue(expedition.LeadCitizenId, out Citizen? lead))
         {
-            lead.ReturnFromExpedition();
+            lead.ReturnFromExpedition(expedition.Id, _tick);
         }
     }
 
@@ -223,6 +245,9 @@ public sealed class CityWorld
         Success = 0,
         AtCapacity = 1,
         InvalidProfile = 2,
+        TownHallRequired = 3,
+        NoProspect = 4,
+        ProspectAlreadyWaiting = 5,
     }
 
     public readonly record struct MigrantResult(
@@ -239,6 +264,17 @@ public sealed class CityWorld
     }
 
     /// <summary>
+    /// Provisional housing rule for the vertical slice. Completed Homes expose
+    /// their usable resident capacity through the same capacity value that the
+    /// Shelter already presents. Construction projects do not count.
+    /// </summary>
+    public int HousingCapacity => _buildings.Values
+        .Where(building => building.Kind == BuildingKind.Home)
+        .Sum(building => building.WorkerCapacity);
+
+    public int AvailableHousing => Math.Max(0, HousingCapacity - _citizens.Count);
+
+    /// <summary>
     /// Adds a non-hero citizen to the city. The profile is taken
     /// verbatim (aptitudes, families, lineage, gender). A
     /// <see cref="CitizenId"/> is allocated beyond every existing
@@ -247,22 +283,27 @@ public sealed class CityWorld
     /// when <paramref name="name"/> is null/empty so test fixtures
     /// do not need a separate name source.
     /// </summary>
-    public MigrantResult TryRecruitMigrant(CitizenProfile profile, string? name = null)
+    public MigrantResult TryAcceptPendingProspect()
     {
-        ArgumentNullException.ThrowIfNull(profile);
         if (Hero is null)
         {
             return MigrantResult.Fail(MigrantOutcome.InvalidProfile);
         }
+        if (AvailableHousing == 0)
+        {
+            return MigrantResult.Fail(MigrantOutcome.AtCapacity);
+        }
+        if (PendingProspect is null)
+        {
+            return MigrantResult.Fail(MigrantOutcome.NoProspect);
+        }
         int nextId = NextCitizenId();
-        string displayName = string.IsNullOrWhiteSpace(name)
-            ? $"Migrant {nextId}"
-            : name.Trim();
+        string displayName = PendingProspect.Name;
         var migrant = new Citizen(
             new CitizenId(nextId),
             displayName,
             appearanceSeed: nextId * 7,
-            profile: profile);
+            profile: PendingProspect.Profile);
         _citizens.Add(migrant.Id, migrant);
         if (GameClock.IsDaytime(_tick))
         {
@@ -276,6 +317,7 @@ public sealed class CityWorld
             _tick,
             WorldEventKind.MigrantArrived,
             WorldEventSubject.Citizen(migrant.Id, migrant.Name));
+        PendingProspect = null;
         return MigrantResult.Success(migrant.Id);
     }
 
@@ -284,19 +326,40 @@ public sealed class CityWorld
     /// The allocated citizen id is the stable seed, so the generated identity
     /// is reproducible and becomes ordinary persisted profile data.
     /// </summary>
-    public MigrantResult TryRecruitMigrant(string? name = null)
+    public MigrantOutcome TryHostExpeditionProspect(string? name = null)
     {
         if (Hero is null)
         {
-            return MigrantResult.Fail(MigrantOutcome.InvalidProfile);
+            return MigrantOutcome.InvalidProfile;
         }
-
         int nextId = NextCitizenId();
         CitizenProfile profile = CreateMigrantProfile(nextId);
         string generatedName = string.IsNullOrWhiteSpace(name)
             ? MigrantNames[(nextId - 2) % MigrantNames.Length]
             : name;
-        return TryRecruitMigrant(profile, generatedName);
+        return TryHostExpeditionProspect(profile, generatedName, nextId);
+    }
+
+    public MigrantOutcome TryHostExpeditionProspect(CitizenProfile profile, string name)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        return TryHostExpeditionProspect(profile, name, NextCitizenId());
+    }
+
+    private MigrantOutcome TryHostExpeditionProspect(CitizenProfile profile, string name, int seed)
+    {
+        if (Hero is null) return MigrantOutcome.InvalidProfile;
+        if (!_buildings.Values.Any(building => building.Kind == BuildingKind.TownHall))
+        {
+            return MigrantOutcome.TownHallRequired;
+        }
+        if (PendingProspect is not null)
+        {
+            return MigrantOutcome.ProspectAlreadyWaiting;
+        }
+        string prospectName = string.IsNullOrWhiteSpace(name) ? $"Prospect {seed}" : name.Trim();
+        PendingProspect = new CitizenProspect(seed, prospectName, profile);
+        return MigrantOutcome.Success;
     }
 
     private int NextCitizenId()
@@ -910,9 +973,7 @@ public sealed class CityWorld
     {
         if (amount <= 0) return 0;
         Citizen? hero = Hero;
-        if (hero is null
-            || hero.CurrentAssignment.HasValue
-            || IsCitizenOnActiveExpedition(hero.Id))
+        if (hero is null || !hero.IsAvailable)
         {
             return 0;
         }
@@ -980,8 +1041,7 @@ public sealed class CityWorld
         var list = new List<Citizen>();
         foreach (var citizen in _citizens.Values)
         {
-            if (!citizen.CurrentAssignment.HasValue
-                && !IsCitizenOnActiveExpedition(citizen.Id))
+            if (citizen.IsAvailable)
             {
                 list.Add(citizen);
             }
@@ -1031,13 +1091,14 @@ public sealed class CityWorld
         => _assignments.UnassignFromBuilding(buildingId, citizenId);
 
     /// <summary>
-    /// Unassigns every assigned citizen from the given building. Used
+    /// Unassigns the citizens who have physically arrived at the building. Used
     /// by the auto-release watch when a building has been at max stock
-    /// long enough to rule out a brief production peak and the workers
-    /// should be re-deployed elsewhere.
+    /// long enough to rule out a brief production peak. Citizens still
+    /// travelling retain their commitment until they arrive; another
+    /// worker finishing a batch must not cancel their journey.
     /// </summary>
     private void ReleaseAssignedWorkers(Building building) =>
-        _assignments.ReleaseBuilding(building);
+        _assignments.PauseArrivedWorkers(building, _tick);
 
     /// <summary>
     /// Attempts to assign a citizen to a worksite. The id is shared
@@ -1082,6 +1143,11 @@ public sealed class CityWorld
         bool hasHome = false;
         foreach (var building in _buildings.Values)
         {
+            if (kind == ConstructionKind.TownHall && building.Kind == BuildingKind.TownHall)
+            {
+                return ConstructionAuthorizationResult.Fail(
+                    ConstructionAuthorizationOutcome.BuildingAlreadyBuilt);
+            }
             if (building.Kind == BuildingKind.Home)
             {
                 hasHome = true;
@@ -1176,7 +1242,7 @@ public sealed class CityWorld
     public bool EnsureFoundingShelterContributor()
     {
         Citizen? hero = Hero;
-        if (hero is null || hero.CurrentAssignment.HasValue) return false;
+        if (hero is null || !hero.IsAvailable) return false;
         foreach (ConstructionProject project in _projects.Values)
         {
             if (project.Kind != ConstructionKind.BasicShelter
@@ -1213,7 +1279,9 @@ public sealed class CityWorld
         {
             if (_citizens.TryGetValue(cid, out var citizen))
             {
-                citizen.ClearAssignment();
+                citizen.ReleaseCommitment(
+                    CitizenCommitmentKind.Construction,
+                    projectId.Value);
             }
         }
         _projects.Remove(projectId);
@@ -1292,6 +1360,21 @@ public sealed class CityWorld
     /// </summary>
     public void AdvanceWorldTick()
     {
+        AdvanceWorldTick(completeAbstractTravel: false);
+    }
+
+    /// <summary>
+    /// Advances one catch-up tick while no Godot representation exists to
+    /// confirm route completion. Live play must use <see cref="AdvanceWorldTick"/>
+    /// so elapsed simulation time cannot make a visible citizen arrive early.
+    /// </summary>
+    internal void AdvanceOfflineWorldTick()
+    {
+        AdvanceWorldTick(completeAbstractTravel: true);
+    }
+
+    private void AdvanceWorldTick(bool completeAbstractTravel)
+    {
         int previousTick = _tick;
         _tick++;
         bool dayChanged = DetectAndApplyMobilisation(previousTick, _tick);
@@ -1304,6 +1387,7 @@ public sealed class CityWorld
             }
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
+        ProcessCitizenNeedsAndStandingOrders(completeAbstractTravel);
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
@@ -1346,7 +1430,9 @@ public sealed class CityWorld
                 // max stock long enough to rule out a brief production
                 // peak. Any consumption that drops the stock below the
                 // cap resets the watch.
-                if (building.AssignedCount > 0 && building.TickMaxStockWatch())
+                if (building.AssignedCount > 0
+                    && HasWorkerAtBuilding(building)
+                    && building.TickMaxStockWatch())
                 {
                     ReleaseAssignedWorkers(building);
                 }
@@ -1356,7 +1442,6 @@ public sealed class CityWorld
                 ApplyNightRest(building);
             }
         }
-
         bool isWorkInterval = _tick > 0
             && (_tick % ConstructionRules.WorkIntervalTicks == 0);
         int completed = 0;
@@ -1395,6 +1480,7 @@ public sealed class CityWorld
             // over the dictionary is O(n) and avoids the iterator
             // mutation hazard.
         }
+        InterruptCitizensRequiringRecovery();
         CompleteFinishedProjects();
         DemolishDepletedForests();
         DecrementAllWellFed();
@@ -1426,13 +1512,10 @@ public sealed class CityWorld
             {
                 if (expedition.RewardKind == ExpeditionRewardKind.Migrant)
                 {
-                    Citizen? hero = Hero;
-                    MigrantResult migrant = hero is null
-                        ? MigrantResult.Fail(MigrantOutcome.InvalidProfile)
-                        : TryRecruitMigrant();
-                    if (migrant is { IsSuccess: true, MigrantId: CitizenId migrantId })
+                    MigrantOutcome prospect = TryHostExpeditionProspect();
+                    if (prospect == MigrantOutcome.Success)
                     {
-                        expedition.MarkReturnedMigrant(migrantId, 0);
+                        expedition.MarkReturnedProspect();
                         ReturnLeadFromExpedition(expedition);
                         _log.Record(
                             _tick,
@@ -1620,7 +1703,11 @@ public sealed class CityWorld
     {
         foreach (var citizen in _citizens.Values)
         {
-            citizen.SetLocation(CitizenLocation.AtHome);
+            if (citizen.Commitment.Kind != CitizenCommitmentKind.Expedition
+                && citizen.CurrentLocation != CitizenLocation.AtHome)
+            {
+                citizen.BeginTravelHome(_tick);
+            }
         }
         // The Home building's slot rendering reads CitizenLocation
         // directly; nothing else needs to fire here. UI listeners
@@ -1637,9 +1724,100 @@ public sealed class CityWorld
     {
         foreach (var citizen in _citizens.Values)
         {
-            citizen.SetLocation(citizen.CurrentAssignment.HasValue
-                ? CitizenLocation.AtWork
-                : CitizenLocation.AtHome);
+            citizen.SetLocation(CitizenLocation.AtHome);
+        }
+    }
+
+    private void ProcessCitizenNeedsAndStandingOrders(bool completeAbstractTravel)
+    {
+        bool isDaytime = GameClock.IsDaytime(_tick);
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (completeAbstractTravel
+                && citizen.Commitment.Kind is (CitizenCommitmentKind.BuildingWork
+                    or CitizenCommitmentKind.Construction)
+                && citizen.AbstractTravelHasCompleted(_tick))
+            {
+                citizen.SetLocation(citizen.IsReturningHome
+                    ? CitizenLocation.AtHome
+                    : CitizenLocation.AtWork);
+            }
+            if (citizen.CurrentLocation == CitizenLocation.AtHome)
+            {
+                if (citizen.VitalStatus != CitizenVitalStatus.Stable)
+                {
+                    if (citizen.WellFedRemainingTicks <= 0)
+                    {
+                        if (TryConsumeFood(StaminaRules.FoodConsumedPerRegen))
+                        {
+                            citizen.RestoreStamina(StaminaRules.RegenFromFood(
+                                StaminaRules.FoodConsumedPerRegen,
+                                citizen));
+                            citizen.RefreshWellFedBuff();
+                            citizen.MarkFoodReceived();
+                        }
+                        else
+                        {
+                            citizen.MarkFoodBlocked();
+                        }
+                    }
+                    citizen.RestoreStamina(citizen.RegenPerTick());
+                    citizen.CompleteVitalRecovery();
+                }
+                else if (!isDaytime)
+                {
+                    if (CityEconomyRules.IsMealTick(_tick)
+                        && citizen.CurrentStamina < citizen.MaxStamina
+                        && TryConsumeFood(StaminaRules.FoodConsumedPerRegen))
+                    {
+                        citizen.RestoreStamina(StaminaRules.RegenFromFood(
+                            StaminaRules.FoodConsumedPerRegen,
+                            citizen));
+                        citizen.RefreshWellFedBuff();
+                    }
+                    citizen.RestoreStamina(citizen.RegenPerTick());
+                }
+            }
+
+            if (!isDaytime
+                || citizen.VitalStatus != CitizenVitalStatus.Stable
+                || citizen.Commitment.Kind is CitizenCommitmentKind.Expedition
+                    or CitizenCommitmentKind.Recovery
+                || citizen.CurrentLocation != CitizenLocation.AtHome
+                || _tick < citizen.ResumeWorkNotBeforeTick
+                || citizen.WorkOrder is not { } order
+                || !IsStandingOrderEligible(order))
+            {
+                continue;
+            }
+            citizen.BeginTravelToAssignment(_tick);
+        }
+    }
+
+    private bool IsStandingOrderEligible(CitizenWorkOrder order)
+    {
+        if (order.Kind == CitizenCommitmentKind.BuildingWork
+            && _buildings.TryGetValue(order.TargetId, out Building? building))
+        {
+            return building.ProductionEnabled && building.Stock < building.MaxStock;
+        }
+        if (order.Kind == CitizenCommitmentKind.Construction
+            && _projects.TryGetValue(order.TargetId, out ConstructionProject? project))
+        {
+            return project.Enabled && project.Progress < project.RequiredWork;
+        }
+        return false;
+    }
+
+    private void InterruptCitizensRequiringRecovery()
+    {
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (citizen.CurrentLocation == CitizenLocation.AtWork
+                && CitizenNeedsRules.RequiresRecovery(citizen))
+            {
+                citizen.BeginVitalRecovery(_tick);
+            }
         }
     }
 
@@ -1669,13 +1847,54 @@ public sealed class CityWorld
             foreach (var citizenId in building.AssignedCitizenIds)
             {
                 if (_citizens.TryGetValue(citizenId, out var citizen)
-                    && citizen.CurrentLocation == CitizenLocation.AtWork)
+                    && citizen.CurrentLocation is CitizenLocation.AtWork or CitizenLocation.InTransit)
                 {
                     ids.Add(citizen.Id);
                 }
             }
         }
         return ids;
+    }
+
+    public bool ConfirmCitizenArrivedAtAssignment(CitizenId citizenId, BuildingId assignmentId)
+    {
+        if (!GameClock.IsDaytime(_tick)
+            || !_citizens.TryGetValue(citizenId, out Citizen? citizen)
+            || citizen.CurrentAssignment != assignmentId
+            || citizen.CurrentLocation != CitizenLocation.InTransit)
+        {
+            return false;
+        }
+
+        citizen.SetLocation(CitizenLocation.AtWork);
+        if (_buildings.ContainsKey(assignmentId)) RaiseBuildingChanged(assignmentId);
+        else if (_projects.ContainsKey(assignmentId)) RaiseProjectChanged(assignmentId);
+        return true;
+    }
+
+    public bool ConfirmCitizenArrivedHome(CitizenId citizenId)
+    {
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)
+            || citizen.CurrentLocation != CitizenLocation.InTransit
+            || !citizen.IsReturningHome)
+        {
+            return false;
+        }
+        citizen.SetLocation(CitizenLocation.AtHome);
+        return true;
+    }
+
+    private bool HasWorkerAtBuilding(Building building)
+    {
+        foreach (CitizenId citizenId in building.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out Citizen? citizen)
+                && citizen.CurrentLocation == CitizenLocation.AtWork)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -1708,7 +1927,6 @@ public sealed class CityWorld
 
     private void ApplyNightRest(Building building)
     {
-        _production.ApplyFoodAndRegen(building);
         building.StopCause = ProductionStopCause.Night;
         RaiseBuildingChanged(building.Id);
     }
@@ -1749,7 +1967,16 @@ public sealed class CityWorld
         foreach (var cid in contributorIds)
         {
             project.TryUnassign(cid);
-            if (_citizens.TryGetValue(cid, out var c)) c.ClearAssignment();
+            if (_citizens.TryGetValue(cid, out var c))
+            {
+                bool released = c.ReleaseCommitment(
+                    CitizenCommitmentKind.Construction,
+                    projectId.Value);
+                if (released && c.CurrentLocation != CitizenLocation.AtHome)
+                {
+                    c.BeginTravelHome(_tick);
+                }
+            }
         }
 
         _projects.Remove(projectId);
@@ -1767,7 +1994,7 @@ public sealed class CityWorld
             workerCapacity: 5,
             visualCapacity: 5,
             baseProductionPerWorker: 1,
-            storageCapacity: 20,
+            storageCapacity: CityEconomyRules.FarmStorageCapacity,
             resourceLabel: "Food",
             resourceUnit: "food"),
         ConstructionKind.Quarry => new Building(
@@ -1778,10 +2005,23 @@ public sealed class CityWorld
             producedCompetencyId: CompetencyId.Mining,
             workerCapacity: 6,
             visualCapacity: 3,
-            baseProductionPerWorker: 2,
-            storageCapacity: 20,
+            baseProductionPerWorker: 1,
+            storageCapacity: CityEconomyRules.QuarryStorageCapacity,
             resourceLabel: "Stone",
             resourceUnit: "stone"),
+        ConstructionKind.TownHall => new Building(
+            id: project.Id,
+            displayName: project.DisplayName,
+            kind: BuildingKind.TownHall,
+            producedResourceType: ResourceType.Stone,
+            producedCompetencyId: CompetencyId.Construction,
+            workerCapacity: 0,
+            visualCapacity: 0,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            resourceLabel: "Prospect",
+            resourceUnit: "prospect",
+            productionEnabled: false),
         _ => new Building(
             id: project.Id,
             displayName: project.DisplayName,
@@ -1915,6 +2155,13 @@ public sealed class CityWorld
         }
         foreach (var citizen in _citizens.Values)
         {
+            if (!isDaytime)
+            {
+                int fedTicks = Math.Min(tickCount, citizen.WellFedRemainingTicks);
+                citizen.RestoreStamina(
+                    StaminaRules.BaseRegenPerTick * tickCount
+                    + StaminaRules.WellFedRegenBonus * fedTicks);
+            }
             citizen.AdvanceWellFedTicks(tickCount);
         }
         _tick += tickCount;
@@ -1928,7 +2175,7 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Current production rate per tick for the given building.
+    /// Current production amount per economic cycle for the given building.
     /// </summary>
     public int CurrentProductionRate(BuildingId buildingId)
     {
@@ -1937,7 +2184,70 @@ public sealed class CityWorld
             return 0;
         }
 
-        return BuildingProductionCalculator.ProductionPerTick(building, _citizens);
+        var presentWorkers = new List<Citizen>();
+        foreach (CitizenId citizenId in building.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out Citizen? citizen)
+                && citizen.CurrentLocation == CitizenLocation.AtWork)
+            {
+                presentWorkers.Add(citizen);
+            }
+        }
+        return BuildingProductionCalculator.ProductionPerTick(presentWorkers, building);
+    }
+
+    private static CitizenCommitment RestoreCitizenCommitment(
+        WorldSave save,
+        CitizenSave citizen)
+    {
+        if (!string.IsNullOrWhiteSpace(citizen.CommitmentKind)
+            && Enum.TryParse(
+                citizen.CommitmentKind,
+                ignoreCase: true,
+                out CitizenCommitmentKind explicitKind))
+        {
+            return new CitizenCommitment(explicitKind, citizen.CommitmentEntityId);
+        }
+
+        if (citizen.CurrentAssignment is int assignmentId)
+        {
+            CitizenCommitmentKind kind = save.Projects.Any(project => project.Id == assignmentId)
+                ? CitizenCommitmentKind.Construction
+                : CitizenCommitmentKind.BuildingWork;
+            return new CitizenCommitment(kind, assignmentId);
+        }
+
+        ExpeditionSave? activeExpedition = save.Expeditions.FirstOrDefault(expedition =>
+            expedition.LeadCitizenId == citizen.Id
+            && Enum.TryParse(expedition.Status, true, out ExpeditionStatus status)
+            && status == ExpeditionStatus.Active);
+        return activeExpedition is null
+            ? CitizenCommitment.None
+            : new CitizenCommitment(
+                CitizenCommitmentKind.Expedition,
+                activeExpedition.Id);
+    }
+
+    private static CitizenWorkOrder? RestoreCitizenWorkOrder(
+        WorldSave save,
+        CitizenSave citizen)
+    {
+        if (!string.IsNullOrWhiteSpace(citizen.WorkOrderKind)
+            && citizen.WorkOrderEntityId is int explicitEntityId
+            && Enum.TryParse(
+                citizen.WorkOrderKind,
+                ignoreCase: true,
+                out CitizenCommitmentKind explicitKind)
+            && explicitKind is CitizenCommitmentKind.BuildingWork
+                or CitizenCommitmentKind.Construction)
+        {
+            return new CitizenWorkOrder(explicitKind, new BuildingId(explicitEntityId));
+        }
+        if (citizen.CurrentAssignment is not int assignmentId) return null;
+        CitizenCommitmentKind inferredKind = save.Projects.Any(project => project.Id == assignmentId)
+            ? CitizenCommitmentKind.Construction
+            : CitizenCommitmentKind.BuildingWork;
+        return new CitizenWorkOrder(inferredKind, new BuildingId(assignmentId));
     }
 
     /// <summary>
@@ -1981,6 +2291,18 @@ public sealed class CityWorld
                 ? CompetencyId.Mining
                 : new CompetencyId(bs.ProducedCompetencyId);
 
+            int balancedStorageCapacity = save.EconomicBalanceVersion == 0
+                ? kind switch
+                {
+                    BuildingKind.Farm => Math.Max(bs.StorageCapacity, CityEconomyRules.FarmStorageCapacity),
+                    BuildingKind.Quarry => Math.Max(bs.StorageCapacity, CityEconomyRules.QuarryStorageCapacity),
+                    _ => bs.StorageCapacity,
+                }
+                : bs.StorageCapacity;
+            int balancedBaseProduction = save.EconomicBalanceVersion == 0
+                && kind == BuildingKind.Quarry
+                ? Math.Min(bs.BaseProductionPerWorker, 1)
+                : bs.BaseProductionPerWorker;
             var building = new Building(
                 id: new BuildingId(bs.Id),
                 displayName: bs.DisplayName,
@@ -1989,8 +2311,8 @@ public sealed class CityWorld
                 producedCompetencyId: competency,
                 workerCapacity: bs.WorkerCapacity,
                 visualCapacity: bs.VisualCapacity,
-                baseProductionPerWorker: bs.BaseProductionPerWorker,
-                storageCapacity: bs.StorageCapacity,
+                baseProductionPerWorker: balancedBaseProduction,
+                storageCapacity: balancedStorageCapacity,
                 resourceLabel: string.IsNullOrEmpty(bs.ResourceLabel) ? "Resource" : bs.ResourceLabel,
                 resourceUnit: string.IsNullOrEmpty(bs.ResourceUnit) ? "units" : bs.ResourceUnit,
                 initialStock: bs.Stock,
@@ -1998,7 +2320,10 @@ public sealed class CityWorld
             // v3 fields default to (0, StorageCapacity, 0) for v2 saves
             // that predate the policy triplet. A legacy TargetStock is
             // treated as MaxStock so old saves behave identically.
-            int maxStock = bs.MaxStock ?? bs.TargetStock ?? bs.StorageCapacity;
+            int savedMaxStock = bs.MaxStock ?? bs.TargetStock ?? bs.StorageCapacity;
+            int maxStock = savedMaxStock == bs.StorageCapacity
+                ? balancedStorageCapacity
+                : savedMaxStock;
             int minStock = bs.MinStock ?? 0;
             int priority = bs.Priority ?? 0;
             building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock, priority);
@@ -2085,10 +2410,18 @@ public sealed class CityWorld
                         : cs.Roles.Any(role => role.Id == RoleId.Hero.Value)
                             ? CitizenOrigin.AstralFounder
                             : CitizenOrigin.Mortal);
-            if (cs.CurrentAssignment.HasValue)
-            {
-                citizen.AssignTo(new BuildingId(cs.CurrentAssignment.Value));
-            }
+            CitizenCommitment commitment = RestoreCitizenCommitment(save, cs);
+            CitizenVitalStatus vitalStatus = Enum.TryParse(
+                cs.VitalStatus,
+                ignoreCase: true,
+                out CitizenVitalStatus restoredVitalStatus)
+                    ? restoredVitalStatus
+                    : CitizenVitalStatus.Stable;
+            citizen.RestoreCommitment(
+                commitment,
+                RestoreCitizenWorkOrder(save, cs),
+                vitalStatus,
+                cs.ResumeWorkNotBeforeTick);
             if (cs.LastVisitedResourceBuildingId.HasValue
                 && cs.LastVisitedResourceUnitId.HasValue)
             {
@@ -2205,6 +2538,33 @@ public sealed class CityWorld
         {
             MobiliseForNight();
         }
+        foreach (CitizenSave savedCitizen in save.Citizens)
+        {
+            if (string.IsNullOrWhiteSpace(savedCitizen.CurrentLocation)
+                || !_citizens.TryGetValue(new CitizenId(savedCitizen.Id), out Citizen? citizen)
+                || !Enum.TryParse(
+                    savedCitizen.CurrentLocation,
+                    ignoreCase: true,
+                    out CitizenLocation savedLocation))
+            {
+                continue;
+            }
+            if (savedLocation == CitizenLocation.InTransit)
+            {
+                if (savedCitizen.IsReturningHome)
+                {
+                    citizen.BeginTravelHome(savedCitizen.TransitStartedAtTick ?? _tick);
+                }
+                else
+                {
+                    citizen.BeginTravelToAssignment(savedCitizen.TransitStartedAtTick ?? _tick);
+                }
+            }
+            else
+            {
+                citizen.SetLocation(savedLocation);
+            }
+        }
 
         var restoredEvents = new List<WorldEvent>(save.Events.Count);
         foreach (var evt in save.Events)
@@ -2283,6 +2643,14 @@ public sealed class CityWorld
             _expeditions.Add(restored.Id, restored);
             if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
         }
+        PendingProspect = save.PendingProspectSeed is int prospectSeed
+            ? new CitizenProspect(
+                prospectSeed,
+                string.IsNullOrWhiteSpace(save.PendingProspectName)
+                    ? MigrantNames[(prospectSeed - 2) % MigrantNames.Length]
+                    : save.PendingProspectName,
+                CreateMigrantProfile(prospectSeed))
+            : null;
     }
 
     /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>

@@ -247,11 +247,13 @@ public partial class ProductionPanel : PanelContainer
                     "ui.production.foraging_rate",
                     snapshot.ProductionRate,
                     UiText.Get(snapshot.ResourceUnit),
-                    snapshot.AssignedCount)
+                    snapshot.AssignedCount,
+                    snapshot.ProductionCycleTicks)
                 : UiText.Format(
                     "ui.production.rate",
                     snapshot.ProductionRate,
-                    UiText.Get(snapshot.ResourceUnit));
+                    UiText.Get(snapshot.ResourceUnit),
+                    snapshot.ProductionCycleTicks);
 
         _inputsLabel.Text = DescribeInputsDue(snapshot);
         _statusLabel.Text = DescribePolicyState(snapshot);
@@ -318,6 +320,9 @@ public partial class ProductionPanel : PanelContainer
             ProductionStopCause.TargetReached => UiText.Format(
                 "ui.production.storage_full", snapshot.Stock, snapshot.StorageCapacity),
             ProductionStopCause.MissingInputs => UiText.Get("Waiting for inputs"),
+            ProductionStopCause.WorkersInTransit => UiText.Get("Worker travelling to the building"),
+            ProductionStopCause.WorkersRecovering => UiText.Get("Workers are recovering before resuming this order"),
+            ProductionStopCause.WorkersBlockedNoFood => UiText.Get("Workers cannot resume because no food is available"),
             _ => UiText.Get("Authorised"),
         };
     }

@@ -16,10 +16,19 @@ msgstr ""
 msgid " · night"
 msgstr ""
 
+msgid " · no food"
+msgstr ""
+
 msgid " · no workers"
 msgstr ""
 
 msgid " · paused"
+msgstr ""
+
+msgid " · recovering"
+msgstr ""
+
+msgid " · travelling"
 msgstr ""
 
 msgid "(no free citizens)"
@@ -137,6 +146,9 @@ msgid "Build the Basic Shelter first."
 msgstr ""
 
 msgid "Build the first shelter"
+msgstr ""
+
+msgid "Build Town Hall"
 msgstr ""
 
 msgid "Building"
@@ -257,6 +269,9 @@ msgid "Construction progress"
 msgstr ""
 
 msgid "Contemplative"
+msgstr ""
+
+msgid "Contributor travelling to the site"
 msgstr ""
 
 msgid "Contributors exhausted"
@@ -1117,10 +1132,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1232,6 +1247,9 @@ msgid "These choices describe preference. They do not prevent the hero from lear
 msgstr ""
 
 msgid "This tree no longer has wood available."
+msgstr ""
+
+msgid "Town Hall"
 msgstr ""
 
 msgid "Traditionalist"
@@ -1357,7 +1375,16 @@ msgstr ""
 msgid "ui.citizens.count"
 msgstr ""
 
+msgid "ui.citizens.count_with_housing"
+msgstr ""
+
 msgid "ui.citizens.detail"
+msgstr ""
+
+msgid "ui.citizens.housing_full"
+msgstr ""
+
+msgid "ui.citizens.recruit_available"
 msgstr ""
 
 msgid "ui.citizens.recruit_failed"
@@ -1408,6 +1435,9 @@ msgstr ""
 msgid "ui.construction.requirements_one"
 msgstr ""
 
+msgid "ui.construction.requirements_three"
+msgstr ""
+
 msgid "ui.construction.requirements_two"
 msgstr ""
 
@@ -1420,7 +1450,16 @@ msgstr ""
 msgid "ui.expedition.dispatch_failed"
 msgstr ""
 
+msgid "ui.expedition.prospect_waiting"
+msgstr ""
+
 msgid "ui.expedition.schedule"
+msgstr ""
+
+msgid "ui.expedition.seek_prospect_hint"
+msgstr ""
+
+msgid "ui.expedition.town_hall_required"
 msgstr ""
 
 msgid "ui.gather.already_assigned"
@@ -1678,6 +1717,21 @@ msgstr ""
 msgid "ui.time.day"
 msgstr ""
 
+msgid "ui.town_hall.accept"
+msgstr ""
+
+msgid "ui.town_hall.accept_hint"
+msgstr ""
+
+msgid "ui.town_hall.no_housing"
+msgstr ""
+
+msgid "ui.town_hall.no_prospect"
+msgstr ""
+
+msgid "ui.town_hall.prospect_detail"
+msgstr ""
+
 msgid "ui.tree.regrows_at"
 msgstr ""
 
@@ -1711,10 +1765,10 @@ msgstr ""
 msgid "Water"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
 msgid "Wood remains"
@@ -1723,7 +1777,16 @@ msgstr ""
 msgid "Wood resource — click for actions"
 msgstr ""
 
+msgid "Worker travelling to the building"
+msgstr ""
+
 msgid "Workers"
+msgstr ""
+
+msgid "Workers are recovering before resuming this order"
+msgstr ""
+
+msgid "Workers cannot resume because no food is available"
 msgstr ""
 
 msgid "Workers rest here between shifts."

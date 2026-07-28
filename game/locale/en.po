@@ -562,6 +562,15 @@ msgstr "Could not recruit: {0}"
 msgid "ui.citizens.count"
 msgstr "{0} citizens · {1} non-hero"
 
+msgid "ui.citizens.count_with_housing"
+msgstr "{0}/{2} housed citizens · {1} non-hero"
+
+msgid "ui.citizens.housing_full"
+msgstr "Build more housing before recruiting another citizen."
+
+msgid "ui.citizens.recruit_available"
+msgstr "One housing place is available."
+
 msgid "ui.citizens.roster_row"
 msgstr "{0} · {1} · {2}"
 
@@ -641,10 +650,10 @@ msgid "ui.production.stock"
 msgstr "{0}: {1} / {2}"
 
 msgid "ui.production.foraging_rate"
-msgstr "Foraging rate: {0} {1} / tick ({2} workers)"
+msgstr "Foraging batch: {0} {1} every {3}s ({2} workers)"
 
 msgid "ui.production.rate"
-msgstr "Rate: {0} {1} / tick"
+msgstr "Batch: {0} {1} every {2}s"
 
 msgid "ui.production.inputs_due"
 msgstr "Inputs due: {0}"
@@ -808,6 +817,12 @@ msgstr "Complete the earlier steps to review the profile."
 
 msgid "Contributors exhausted"
 msgstr "Contributors exhausted"
+
+msgid "Contributor travelling to the site"
+msgstr "Contributor travelling to the site"
+
+msgid "Worker travelling to the building"
+msgstr "Worker travelling to the building"
 
 msgid "Could not cancel the project."
 msgstr "Could not cancel the project."
@@ -1502,6 +1517,39 @@ msgstr "Basic Shelter — {0}"
 msgid "ui.construction.requirements_two"
 msgstr "Farm — {0}\nQuarry — {1}"
 
+msgid "ui.construction.requirements_three"
+msgstr "Farm — {0}\nQuarry — {1}\nTown Hall — {2}"
+
+msgid "Build Town Hall"
+msgstr "Build Town Hall"
+
+msgid "Town Hall"
+msgstr "Town Hall"
+
+msgid "ui.town_hall.no_prospect"
+msgstr "No prospect is staying here. An expedition may encounter one."
+
+msgid "ui.town_hall.prospect_detail"
+msgstr "{0}\nLineage: {1}\nAptitudes: {2}\nProfessional affinities: {3}\nPreferred weapons: {4}\nCombat style: {5}"
+
+msgid "ui.town_hall.accept"
+msgstr "Welcome as citizen"
+
+msgid "ui.town_hall.no_housing"
+msgstr "The Shelter has no free housing place."
+
+msgid "ui.town_hall.accept_hint"
+msgstr "Welcome this prospect as a persistent citizen."
+
+msgid "ui.expedition.town_hall_required"
+msgstr "Build a Town Hall before searching for a prospect."
+
+msgid "ui.expedition.prospect_waiting"
+msgstr "The Town Hall is already hosting one prospect."
+
+msgid "ui.expedition.seek_prospect_hint"
+msgstr "Spend 2 Food on a four-day expedition that may return with one prospect."
+
 msgid "ui.construction.still_needed"
 msgstr "Still needed — {0}"
 
@@ -1642,3 +1690,18 @@ msgstr "rest"
 
 msgid "ui.building_detail.full_label"
 msgstr "{0} ({1})"
+
+msgid " · recovering"
+msgstr " · recovering"
+
+msgid " · travelling"
+msgstr " · travelling"
+
+msgid " · no food"
+msgstr " · no food"
+
+msgid "Workers are recovering before resuming this order"
+msgstr "Workers are recovering before resuming this order"
+
+msgid "Workers cannot resume because no food is available"
+msgstr "Workers cannot resume because no food is available"

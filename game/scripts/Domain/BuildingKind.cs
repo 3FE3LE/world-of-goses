@@ -23,4 +23,5 @@ public enum BuildingKind
     /// <see cref="Building.WoodReserve"/>.
     /// </summary>
     Forest = 5,
+    TownHall = 6,
 }

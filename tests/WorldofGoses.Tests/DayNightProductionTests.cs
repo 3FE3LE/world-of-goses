@@ -27,7 +27,7 @@ public class DayNightProductionTests
         // Skip to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         Assert.Equal(ProductionStopCause.Night, quarry.StopCause);
@@ -47,7 +47,7 @@ public class DayNightProductionTests
         // Skip to mid-night.
         for (int t = 0; t < GameClock.DayTicks + 10; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         Assert.True(bran.CurrentStamina > branBefore,
@@ -73,14 +73,14 @@ public class DayNightProductionTests
         // Skip to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
         int atNightStart = bran.CurrentStamina;
 
         // 100 night ticks of regen → +100, capped at MaxStamina.
         for (int t = 0; t < 100; t++)
         {
-            world.AdvanceWorldTick();
+            world.AdvanceOfflineWorldTick();
         }
 
         Assert.Equal(100, bran.CurrentStamina);
@@ -91,20 +91,21 @@ public class DayNightProductionTests
     }
 
     [Fact]
-    public void AdvanceWorldTick_BuffActive_RefreshesWhenCitizenEats()
+    public void AdvanceWorldTick_WorkerDoesNotEatRemotelyAtTheWorkplace()
     {
         // Load enough food so the hero eats every tick.
         var world = TestHelpers.NewProductionWorld();
         world.DepositFood(StaminaRules.MaxStamina);
+        var quarry = world.GetBuilding(new BuildingId(1))!;
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < CityEconomyRules.MealIntervalTicks; i++)
         {
             world.AdvanceWorldTick();
+            if (quarry.Stock > 0) quarry.TryConsumeStock(quarry.Stock);
         }
 
         var bran = world.GetCitizen(new CitizenId(1))!;
-        Assert.True(bran.WellFedRemainingTicks > 0,
-            $"The hero should have refreshed the buff after eating (was {bran.WellFedRemainingTicks}).");
+        Assert.Equal(0, bran.WellFedRemainingTicks);
     }
 
     [Fact]

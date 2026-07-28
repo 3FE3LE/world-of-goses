@@ -17,7 +17,7 @@ public class CitizenBehaviorFsmTests
     public void SetLocation_AtWork_TransitionsToWorking()
     {
         var c = NewCitizen(1);
-        c.AssignTo(new BuildingId(1));
+        c.TryCommitToBuilding(new BuildingId(1));
         c.SetLocation(CitizenLocation.AtWork);
         Assert.Equal(CitizenBehaviorState.Working, c.Behavior);
     }
@@ -26,7 +26,7 @@ public class CitizenBehaviorFsmTests
     public void SetLocation_AtHome_WhileAssigned_TransitionsToResting()
     {
         var c = NewCitizen(1);
-        c.AssignTo(new BuildingId(1));
+        c.TryCommitToBuilding(new BuildingId(1));
         c.SetLocation(CitizenLocation.AtWork);
         c.SetLocation(CitizenLocation.AtHome);
         Assert.Equal(CitizenBehaviorState.Resting, c.Behavior);
@@ -44,7 +44,7 @@ public class CitizenBehaviorFsmTests
     public void ConsumeStamina_ToZero_WhileWorking_TransitionsToInjured()
     {
         var c = NewCitizen(1);
-        c.AssignTo(new BuildingId(1));
+        c.TryCommitToBuilding(new BuildingId(1));
         c.SetLocation(CitizenLocation.AtWork);
         c.ConsumeStamina(c.MaxStamina);
         Assert.Equal(0, c.CurrentStamina);
@@ -55,7 +55,7 @@ public class CitizenBehaviorFsmTests
     public void RestoreStamina_FromInjured_TransitionsToResting()
     {
         var c = NewCitizen(1);
-        c.AssignTo(new BuildingId(1));
+        c.TryCommitToBuilding(new BuildingId(1));
         c.SetLocation(CitizenLocation.AtWork);
         c.ConsumeStamina(c.MaxStamina);
         c.RestoreStamina(1);
@@ -71,7 +71,7 @@ public class CitizenBehaviorFsmTests
         // actively-working, undamaged citizen. RestoreStamina must only
         // drive the FSM when leaving Injured.
         var c = NewCitizen(1);
-        c.AssignTo(new BuildingId(1));
+        c.TryCommitToBuilding(new BuildingId(1));
         c.SetLocation(CitizenLocation.AtWork);
         c.ConsumeStamina(10);
         c.RestoreStamina(5);
@@ -101,6 +101,7 @@ public class CitizenBehaviorFsmTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(CitizenBehaviorState.OnExpedition, hero.Behavior);
+        Assert.Equal(CitizenAvailabilityReason.OnExpedition, hero.AvailabilityReason);
     }
 
     [Fact]

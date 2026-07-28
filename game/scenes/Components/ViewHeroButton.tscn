@@ -11,3 +11,4 @@ text = "View hero"
 script = ExtResource("1_iconbutton")
 icon_path = "res://assets/ui/icons/24/user.svg"
 button_text = "View hero"
+button_text = "View hero"

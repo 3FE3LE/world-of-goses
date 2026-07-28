@@ -12,11 +12,11 @@ public class StaminaRulesTests
     }
 
     [Fact]
-    public void CostPerWorkerPerTick_QuarryAndFarm_AreEqual()
+    public void CostPerWorkerPerCycle_QuarryAndFarm_AreEqual()
     {
         Assert.Equal(
-            StaminaRules.CostPerWorkerPerTick(BuildingKind.Quarry),
-            StaminaRules.CostPerWorkerPerTick(BuildingKind.Farm));
+            StaminaRules.CostPerWorkerPerCycle(BuildingKind.Quarry),
+            StaminaRules.CostPerWorkerPerCycle(BuildingKind.Farm));
     }
 
     [Fact]
@@ -24,15 +24,15 @@ public class StaminaRulesTests
     {
         var citizen = TestHelpers.NewCitizen(1, miningExperience: 5);
         Assert.Equal(
-            StaminaRules.CostPerWorkerPerTick(BuildingKind.Quarry),
+            StaminaRules.CostPerWorkerPerCycle(BuildingKind.Quarry),
             StaminaRules.CostForWorker(citizen, BuildingKind.Quarry));
     }
 
     [Fact]
-    public void RegenFromFood_OneForOne()
+    public void RegenFromFood_OneMealRestoresMeaningfulStamina()
     {
         var citizen = TestHelpers.NewCitizen(1);
-        Assert.Equal(1, StaminaRules.RegenFromFood(1, citizen));
+        Assert.Equal(StaminaRules.RegenPerFoodUnit, StaminaRules.RegenFromFood(1, citizen));
         Assert.Equal(0, StaminaRules.RegenFromFood(0, citizen));
     }
 }

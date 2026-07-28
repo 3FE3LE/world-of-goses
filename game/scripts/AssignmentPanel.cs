@@ -12,6 +12,9 @@ namespace WorldofGoses;
 /// </summary>
 public partial class AssignmentPanel : PanelContainer
 {
+    private const int MaxVisibleRows = 5;
+    private const float EmptyListHeight = 28f;
+    private const float CitizenRowHeight = 40f;
     [Signal] public delegate void AssignRequestedEventHandler(int citizenId);
     [Signal] public delegate void UnassignRequestedEventHandler(int citizenId);
 
@@ -22,6 +25,8 @@ public partial class AssignmentPanel : PanelContainer
     private Label _summary = null!;
     private VBoxContainer _assignedList = null!;
     private VBoxContainer _availableList = null!;
+    private ScrollContainer _assignedScroll = null!;
+    private ScrollContainer _availableScroll = null!;
     private LineageThemeSignals? _themeSignals;
 
     public override void _Ready()
@@ -31,7 +36,7 @@ public partial class AssignmentPanel : PanelContainer
         _root = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
         AddChild(_root);
         AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
@@ -59,7 +64,8 @@ public partial class AssignmentPanel : PanelContainer
         assignedHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(assignedHeader);
         _assignedList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _root.AddChild(BuildListScroll(_assignedList, 88));
+        _assignedScroll = BuildListScroll(_assignedList);
+        _root.AddChild(_assignedScroll);
 
         _root.AddChild(new HSeparator());
 
@@ -67,21 +73,19 @@ public partial class AssignmentPanel : PanelContainer
         availableHeader.ThemeTypeVariation = "SectionTitle";
         _root.AddChild(availableHeader);
         _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _root.AddChild(BuildListScroll(_availableList, 132, expand: true));
+        _availableScroll = BuildListScroll(_availableList);
+        _root.AddChild(_availableScroll);
     }
 
-    private static ScrollContainer BuildListScroll(
-        Control content,
-        float minimumHeight,
-        bool expand = false)
+    private static ScrollContainer BuildListScroll(Control content)
     {
         var scroll = new ScrollContainer
         {
-            CustomMinimumSize = new Vector2(0, minimumHeight),
+            CustomMinimumSize = new Vector2(0, EmptyListHeight),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = expand ? SizeFlags.ExpandFill : SizeFlags.ShrinkBegin,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
         scroll.AddChild(content);
         return scroll;
@@ -103,6 +107,17 @@ public partial class AssignmentPanel : PanelContainer
 
         PopulateAssigned(snapshot);
         PopulateAvailable(snapshot);
+        SetNaturalListHeight(_assignedScroll, snapshot.AssignedCitizens.Count);
+        SetNaturalListHeight(_availableScroll, snapshot.AvailableCitizens.Count);
+    }
+
+    private static void SetNaturalListHeight(ScrollContainer scroll, int rowCount)
+    {
+        int visibleRows = Mathf.Min(rowCount, MaxVisibleRows);
+        float height = visibleRows == 0
+            ? EmptyListHeight
+            : visibleRows * CitizenRowHeight;
+        scroll.CustomMinimumSize = new Vector2(0, height);
     }
 
     private void PopulateAssigned(BuildingDetailSnapshot snapshot)

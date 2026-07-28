@@ -17,7 +17,7 @@ namespace WorldofGoses;
 ///
 /// The panel is shown when <see cref="OfflineProgressionReport.HadProgression"/>
 /// is true and hidden otherwise. The host (typically
-/// <see cref="CityMacroView"/>) calls <see cref="ShowReport"/> after
+/// The macro presentation calls <see cref="ShowReport"/> after
 /// it loads the world and detects an offline stretch.
 /// </summary>
 public partial class OfflineReportPanel : PanelContainer

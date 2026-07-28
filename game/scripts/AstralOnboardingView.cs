@@ -15,12 +15,12 @@ public partial class AstralOnboardingView : Control
 {
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
     [Export] public NodePath CityViewPath { get; set; } =
-        "../GameUiShell/ScreenContent/CityMacroView";
+        "../GameUiShell/ScreenContent/MacroStreetLiveView";
 
     private readonly FounderNarrativeSession _session = new();
     private readonly Dictionary<string, Button> _choiceButtons = new();
     private CityWorldController _controller = null!;
-    private CityMacroView _cityView = null!;
+    private Prototypes.MacroStreetLiveView _cityView = null!;
     private ColorRect _astralVeil = null!;
     private HBoxContainer _fragments = null!;
     private Label _progress = null!;
@@ -42,7 +42,7 @@ public partial class AstralOnboardingView : Control
     public override void _Ready()
     {
         _controller = GetNode<CityWorldController>(ControllerPath);
-        _cityView = GetNode<CityMacroView>(CityViewPath);
+        _cityView = GetNode<Prototypes.MacroStreetLiveView>(CityViewPath);
         _localeManager = GetNodeOrNull<LocaleManager>("/root/LocaleManager");
         if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
         BuildShell();
@@ -333,11 +333,23 @@ public partial class AstralOnboardingView : Control
     {
         if (_result is null || !_gender.HasValue || !IsFounderNameValid(_founderName)) return;
         FounderNarrativeResult final = FounderNarrativeScorer.WithGender(_result, _gender.Value);
+        // Treat a repeated UI activation as idempotent. The first activation
+        // may already have created and saved the founder before a queued
+        // second button/input event arrives; never present that successful
+        // creation as an "AlreadyExists" failure or attempt to overwrite it.
+        if (_controller.HasHero())
+        {
+            _result = final;
+            RenderFalseQuestion();
+            return;
+        }
+        _next.Disabled = true;
         HeroCreationResult creation = _controller.TryCompleteOnboarding(
             new HeroCreationRequest(_founderName.Trim(), final.Profile, _gender.Value));
         if (!creation.IsSuccess)
         {
             _error.Text = UiText.Format("ui.astral.creation_failed", creation.Outcome);
+            ValidateIdentity();
             return;
         }
         _result = final;

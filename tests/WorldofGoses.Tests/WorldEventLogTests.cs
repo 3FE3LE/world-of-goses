@@ -91,7 +91,7 @@ public class WorldEventLogTests
     public void CityWorld_AdvanceWorldTick_RecordsProductionEvents()
     {
         var world = TestHelpers.NewProductionWorld();
-        for (int i = 0; i < 6; i++) world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         bool sawProduction = false;
         foreach (var evt in world.Log.Events)
@@ -105,7 +105,7 @@ public class WorldEventLogTests
             }
         }
         Assert.True(sawProduction,
-            "expected at least one StockProduced event within the first 6 day-ticks");
+            "expected at least one StockProduced event in the first production cycle");
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class WorldEventLogTests
     public void CityWorld_Restore_ClearsLog()
     {
         var world = TestHelpers.NewProductionWorld();
-        for (int i = 0; i < 3; i++) world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
         Assert.NotEmpty(world.Log.Events);
 
         world.Restore(WorldPersistence.Capture(world));
@@ -179,16 +179,16 @@ public class WorldEventLogTests
     public void OfflineProgression_ApplyAll_SecondCallDoesNotReplayPreviousEvents()
     {
         var world = TestHelpers.NewProductionWorld();
-        var first = OfflineProgression.ApplyAll(world, ticksToApply: 6);
+        var first = OfflineProgression.ApplyAll(world, ticksToApply: CityEconomyRules.ProductionCycleTicks);
         Assert.NotEmpty(first.Events);
 
-        var second = OfflineProgression.ApplyAll(world, ticksToApply: 6);
+        var second = OfflineProgression.ApplyAll(world, ticksToApply: CityEconomyRules.ProductionCycleTicks);
 
         // The second batch should return only events recorded after
         // the first batch — never the events from the first call.
         foreach (var evt in second.Events)
         {
-            Assert.True(evt.Tick > 6,
+            Assert.True(evt.Tick > CityEconomyRules.ProductionCycleTicks,
                 $"event at tick {evt.Tick} leaked from the first batch");
         }
     }

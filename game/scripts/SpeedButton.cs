@@ -21,7 +21,9 @@ public partial class SpeedButton : Button
     [Export] public NodePath ControllerPath { get; set; } = "/root/CityPrototype/CityWorldController";
 
     private const int MaxPlayIcons = 4;
-    private const int PlayIconSize = 10;
+    private const int PlayIconSize = 8;
+    private const int ButtonWidth = 44;
+    private const int ButtonHeight = 24;
 
     private CityWorldController? _controller;
     private HBoxContainer _container = null!;
@@ -36,15 +38,17 @@ public partial class SpeedButton : Button
 
         // Tight, gluen icon stack — no state icon, no separation,
         // just the play icons directly next to each other.
-        CustomMinimumSize = new Vector2(
-            MaxPlayIcons * PlayIconSize + 4,
-            PlayIconSize + 4);
+        CustomMinimumSize = new Vector2(ButtonWidth, ButtonHeight);
+        ClipContents = true;
+        CompactIconButtonStyle.Apply(this);
 
         _container = new HBoxContainer
         {
             MouseFilter = MouseFilterEnum.Ignore,
             Alignment = BoxContainer.AlignmentMode.Center,
+            AnchorsPreset = (int)LayoutPreset.FullRect,
         };
+        _container.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         _container.AddThemeConstantOverride("separation", 0);
         AddChild(_container);
 
@@ -55,6 +59,7 @@ public partial class SpeedButton : Button
             {
                 Texture = playTexture,
                 StretchMode = TextureRect.StretchModeEnum.Keep,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
                 CustomMinimumSize = new Vector2(PlayIconSize, PlayIconSize),
                 Visible = false,
                 MouseFilter = MouseFilterEnum.Ignore,

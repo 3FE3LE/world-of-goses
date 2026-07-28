@@ -52,6 +52,22 @@ internal sealed class ConstructionSimulation
             return;
         }
 
+        var presentWorkers = new List<Citizen>();
+        foreach (CitizenId citizenId in project.AssignedCitizenIds)
+        {
+            if (_citizens.TryGetValue(citizenId, out Citizen? citizen)
+                && citizen.CurrentLocation == CitizenLocation.AtWork)
+            {
+                presentWorkers.Add(citizen);
+            }
+        }
+        if (presentWorkers.Count == 0)
+        {
+            project.LastTickProgressAdded = 0;
+            project.StopCause = ConstructionStopCause.WorkersInTransit;
+            return;
+        }
+
         if (isWorkInterval && project.RemainingInputs.Count > 0
             && !TryDrawInputs(project))
         {
@@ -60,9 +76,8 @@ internal sealed class ConstructionSimulation
 
         int contributed = 0;
         int paid = 0;
-        foreach (var citizenId in project.AssignedCitizenIds)
+        foreach (Citizen citizen in presentWorkers)
         {
-            if (!_citizens.TryGetValue(citizenId, out var citizen)) continue;
             citizen.RestoreStamina(citizen.RegenPerTick());
             int perCitizen = ConstructionRules.ContributionPerWorkInterval(citizen);
             if (perCitizen <= 0) continue;

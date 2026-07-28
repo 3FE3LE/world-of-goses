@@ -27,4 +27,7 @@ public enum ProductionStopCause
     WorkersExhausted = 4,
     Night = 5,
     MissingInputs = 6,
+    WorkersInTransit = 7,
+    WorkersRecovering = 8,
+    WorkersBlockedNoFood = 9,
 }

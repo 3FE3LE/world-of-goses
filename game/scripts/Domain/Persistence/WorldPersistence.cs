@@ -48,8 +48,11 @@ public static class WorldPersistence
         var save = new WorldSave
         {
             Version = WorldSave.CurrentVersion,
+            EconomicBalanceVersion = 1,
             CurrentTick = world.CurrentTick,
             LastSeenAtUnixMillis = now.ToUnixTimeMilliseconds(),
+            PendingProspectSeed = world.PendingProspect?.Seed,
+            PendingProspectName = world.PendingProspect?.Name,
         };
         foreach ((ResourceType resource, int amount) in world.Resources.Entries()
             .Where(entry => entry.Location.Kind == ResourceLocationKind.CityInventory)
@@ -137,6 +140,15 @@ public static class WorldPersistence
                 AppearanceVariant = citizen.AppearanceVariant.Value,
                 Profile = CaptureProfile(citizen.Profile),
                 CurrentAssignment = citizen.CurrentAssignment?.Value,
+                CommitmentKind = citizen.Commitment.Kind.ToString(),
+                CommitmentEntityId = citizen.Commitment.EntityId,
+                WorkOrderKind = citizen.WorkOrder?.Kind.ToString(),
+                WorkOrderEntityId = citizen.WorkOrder?.TargetId.Value,
+                VitalStatus = citizen.VitalStatus.ToString(),
+                TransitStartedAtTick = citizen.TransitStartedAtTick,
+                CurrentLocation = citizen.CurrentLocation.ToString(),
+                ResumeWorkNotBeforeTick = citizen.ResumeWorkNotBeforeTick,
+                IsReturningHome = citizen.IsReturningHome,
                 StaminaCurrent = citizen.CurrentStamina,
                 StaminaMax = citizen.MaxStamina,
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
@@ -349,6 +361,10 @@ public static class WorldPersistence
         if (save.Version != WorldSave.CurrentVersion)
         {
             throw new IncompatibleSaveVersionException(save.Version, WorldSave.CurrentVersion);
+        }
+        if (save.EconomicBalanceVersion < 0 || save.EconomicBalanceVersion > 1)
+        {
+            throw new InvalidOperationException("Save.EconomicBalanceVersion is unsupported.");
         }
         if (save.CurrentTick < 0)
         {
@@ -865,6 +881,78 @@ public static class WorldPersistence
                     throw new InvalidOperationException(
                         $"Citizen {c.Id} and project {project.Id} disagree about the assignment.");
                 }
+            }
+
+            List<ExpeditionSave> activeExpeditions = save.Expeditions
+                .Where(expedition => expedition.LeadCitizenId == c.Id
+                    && Enum.TryParse(expedition.Status, true, out ExpeditionStatus status)
+                    && status == ExpeditionStatus.Active)
+                .ToList();
+            if (activeExpeditions.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id} leads more than one active expedition.");
+            }
+            bool hasCommitmentKind = !string.IsNullOrWhiteSpace(c.CommitmentKind);
+            bool hasCommitmentEntity = c.CommitmentEntityId.HasValue;
+            if (!hasCommitmentKind && !hasCommitmentEntity)
+            {
+                continue;
+            }
+            if (!hasCommitmentKind
+                || !Enum.TryParse(
+                    c.CommitmentKind,
+                    ignoreCase: true,
+                    out CitizenCommitmentKind commitmentKind))
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id} has an invalid commitment kind.");
+            }
+            if (commitmentKind == CitizenCommitmentKind.None)
+            {
+                if (hasCommitmentEntity
+                    || c.CurrentAssignment.HasValue
+                    || activeExpeditions.Count != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Citizen {c.Id} has an available commitment that conflicts with world state.");
+                }
+                continue;
+            }
+            if (!hasCommitmentEntity || c.CommitmentEntityId <= 0)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id} has an incomplete commitment.");
+            }
+
+            int commitmentEntityId = c.CommitmentEntityId.GetValueOrDefault();
+            bool commitmentMatches = commitmentKind switch
+            {
+                CitizenCommitmentKind.BuildingWork =>
+                    buildingIds.Contains(commitmentEntityId)
+                    && c.CurrentAssignment == commitmentEntityId,
+                CitizenCommitmentKind.Construction =>
+                    projectIds.Contains(commitmentEntityId)
+                    && c.CurrentAssignment == commitmentEntityId,
+                CitizenCommitmentKind.Expedition =>
+                    activeExpeditions.Count == 1
+                    && activeExpeditions[0].Id == commitmentEntityId,
+                CitizenCommitmentKind.Recovery => false,
+                _ => false,
+            };
+            if (!commitmentMatches)
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id} commitment disagrees with world state.");
+            }
+        }
+
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (!citizenIds.Contains(expedition.LeadCitizenId))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} references unknown lead citizen {expedition.LeadCitizenId}.");
             }
         }
     }

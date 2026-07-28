@@ -27,10 +27,24 @@ public sealed class Citizen
     public AppearanceVariantId AppearanceVariant { get; private set; }
     public CitizenProfile Profile { get; }
     public CitizenOrigin Origin { get; }
-    public BuildingId? CurrentAssignment { get; private set; }
-    public Availability Availability => CurrentAssignment.HasValue
-        ? Availability.Assigned
-        : Availability.Available;
+    public CitizenCommitment Commitment { get; private set; } = CitizenCommitment.None;
+    public CitizenWorkOrder? WorkOrder { get; private set; }
+    public BuildingId? CurrentAssignment => WorkOrder?.TargetId;
+    public CitizenVitalStatus VitalStatus { get; private set; }
+    public int ResumeWorkNotBeforeTick { get; private set; }
+    public Availability Availability => Commitment.IsAvailable
+        ? Availability.Available
+        : Availability.Assigned;
+    public CitizenAvailabilityReason AvailabilityReason => Commitment.Kind switch
+    {
+        CitizenCommitmentKind.None => CitizenAvailabilityReason.Available,
+        CitizenCommitmentKind.BuildingWork => CitizenAvailabilityReason.AssignedToBuilding,
+        CitizenCommitmentKind.Construction => CitizenAvailabilityReason.AssignedToConstruction,
+        CitizenCommitmentKind.Expedition => CitizenAvailabilityReason.OnExpedition,
+        CitizenCommitmentKind.Recovery => CitizenAvailabilityReason.Recovering,
+        _ => throw new InvalidOperationException($"Unknown commitment kind {Commitment.Kind}."),
+    };
+    public bool IsAvailable => Commitment.IsAvailable;
 
     /// <summary>
     /// Where the citizen physically is right now. Updated by
@@ -38,6 +52,8 @@ public sealed class Citizen
     /// reads this to decide which building shows the worker slot.
     /// </summary>
     public CitizenLocation CurrentLocation { get; private set; } = CitizenLocation.AtHome;
+    public int? TransitStartedAtTick { get; private set; }
+    public bool IsReturningHome { get; private set; }
 
     /// <summary>
     /// Richer FSM-backed behavior state (S-1.5), validated against
@@ -122,12 +138,92 @@ public sealed class Citizen
     /// Attaches the citizen to a building as their primary workplace.
     /// Domain logic only; the presentation layer must not bypass this.
     /// </summary>
-    internal void AssignTo(BuildingId buildingId) => CurrentAssignment = buildingId;
+    internal bool TryCommitToBuilding(BuildingId buildingId) =>
+        TrySetWorkOrder(CitizenCommitmentKind.BuildingWork, buildingId);
+
+    internal bool TryCommitToConstruction(BuildingId projectId) =>
+        TrySetWorkOrder(CitizenCommitmentKind.Construction, projectId);
 
     /// <summary>
     /// Detaches the citizen from any current workplace assignment.
     /// </summary>
-    internal void ClearAssignment() => CurrentAssignment = null;
+    internal bool ReleaseCommitment(CitizenCommitmentKind expectedKind, int expectedEntityId)
+    {
+        bool activeMatches = Commitment.Kind == expectedKind
+            && Commitment.EntityId == expectedEntityId;
+        bool standingOrderMatches = WorkOrder is { } order
+            && order.Kind == expectedKind
+            && order.TargetId.Value == expectedEntityId;
+        if (!activeMatches && !standingOrderMatches)
+        {
+            return false;
+        }
+
+        if (activeMatches) Commitment = CitizenCommitment.None;
+        WorkOrder = null;
+        return true;
+    }
+
+    internal void RestoreCommitment(
+        CitizenCommitment commitment,
+        CitizenWorkOrder? workOrder = null,
+        CitizenVitalStatus vitalStatus = CitizenVitalStatus.Stable,
+        int resumeWorkNotBeforeTick = 0)
+    {
+        Commitment = commitment;
+        WorkOrder = workOrder ?? CitizenWorkOrder.FromCommitment(commitment);
+        VitalStatus = vitalStatus;
+        ResumeWorkNotBeforeTick = Math.Max(0, resumeWorkNotBeforeTick);
+    }
+
+    private bool TrySetWorkOrder(CitizenCommitmentKind kind, BuildingId targetId)
+    {
+        var commitment = new CitizenCommitment(kind, targetId.Value);
+        if (!TrySetCommitment(commitment)) return false;
+        WorkOrder = new CitizenWorkOrder(kind, targetId);
+        return true;
+    }
+
+    private bool TrySetCommitment(CitizenCommitment commitment)
+    {
+        if (!Commitment.IsAvailable) return false;
+        Commitment = commitment;
+        return true;
+    }
+
+    internal bool BeginVitalRecovery(int currentTick)
+    {
+        if (VitalStatus != CitizenVitalStatus.Stable) return false;
+        if (Commitment.Kind is CitizenCommitmentKind.Expedition or CitizenCommitmentKind.Recovery)
+        {
+            return false;
+        }
+        VitalStatus = CitizenVitalStatus.Recovering;
+        BeginTravelHome(currentTick);
+        _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Vital recovery interrupted work");
+        return true;
+    }
+
+    internal void MarkFoodBlocked() => VitalStatus = CitizenVitalStatus.BlockedNoFood;
+
+    internal void MarkFoodReceived()
+    {
+        if (VitalStatus == CitizenVitalStatus.BlockedNoFood)
+        {
+            VitalStatus = CitizenVitalStatus.Recovering;
+        }
+    }
+
+    internal bool CompleteVitalRecovery()
+    {
+        if (VitalStatus == CitizenVitalStatus.Stable
+            || !CitizenNeedsRules.CanResume(this))
+        {
+            return false;
+        }
+        VitalStatus = CitizenVitalStatus.Stable;
+        return true;
+    }
 
     /// <summary>
     /// Sets the citizen's physical location. Called by
@@ -137,9 +233,18 @@ public sealed class Citizen
     internal void SetLocation(CitizenLocation location)
     {
         CurrentLocation = location;
+        if (location != CitizenLocation.InTransit)
+        {
+            TransitStartedAtTick = null;
+            IsReturningHome = false;
+        }
         if (location == CitizenLocation.AtWork)
         {
             _behaviorFsm.TryTransition(CitizenBehaviorState.Working, "Mobilised to work");
+        }
+        else if (location == CitizenLocation.InTransit)
+        {
+            _behaviorFsm.TryTransition(CitizenBehaviorState.Travelling, "Travelling to assignment");
         }
         else
         {
@@ -148,6 +253,29 @@ public sealed class Citizen
                 "Mobilised to home");
         }
     }
+
+    internal void BeginTravelToAssignment(int currentTick)
+    {
+        IsReturningHome = false;
+        TransitStartedAtTick = currentTick;
+        SetLocation(CitizenLocation.InTransit);
+        IsReturningHome = false;
+        TransitStartedAtTick = currentTick;
+    }
+
+    internal void BeginTravelHome(int currentTick)
+    {
+        IsReturningHome = true;
+        TransitStartedAtTick = currentTick;
+        SetLocation(CitizenLocation.InTransit);
+        IsReturningHome = true;
+        TransitStartedAtTick = currentTick;
+    }
+
+    internal bool AbstractTravelHasCompleted(int currentTick) =>
+        CurrentLocation == CitizenLocation.InTransit
+        && TransitStartedAtTick is int startedAt
+        && currentTick - startedAt >= CityEconomyRules.AbstractTravelTicks;
 
     /// <summary>
     /// Drives the two expedition-dispatch transitions (S-1.5 follow-up)
@@ -160,10 +288,17 @@ public sealed class Citizen
     /// is modelled yet, so <c>Travelling</c> is visited but not lingered
     /// in — see <c>TO_DO.md</c> S-1.5 for why that's an honest gap, not a bug.
     /// </summary>
-    internal void DispatchOnExpedition()
+    internal bool DispatchOnExpedition(ExpeditionId expeditionId)
     {
+        if (Commitment.Kind is CitizenCommitmentKind.Expedition or CitizenCommitmentKind.Recovery)
+        {
+            return false;
+        }
+        Commitment = new CitizenCommitment(CitizenCommitmentKind.Expedition, expeditionId.Value);
+        CurrentLocation = CitizenLocation.InTransit;
         _behaviorFsm.TryTransition(CitizenBehaviorState.Travelling, "Hero dispatched on expedition");
         _behaviorFsm.TryTransition(CitizenBehaviorState.OnExpedition, "Expedition reaches Active state");
+        return true;
     }
 
     /// <summary>
@@ -172,8 +307,26 @@ public sealed class Citizen
     /// cancellation; the catalog documents all three under the same
     /// "returns or is cancelled" trigger.
     /// </summary>
-    internal void ReturnFromExpedition() =>
-        _behaviorFsm.TryTransition(CitizenBehaviorState.Idle, "Expedition returns or is cancelled");
+    internal bool ReturnFromExpedition(ExpeditionId expeditionId, int currentTick = 0)
+    {
+        if (Commitment.Kind != CitizenCommitmentKind.Expedition
+            || Commitment.EntityId != expeditionId.Value)
+        {
+            return false;
+        }
+        Commitment = WorkOrder is { } workOrder
+            ? new CitizenCommitment(workOrder.Kind, workOrder.TargetId.Value)
+            : CitizenCommitment.None;
+        CurrentLocation = CitizenLocation.AtHome;
+        VitalStatus = CitizenVitalStatus.Recovering;
+        ResumeWorkNotBeforeTick = checked(
+            (currentTick / GameClock.TicksPerInGameDay + 1)
+            * GameClock.TicksPerInGameDay);
+        _behaviorFsm.TryTransition(
+            WorkOrder.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
+            "Expedition returns or is cancelled");
+        return true;
+    }
 
     internal void VisitResource(BuildingId buildingId, int unitId, int positionIndex)
     {

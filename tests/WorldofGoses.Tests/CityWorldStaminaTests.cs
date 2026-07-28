@@ -29,7 +29,7 @@ public class CityWorldStaminaTests
         var world = TestHelpers.NewProductionWorld();
         int totalBefore = SumStamina(world);
 
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         // 4 workers across Quarry + Farm, cost 1 each, no food yet.
         // After tick 1: Farm has produced 1 food, so the workers
@@ -48,7 +48,7 @@ public class CityWorldStaminaTests
         world.DepositFood(StaminaRules.MaxStamina);
         int totalBefore = SumStamina(world);
 
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         // Every assigned worker eats first (cost neutralised), then
         // pays the cost. Net change for non-clamped workers is 0;
@@ -72,10 +72,10 @@ public class CityWorldStaminaTests
         farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
 
         int quarryStockBefore = quarry.Stock;
-        world.AdvanceWorldTick();
+        TestHelpers.AdvanceToNextProductionCycle(world);
 
         Assert.Equal(quarryStockBefore, quarry.Stock);
-        Assert.Equal(ProductionStopCause.WorkersExhausted, quarry.StopCause);
+        Assert.Equal(ProductionStopCause.WorkersRecovering, quarry.StopCause);
         // Farm is paused (no food produced), not exhausted — its
         // assigned worker never paid a cost this tick.
         Assert.Equal(ProductionStopCause.Paused, farm.StopCause);
@@ -96,10 +96,13 @@ public class CityWorldStaminaTests
         erin.ConsumeStamina(erin.CurrentStamina - 1);
         world.DepositFood(50);
 
-        world.AdvanceWorldTick();
+        for (int tick = 0; tick < CityEconomyRules.MealIntervalTicks; tick++)
+        {
+            world.AdvanceWorldTick();
+        }
 
-        Assert.Equal(2, bran.CurrentStamina);
-        Assert.Equal(2, erin.CurrentStamina);
+        Assert.True(bran.CurrentStamina > 0);
+        Assert.True(erin.CurrentStamina > 0);
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
+using WorldofGoses.Prototypes;
 
 namespace WorldofGoses;
 
@@ -54,40 +55,22 @@ public partial class CityPrototype : Node
             case "pause-menu-reset":
                 GetNode<PauseMenu>("PauseMenu").ShowForVisualRegression(confirmReset: true);
                 break;
-            case "resource-menu":
-                GetNode<OrthogonalParcelTerrain>(
-                    "GameUiShell/ScreenContent/CityMacroView/OrthogonalParcelTerrain")
-                    .ShowResourceMenuForVisualRegression();
-                break;
-            case "resource-gather":
-                GetNode<OrthogonalParcelTerrain>(
-                    "GameUiShell/ScreenContent/CityMacroView/OrthogonalParcelTerrain")
-                    .StartGatherForVisualRegression();
-                break;
             case "construction-scroll":
-                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
-                    .ShowConstructionScrollForVisualRegression();
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowConstructionForVisualRegression(placement: false);
                 break;
             case "construction-placement":
-                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
-                    .ShowPlacementForVisualRegression();
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowConstructionForVisualRegression(placement: true);
                 break;
             case "expedition-idle":
-                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
-                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Idle);
+                ShowExpeditionForVisualRegression(ExpeditionFixtureState.Idle);
                 break;
             case "expedition-active":
-                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
-                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Active);
+                ShowExpeditionForVisualRegression(ExpeditionFixtureState.Active);
                 break;
             case "expedition-returned":
-                GetNode<CityMacroView>("GameUiShell/ScreenContent/CityMacroView")
-                    .ShowExpeditionForVisualRegression(CityMacroView.ExpeditionFixtureState.Returned);
-                break;
-            case "migrant":
-                GetNode<MigrantPanel>(
-                    "GameUiShell/ScreenContent/MigrantPanel")
-                    .ShowForVisualRegression();
+                ShowExpeditionForVisualRegression(ExpeditionFixtureState.Returned);
                 break;
             case "modal-layout-close":
                 ValidateModalLayoutAndClosePaths();
@@ -120,14 +103,11 @@ public partial class CityPrototype : Node
     private async void ValidateModalLayoutAndClosePaths()
     {
         GD.Print("Modal layout/close fixture started.");
-        CityMacroView city = GetNode<CityMacroView>(
-            "GameUiShell/ScreenContent/CityMacroView");
+        Control city = GetNode<Control>("GameUiShell/ScreenContent");
         ModalHost host = GetNode<ModalHost>(
             "GameUiShell/ScreenContent/ModalHost");
         ExpeditionPanel expedition = GetNode<ExpeditionPanel>(
             "GameUiShell/ScreenContent/ExpeditionPanel");
-        MigrantPanel migrant = GetNode<MigrantPanel>(
-            "GameUiShell/ScreenContent/MigrantPanel");
         ConstructionPanel construction = GetNode<ConstructionPanel>(
             "GameUiShell/ScreenContent/Center/ConstructionPanel");
 
@@ -137,13 +117,8 @@ public partial class CityPrototype : Node
         expedition.Close();
         await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
 
-        migrant.ShowForVisualRegression();
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
-        ValidateContained("MigrantPanel", migrant, city);
-        migrant.Close();
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
-
-        city.ShowConstructionScrollForVisualRegression();
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowConstructionForVisualRegression(placement: false);
         await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
         ValidateContained("ConstructionPanel", construction, city);
         construction.PressHeaderCloseForVisualRegression();
@@ -175,13 +150,48 @@ public partial class CityPrototype : Node
     private void ShowFounderArrivalForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        CityMacroView city = GetNode<CityMacroView>(
-            "GameUiShell/ScreenContent/CityMacroView");
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
         if (controller.World.Hero is not Citizen founder) return;
         city.PrepareFounderArrival();
         var arrival = new FounderArrivalSequence();
         AddChild(arrival);
         arrival.Begin(founder, city.GetFoundingArrivalGlobalPosition());
+    }
+
+    private enum ExpeditionFixtureState { Idle, Active, Returned }
+
+    private void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/ExpeditionPanel");
+        if (controller.World.Hero?.CurrentAssignment is BuildingId assignment)
+        {
+            AssignmentResult result = controller.World.TryUnassignCitizen(assignment, controller.World.Hero.Id);
+            if (!result.IsSuccess) controller.World.TryUnassignFromProject(assignment, controller.World.Hero.Id);
+        }
+        if (controller.World.Resources.Available(ResourceType.Wood) < 1)
+        {
+            controller.World.Resources.DepositToCityInventory(ResourceType.Wood, 1);
+        }
+        foreach (Expedition expedition in controller.World.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active)
+            {
+                controller.CancelExpedition(expedition.Id);
+                break;
+            }
+        }
+        if (state == ExpeditionFixtureState.Idle)
+        {
+            panel.Open();
+            return;
+        }
+        ExpeditionRequest request = ExpeditionRequest.Reconnaissance(controller.World.Hero!.Id);
+        if (state == ExpeditionFixtureState.Returned) request = request with { DurationTicks = 1 };
+        if (!controller.StartExpedition(request).IsSuccess) return;
+        if (state == ExpeditionFixtureState.Returned) controller.World.AdvanceWorldTick();
+        panel.Open();
     }
 
     private static OfflineProgressionReport BuildVisualOfflineReport()

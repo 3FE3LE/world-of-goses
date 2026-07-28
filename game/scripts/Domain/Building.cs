@@ -40,7 +40,7 @@ public sealed class Building
     /// consumption, so a temporary stock spike does not empty the
     /// worksite.
     /// </summary>
-    public const int MaxStockReleaseCooldown = 6;
+    public const int MaxStockReleaseCooldown = 60;
 
     private readonly List<CitizenId> _assigned = new();
     private readonly List<RecipeInput> _pendingInputs = new();

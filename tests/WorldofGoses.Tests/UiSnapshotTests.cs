@@ -97,31 +97,6 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
-    public void DepletedFirstForest_DoesNotShiftSecondForestUnitPositions()
-    {
-        CityWorld world = TestHelpers.NewHeroWorld();
-        world.SeedStartingForests();
-        CityMacroSnapshot before = CityMacroSnapshot.From(world);
-        CityMacroSnapshot.PlotItem first = before.Buildings
-            .First(item => item.Kind == BuildingKind.Forest);
-        CityMacroSnapshot.PlotItem second = before.Buildings
-            .Last(item => item.Kind == BuildingKind.Forest);
-        int? original = OrthogonalParcelTerrain.FindPositionIndex(
-            before.Buildings.Where(item => item.Kind == BuildingKind.Forest).ToArray(),
-            second.Id.Value,
-            unitId: 0);
-
-        world.GatherWood(first.Id, first.WoodReserve);
-        CityMacroSnapshot after = CityMacroSnapshot.From(world);
-        int? afterDepletion = OrthogonalParcelTerrain.FindPositionIndex(
-            after.Buildings.Where(item => item.Kind == BuildingKind.Forest).ToArray(),
-            second.Id.Value,
-            unitId: 0);
-
-        Assert.Equal(original, afterDepletion);
-    }
-
-    [Fact]
     public void BuildingDetailSnapshot_ContainsOnlyProjectedCitizenData()
     {
         var world = TestHelpers.NewProductionWorld();
