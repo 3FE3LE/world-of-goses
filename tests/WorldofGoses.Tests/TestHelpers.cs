@@ -27,6 +27,21 @@ internal static class TestHelpers
         }
     }
 
+    /// <summary>
+    /// Steps live ticks until the next dawn (night → day) boundary, where
+    /// <see cref="WorldEventKind.DayBegan"/> and the resident food ration fire.
+    /// </summary>
+    public static void AdvanceToNextDawn(CityWorld world)
+    {
+        int startTick = world.CurrentTick;
+        do
+        {
+            world.AdvanceWorldTick();
+        }
+        while (!(GameClock.IsDaytime(world.CurrentTick) && world.CurrentTick > startTick
+            && !GameClock.IsDaytime(world.CurrentTick - 1)));
+    }
+
     public static CitizenProfile NewProfile(LineageId? lineage = null, GenderId? gender = null)
     {
         bool created = CitizenProfile.TryCreate(

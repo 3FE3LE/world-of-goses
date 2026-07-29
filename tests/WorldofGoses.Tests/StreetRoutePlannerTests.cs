@@ -323,6 +323,43 @@ public class StreetRoutePlannerTests
             route.ConvertAll(w => (w.Street, w.Lateral)).ToArray());
     }
 
+    /// <summary>
+    /// The bug this test pins down: the final crossing (into
+    /// <paramref name="toStreet"/>) used to be hardcoded to the raw
+    /// destination lateral instead of sampled from the real path like every
+    /// other crossing — discarding whatever obstacle-avoiding detour the
+    /// navmesh had actually planned for that last band and drawing a
+    /// straight cardinal cross through it instead. Reported live as "the
+    /// citizen walks around the whole row of trees, then crosses straight
+    /// through the last one right before arriving".
+    /// </summary>
+    [Fact]
+    public void ConvertNavmeshPath_FinalCrossingNeedsItsOwnDetour_SamplesItThenAdjuststoExactTarget()
+    {
+        // The real navmesh path dodges an obstacle right at the street-2
+        // boundary (crossing at lateral 200) before the destination itself
+        // (lateral 300) requires one more lateral walk within street 2.
+        var path = new[]
+        {
+            new Vector2(0f, 0f),
+            new Vector2(100f, 1f),
+            new Vector2(200f, 2f),
+            new Vector2(300f, 2.5f),
+        };
+
+        List<StreetRoutePlanner.Waypoint> route = StreetRoutePlanner.ConvertNavmeshPathToWaypoints(
+            path, 0, 0f, 2, 300f);
+
+        Assert.Equal(
+            new (int Street, float Lateral)[]
+            {
+                (0, 100f), (1, 100f),
+                (1, 200f), (2, 200f),
+                (2, 300f),
+            },
+            route.ConvertAll(w => (w.Street, w.Lateral)).ToArray());
+    }
+
     [Fact]
     public void ConvertNavmeshPath_MissingSamplePoint_FallsBackToRequestedLateral()
     {

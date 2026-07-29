@@ -246,9 +246,15 @@ public static class StreetRoutePlanner
         int currentStreet = fromStreet;
         for (int targetStreet = fromStreet + direction; ; targetStreet += direction)
         {
-            float crossingLateral = targetStreet == toStreet
-                ? toLateral
-                : SampleLateralAtStreet(path, targetStreet, toLateral);
+            // Sample the FINAL street crossing exactly like every other one
+            // instead of jumping straight to toLateral: the real navmesh
+            // path may still be dodging an obstacle sitting right at this
+            // last band's boundary, and forcing the raw target lateral here
+            // threw that avoidance away, drawing a straight cardinal cross
+            // through whatever stood between the previous waypoint and the
+            // destination — "walks through a tree only on the last stretch"
+            // was this exact bug, not the navmesh query itself.
+            float crossingLateral = SampleLateralAtStreet(path, targetStreet, toLateral);
             if (Math.Abs(crossingLateral - currentLateral) > 0.01f)
             {
                 waypoints.Add(new Waypoint(currentStreet, crossingLateral));
@@ -257,6 +263,15 @@ public static class StreetRoutePlanner
             currentLateral = crossingLateral;
             currentStreet = targetStreet;
             if (targetStreet == toStreet) break;
+        }
+        // The sampled crossing can land short of the exact destination
+        // lateral (interpolation, or the path approaching from an angle);
+        // Plan's own greedy planner has the same final adjustment for the
+        // same reason — the quantized route must still end exactly on
+        // target, not merely "close, on the right street".
+        if (Math.Abs(currentLateral - toLateral) > 0.01f)
+        {
+            waypoints.Add(new Waypoint(toStreet, toLateral));
         }
         return waypoints;
     }

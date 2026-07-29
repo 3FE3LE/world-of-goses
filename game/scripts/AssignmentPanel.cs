@@ -25,8 +25,11 @@ public partial class AssignmentPanel : PanelContainer
     private Label _summary = null!;
     private VBoxContainer _assignedList = null!;
     private VBoxContainer _availableList = null!;
+    private VBoxContainer _unavailableList = null!;
     private ScrollContainer _assignedScroll = null!;
     private ScrollContainer _availableScroll = null!;
+    private ScrollContainer _unavailableScroll = null!;
+    private Label _unavailableHeader = null!;
     private LineageThemeSignals? _themeSignals;
 
     public override void _Ready()
@@ -75,6 +78,15 @@ public partial class AssignmentPanel : PanelContainer
         _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _availableScroll = BuildListScroll(_availableList);
         _root.AddChild(_availableScroll);
+
+        _root.AddChild(new HSeparator());
+
+        _unavailableHeader = new Label { Text = UiText.Get("ui.assignment.unavailable_title") };
+        _unavailableHeader.ThemeTypeVariation = "SectionTitle";
+        _root.AddChild(_unavailableHeader);
+        _unavailableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _unavailableScroll = BuildListScroll(_unavailableList);
+        _root.AddChild(_unavailableScroll);
     }
 
     private static ScrollContainer BuildListScroll(Control content)
@@ -107,8 +119,10 @@ public partial class AssignmentPanel : PanelContainer
 
         PopulateAssigned(snapshot);
         PopulateAvailable(snapshot);
+        PopulateUnavailable(snapshot);
         SetNaturalListHeight(_assignedScroll, snapshot.AssignedCitizens.Count);
         SetNaturalListHeight(_availableScroll, snapshot.AvailableCitizens.Count);
+        SetNaturalListHeight(_unavailableScroll, snapshot.UnavailableCitizens.Count);
     }
 
     private static void SetNaturalListHeight(ScrollContainer scroll, int rowCount)
@@ -177,6 +191,44 @@ public partial class AssignmentPanel : PanelContainer
             _availableList.AddChild(row);
         }
     }
+
+    private void PopulateUnavailable(BuildingDetailSnapshot snapshot)
+    {
+        foreach (var child in _unavailableList.GetChildren())
+        {
+            _unavailableList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        bool hasUnavailable = snapshot.UnavailableCitizens.Count > 0;
+        _unavailableHeader.Visible = hasUnavailable;
+        _unavailableScroll.Visible = hasUnavailable;
+        if (!hasUnavailable) return;
+
+        foreach (var citizen in snapshot.UnavailableCitizens)
+        {
+            string reason = DescribeUnavailabilityReason(citizen);
+            var row = InstantiateRow(
+                citizen.Id.Value,
+                UiText.Format("ui.assignment.unavailable_row", citizen.Name, reason),
+                UiText.Get("Assign"),
+                reason,
+                disabled: true);
+            _unavailableList.AddChild(row);
+        }
+    }
+
+    private static string DescribeUnavailabilityReason(BuildingDetailSnapshot.UnavailableCitizenItem citizen) =>
+        citizen.Reason switch
+        {
+            CitizenAvailabilityReason.AssignedToBuilding =>
+                UiText.Format("ui.assignment.reason_building", citizen.LocationName ?? UiText.Get("Unknown")),
+            CitizenAvailabilityReason.AssignedToConstruction =>
+                UiText.Format("ui.assignment.reason_construction", citizen.LocationName ?? UiText.Get("Unknown")),
+            CitizenAvailabilityReason.OnExpedition => UiText.Get("ui.assignment.reason_expedition"),
+            CitizenAvailabilityReason.Recovering => UiText.Get("ui.assignment.reason_recovering"),
+            _ => UiText.Get("Available"),
+        };
 
     private static AssignmentRow InstantiateRow(
         int id,

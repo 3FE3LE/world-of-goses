@@ -28,4 +28,17 @@ public static class Upkeep
         int scaled = (citizenCount + 4) / 5; // ceil(citizenCount / 5)
         return scaled < 1 ? 1 : scaled;
     }
+
+    /// <summary>
+    /// Food consumed once per in-game day, for every resident, whether or
+    /// not they worked or lost stamina that day — the "mouths to feed"
+    /// pressure recommended by <c>docs/FIRST_PLAYABLE_LOOP_AUDIT.md</c> §17.
+    /// Unlike <see cref="StonePerTick"/> this has no artificial floor: an
+    /// empty city has no demand, because the demand exists to make adding
+    /// residents (recruitment, migrants) carry a real ongoing cost, not to
+    /// simulate abstract city maintenance. See
+    /// <see cref="CityWorld.ApplyResidentFoodRation"/> for the call site.
+    /// </summary>
+    public static int FoodPerResidentPerDay(int citizenCount) =>
+        citizenCount <= 0 ? 0 : citizenCount;
 }

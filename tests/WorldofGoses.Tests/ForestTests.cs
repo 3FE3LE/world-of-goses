@@ -80,6 +80,8 @@ public class ForestTests
         current = WorldPersistence.MigrateV11ToV12(current);
         current = WorldPersistence.MigrateV12ToV13(current);
         current = WorldPersistence.MigrateV13ToV14(current);
+        current = WorldPersistence.MigrateV14ToV15(current);
+        current = WorldPersistence.MigrateV15ToV16(current);
         WorldPersistence.Validate(current);
     }
 

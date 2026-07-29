@@ -30,7 +30,17 @@ public static class WorldEventTextFormatter
         WorldEventKind.ExpeditionFailed => $"{subjectName} failed to return",
         WorldEventKind.ExpeditionCancelled => $"{subjectName} was cancelled",
         WorldEventKind.MigrantArrived => $"{subjectName} joined the city",
+        WorldEventKind.FoodRationShortfall => $"Food ran short: {amount} residents went unfed",
+        WorldEventKind.ExpeditionEncounterResolved =>
+            $"{subjectName} encounter: {DescribeEncounterOutcome(amount)}",
         _ => subjectName,
+    };
+
+    private static string DescribeEncounterOutcome(int amount) => (ExpeditionEncounterOutcome)amount switch
+    {
+        ExpeditionEncounterOutcome.FullSuccess => "full success",
+        ExpeditionEncounterOutcome.PartialSuccess => "partial success",
+        _ => "setback",
     };
 
     public static string FormatLocalized(WorldEvent evt) =>
@@ -59,7 +69,17 @@ public static class WorldEventTextFormatter
         WorldEventKind.ExpeditionFailed => UiText.Format("event.expedition_failed", localizedSubject),
         WorldEventKind.ExpeditionCancelled => UiText.Format("event.expedition_cancelled", localizedSubject),
         WorldEventKind.MigrantArrived => UiText.Format("event.migrant_arrived", localizedSubject),
+        WorldEventKind.FoodRationShortfall => UiText.Format("event.food_ration_shortfall", amount),
+        WorldEventKind.ExpeditionEncounterResolved => UiText.Format(
+            "event.expedition_encounter_resolved", localizedSubject, DescribeEncounterOutcomeLocalized(amount)),
         _ => localizedSubject,
     };
     }
+
+    private static string DescribeEncounterOutcomeLocalized(int amount) => (ExpeditionEncounterOutcome)amount switch
+    {
+        ExpeditionEncounterOutcome.FullSuccess => UiText.Get("event.encounter_outcome.full_success"),
+        ExpeditionEncounterOutcome.PartialSuccess => UiText.Get("event.encounter_outcome.partial_success"),
+        _ => UiText.Get("event.encounter_outcome.setback"),
+    };
 }

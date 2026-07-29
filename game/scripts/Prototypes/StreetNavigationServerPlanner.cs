@@ -53,6 +53,19 @@ public sealed class StreetNavigationServerPlanner : IDisposable
         _region = NavigationServer2D.RegionCreate();
         NavigationServer2D.RegionSetMap(_region, _map);
         NavigationServer2D.RegionSetEnabled(_region, true);
+        // Bake already erodes each obstruction outline by the caller's own
+        // `clearance` (see Bake below) — the one Godot exposes as "how much
+        // space a citizen needs around an obstacle" for this planner.
+        // NavigationPolygon.AgentRadius is Godot's OWN separate erosion
+        // pass applied on top during baking, defaulting to a nonzero value
+        // meant for a mesh with no manual clearance of its own; left at
+        // that default here, it double-counts the margin already applied,
+        // shrinking a real ~18px gap between adjacent trees (see
+        // StreetRoutePlanner's own doc comment on ScanStepPx for that
+        // figure) below zero and sealing it — the citizen then has no
+        // choice but to detour around the whole row. Zero it out so this
+        // planner's only clearance is the one it already applies itself.
+        _polygon.AgentRadius = 0f;
     }
 
     /// <summary>

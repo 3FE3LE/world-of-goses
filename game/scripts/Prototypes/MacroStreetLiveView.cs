@@ -250,6 +250,17 @@ public partial class MacroStreetLiveView : Node2D
     private (int ForestId, int UnitId)? _pendingGather;
     private BuildingId? _pendingAssignment;
     private bool _pendingReturnHome;
+    // Domain CurrentLocation never leaves AtHome for manual W/S/arrow
+    // movement or a Gather route (neither is a real domain travel action),
+    // so without this latch every subsequent Refresh() (fired on any world
+    // tick) sees "AtHome, no route, no pending return" and re-hides the
+    // founder — whether that is the instant the player stops pressing a
+    // key, or right as CompleteRoute's gather branch clears _route and
+    // calls GatherWood (itself a synchronous refresh trigger). Set by
+    // EnsureHeroCarrierReadyToMove; cleared once a real domain-tracked
+    // journey starts (BeginWalkHome/BeginWalkToAssignment), since a route
+    // already suppresses the hide on its own from then on.
+    private bool _heroWanderedAwayManually;
     // Tracks the domain's own hero.CurrentAssignment so a route to the
     // workplace fires exactly once per NEW assignment (see
     // EnsureHeroCarrier) — without this, every world tick re-triggered the
@@ -1243,6 +1254,7 @@ public partial class MacroStreetLiveView : Node2D
             Notifier.ShowError(UiText.Get("This tree no longer has wood available."));
             return;
         }
+        EnsureHeroCarrierReadyToMove();
         _pendingReturnHome = false;
         _pendingAssignment = null;
         _pendingGather = (forestId, unitId);
@@ -1399,11 +1411,60 @@ public partial class MacroStreetLiveView : Node2D
             Notifier.Show(UiText.Get("Something blocks the way — walk along the street to a gap first."));
             return;
         }
+        EnsureHeroCarrierReadyToMove();
         _heroCarrier?.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
         _heroWalking = true;
         _heroStreet = nextStreet;
         _depthTarget = _heroStreet;
         TrampleHeroTile();
+    }
+
+    /// <summary>
+    /// Called before every hero-initiated macro action that this class does
+    /// not learn about through a synchronous domain event: manual W/S/
+    /// arrow-key movement, and <see cref="OnGatherRequested"/>'s route to a
+    /// tree. An assignment is different — <c>TryAssignCitizen</c> fires
+    /// <c>BuildingStateChanged</c>/<c>ProjectStateChanged</c> synchronously,
+    /// forcing an <see cref="EnsureHeroCarrier"/> refresh (which un-hides
+    /// the carrier) before <see cref="BeginWalkToAssignment"/> ever moves
+    /// it. Neither manual movement nor a gather click touches the domain
+    /// until the citizen already arrives, so nothing else would ever:
+    /// <list type="bullet">
+    /// <item><description>show the carrier if it was <see cref="CitizenSpriteCarrier.VisualState.Hidden"/>
+    /// (settled inside the Shelter) — <see cref="CitizenSpriteCarrier.Walk"/>
+    /// only plays the walk animation, and <see cref="UpdateHeroVisual"/>
+    /// refuses to touch position/scale unless the state is already
+    /// <see cref="CitizenSpriteCarrier.VisualState.Macro"/>, so the citizen
+    /// would stay invisible while the dirt trail (which does not check
+    /// carrier state) kept advancing under them;</description></item>
+    /// <item><description>cancel a leftover <c>GoTo</c> motion from a
+    /// different context, the same hazard <see cref="RefreshCitizenVisuals"/>'s
+    /// ambient loop and <see cref="EnsureHeroCarrier"/>'s own Macro branch
+    /// already guard against;</description></item>
+    /// <item><description>keep the carrier from being re-hidden on the
+    /// very next world tick: domain <c>CurrentLocation</c> never actually
+    /// leaves <c>AtHome</c> for either of these actions (no domain travel
+    /// is involved), so every subsequent <see cref="EnsureHeroCarrier"/>
+    /// refresh would otherwise see "AtHome, no route, no pending return"
+    /// and hide the citizen again — mid-walk, or worse, right as
+    /// <see cref="CompleteRoute"/>'s gather branch calls <c>GatherWood</c>
+    /// (itself a synchronous <c>BuildingStateChanged</c>) the instant after
+    /// <see cref="_route"/> is cleared, undoing the arrival Slash animation
+    /// before the player ever sees it.</description></item>
+    /// </list>
+    /// <see cref="_heroWanderedAwayManually"/> is cleared once a real
+    /// domain-tracked journey takes over (<see cref="BeginWalkToAssignment"/>/
+    /// <see cref="BeginWalkHome"/>/departing on an expedition).
+    /// </summary>
+    private void EnsureHeroCarrierReadyToMove()
+    {
+        _heroWanderedAwayManually = true;
+        if (_heroCarrier is null) return;
+        if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
+        {
+            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
+        }
+        _heroCarrier.CancelMotion();
     }
 
     /// <summary>
@@ -1457,6 +1518,7 @@ public partial class MacroStreetLiveView : Node2D
             -_lateralHalfWidthPx,
             _lateralHalfWidthPx);
         if (next == _heroLateral) return false;
+        EnsureHeroCarrierReadyToMove();
         _heroCarrier?.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
         _heroWalking = true;
         _heroLateral = next;
@@ -1528,6 +1590,7 @@ public partial class MacroStreetLiveView : Node2D
             }
             _lastKnownAssignment = null;
             _lastKnownHeroLocation = null;
+            _heroWanderedAwayManually = false;
             return;
         }
         CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
@@ -1544,7 +1607,8 @@ public partial class MacroStreetLiveView : Node2D
             heroLocation,
             hasShelter,
             hasRoute: _route is not null,
-            pendingReturnHome: _pendingReturnHome))
+            pendingReturnHome: _pendingReturnHome,
+            hasWanderedManually: _heroWanderedAwayManually))
         {
             _heroCarrier.CancelMotion();
             _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
@@ -1567,6 +1631,13 @@ public partial class MacroStreetLiveView : Node2D
         }
         if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
+            // Same leftover-GoTo hazard as the ambient worker loop below:
+            // a building-detail exit animation interrupted before its
+            // completion callback fired would otherwise keep stepping the
+            // carrier toward an interior-space target while this class's
+            // own UpdateHeroVisual snaps it back to the macro position
+            // every frame.
+            _heroCarrier.CancelMotion();
             _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
             _heroCarrier.Idle(Vector2.Down);
         }
@@ -1621,22 +1692,48 @@ public partial class MacroStreetLiveView : Node2D
         CitizenLocation location,
         bool hasShelter,
         bool hasRoute,
-        bool pendingReturnHome) =>
+        bool pendingReturnHome,
+        bool hasWanderedManually = false) =>
         currentAssignment is null
         && location == CitizenLocation.AtHome
         && hasShelter
         && !hasRoute
-        && !pendingReturnHome;
+        && !pendingReturnHome
+        && !hasWanderedManually;
+
+    /// <summary>
+    /// Which building plot, if any, a non-hero citizen should stand ambient
+    /// at right now: their workplace when assigned, or the Shelter when idle
+    /// at home. Returns <c>null</c> for the hero (own dedicated carrier), an
+    /// expedition member, a citizen physically at work (rendered by the
+    /// building's own worker slots instead), or an idle citizen with no
+    /// Shelter yet to stand at. A recruited citizen with no job must remain
+    /// a visible, concrete presence — not only a roster row — until they are
+    /// given one (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §11.1).
+    /// </summary>
+    internal static BuildingId? ResolveAmbientPlotKey(
+        bool isHero,
+        bool isOnExpedition,
+        CitizenLocation location,
+        BuildingId? currentAssignment,
+        BuildingId? homeBuildingId)
+    {
+        if (isHero || isOnExpedition || location == CitizenLocation.AtWork) return null;
+        if (currentAssignment is { } workplace) return workplace;
+        return location == CitizenLocation.AtHome ? homeBuildingId : null;
+    }
 
     /// <summary>
     /// Ambient presence for assigned, non-hero citizens (S-1.4 follow-up:
     /// the prerequisite the TO_DO's MultiMesh sub-item was missing —
     /// citizens weren't visible in this view AT ALL before this). Each
-    /// stands at their workplace's plot in <see cref="CitizenSpriteCarrier.VisualState.Macro"/>,
-    /// the same "arrived and settled" pose <see cref="BeginWalkToAssignment"/>/
+    /// stands at their workplace's or Shelter's plot in
+    /// <see cref="CitizenSpriteCarrier.VisualState.Macro"/>, the same
+    /// "arrived and settled" pose <see cref="BeginWalkToAssignment"/>/
     /// <see cref="CompleteRoute"/> gives the hero — no route-walking for
-    /// these, they simply appear once assigned and vanish once
-    /// unassigned/on expedition. Reuses the same per-citizen
+    /// these, they simply appear once assigned/idle-at-home and vanish once
+    /// on expedition (see <see cref="ResolveAmbientPlotKey"/> for the
+    /// eligibility rule). Reuses the same per-citizen
     /// <see cref="CitizenSpriteCarrier"/>/<see cref="CitizenSpriteBank"/>
     /// instancing the hero already uses; today's citizen counts are far
     /// below the documented 20-25 trigger, so per-node instancing (not
@@ -1644,6 +1741,14 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void RefreshCitizenVisuals(CityMacroSnapshot snapshot)
     {
+        BuildingId? homeBuildingId = null;
+        foreach (CityMacroSnapshot.PlotItem building in snapshot.Buildings)
+        {
+            if (building.Kind != BuildingKind.Home) continue;
+            homeBuildingId = building.Id;
+            break;
+        }
+
         var workersByBuilding = new Dictionary<int, List<CityMacroSnapshot.CitizenItem>>();
         var assignedCitizenIds = new HashSet<int>();
         var arrivedWorkers = new List<(BuildingId BuildingId, CitizenId CitizenId)>();
@@ -1657,15 +1762,14 @@ public partial class MacroStreetLiveView : Node2D
                 arrivedHome.Add(citizen.Id);
                 continue;
             }
-            if (citizen.IsHero
-                || citizen.IsOnExpedition
-                || citizen.Location == CitizenLocation.AtWork
-                || citizen.CurrentAssignment is not { } workplace) continue;
+            if (ResolveAmbientPlotKey(
+                    citizen.IsHero, citizen.IsOnExpedition, citizen.Location,
+                    citizen.CurrentAssignment, homeBuildingId) is not { } plotKey) continue;
             assignedCitizenIds.Add(citizen.Id.Value);
-            if (!workersByBuilding.TryGetValue(workplace.Value, out List<CityMacroSnapshot.CitizenItem>? workers))
+            if (!workersByBuilding.TryGetValue(plotKey.Value, out List<CityMacroSnapshot.CitizenItem>? workers))
             {
                 workers = new List<CityMacroSnapshot.CitizenItem>();
-                workersByBuilding[workplace.Value] = workers;
+                workersByBuilding[plotKey.Value] = workers;
             }
             workers.Add(citizen);
         }
@@ -1689,6 +1793,16 @@ public partial class MacroStreetLiveView : Node2D
                 CitizenSpriteBank.Instance.Mount(carrier, this);
                 if (carrier.State != CitizenSpriteCarrier.VisualState.Macro)
                 {
+                    // The carrier may still carry a GoTo started by
+                    // VisibleWorkerSlot's entrance/exit animation (e.g. the
+                    // player left the building's detail view before that
+                    // animation's completion callback fired, so it never
+                    // reached Hidden). Without cancelling it here, that
+                    // leftover interior-space target and this method's own
+                    // UpdateWorkerVisuals both write Position every frame —
+                    // the citizen visibly fights itself sideways in a loop
+                    // instead of settling at its macro plot.
+                    carrier.CancelMotion();
                     carrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
                     carrier.Idle(Vector2.Up);
                 }
@@ -1776,6 +1890,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BeginWalkToAssignment(BuildingId workplace)
     {
+        _heroWanderedAwayManually = false;
         // The canonical flyweight may still carry a GoTo started by the
         // building-detail slot where the assignment was requested. Once the
         // macro view takes route ownership, that interior movement must stop:
@@ -1813,6 +1928,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BeginWalkHome()
     {
+        _heroWanderedAwayManually = false;
         // Route ownership can also transfer from an interior exit animation.
         // Keep exactly one position writer for the shared citizen carrier.
         _heroCarrier?.CancelMotion();

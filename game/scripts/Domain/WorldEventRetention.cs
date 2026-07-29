@@ -22,7 +22,9 @@ public static class WorldEventRetention
         or WorldEventKind.MigrantArrived
         or WorldEventKind.ExpeditionReturned
         or WorldEventKind.ExpeditionFailed
-        or WorldEventKind.ExpeditionCancelled;
+        or WorldEventKind.ExpeditionCancelled
+        or WorldEventKind.FoodRationShortfall
+        or WorldEventKind.ExpeditionEncounterResolved;
 
     public static IReadOnlyList<WorldEvent> SelectForPersistence(
         IReadOnlyList<WorldEvent> events)
@@ -33,7 +35,8 @@ public static class WorldEventRetention
             if (!IsSignificant(evt.Kind)) continue;
             bool repeatedState = evt.Kind is WorldEventKind.StockCapped
                 or WorldEventKind.WorkersExhausted
-                or WorldEventKind.ProductionBlocked;
+                or WorldEventKind.ProductionBlocked
+                or WorldEventKind.FoodRationShortfall;
             if (repeatedState && selected.Count > 0
                 && selected[^1].Kind == evt.Kind
                 && SameIdentity(selected[^1].Subject, evt.Subject))

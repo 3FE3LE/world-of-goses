@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WorldofGoses.Domain;
 
 public enum ExpeditionRewardKind
@@ -7,7 +9,7 @@ public enum ExpeditionRewardKind
 }
 
 public readonly record struct ExpeditionRequest(
-    CitizenId LeadCitizenId,
+    IReadOnlyList<CitizenId> MemberIds,
     int DurationTicks,
     ResourceType SupplyResource,
     int SupplyAmount,
@@ -16,9 +18,19 @@ public readonly record struct ExpeditionRequest(
     ExpeditionRewardKind RewardKind,
     string DisplayName)
 {
-    public static ExpeditionRequest Reconnaissance(CitizenId leadCitizenId) =>
+    /// <summary>
+    /// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3: "select 1-2 real citizens".
+    /// One authoritative team-size ceiling so validation, UI, and tests
+    /// never restate the number separately.
+    /// </summary>
+    public const int MaxTeamSize = 2;
+
+    public static ExpeditionRequest Reconnaissance(CitizenId soleMemberId) =>
+        Reconnaissance(new[] { soleMemberId });
+
+    public static ExpeditionRequest Reconnaissance(IReadOnlyList<CitizenId> memberIds) =>
         new(
-            leadCitizenId,
+            memberIds,
             DurationTicks: 4 * GameClock.TicksPerInGameDay,
             SupplyResource: ResourceType.Wood,
             SupplyAmount: 1,
@@ -27,9 +39,12 @@ public readonly record struct ExpeditionRequest(
             RewardKind: ExpeditionRewardKind.Supplies,
             DisplayName: "Reconnaissance");
 
-    public static ExpeditionRequest SeekProspect(CitizenId leadCitizenId) =>
+    public static ExpeditionRequest SeekProspect(CitizenId soleMemberId) =>
+        SeekProspect(new[] { soleMemberId });
+
+    public static ExpeditionRequest SeekProspect(IReadOnlyList<CitizenId> memberIds) =>
         new(
-            leadCitizenId,
+            memberIds,
             DurationTicks: 4 * GameClock.TicksPerInGameDay,
             SupplyResource: ResourceType.Food,
             SupplyAmount: 2,
@@ -43,12 +58,13 @@ public enum ExpeditionStartOutcome
 {
     Success = 0,
     NoHero = 1,
-    LeadCitizenNotFound = 2,
-    LeadUnavailable = 3,
+    MemberNotFound = 2,
+    MemberUnavailable = 3,
     InvalidRequest = 4,
     MissingSupplies = 5,
     AlreadyActive = 6,
     TownHallUnavailable = 7,
+    DuplicateMember = 8,
 }
 
 public readonly record struct ExpeditionStartResult(

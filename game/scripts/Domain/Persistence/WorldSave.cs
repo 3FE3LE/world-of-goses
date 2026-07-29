@@ -39,9 +39,11 @@ public sealed class WorldSave
     ///   <item><description>v12 — cosmetic appearance variant per citizen.</description></item>
     ///   <item><description>v13 — persisted abstract reconnaissance expeditions.</description></item>
     ///   <item><description>v14 — retired the `BuildingKind.Forest` compatibility adapter. Wood lives in `NaturalResourcePatches` and `CityInventory`; the Forest building entity no longer exists.</description></item>
+    ///   <item><description>v15 — expeditions carry a real 1-2 citizen team (`ExpeditionSave.MemberCitizenIds`) instead of a single `LeadCitizenId`.</description></item>
+    ///   <item><description>v16 — expeditions carry a persisted phase (`ExpeditionSave.Phase`) and a resolved encounter outcome (`ExpeditionSave.EncounterOutcome`).</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 14;
+    public const int CurrentVersion = 16;
 
     public int Version { get; set; } = CurrentVersion;
 

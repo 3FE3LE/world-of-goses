@@ -88,25 +88,41 @@ public partial class VisibleWorkerSlot : Control
         if (_carrier is not null) CitizenSpriteBank.Instance.Mount(_carrier, host);
     }
 
-    public bool CarrierIsHidden => _carrier is null
-        || _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
-
-    public bool CarrierIsWorking => _carrier?.State == CitizenSpriteCarrier.VisualState.Working;
+    /// <summary>
+    /// True once the carrier has actually settled into THIS slot's own
+    /// resting pose (<c>Working</c> for a production building, <c>Home</c>
+    /// for an idle/resting one) — the only states where nothing needs to be
+    /// (re)shown. Any other state (Hidden, Entering, Macro, HeroProfile...)
+    /// means the carrier either never arrived here or still belongs to a
+    /// different view's context and must be reconciled by
+    /// <see cref="ShowAt"/>.
+    /// </summary>
+    public bool CarrierIsSettledHere => _carrier?.State == (_idlePresentation
+        ? CitizenSpriteCarrier.VisualState.Home
+        : CitizenSpriteCarrier.VisualState.Working);
 
     /// <summary>
     /// Walks the carrier from the entry border to the slot center,
     /// then settles into the slash loop. The hit area is enabled only
     /// after the worker arrives so spurious clicks during the entry
-    /// animation are ignored.
+    /// animation are ignored. Snaps to the entry border first unless the
+    /// carrier is already mid-entrance (so a redundant re-issue of the same
+    /// ShowAt does not visibly restart it): a carrier reclaimed from a
+    /// completely different context (e.g. the macro view's own ambient
+    /// Macro state, or a stale HeroProfile) is starting from a position in
+    /// a totally unrelated coordinate space, and without the snap it would
+    /// either stay invisible outside this stage's clipped bounds or crawl
+    /// there one PixelMotion step at a time, which at typical macro-to-slot
+    /// distances reads as "never arrives".
     /// </summary>
     public void ShowAt(Vector2 entryBorder, Vector2 slotCenter, Action? onComplete = null)
     {
         if (_carrier == null) return;
-        bool wasHidden = _carrier.State == CitizenSpriteCarrier.VisualState.Hidden;
+        bool needsSnap = _carrier.State != CitizenSpriteCarrier.VisualState.Entering;
         IsExiting = false;
         _carrier.SetState(CitizenSpriteCarrier.VisualState.Entering);
         _hitArea.Disabled = true;
-        if (wasHidden)
+        if (needsSnap)
         {
             _carrier.SetPositionImmediate(entryBorder);
         }

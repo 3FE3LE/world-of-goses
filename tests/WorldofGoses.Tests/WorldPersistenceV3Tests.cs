@@ -99,7 +99,13 @@ public class WorldPersistenceV3Tests
         Assert.DoesNotContain(v14Save.Buildings,
             b => b.Kind == BuildingKind.Forest.ToString());
 
-        var restored = CityWorld.FromSave(v14Save);
+        var v15Save = WorldPersistence.MigrateV14ToV15(v14Save);
+        Assert.Equal(15, v15Save.Version);
+
+        var v16Save = WorldPersistence.MigrateV15ToV16(v15Save);
+        Assert.Equal(16, v16Save.Version);
+
+        var restored = CityWorld.FromSave(v16Save);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

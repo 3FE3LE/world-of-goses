@@ -72,6 +72,23 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
+    public void ConstructionSnapshot_ExplainsUnavailabilityForCitizensCommittedToBuildings()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        var snapshot = ConstructionSnapshot.From(world);
+
+        var quarryWorker = Assert.Single(snapshot.UnavailableCitizens, citizen => citizen.Name == "Aster");
+        Assert.Equal(CitizenAvailabilityReason.AssignedToBuilding, quarryWorker.Reason);
+        Assert.Equal("Test quarry", quarryWorker.LocationName);
+
+        var farmWorker = Assert.Single(snapshot.UnavailableCitizens, citizen => citizen.Name == "Citizen-3");
+        Assert.Equal("Test farm", farmWorker.LocationName);
+
+        Assert.Contains(snapshot.AvailableCitizens, citizen => citizen.Name == "Citizen-4");
+        Assert.DoesNotContain(snapshot.UnavailableCitizens, citizen => citizen.Name == "Citizen-4");
+    }
+
+    [Fact]
     public void ConstructionSnapshot_DisablesUnavailableFarmAndQuarryDeposits()
     {
         var snapshot = ConstructionSnapshot.From(TestHelpers.WorldWithHome());
@@ -107,6 +124,19 @@ public sealed class UiSnapshotTests
         Assert.Equal(2, snapshot.AssignedCount);
         Assert.Equal(2, snapshot.VisibleCitizens.Count);
         Assert.All(snapshot.VisibleCitizens, citizen => Assert.False(string.IsNullOrWhiteSpace(citizen.Name)));
+    }
+
+    [Fact]
+    public void BuildingDetailSnapshot_ExplainsUnavailabilityForCitizensCommittedElsewhere()
+    {
+        var world = TestHelpers.NewProductionWorld();
+        var snapshot = BuildingDetailSnapshot.From(world, new BuildingId(1));
+
+        Assert.NotNull(snapshot);
+        var grower = Assert.Single(snapshot!.UnavailableCitizens, citizen => citizen.Name == "Citizen-3");
+        Assert.Equal(CitizenAvailabilityReason.AssignedToBuilding, grower.Reason);
+        Assert.Equal("Test farm", grower.LocationName);
+        Assert.DoesNotContain(snapshot.UnavailableCitizens, citizen => citizen.Name is "Citizen-4" or "Citizen-5");
     }
 
     [Fact]

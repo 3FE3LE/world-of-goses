@@ -234,6 +234,7 @@ public static class WorldPersistence
             {
                 Id = expedition.Id.Value,
                 DisplayName = expedition.DisplayName,
+                MemberCitizenIds = expedition.MemberIds.Select(member => member.Value).ToList(),
                 LeadCitizenId = expedition.LeadCitizenId.Value,
                 StartTick = expedition.StartTick,
                 EndTick = expedition.EndTick,
@@ -246,6 +247,8 @@ public static class WorldPersistence
                 ReturnedAmount = expedition.ReturnedAmount,
                 RewardKind = expedition.RewardKind.ToString(),
                 DeliveredMigrantId = expedition.DeliveredMigrantId?.Value,
+                Phase = expedition.Phase.ToString(),
+                EncounterOutcome = expedition.EncounterOutcome?.ToString(),
             });
         }
 
@@ -513,12 +516,20 @@ public static class WorldPersistence
                 || expedition.Id <= 0
                 || !expeditionIds.Add(expedition.Id)
                 || expedition.LeadCitizenId <= 0
+                || expedition.MemberCitizenIds is null
+                || expedition.MemberCitizenIds.Count == 0
+                || expedition.MemberCitizenIds.Count > ExpeditionRequest.MaxTeamSize
+                || expedition.MemberCitizenIds.Any(member => member <= 0)
+                || expedition.MemberCitizenIds.Distinct().Count() != expedition.MemberCitizenIds.Count
                 || expedition.StartTick < 0
                 || expedition.EndTick < expedition.StartTick
                 || expedition.SupplyAmount <= 0
                 || !Enum.TryParse(expedition.SupplyResource, true, out ResourceType _)
                 || !Enum.TryParse(expedition.RewardResource, true, out ResourceType _)
                 || !Enum.TryParse(expedition.Status, true, out ExpeditionStatus _)
+                || !Enum.TryParse(expedition.Phase, true, out ExpeditionPhase _)
+                || (!string.IsNullOrEmpty(expedition.EncounterOutcome)
+                    && !Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome _))
                 || !Enum.TryParse(
                     string.IsNullOrEmpty(expedition.RewardKind)
                         ? ExpeditionRewardKind.Supplies.ToString()
@@ -884,14 +895,14 @@ public static class WorldPersistence
             }
 
             List<ExpeditionSave> activeExpeditions = save.Expeditions
-                .Where(expedition => expedition.LeadCitizenId == c.Id
+                .Where(expedition => expedition.MemberCitizenIds.Contains(c.Id)
                     && Enum.TryParse(expedition.Status, true, out ExpeditionStatus status)
                     && status == ExpeditionStatus.Active)
                 .ToList();
             if (activeExpeditions.Count > 1)
             {
                 throw new InvalidOperationException(
-                    $"Citizen {c.Id} leads more than one active expedition.");
+                    $"Citizen {c.Id} belongs to more than one active expedition.");
             }
             bool hasCommitmentKind = !string.IsNullOrWhiteSpace(c.CommitmentKind);
             bool hasCommitmentEntity = c.CommitmentEntityId.HasValue;
@@ -949,10 +960,13 @@ public static class WorldPersistence
 
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
-            if (!citizenIds.Contains(expedition.LeadCitizenId))
+            foreach (int memberId in expedition.MemberCitizenIds)
             {
-                throw new InvalidOperationException(
-                    $"Expedition {expedition.Id} references unknown lead citizen {expedition.LeadCitizenId}.");
+                if (!citizenIds.Contains(memberId))
+                {
+                    throw new InvalidOperationException(
+                        $"Expedition {expedition.Id} references unknown member citizen {memberId}.");
+                }
             }
         }
     }
@@ -1109,6 +1123,8 @@ public static class WorldPersistence
                 11 => MigrateV11ToV12(save),
                 12 => MigrateV12ToV13(save),
                 13 => MigrateV13ToV14(save),
+                14 => MigrateV14ToV15(save),
+                15 => MigrateV15ToV16(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -1411,6 +1427,66 @@ public static class WorldPersistence
             string.Equals(building.Kind, BuildingKind.Forest.ToString(),
                 StringComparison.OrdinalIgnoreCase));
         save.Version = 14;
+        return save;
+    }
+
+    /// <summary>
+    /// Upgrades a v14 save to v15: expeditions gain a real 1-2 citizen team
+    /// instead of a single lead. Every v14 expedition had exactly one
+    /// dispatched citizen, so <see cref="ExpeditionSave.MemberCitizenIds"/>
+    /// becomes a single-element list built from the legacy
+    /// <see cref="ExpeditionSave.LeadCitizenId"/>, which is left in place
+    /// (now redundant with the first member) for any tool still reading it.
+    /// </summary>
+    public static WorldSave MigrateV14ToV15(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 14)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV14ToV15 expects version 14 but found {save.Version}.");
+        }
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (expedition is null) continue;
+            if (expedition.MemberCitizenIds is null || expedition.MemberCitizenIds.Count == 0)
+            {
+                expedition.MemberCitizenIds = new List<int> { expedition.LeadCitizenId };
+            }
+        }
+        save.Version = 15;
+        return save;
+    }
+
+    /// <summary>
+    /// Upgrades a v15 save to v16: expeditions gain a persisted phase and
+    /// encounter outcome. Every v15 expedition still active defaults to
+    /// <see cref="ExpeditionPhase.Outbound"/> — its encounter simply
+    /// resolves (deterministically, from the expedition's own persisted id
+    /// and start tick) the next time the world advances, however far along
+    /// the journey actually was. An already-finished expedition (Returned/
+    /// Failed/Cancelled) defaults to <see cref="ExpeditionPhase.Resolved"/>
+    /// since nothing more will ever advance it.
+    /// </summary>
+    public static WorldSave MigrateV15ToV16(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 15)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV15ToV16 expects version 15 but found {save.Version}.");
+        }
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (expedition is null) continue;
+            if (string.IsNullOrEmpty(expedition.Phase))
+            {
+                bool stillActive = string.Equals(
+                    expedition.Status, ExpeditionStatus.Active.ToString(), StringComparison.OrdinalIgnoreCase);
+                expedition.Phase = (stillActive ? ExpeditionPhase.Outbound : ExpeditionPhase.Resolved).ToString();
+            }
+        }
+        save.Version = 16;
         return save;
     }
 

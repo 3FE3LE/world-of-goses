@@ -116,7 +116,7 @@ public sealed class CityWorld
         foreach (Expedition expedition in _expeditions.Values)
         {
             if (expedition.Status == ExpeditionStatus.Active
-                && expedition.LeadCitizenId == citizenId
+                && expedition.HasMember(citizenId)
                 && citizen.Commitment.EntityId == expedition.Id.Value)
             {
                 return true;
@@ -127,29 +127,42 @@ public sealed class CityWorld
 
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
-        Citizen? hero = Hero;
-        if (hero is null) return ExpeditionStartResult.Fail(ExpeditionStartOutcome.NoHero);
+        if (Hero is null) return ExpeditionStartResult.Fail(ExpeditionStartOutcome.NoHero);
         if (request.RewardKind == ExpeditionRewardKind.Migrant
             && (!_buildings.Values.Any(building => building.Kind == BuildingKind.TownHall)
                 || PendingProspect is not null))
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.TownHallUnavailable);
         }
-        if (!_citizens.ContainsKey(request.LeadCitizenId))
+
+        IReadOnlyList<CitizenId> memberIds = request.MemberIds;
+        if (memberIds is null || memberIds.Count == 0 || memberIds.Count > ExpeditionRequest.MaxTeamSize)
         {
-            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.LeadCitizenNotFound);
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
         }
-        if (request.LeadCitizenId != hero.Id
-            || hero.Commitment.Kind is CitizenCommitmentKind.Expedition
-                or CitizenCommitmentKind.Recovery
-            || hero.VitalStatus != CitizenVitalStatus.Stable)
+        if (memberIds.Distinct().Count() != memberIds.Count)
         {
-            return ExpeditionStartResult.Fail(
-                ExpeditionStartOutcome.LeadUnavailable,
-                request.LeadCitizenId == hero.Id
-                    ? hero.AvailabilityReason
-                    : null);
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.DuplicateMember);
         }
+
+        var members = new List<Citizen>(memberIds.Count);
+        foreach (CitizenId memberId in memberIds)
+        {
+            if (!_citizens.TryGetValue(memberId, out Citizen? member))
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MemberNotFound);
+            }
+            if (member.Commitment.Kind is CitizenCommitmentKind.Expedition
+                    or CitizenCommitmentKind.Recovery
+                || member.VitalStatus != CitizenVitalStatus.Stable)
+            {
+                return ExpeditionStartResult.Fail(
+                    ExpeditionStartOutcome.MemberUnavailable,
+                    member.AvailabilityReason);
+            }
+            members.Add(member);
+        }
+
         if (request.DurationTicks <= 0
             || request.SupplyAmount <= 0
             || (request.RewardKind == ExpeditionRewardKind.Supplies
@@ -182,7 +195,7 @@ public sealed class CityWorld
         var expedition = new Expedition(
             id,
             request.DisplayName.Trim(),
-            request.LeadCitizenId,
+            memberIds,
             _tick,
             checked(_tick + request.DurationTicks),
             request.SupplyResource,
@@ -191,20 +204,36 @@ public sealed class CityWorld
             request.RewardAmount,
             request.RewardKind,
             reservation.Id);
-        if (!hero.DispatchOnExpedition(id))
+
+        // Dispatch is all-or-nothing: if any member becomes unavailable
+        // between validation above and here (there is no reentrancy in this
+        // synchronous call, but the check stays authoritative rather than
+        // trusting the earlier loop), roll back every member already
+        // dispatched and release the reservation so no partial team ever
+        // exists.
+        var dispatched = new List<Citizen>(members.Count);
+        foreach (Citizen member in members)
         {
-            _resources.Release(reservation.Id);
-            return ExpeditionStartResult.Fail(
-                ExpeditionStartOutcome.LeadUnavailable,
-                hero.AvailabilityReason);
+            if (!member.DispatchOnExpedition(id))
+            {
+                foreach (Citizen toRollBack in dispatched)
+                {
+                    toRollBack.ReturnFromExpedition(id, _tick);
+                }
+                _resources.Release(reservation.Id);
+                return ExpeditionStartResult.Fail(
+                    ExpeditionStartOutcome.MemberUnavailable,
+                    member.AvailabilityReason);
+            }
+            dispatched.Add(member);
         }
         _expeditions.Add(id, expedition);
-        WorldEvent dispatch = _log.Record(
+        WorldEvent dispatchEvent = _log.Record(
             _tick,
             WorldEventKind.ExpeditionDispatched,
             WorldEventSubject.Expedition(id.Value, expedition.DisplayName),
             request.SupplyAmount);
-        expedition.SetDispatchEventId(dispatch.Id);
+        expedition.SetDispatchEventId(dispatchEvent.Id);
         ExpeditionChanged?.Invoke(
             this,
             new ExpeditionChangedEventArgs(id, expedition.Status));
@@ -220,7 +249,7 @@ public sealed class CityWorld
         }
         _resources.Release(expedition.ReservationId);
         expedition.MarkCancelled();
-        ReturnLeadFromExpedition(expedition);
+        ReturnMembersFromExpedition(expedition);
         _log.Record(
             _tick,
             WorldEventKind.ExpeditionCancelled,
@@ -232,11 +261,14 @@ public sealed class CityWorld
     }
 
     /// <summary>S-1.5 follow-up: the FSM counterpart to every expedition end state (returned/failed/cancelled).</summary>
-    private void ReturnLeadFromExpedition(Expedition expedition)
+    private void ReturnMembersFromExpedition(Expedition expedition)
     {
-        if (_citizens.TryGetValue(expedition.LeadCitizenId, out Citizen? lead))
+        foreach (CitizenId memberId in expedition.MemberIds)
         {
-            lead.ReturnFromExpedition(expedition.Id, _tick);
+            if (_citizens.TryGetValue(memberId, out Citizen? member))
+            {
+                member.ReturnFromExpedition(expedition.Id, _tick);
+            }
         }
     }
 
@@ -1384,6 +1416,7 @@ public sealed class CityWorld
             {
                 _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
                 RegenerateNaturalResources();
+                ApplyResidentFoodRation();
             }
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
@@ -1484,6 +1517,7 @@ public sealed class CityWorld
         CompleteFinishedProjects();
         DemolishDepletedForests();
         DecrementAllWellFed();
+        AdvanceExpeditionPhases();
         CompleteFinishedExpeditions();
     }
 
@@ -1510,13 +1544,21 @@ public sealed class CityWorld
             bool committed = _resources.Commit(expedition.ReservationId);
             if (committed)
             {
+                // The encounter always resolves before completion (see
+                // AdvanceExpeditionPhases), but a defensively-missing
+                // outcome (e.g. a DurationTicks=0 edge no validation should
+                // allow) must not silently grant the full reward.
+                ExpeditionEncounterOutcome outcome =
+                    expedition.EncounterOutcome ?? ExpeditionEncounterOutcome.Setback;
                 if (expedition.RewardKind == ExpeditionRewardKind.Migrant)
                 {
-                    MigrantOutcome prospect = TryHostExpeditionProspect();
+                    MigrantOutcome prospect = outcome == ExpeditionEncounterOutcome.Setback
+                        ? MigrantOutcome.NoProspect
+                        : TryHostExpeditionProspect();
                     if (prospect == MigrantOutcome.Success)
                     {
                         expedition.MarkReturnedProspect();
-                        ReturnLeadFromExpedition(expedition);
+                        ReturnMembersFromExpedition(expedition);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionReturned,
@@ -1529,7 +1571,7 @@ public sealed class CityWorld
                     else
                     {
                         expedition.MarkFailed();
-                        ReturnLeadFromExpedition(expedition);
+                        ReturnMembersFromExpedition(expedition);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionFailed,
@@ -1541,18 +1583,20 @@ public sealed class CityWorld
                 }
                 else
                 {
-                    _resources.DepositToCityInventory(
-                        expedition.RewardResource,
-                        expedition.RewardAmount);
-                    expedition.MarkReturnedSupplies(expedition.RewardAmount);
-                    ReturnLeadFromExpedition(expedition);
+                    int reward = ApplyEncounterOutcomeToReward(expedition.RewardAmount, outcome);
+                    if (reward > 0)
+                    {
+                        _resources.DepositToCityInventory(expedition.RewardResource, reward);
+                    }
+                    expedition.MarkReturnedSupplies(reward);
+                    ReturnMembersFromExpedition(expedition);
                     _log.Record(
                         _tick,
                         WorldEventKind.ExpeditionReturned,
                         WorldEventSubject.Expedition(
                             expedition.Id.Value,
                             expedition.DisplayName),
-                        expedition.RewardAmount,
+                        reward,
                         expedition.DispatchEventId);
                 }
             }
@@ -1560,7 +1604,7 @@ public sealed class CityWorld
             {
                 _resources.Release(expedition.ReservationId);
                 expedition.MarkFailed();
-                ReturnLeadFromExpedition(expedition);
+                ReturnMembersFromExpedition(expedition);
                 _log.Record(
                     _tick,
                     WorldEventKind.ExpeditionFailed,
@@ -1571,6 +1615,112 @@ public sealed class CityWorld
                 this,
                 new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
         }
+    }
+
+    /// <summary>
+    /// Reduces (or zeroes) a Supplies-kind reward by the encounter outcome.
+    /// A Migrant-kind reward is handled separately in
+    /// <see cref="CompleteFinishedExpeditions"/> (a prospect is binary —
+    /// there is no "half a prospect").
+    /// </summary>
+    internal static int ApplyEncounterOutcomeToReward(int baseAmount, ExpeditionEncounterOutcome outcome) =>
+        outcome switch
+        {
+            ExpeditionEncounterOutcome.FullSuccess => baseAmount,
+            ExpeditionEncounterOutcome.PartialSuccess => Math.Max(1, baseAmount / 2),
+            _ => 0,
+        };
+
+    /// <summary>
+    /// Steps every active expedition through its phase quarters
+    /// (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4) once per tick, live and
+    /// offline alike (called from the single shared tick body). Uses
+    /// sequential ifs re-checking the just-updated phase, not a switch, so
+    /// a large offline catch-up jump that lands past more than one boundary
+    /// in a single call still cascades through all of them in order rather
+    /// than getting stuck one phase behind.
+    /// </summary>
+    private void AdvanceExpeditionPhases()
+    {
+        if (_expeditions.Count == 0) return;
+        foreach (Expedition expedition in _expeditions.Values)
+        {
+            if (expedition.Status != ExpeditionStatus.Active) continue;
+            int duration = expedition.EndTick - expedition.StartTick;
+            if (duration <= 0) continue;
+            int elapsed = _tick - expedition.StartTick;
+
+            if (expedition.Phase == ExpeditionPhase.Outbound && elapsed >= duration / 4)
+            {
+                ExpeditionEncounterOutcome outcome = ResolveEncounterOutcome(expedition);
+                expedition.ResolveEncounter(outcome);
+                _log.Record(
+                    _tick,
+                    WorldEventKind.ExpeditionEncounterResolved,
+                    WorldEventSubject.Expedition(expedition.Id.Value, expedition.DisplayName),
+                    (int)outcome,
+                    expedition.DispatchEventId);
+                ExpeditionChanged?.Invoke(
+                    this,
+                    new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+            }
+            if (expedition.Phase == ExpeditionPhase.Encounter && elapsed >= duration / 2)
+            {
+                expedition.TryAdvancePhase(ExpeditionPhase.Objective);
+            }
+            if (expedition.Phase == ExpeditionPhase.Objective && elapsed >= duration * 3 / 4)
+            {
+                expedition.TryAdvancePhase(ExpeditionPhase.Returning);
+            }
+        }
+    }
+
+    /// <summary>
+    /// The expedition's single deterministic encounter
+    /// (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4). Deterministic from purely
+    /// persisted inputs — team condition (average stamina fraction), each
+    /// member's single best competency (whichever one they have actually
+    /// practiced, "already earned in Farm/Quarry" per §11.2), supplies
+    /// committed, and a seed derived from the expedition's own persisted id
+    /// and start tick — so re-evaluating it after a save/load reload always
+    /// reaches the same result (it never actually re-evaluates: see
+    /// <see cref="Expedition.ResolveEncounter"/>, which stores it once).
+    /// A healthy, fully-rested team can never roll a Setback; a tired team
+    /// can. This keeps the very first expedition from being able to punish
+    /// a new player outright while still making team condition matter.
+    /// </summary>
+    private ExpeditionEncounterOutcome ResolveEncounterOutcome(Expedition expedition)
+    {
+        int teamCompetency = 0;
+        int staminaPercentSum = 0;
+        int memberCount = 0;
+        foreach (CitizenId memberId in expedition.MemberIds)
+        {
+            if (!_citizens.TryGetValue(memberId, out Citizen? member)) continue;
+            memberCount++;
+            int bestCompetency = 0;
+            foreach (CompetencyEntry entry in member.Competencies.Values)
+            {
+                if (entry.Experience > bestCompetency) bestCompetency = entry.Experience;
+            }
+            teamCompetency += bestCompetency;
+            staminaPercentSum += member.MaxStamina > 0
+                ? member.CurrentStamina * 100 / member.MaxStamina
+                : 0;
+        }
+        int averageStaminaPercent = memberCount > 0 ? staminaPercentSum / memberCount : 0;
+
+        int seed = HashCode.Combine(expedition.Id.Value, expedition.StartTick);
+        int roll = new Random(seed).Next(0, 30);
+
+        int score = teamCompetency
+            + averageStaminaPercent / 4
+            + expedition.SupplyAmount * 5
+            + roll;
+
+        if (score >= 50) return ExpeditionEncounterOutcome.FullSuccess;
+        if (score >= 30) return ExpeditionEncounterOutcome.PartialSuccess;
+        return ExpeditionEncounterOutcome.Setback;
     }
 
     /// <summary>
@@ -1629,6 +1779,28 @@ public sealed class CityWorld
             storage.RestoreWoodUnits(patch.UnitReserves);
             RaiseBuildingChanged(storageId);
         }
+    }
+
+    /// <summary>
+    /// Once-per-day "mouths to feed" pressure (docs/FIRST_PLAYABLE_LOOP_AUDIT.md
+    /// §17, first open question). Every resident, working or idle, costs one
+    /// Food at dawn — recruiting a citizen is never free upkeep-wise, even
+    /// while they are unassigned. A shortfall never blocks or hurts anyone
+    /// directly (that consequence stays owned by the existing stamina/vital
+    /// status path in <see cref="ProcessCitizenNeedsAndStandingOrders"/>);
+    /// it only records a causal, visible event so the player can see Food
+    /// reserves are not keeping up with the population.
+    /// </summary>
+    private void ApplyResidentFoodRation()
+    {
+        int ration = Upkeep.FoodPerResidentPerDay(_citizens.Count);
+        if (ration <= 0) return;
+        if (TryConsumeFood(ration)) return;
+        _log.Record(
+            _tick,
+            WorldEventKind.FoodRationShortfall,
+            WorldEventSubject.World("City"),
+            amount: _citizens.Count);
     }
 
     private bool ConstructionOccupiesLot(
@@ -2218,7 +2390,7 @@ public sealed class CityWorld
         }
 
         ExpeditionSave? activeExpedition = save.Expeditions.FirstOrDefault(expedition =>
-            expedition.LeadCitizenId == citizen.Id
+            expedition.MemberCitizenIds.Contains(citizen.Id)
             && Enum.TryParse(expedition.Status, true, out ExpeditionStatus status)
             && status == ExpeditionStatus.Active);
         return activeExpedition is null
@@ -2615,10 +2787,19 @@ public sealed class CityWorld
                     : expedition.RewardKind,
                 true,
                 out ExpeditionRewardKind rewardKind);
+            if (!Enum.TryParse(expedition.Phase, true, out ExpeditionPhase phase))
+            {
+                phase = ExpeditionPhase.Outbound;
+            }
+            ExpeditionEncounterOutcome? encounterOutcome =
+                !string.IsNullOrEmpty(expedition.EncounterOutcome)
+                && Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome parsedOutcome)
+                    ? parsedOutcome
+                    : null;
             var restored = new Expedition(
                 new ExpeditionId(expedition.Id),
                 expedition.DisplayName,
-                new CitizenId(expedition.LeadCitizenId),
+                expedition.MemberCitizenIds.Select(id => new CitizenId(id)).ToArray(),
                 expedition.StartTick,
                 expedition.EndTick,
                 supply,
@@ -2627,7 +2808,9 @@ public sealed class CityWorld
                 expedition.RewardAmount,
                 rewardKind,
                 new ResourceReservationId(expedition.ReservationId),
-                status);
+                status,
+                phase,
+                encounterOutcome);
             if (expedition.ReturnedAmount is int amount)
             {
                 if (rewardKind == ExpeditionRewardKind.Migrant

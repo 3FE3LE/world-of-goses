@@ -4,16 +4,16 @@
 
 [node name="ExpeditionPanel" type="Control"]
 visible = false
-custom_minimum_size = Vector2(520, 320)
+custom_minimum_size = Vector2(520, 380)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -260.0
-offset_top = -160.0
+offset_top = -190.0
 offset_right = 260.0
-offset_bottom = 160.0
+offset_bottom = 190.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
@@ -49,6 +49,22 @@ layout_mode = 2
 theme_type_variation = "BodyText"
 text = "Dispatch a reconnaissance."
 autowrap_mode = 3
+
+[node name="TeamHeader" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "SectionTitle"
+text = "Team"
+
+[node name="TeamScroll" type="ScrollContainer" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="TeamList" type="VBoxContainer" parent="Surface/Margin/Layout/TeamScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
 
 [node name="DispatchButton" type="Button" parent="Surface/Margin/Layout"]
 custom_minimum_size = Vector2(0, 44)

@@ -10,11 +10,20 @@ public sealed record ConstructionSnapshot(
     BuildingId? HomeBuildingId,
     ConstructionSnapshot.ProjectItem? Project,
     IReadOnlyList<ConstructionSnapshot.CitizenItem> AvailableCitizens,
+    IReadOnlyList<ConstructionSnapshot.UnavailableCitizenItem> UnavailableCitizens,
     IReadOnlyList<ConstructionSnapshot.OptionItem> Options)
 {
     public bool HasHome => HomeBuildingId.HasValue;
 
     public sealed record CitizenItem(CitizenId Id, string Name);
+
+    /// <summary>
+    /// A citizen who cannot contribute to the current project right now.
+    /// Carries the raw reason and, for building/construction commitments,
+    /// the plain (unlocalized) location name; the view layer localizes it.
+    /// </summary>
+    public sealed record UnavailableCitizenItem(
+        CitizenId Id, string Name, CitizenAvailabilityReason Reason, string? LocationName);
 
     public sealed record MaterialItem(ResourceType Resource, int Required, int Available, int DepositRequired)
     {
@@ -86,11 +95,20 @@ public sealed record ConstructionSnapshot(
         }
 
         var available = new List<CitizenItem>();
+        var unavailable = new List<UnavailableCitizenItem>();
         foreach (var citizen in world.Citizens.Values)
         {
             if (current is not null && current.IsAssigned(citizen.Id)) continue;
-            if (!citizen.IsAvailable && citizen.CurrentAssignment != current?.Id) continue;
-            available.Add(new CitizenItem(citizen.Id, citizen.Name));
+            if (citizen.IsAvailable)
+            {
+                available.Add(new CitizenItem(citizen.Id, citizen.Name));
+                continue;
+            }
+            string? locationName = citizen.AvailabilityReason is
+                CitizenAvailabilityReason.AssignedToBuilding or CitizenAvailabilityReason.AssignedToConstruction
+                ? ResolveCommitmentLocationName(world, citizen.Commitment.EntityId)
+                : null;
+            unavailable.Add(new UnavailableCitizenItem(citizen.Id, citizen.Name, citizen.AvailabilityReason, locationName));
         }
 
         var options = new List<OptionItem>();
@@ -110,7 +128,17 @@ public sealed record ConstructionSnapshot(
         }
 
         return new ConstructionSnapshot(world.Hero is not null, world.Hero?.Name, homeId,
-            projectItem, available, options);
+            projectItem, available, unavailable, options);
+    }
+
+    private static string? ResolveCommitmentLocationName(CityWorld world, int? entityId)
+    {
+        if (entityId is not int id) return null;
+        var buildingId = new BuildingId(id);
+        var committedBuilding = world.GetBuilding(buildingId);
+        if (committedBuilding is not null) return committedBuilding.DisplayName;
+        var project = world.GetProject(buildingId);
+        return project?.DisplayName;
     }
 
     public OptionItem OptionFor(ConstructionKind kind)

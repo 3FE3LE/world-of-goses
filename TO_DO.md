@@ -496,19 +496,307 @@ Onboarding → caída → gathering → Shelter/Farm/Quarry → reclutamiento
   ficha técnica, no cuenta como ciudadano ni puede trabajar hasta ser acogido
   desde el detalle del Ayuntamiento; la aceptación también exige vivienda libre.
   El prospecto pendiente persiste en save/load.
-- **Trabajo:** reclutar al menos un segundo ciudadano en partida normal; asignar
-  y remover desde UI; incompatibilidad trabajo/construcción/expedición; ciudadano
-  concreto visible y persistente; presión de comida suficiente para elegir quién
-  produce, quién descansa y quién queda disponible.
+- **Avance 2026-07-28 (re-lectura contra `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` +
+  coste de oportunidad en asignación):** re-analizado el estado real del código
+  contra la auditoría del mismo día. Divergencias encontradas: la auditoría
+  afirma "464/464 pruebas" y que `ExpeditionPanel` solo construye
+  `Reconnaissance`; el estado real de este árbol es 455/455 pruebas y
+  `ExpeditionPanel`/`BuildingDetailView` ya implementan el flujo completo de
+  `SeekProspect` → Ayuntamiento hospeda prospecto → aceptar desde el detalle del
+  Ayuntamiento (con cobertura de dominio en `FirstRunRegressionTests`: capacidad
+  de vivienda, un solo prospecto pendiente a la vez, persistencia en save/load,
+  rechazo sin Ayuntamiento). La auditoría quedó desactualizada en ese punto — no
+  se corrige el documento de auditoría (es un snapshot fechado), pero este
+  hallazgo evita relecturas futuras basadas en esa cifra.
+  Gap real confirmado por lectura de código (no por el changelog): tanto
+  `AssignmentPanel` (edificios) como `ConstructionPanel` (obras) solo listaban
+  ciudadanos genuinamente disponibles bajo "Available"; un ciudadano ocupado en
+  otro edificio, obra, expedición o recuperación simplemente desaparecía de la
+  lista sin explicación — exactamente el ítem #1 de la sección 11 de la
+  auditoría ("nombrar y explicar el compromiso que impide la selección") y la
+  cláusula de Aceptación de este ítem ("la UI explica indisponibilidad y coste
+  de oportunidad"), que no estaba implementada pese al resto del corte. Cerrado:
+  `BuildingDetailSnapshot`/`ConstructionSnapshot` ahora proyectan una lista
+  `UnavailableCitizens` (razón cruda `CitizenAvailabilityReason` + nombre de
+  edificio/obra sin localizar, resuelto vía `Citizen.Commitment.EntityId` —
+  nunca vía `CurrentAssignment`, que se conserva durante una expedición y
+  apuntaría al lugar equivocado) sin llamar `UiText` dentro del snapshot
+  ([[localize-at-display-not-snapshot]]); `AssignmentPanel`/`ConstructionPanel`
+  añaden una tercera sección "Unavailable"/"No disponibles" con cada fila
+  deshabilitada mostrando "Nombre — razón" (p. ej. "Citizen-3 — Working at Test
+  farm"), reutilizando `AssignmentRow.Configure(disabled: true)` existente sin
+  nuevo componente. Seis claves nuevas en en.po/es.po
+  (`ui.assignment.reason_building/_construction/_expedition/_recovering`,
+  `ui.assignment.unavailable_row`, `ui.assignment.unavailable_title`);
+  `messages.pot` regenerado (607 IDs). Dos pruebas nuevas de snapshot
+  (`BuildingDetailSnapshot_ExplainsUnavailabilityForCitizensCommittedElsewhere`,
+  `ConstructionSnapshot_ExplainsUnavailabilityForCitizensCommittedToBuildings`)
+  cubren un ciudadano ocupado en otro edificio, con nombre de edificio resuelto
+  y ausencia de falsos positivos para ciudadanos realmente libres.
+  Hallazgo registrado sin corregir en este corte: `MigrantPanel.cs`/
+  `MigrantPanel.tscn` ya no están instanciados en `CityPrototype.tscn` ni
+  referenciados por ningún botón — el camino real para aceptar un prospecto es
+  `BuildingDetailView` sobre el Ayuntamiento. `MigrantPanel` es código muerto
+  candidato a retirar en un corte de limpieza aparte (no se tocó, para no
+  mezclar una remoción con este cambio de UI).
+  Build limpio, **457/457 pruebas** (2 nuevas), headless boot con el save real
+  verificado (tick 14139 cargado sin errores). **No verificado con clics reales
+  en vivo esta sesión**: el harness de captura visual falló en este entorno por
+  un problema de escalado de pantalla ajeno al cambio (`Godot client is
+  960x480, expected 1024x576` con la pantalla en 2560×1440) — no se fuerza ni
+  se ignora, queda pendiente de una pasada humana o de correr el harness en un
+  entorno con el DPI esperado antes de dar por firmado el punto "asignar y
+  remover desde UI" de este ítem.
+- **Avance 2026-07-28 (continuación: presión de comida por residente +
+  ciudadano visible en la perspectiva):** re-analizados ambos puntos contra el
+  código actual (no contra el changelog) antes de tocar nada, como exige el
+  flujo de este documento.
+  **Presión de comida.** Confirmado por lectura: ya existía un consumo de
+  Food ligado a estamina (`ProcessCitizenNeedsAndStandingOrders`, hasta 12
+  veces/día en `CityEconomyRules.MealIntervalTicks`), pero solo se activa para
+  un ciudadano con estamina por debajo del máximo — un ciudadano inactivo a
+  estamina llena (el caso típico de un migrante recién aceptado sin asignar)
+  no cuesta nada. Esto es exactamente la brecha que el propio
+  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` §17 (pregunta 1) señala: falta una
+  "pequeña demanda recurrente de Food" independiente del trabajo, para que
+  reclutar tenga costo de oportunidad real y no solo el costo puntual de la
+  expedición. También confirmado por lectura: `Upkeep.StonePerTick` y
+  `CityWorld.ApplyUpkeep()`/`ApplyUpkeepBatch` siguen exactamente como los
+  describió el corte anterior — el primero completamente muerto (nunca
+  llamado desde ningún sitio), el segundo con TODO deliberado — y la
+  auditoría pide explícitamente NO reactivarlos así (serían de nuevo consumo
+  abstracto sin causa jugable) sino sustituirlos por demanda real de Food.
+  Cerrado sin tocar ninguno de esos dos seams muertos: `Upkeep.FoodPerResidentPerDay`
+  (nueva función pura, sin piso artificial — a diferencia de `StonePerTick`,
+  una ciudad vacía no debe demanda nada) se cobra una vez por amanecer
+  (`CityWorld.ApplyResidentFoodRation`, llamado junto a `RegenerateNaturalResources`
+  en el mismo punto donde ya se registra `DayBegan` — reutiliza el único
+  boundary ya probado equivalente en vivo/offline, sin inventar una ruta de
+  integración nueva) para CADA residente, trabaje o no. Un cobro fallido no
+  bloquea ni castiga a nadie directamente (esa consecuencia sigue siendo
+  exclusiva del sistema de estamina/`CitizenVitalStatus` ya existente); solo
+  registra un evento causal nuevo `WorldEventKind.FoodRationShortfall`
+  (colapsa estados repetidos igual que `StockCapped`/`ProductionBlocked` para
+  no inflar el historial si la escasez persiste varios días), con su entrada
+  en `WorldEventTextFormatter`, `OfflineReportPanel` (icono `Warning`) y
+  claves nuevas en en.po/es.po (608 IDs tras regenerar `messages.pot`). Ocho
+  pruebas nuevas: función pura (`UpkeepTests`) y consumo atómico exacto por
+  residente, ausencia de piso en ciudad vacía, no-débito parcial sin Food, y
+  equivalencia vivo/offline vía `WorldTimeAdvance.Advance`
+  (`ResidentFoodRationTests`, nuevo archivo). Alcance NO cubierto
+  deliberadamente: el `AdvanceIdleTicks` a granel (mundo sin ningún edificio
+  todavía, previo a autorizar el Shelter) no aplica la ración — en ese tramo
+  no puede existir un Farm y el fallo silencioso no tendría ningún efecto
+  visible; documentado aquí para que no se lea como una inconsistencia no
+  vista.
+  **Ciudadano visible.** Confirmado por lectura de `MacroStreetLiveView.RefreshCitizenVisuals`:
+  solo los ciudadanos ASIGNADOS a un edificio recibían un carrier ambiental;
+  un ciudadano recién reclutado y aún sin trabajo (el caso normal justo
+  después de aceptar un prospecto en el Ayuntamiento) no tenía ninguna
+  representación visual en la perspectiva — únicamente existía como fila de
+  roster/panel. El propio héroe, una vez hay Shelter, también queda oculto
+  cuando está inactivo en casa (`ShouldHideHeroInsideShelter`), así que la
+  brecha real no era "el héroe se ve inactivo y el resto no" sino
+  "un ciudadano sin trabajo es literalmente invisible en el mundo", en
+  contra del ítem #1 de la sección 11 de la auditoría. Cerrado: nuevo método
+  puro `MacroStreetLiveView.ResolveAmbientPlotKey` (mismo patrón que
+  `ShouldHideHeroInsideShelter`/`ShouldBeginReturnHomeRoute`, testeable sin
+  Godot) decide dónde debe pararse un ciudadano no-héroe — su lugar de
+  trabajo si está asignado, o el Shelter si está `AtHome` sin asignación —
+  y `null` para el héroe, un miembro de expedición, o alguien físicamente
+  `AtWork` (esos ya tienen su propio tratamiento). `RefreshCitizenVisuals`
+  ahora agrupa también a los ciudadanos ociosos bajo el `BuildingId` del
+  Shelter, reutilizando sin cambios el mismo mecanismo de fan-out/posición
+  que ya paraba a varios trabajadores frente a un edificio — cero lógica de
+  posicionamiento nueva. Seis pruebas nuevas en `MacroStreetLiveViewTests`
+  cubren cada rama (asignado, ocioso con Shelter, ocioso sin Shelter aún,
+  héroe, expedición, físicamente en el trabajo).
+  Build limpio, **473/473 pruebas** (16 nuevas en total esta sesión), headless
+  boot con el save real verificado (tick 19209, sin errores). **No verificado
+  con clics/capturas reales esta sesión**: el harness de captura visual volvió
+  a fallar con el mismo `Godot client is 960x480, expected 1024x576` de la
+  sesión anterior (entorno con pantalla 2560×1440) — no es un problema nuevo
+  ni introducido por este cambio, pero sigue bloqueando la firma visual de
+  "ciudadano visible" y de la escasez de comida en juego real; alguien con un
+  entorno sin ese desajuste de escalado (o una pasada humana interactiva)
+  debe confirmar ambos antes de marcarlos como cerrados del todo.
+- **Trabajo restante:** reclutar al menos un segundo ciudadano en partida
+  normal con pasada humana; ~~asignar y remover desde UI~~ (implementado,
+  ahora con explicación de indisponibilidad; falta la firma visual);
+  incompatibilidad trabajo/construcción/expedición (ya cubierta por
+  `Citizen.Commitment`, ver [[verify-clicks-with-real-clicks]] antes de cerrar
+  del todo); ~~ciudadano concreto visible~~ (implementado — falta firma
+  visual) y persistente (ya cubierto por save/load de `Citizen`/
+  `CitizenProspect`); ~~presión de comida suficiente para elegir quién
+  produce, quién descansa y quién queda disponible~~ (implementada como
+  ración diaria por residente; falta calibración jugable con una ciudad real
+  de varios días y la firma visual pendiente arriba).
 - **Aceptación:** el jugador no puede usar la misma persona simultáneamente y la
   UI explica tanto indisponibilidad como coste de oportunidad.
 
 ##### 🔴 VS-2 — Expedición completa mínima
 
-- **Estado:** Pendiente; la expedición actual solo prueba reserva/tiempo/retorno.
-- **Trabajo:** formación con ciudadanos reales; retirar temporalmente del trabajo;
-  preparación; salida; trayecto; un encuentro; objetivo; regreso; resolución;
-  recompensa o pérdida; cancelación/retirada mínima; Chronicle causal.
+- **Estado:** En progreso. Primer corte: formación de equipo con ciudadanos
+  reales cerrada.
+- **Avance 2026-07-28 (formación de expedición con ciudadanos reales):**
+  re-analizado contra el código, no contra el changelog: `Expedition`/
+  `ExpeditionRequest` solo aceptaban un `LeadCitizenId` único y
+  `CityWorld.StartExpedition` rechazaba explícitamente cualquier id que no
+  fuera el del héroe (`request.LeadCitizenId != hero.Id` fallaba con
+  `LeadUnavailable`) — el "founder exclusivity" que la auditoría marca en su
+  §9 riesgo de diseño #6. Cerrado sin romper compatibilidad de llamadas
+  existentes:
+  - `Expedition`/`ExpeditionRequest` ahora cargan `MemberIds`/`MemberIds`
+    (`IReadOnlyList<CitizenId>`, 1–2 miembros, `ExpeditionRequest.MaxTeamSize`
+    como único techo). `Expedition.LeadCitizenId` se conserva como propiedad
+    calculada (`MemberIds[0]`) para el código de presentación que solo
+    necesita un nombre. `Reconnaissance`/`SeekProspect` ganan una sobrecarga
+    de lista además de la de un solo `CitizenId` — los 11 call sites
+    existentes (paneles y tests) siguen compilando sin cambios.
+  - `CityWorld.StartExpedition` ya no exige que el líder sea el héroe:
+    valida tamaño de equipo (1–2), duplicados (`DuplicateMember`), existencia
+    (`MemberNotFound`, renombrado de `LeadCitizenNotFound`) y disponibilidad
+    de CADA miembro (`MemberUnavailable`, renombrado de `LeadUnavailable`) —
+    estar simplemente asignado a un edificio/obra NO cuenta como
+    indisponible (una expedición puede interrumpir una orden de trabajo, tal
+    como ya hacía el modelo de un solo líder; solo Expedition/Recovery/
+    estamina bloquean). El despacho es atómico: si un miembro falla a mitad
+    del bucle de `DispatchOnExpedition`, se revierten (`ReturnFromExpedition`)
+    los ya despachados y se libera la reserva — nunca queda un equipo
+    parcial. `ReturnLeadFromExpedition` se generalizó a
+    `ReturnMembersFromExpedition` (recorre a todos, no solo al líder) y se
+    reutiliza en retorno natural, fallo y cancelación.
+  - Persistencia: schema v15 (`ExpeditionSave.MemberCitizenIds`, lista
+    aditiva; `LeadCitizenId` se conserva por compatibilidad y siempre es el
+    primer miembro). Migración `MigrateV14ToV15` construye la lista de un
+    elemento a partir del `LeadCitizenId` legacy — todo save v14 tenía
+    exactamente un despachado. `Validate` ahora exige 1–2 miembros positivos
+    sin duplicados por expedición y que cada miembro referencie un ciudadano
+    real (antes solo validaba el líder); la verificación cruzada de
+    compromiso de cada ciudadano ("¿pertenezco a la expedición activa que
+    digo?") usa pertenencia a la lista en vez de igualdad con el líder.
+  - UI: `ExpeditionPanel` reemplaza el auto-selección del héroe por un
+    selector de equipo real — lista todos los ciudadanos como botones
+    `ToggleMode`, deshabilitados con tooltip de razón (mismo patrón de
+    `ui.assignment.reason_*` ya usado en Assignment/Construction) cuando no
+    están disponibles, bloqueados al alcanzar `MaxTeamSize` si no están ya
+    seleccionados. El héroe se preselecciona por defecto la primera vez que
+    el panel confirma que no hay expedición activa (conserva el flujo de un
+    clic de antes) pero el jugador puede deseleccionar/cambiar libremente.
+    Dispatch/Seek a prospect quedan deshabilitados sin al menos un
+    miembro elegido; el estado con expedición activa ahora nombra al equipo
+    (`ui.expedition.schedule_with_team`), no solo las fechas. Seis claves
+    nuevas en en.po/es.po; `messages.pot` regenerado (611 IDs).
+  - Diez pruebas de dominio nuevas (`ExpeditionTeamTests`, nuevo archivo):
+    equipo de 2 ciudadanos reales se despacha y ambos quedan indisponibles;
+    miembro duplicado/desconocido/equipo vacío/equipo de 3 se rechazan antes
+    de tocar reservas; un miembro genuinamente indisponible (en
+    `Recovery`, no solo asignado a un edificio) provoca rollback atómico del
+    otro miembro ya válido; cancelar y completar naturalmente liberan a
+    ambos; round-trip de guardado conserva ambos miembros y su compromiso.
+    Siete pruebas de migración encadenada existentes (`ForestTests`,
+    `NaturalResourcePatchTests`, `ParcelPlacementPersistenceTests` ×2,
+    `CityResourceLedgerTests` ×2, `WorldPersistenceV3Tests`) se actualizaron
+    para encadenar hasta v15 antes de `Validate`, sin cambiar lo que cada
+    una prueba.
+  - Build limpio, **482/482 pruebas** (10 nuevas), headless boot con el
+    save real verificado (tick 24414, sin errores — la migración v14→v15 se
+    ejecuta en cada carga con `Version < CurrentVersion`, aunque este save en
+    particular no tenía una expedición activa al migrar). **No verificado
+    con clics reales esta sesión**: mismo problema de escalado de pantalla
+    del harness visual que las dos sesiones anteriores
+    (`960x480` vs `1024x576` esperado) — el selector de equipo nuevo en
+    `ExpeditionPanel` (toggles, deshabilitado por capacidad/indisponibilidad,
+    preselección del héroe) no tiene firma humana ni captura todavía.
+- **Avance 2026-07-28 (fases del encuentro determinista):** re-analizado
+  contra el código: tras el corte de formación de equipo, una expedición
+  activa solo tenía `Status` (Activo→Retornado/Fallido/Cancelado); no existía
+  ningún concepto de fase intermedia ni de encuentro, y la recompensa era
+  siempre el monto fijo de la solicitud sin importar nada del viaje —
+  exactamente el gap G4 de la auditoría. Cerrado:
+  - `ExpeditionPhase` (nuevo archivo): `Outbound → Encounter → Objective →
+    Returning → Resolved`. Sin fase "Preparing" separada — la selección de
+    equipo ya ocurre en la UI antes de que `StartExpedition` cree el objeto
+    `Expedition`, así que este nunca existe en un estado "preparándose";
+    documentado explícitamente en el propio enum para que no se lea como un
+    olvido. Cada fase dura exactamente un cuarto de `DurationTicks` (con la
+    duración actual de 4 días esto da 1 día por fase, una casualidad limpia
+    de dividir en cuartos, no un ajuste manual).
+  - `ExpeditionEncounterOutcome` (nuevo archivo): `Setback/PartialSuccess/
+    FullSuccess`. Deliberadamente sin nivel de "pérdida total"/muerte — esa
+    consecuencia es de VS-3 (condición persistente), no de este corte.
+  - `CityWorld.ResolveEncounterOutcome` (privado): determinista a partir de
+    estado puramente persistido — competencia individual más alta de cada
+    miembro ("ya ganada en Farm/Quarry", ítem §11.2 de la auditoría; no se
+    inventó una competencia nueva de "supervivencia"), condición del equipo
+    (% de estamina promedio), suministros de la solicitud, y una semilla de
+    `HashCode.Combine(ExpeditionId, StartTick)` — ambos ya persistidos, así
+    que el resultado sobrevive cierre/reapertura sin campo adicional para la
+    semilla. Umbral calibrado para que un equipo fresco a estamina completa
+    (el caso típico de la primera expedición) NUNCA pueda sacar `Setback`
+    (mínimo matemático 30 puntos, empata exacto con el umbral de
+    `PartialSuccess`) — evita castigar la primera expedición del jugador sin
+    quitarle peso real a la condición del equipo, que sí puede hacer caer a
+    un equipo cansado en `Setback`. Se resuelve UNA sola vez, exactamente al
+    entrar a la fase `Encounter` (`Expedition.ResolveEncounter`, transición
+    de una sola dirección desde `Outbound`); releer el resultado en un tick
+    posterior o tras cargar el save nunca vuelve a tirar el dado.
+  - `CityWorld.AdvanceExpeditionPhases` (nuevo, llamado junto a
+    `CompleteFinishedExpeditions` desde el único cuerpo de tick compartido
+    entre vivo y offline): usa `if` secuenciales que re-consultan la fase ya
+    actualizada, no un switch — un salto grande de catch-up offline que
+    aterriza más allá de un límite en una sola llamada igual encadena todas
+    las transiciones pendientes en orden, en vez de quedar una fase atrás.
+  - Recompensa ligada al encuentro:
+    `CityWorld.ApplyEncounterOutcomeToReward` (función pura) reduce a la
+    mitad (mínimo 1) en `PartialSuccess` y a cero en `Setback`; el camino de
+    prospecto (`SeekProspect`) trata `Setback` como fallo directo sin
+    siquiera intentar `TryHostExpeditionProspect` (un prospecto no admite
+    "medio prospecto"). Los tests de expedición ya existentes (que asumían
+    recompensa fija) siguieron pasando sin cambios porque el monto base de
+    Reconnaissance es 1: `PartialSuccess` da `Max(1, 1/2)=1`, idéntico a
+    `FullSuccess` — solo `Setback` habría cambiado el resultado, y ninguna
+    semilla existente cayó ahí.
+  - Persistencia: schema v16 (`ExpeditionSave.Phase`, `EncounterOutcome`
+    nullable). Migración `MigrateV15ToV16`: expedición activa → `Outbound`
+    (su encuentro se resuelve de nuevo, determinista, en el próximo avance,
+    sin importar cuánto había avanzado realmente el viaje); expedición ya
+    terminada → `Resolved`. `Validate` exige que `Phase` parsee y que
+    `EncounterOutcome`, si está presente, también parsee.
+  - Chronicle: nuevo `WorldEventKind.ExpeditionEncounterResolved`, formateado
+    localizado con el nombre del resultado; `ExpeditionPanel` ahora muestra
+    fase + resultado del encuentro bajo el equipo/fechas mientras la
+    expedición está activa. Diez claves nuevas en en.po/es.po; `messages.pot`
+    regenerado (621 IDs).
+  - Once pruebas de dominio nuevas (`ExpeditionEncounterTests`, nuevo
+    archivo): modulación pura de recompensa por resultado; fase inicial
+    Outbound tras despachar; las cuatro fases avanzan en orden exacto en los
+    límites de cuarto correctos hasta `Resolved`; el resultado se fija una
+    sola vez y no cambia después; dos mundos idénticos con la misma
+    expedición (mismo id, mismo tick) sacan el mismo resultado (determinismo
+    real, no solo "no lanza excepción"); el resultado sobrevive un
+    guardado/carga hecho ANTES de resolverse; un equipo fresco a estamina
+    completa nunca saca `Setback` muestreado en cinco ticks de inicio
+    distintos; el evento de Chronicle registra el mismo ordinal que el
+    resultado guardado.
+  - Build limpio, **493/493 pruebas** (11 nuevas), headless boot con el save
+    real verificado (tick 26151, migración v15→v16 sin errores). **No
+    verificado con clics reales esta sesión**: mismo problema de escalado de
+    pantalla del harness visual que las tres sesiones anteriores (`960x480`
+    vs `1024x576` esperado) — el texto de fase/resultado nuevo en
+    `ExpeditionPanel` no tiene firma humana ni captura todavía.
+- **Trabajo restante:** retirar temporalmente del trabajo, formación de
+  equipo, fases y un encuentro determinista con recompensa modulada ya están
+  cerrados (falta firma visual humana de ambos cortes, ver arriba); postura
+  de retirada (retreat posture) del G3 original de la auditoría sigue sin
+  implementar — hoy cancelar es la única salida temprana, desde cualquier
+  fase, y "retirarse tras el encuentro" no se distingue de "cancelar antes de
+  salir" (el propio checklist de pruebas de la auditoría pide esa
+  distinción); el objetivo en sí sigue siendo un lapso de tiempo sin
+  contenido propio (la fase `Objective` no tiene una acción o elección
+  distinta de esperar); Chronicle registra despacho/encuentro/retorno/fallo/
+  cancelación por expedición pero ninguna fase tiene su propio evento de
+  entrada (solo el encuentro, porque es el único que resuelve algo).
 - **Aceptación:** ninguna fase se salta directamente por UI y el retorno no se
   reduce a un contador o toast.
 
@@ -1382,6 +1670,344 @@ Onboarding → caída → gathering → Shelter/Farm/Quarry → reclutamiento
   5. **Completed 2026-07-28:** physically removed the flat route and its
      geometry-only tests. Onboarding, construction and active fixtures now
      target `MacroStreetLiveView`; no parallel visual fallback remains.
+- **Bug real 2026-07-28 (reportado en juego real: "no se ve el sprite del
+  citizen, se ve el rastro en el piso pero no el sprite desplazándose"):**
+  causa raíz encontrada por lectura de código, pendiente de confirmación en
+  juego real por el usuario (el harness de captura visual sigue bloqueado
+  por el desajuste de escalado de pantalla de las últimas sesiones).
+  `EnsureHeroCarrier` oculta al fundador (`VisualState.Hidden`) cuando está
+  inactivo dentro del Shelter (`ShouldHideHeroInsideShelter`), y solo
+  `Refresh()` (disparado por eventos de dominio: tick, construcción, etc.)
+  vuelve a mostrarlo. El movimiento manual (W/S/flechas vía `StepHeroStreet`/
+  `TryStepHeroLateral`, disparado directamente desde `_UnhandledInput` al
+  presionar una tecla) nunca pasa por ese camino — llama a
+  `_heroCarrier?.Walk(...)` (que solo reproduce la animación, sin tocar
+  `Visible`/`State`) y actualiza `_heroStreet`/`_heroLateral` directamente.
+  `TrampleHeroTile()` marca el rastro en el piso a partir de esas mismas
+  variables sin mirar el estado del carrier, pero `UpdateHeroVisual()` (la
+  única función que escribe `Position`/`Scale` del carrier, llamada cada
+  `_Draw()`) se niega a hacer nada salvo que `State == Macro`. Resultado neto:
+  si el fundador queda oculto en casa y el jugador presiona una tecla de
+  movimiento sin pasar antes por una acción de dominio (asignar, construir,
+  etc.), el rastro avanza pero el sprite ni se muestra ni se reposiciona —
+  coincide exactamente con el reporte. Corregido: nuevo
+  `EnsureHeroCarrierVisibleForManualMovement()` que fuerza
+  `SetState(VisualState.Macro)` justo antes de mover, llamado desde ambos
+  `StepHeroStreet` y `TryStepHeroLateral` (el paneo de cámara libre no toca
+  el carrier y no lo necesita). Build limpio, 493/493 pruebas (sin cambios —
+  es lógica exclusiva de Godot, no cubierta por los tests xUnit del
+  dominio). **Pendiente confirmación del usuario en juego real**: no se pudo
+  verificar con una captura propia por el mismo bloqueo del harness.
+  **Corrección 2026-07-28 (el usuario probó en juego real: "aparece
+  mientras se mueve pero vuelve a desaparecer mientras está quieto"):** el
+  primer corte era incompleto. Causa raíz real: `CurrentLocation` del
+  dominio nunca sale de `AtHome` durante un deambular manual (ninguna
+  acción de dominio se dispara), así que CADA `Refresh()` posterior
+  (disparado por cualquier tick de mundo — no hace falta que el jugador
+  haga nada) vuelve a evaluar `ShouldHideHeroInsideShelter` con
+  `AtHome + sin ruta + sin retorno pendiente` = sigue dando `true`, y oculta
+  de nuevo al fundador apenas se suelta la tecla. El fix anterior solo
+  resolvía el instante del paso, no la re-ocultación del siguiente tick.
+  Corregido con un latch nuevo, `_heroWanderedAwayManually`: se activa en
+  `EnsureHeroCarrierVisibleForManualMovement` (cada paso manual) y suprime
+  `ShouldHideHeroInsideShelter` igual que ya hacían `hasRoute`/
+  `pendingReturnHome` (nuevo parámetro `hasWanderedManually`, con default
+  `false` para no romper las llamadas existentes); se limpia en
+  `BeginWalkToAssignment`/`BeginWalkHome`/la rama de ocultar por expedición
+  — el momento en que un viaje real de dominio toma posesión del carrier y
+  ya no necesita el latch. Limitación conocida, no resuelta a propósito
+  (fuera del alcance del bug reportado): si el jugador camina manualmente
+  DE VUELTA al lote del Shelter, no hay detección de "entró de nuevo" — el
+  fundador se queda visible parado ahí hasta la próxima acción de dominio
+  real. Una prueba nueva en `MacroStreetLiveViewTests` cubre ambos lados del
+  latch. Build limpio, 494/494 pruebas (1 nueva), headless boot con el save
+  real verificado (tick 27724). **Pendiente confirmación del usuario en
+  juego real** — mismo bloqueo del harness que el corte anterior.
+  **Bug real distinto, mismo día (el usuario reportó: "ahora al entrar y
+  salir de la vista de un edificio el citizen se desplaza lateralmente en
+  loop"):** no es una regresión de los dos cortes anteriores — vive en una
+  ruta de código totalmente distinta (`VisibleWorkerSlot`, la vista de
+  detalle de edificio) que ya tenía este problema desde antes, expuesto
+  ahora por el propio uso normal del juego. Causa raíz: `VisibleWorkerSlot.
+  ShowAt`/`HideTo` animan al carrier compartido con `carrier.GoTo(...)`
+  (posición en el espacio de coordenadas INTERIOR del panel de detalle) y
+  solo llegan a `Hidden`/`Working` cuando ese callback de finalización
+  dispara. Si el jugador cierra la vista de detalle ("Back to city") antes
+  de que la animación de entrada/salida termine, el carrier compartido
+  queda con un `_moveTarget` de esa animación interior sin cancelar. Al
+  volver a la vista macro, `RefreshCitizenVisuals`/`EnsureHeroCarrier`
+  reclaman el mismo carrier y lo fuerzan a `Macro` en la posición correcta
+  de la calle — pero sin cancelar ese moveTarget viejo,
+  `CitizenSpriteCarrier._Process` (que no sabe ni le importa quién es su
+  dueño actual) sigue escalonando la posición hacia el objetivo interior
+  obsoleto cada frame, mientras `UpdateWorkerVisuals`/`UpdateHeroVisual`
+  (llamados cada `_Draw()`) la vuelven a fijar en la posición correcta de
+  la calle — dos escritores de `Position` peleando en cada frame, visible
+  como el conocido patrón de "loop lateral sin razón" ya documentado antes
+  para el fundador (ver avance de asignación de citizens en H-32,
+  2026-07-27 cuarta ronda) pero nunca corregido para este segundo camino de
+  reclamo del carrier. Corregido con el mismo patrón defensivo que ya usa
+  `BeginWalkToAssignment` para el fundador (`CancelMotion()` antes de tomar
+  posesión): ahora tanto el bucle de trabajadores ambientales en
+  `RefreshCitizenVisuals` como la rama gemela de `EnsureHeroCarrier`
+  cancelan el movimiento del carrier antes de forzarlo a `Macro`, dentro
+  del mismo `if (State != Macro)` que ya detecta la transición (una
+  `Exiting`/`Working` real dejada a medias SIEMPRE difiere de `Macro`, así
+  que la detección no necesita lógica nueva). Sin cambios de dominio — es
+  lógica exclusiva de Godot, no cubierta por los tests xUnit. Build limpio,
+  494/494 pruebas sin cambios, headless boot con el save real verificado
+  (tick 28179). **Pendiente confirmación del usuario en juego real** —
+  mismo bloqueo del harness que los dos cortes anteriores.
+  **Hallazgo de proceso importante, mismo día (bloqueaba la firma visual de
+  los tres cortes anteriores):** el harness de captura visual NUNCA estuvo
+  roto por un desajuste de DPI/escalado de pantalla como se documentó en las
+  tres sesiones previas — la causa real era usar el ejecutable equivocado de
+  Godot. `Godot_v4.7.1-stable_mono_win64_console.exe` (la variante con
+  consola) abre DOS ventanas (la consola + el juego), y
+  `Process.MainWindowHandle` terminaba midiendo/capturando la ventana de
+  consola en vez de la del juego — de ahí el "Godot client is 960x480,
+  expected 1024x576" repetido en cada intento. Usando en su lugar
+  `Godot_v4.7.1-stable_mono_win64.exe` (sin `_console`), tanto un script
+  ad-hoc de verificación como el propio `tools/Capture-VisualMatrix.ps1`
+  devuelven el tamaño de cliente exacto pedido en las tres resoluciones
+  (1024×576/1280×720/1600×900), verificado en este mismo entorno donde antes
+  fallaba siempre. Esto desbloquea la firma visual real que quedó pendiente
+  en H-32, VS-1 y VS-2 durante las últimas cuatro sesiones — la causa nunca
+  fue el entorno, fue qué ejecutable se invocaba.
+- **Bug real distinto, mismo día (el usuario reportó: "al asignar un citizen
+  a la Cantera, este no entra, se queda fuera y no produce; además en el
+  camino atravesó un árbol"):** investigado con captura visual real (ahora
+  que el harness funciona) contra el save real. Confirmado por captura: la
+  producción de la Cantera SÍ es causal y SÍ avanza (Piedra 8→26→32→44→80 en
+  capturas sucesivas, "Autorizado", sin escasez de insumos) — el reporte de
+  "no produce" no es un bloqueo de producción del dominio. Pero se confirmó
+  un bug visual real, reproducido de forma consistente en tres arranques
+  frescos independientes del save real: dentro del panel de detalle de la
+  Cantera, la etiqueta de nombre del ciudadano asignado ("z", el propio
+  fundador — el nombre no es un artefacto de captura, es el nombre elegido
+  en onboarding) se renderiza en la posición correcta junto al edificio, PERO
+  el sprite del carrier nunca aparece — ni una sola vez, en ninguna de las
+  capturas, pese a que el ciudadano lleva mucho tiempo trabajando
+  (confirmado por el avance de stock). Hallazgo de causa parcial (corregido,
+  pero no descartado como causa completa): `VisibleWorkerSlots.RenderSlots`
+  solo reconciliaba un carrier ya existente cuando su estado era
+  exactamente `Hidden` (→ `ShowAt`) o `Working` (→ solo `EmitArrival`, sin
+  tocar posición/estado) — cualquier OTRO estado (`Macro`, el que deja el
+  bucle ambiental de la vista macro sobre un trabajador asignado, o
+  `HeroProfile`) caía sin ninguna rama, dejando el carrier exactamente donde
+  esa OTRA vista lo abandonó — en escala/posición macro, fuera de los
+  límites recortados (`ClipContents = true`) de este panel — mientras la
+  etiqueta (una `Label` de Control independiente, no ligada al carrier)
+  seguía mostrándose en la posición correcta. Corregido: nueva
+  `VisibleWorkerSlot.CarrierIsSettledHere` (compara contra `Working` o
+  `Home` según `_idlePresentation`, no solo `Working`) y `RenderSlots`
+  ahora llama `ShowAt` para CUALQUIER estado que no esté ya asentado aquí
+  (antes solo lo hacía para `Hidden`); `ShowAt` a su vez ahora hace
+  snap inmediato al borde de entrada salvo que ya esté `Entering` (antes
+  solo lo hacía si venía de `Hidden`), para que reclamar un carrier desde un
+  contexto totalmente distinto no lo deje arrastrándose un píxel por tick
+  desde coordenadas macro hasta la ranura de este panel — a esa distancia,
+  eso se lee como "nunca llega". Sin prueba xUnit propia —
+  `VisibleWorkerSlot`/`VisibleWorkerSlots` dependen de Godot
+  (`AddChild`/`TooltipButton`/etc.) igual que el resto de esta capa de
+  presentación, y a diferencia de `MacroStreetLiveView` no exponían ya
+  ninguna lógica de decisión como método estático puro extraíble sin
+  arrastrar el resto de la clase; verificado en cambio con captura visual
+  real (ver más abajo) y con `dotnet test` de que nada más se rompió. Sin
+  cambios de dominio. **No confirmado como causa completa del bug
+  observado**: tras aplicar el fix y volver a capturar el mismo escenario
+  (ciudadano ya asentado, produciendo
+  activamente), el sprite seguía sin aparecer — la inestabilidad del paneo
+  de cámara entre arranques frescos (la Cantera aparece en una posición de
+  pantalla distinta cada boot, sin que ningún clic la haya movido, causa aún
+  no identificada) impidió repetir con precisión el flujo completo de
+  quitar→reasignar para observar la animación de entrada en vivo antes de
+  cerrar esta sesión. El fix aplicado es real y correcto para el caso que sí
+  cubre (reconciliar un carrier reclamado en estado `Macro`/`HeroProfile`),
+  pero queda abierta la posibilidad de una segunda causa aún no aislada
+  (candidatos sin descartar: la animación "slash" de este lineage/aparición
+  específico no reproduce ningún frame visible pese a no loguear error, o un
+  problema de orden de dibujo/transformación al montar un `Node2D` bajo un
+  `Control` con `ClipContents`). Build limpio, 494/494 pruebas sin cambios,
+  headless boot con el save real verificado. **Sigue pendiente confirmación
+  visual completa del escenario exacto reportado** — a diferencia de los
+  tres bugs anteriores, esta vez si se pudo usar el harness real (ver
+  hallazgo de arriba), así que el bloqueo ya no es la herramienta sino la
+  reproducción precisa del flujo completo dentro de una sesión.
+- **Bug real distinto, mismo día (el usuario reportó: "el pathfinding
+  atraviesa árboles en vez de pasar entre ellos al cruzar de calle, termina
+  rodeando todo el bosque, excepto el último tramo donde sí atraviesa un
+  árbol"):** la frase "excepto el último tramo" señaló la causa exacta por
+  lectura de código, confirmada con un test dirigido antes de tocar nada.
+  `StreetRoutePlanner.ConvertNavmeshPathToWaypoints` (la conversión del
+  polyline crudo de `NavigationServer2D.MapGetPath` a los `Waypoint`
+  cuantizados que `AdvanceRouteTick` ejecuta) forzaba el CRUCE FINAL (el que
+  entra a `toStreet`) a `toLateral` directo, en vez de muestrear el path
+  real como hace con cualquier otro cruce intermedio — descartando
+  exactamente el rodeo que el navmesh sí había planeado para ese último
+  tramo y dibujando en su lugar una cruz cardinal recta a través de lo que
+  sea que estuviera entre el waypoint anterior y el destino. Los cruces
+  intermedios (el resto del rodeo alrededor del bosque) sí muestreaban el
+  path real correctamente — de ahí que el síntoma fuera precisamente "todo
+  bien excepto el último árbol". Corregido: el cruce final ahora se muestrea
+  igual que los demás (`SampleLateralAtStreet`), y se añade un ajuste final
+  ("caminar dentro de `toStreet` hasta `toLateral` exacto") solo si el
+  muestreo no coincide ya con el destino — mismo patrón que `Plan` (el
+  heurístico de respaldo) ya usaba para garantizar que la ruta cuantizada
+  termine exactamente en el objetivo, no solo "cerca, en la calle correcta".
+  Un test nuevo (`ConvertNavmeshPath_FinalCrossingNeedsItsOwnDetour_...`)
+  fija exactamente este caso con un path sintético donde el cruce final
+  necesita su propio rodeo antes del ajuste de destino; los 5 tests
+  existentes de esta función siguen pasando sin cambios (sus paths
+  sintéticos ya coincidían con `toLateral` en el muestreo, por eso el bug no
+  se había detectado antes). Build limpio, **495/495 pruebas** (1 nueva).
+  **"Rodea todo el bosque" no confirmado como bug aparte — hipótesis
+  registrada, no descartada ni verificada:** cada árbol ocupa un intervalo
+  de 44px (`TreeBlockHalfWidthPx=22`) espaciados cada 90px
+  (`LotUnitPx`), dejando un hueco crudo de 46px entre árboles adyacentes;
+  `RouteClearancePx=14` expande cada lado, reduciendo ese hueco a 18px
+  efectivos antes de llegar al navmesh. El planificador heurístico de
+  respaldo SÍ encuentra huecos de 18px con su paso de escaneo de 6px
+  (`CrossingScanStepPx`, ya afinado en una sesión anterior para este caso
+  exacto) — pero `StreetNavigationServerPlanner.Bake` no configura
+  `agent_radius`/`cell_size` de `NavigationPolygon` en absoluto, dejando los
+  valores por defecto de Godot; si ese horneado erosiona el polígono
+  navegable por un margen adicional propio, un hueco de 18px podría
+  desaparecer del todo, forzando el rodeo completo. Se intentó reproducir
+  en vivo con el save real (ahora que el harness funciona) despachando un
+  Gather hacia un árbol de la fila más lejana del fundador — la deriva del
+  paneo de cámara entre arranques frescos (ya notada en el bug anterior de
+  esta misma sesión) y una posible reaparición del sprite invisible durante
+  la caminata (mismo síntoma que el bug de `VisibleWorkerSlot`, no
+  confirmado si es el mismo mecanismo) impidieron trazar la ruta real con
+  capturas legibles dentro del tiempo de esta sesión. Queda como hipótesis
+  bien fundamentada para una próxima pasada, no como fix aplicado.
+- **Bug real distinto, mismo día — y la pista que resolvió el "sprite
+  invisible" de dos correcciones atrás (el usuario acotó: "cuando lo asigno
+  a una construcción es normal que se ingrese, pero en un árbol no"):** esa
+  comparación exacta (asignación sí, gather no) localizó la asimetría real
+  entre ambos caminos por lectura de código. Al asignar un citizen a un
+  edificio/obra, la mutación de dominio (`TryAssignCitizen`) dispara
+  `BuildingStateChanged`/`ProjectStateChanged` de forma SÍNCRONA, lo que
+  fuerza un `Refresh()`/`EnsureHeroCarrier()` inmediato — ANTES de que
+  exista ningún movimiento — que ya deja al carrier en `Macro` (visible) y
+  sin movimiento pendiente antes de que `BeginWalkToAssignment` empiece a
+  caminar. `OnGatherRequested` (el handler del botón Gather sobre un árbol)
+  no toca el dominio en absoluto hasta llegar — `CompleteRoute` recién
+  llama `GatherWood` al asentarse — así que no dispara ningún refresh
+  inmediato: solo arma `_route` y dispara `_routeIndex=0`, dejando que
+  `MotionTick` (un timer de 12 Hz corriendo en `_Process`, independiente del
+  tick de mundo real) empiece a mover al fundador de inmediato. Si el
+  carrier seguía `Hidden` (asentado en el Shelter) en ese instante, nada lo
+  revela antes de que el viaje entero a un árbol cercano — típicamente más
+  corto que el intervalo entre ticks de mundo reales — ya haya terminado:
+  el fundador camina de ida y vuelta completamente invisible, exactamente
+  como describió el usuario. Corregido: nuevo método compartido
+  `EnsureHeroCarrierReadyToMove()` (fuerza `Macro` si no lo está ya, y
+  cancela cualquier movimiento previo) llamado al inicio de
+  `OnGatherRequested`, antes de armar la ruta — el mismo remedio que ya
+  tenían `BeginWalkToAssignment`/`BeginWalkHome` por su cuenta (con
+  `CancelMotion()` directo) y que el propio `EnsureHeroCarrier` aplicaba
+  "por accidente" gracias al refresh síncrono de la asignación.
+  `EnsureHeroCarrierVisibleForManualMovement` (el fix de movimiento manual
+  de dos correcciones atrás) ahora reutiliza este mismo método compartido en
+  vez de duplicar la lógica. Sin cambios de dominio; sin test xUnit propio
+  por la misma razón que el bug anterior (lógica exclusiva de Godot, sin
+  método estático puro que extraer). Build limpio, 495/495 pruebas sin
+  cambios, headless boot con el save real verificado. **Intentada
+  verificación visual en vivo** con el harness real: se observó una marca
+  pequeña cerca del árbol tras el clic de Gather que podría ser el sprite
+  del fundador a escala macro (0.25×, unos pocos píxeles), pero el tamaño
+  diminuto del sprite a esa escala, la deriva de cámara entre arranques y
+  una posible confusión de estado de pausa del save real no permitieron una
+  confirmación inequívoca dentro de esta sesión — **pendiente de
+  confirmación del usuario en juego real**, con más confianza que las veces
+  anteriores porque esta vez el razonamiento de causa (la asimetría
+  síncrono/asíncrono entre asignación y gather) es directo y verificable
+  por lectura de código, no solo una hipótesis de geometría/baking.
+  **Corrección 2026-07-28 (el usuario probó en juego real: "se sigue
+  'desapareciendo' al llegar a un árbol"):** el corte anterior era
+  incompleto — resolvía la visibilidad al INICIAR la caminata pero no la
+  re-ocultación exacta al LLEGAR. Causa raíz real: `CompleteRoute()` limpia
+  `_route = null` como su primera línea, y RECIÉN DESPUÉS, en la rama de
+  gather, llama `_heroCarrier?.Slash(...)` seguido de
+  `_controller.GatherWood(...)` — una mutación de dominio que dispara
+  `BuildingStateChanged` de forma SÍNCRONA (el mismo mecanismo que ya
+  identificó el corte anterior para la asignación, pero esta vez jugando en
+  contra). Ese refresh síncrono llega con `_route` YA null y
+  `CurrentLocation` del dominio todavía en `AtHome` (gather nunca lo
+  cambia) — exactamente las condiciones de `ShouldHideHeroInsideShelter`
+  para ocultar — así que el fundador se ocultaba de nuevo en el instante
+  entre el `Slash()` y el callback de 0.6s que lo iba a asentar en `Idle`,
+  antes de que el jugador llegara a verlo. El fix anterior no cubría este
+  momento porque `EnsureHeroCarrierReadyToMove()` (llamado al INICIO de
+  `OnGatherRequested`) nunca activaba el latch `_heroWanderedAwayManually`
+  — ese latch es justo lo que ya suprime esta ocultación para el
+  movimiento manual, pero solo lo activaba
+  `EnsureHeroCarrierVisibleForManualMovement`, no la ruta de gather.
+  Corregido: consolidado en un solo método —
+  `EnsureHeroCarrierReadyToMove()` ahora activa el latch directamente (ya
+  no hay dos métodos con lógica case-por-caso; el wrapper
+  `EnsureHeroCarrierVisibleForManualMovement` se eliminó y los tres call
+  sites — los dos pasos manuales más `OnGatherRequested` — llaman al mismo
+  método), así que el latch queda activo durante TODO el ciclo
+  caminar→llegar→animación de llegada, no solo durante el primer tramo.
+  Sigue limpiándose en `BeginWalkToAssignment`/`BeginWalkHome`/la rama de
+  expedición, igual que antes. Build limpio, 495/495 pruebas sin cambios.
+  **Verificación visual en vivo intentada de nuevo, sin resultado
+  concluyente**: dos intentos con el harness real no lograron capturar el
+  instante exacto de llegada (el gather a un árbol cercano no había
+  completado ni siquiera tras ~10s de esta sesión, y la cámara sigue
+  reencuadrando/haciendo zoom hacia el fundador según su profundidad,
+  complicando ubicar el sprite diminuto a escala macro). **Sigue pendiente
+  de confirmación del usuario en juego real** — segunda iteración sobre el
+  mismo bug reportado, esta vez con el mecanismo exacto de la
+  re-ocultación (la carrera entre `GatherWood` y la animación de llegada)
+  identificado con precisión, no solo la asimetría general
+  síncrono/asíncrono del corte anterior.
+- **Corrección 2026-07-28 (el usuario confirmó en juego real: "el pathfinding
+  sigue rodeando hileras de árboles en vez de pasar entre ellos"):** cierra
+  la hipótesis abierta dos correcciones atrás — esta vez inspeccionando la
+  API real de Godot en vez de solo razonar sobre ella. Confirmado por
+  reflexión sobre `GodotSharp.dll`:
+  `NavigationPolygon.AgentRadius` existe como propiedad de horneado
+  (`float`), y `StreetNavigationServerPlanner.Bake` nunca la tocaba —
+  quedaba en su valor por defecto de Godot. El propio `Bake` YA erosiona
+  cada contorno de obstáculo por el `clearance` del llamador (14px por
+  lado) antes de entregarle la geometría al horneador — `AgentRadius` es
+  una SEGUNDA erosión que Godot aplica por su cuenta encima de esa, pensada
+  para una malla que llega SIN margen propio. Con ambas erosiones activas
+  a la vez, el hueco real de ~18px entre árboles adyacentes (44px de ancho
+  cada uno, separados 90px, menos 14px de clearance por cada lado — la
+  misma cuenta que ya "encontraba" el heurístico de respaldo con su paso de
+  escaneo de 6px) queda además erosionado por el radio de agente por
+  defecto de Godot, pudiendo cerrarse del todo — el navmesh entonces no ve
+  ningún hueco transitable entre dos árboles contiguos y solo puede rodear
+  la fila completa. Corregido: `_polygon.AgentRadius = 0f;` en el
+  constructor — este planificador ya aplica su propio margen manualmente,
+  así que el margen adicional de Godot solo duplicaba (y podía anular) el
+  que ya se había calculado con cuidado. No se tocaron `CellSize`/
+  `BorderSize` — sin evidencia de que sean parte del problema, y cambiar
+  más de lo necesario habría sido riesgo sin justificación. Sin test xUnit
+  propio: `StreetNavigationServerPlanner` requiere un motor Godot vivo para
+  existir (documentado en su propio comentario de clase desde antes de esta
+  sesión) y no es instanciable fuera de él — se intentó confirmar el valor
+  por defecto de `AgentRadius` instanciando la clase por reflexión sin un
+  motor activo y el intento terminó en `AccessViolationException` del
+  interop nativo de Godot, confirmando que en efecto no puede probarse así.
+  Build limpio, 495/495 pruebas sin cambios. **Verificación visual en vivo
+  intentada de nuevo, sin resultado concluyente**: el save real avanzó
+  bastante desde el corte anterior (apareció un segundo edificio junto a la
+  Cantera, "Granja se convirtió en un edificio" en la Crónica) y las
+  coordenadas de árbol ya calibradas dejaron de acertar el clic de Gather de
+  forma fiable; no se pudo trazar una ruta real cruzando una hilera de
+  árboles dentro de esta sesión. **Pendiente confirmación del usuario en
+  juego real** — a diferencia de la corrección anterior en esta misma
+  hilera de reportes, esta vez la causa fue CONFIRMADA por inspección
+  directa de la API de Godot (la propiedad existe, tiene un rol de
+  horneado documentado), no solo razonada por los números de espaciado —
+  el nivel de confianza es alto, pero la verificación visual real sigue sin
+  cerrarse.
 - **Criterios de aceptación:** ciudad completa navegable y jugable
   (construcción, asignación, gather, expediciones) únicamente desde la
   perspectiva, sin regresión funcional respecto a la vista plana anterior, y

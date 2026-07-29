@@ -124,17 +124,26 @@ public partial class VisibleWorkerSlots : Control
                 {
                     existingSlot.ResumeTo(SlotCenter(existingSlot), () => EmitArrival(existingSlot));
                 }
-                else if (existingSlot.CarrierIsHidden)
-                {
-                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot), () => EmitArrival(existingSlot));
-                }
-                else if (existingSlot.CarrierIsWorking)
+                else if (existingSlot.CarrierIsSettledHere)
                 {
                     // Arrival callbacks can be interrupted when the canonical
                     // flyweight carrier changes visual owner during the same
                     // frame. Reconcile an already-settled carrier on refresh;
                     // the domain command is intentionally idempotent.
                     EmitArrival(existingSlot);
+                }
+                else
+                {
+                    // Covers Hidden (never shown yet) AND any state that
+                    // belongs to a different context entirely — most
+                    // notably the macro view's own ambient Macro state,
+                    // which the building-detail slot machinery never
+                    // previously reconciled: the carrier would sit wherever
+                    // the macro street plot left it, in macro scale, while
+                    // this slot's name label rendered correctly at the
+                    // detail view's own position — a citizen with a name
+                    // tag but no visible sprite, forever "outside".
+                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot), () => EmitArrival(existingSlot));
                 }
                 continue;
             }

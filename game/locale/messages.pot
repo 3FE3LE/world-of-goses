@@ -364,16 +364,31 @@ msgstr ""
 msgid "event.day_began"
 msgstr ""
 
+msgid "event.encounter_outcome.full_success"
+msgstr ""
+
+msgid "event.encounter_outcome.partial_success"
+msgstr ""
+
+msgid "event.encounter_outcome.setback"
+msgstr ""
+
 msgid "event.expedition_cancelled"
 msgstr ""
 
 msgid "event.expedition_dispatched"
 msgstr ""
 
+msgid "event.expedition_encounter_resolved"
+msgstr ""
+
 msgid "event.expedition_failed"
 msgstr ""
 
 msgid "event.expedition_returned"
+msgstr ""
+
+msgid "event.food_ration_shortfall"
 msgstr ""
 
 msgid "event.migrant_arrived"
@@ -1204,10 +1219,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
 msgid "Strength"
@@ -1273,7 +1288,25 @@ msgstr ""
 msgid "ui.assignment.no_workers"
 msgstr ""
 
+msgid "ui.assignment.reason_building"
+msgstr ""
+
+msgid "ui.assignment.reason_construction"
+msgstr ""
+
+msgid "ui.assignment.reason_expedition"
+msgstr ""
+
+msgid "ui.assignment.reason_recovering"
+msgstr ""
+
 msgid "ui.assignment.remove_from"
+msgstr ""
+
+msgid "ui.assignment.unavailable_row"
+msgstr ""
+
+msgid "ui.assignment.unavailable_title"
 msgstr ""
 
 msgid "ui.assignment.visible_inside"
@@ -1450,13 +1483,40 @@ msgstr ""
 msgid "ui.expedition.dispatch_failed"
 msgstr ""
 
+msgid "ui.expedition.phase_with_outcome"
+msgstr ""
+
+msgid "ui.expedition.phase.encounter"
+msgstr ""
+
+msgid "ui.expedition.phase.objective"
+msgstr ""
+
+msgid "ui.expedition.phase.outbound"
+msgstr ""
+
+msgid "ui.expedition.phase.resolved"
+msgstr ""
+
+msgid "ui.expedition.phase.returning"
+msgstr ""
+
 msgid "ui.expedition.prospect_waiting"
 msgstr ""
 
 msgid "ui.expedition.schedule"
 msgstr ""
 
+msgid "ui.expedition.schedule_with_team"
+msgstr ""
+
 msgid "ui.expedition.seek_prospect_hint"
+msgstr ""
+
+msgid "ui.expedition.team_hint"
+msgstr ""
+
+msgid "ui.expedition.team_member_hint"
 msgstr ""
 
 msgid "ui.expedition.town_hall_required"

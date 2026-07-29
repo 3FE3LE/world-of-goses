@@ -585,6 +585,33 @@ msgstr "No se pudo enviar: {0}"
 msgid "ui.expedition.schedule"
 msgstr "{0} partió el {1} y regresa el {2}."
 
+msgid "ui.expedition.schedule_with_team"
+msgstr "{0} ({1}) partió el {2} y regresa el {3}."
+
+msgid "ui.expedition.team_hint"
+msgstr "Elige de 1 a 2 ciudadanos para el equipo y luego envía la expedición."
+
+msgid "ui.expedition.team_member_hint"
+msgstr "Añadir al equipo de la expedición."
+
+msgid "ui.expedition.phase.outbound"
+msgstr "De camino"
+
+msgid "ui.expedition.phase.encounter"
+msgstr "Encuentro"
+
+msgid "ui.expedition.phase.objective"
+msgstr "Objetivo"
+
+msgid "ui.expedition.phase.returning"
+msgstr "Regresando"
+
+msgid "ui.expedition.phase.resolved"
+msgstr "Resuelta"
+
+msgid "ui.expedition.phase_with_outcome"
+msgstr "{0} — {1}"
+
 msgid "ui.resource.wood_remains"
 msgstr "Quedan {0} de madera"
 
@@ -711,6 +738,21 @@ msgstr "{0} fue cancelada"
 
 msgid "event.migrant_arrived"
 msgstr "{0} se unió a la ciudad"
+
+msgid "event.food_ration_shortfall"
+msgstr "Escasez de comida: {0} residentes se quedaron sin comer"
+
+msgid "event.expedition_encounter_resolved"
+msgstr "{0} encuentro: {1}"
+
+msgid "event.encounter_outcome.full_success"
+msgstr "éxito total"
+
+msgid "event.encounter_outcome.partial_success"
+msgstr "éxito parcial"
+
+msgid "event.encounter_outcome.setback"
+msgstr "contratiempo"
 
 # Textos fijos de la UI general
 msgid "View hero"
@@ -1615,8 +1657,26 @@ msgstr "(sin ciudadanos libres)"
 msgid "ui.assignment.no_workers"
 msgstr "(sin trabajadores)"
 
+msgid "ui.assignment.reason_building"
+msgstr "Trabajando en {0}"
+
+msgid "ui.assignment.reason_construction"
+msgstr "Construyendo {0}"
+
+msgid "ui.assignment.reason_expedition"
+msgstr "En expedición"
+
+msgid "ui.assignment.reason_recovering"
+msgstr "Recuperándose"
+
 msgid "ui.assignment.remove_from"
 msgstr "Quitar de {0}"
+
+msgid "ui.assignment.unavailable_row"
+msgstr "{0} — {1}"
+
+msgid "ui.assignment.unavailable_title"
+msgstr "No disponibles"
 
 msgid "ui.assignment.visible_inside"
 msgstr "Visibles: {0} · Adentro: {1}"

@@ -1,4 +1,6 @@
 #nullable enable
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -6,20 +8,23 @@ using WorldofGoses.Ui;
 namespace WorldofGoses;
 
 /// <summary>
-/// Minimal abstract reconnaissance panel: dispatches a deterministic
-/// expedition using the founding hero and consumes one Wood supply.
-/// The panel reuses <see cref="ModalHost"/> for scrim/close semantics
-/// and is the canonical UI surface for the v13 expedition slice.
+/// Expedition preparation panel: the player picks a 1-2 citizen team from
+/// the real roster (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3) before
+/// dispatching a reconnaissance or a prospect-seeking expedition. The panel
+/// reuses <see cref="ModalHost"/> for scrim/close semantics.
 /// </summary>
 [GlobalClass]
 public partial class ExpeditionPanel : Control
 {
-    private static readonly Vector2 PreferredSize = new(520, 320);
+    private static readonly Vector2 PreferredSize = new(520, 380);
     private const float ViewportInset = 32f;
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../../CityWorldController";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
     [Export] public NodePath StatusLabelPath { get; set; } = "Surface/Margin/Layout/StatusLabel";
+    [Export] public NodePath TeamHeaderPath { get; set; } = "Surface/Margin/Layout/TeamHeader";
+    [Export] public NodePath TeamScrollPath { get; set; } = "Surface/Margin/Layout/TeamScroll";
+    [Export] public NodePath TeamListPath { get; set; } = "Surface/Margin/Layout/TeamScroll/TeamList";
     [Export] public NodePath DispatchButtonPath { get; set; } = "Surface/Margin/Layout/DispatchButton";
     [Export] public NodePath CancelButtonPath { get; set; } = "Surface/Margin/Layout/CancelButton";
     [Export] public NodePath ProspectButtonPath { get; set; } = "Surface/Margin/Layout/ProspectButton";
@@ -28,10 +33,16 @@ public partial class ExpeditionPanel : Control
     private CityWorldController _controller = null!;
     private ModalHost _modalHost = null!;
     private Label _statusLabel = null!;
+    private Label _teamHeader = null!;
+    private Control _teamScroll = null!;
+    private VBoxContainer _teamList = null!;
     private Button _dispatchButton = null!;
     private Button _cancelButton = null!;
     private Button _prospectButton = null!;
     private Button _closeButton = null!;
+
+    private readonly List<CitizenId> _selectedMemberIds = new();
+    private bool _hasAppliedDefaultSelection;
 
     public override void _Ready()
     {
@@ -40,20 +51,20 @@ public partial class ExpeditionPanel : Control
         _controller = GetNode<CityWorldController>(ControllerPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _statusLabel = GetNode<Label>(StatusLabelPath);
+        _teamHeader = GetNode<Label>(TeamHeaderPath);
+        _teamScroll = GetNode<Control>(TeamScrollPath);
+        _teamList = GetNode<VBoxContainer>(TeamListPath);
         _dispatchButton = GetNode<Button>(DispatchButtonPath);
         _cancelButton = GetNode<Button>(CancelButtonPath);
         _prospectButton = GetNode<Button>(ProspectButtonPath);
         _closeButton = GetNode<Button>(CloseButtonPath);
-        if (_modalHost is null)
-        {
-            _modalHost = GetNode<ModalHost>(ModalHostPath);
-        }
 
         _dispatchButton.Pressed += OnDispatchPressed;
         _cancelButton.Pressed += OnCancelPressed;
         _prospectButton.Pressed += OnProspectPressed;
         _closeButton.Pressed += OnClosePressed;
         _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
+        _controller.CitizensChanged += OnCitizensChanged;
         _controller.BuildingStateChanged += _ => Refresh();
         _controller.WorldTickAdvanced += _ => Refresh();
         GetViewport().SizeChanged += ApplyResponsiveBounds;
@@ -67,6 +78,7 @@ public partial class ExpeditionPanel : Control
         if (_controller is not null)
         {
             _controller.ExpeditionStateChanged -= OnExpeditionStateChanged;
+            _controller.CitizensChanged -= OnCitizensChanged;
         }
         GetViewport().SizeChanged -= ApplyResponsiveBounds;
     }
@@ -100,12 +112,17 @@ public partial class ExpeditionPanel : Control
 
     private void OnDispatchPressed()
     {
-        if (_controller.World.Hero is null) return;
-        var request = ExpeditionRequest.Reconnaissance(_controller.World.Hero.Id);
+        if (_selectedMemberIds.Count == 0) return;
+        var request = ExpeditionRequest.Reconnaissance(_selectedMemberIds.ToArray());
         ExpeditionStartResult result = _controller.StartExpedition(request);
         if (!result.IsSuccess)
         {
             Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
+        }
+        else
+        {
+            _selectedMemberIds.Clear();
+            _hasAppliedDefaultSelection = false;
         }
         Refresh();
     }
@@ -130,12 +147,17 @@ public partial class ExpeditionPanel : Control
 
     private void OnProspectPressed()
     {
-        if (_controller.World.Hero is null) return;
+        if (_selectedMemberIds.Count == 0) return;
         ExpeditionStartResult result = _controller.StartExpedition(
-            ExpeditionRequest.SeekProspect(_controller.World.Hero.Id));
+            ExpeditionRequest.SeekProspect(_selectedMemberIds.ToArray()));
         if (!result.IsSuccess)
         {
             Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
+        }
+        else
+        {
+            _selectedMemberIds.Clear();
+            _hasAppliedDefaultSelection = false;
         }
         Refresh();
     }
@@ -144,10 +166,13 @@ public partial class ExpeditionPanel : Control
 
     private void OnExpeditionStateChanged(int _) => Refresh();
 
+    private void OnCitizensChanged() => Refresh();
+
     private void Refresh()
     {
+        CityWorld world = _controller.World;
         Expedition? active = null;
-        foreach (Expedition expedition in _controller.World.Expeditions.Values)
+        foreach (Expedition expedition in world.Expeditions.Values)
         {
             if (expedition.Status == ExpeditionStatus.Active)
             {
@@ -155,29 +180,141 @@ public partial class ExpeditionPanel : Control
                 break;
             }
         }
-        bool heroAvailable = _controller.World.Hero is not null
-            && _controller.World.Hero.IsAvailable;
-        bool canDispatch = active is null && heroAvailable;
+
+        // Selection only matters while there is no active expedition to
+        // prepare a new one against; keep it clean of citizens who became
+        // unavailable since the last refresh (e.g. assigned elsewhere by
+        // another panel, or an expedition that just returned them home
+        // recovering).
+        _selectedMemberIds.RemoveAll(id => world.GetCitizen(id) is not { IsAvailable: true });
+        if (!_hasAppliedDefaultSelection && active is null)
+        {
+            _hasAppliedDefaultSelection = true;
+            if (_selectedMemberIds.Count == 0 && world.Hero is { IsAvailable: true } hero)
+            {
+                _selectedMemberIds.Add(hero.Id);
+            }
+        }
+
+        bool showTeamPicker = active is null;
+        _teamHeader.Visible = showTeamPicker;
+        _teamScroll.Visible = showTeamPicker;
+        if (showTeamPicker) PopulateTeamList(world);
+
+        bool canDispatch = active is null && _selectedMemberIds.Count > 0;
         _dispatchButton.Disabled = !canDispatch;
-        bool hasTownHall = System.Linq.Enumerable.Any(
-            _controller.World.Buildings.Values,
-            building => building.Kind == BuildingKind.TownHall);
+        bool hasTownHall = world.Buildings.Values.Any(building => building.Kind == BuildingKind.TownHall);
         _prospectButton.Disabled = !canDispatch
             || !hasTownHall
-            || _controller.World.PendingProspect is not null;
+            || world.PendingProspect is not null;
         _prospectButton.TooltipText = UiText.Get(!hasTownHall
             ? "ui.expedition.town_hall_required"
-            : _controller.World.PendingProspect is not null
+            : world.PendingProspect is not null
                 ? "ui.expedition.prospect_waiting"
                 : "ui.expedition.seek_prospect_hint");
         _cancelButton.Visible = active is not null;
         _statusLabel.Text = active is null
-            ? UiText.Get("Dispatch a reconnaissance: consumes 1 Wood, returns with 1 Stone after 4 in-game days.")
+            ? UiText.Get("ui.expedition.team_hint")
             : UiText.Format(
-                "ui.expedition.schedule",
+                "ui.expedition.schedule_with_team",
                 UiText.Get(active.DisplayName),
+                DescribeTeam(world, active),
                 SimulationTimeText.FormatLocalized(active.StartTick),
-                SimulationTimeText.FormatLocalized(active.EndTick));
+                SimulationTimeText.FormatLocalized(active.EndTick))
+                + "\n" + DescribePhase(active);
+    }
+
+    private static string DescribePhase(Expedition expedition)
+    {
+        string phaseText = UiText.Get(expedition.Phase switch
+        {
+            ExpeditionPhase.Outbound => "ui.expedition.phase.outbound",
+            ExpeditionPhase.Encounter => "ui.expedition.phase.encounter",
+            ExpeditionPhase.Objective => "ui.expedition.phase.objective",
+            ExpeditionPhase.Returning => "ui.expedition.phase.returning",
+            _ => "ui.expedition.phase.resolved",
+        });
+        if (expedition.EncounterOutcome is not { } outcome) return phaseText;
+        string outcomeText = UiText.Get(outcome switch
+        {
+            ExpeditionEncounterOutcome.FullSuccess => "event.encounter_outcome.full_success",
+            ExpeditionEncounterOutcome.PartialSuccess => "event.encounter_outcome.partial_success",
+            _ => "event.encounter_outcome.setback",
+        });
+        return UiText.Format("ui.expedition.phase_with_outcome", phaseText, outcomeText);
+    }
+
+    private void PopulateTeamList(CityWorld world)
+    {
+        foreach (Node child in _teamList.GetChildren())
+        {
+            _teamList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        bool atCapacity = _selectedMemberIds.Count >= ExpeditionRequest.MaxTeamSize;
+        foreach (Citizen citizen in world.Citizens.Values)
+        {
+            bool isSelected = _selectedMemberIds.Contains(citizen.Id);
+            bool canToggleOn = citizen.IsAvailable && (isSelected || !atCapacity);
+            var button = new Button
+            {
+                Text = citizen.Name,
+                Alignment = HorizontalAlignment.Left,
+                CustomMinimumSize = new Vector2(0, 40),
+                ToggleMode = true,
+                ButtonPressed = isSelected,
+                Disabled = !canToggleOn,
+                ThemeTypeVariation = isSelected ? "ButtonPrimary" : "ButtonText",
+                TooltipText = citizen.IsAvailable
+                    ? UiText.Get("ui.expedition.team_member_hint")
+                    : DescribeUnavailability(world, citizen),
+            };
+            CitizenId citizenId = citizen.Id;
+            button.Toggled += pressed => OnTeamMemberToggled(citizenId, pressed);
+            _teamList.AddChild(button);
+        }
+    }
+
+    private void OnTeamMemberToggled(CitizenId citizenId, bool pressed)
+    {
+        if (pressed)
+        {
+            if (!_selectedMemberIds.Contains(citizenId)
+                && _selectedMemberIds.Count < ExpeditionRequest.MaxTeamSize)
+            {
+                _selectedMemberIds.Add(citizenId);
+            }
+        }
+        else
+        {
+            _selectedMemberIds.Remove(citizenId);
+        }
+        Refresh();
+    }
+
+    private static string DescribeTeam(CityWorld world, Expedition expedition) =>
+        string.Join(", ", expedition.MemberIds.Select(id => world.GetCitizen(id)?.Name ?? "?"));
+
+    private static string DescribeUnavailability(CityWorld world, Citizen citizen) =>
+        citizen.AvailabilityReason switch
+        {
+            CitizenAvailabilityReason.AssignedToBuilding =>
+                UiText.Format("ui.assignment.reason_building", ResolveLocationName(world, citizen)),
+            CitizenAvailabilityReason.AssignedToConstruction =>
+                UiText.Format("ui.assignment.reason_construction", ResolveLocationName(world, citizen)),
+            CitizenAvailabilityReason.OnExpedition => UiText.Get("ui.assignment.reason_expedition"),
+            CitizenAvailabilityReason.Recovering => UiText.Get("ui.assignment.reason_recovering"),
+            _ => UiText.Get("Available"),
+        };
+
+    private static string ResolveLocationName(CityWorld world, Citizen citizen)
+    {
+        if (citizen.Commitment.EntityId is not int entityId) return UiText.Get("Unknown");
+        var buildingId = new BuildingId(entityId);
+        return world.GetBuilding(buildingId)?.DisplayName
+            ?? world.GetProject(buildingId)?.DisplayName
+            ?? UiText.Get("Unknown");
     }
 
     private void FocusCurrentAction()

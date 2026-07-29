@@ -27,6 +27,8 @@ public enum WorldEventKind
     ExpeditionReturned,
     ExpeditionFailed,
     ExpeditionCancelled,
+    FoodRationShortfall,
+    ExpeditionEncounterResolved,
 }
 
 /// <summary>

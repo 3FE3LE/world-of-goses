@@ -63,6 +63,7 @@ public partial class ConstructionPanel : PanelContainer
     private Label _requirementsLabel = null!;
     private VBoxContainer _assignList = null!;
     private VBoxContainer _availableList = null!;
+    private VBoxContainer _unavailableList = null!;
     private IconButton _authorizeButton = null!;
     private IconButton _farmButton = null!;
     private IconButton _quarryButton = null!;
@@ -331,6 +332,10 @@ public partial class ConstructionPanel : PanelContainer
         _availableList.AddThemeConstantOverride("separation", 4);
         lists.AddChild(_availableList);
 
+        _unavailableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
+        _unavailableList.AddThemeConstantOverride("separation", 4);
+        lists.AddChild(_unavailableList);
+
         _errorLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -520,6 +525,7 @@ public partial class ConstructionPanel : PanelContainer
         _requirementsLabel.Visible = true;
         _assignList.Visible = false;
         _availableList.Visible = false;
+        _unavailableList.Visible = false;
         _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
         bool canAuthorise = snapshot.HasHero && snapshot.Project is null;
         var shelter = snapshot.OptionFor(ConstructionKind.BasicShelter);
@@ -646,6 +652,7 @@ public partial class ConstructionPanel : PanelContainer
             : string.Empty;
         _assignList.Visible = true;
         _availableList.Visible = true;
+        _unavailableList.Visible = true;
         _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
         _phaseLabel.Text = ConstructionRules.Describe(phase);
@@ -660,8 +667,10 @@ public partial class ConstructionPanel : PanelContainer
 
         ClearList(_assignList);
         ClearList(_availableList);
+        ClearList(_unavailableList);
         PopulateAssigned(project);
         PopulateAvailable(project, snapshot.AvailableCitizens);
+        PopulateUnavailable(snapshot.UnavailableCitizens);
 
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
@@ -697,6 +706,7 @@ public partial class ConstructionPanel : PanelContainer
         _requirementsLabel.Visible = false;
         _assignList.Visible = false;
         _availableList.Visible = false;
+        _unavailableList.Visible = false;
         _errorLabel.Visible = false;
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
@@ -755,6 +765,41 @@ public partial class ConstructionPanel : PanelContainer
             AddListLabel(_availableList, UiText.Get(atCapacity ? "Project at capacity." : "No free citizens."));
         }
     }
+
+    private void PopulateUnavailable(
+        IReadOnlyList<ConstructionSnapshot.UnavailableCitizenItem> unavailableCitizens)
+    {
+        if (unavailableCitizens.Count == 0)
+        {
+            _unavailableList.Visible = false;
+            return;
+        }
+        _unavailableList.Visible = true;
+        AddSectionHeader(_unavailableList, UiText.Get("ui.assignment.unavailable_title"));
+        foreach (var citizen in unavailableCitizens)
+        {
+            string reason = DescribeUnavailabilityReason(citizen);
+            var row = InstantiateAssignmentRow(
+                citizen.Id.Value,
+                UiText.Format("ui.assignment.unavailable_row", citizen.Name, reason),
+                UiText.Get("Assign"),
+                reason,
+                disabled: true);
+            _unavailableList.AddChild(row);
+        }
+    }
+
+    private static string DescribeUnavailabilityReason(ConstructionSnapshot.UnavailableCitizenItem citizen) =>
+        citizen.Reason switch
+        {
+            CitizenAvailabilityReason.AssignedToBuilding =>
+                UiText.Format("ui.assignment.reason_building", citizen.LocationName ?? UiText.Get("Unknown")),
+            CitizenAvailabilityReason.AssignedToConstruction =>
+                UiText.Format("ui.assignment.reason_construction", citizen.LocationName ?? UiText.Get("Unknown")),
+            CitizenAvailabilityReason.OnExpedition => UiText.Get("ui.assignment.reason_expedition"),
+            CitizenAvailabilityReason.Recovering => UiText.Get("ui.assignment.reason_recovering"),
+            _ => UiText.Get("Available"),
+        };
 
     private static void AddSectionHeader(VBoxContainer list, string title)
     {
