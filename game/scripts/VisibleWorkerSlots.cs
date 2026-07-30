@@ -15,7 +15,6 @@ namespace WorldofGoses;
 public partial class VisibleWorkerSlots : Control
 {
     [Signal] public delegate void CitizenClickedEventHandler(int citizenId);
-    [Signal] public delegate void CitizenArrivedEventHandler(int buildingId, int citizenId);
 
     private const int SlotPadding = 8;
     private const float SpriteCenterY = 68f;
@@ -122,17 +121,9 @@ public partial class VisibleWorkerSlots : Control
                 existingSlot.MountCarrier(this);
                 if (existingSlot.IsExiting)
                 {
-                    existingSlot.ResumeTo(SlotCenter(existingSlot), () => EmitArrival(existingSlot));
+                    existingSlot.ResumeTo(SlotCenter(existingSlot));
                 }
-                else if (existingSlot.CarrierIsSettledHere)
-                {
-                    // Arrival callbacks can be interrupted when the canonical
-                    // flyweight carrier changes visual owner during the same
-                    // frame. Reconcile an already-settled carrier on refresh;
-                    // the domain command is intentionally idempotent.
-                    EmitArrival(existingSlot);
-                }
-                else
+                else if (!existingSlot.CarrierIsSettledHere)
                 {
                     // Covers Hidden (never shown yet) AND any state that
                     // belongs to a different context entirely — most
@@ -143,7 +134,7 @@ public partial class VisibleWorkerSlots : Control
                     // this slot's name label rendered correctly at the
                     // detail view's own position — a citizen with a name
                     // tag but no visible sprite, forever "outside".
-                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot), () => EmitArrival(existingSlot));
+                    existingSlot.ShowAt(EntryBorder(existingSlot), SlotCenter(existingSlot));
                 }
                 continue;
             }
@@ -166,16 +157,13 @@ public partial class VisibleWorkerSlots : Control
 
             Vector2 slotCenter = SlotCenter(slot);
             Vector2 entryBorder = EntryBorder(slot);
-            slot.ShowAt(entryBorder, slotCenter, () => EmitArrival(slot));
+            slot.ShowAt(entryBorder, slotCenter);
 
             slotIndex++;
         }
 
         ReflowSlots(buildingId);
     }
-
-    private void EmitArrival(VisibleWorkerSlot slot) =>
-        EmitSignal(SignalName.CitizenArrived, slot.BuildingId.Value, slot.CitizenId.Value);
 
     /// <summary>
     /// Returns the slot's name label and hit area. The carrier is mounted

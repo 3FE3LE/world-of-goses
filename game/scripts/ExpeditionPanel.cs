@@ -25,6 +25,8 @@ public partial class ExpeditionPanel : Control
     [Export] public NodePath TeamHeaderPath { get; set; } = "Surface/Margin/Layout/TeamHeader";
     [Export] public NodePath TeamScrollPath { get; set; } = "Surface/Margin/Layout/TeamScroll";
     [Export] public NodePath TeamListPath { get; set; } = "Surface/Margin/Layout/TeamScroll/TeamList";
+    [Export] public NodePath RetreatHeaderPath { get; set; } = "Surface/Margin/Layout/RetreatHeader";
+    [Export] public NodePath RetreatPosturePath { get; set; } = "Surface/Margin/Layout/RetreatPosture";
     [Export] public NodePath DispatchButtonPath { get; set; } = "Surface/Margin/Layout/DispatchButton";
     [Export] public NodePath CancelButtonPath { get; set; } = "Surface/Margin/Layout/CancelButton";
     [Export] public NodePath ProspectButtonPath { get; set; } = "Surface/Margin/Layout/ProspectButton";
@@ -36,6 +38,8 @@ public partial class ExpeditionPanel : Control
     private Label _teamHeader = null!;
     private Control _teamScroll = null!;
     private VBoxContainer _teamList = null!;
+    private Label _retreatHeader = null!;
+    private OptionButton _retreatPosture = null!;
     private Button _dispatchButton = null!;
     private Button _cancelButton = null!;
     private Button _prospectButton = null!;
@@ -43,6 +47,7 @@ public partial class ExpeditionPanel : Control
 
     private readonly List<CitizenId> _selectedMemberIds = new();
     private bool _hasAppliedDefaultSelection;
+    private bool _showRecoveryFixture;
 
     public override void _Ready()
     {
@@ -54,10 +59,24 @@ public partial class ExpeditionPanel : Control
         _teamHeader = GetNode<Label>(TeamHeaderPath);
         _teamScroll = GetNode<Control>(TeamScrollPath);
         _teamList = GetNode<VBoxContainer>(TeamListPath);
+        _retreatHeader = GetNode<Label>(RetreatHeaderPath);
+        _retreatPosture = GetNode<OptionButton>(RetreatPosturePath);
         _dispatchButton = GetNode<Button>(DispatchButtonPath);
         _cancelButton = GetNode<Button>(CancelButtonPath);
         _prospectButton = GetNode<Button>(ProspectButtonPath);
         _closeButton = GetNode<Button>(CloseButtonPath);
+
+        _retreatHeader.Text = UiText.Get("ui.expedition.posture_label");
+        _retreatPosture.AddItem(
+            UiText.Get("ui.expedition.posture.continue"),
+            (int)ExpeditionRetreatPosture.ContinueAfterSetback);
+        _retreatPosture.AddItem(
+            UiText.Get("ui.expedition.posture.retreat"),
+            (int)ExpeditionRetreatPosture.RetreatAfterSetback);
+        _retreatPosture.Select(1);
+        _retreatPosture.TooltipText = UiText.Get("ui.expedition.posture_hint");
+        _cancelButton.Text = UiText.Get("ui.expedition.cancel_dispatch");
+        _cancelButton.TooltipText = UiText.Get("ui.expedition.cancel_dispatch_hint");
 
         _dispatchButton.Pressed += OnDispatchPressed;
         _cancelButton.Pressed += OnCancelPressed;
@@ -96,6 +115,12 @@ public partial class ExpeditionPanel : Control
         _modalHost.Close();
     }
 
+    public void ShowWoundRecoveryForVisualRegression()
+    {
+        _showRecoveryFixture = true;
+        Open();
+    }
+
     private void ApplyResponsiveBounds()
     {
         Vector2 parentSize = GetParentOrNull<Control>()?.Size ?? GetViewportRect().Size;
@@ -113,7 +138,9 @@ public partial class ExpeditionPanel : Control
     private void OnDispatchPressed()
     {
         if (_selectedMemberIds.Count == 0) return;
-        var request = ExpeditionRequest.Reconnaissance(_selectedMemberIds.ToArray());
+        var request = ExpeditionRequest.Reconnaissance(
+            _selectedMemberIds.ToArray(),
+            SelectedRetreatPosture());
         ExpeditionStartResult result = _controller.StartExpedition(request);
         if (!result.IsSuccess)
         {
@@ -149,7 +176,9 @@ public partial class ExpeditionPanel : Control
     {
         if (_selectedMemberIds.Count == 0) return;
         ExpeditionStartResult result = _controller.StartExpedition(
-            ExpeditionRequest.SeekProspect(_selectedMemberIds.ToArray()));
+            ExpeditionRequest.SeekProspect(
+                _selectedMemberIds.ToArray(),
+                SelectedRetreatPosture()));
         if (!result.IsSuccess)
         {
             Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
@@ -174,7 +203,7 @@ public partial class ExpeditionPanel : Control
         Expedition? active = null;
         foreach (Expedition expedition in world.Expeditions.Values)
         {
-            if (expedition.Status == ExpeditionStatus.Active)
+            if (!_showRecoveryFixture && expedition.Status == ExpeditionStatus.Active)
             {
                 active = expedition;
                 break;
@@ -186,11 +215,11 @@ public partial class ExpeditionPanel : Control
         // unavailable since the last refresh (e.g. assigned elsewhere by
         // another panel, or an expedition that just returned them home
         // recovering).
-        _selectedMemberIds.RemoveAll(id => world.GetCitizen(id) is not { IsAvailable: true });
+        _selectedMemberIds.RemoveAll(id => world.GetCitizen(id) is not { CanJoinExpedition: true });
         if (!_hasAppliedDefaultSelection && active is null)
         {
             _hasAppliedDefaultSelection = true;
-            if (_selectedMemberIds.Count == 0 && world.Hero is { IsAvailable: true } hero)
+            if (_selectedMemberIds.Count == 0 && world.Hero is { CanJoinExpedition: true } hero)
             {
                 _selectedMemberIds.Add(hero.Id);
             }
@@ -199,6 +228,8 @@ public partial class ExpeditionPanel : Control
         bool showTeamPicker = active is null;
         _teamHeader.Visible = showTeamPicker;
         _teamScroll.Visible = showTeamPicker;
+        _retreatHeader.Visible = showTeamPicker;
+        _retreatPosture.Visible = showTeamPicker;
         if (showTeamPicker) PopulateTeamList(world);
 
         bool canDispatch = active is null && _selectedMemberIds.Count > 0;
@@ -212,8 +243,11 @@ public partial class ExpeditionPanel : Control
             : world.PendingProspect is not null
                 ? "ui.expedition.prospect_waiting"
                 : "ui.expedition.seek_prospect_hint");
-        _cancelButton.Visible = active is not null;
-        _statusLabel.Text = active is null
+        _cancelButton.Visible = active is not null
+            && active.Phase == ExpeditionPhase.Outbound
+            && world.CurrentTick == active.StartTick;
+        string territoryStatus = DescribeTerritory(world);
+        _statusLabel.Text = (active is null
             ? UiText.Get("ui.expedition.team_hint")
             : UiText.Format(
                 "ui.expedition.schedule_with_team",
@@ -221,7 +255,16 @@ public partial class ExpeditionPanel : Control
                 DescribeTeam(world, active),
                 SimulationTimeText.FormatLocalized(active.StartTick),
                 SimulationTimeText.FormatLocalized(active.EndTick))
-                + "\n" + DescribePhase(active);
+                + "\n" + UiText.Format(
+                    "ui.expedition.active_posture",
+                    UiText.Get(active.RetreatPosture switch
+                    {
+                        ExpeditionRetreatPosture.RetreatAfterSetback =>
+                            "ui.expedition.posture.retreat",
+                        _ => "ui.expedition.posture.continue",
+                    }))
+                + "\n" + DescribePhase(active))
+            + "\n" + territoryStatus;
     }
 
     private static string DescribePhase(Expedition expedition)
@@ -231,6 +274,7 @@ public partial class ExpeditionPanel : Control
             ExpeditionPhase.Outbound => "ui.expedition.phase.outbound",
             ExpeditionPhase.Encounter => "ui.expedition.phase.encounter",
             ExpeditionPhase.Objective => "ui.expedition.phase.objective",
+            ExpeditionPhase.Retreating => "ui.expedition.phase.retreating",
             ExpeditionPhase.Returning => "ui.expedition.phase.returning",
             _ => "ui.expedition.phase.resolved",
         });
@@ -244,6 +288,9 @@ public partial class ExpeditionPanel : Control
         return UiText.Format("ui.expedition.phase_with_outcome", phaseText, outcomeText);
     }
 
+    private ExpeditionRetreatPosture SelectedRetreatPosture() =>
+        (ExpeditionRetreatPosture)_retreatPosture.GetSelectedId();
+
     private void PopulateTeamList(CityWorld world)
     {
         foreach (Node child in _teamList.GetChildren())
@@ -255,25 +302,90 @@ public partial class ExpeditionPanel : Control
         bool atCapacity = _selectedMemberIds.Count >= ExpeditionRequest.MaxTeamSize;
         foreach (Citizen citizen in world.Citizens.Values)
         {
-            bool isSelected = _selectedMemberIds.Contains(citizen.Id);
-            bool canToggleOn = citizen.IsAvailable && (isSelected || !atCapacity);
-            var button = new Button
+            if (_showRecoveryFixture && citizen.Wound is null) continue;
+
+            if (!citizen.IsHero)
             {
-                Text = citizen.Name,
-                Alignment = HorizontalAlignment.Left,
-                CustomMinimumSize = new Vector2(0, 40),
-                ToggleMode = true,
-                ButtonPressed = isSelected,
-                Disabled = !canToggleOn,
-                ThemeTypeVariation = isSelected ? "ButtonPrimary" : "ButtonText",
-                TooltipText = citizen.IsAvailable
-                    ? UiText.Get("ui.expedition.team_member_hint")
-                    : DescribeUnavailability(world, citizen),
-            };
-            CitizenId citizenId = citizen.Id;
-            button.Toggled += pressed => OnTeamMemberToggled(citizenId, pressed);
+                Button incorporateButton = StandardButtons.TextAction(
+                    UiText.Format("ui.expedition.incorporate_hero_action", citizen.Name),
+                    UiText.Get("ui.expedition.incorporate_hero_hint"));
+                incorporateButton.Alignment = HorizontalAlignment.Left;
+                incorporateButton.CustomMinimumSize = new Vector2(0, 40);
+                CitizenId citizenId = citizen.Id;
+                incorporateButton.Pressed += () => OnIncorporateHeroPressed(citizenId);
+                _teamList.AddChild(incorporateButton);
+                continue;
+            }
+
+            if (citizen.Wound is { } wound)
+            {
+                Button condition = StandardButtons.TextAction(
+                    UiText.Format(
+                        "ui.expedition.wounded_member",
+                        citizen.Name,
+                        UiText.Get(wound.Severity == WoundSeverity.Severe
+                            ? "ui.wound.severe"
+                            : "ui.wound.moderate"),
+                        SimulationTimeText.FormatDurationLocalized(
+                            wound.RecoveryTicksRemaining)),
+                    UiText.Get("ui.expedition.wounded_member_hint"));
+                condition.Alignment = HorizontalAlignment.Left;
+                condition.CustomMinimumSize = new Vector2(0, 40);
+                condition.Disabled = true;
+                _teamList.AddChild(condition);
+                if (citizen.Commitment.Kind != CitizenCommitmentKind.Recovery)
+                {
+                    int foodCost = WoundRules.FoodCostFor(wound.Severity);
+                    Button treatment = StandardButtons.TextAction(
+                        UiText.Format(
+                            "ui.expedition.begin_treatment",
+                            citizen.Name,
+                            foodCost),
+                        UiText.Get("ui.expedition.begin_treatment_hint"));
+                    CitizenId woundedId = citizen.Id;
+                    treatment.Pressed += () => OnBeginTreatmentPressed(woundedId);
+                    _teamList.AddChild(treatment);
+                }
+                continue;
+            }
+
+            bool isSelected = _selectedMemberIds.Contains(citizen.Id);
+            bool canToggleOn = citizen.CanJoinExpedition && (isSelected || !atCapacity);
+            Button button = StandardButtons.TextAction(
+                citizen.Name,
+                DescribeExpeditionEligibility(world, citizen));
+            button.Alignment = HorizontalAlignment.Left;
+            button.CustomMinimumSize = new Vector2(0, 40);
+            button.ToggleMode = true;
+            button.ButtonPressed = isSelected;
+            button.Disabled = !canToggleOn;
+            button.ThemeTypeVariation = isSelected ? "ButtonPrimary" : "ButtonText";
+            CitizenId heroId = citizen.Id;
+            button.Toggled += pressed => OnTeamMemberToggled(heroId, pressed);
             _teamList.AddChild(button);
         }
+    }
+
+    private void OnIncorporateHeroPressed(CitizenId citizenId)
+    {
+        HeroIncorporationResult result = _controller.TryIncorporateHero(citizenId);
+        if (!result.IsSuccess)
+        {
+            Notifier.ShowError(
+                UiText.Format("ui.expedition.incorporation_failed", result.Outcome));
+        }
+        Refresh();
+    }
+
+    private void OnBeginTreatmentPressed(CitizenId citizenId)
+    {
+        WoundRecoveryResult result = _controller.TryBeginWoundRecovery(citizenId);
+        if (!result.IsSuccess)
+        {
+            Notifier.ShowError(
+                UiText.Format("ui.expedition.treatment_failed", result.Outcome));
+        }
+        Refresh();
     }
 
     private void OnTeamMemberToggled(CitizenId citizenId, bool pressed)
@@ -296,6 +408,35 @@ public partial class ExpeditionPanel : Control
     private static string DescribeTeam(CityWorld world, Expedition expedition) =>
         string.Join(", ", expedition.MemberIds.Select(id => world.GetCitizen(id)?.Name ?? "?"));
 
+    private static string DescribeTerritory(CityWorld world)
+    {
+        CityParcel? target = world.NextTerritoryTarget;
+        return target is null
+            ? UiText.Get("ui.expedition.territory_available")
+            : UiText.Format(
+                "ui.expedition.territory_target",
+                target.Id.Value,
+                UiText.Get(target.TerritoryState switch
+                {
+                    ParcelTerritoryState.Reconnoitred => "ui.territory.reconnoitred",
+                    ParcelTerritoryState.RouteSecured => "ui.territory.route_secured",
+                    ParcelTerritoryState.Available => "ui.territory.available",
+                    _ => "ui.territory.locked",
+                }));
+    }
+
+    private static string DescribeExpeditionEligibility(CityWorld world, Citizen citizen)
+    {
+        if (!citizen.CanJoinExpedition)
+        {
+            return DescribeUnavailability(world, citizen);
+        }
+        return citizen.Commitment.Kind is CitizenCommitmentKind.BuildingWork
+                or CitizenCommitmentKind.Construction
+            ? UiText.Get("ui.expedition.team_member_interrupts_work")
+            : UiText.Get("ui.expedition.team_member_hint");
+    }
+
     private static string DescribeUnavailability(CityWorld world, Citizen citizen) =>
         citizen.AvailabilityReason switch
         {
@@ -305,6 +446,7 @@ public partial class ExpeditionPanel : Control
                 UiText.Format("ui.assignment.reason_construction", ResolveLocationName(world, citizen)),
             CitizenAvailabilityReason.OnExpedition => UiText.Get("ui.assignment.reason_expedition"),
             CitizenAvailabilityReason.Recovering => UiText.Get("ui.assignment.reason_recovering"),
+            CitizenAvailabilityReason.Wounded => UiText.Get("ui.assignment.reason_wounded"),
             _ => UiText.Get("Available"),
         };
 

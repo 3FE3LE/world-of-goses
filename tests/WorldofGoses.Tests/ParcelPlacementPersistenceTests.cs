@@ -147,6 +147,9 @@ public sealed class ParcelPlacementPersistenceTests
         current = WorldPersistence.MigrateV13ToV14(current);
         current = WorldPersistence.MigrateV14ToV15(current);
         current = WorldPersistence.MigrateV15ToV16(current);
+        current = WorldPersistence.MigrateV16ToV17(current);
+        current = WorldPersistence.MigrateV17ToV18(current);
+        current = WorldPersistence.MigrateV18ToV19(current);
         WorldPersistence.Validate(current);
     }
 
@@ -182,6 +185,9 @@ public sealed class ParcelPlacementPersistenceTests
         migrated = WorldPersistence.MigrateV13ToV14(migrated);
         migrated = WorldPersistence.MigrateV14ToV15(migrated);
         migrated = WorldPersistence.MigrateV15ToV16(migrated);
+        migrated = WorldPersistence.MigrateV16ToV17(migrated);
+        migrated = WorldPersistence.MigrateV17ToV18(migrated);
+        migrated = WorldPersistence.MigrateV18ToV19(migrated);
         WorldPersistence.Validate(migrated);
     }
 }

@@ -41,9 +41,12 @@ public sealed class WorldSave
     ///   <item><description>v14 — retired the `BuildingKind.Forest` compatibility adapter. Wood lives in `NaturalResourcePatches` and `CityInventory`; the Forest building entity no longer exists.</description></item>
     ///   <item><description>v15 — expeditions carry a real 1-2 citizen team (`ExpeditionSave.MemberCitizenIds`) instead of a single `LeadCitizenId`.</description></item>
     ///   <item><description>v16 — expeditions carry a persisted phase (`ExpeditionSave.Phase`) and a resolved encounter outcome (`ExpeditionSave.EncounterOutcome`).</description></item>
+    ///   <item><description>v17 — every expedition member is an explicitly incorporated hero; legacy participants receive the existing hero role during migration.</description></item>
+    ///   <item><description>v18 — expedition plans persist a retreat posture and their causal dispatch event; retreat is distinct from pre-travel cancellation.</description></item>
+    ///   <item><description>v19 — citizens persist durable wounds and treatment progress independently from stamina; parcels persist an expedition-driven territorial state and expeditions retain their target parcel.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 16;
+    public const int CurrentVersion = 19;
 
     public int Version { get; set; } = CurrentVersion;
 

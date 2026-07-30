@@ -22,8 +22,8 @@ public partial class MigrantPanel : Control
     [Export] public NodePath RecruitButtonPath { get; set; } = "Surface/Margin/Layout/RecruitButton";
     [Export] public NodePath CloseButtonPath { get; set; } = "Surface/Margin/Layout/CloseButton";
     [Export] public NodePath StatusLabelPath { get; set; } = "Surface/Margin/Layout/StatusLabel";
-    [Export] public NodePath CitizenListPath { get; set; } = "Surface/Margin/Layout/CitizenList/Rows";
-    [Export] public NodePath DetailLabelPath { get; set; } = "Surface/Margin/Layout/DetailLabel";
+    [Export] public NodePath CitizenListPath { get; set; } = "Surface/Margin/Layout/BodyScroll/Body/CitizenList/Rows";
+    [Export] public NodePath DetailLabelPath { get; set; } = "Surface/Margin/Layout/BodyScroll/Body/DetailLabel";
 
     private CityWorldController _controller = null!;
     private ModalHost _modalHost = null!;
@@ -96,7 +96,11 @@ public partial class MigrantPanel : Control
 
     private void ApplyResponsiveBounds()
     {
-        Vector2 parentSize = GetParentOrNull<Control>()?.Size ?? GetViewportRect().Size;
+        Vector2 parentSize = GetParentOrNull<Control>()?.Size ?? Vector2.Zero;
+        if (parentSize.X < 100f || parentSize.Y < 100f)
+        {
+            parentSize = GetViewportRect().Size;
+        }
         Vector2 size = new(
             Mathf.Max(360f, Mathf.Min(PreferredSize.X, parentSize.X - ViewportInset * 2f)),
             Mathf.Max(320f, Mathf.Min(PreferredSize.Y, parentSize.Y - ViewportInset * 2f)));
@@ -187,6 +191,7 @@ public partial class MigrantPanel : Control
     private void SelectCitizen(CitizenId id)
     {
         _selectedCitizenId = id;
+        _controller.SelectCitizenForObservation(id);
         Refresh();
         CallDeferred(MethodName.FocusSelectedCitizen);
     }
@@ -211,7 +216,7 @@ public partial class MigrantPanel : Control
         string assignment = citizen.CurrentAssignment.HasValue
             ? ResolveAssignmentName(citizen.CurrentAssignment.Value)
             : UiText.Get("None");
-        return UiText.Format(
+        string description = UiText.Format(
             "ui.citizens.detail",
             citizen.Name,
             DescribeStatus(citizen),
@@ -220,7 +225,28 @@ public partial class MigrantPanel : Control
             DescribeAffinities(citizen.Profile),
             citizen.CurrentStamina,
             citizen.MaxStamina);
+        if (!OS.IsDebugBuild()) return description;
+
+        CitizenDebugSnapshot? debug = _controller.GetCitizenDebugSnapshot(citizen.Id);
+        if (debug is null) return description;
+        CitizenRoutineSnapshot routine = debug.Routine;
+        return description + "\n\n" + UiText.Format(
+            "ui.citizens.debug_context",
+            routine.Activity,
+            routine.ContextLocation,
+            routine.BlockReason,
+            debug.AssignedBuildingId?.Value.ToString() ?? "—",
+            debug.ShelterId?.Value.ToString() ?? "—",
+            FormatOptionalWorldTime(routine.ActivityStartedAtTick),
+            FormatOptionalWorldTime(routine.ExpectedCompletionTick),
+            FormatOptionalWorldTime(routine.NextTransitionTick),
+            System.DateTimeOffset.FromUnixTimeMilliseconds(
+                debug.LastSimulationProcessedAtUnixMillis).ToLocalTime().ToString("HH:mm:ss"));
     }
+
+    private static string FormatOptionalWorldTime(int? tick) => tick is int value
+        ? SimulationTimeText.FormatLocalized(value)
+        : "—";
 
     private static string DescribeAffinities(CitizenProfile profile) =>
         string.Join(", ",

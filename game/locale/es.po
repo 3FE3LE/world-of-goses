@@ -519,6 +519,12 @@ msgstr "Asignado"
 msgid "ui.status.saved"
 msgstr "Guardado · {0}"
 
+msgid "ui.status.saved_short"
+msgstr "Guardado"
+
+msgid "ui.citizens.debug_context"
+msgstr "Depuración — actividad: {0} · contexto: {1} · bloqueo: {2}\nTrabajo: {3} · Shelter: {4}\nInicio: {5} · llegada: {6} · siguiente: {7}\nÚltimo procesamiento de simulación: {8}"
+
 msgid "ui.status.food_stock"
 msgstr "Comida: {0} / {1}"
 
@@ -589,10 +595,22 @@ msgid "ui.expedition.schedule_with_team"
 msgstr "{0} ({1}) partió el {2} y regresa el {3}."
 
 msgid "ui.expedition.team_hint"
-msgstr "Elige de 1 a 2 ciudadanos para el equipo y luego envía la expedición."
+msgstr "Elige de 1 a 2 héroes incorporados para el equipo y luego envía la expedición."
 
 msgid "ui.expedition.team_member_hint"
 msgstr "Añadir al equipo de la expedición."
+
+msgid "ui.expedition.team_member_interrupts_work"
+msgstr "Añadir al equipo. Su orden de trabajo actual quedará suspendida hasta que regrese."
+
+msgid "ui.expedition.incorporate_hero_action"
+msgstr "Incorporar a {0} como héroe"
+
+msgid "ui.expedition.incorporate_hero_hint"
+msgstr "Reconoce a este ciudadano como héroe activo para que pueda participar en expediciones."
+
+msgid "ui.expedition.incorporation_failed"
+msgstr "No se pudo incorporar al héroe: {0}"
 
 msgid "ui.expedition.phase.outbound"
 msgstr "De camino"
@@ -603,6 +621,9 @@ msgstr "Encuentro"
 msgid "ui.expedition.phase.objective"
 msgstr "Objetivo"
 
+msgid "ui.expedition.phase.retreating"
+msgstr "En retirada"
+
 msgid "ui.expedition.phase.returning"
 msgstr "Regresando"
 
@@ -611,6 +632,90 @@ msgstr "Resuelta"
 
 msgid "ui.expedition.phase_with_outcome"
 msgstr "{0} — {1}"
+
+msgid "ui.expedition.posture_label"
+msgstr "Postura de retirada"
+
+msgid "ui.expedition.posture.continue"
+msgstr "Continuar tras un contratiempo"
+
+msgid "ui.expedition.posture.retreat"
+msgstr "Regresar tras un contratiempo"
+
+msgid "ui.expedition.posture_hint"
+msgstr "Elige la orden permanente que seguirá el equipo si el encuentro sale mal."
+
+msgid "ui.expedition.active_posture"
+msgstr "Orden activa: {0}"
+
+msgid "ui.expedition.cancel_dispatch"
+msgstr "Cancelar envío"
+
+msgid "ui.expedition.cancel_dispatch_hint"
+msgstr "Cancela antes de iniciar el viaje. Se conservan los suministros reservados y la condición del equipo."
+
+msgid "ui.expedition.wounded_member"
+msgstr "{0} — herida {1} (tiempo de tratamiento: {2})"
+
+msgid "ui.expedition.wounded_member_hint"
+msgstr "Una herida es independiente de la stamina e impide salir de expedición hasta recibir tratamiento."
+
+msgid "ui.expedition.begin_treatment"
+msgstr "Tratar a {0} en el Refugio básico ({1} de comida)"
+
+msgid "ui.expedition.begin_treatment_hint"
+msgstr "Autoriza el tratamiento en el refugio. Recuperar stamina no completa la curación."
+
+msgid "ui.expedition.treatment_failed"
+msgstr "No se pudo iniciar el tratamiento: {0}"
+
+msgid "ui.expedition.territory_target"
+msgstr "Objetivo territorial: parcela {0} — {1}"
+
+msgid "ui.expedition.territory_available"
+msgstr "La ruta territorial actual está disponible para la ciudad."
+
+msgid "ui.territory.locked"
+msgstr "Bloqueada"
+
+msgid "ui.territory.reconnoitred"
+msgstr "Reconocida"
+
+msgid "ui.territory.route_secured"
+msgstr "Ruta asegurada"
+
+msgid "ui.territory.available"
+msgstr "Disponible"
+
+msgid "ui.wound.moderate"
+msgstr "moderada"
+
+msgid "ui.wound.severe"
+msgstr "grave"
+
+msgid "ui.assignment.reason_wounded"
+msgstr "Herido — requiere tratamiento en el refugio"
+
+msgid "ui.hero_profile.stamina_effective"
+msgstr "Stamina: {0}/{1} utilizable ({2} con salud plena)"
+
+msgid "ui.hero_profile.wound"
+msgstr "Herida {0} — tratamiento requerido: {1}"
+
+msgid "ui.hero_profile.wound_treatment"
+msgstr "Herida {0} — recuperándose en el refugio (tiempo restante: {1})"
+
+msgid "event.wound_sustained"
+msgstr "{0} regresó con una herida"
+
+msgid "event.wound_recovery_started"
+msgstr "{0} inició tratamiento usando {1} de comida"
+
+msgid "event.wound_recovery_completed"
+msgstr "{0} completó el tratamiento de su herida"
+
+msgid "event.territory_advanced"
+msgstr "{0} avanzó a {1}"
 
 msgid "ui.resource.wood_remains"
 msgstr "Quedan {0} de madera"
@@ -628,16 +733,55 @@ msgid "ui.tree.regrows_at"
 msgstr "Vuelve a crecer {0}"
 
 msgid "ui.camera.follow_label"
-msgstr "Seguir al fundador"
+msgstr "Siguiendo ciudadano"
 
 msgid "ui.camera.free_label"
 msgstr "Cámara libre"
 
 msgid "ui.camera.follow_tooltip"
-msgstr "La cámara sigue al fundador. Clic para desplazarte libremente (F)."
+msgstr "La cámara sigue al ciudadano seleccionado. Clic para desplazarte libremente (F)."
 
 msgid "ui.camera.free_tooltip"
-msgstr "La cámara está libre. Clic para volver a seguir al fundador (F)."
+msgstr "La cámara está libre. Clic para seguir al ciudadano seleccionado (F)."
+
+msgid "ui.policies.title"
+msgstr "Políticas"
+
+msgid "ui.policies.workday"
+msgstr "Jornada laboral"
+
+msgid "ui.policies.current_state"
+msgstr "Estado actual de la jornada"
+
+msgid "ui.policies.production"
+msgstr "Reglas de producción"
+
+msgid "ui.policies.off_duty"
+msgstr "Fuera del horario laboral"
+
+msgid "ui.policies.construction"
+msgstr "Construcción autónoma"
+
+msgid "ui.policies.future"
+msgstr "Las próximas políticas aparecerán aquí cuando se conviertan en decisiones reales del jugador."
+
+msgid "ui.policies.schedule_value"
+msgstr "{0}–{1} (provisional)"
+
+msgid "ui.policies.workday_active"
+msgstr "La jornada laboral está activa."
+
+msgid "ui.policies.workday_inactive"
+msgstr "La ciudad está fuera del horario laboral."
+
+msgid "ui.policies.production_value"
+msgstr "Los trabajadores asignados producen cada {0}, se detienen al máximo de cada edificio y reanudan cuando la demanda alcanza el mínimo."
+
+msgid "ui.policies.off_duty_value"
+msgstr "Los ciudadanos vuelven al Shelter para descansar; sus órdenes laborales permanecen asignadas."
+
+msgid "ui.policies.construction_value"
+msgstr "Los proyectos autorizados avanzan automáticamente. Autorizar nuevas construcciones sigue siendo decisión del jugador."
 
 msgid "ui.tutorial.title"
 msgstr "Consejo {0} de {1} — {2}"
@@ -673,10 +817,10 @@ msgid "ui.production.stock"
 msgstr "{0}: {1} / {2}"
 
 msgid "ui.production.foraging_rate"
-msgstr "Lote de recolección: {0} {1} cada {3}s ({2} trabajadores)"
+msgstr "Lote de recolección: {0} {1} cada {3} ({2} trabajadores)"
 
 msgid "ui.production.rate"
-msgstr "Lote: {0} {1} cada {2}s"
+msgstr "Lote: {0} {1} cada {2}"
 
 msgid "ui.production.inputs_due"
 msgstr "Insumos requeridos: {0}"
@@ -735,6 +879,9 @@ msgstr "{0} no logró regresar"
 
 msgid "event.expedition_cancelled"
 msgstr "{0} fue cancelada"
+
+msgid "event.expedition_retreated"
+msgstr "{0} se retiró y regresó sin completar el objetivo"
 
 msgid "event.migrant_arrived"
 msgstr "{0} se unió a la ciudad"
@@ -1712,13 +1859,34 @@ msgid "ui.building_detail.capacity_resting_one"
 msgstr "Capacidad: {0} · {1} ciudadano descansando aquí."
 
 msgid "ui.construction.active_interval"
-msgstr "Activo — próxima contribución en un intervalo de {0} ticks"
+msgstr "Activo — próxima contribución en {0}"
 
 msgid "ui.construction.assign_to_project"
 msgstr "Asignar a {0} al proyecto"
 
 msgid "ui.construction.contributors_interval"
-msgstr "Los contribuyentes añaden trabajo cada {0} segundos mientras el proyecto está activo."
+msgstr "Los contribuyentes añaden trabajo cada {0} mientras el proyecto está activo."
+
+msgid "ui.duration.day.one"
+msgstr "{0} día"
+
+msgid "ui.duration.day.many"
+msgstr "{0} días"
+
+msgid "ui.duration.hour.one"
+msgstr "{0} hora"
+
+msgid "ui.duration.hour.many"
+msgstr "{0} horas"
+
+msgid "ui.duration.minute.one"
+msgstr "{0} minuto"
+
+msgid "ui.duration.minute.many"
+msgstr "{0} minutos"
+
+msgid "ui.duration.separator"
+msgstr " "
 
 msgid "ui.construction.gather_remaining"
 msgstr "Recolecta los materiales restantes ({0}) para iniciar la obra."

@@ -31,20 +31,24 @@ public sealed class Citizen
     public CitizenWorkOrder? WorkOrder { get; private set; }
     public BuildingId? CurrentAssignment => WorkOrder?.TargetId;
     public CitizenVitalStatus VitalStatus { get; private set; }
+    public CitizenWound Wound { get; private set; }
+    public bool IsWounded => Wound is not null;
     public int ResumeWorkNotBeforeTick { get; private set; }
-    public Availability Availability => Commitment.IsAvailable
+    public Availability Availability => IsAvailable
         ? Availability.Available
         : Availability.Assigned;
     public CitizenAvailabilityReason AvailabilityReason => Commitment.Kind switch
     {
-        CitizenCommitmentKind.None => CitizenAvailabilityReason.Available,
+        CitizenCommitmentKind.None => IsWounded
+            ? CitizenAvailabilityReason.Wounded
+            : CitizenAvailabilityReason.Available,
         CitizenCommitmentKind.BuildingWork => CitizenAvailabilityReason.AssignedToBuilding,
         CitizenCommitmentKind.Construction => CitizenAvailabilityReason.AssignedToConstruction,
         CitizenCommitmentKind.Expedition => CitizenAvailabilityReason.OnExpedition,
         CitizenCommitmentKind.Recovery => CitizenAvailabilityReason.Recovering,
         _ => throw new InvalidOperationException($"Unknown commitment kind {Commitment.Kind}."),
     };
-    public bool IsAvailable => Commitment.IsAvailable;
+    public bool IsAvailable => Commitment.IsAvailable && !IsWounded;
 
     /// <summary>
     /// Where the citizen physically is right now. Updated by
@@ -73,6 +77,14 @@ public sealed class Citizen
     /// <summary>Maximum stamina for this citizen. Default <see cref="StaminaRules.MaxStamina"/>.</summary>
     public int MaxStamina { get; private set; }
 
+    /// <summary>
+    /// Stamina currently usable after durable health limits. Healing the
+    /// wound raises this cap; ordinary stamina recovery never removes it.
+    /// </summary>
+    public int EffectiveMaxStamina => Wound is null
+        ? MaxStamina
+        : WoundRules.EffectiveStaminaCap(MaxStamina, Wound.Severity);
+
     /// <summary>Current stamina. Clamped between 0 and <see cref="MaxStamina"/>.</summary>
     public int CurrentStamina { get; private set; }
 
@@ -89,6 +101,11 @@ public sealed class Citizen
         _competencies;
     public IReadOnlyList<Role> Roles => _roles;
     public bool IsHero => HasRole(RoleId.Hero);
+    public bool CanJoinExpedition => IsHero
+        && !IsWounded
+        && Commitment.Kind is not (CitizenCommitmentKind.Expedition
+            or CitizenCommitmentKind.Recovery)
+        && VitalStatus == CitizenVitalStatus.Stable;
 
     public Citizen(
         CitizenId id,
@@ -186,8 +203,68 @@ public sealed class Citizen
 
     private bool TrySetCommitment(CitizenCommitment commitment)
     {
-        if (!Commitment.IsAvailable) return false;
+        if (!Commitment.IsAvailable || IsWounded) return false;
         Commitment = commitment;
+        return true;
+    }
+
+    internal void SustainWound(WoundSeverity severity, WorldEventId originatingEventId)
+    {
+        if (Wound is null)
+        {
+            Wound = new CitizenWound(
+                severity,
+                originatingEventId,
+                WoundRules.RecoveryTicksFor(severity));
+        }
+        else
+        {
+            Wound.WorsenTo(severity);
+        }
+        CurrentStamina = Math.Min(CurrentStamina, EffectiveMaxStamina);
+    }
+
+    internal void RestoreWound(CitizenWound wound)
+    {
+        Wound = wound;
+        CurrentStamina = Math.Min(CurrentStamina, EffectiveMaxStamina);
+    }
+
+    internal bool BeginWoundRecovery(BuildingId shelterId, int currentTick)
+    {
+        if (Wound is null
+            || Commitment.Kind is CitizenCommitmentKind.Expedition
+                or CitizenCommitmentKind.Recovery)
+        {
+            return false;
+        }
+        Commitment = new CitizenCommitment(CitizenCommitmentKind.Recovery, shelterId.Value);
+        ResumeWorkNotBeforeTick = currentTick;
+        if (CurrentLocation != CitizenLocation.AtHome)
+        {
+            BeginTravelHome(currentTick);
+        }
+        _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Wound treatment began");
+        return true;
+    }
+
+    internal bool AdvanceWoundRecoveryTick()
+        => AdvanceWoundRecoveryTicks(1);
+
+    internal bool AdvanceWoundRecoveryTicks(int tickCount)
+    {
+        if (Wound is null
+            || Commitment.Kind != CitizenCommitmentKind.Recovery
+            || CurrentLocation != CitizenLocation.AtHome
+            || !Wound.AdvanceRecoveryTicks(tickCount))
+        {
+            return false;
+        }
+
+        Wound = null;
+        Commitment = WorkOrder is { } workOrder
+            ? new CitizenCommitment(workOrder.Kind, workOrder.TargetId.Value)
+            : CitizenCommitment.None;
         return true;
     }
 
@@ -290,7 +367,8 @@ public sealed class Citizen
     /// </summary>
     internal bool DispatchOnExpedition(ExpeditionId expeditionId)
     {
-        if (Commitment.Kind is CitizenCommitmentKind.Expedition or CitizenCommitmentKind.Recovery)
+        if (IsWounded
+            || Commitment.Kind is CitizenCommitmentKind.Expedition or CitizenCommitmentKind.Recovery)
         {
             return false;
         }
@@ -325,6 +403,28 @@ public sealed class Citizen
         _behaviorFsm.TryTransition(
             WorkOrder.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
             "Expedition returns or is cancelled");
+        return true;
+    }
+
+    /// <summary>
+    /// Reverts a dispatch authorization before simulation advances. Unlike a
+    /// physical return, this does not apply travel recovery because the team
+    /// never crossed an expedition tick.
+    /// </summary>
+    internal bool CancelExpeditionDispatch(ExpeditionId expeditionId)
+    {
+        if (Commitment.Kind != CitizenCommitmentKind.Expedition
+            || Commitment.EntityId != expeditionId.Value)
+        {
+            return false;
+        }
+        Commitment = WorkOrder is { } workOrder
+            ? new CitizenCommitment(workOrder.Kind, workOrder.TargetId.Value)
+            : CitizenCommitment.None;
+        CurrentLocation = CitizenLocation.AtHome;
+        _behaviorFsm.TryTransition(
+            WorkOrder.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
+            "Expedition dispatch cancelled before departure");
         return true;
     }
 
@@ -434,7 +534,7 @@ public sealed class Citizen
     public void RestoreStamina(int amount)
     {
         if (amount <= 0) return;
-        CurrentStamina = Math.Min(MaxStamina, CurrentStamina + amount);
+        CurrentStamina = Math.Min(EffectiveMaxStamina, CurrentStamina + amount);
         if (CurrentStamina > 0 && Behavior == CitizenBehaviorState.Injured)
         {
             _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Stamina restored to threshold");

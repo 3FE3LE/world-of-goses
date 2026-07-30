@@ -11,4 +11,5 @@ public enum CitizenAvailabilityReason
     AssignedToConstruction = 2,
     OnExpedition = 3,
     Recovering = 4,
+    Wounded = 5,
 }

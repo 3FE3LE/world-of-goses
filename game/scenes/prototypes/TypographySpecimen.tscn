@@ -1,0 +1,80 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Prototypes/TypographySpecimen.cs" id="1_typography"]
+
+[node name="TypographySpecimen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_typography")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.025, 0.032, 0.048, 1)
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 64.0
+offset_top = 48.0
+offset_right = -64.0
+offset_bottom = -48.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Rows" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"ScreenTitle"
+text = "WOW · O0Q · MWMW · Exploración"
+
+[node name="TitleLowercase" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"EventTitle"
+text = "wow · owo · nuevo mundo"
+
+[node name="Section" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"SectionTitle"
+text = "WOW · O0Q · MWMW · Bosque y refugio"
+
+[node name="ButtonSample" type="Button" parent="Margin/Rows"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_type_variation = &"ButtonText"
+text = "wow · owo · volver al nuevo mundo"
+
+[node name="Body" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "WOW · O0Q · MWMW — El nuevo bosque volvió a producir madera."
+
+[node name="BodyLowercase" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"BodyText"
+text = "wow · owo · mínimo común · corazón · información · 0123456789"
+
+[node name="BodySmall" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"BodySmall"
+text = "WOW wow O0Q owo MWMW — tamaño pequeño, curvas y diagonales"
+
+[node name="Instructions" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"BodySmall"
+text = "Revisar a zoom 100 %: cada trazo debe usar píxeles sólidos, sin columnas grises ni bordes difuminados."
+autowrap_mode = 2

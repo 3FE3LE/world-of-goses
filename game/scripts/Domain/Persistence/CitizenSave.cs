@@ -36,6 +36,9 @@ public sealed class CitizenSave
     public string? CurrentLocation { get; set; }
     public int ResumeWorkNotBeforeTick { get; set; }
     public bool IsReturningHome { get; set; }
+    public string? WoundSeverity { get; set; }
+    public int? WoundOriginatingEventId { get; set; }
+    public int WoundRecoveryTicksRemaining { get; set; }
     public List<CompetencySave> Competencies { get; set; } = new();
     public List<RoleSave> Roles { get; set; } = new();
 

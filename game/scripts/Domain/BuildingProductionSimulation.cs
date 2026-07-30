@@ -144,6 +144,12 @@ internal sealed class BuildingProductionSimulation
 
     private ProductionStopCause ResolveAbsentWorkerCause(Building building)
     {
+        // A temporary lack of present workers must not overwrite the causal
+        // production block. In particular, workers released home after the
+        // max-stock cooldown are waiting for storage demand, not travelling.
+        if (!building.ProductionEnabled) return ProductionStopCause.Paused;
+        if (building.Stock >= building.MaxStock) return ProductionStopCause.TargetReached;
+
         bool hasRecovering = false;
         foreach (CitizenId citizenId in building.AssignedCitizenIds)
         {

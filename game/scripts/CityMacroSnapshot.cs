@@ -41,6 +41,9 @@ public sealed record CityMacroSnapshot(
         BuildingId? CurrentAssignment,
         CitizenLocation Location,
         bool IsReturningHome,
+        int? TransitStartedAtTick,
+        CitizenRoutineActivity Activity,
+        CitizenRoutineBlockReason BlockReason,
         int CurrentStamina,
         int MaxStamina,
         BuildingId? LastVisitedResourceBuildingId,
@@ -180,6 +183,7 @@ public sealed record CityMacroSnapshot(
         foreach (var resident in world.Citizens.Values)
         {
             bool isOnExpedition = world.IsCitizenOnActiveExpedition(resident.Id);
+            CitizenRoutineSnapshot routine = world.GetCitizenRoutine(resident.Id)!;
             citizens.Add(new CitizenItem(
                 resident.Id,
                 resident.Name,
@@ -189,6 +193,9 @@ public sealed record CityMacroSnapshot(
                 resident.CurrentAssignment,
                 resident.CurrentLocation,
                 resident.IsReturningHome,
+                resident.TransitStartedAtTick,
+                routine.Activity,
+                routine.BlockReason,
                 resident.CurrentStamina,
                 resident.MaxStamina,
                 resident.LastVisitedResourceBuildingId,

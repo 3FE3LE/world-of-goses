@@ -110,8 +110,12 @@ foreach ($catalogPath in $catalogPaths) {
         }
     }
     foreach ($id in $catalogs[$catalogPath].Keys) {
-        if ([string]::IsNullOrEmpty($translations[$catalogPath][$id])) {
+        $translation = $translations[$catalogPath][$id]
+        if ([string]::IsNullOrEmpty($translation)) {
             $errors.Add("$(Split-Path -Leaf $catalogPath) has an empty translation for '$id'.")
+        }
+        if ($translation -match '(?i)\bticks?\b') {
+            $errors.Add("$(Split-Path -Leaf $catalogPath) exposes internal ticks in player-facing key '$id'.")
         }
     }
 }

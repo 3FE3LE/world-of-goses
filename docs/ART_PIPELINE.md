@@ -91,6 +91,11 @@ three.
 - **Generated cache:** `.import/` and `.godot/` are ignored. The PNG
   (and any intentional `.import` file) is the committed source of
   truth.
+- **Pixel fonts:** project TTF fonts commit their `.import` profile with
+  antialiasing and subpixel positioning disabled, viewport-driven oversampling
+  (`0.0`), and the project-wide Nearest canvas filter. Validate the profile
+  with `tools/Test-PixelFontImports.ps1`; use the typography specimen for
+  output-resolution review rather than judging the editor preview.
 
 ### 5.1 Universal LPC lineage characters
 

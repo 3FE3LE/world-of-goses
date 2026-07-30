@@ -115,7 +115,7 @@ public class MobilizationTests
 
         Assert.Equal(CitizenLocation.InTransit, citizen.CurrentLocation);
         Assert.Equal(rateBefore, world.CurrentProductionRate(farm.Id));
-        Assert.Contains(citizen.Id, world.GetCurrentlyVisibleOccupants(farm));
+        Assert.DoesNotContain(citizen.Id, world.GetCurrentlyVisibleOccupants(farm));
         world.AdvanceWorldTick();
         Assert.Equal(stockBefore, farm.Stock);
         Assert.Equal(ProductionStopCause.WorkersInTransit, farm.StopCause);
@@ -125,6 +125,42 @@ public class MobilizationTests
         Assert.True(world.CurrentProductionRate(farm.Id) > rateBefore);
         TestHelpers.AdvanceToNextProductionCycle(world);
         Assert.True(farm.Stock > stockBefore);
+    }
+
+    [Fact]
+    public void ArrivalAtEightAm_ActivatesAssignedWorker()
+    {
+        var world = TestHelpers.WorldWithHome();
+        Building quarry = TestHelpers.NewBuilding(new BuildingId(9100));
+        world.RegisterBuilding(quarry);
+        Citizen founder = world.Hero!;
+        int eightAmTick = GameClock.TicksPerInGameDay / 3;
+        while (world.CurrentTick < eightAmTick) world.AdvanceWorldTick();
+
+        Assert.True(world.TryAssignCitizen(quarry.Id, founder.Id).IsSuccess);
+        Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
+        Assert.True(world.ConfirmCitizenArrivedAtAssignment(founder.Id, quarry.Id));
+
+        Assert.Equal(CitizenLocation.AtWork, founder.CurrentLocation);
+        Assert.Contains(founder.Id, world.GetCurrentlyVisibleOccupants(quarry));
+    }
+
+    [Fact]
+    public void ArrivalAfterWorkday_ReversesJourneyWithoutDroppingStandingOrder()
+    {
+        var world = TestHelpers.WorldWithHome();
+        Building quarry = TestHelpers.NewBuilding(new BuildingId(9101));
+        world.RegisterBuilding(quarry);
+        Citizen founder = world.Hero!;
+
+        Assert.True(world.TryAssignCitizen(quarry.Id, founder.Id).IsSuccess);
+        while (world.CurrentTick < GameClock.DayTicks) world.AdvanceWorldTick();
+
+        Assert.False(world.ConfirmCitizenArrivedAtAssignment(founder.Id, quarry.Id));
+        Assert.Equal(quarry.Id, founder.CurrentAssignment);
+        Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
+        Assert.True(founder.IsReturningHome);
+        Assert.DoesNotContain(founder.Id, world.GetCurrentlyVisibleOccupants(quarry));
     }
 
     [Fact]

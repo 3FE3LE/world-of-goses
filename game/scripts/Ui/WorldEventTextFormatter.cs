@@ -29,10 +29,15 @@ public static class WorldEventTextFormatter
         WorldEventKind.ExpeditionReturned => $"{subjectName} returned with +{amount}",
         WorldEventKind.ExpeditionFailed => $"{subjectName} failed to return",
         WorldEventKind.ExpeditionCancelled => $"{subjectName} was cancelled",
+        WorldEventKind.ExpeditionRetreated => $"{subjectName} retreated and returned",
         WorldEventKind.MigrantArrived => $"{subjectName} joined the city",
         WorldEventKind.FoodRationShortfall => $"Food ran short: {amount} residents went unfed",
         WorldEventKind.ExpeditionEncounterResolved =>
             $"{subjectName} encounter: {DescribeEncounterOutcome(amount)}",
+        WorldEventKind.WoundSustained => $"{subjectName} returned wounded",
+        WorldEventKind.WoundRecoveryStarted => $"{subjectName} began treatment with {amount} Food",
+        WorldEventKind.WoundRecoveryCompleted => $"{subjectName} completed treatment",
+        WorldEventKind.TerritoryAdvanced => $"{subjectName} advanced to {(ParcelTerritoryState)amount}",
         _ => subjectName,
     };
 
@@ -68,10 +73,18 @@ public static class WorldEventTextFormatter
         WorldEventKind.ExpeditionReturned => UiText.Format("event.expedition_returned", localizedSubject, amount),
         WorldEventKind.ExpeditionFailed => UiText.Format("event.expedition_failed", localizedSubject),
         WorldEventKind.ExpeditionCancelled => UiText.Format("event.expedition_cancelled", localizedSubject),
+        WorldEventKind.ExpeditionRetreated => UiText.Format("event.expedition_retreated", localizedSubject),
         WorldEventKind.MigrantArrived => UiText.Format("event.migrant_arrived", localizedSubject),
         WorldEventKind.FoodRationShortfall => UiText.Format("event.food_ration_shortfall", amount),
         WorldEventKind.ExpeditionEncounterResolved => UiText.Format(
             "event.expedition_encounter_resolved", localizedSubject, DescribeEncounterOutcomeLocalized(amount)),
+        WorldEventKind.WoundSustained => UiText.Format("event.wound_sustained", localizedSubject),
+        WorldEventKind.WoundRecoveryStarted => UiText.Format(
+            "event.wound_recovery_started", localizedSubject, amount),
+        WorldEventKind.WoundRecoveryCompleted => UiText.Format(
+            "event.wound_recovery_completed", localizedSubject),
+        WorldEventKind.TerritoryAdvanced => UiText.Format(
+            "event.territory_advanced", localizedSubject, DescribeTerritoryStateLocalized(amount)),
         _ => localizedSubject,
     };
     }
@@ -82,4 +95,13 @@ public static class WorldEventTextFormatter
         ExpeditionEncounterOutcome.PartialSuccess => UiText.Get("event.encounter_outcome.partial_success"),
         _ => UiText.Get("event.encounter_outcome.setback"),
     };
+
+    private static string DescribeTerritoryStateLocalized(int amount) =>
+        UiText.Get((ParcelTerritoryState)amount switch
+        {
+            ParcelTerritoryState.Reconnoitred => "ui.territory.reconnoitred",
+            ParcelTerritoryState.RouteSecured => "ui.territory.route_secured",
+            ParcelTerritoryState.Available => "ui.territory.available",
+            _ => "ui.territory.locked",
+        });
 }

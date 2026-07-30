@@ -248,12 +248,14 @@ public partial class ProductionPanel : PanelContainer
                     snapshot.ProductionRate,
                     UiText.Get(snapshot.ResourceUnit),
                     snapshot.AssignedCount,
-                    snapshot.ProductionCycleTicks)
+                    SimulationTimeText.FormatDurationLocalized(
+                        snapshot.ProductionCycleTicks))
                 : UiText.Format(
                     "ui.production.rate",
                     snapshot.ProductionRate,
                     UiText.Get(snapshot.ResourceUnit),
-                    snapshot.ProductionCycleTicks);
+                    SimulationTimeText.FormatDurationLocalized(
+                        snapshot.ProductionCycleTicks));
 
         _inputsLabel.Text = DescribeInputsDue(snapshot);
         _statusLabel.Text = DescribePolicyState(snapshot);

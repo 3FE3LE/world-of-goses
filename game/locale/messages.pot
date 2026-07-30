@@ -385,6 +385,9 @@ msgstr ""
 msgid "event.expedition_failed"
 msgstr ""
 
+msgid "event.expedition_retreated"
+msgstr ""
+
 msgid "event.expedition_returned"
 msgstr ""
 
@@ -418,6 +421,9 @@ msgstr ""
 msgid "event.stock_produced"
 msgstr ""
 
+msgid "event.territory_advanced"
+msgstr ""
+
 msgid "event.well_fed_expired"
 msgstr ""
 
@@ -425,6 +431,15 @@ msgid "event.worker_recovered"
 msgstr ""
 
 msgid "event.workers_exhausted"
+msgstr ""
+
+msgid "event.wound_recovery_completed"
+msgstr ""
+
+msgid "event.wound_recovery_started"
+msgstr ""
+
+msgid "event.wound_sustained"
 msgstr ""
 
 msgid "Exploration & survival"
@@ -448,10 +463,10 @@ msgstr ""
 msgid "Fire"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
 msgid "Forest"
@@ -1147,10 +1162,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1219,10 +1234,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
 msgid "Strength"
@@ -1298,6 +1313,9 @@ msgid "ui.assignment.reason_expedition"
 msgstr ""
 
 msgid "ui.assignment.reason_recovering"
+msgstr ""
+
+msgid "ui.assignment.reason_wounded"
 msgstr ""
 
 msgid "ui.assignment.remove_from"
@@ -1411,6 +1429,9 @@ msgstr ""
 msgid "ui.citizens.count_with_housing"
 msgstr ""
 
+msgid "ui.citizens.debug_context"
+msgstr ""
+
 msgid "ui.citizens.detail"
 msgstr ""
 
@@ -1480,7 +1501,52 @@ msgstr ""
 msgid "ui.construction.waiting_materials"
 msgstr ""
 
+msgid "ui.duration.day.many"
+msgstr ""
+
+msgid "ui.duration.day.one"
+msgstr ""
+
+msgid "ui.duration.hour.many"
+msgstr ""
+
+msgid "ui.duration.hour.one"
+msgstr ""
+
+msgid "ui.duration.minute.many"
+msgstr ""
+
+msgid "ui.duration.minute.one"
+msgstr ""
+
+msgid "ui.duration.separator"
+msgstr ""
+
+msgid "ui.expedition.active_posture"
+msgstr ""
+
+msgid "ui.expedition.begin_treatment"
+msgstr ""
+
+msgid "ui.expedition.begin_treatment_hint"
+msgstr ""
+
+msgid "ui.expedition.cancel_dispatch"
+msgstr ""
+
+msgid "ui.expedition.cancel_dispatch_hint"
+msgstr ""
+
 msgid "ui.expedition.dispatch_failed"
+msgstr ""
+
+msgid "ui.expedition.incorporate_hero_action"
+msgstr ""
+
+msgid "ui.expedition.incorporate_hero_hint"
+msgstr ""
+
+msgid "ui.expedition.incorporation_failed"
 msgstr ""
 
 msgid "ui.expedition.phase_with_outcome"
@@ -1498,7 +1564,22 @@ msgstr ""
 msgid "ui.expedition.phase.resolved"
 msgstr ""
 
+msgid "ui.expedition.phase.retreating"
+msgstr ""
+
 msgid "ui.expedition.phase.returning"
+msgstr ""
+
+msgid "ui.expedition.posture_hint"
+msgstr ""
+
+msgid "ui.expedition.posture_label"
+msgstr ""
+
+msgid "ui.expedition.posture.continue"
+msgstr ""
+
+msgid "ui.expedition.posture.retreat"
 msgstr ""
 
 msgid "ui.expedition.prospect_waiting"
@@ -1519,7 +1600,25 @@ msgstr ""
 msgid "ui.expedition.team_member_hint"
 msgstr ""
 
+msgid "ui.expedition.team_member_interrupts_work"
+msgstr ""
+
+msgid "ui.expedition.territory_available"
+msgstr ""
+
+msgid "ui.expedition.territory_target"
+msgstr ""
+
 msgid "ui.expedition.town_hall_required"
+msgstr ""
+
+msgid "ui.expedition.treatment_failed"
+msgstr ""
+
+msgid "ui.expedition.wounded_member"
+msgstr ""
+
+msgid "ui.expedition.wounded_member_hint"
 msgstr ""
 
 msgid "ui.gather.already_assigned"
@@ -1582,6 +1681,9 @@ msgstr ""
 msgid "ui.hero_profile.stamina"
 msgstr ""
 
+msgid "ui.hero_profile.stamina_effective"
+msgstr ""
+
 msgid "ui.hero_profile.title"
 msgstr ""
 
@@ -1589,6 +1691,12 @@ msgid "ui.hero_profile.traits"
 msgstr ""
 
 msgid "ui.hero_profile.weapon_preferences"
+msgstr ""
+
+msgid "ui.hero_profile.wound"
+msgstr ""
+
+msgid "ui.hero_profile.wound_treatment"
 msgstr ""
 
 msgid "ui.hero.affinities_choose"
@@ -1696,6 +1804,45 @@ msgstr ""
 msgid "ui.pause.title"
 msgstr ""
 
+msgid "ui.policies.construction"
+msgstr ""
+
+msgid "ui.policies.construction_value"
+msgstr ""
+
+msgid "ui.policies.current_state"
+msgstr ""
+
+msgid "ui.policies.future"
+msgstr ""
+
+msgid "ui.policies.off_duty"
+msgstr ""
+
+msgid "ui.policies.off_duty_value"
+msgstr ""
+
+msgid "ui.policies.production"
+msgstr ""
+
+msgid "ui.policies.production_value"
+msgstr ""
+
+msgid "ui.policies.schedule_value"
+msgstr ""
+
+msgid "ui.policies.title"
+msgstr ""
+
+msgid "ui.policies.workday"
+msgstr ""
+
+msgid "ui.policies.workday_active"
+msgstr ""
+
+msgid "ui.policies.workday_inactive"
+msgstr ""
+
 msgid "ui.production.foraging_rate"
 msgstr ""
 
@@ -1765,6 +1912,9 @@ msgstr ""
 msgid "ui.status.saved"
 msgstr ""
 
+msgid "ui.status.saved_short"
+msgstr ""
+
 msgid "ui.status.wood"
 msgstr ""
 
@@ -1772,6 +1922,18 @@ msgid "ui.status.wood_reserve"
 msgstr ""
 
 msgid "ui.status.wood_stock"
+msgstr ""
+
+msgid "ui.territory.available"
+msgstr ""
+
+msgid "ui.territory.locked"
+msgstr ""
+
+msgid "ui.territory.reconnoitred"
+msgstr ""
+
+msgid "ui.territory.route_secured"
 msgstr ""
 
 msgid "ui.time.day"
@@ -1796,6 +1958,12 @@ msgid "ui.tree.regrows_at"
 msgstr ""
 
 msgid "ui.tutorial.title"
+msgstr ""
+
+msgid "ui.wound.moderate"
+msgstr ""
+
+msgid "ui.wound.severe"
 msgstr ""
 
 msgid "Unarmed"
@@ -1825,10 +1993,10 @@ msgstr ""
 msgid "Water"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"

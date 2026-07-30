@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -66,6 +67,12 @@ public partial class CityPrototype : Node
             case "expedition-idle":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Idle);
                 break;
+            case "hero-incorporation":
+                ShowHeroIncorporationForVisualRegression();
+                break;
+            case "wound-recovery":
+                ShowWoundRecoveryForVisualRegression();
+                break;
             case "expedition-active":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Active);
                 break;
@@ -97,7 +104,75 @@ public partial class CityPrototype : Node
                 GetNode<CityWorldController>("CityWorldController")
                     .DrainAllForestsForVisualRegression();
                 break;
+            case "citizen-travel":
+                ShowCitizenTravelForVisualRegression();
+                break;
+            case "policies":
+                GetNode<PoliciesPanel>("GameUiShell/ScreenContent/PoliciesPanel").Open();
+                break;
+            case "migrant":
+                GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
+                    .ShowForVisualRegression();
+                break;
         }
+    }
+
+    private void ShowCitizenTravelForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        CityWorld world = controller.World;
+        if (world.Hero is not Citizen founder)
+        {
+            GD.PushError("Citizen travel fixture requires a founded city.");
+            return;
+        }
+
+        while (!GameClock.IsDaytime(world.CurrentTick)) world.AdvanceWorldTick();
+        Building? workplace = world.Buildings.Values
+            .Where(building => building.Kind is BuildingKind.Quarry or BuildingKind.Farm)
+            .OrderByDescending(building => building.AssignedCitizenIds.Count < building.WorkerCapacity)
+            .ThenBy(building => building.Id.Value)
+            .FirstOrDefault();
+        if (workplace is null || world.PrimaryHome is null)
+        {
+            GD.PushError("Citizen travel fixture requires a Shelter and a Farm or Quarry.");
+            return;
+        }
+        if (workplace.AssignedCitizenIds.Count >= workplace.WorkerCapacity)
+        {
+            CitizenId released = workplace.AssignedCitizenIds.Last();
+            world.TryUnassignCitizen(workplace.Id, released);
+        }
+        if (workplace.Stock > 0) workplace.TryConsumeStock(workplace.Stock);
+        workplace.ConfigureProductionPolicy(
+            enabled: true,
+            minStock: 0,
+            maxStock: workplace.StorageCapacity,
+            priority: workplace.Priority);
+
+        int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
+        var traveller = new Citizen(
+            new CitizenId(nextId),
+            "Travel proof",
+            appearanceSeed: nextId * 11,
+            profile: founder.Profile);
+        world.RegisterCitizen(traveller);
+        AssignmentResult assignment = controller.TryAssignCitizen(workplace.Id, traveller.Id);
+        bool activeRoute = city.HasActiveCitizenJourneyForVisualRegression(traveller.Id);
+        if (!assignment.IsSuccess
+            || traveller.CurrentLocation != CitizenLocation.InTransit
+            || !activeRoute)
+        {
+            GD.PushError(
+                $"Citizen travel fixture failed: assignment={assignment.Outcome}, " +
+                $"location={traveller.CurrentLocation}, activeRoute={activeRoute}.");
+            return;
+        }
+        GD.Print(
+            $"Citizen travel fixture passed: citizen={traveller.Id.Value}, " +
+            $"destination={workplace.Id.Value}, activeRoute=true.");
     }
 
     private async void ValidateModalLayoutAndClosePaths()
@@ -160,6 +235,45 @@ public partial class CityPrototype : Node
     }
 
     private enum ExpeditionFixtureState { Idle, Active, Returned }
+
+    private void ShowHeroIncorporationForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        if (controller.World.Hero is not Citizen founder) return;
+        if (controller.World.Citizens.Values.All(citizen => citizen.IsHero))
+        {
+            int nextId = controller.World.Citizens.Keys.Max(id => id.Value) + 1;
+            controller.World.RegisterCitizen(new Citizen(
+                new CitizenId(nextId),
+                "Expedition candidate",
+                appearanceSeed: nextId * 11,
+                profile: founder.Profile));
+        }
+        ShowExpeditionForVisualRegression(ExpeditionFixtureState.Idle);
+    }
+
+    private void ShowWoundRecoveryForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        if (controller.World.Hero is not Citizen founder) return;
+        int nextId = controller.World.Citizens.Keys.Max(id => id.Value) + 1;
+        var patient = new Citizen(
+            new CitizenId(nextId),
+            "Tamara",
+            appearanceSeed: nextId * 11,
+            profile: founder.Profile);
+        controller.World.RegisterCitizen(patient);
+        controller.World.TryIncorporateHero(patient.Id);
+        WorldEvent woundEvent = controller.World.Log.Record(
+            controller.World.CurrentTick,
+            WorldEventKind.WoundSustained,
+            WorldEventSubject.Citizen(patient.Id, patient.Name),
+            (int)WoundSeverity.Moderate);
+        patient.SustainWound(WoundSeverity.Moderate, woundEvent.Id);
+        controller.World.Resources.DepositToCityInventory(ResourceType.Food, 2);
+        GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/ExpeditionPanel")
+            .ShowWoundRecoveryForVisualRegression();
+    }
 
     private void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)
     {

@@ -82,7 +82,8 @@ public sealed class NaturalResourcePatchTests
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
 
-        Assert.Equal(8, world.Parcels.Count);
+        Assert.Equal(9, world.Parcels.Count);
+        Assert.Equal(8, world.Parcels.Values.Count(parcel => parcel.IsUnlocked));
         Assert.Equal(2, world.NaturalResourcePatches.Count);
         Assert.All(world.NaturalResourcePatches.Values, patch =>
         {
@@ -136,6 +137,9 @@ public sealed class NaturalResourcePatchTests
         current = WorldPersistence.MigrateV13ToV14(current);
         current = WorldPersistence.MigrateV14ToV15(current);
         current = WorldPersistence.MigrateV15ToV16(current);
+        current = WorldPersistence.MigrateV16ToV17(current);
+        current = WorldPersistence.MigrateV17ToV18(current);
+        current = WorldPersistence.MigrateV18ToV19(current);
         WorldPersistence.Validate(current);
     }
 

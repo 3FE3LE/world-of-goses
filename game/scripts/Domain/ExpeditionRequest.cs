@@ -16,7 +16,8 @@ public readonly record struct ExpeditionRequest(
     ResourceType RewardResource,
     int RewardAmount,
     ExpeditionRewardKind RewardKind,
-    string DisplayName)
+    string DisplayName,
+    ExpeditionRetreatPosture RetreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback)
 {
     /// <summary>
     /// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3: "select 1-2 real citizens".
@@ -25,33 +26,52 @@ public readonly record struct ExpeditionRequest(
     /// </summary>
     public const int MaxTeamSize = 2;
 
-    public static ExpeditionRequest Reconnaissance(CitizenId soleMemberId) =>
-        Reconnaissance(new[] { soleMemberId });
+    /// <summary>
+    /// Duration of the two expedition templates used by the first playable
+    /// loop. Four in-game hours remain long enough to expose every persisted
+    /// phase and a mid-expedition relaunch, while keeping a normal-UI run
+    /// practical: ten real minutes at 1x or two and a half at 4x.
+    /// Later expeditions may define longer durations from route distance.
+    /// </summary>
+    public const int FirstLoopDurationTicks = GameClock.TicksPerInGameDay / 6;
 
-    public static ExpeditionRequest Reconnaissance(IReadOnlyList<CitizenId> memberIds) =>
+    public static ExpeditionRequest Reconnaissance(
+        CitizenId soleMemberId,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback) =>
+        Reconnaissance(new[] { soleMemberId }, retreatPosture);
+
+    public static ExpeditionRequest Reconnaissance(
+        IReadOnlyList<CitizenId> memberIds,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback) =>
         new(
             memberIds,
-            DurationTicks: 4 * GameClock.TicksPerInGameDay,
+            DurationTicks: FirstLoopDurationTicks,
             SupplyResource: ResourceType.Wood,
             SupplyAmount: 1,
             RewardResource: ResourceType.Stone,
             RewardAmount: 1,
             RewardKind: ExpeditionRewardKind.Supplies,
-            DisplayName: "Reconnaissance");
+            DisplayName: "Reconnaissance",
+            RetreatPosture: retreatPosture);
 
-    public static ExpeditionRequest SeekProspect(CitizenId soleMemberId) =>
-        SeekProspect(new[] { soleMemberId });
+    public static ExpeditionRequest SeekProspect(
+        CitizenId soleMemberId,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback) =>
+        SeekProspect(new[] { soleMemberId }, retreatPosture);
 
-    public static ExpeditionRequest SeekProspect(IReadOnlyList<CitizenId> memberIds) =>
+    public static ExpeditionRequest SeekProspect(
+        IReadOnlyList<CitizenId> memberIds,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback) =>
         new(
             memberIds,
-            DurationTicks: 4 * GameClock.TicksPerInGameDay,
+            DurationTicks: FirstLoopDurationTicks,
             SupplyResource: ResourceType.Food,
             SupplyAmount: 2,
             RewardResource: ResourceType.Food,
             RewardAmount: 0,
             RewardKind: ExpeditionRewardKind.Migrant,
-            DisplayName: "Community contact");
+            DisplayName: "Community contact",
+            RetreatPosture: retreatPosture);
 }
 
 public enum ExpeditionStartOutcome
@@ -65,6 +85,7 @@ public enum ExpeditionStartOutcome
     AlreadyActive = 6,
     TownHallUnavailable = 7,
     DuplicateMember = 8,
+    MemberNotHero = 9,
 }
 
 public readonly record struct ExpeditionStartResult(

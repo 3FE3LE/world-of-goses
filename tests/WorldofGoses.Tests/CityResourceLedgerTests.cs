@@ -26,8 +26,11 @@ public class CityResourceLedgerTests
         toCurrent = WorldPersistence.MigrateV13ToV14(toCurrent);
         toCurrent = WorldPersistence.MigrateV14ToV15(toCurrent);
         toCurrent = WorldPersistence.MigrateV15ToV16(toCurrent);
+        toCurrent = WorldPersistence.MigrateV16ToV17(toCurrent);
+        toCurrent = WorldPersistence.MigrateV17ToV18(toCurrent);
+        toCurrent = WorldPersistence.MigrateV18ToV19(toCurrent);
 
-        Assert.Equal(16, toCurrent.Version);
+        Assert.Equal(WorldSave.CurrentVersion, toCurrent.Version);
         Assert.Equal(0, forest.Stock);
         Assert.Equal(7, toCurrent.CityInventory[ResourceType.Wood.ToString()]);
         WorldPersistence.Validate(toCurrent);
@@ -44,8 +47,11 @@ public class CityResourceLedgerTests
         migrated = WorldPersistence.MigrateV13ToV14(migrated);
         migrated = WorldPersistence.MigrateV14ToV15(migrated);
         migrated = WorldPersistence.MigrateV15ToV16(migrated);
+        migrated = WorldPersistence.MigrateV16ToV17(migrated);
+        migrated = WorldPersistence.MigrateV17ToV18(migrated);
+        migrated = WorldPersistence.MigrateV18ToV19(migrated);
 
-        Assert.Equal(16, migrated.Version);
+        Assert.Equal(WorldSave.CurrentVersion, migrated.Version);
         Assert.NotNull(migrated.Expeditions);
         Assert.Empty(migrated.Expeditions);
         WorldPersistence.Validate(migrated);

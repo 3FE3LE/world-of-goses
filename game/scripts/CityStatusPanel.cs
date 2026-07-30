@@ -33,8 +33,9 @@ public partial class CityStatusPanel : PanelContainer
     private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;
     private IconChip? _savedChip;
-    private long _lastSavedUnixMillis;
-    private long _lastEmphasizedSavedUnixMillis;
+    private ulong _saveIndicatorGeneration;
+    private ulong _emphasizedSaveGeneration;
+    private bool _saveIndicatorVisible;
     private CityWorldController? _controller;
 
     public override void _Ready()
@@ -92,7 +93,6 @@ public partial class CityStatusPanel : PanelContainer
     {
         _controller = controller;
         controller.WorldSaved += OnWorldSaved;
-        ApplySavedChip();
     }
 
     public override void _ExitTree()
@@ -113,24 +113,22 @@ public partial class CityStatusPanel : PanelContainer
 
     private void OnWorldSaved(long unixMillis)
     {
-        _lastSavedUnixMillis = unixMillis;
+        _ = unixMillis;
+        ulong generation = ++_saveIndicatorGeneration;
+        _saveIndicatorVisible = true;
         ApplySavedChip();
+        GetTree().CreateTimer(2.25).Timeout += () =>
+        {
+            if (!IsInstanceValid(this) || generation != _saveIndicatorGeneration) return;
+            RemoveSavedChip();
+        };
     }
 
     private void ApplySavedChip()
     {
         if (_row is null) return;
-        if (_lastSavedUnixMillis <= 0)
-        {
-            if (_savedChip is not null)
-            {
-                _row.RemoveChild(_savedChip);
-                _savedChip.QueueFree();
-            }
-            _savedChip = null;
-            return;
-        }
-        string text = UiText.Format("ui.status.saved", FormatSavedTime(_lastSavedUnixMillis));
+        if (!_saveIndicatorVisible) return;
+        string text = UiText.Get("ui.status.saved_short");
         if (_savedChip is null)
         {
             _savedChip = new IconChip(IconPaths.Check, text);
@@ -141,17 +139,20 @@ public partial class CityStatusPanel : PanelContainer
             _savedChip.UpdateText(text);
         }
         _row.MoveChild(_savedChip, _row.GetChildCount() - 1);
-        if (_lastEmphasizedSavedUnixMillis != _lastSavedUnixMillis)
+        if (_emphasizedSaveGeneration != _saveIndicatorGeneration)
         {
-            _lastEmphasizedSavedUnixMillis = _lastSavedUnixMillis;
+            _emphasizedSaveGeneration = _saveIndicatorGeneration;
             UiMotion.Pulse(_savedChip, LineageThemeRegistry.IconAccent);
         }
     }
 
-    private static string FormatSavedTime(long unixMillis)
+    private void RemoveSavedChip()
     {
-        var time = DateTimeOffset.FromUnixTimeMilliseconds(unixMillis).ToLocalTime();
-        return time.ToString("HH:mm");
+        if (_savedChip is null) return;
+        if (_savedChip.GetParent() == _row) _row.RemoveChild(_savedChip);
+        _savedChip.QueueFree();
+        _savedChip = null;
+        _saveIndicatorVisible = false;
     }
 
     private void OnLineageChanged(string lineage)
@@ -238,7 +239,7 @@ public partial class CityStatusPanel : PanelContainer
             BuildProjectChip(snapshot.Projects[0], compact);
         }
 
-        ApplySavedChip();
+        if (_saveIndicatorVisible) ApplySavedChip();
     }
 
     internal static bool ShouldUseCompactLayout(float windowWidth, bool hasActiveProject) =>

@@ -20,6 +20,26 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
+    public void PoliciesSnapshot_ExposesCentralWorkdayAndAutomationRules()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+
+        CityPolicySnapshot snapshot = CityPolicySnapshot.From(world);
+
+        Assert.Equal(GameClock.WorkdayStartTick, snapshot.WorkdayStartTick);
+        Assert.Equal(GameClock.WorkdayEndTick, snapshot.WorkdayEndTick);
+        Assert.True(snapshot.IsWorkday);
+        Assert.True(snapshot.AuthorizedConstructionAdvancesAutomatically);
+        Assert.False(snapshot.ConstructionAuthorizationIsAutomatic);
+    }
+
+    [Fact]
+    public void AutosaveCadence_IsCentralizedAtThreeRealMinutes()
+    {
+        Assert.Equal(System.TimeSpan.FromMinutes(3), SimulationPersistencePolicy.AutoSaveInterval);
+    }
+
+    [Fact]
     public void CityStatusSnapshot_ExposesExplicitHeroOnlyEmptyState()
     {
         var snapshot = CityStatusSnapshot.From(TestHelpers.NewHeroWorld());
@@ -247,5 +267,20 @@ public sealed class UiSnapshotTests
     public void EventLog_FormatsSimulationTimeForPlayers(int tick, string expected)
     {
         Assert.Equal(expected, OfflineReportPanel.FormatSimulationDate(tick));
+    }
+
+    [Theory]
+    [InlineData(0, "0 minutes")]
+    [InlineData(1, "1 minute")]
+    [InlineData(10, "4 minutes")]
+    [InlineData(150, "1 hour")]
+    [InlineData(160, "1 hour 4 minutes")]
+    [InlineData(3599, "1 day")]
+    [InlineData(3600, "1 day")]
+    [InlineData(7200, "2 days")]
+    public void DurationFormatter_NeverExposesSimulationTicks(int ticks, string expected)
+    {
+        Assert.Equal(expected, SimulationTimeText.FormatDuration(ticks));
+        Assert.DoesNotContain("tick", expected, System.StringComparison.OrdinalIgnoreCase);
     }
 }

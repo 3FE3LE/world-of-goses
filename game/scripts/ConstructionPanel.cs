@@ -631,7 +631,10 @@ public partial class ConstructionPanel : PanelContainer
             ? project.RemainingInputs.Count > 0
                 ? UiText.Format("ui.construction.gather_remaining", DescribeInputs(project.RemainingInputs))
                 : UiText.Get("Assign at least one available citizen below. Construction cannot advance without contributors.")
-            : UiText.Format("ui.construction.contributors_interval", ConstructionRules.WorkIntervalTicks);
+            : UiText.Format(
+                "ui.construction.contributors_interval",
+                SimulationTimeText.FormatDurationLocalized(
+                    ConstructionRules.WorkIntervalTicks));
         _phaseLabel.Visible = true;
         _progress.Visible = true;
         _statusLabel.Visible = true;
@@ -843,7 +846,10 @@ public partial class ConstructionPanel : PanelContainer
     private static string DescribeProjectStatus(ConstructionSnapshot.ProjectItem project) => project.StopCause switch
     {
         ConstructionStopCause.Authorized =>
-            UiText.Format("ui.construction.active_interval", ConstructionRules.WorkIntervalTicks),
+            UiText.Format(
+                "ui.construction.active_interval",
+                SimulationTimeText.FormatDurationLocalized(
+                    ConstructionRules.WorkIntervalTicks)),
         ConstructionStopCause.Paused => UiText.Get("Paused by the player"),
         ConstructionStopCause.NoWorkers => project.RemainingInputs.Count > 0
             ? UiText.Format("ui.construction.waiting_materials", DescribeInputs(project.RemainingInputs))

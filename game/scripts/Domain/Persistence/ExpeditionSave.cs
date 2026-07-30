@@ -41,4 +41,7 @@ public sealed class ExpeditionSave
     public string Phase { get; set; } = string.Empty;
 
     public string? EncounterOutcome { get; set; }
+    public string RetreatPosture { get; set; } = string.Empty;
+    public int? DispatchEventId { get; set; }
+    public int? TargetParcelId { get; set; }
 }

@@ -75,7 +75,6 @@ public partial class BuildingDetailView : Control
         _slots.MoveToFront();
 
         _slots.CitizenClicked += OnSlotCitizenClicked;
-        _slots.CitizenArrived += OnCitizenArrived;
         _assignmentPanel.AssignRequested += OnAssignRequested;
         _assignmentPanel.UnassignRequested += OnUnassignRequested;
         _productionPanel.PolicyChangeRequested += OnPolicyChangeRequested;
@@ -97,7 +96,6 @@ public partial class BuildingDetailView : Control
         if (_slots is not null)
         {
             _slots.CitizenClicked -= OnSlotCitizenClicked;
-            _slots.CitizenArrived -= OnCitizenArrived;
         }
         if (_assignmentPanel is not null)
         {
@@ -337,15 +335,6 @@ public partial class BuildingDetailView : Control
             return;
         }
         _controller.TryUnassignCitizen(_currentBuilding, new CitizenId(citizenIdValue));
-    }
-
-    private void OnCitizenArrived(int buildingIdValue, int citizenIdValue)
-    {
-        BuildingDetailSnapshot? snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
-        if (snapshot?.IsTownHall == true) return;
-        _controller.ConfirmCitizenArrivedAtAssignment(
-            new BuildingId(buildingIdValue),
-            new CitizenId(citizenIdValue));
     }
 
     private void OnAssignRequested(int citizenIdValue)

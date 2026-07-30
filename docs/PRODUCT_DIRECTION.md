@@ -238,11 +238,17 @@ implementation.
 
 ## 8. Current recommended next proof
 
-The current proof is the founding-hero vertical slice: a new world
-begins empty, the player completes a complete identity profile, and
-the game persists one hero without inventing buildings or secondary
-citizens. The hero profile is visible and the old production fixture
-is no longer the game's established data.
+The active proof is **VS-5 player-facing signature and repetition**. The
+connected code now covers the founder, gathering, construction, constrained
+recruitment, named assignments, Food pressure, a configured expedition with
+return, persistent wound/treatment, territory advancement, save/load and a
+second expedition without reset. The remaining proof is a clean normal-UI run,
+plus visible relaunches during expedition and treatment, against the 17
+criteria in `FIRST_PLAYABLE_LOOP_AUDIT.md`.
+
+No broader product slice is approved until that signature is complete. Bugs
+found by the run may reopen the corresponding G0–G2 gap; otherwise the work is
+validation and calibration, not another architecture expansion.
 
 The **current** slice status, next proof, and verification commands are
 in

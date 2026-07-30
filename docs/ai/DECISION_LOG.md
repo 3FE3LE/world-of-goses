@@ -249,29 +249,46 @@ tratamiento." bible/02 pillar 6. bible/05.
 
 ## DEC-0011: Persistent wound model distinct from stamina
 
-**Status:** **Proposed — not approved**
-**Date:** 2026-07-29 (raised)
+**Status:** Accepted
+**Date:** 2026-07-29
 
-**Decision under consideration:**
+**Decision:**
 Model persistent wounds as a subsystem separate from the existing stamina
-model, so that a wound is not expressible as depleted stamina.
+model, so that a wound is not expressible as depleted stamina. The two systems
+may still interact: a wound can cap usable stamina and restrict work or
+expeditions, but ordinary stamina recovery never cures the wound. Treatment
+requires Basic Shelter, time, and an explicit resource cost.
 
-**Why this is not `Accepted`:**
-The design bible establishes that wounds persist and that healing is not
-instant (see DEC-0010), but it **never** contrasts wounds with stamina. The
-word "stamina" does not appear in the bible at all. The only repository source
-for the separation is `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` gap **G5**, which
-observes that the current stamina `Injured` state "is not a wound model" — a
-gap statement, not an approved design decision.
-
-Meanwhile stamina is a real, implemented concept (`StaminaRules.cs`,
-`CitizenStaminaTests.cs`, `CityWorldStaminaTests.cs`).
-
-**Required before this becomes `Accepted`:**
-An explicit product decision by the user, recorded here and reflected in
-bible/02 or bible/04.
+**Reason:**
+The user explicitly approved this relation on 2026-07-29. It preserves the
+bible's durable-health/no-instant-healing rule while keeping the existing
+short-term exertion system legible. A rested but wounded citizen therefore
+remains wounded; the injury still matters because it reduces their effective
+stamina ceiling and blocks expedition participation until treatment completes.
 
 **Affected domains:** citizens, expeditions, city, persistence.
+
+---
+
+## DEC-0012: Player-facing time and official visual resolutions
+
+**Status:** Accepted
+**Date:** 2026-07-29
+
+**Decision:**
+Simulation ticks remain an internal domain/persistence unit and must never be
+shown as player-facing copy or a UI unit. Presentation converts durations into
+world days, hours, and minutes through one shared formatter. The official
+visual-regression matrix uses 1280×720 and 1920×1080; unusual aspect ratios are
+targeted exploratory checks when a layout change puts them at risk.
+
+**Reason:**
+The user explicitly found raw ticks neither measurable nor referential in the
+interface and chose 720p plus 1080p as the useful review pair. This keeps the
+logical pixel-art baseline and a common full-HD target without making every UI
+change pay for a third routine capture.
+
+**Affected domains:** presentation, localization, validation tooling.
 
 ---
 

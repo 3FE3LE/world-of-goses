@@ -101,6 +101,7 @@ public static class WorldPersistence
                 LogicalColumn = parcel.LogicalColumn,
                 LogicalRow = parcel.LogicalRow,
                 IsUnlocked = parcel.IsUnlocked,
+                TerritoryState = parcel.TerritoryState.ToString(),
             });
         }
         foreach (NaturalResourcePatch patch in world.NaturalResourcePatches.Values)
@@ -149,6 +150,9 @@ public static class WorldPersistence
                 CurrentLocation = citizen.CurrentLocation.ToString(),
                 ResumeWorkNotBeforeTick = citizen.ResumeWorkNotBeforeTick,
                 IsReturningHome = citizen.IsReturningHome,
+                WoundSeverity = citizen.Wound?.Severity.ToString(),
+                WoundOriginatingEventId = citizen.Wound?.OriginatingEventId.Value,
+                WoundRecoveryTicksRemaining = citizen.Wound?.RecoveryTicksRemaining ?? 0,
                 StaminaCurrent = citizen.CurrentStamina,
                 StaminaMax = citizen.MaxStamina,
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
@@ -197,8 +201,16 @@ public static class WorldPersistence
             save.Projects.Add(ps);
         }
 
+        var pinnedEventIds = new HashSet<int>(world.Expeditions.Values
+            .Where(expedition => expedition.Status == ExpeditionStatus.Active)
+            .SelectMany(expedition => expedition.DispatchEventId is WorldEventId eventId
+                ? new[] { eventId.Value }
+                : Array.Empty<int>())
+            .Concat(world.Citizens.Values
+                .Where(citizen => citizen.Wound is not null)
+                .Select(citizen => citizen.Wound!.OriginatingEventId.Value)));
         IReadOnlyList<WorldEvent> retained =
-            WorldEventRetention.SelectForPersistence(world.Log.Events);
+            WorldEventRetention.SelectForPersistence(world.Log.Events, pinnedEventIds);
         var retainedIds = new HashSet<int>(retained.Select(evt => evt.Id.Value));
         foreach (var evt in retained)
         {
@@ -249,6 +261,12 @@ public static class WorldPersistence
                 DeliveredMigrantId = expedition.DeliveredMigrantId?.Value,
                 Phase = expedition.Phase.ToString(),
                 EncounterOutcome = expedition.EncounterOutcome?.ToString(),
+                RetreatPosture = expedition.RetreatPosture.ToString(),
+                DispatchEventId = expedition.DispatchEventId is WorldEventId dispatchEventId
+                    && retainedIds.Contains(dispatchEventId.Value)
+                    ? dispatchEventId.Value
+                    : null,
+                TargetParcelId = expedition.TargetParcelId?.Value,
             });
         }
 
@@ -380,6 +398,11 @@ public static class WorldPersistence
                 || parcel.Id <= 0
                 || parcel.LogicalColumn < 0
                 || parcel.LogicalRow < 0
+                || !Enum.TryParse(
+                    parcel.TerritoryState,
+                    true,
+                    out ParcelTerritoryState parcelState)
+                || parcel.IsUnlocked != (parcelState == ParcelTerritoryState.Available)
                 || !parcelIds.Add(parcel.Id))
             {
                 throw new InvalidOperationException("Save contains an invalid parcel.");
@@ -524,10 +547,13 @@ public static class WorldPersistence
                 || expedition.StartTick < 0
                 || expedition.EndTick < expedition.StartTick
                 || expedition.SupplyAmount <= 0
+                || (expedition.TargetParcelId.HasValue
+                    && !parcelIds.Contains(expedition.TargetParcelId.Value))
                 || !Enum.TryParse(expedition.SupplyResource, true, out ResourceType _)
                 || !Enum.TryParse(expedition.RewardResource, true, out ResourceType _)
                 || !Enum.TryParse(expedition.Status, true, out ExpeditionStatus _)
                 || !Enum.TryParse(expedition.Phase, true, out ExpeditionPhase _)
+                || !Enum.TryParse(expedition.RetreatPosture, true, out ExpeditionRetreatPosture _)
                 || (!string.IsNullOrEmpty(expedition.EncounterOutcome)
                     && !Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome _))
                 || !Enum.TryParse(
@@ -543,6 +569,40 @@ public static class WorldPersistence
                     && expedition.RewardAmount <= 0))
             {
                 throw new InvalidOperationException("Save contains an invalid expedition.");
+            }
+
+            _ = Enum.TryParse(expedition.Status, true, out ExpeditionStatus status);
+            _ = Enum.TryParse(expedition.Phase, true, out ExpeditionPhase phase);
+            _ = Enum.TryParse(
+                expedition.RetreatPosture,
+                true,
+                out ExpeditionRetreatPosture retreatPosture);
+            ExpeditionEncounterOutcome? encounterOutcome =
+                !string.IsNullOrEmpty(expedition.EncounterOutcome)
+                && Enum.TryParse(
+                    expedition.EncounterOutcome,
+                    true,
+                    out ExpeditionEncounterOutcome parsedOutcome)
+                    ? parsedOutcome
+                    : null;
+            bool terminal = status != ExpeditionStatus.Active;
+            bool retreatTriggered =
+                retreatPosture == ExpeditionRetreatPosture.RetreatAfterSetback
+                && encounterOutcome == ExpeditionEncounterOutcome.Setback;
+            if ((status == ExpeditionStatus.Active && phase == ExpeditionPhase.Resolved)
+                || (terminal && phase != ExpeditionPhase.Resolved)
+                || (phase == ExpeditionPhase.Retreating && !retreatTriggered)
+                || (status == ExpeditionStatus.Retreated
+                    && (!retreatTriggered || expedition.ReturnedAmount != 0)))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} has an incoherent status, phase, or retreat result.");
+            }
+            if (expedition.DispatchEventId is int dispatchEventId
+                && !eventIds.Contains(dispatchEventId))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} references unknown dispatch event {dispatchEventId}.");
             }
         }
         foreach (var evt in save.Events)
@@ -718,6 +778,28 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     $"Citizen {c.Id}: WellFedRemainingTicks is negative ({c.WellFedRemainingTicks}).");
             }
+            bool hasWoundSeverity = !string.IsNullOrWhiteSpace(c.WoundSeverity);
+            bool hasWoundOrigin = c.WoundOriginatingEventId.HasValue;
+            if (hasWoundSeverity != hasWoundOrigin
+                || hasWoundSeverity != (c.WoundRecoveryTicksRemaining > 0))
+            {
+                throw new InvalidOperationException(
+                    $"Citizen {c.Id}: wound identity and recovery state are incomplete.");
+            }
+            if (hasWoundSeverity)
+            {
+                if (!Enum.TryParse(c.WoundSeverity, true, out WoundSeverity woundSeverity)
+                    || c.WoundOriginatingEventId <= 0
+                    || !eventIds.Contains(c.WoundOriginatingEventId.GetValueOrDefault())
+                    || c.WoundRecoveryTicksRemaining > WoundRules.RecoveryTicksFor(woundSeverity)
+                    || (c.StaminaMax is int woundStaminaMax
+                        && c.StaminaCurrent > WoundRules.EffectiveStaminaCap(
+                            woundStaminaMax,
+                            woundSeverity)))
+                {
+                    throw new InvalidOperationException($"Citizen {c.Id}: wound state is invalid.");
+                }
+            }
             bool hasVisitedBuilding = c.LastVisitedResourceBuildingId.HasValue;
             bool hasVisitedUnit = c.LastVisitedResourceUnitId.HasValue;
             if (hasVisitedBuilding != hasVisitedUnit)
@@ -759,10 +841,10 @@ public static class WorldPersistence
 
         int heroCount = save.Citizens.Count(c =>
             c.Roles.Any(role => role.Id == RoleId.Hero.Value));
-        if (heroCount != 1)
+        if (heroCount < 1)
         {
             throw new InvalidOperationException(
-                $"Save must contain exactly one hero citizen (found {heroCount}).");
+                "Save must contain at least one hero citizen.");
         }
 
         foreach (var p in save.Projects)
@@ -948,7 +1030,14 @@ public static class WorldPersistence
                 CitizenCommitmentKind.Expedition =>
                     activeExpeditions.Count == 1
                     && activeExpeditions[0].Id == commitmentEntityId,
-                CitizenCommitmentKind.Recovery => false,
+                CitizenCommitmentKind.Recovery =>
+                    c.WoundOriginatingEventId.HasValue
+                    && save.Buildings.Any(building =>
+                        building.Id == commitmentEntityId
+                        && string.Equals(
+                            building.Kind,
+                            BuildingKind.Home.ToString(),
+                            StringComparison.OrdinalIgnoreCase)),
                 _ => false,
             };
             if (!commitmentMatches)
@@ -962,10 +1051,16 @@ public static class WorldPersistence
         {
             foreach (int memberId in expedition.MemberCitizenIds)
             {
-                if (!citizenIds.Contains(memberId))
+                CitizenSave? member = save.Citizens.FirstOrDefault(c => c.Id == memberId);
+                if (member is null)
                 {
                     throw new InvalidOperationException(
                         $"Expedition {expedition.Id} references unknown member citizen {memberId}.");
+                }
+                if (!member.Roles.Any(role => role.Id == RoleId.Hero.Value))
+                {
+                    throw new InvalidOperationException(
+                        $"Expedition {expedition.Id} member citizen {memberId} is not an incorporated hero.");
                 }
             }
         }
@@ -1125,6 +1220,9 @@ public static class WorldPersistence
                 13 => MigrateV13ToV14(save),
                 14 => MigrateV14ToV15(save),
                 15 => MigrateV15ToV16(save),
+                16 => MigrateV16ToV17(save),
+                17 => MigrateV17ToV18(save),
+                18 => MigrateV18ToV19(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -1487,6 +1585,129 @@ public static class WorldPersistence
             }
         }
         save.Version = 16;
+        return save;
+    }
+
+    /// <summary>
+    /// Upgrades a v16 save to v17 by recognising every citizen previously
+    /// dispatched on an expedition as a hero. Dispatch was already an
+    /// explicit player command, so the migration preserves that authorization
+    /// instead of invalidating the expedition or silently dropping members.
+    /// The earliest retained expedition start tick becomes the role grant.
+    /// </summary>
+    public static WorldSave MigrateV16ToV17(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 16)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV16ToV17 expects version 16 but found {save.Version}.");
+        }
+
+        foreach (ExpeditionSave expedition in save.Expeditions.OrderBy(e => e.StartTick))
+        {
+            if (expedition?.MemberCitizenIds is null) continue;
+            foreach (int memberId in expedition.MemberCitizenIds)
+            {
+                CitizenSave? citizen = save.Citizens.FirstOrDefault(c => c.Id == memberId);
+                if (citizen is null
+                    || citizen.Roles.Any(role => role.Id == RoleId.Hero.Value))
+                {
+                    continue;
+                }
+                citizen.Roles.Add(new RoleSave
+                {
+                    Id = RoleId.Hero.Value,
+                    GrantedAtTick = Math.Max(0, expedition.StartTick),
+                });
+            }
+        }
+
+        save.Version = 17;
+        return save;
+    }
+
+    public static WorldSave MigrateV17ToV18(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 17)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV17ToV18 expects version 17 but found {save.Version}.");
+        }
+
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (expedition is null) continue;
+            expedition.RetreatPosture =
+                ExpeditionRetreatPosture.ContinueAfterSetback.ToString();
+            WorldEventSave? dispatch = save.Events.LastOrDefault(evt =>
+                evt.Tick == expedition.StartTick
+                && string.Equals(
+                    evt.Kind,
+                    WorldEventKind.ExpeditionDispatched.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                && evt.SubjectEntityId == expedition.Id);
+            expedition.DispatchEventId = dispatch?.Id;
+        }
+        save.Version = 18;
+        return save;
+    }
+
+    public static WorldSave MigrateV18ToV19(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 18)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV18ToV19 expects version 18 but found {save.Version}.");
+        }
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            citizen.WoundSeverity = null;
+            citizen.WoundOriginatingEventId = null;
+            citizen.WoundRecoveryTicksRemaining = 0;
+        }
+        foreach (ParcelSave parcel in save.Parcels)
+        {
+            parcel.TerritoryState = parcel.IsUnlocked
+                ? ParcelTerritoryState.Available.ToString()
+                : ParcelTerritoryState.Locked.ToString();
+        }
+        if (save.Parcels.All(parcel => parcel.IsUnlocked))
+        {
+            int targetId = save.Parcels.Count == 0
+                ? 1
+                : save.Parcels.Max(parcel => parcel.Id) + 1;
+            int targetColumn = save.Parcels.Count == 0
+                ? 0
+                : save.Parcels.Max(parcel => parcel.LogicalColumn) + 1;
+            save.Parcels.Add(new ParcelSave
+            {
+                Id = targetId,
+                LogicalColumn = targetColumn,
+                LogicalRow = 0,
+                IsUnlocked = false,
+                TerritoryState = ParcelTerritoryState.Locked.ToString(),
+            });
+        }
+        int? firstTargetParcelId = save.Parcels
+            .Where(parcel => !parcel.IsUnlocked)
+            .OrderBy(parcel => parcel.LogicalRow)
+            .ThenBy(parcel => parcel.LogicalColumn)
+            .Select(parcel => (int?)parcel.Id)
+            .FirstOrDefault();
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            if (string.Equals(
+                expedition.RewardKind,
+                ExpeditionRewardKind.Supplies.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                expedition.TargetParcelId = firstTargetParcelId;
+            }
+        }
+        save.Version = 19;
         return save;
     }
 

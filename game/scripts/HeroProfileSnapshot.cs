@@ -25,6 +25,10 @@ public sealed record HeroProfileSnapshot(
     string SpiritualPosture,
     int CurrentStamina,
     int MaxStamina,
+    int EffectiveMaxStamina,
+    WoundSeverity? WoundSeverity,
+    int WoundRecoveryTicksRemaining,
+    bool IsReceivingWoundTreatment,
     bool IsAtHome)
 {
     public static HeroProfileSnapshot? From(CityWorld world)
@@ -60,6 +64,10 @@ public sealed record HeroProfileSnapshot(
             ProfileCatalog.DisplayName(profile.SpiritualPosture),
             hero.CurrentStamina,
             hero.MaxStamina,
+            hero.EffectiveMaxStamina,
+            hero.Wound?.Severity,
+            hero.Wound?.RecoveryTicksRemaining ?? 0,
+            hero.Commitment.Kind == CitizenCommitmentKind.Recovery,
             hero.CurrentLocation == CitizenLocation.AtHome);
     }
 }

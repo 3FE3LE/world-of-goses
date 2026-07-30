@@ -29,6 +29,11 @@ public enum WorldEventKind
     ExpeditionCancelled,
     FoodRationShortfall,
     ExpeditionEncounterResolved,
+    ExpeditionRetreated,
+    WoundSustained,
+    WoundRecoveryStarted,
+    WoundRecoveryCompleted,
+    TerritoryAdvanced,
 }
 
 /// <summary>
@@ -48,6 +53,7 @@ public enum WorldEventSubjectKind
     ConstructionProject,
     Citizen,
     Expedition,
+    Parcel,
 }
 
 /// <summary>
@@ -73,6 +79,9 @@ public readonly record struct WorldEventSubject(
 
     public static WorldEventSubject Expedition(int id, string displayName) =>
         new(WorldEventSubjectKind.Expedition, id, displayName);
+
+    public static WorldEventSubject Parcel(ParcelId id, string displayName) =>
+        new(WorldEventSubjectKind.Parcel, id.Value, displayName);
 }
 
 /// <summary>

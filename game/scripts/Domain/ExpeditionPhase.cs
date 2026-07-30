@@ -16,4 +16,5 @@ public enum ExpeditionPhase
     Objective = 2,
     Returning = 3,
     Resolved = 4,
+    Retreating = 5,
 }

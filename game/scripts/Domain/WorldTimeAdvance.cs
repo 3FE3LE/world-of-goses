@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WorldofGoses.Domain;
 
@@ -28,7 +29,10 @@ public static class WorldTimeAdvance
         if (ticksToApply <= 0) return Result.None;
 
         int eventCursor = world.Log.Events.Count;
-        if (world.Buildings.Count == 0 && world.Projects.Count == 0)
+        if (world.Buildings.Count == 0
+            && world.Projects.Count == 0
+            && !world.Expeditions.Values.Any(expedition =>
+                expedition.Status == ExpeditionStatus.Active))
         {
             world.AdvanceIdleTicks(ticksToApply);
             return new Result(ticksToApply, 0, 0, ticksToApply, 0, Array.Empty<WorldEvent>());

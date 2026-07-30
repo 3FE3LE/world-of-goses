@@ -23,6 +23,8 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
 [ext_resource type="Script" uid="uid://b74ulvnbqucfd" path="res://scripts/MacroActions.cs" id="29_macroactions"]
 [ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
+[ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
+[ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -94,6 +96,14 @@ script = ExtResource("12_construction")
 
 [node name="ExpeditionPanel" parent="GameUiShell/ScreenContent" unique_id=1643693377 instance=ExtResource("27_expedition")]
 anchors_preset = 0
+ControllerPath = NodePath("../../../CityWorldController")
+
+[node name="PoliciesPanel" type="Control" parent="GameUiShell/ScreenContent"]
+visible = false
+layout_mode = 1
+script = ExtResource("31_policies")
+
+[node name="MigrantPanel" parent="GameUiShell/ScreenContent" instance=ExtResource("32_migrant")]
 ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="MacroStreetLiveView" type="Node2D" parent="GameUiShell/ScreenContent" unique_id=1900000001]
@@ -271,14 +281,32 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/leaf.svg"
 ButtonText = "Recon"
 
-[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
 layout_mode = 2
-tooltip_text = "Camera follows the founder. Click to pan freely (F)."
+tooltip_text = "Review city-wide policies"
 theme_type_variation = &"ButtonText"
-text = "Follow founder"
+text = "Policies"
+script = ExtResource("15_iconbtn")
+IconPath = "res://assets/ui/icons/24/cog.svg"
+ButtonText = "Policies"
+
+[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+tooltip_text = "Open the citizens roster"
+theme_type_variation = &"ButtonText"
+text = "Citizens"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/user.svg"
-ButtonText = "Follow founder"
+ButtonText = "Citizens"
+
+[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+layout_mode = 2
+tooltip_text = "Camera is free to pan. Click to follow the selected citizen (F)."
+theme_type_variation = &"ButtonText"
+text = "Free camera"
+script = ExtResource("15_iconbtn")
+IconPath = "res://assets/ui/icons/24/user.svg"
+ButtonText = "Free camera"
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
 layout_mode = 1

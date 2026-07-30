@@ -179,6 +179,28 @@ macro map while the citizen works inside, and mounted into the interior worker
 slot when building detail is open. This remains presentation state; the domain
 stores only `InTransit` or `AtWork`, never pixel coordinates.
 
+`MacroStreetLiveView` is the sole live-arrival authority. The founding hero and
+every other citizen use the same `StreetRoutePlanner`, obstacle topology and
+12 Hz quantized cadence; the founder keeps a dedicated carrier path only for
+founder-specific actions such as gathering. `BuildingDetailView` renders only
+citizens already at `AtWork` and never confirms an arrival. A route finishing
+after the workday reverses toward Home while preserving the standing order,
+and rejected or unresolved arrivals emit `[CitizenTravel]` diagnostics instead
+of leaving a silent carrier at the threshold.
+
+The macro camera is free by default. Selection changes information and action
+context only; following the selected citizen requires the explicit camera toggle. WASD
+and the arrow keys always pan the camera. Manual pan releases follow mode and
+never changes the founder's physical street position.
+
+Citizen persistence remains semantic in schema v19: work order, commitment,
+logical location, travel start and direction are authoritative; pixel position,
+route cursor, sprite, animation, and node state are not stored. After restore and
+offline advancement, `CitizenRoutineSnapshot` derives the current activity,
+contextual building/Shelter, blocker, and next transition. The macro view derives
+building anchors from the current placement and reconstructs an unfinished route
+from semantic timing without writing that visual position back to the domain.
+
 ## 6. State, rules, and animation
 
 The conceptual rule:
@@ -388,6 +410,10 @@ Local persistence is implemented through plain DTOs and
   citizen resource visits; v7 → v8 introduces persistent `CityParcel` and
   `NaturalResourcePatch` state; v8 → v9 assigns persistent parcel placements
   to projects and buildings.
+- The real-time autosave cadence is centralized at three minutes. Periodic,
+  pause, and close checks skip unchanged worlds; explicit consequential commands
+  may still force an immediate atomic save. Save feedback is temporary UI, not a
+  persistent HUD status.
 - Offline elapsed time is capped and applied as deterministic batched ticks;
   an empty hero-only world uses an equivalent idle fast-forward.
 
@@ -448,6 +474,29 @@ Chronicle surfaces a one-row chain per expedition. Schema v14 adds
 `MigrantArrived` and retires the `BuildingKind.Forest` building entity;
 wood lives in `NaturalResourcePatches` and `CityInventory`, so the migration
 keeps existing reserves without losing the player's gathered stock.
+Schema v15 persists 1-2 expedition members, v16 persists the phase and
+deterministic encounter result, and v17 requires every member to hold the
+accumulated Hero role. Schema v18 persists the retreat posture and retained
+dispatch event id. Legacy v17 plans continue after a setback; new plans may
+instead enter `Retreating`, keep their citizen commitments through the return
+leg, commit supplies, and resolve as `Retreated` without an objective reward.
+Quiescent offline advancement batches active expeditions only to their next
+persisted phase boundary, then runs the same phase transition/resolution used
+by live ticks. Their dispatch events are pinned inside the 128-event persisted
+window until resolution, so encounter, retreat, return, and pre-travel
+cancellation keep a causal parent across save/load.
+Schema v19 persists a citizen wound independently from stamina, including its
+severity, originating event, and remaining treatment ticks. It also replaces
+the parcel unlock boolean as the authoritative runtime state with
+`Locked → Reconnoitred → RouteSecured → Available` while retaining the legacy
+boolean in the DTO for migration. Recovery commitments reference Basic Shelter;
+active wound origins remain pinned until treatment completes. Live and offline
+ticks share the same recovery and territory-resolution behavior. Quiescent
+catch-up subtracts recovery in bounded batches up to the next treatment or
+day/night boundary. The first successful reconnaissance emits the three legal
+parcel transitions as one ordered causal chain so that its return immediately
+opens the new construction lot; later content may put those transitions behind
+separate route requirements.
 
 ### Recruitment
 

@@ -83,13 +83,10 @@ public static class OfflineProgression
         double tickRateHz = DefaultTickRateHz)
     {
         var result = WorldTimeAdvance.Advance(world, ticksToApply);
-        if (result.StockAdded == 0 && result.Events.Count == 0)
-        {
-            return OfflineProgressionReport.None;
-        }
+        if (result.TicksElapsed == 0) return OfflineProgressionReport.None;
 
         return new OfflineProgressionReport(
-            ticksApplied: result.LastActiveTick,
+            ticksApplied: result.TicksElapsed,
             stockAdded: result.StockAdded,
             stockWasted: 0,
             simulatedTime: TimeSpan.FromSeconds(ticksToApply / tickRateHz),

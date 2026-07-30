@@ -2,6 +2,7 @@
 using System;
 using Godot;
 using WorldofGoses;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses.Prototypes;
 
@@ -81,6 +82,17 @@ public partial class WalkableWorldCamera : Camera2D
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (UiInputBoundary.IsWheelEvent(@event))
+        {
+            bool pointerIsOverScrollableUi = UiInputBoundary.IsPointerOverScrollableUi(GetViewport());
+            if (!UiInputBoundary.ShouldWorldCameraHandleWheel(
+                    isWheelEvent: true,
+                    pointerIsOverScrollableUi))
+            {
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
         switch (@event)
         {
             case InputEventKey { Keycode: Key.F, Pressed: true }:
@@ -105,9 +117,11 @@ public partial class WalkableWorldCamera : Camera2D
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp, Pressed: true }:
                 StepZoom(1);
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelDown, Pressed: true }:
                 StepZoom(-1);
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseMotion mouseMotion when _panning:
                 Vector2 dragDelta = mouseMotion.Position - _panStartMouse;

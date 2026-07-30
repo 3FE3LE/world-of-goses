@@ -43,7 +43,7 @@ PowerShell preserves the string array:
 
 The Windows harness opens a real Godot window because Movie Maker always uses
 the project's logical 1280×720 viewport and is not compatible with the headless
-dummy renderer. It captures the window client at 1024×576, 1280×720, and 1600×900,
+dummy renderer. It captures the window client at 1280×720 and 1920×1080,
 rejects missing, empty, or incorrectly sized PNGs, and writes a JSON manifest. Captures are review artifacts and are
 not committed by default. Use a distinct `StateName` for every prepared state.
 The default scene is `CityPrototype.tscn`; `-ScenePath` may target a reusable
@@ -51,9 +51,28 @@ component scene. The harness sets `WOG_VISUAL_CAPTURE=1`: the controller still
 loads the real slot as a fixture but suppresses every persistence write, including
 periodic autosave and window-close save.
 
+Typography has a dedicated in-engine capture because the desktop can
+intermittently expose only Godot's 50×50 bootstrap window to the generic
+window-handle harness. It also verifies that the title crop contains exactly
+two colors (background and solid glyph), making grayscale fringe a terminating
+failure:
+
+```powershell
+pwsh ./tools/Capture-TypographySpecimen.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-typography
+```
+
 States that cannot be reached reliably from an existing slot may use
 `-VisualFixture tutorial`, `-VisualFixture tutorial-long`, or
-`-VisualFixture offline-report`. These fixtures are ignored unless
+`-VisualFixture offline-report`. Wound treatment uses
+`-VisualFixture wound-recovery`; its action can be exercised at every
+resolution with `-NormalizedClicks '0.5,0.48'`.
+
+The `policies` fixture opens the read-only city Policies surface and validates
+its bounded scroll body plus the macro action row at 1280×720 and 1920×1080.
+The `migrant` fixture opens the Citizens roster used to choose the explicit
+camera observation target. All visual fixtures are ignored unless
 `WOG_VISUAL_CAPTURE=1`; they do not alter the normal game flow. The selected
 fixture is written into each manifest entry.
 
@@ -78,6 +97,8 @@ fixture is written into each manifest entry.
 | Expedition idle | Dispatch button visible, no active expedition | After opening panel | Title, supply cost, return copy, Dispatch enabled, Cancel hidden |
 | Expedition active | Active expedition in flight | After opening panel | Status text shows departure and return as world day/time, Cancel visible, Dispatch disabled, focus recoverable |
 | Expedition returned | Active → Returned transition with one Stone deposited | After opening panel | Returned event visible in Chronicle, Expedition in City status, Dispatch re-enabled |
+| Wound recovery | `wound-recovery` fixture | Yes | Wound severity/time and Shelter/Food action remain visible; click removes the action, debits Food, and starts countdown |
+| Pixel typography | `TypographySpecimen.tscn` | Yes | `W/w`, `O/o`, `M`, curves and diagonals use solid pixels only; no grayscale fringe or visibly unequal stroke caused by scaling |
 | Forest depleted | `forest-depleted` fixture drains all natural-resource reserves | After loading fixture | Tree sprites disappear; parcel slots remain reserved; HUD/Chronicle/attention all stay inside the viewport |
 | Migration | `migrant` fixture | Yes | Opaque reading surface, citizen count, Recruit/Close hierarchy, initial focus and no clipping |
 | Astral opening | `astral-start` fixture | Yes | No lineage leakage, four narrative choices, visible focus, fragments and readable fade-in |
@@ -85,10 +106,11 @@ fixture is written into each manifest entry.
 | Founder identity | `astral-identity` fixture | Yes | Only the resulting lineage/sprite is revealed; name/body controls and result copy remain contained |
 | Founder arrival | `founder-arrival` fixture | Yes | Fall targets the first free construction lot, impact placeholder remains aligned, title card is original and readable |
 
-Every applicable row must be checked at all three harness resolutions. Changes
-to anchoring or safe-area behavior additionally require 2560×1080, 4:3, and a
-vertical viewport as manual exploratory checks until those shapes become part
-of a deterministic fixture harness.
+Every applicable row must be checked at both official harness resolutions:
+1280×720 is the logical baseline and 1920×1080 is the standard full-HD scale.
+Changes to anchoring or safe-area behavior additionally require ultrawide, 4:3,
+or vertical viewports only as targeted exploratory checks when the change puts
+those shapes at risk.
 
 ## Review record
 
@@ -133,3 +155,6 @@ introduced.
 | 2026-07-24 | `expedition-idle`, `expedition-active`, `expedition-returned` | 1024×576, 1280×720, 1600×900 | Automated pass after rejecting the initial translucent panels. The dark modal surface keeps all copy readable; active state shows departure/return as world day and time and removes the leader from the city. The returned fixture initially froze the UI by replaying 14,400 ticks synchronously; its equivalent one-tick transition now completes the three-resolution matrix in 9.1 s and restores the leader. Human focus/close signature remains tracked by M-14. |
 | 2026-07-24 | `migrant-panel` | 1024×576, 1280×720, 1600×900 | Automated layout pass. Current population, recruitment copy, Recruit, and Close remain legible and contained on the same opaque modal surface. Human keyboard/gamepad signature remains tracked by M-14. |
 | 2026-07-25 | `forest-depleted` (headless) | n/a (fixture mode suppresses persistence) | The new `DrainAllForestsForVisualRegression` API in `CityWorldController` empties every natural resource patch through `WOG_VISUAL_CAPTURE` capture mode. The headless boot completes without C# or Godot errors. Windowed composition of the resulting empty macro view awaits an interactive desktop (50×50 client limitation). |
+| 2026-07-29 | `wound-recovery`, `wound-treatment-started` | 1024×576, 1280×720, 1600×900 | Historical three-size pass. The wound row and Shelter/Food treatment action remained contained; a physical click consumed 1 Food and started recovery. Capture mode suppressed persistence. |
+| 2026-07-29 | `wound-recovery`, `wound-treatment-started` | 1280×720, 1920×1080 | Pass under the new official two-resolution contract. The captured duration read “1 día de tratamiento restantes” instead of exposing ticks; a physical click consumed 1 Food, removed the action, and started recovery without overflow. A later locale-only grammar polish changed this to “tiempo de tratamiento: 1 día”; its recapture was blocked when the desktop harness reported a 50×50 client, so the final wording still needs a graphical signature. |
+| 2026-07-29 | `typography-pixel-perfect` | 1280×720, 1920×1080 | Pass through an in-engine viewport capture after forced reimport. Geist Pixel, Jersey 10, and Pixelify Sans render `W/w`, `O/o`, `M`, curves, diagonals, accents, and numerals with solid pixels. The title crop contains exactly two colors (background and glyph) at both resolutions; the former grayscale fringe is absent. The window-handle harness still intermittently reports 50×50, so this fixture writes the viewport image directly when given its capture argument. |

@@ -13,12 +13,27 @@ namespace WorldofGoses.Tests;
 public class ExpeditionTeamTests
 {
     [Fact]
+    public void FirstLoopTemplates_LastFourSimulatedHours()
+    {
+        var memberId = new CitizenId(1);
+
+        ExpeditionRequest reconnaissance = ExpeditionRequest.Reconnaissance(memberId);
+        ExpeditionRequest communityContact = ExpeditionRequest.SeekProspect(memberId);
+
+        Assert.Equal(600, ExpeditionRequest.FirstLoopDurationTicks);
+        Assert.Equal(ExpeditionRequest.FirstLoopDurationTicks, reconnaissance.DurationTicks);
+        Assert.Equal(ExpeditionRequest.FirstLoopDurationTicks, communityContact.DurationTicks);
+        Assert.Equal(0, reconnaissance.DurationTicks % 4);
+    }
+
+    [Fact]
     public void StartExpedition_WithTwoAvailableCitizens_DispatchesBoth()
     {
         CityWorld world = TestHelpers.NewProductionWorld();
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
         var memberA = new CitizenId(4);
         var memberB = new CitizenId(5);
+        IncorporateHeroes(world, memberA, memberB);
 
         ExpeditionStartResult result = world.StartExpedition(
             ExpeditionRequest.Reconnaissance(new[] { memberA, memberB }));
@@ -92,6 +107,7 @@ public class ExpeditionTeamTests
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
         var availableMember = new CitizenId(4);
         var recoveringMember = new CitizenId(5);
+        IncorporateHeroes(world, availableMember, recoveringMember);
         Citizen recovering = world.GetCitizen(recoveringMember)!;
         recovering.ConsumeStamina(recovering.MaxStamina);
         Assert.True(recovering.BeginVitalRecovery(world.CurrentTick));
@@ -112,6 +128,7 @@ public class ExpeditionTeamTests
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
         var memberA = new CitizenId(4);
         var memberB = new CitizenId(5);
+        IncorporateHeroes(world, memberA, memberB);
         ExpeditionStartResult started = world.StartExpedition(
             ExpeditionRequest.Reconnaissance(new[] { memberA, memberB }));
 
@@ -128,6 +145,7 @@ public class ExpeditionTeamTests
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
         var memberA = new CitizenId(4);
         var memberB = new CitizenId(5);
+        IncorporateHeroes(world, memberA, memberB);
         var request = ExpeditionRequest.Reconnaissance(new[] { memberA, memberB });
         world.StartExpedition(request);
 
@@ -144,6 +162,7 @@ public class ExpeditionTeamTests
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
         var memberA = new CitizenId(4);
         var memberB = new CitizenId(5);
+        IncorporateHeroes(world, memberA, memberB);
         world.StartExpedition(ExpeditionRequest.Reconnaissance(new[] { memberA, memberB }));
 
         CityWorld restored = CityWorld.FromSave(
@@ -155,5 +174,13 @@ public class ExpeditionTeamTests
         Assert.Equal(new[] { memberA, memberB }, restoredExpedition.MemberIds);
         Assert.True(restored.IsCitizenOnActiveExpedition(memberA));
         Assert.True(restored.IsCitizenOnActiveExpedition(memberB));
+    }
+
+    private static void IncorporateHeroes(CityWorld world, params CitizenId[] citizenIds)
+    {
+        foreach (CitizenId citizenId in citizenIds)
+        {
+            Assert.True(world.TryIncorporateHero(citizenId).IsSuccess);
+        }
     }
 }

@@ -167,12 +167,14 @@ public class WorldEventLogTests
     }
 
     [Fact]
-    public void OfflineProgression_ApplyAll_ZeroEvents_ReturnsNone()
+    public void OfflineProgression_ApplyAll_ClockOnlyAdvanceReportsElapsedTicks()
     {
         var world = new CityWorld();
         // No hero, no buildings, no projects → idle fast-forward.
         var report = OfflineProgression.ApplyAll(world, ticksToApply: 5);
-        Assert.False(report.HadProgression);
+        Assert.True(report.HadProgression);
+        Assert.Equal(5, report.TicksApplied);
+        Assert.Empty(report.Events);
     }
 
     [Fact]

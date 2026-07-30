@@ -66,6 +66,16 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
+[node name="RetreatHeader" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "SectionTitle"
+text = "Retreat posture"
+
+[node name="RetreatPosture" type="OptionButton" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_type_variation = "ButtonText"
+
 [node name="DispatchButton" type="Button" parent="Surface/Margin/Layout"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
@@ -83,7 +93,7 @@ visible = false
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = "ButtonWarning"
-text = "Cancel"
+text = "Cancel dispatch"
 
 [node name="CloseButton" type="Button" parent="Surface/Margin/Layout"]
 custom_minimum_size = Vector2(0, 44)

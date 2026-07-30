@@ -19,15 +19,50 @@ public static class GameClock
     /// <summary>Total ticks in one in-game day. 3600 = 1 hour at 1 Hz.</summary>
     public const int TicksPerInGameDay = 3600;
 
+    /// <summary>
+    /// Provisional start of the configured workday, expressed as a tick within
+    /// the in-game day. Kept explicit so presentation and routine scheduling do
+    /// not infer labour policy from a lighting constant.
+    /// </summary>
+    public const int WorkdayStartTick = 0;
+
+    /// <summary>Exclusive end of the provisional workday (16:00).</summary>
+    public const int WorkdayEndTick = 2400;
+
     /// <summary>Ticks during which workers are considered "working" (day).</summary>
-    public const int DayTicks = 2400;
+    public const int DayTicks = WorkdayEndTick - WorkdayStartTick;
 
     /// <summary>Ticks during which workers are considered "resting" (night).</summary>
     public const int NightTicks = TicksPerInGameDay - DayTicks;
 
     /// <summary>True when the given world tick falls inside the day portion.</summary>
-    public static bool IsDaytime(int tick) =>
-        ((tick % TicksPerInGameDay) + TicksPerInGameDay) % TicksPerInGameDay < DayTicks;
+    public static bool IsDaytime(int tick) => IsWorkday(tick);
+
+    /// <summary>True while the centralized work schedule is active.</summary>
+    public static bool IsWorkday(int tick)
+    {
+        int dayTick = TickWithinDay(tick);
+        return dayTick >= WorkdayStartTick && dayTick < WorkdayEndTick;
+    }
+
+    /// <summary>Next absolute tick at which the workday starts.</summary>
+    public static int NextWorkdayStart(int tick)
+    {
+        int dayStart = tick - TickWithinDay(tick);
+        int candidate = dayStart + WorkdayStartTick;
+        return candidate > tick ? candidate : candidate + TicksPerInGameDay;
+    }
+
+    /// <summary>Next absolute tick at which the current workday ends.</summary>
+    public static int NextWorkdayEnd(int tick)
+    {
+        int dayStart = tick - TickWithinDay(tick);
+        int candidate = dayStart + WorkdayEndTick;
+        return candidate > tick ? candidate : candidate + TicksPerInGameDay;
+    }
+
+    public static int TickWithinDay(int tick) =>
+        ((tick % TicksPerInGameDay) + TicksPerInGameDay) % TicksPerInGameDay;
 
     /// <summary>
     /// Current position through the in-game day, in [0.0, 1.0).
@@ -36,7 +71,7 @@ public static class GameClock
     /// </summary>
     public static double DayFraction(int tick)
     {
-        int mod = ((tick % TicksPerInGameDay) + TicksPerInGameDay) % TicksPerInGameDay;
+        int mod = TickWithinDay(tick);
         return (double)mod / TicksPerInGameDay;
     }
 

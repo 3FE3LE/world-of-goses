@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace WorldofGoses.Domain;
@@ -23,11 +24,17 @@ public static class WorldEventRetention
         or WorldEventKind.ExpeditionReturned
         or WorldEventKind.ExpeditionFailed
         or WorldEventKind.ExpeditionCancelled
+        or WorldEventKind.ExpeditionRetreated
         or WorldEventKind.FoodRationShortfall
-        or WorldEventKind.ExpeditionEncounterResolved;
+        or WorldEventKind.ExpeditionEncounterResolved
+        or WorldEventKind.WoundSustained
+        or WorldEventKind.WoundRecoveryStarted
+        or WorldEventKind.WoundRecoveryCompleted
+        or WorldEventKind.TerritoryAdvanced;
 
     public static IReadOnlyList<WorldEvent> SelectForPersistence(
-        IReadOnlyList<WorldEvent> events)
+        IReadOnlyList<WorldEvent> events,
+        IReadOnlySet<int>? pinnedEventIds = null)
     {
         var selected = new List<WorldEvent>();
         foreach (var evt in events)
@@ -49,8 +56,20 @@ public static class WorldEventRetention
             }
         }
 
-        int removeCount = selected.Count - MaximumPersistedEvents;
-        if (removeCount > 0) selected.RemoveRange(0, removeCount);
+        for (int index = 0; selected.Count > MaximumPersistedEvents
+            && index < selected.Count;)
+        {
+            if (pinnedEventIds?.Contains(selected[index].Id.Value) == true)
+            {
+                index++;
+                continue;
+            }
+            selected.RemoveAt(index);
+        }
+        if (selected.Count > MaximumPersistedEvents)
+        {
+            selected.RemoveRange(0, selected.Count - MaximumPersistedEvents);
+        }
         return selected;
     }
 

@@ -50,18 +50,27 @@ theme_type_variation = "BodyText"
 text = "City roster"
 autowrap_mode = 3
 
-[node name="CitizenList" type="ScrollContainer" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 110)
+[node name="BodyScroll" type="ScrollContainer" parent="Surface/Margin/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Rows" type="VBoxContainer" parent="Surface/Margin/Layout/CitizenList"]
+[node name="Body" type="VBoxContainer" parent="Surface/Margin/Layout/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="CitizenList" type="ScrollContainer" parent="Surface/Margin/Layout/BodyScroll/Body"]
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="Surface/Margin/Layout/BodyScroll/Body/CitizenList"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="DetailLabel" type="Label" parent="Surface/Margin/Layout"]
+[node name="DetailLabel" type="Label" parent="Surface/Margin/Layout/BodyScroll/Body"]
 custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
 theme_type_variation = "BodyText"

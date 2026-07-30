@@ -21,7 +21,12 @@ public sealed class Expedition
         ResourceReservationId reservationId,
         ExpeditionStatus status = ExpeditionStatus.Active,
         ExpeditionPhase phase = ExpeditionPhase.Outbound,
-        ExpeditionEncounterOutcome? encounterOutcome = null)
+        ExpeditionEncounterOutcome? encounterOutcome = null,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback,
+        WorldEventId? dispatchEventId = null,
+        int? returnedAmount = null,
+        CitizenId? deliveredMigrantId = null,
+        ParcelId? targetParcelId = null)
     {
         if (id.Value <= 0) throw new ArgumentOutOfRangeException(nameof(id));
         if (string.IsNullOrWhiteSpace(displayName)) throw new ArgumentException("Display name is required.", nameof(displayName));
@@ -43,6 +48,10 @@ public sealed class Expedition
         {
             throw new ArgumentOutOfRangeException(nameof(rewardAmount));
         }
+        if (targetParcelId is ParcelId target && target.Value <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(targetParcelId));
+        }
 
         Id = id;
         DisplayName = displayName;
@@ -58,6 +67,11 @@ public sealed class Expedition
         Status = status;
         Phase = phase;
         EncounterOutcome = encounterOutcome;
+        RetreatPosture = retreatPosture;
+        DispatchEventId = dispatchEventId;
+        ReturnedAmount = returnedAmount;
+        DeliveredMigrantId = deliveredMigrantId;
+        TargetParcelId = targetParcelId;
     }
 
     public ExpeditionId Id { get; }
@@ -80,6 +94,11 @@ public sealed class Expedition
     public CitizenId? DeliveredMigrantId { get; private set; }
     public ExpeditionPhase Phase { get; private set; }
     public ExpeditionEncounterOutcome? EncounterOutcome { get; private set; }
+    public ExpeditionRetreatPosture RetreatPosture { get; }
+    public ParcelId? TargetParcelId { get; }
+    public bool RetreatTriggered =>
+        RetreatPosture == ExpeditionRetreatPosture.RetreatAfterSetback
+        && EncounterOutcome == ExpeditionEncounterOutcome.Setback;
 
     public bool HasMember(CitizenId citizenId)
     {
@@ -114,6 +133,8 @@ public sealed class Expedition
         bool legal = (Phase, next) switch
         {
             (ExpeditionPhase.Encounter, ExpeditionPhase.Objective) => true,
+            (ExpeditionPhase.Encounter, ExpeditionPhase.Retreating) => true,
+            (ExpeditionPhase.Retreating, ExpeditionPhase.Returning) => true,
             (ExpeditionPhase.Objective, ExpeditionPhase.Returning) => true,
             _ => false,
         };
@@ -121,6 +142,8 @@ public sealed class Expedition
         Phase = next;
         return true;
     }
+
+    internal bool BeginRetreat() => TryAdvancePhase(ExpeditionPhase.Retreating);
 
     internal void MarkReturnedSupplies(int amount)
     {
@@ -148,6 +171,13 @@ public sealed class Expedition
     {
         ReturnedAmount = 0;
         Status = ExpeditionStatus.Failed;
+        Phase = ExpeditionPhase.Resolved;
+    }
+
+    internal void MarkRetreated()
+    {
+        ReturnedAmount = 0;
+        Status = ExpeditionStatus.Retreated;
         Phase = ExpeditionPhase.Resolved;
     }
 

@@ -20,8 +20,8 @@ namespace WorldofGoses.Prototypes;
 /// trees sit on real depth-graduated ground instead of floating over a
 /// flat painted strip. Crossing between adjacent streets is only viable
 /// through the gaps trees/buildings leave — <see cref="StreetRoutePlanner"/>
-/// owns that rule for both the hero's gather routes and the player's
-/// manual W/S steps, threading BETWEEN obstacles rather than around them
+/// owns that rule for every citizen journey and the founder's gather
+/// routes, threading BETWEEN obstacles rather than around them
 /// (its gap-scan step is fine-grained specifically so narrow gaps between
 /// adjacent same-row obstacles are never skipped over — see that class's
 /// own docs for the exact bug this fixed).
@@ -46,11 +46,11 @@ namespace WorldofGoses.Prototypes;
 /// <see cref="BeginBuildingEntry"/>) — the "camera" push happens on this
 /// map, not on <c>BuildingDetailView</c>.
 ///
-/// Camera mode (design bible §04 "Cámara-sigue"): follow-the-founder
-/// (default) or free pan, an explicit toggle (<see cref="ToggleCameraMode"/>,
-/// F key or the MacroActions button) independent from selection. Follow
-/// mode is exactly the historical behavior (the founder IS the viewer);
-/// free mode decouples the vanishing point (<see cref="CameraLateral"/>/
+/// Camera mode (design bible §04 "Cámara-sigue"): free pan by default,
+/// with follow-the-founder available only through an explicit toggle
+/// (<see cref="ToggleCameraMode"/>, F key or the MacroActions button),
+/// independent from selection. Free mode decouples the vanishing point
+/// (<see cref="CameraLateral"/>/
 /// <see cref="CameraDepthAnchor"/>) from the founder's own true position
 /// (<see cref="_heroLateral"/>/<see cref="_heroStreet"/>, which keeps
 /// moving/routing on its own regardless of camera mode) and projects the
@@ -68,6 +68,7 @@ namespace WorldofGoses.Prototypes;
 /// </summary>
 public partial class MacroStreetLiveView : Node2D
 {
+    private const bool DefaultCameraFollowsHero = false;
     private const float CenterX = 640f;
     private const float BaseY = 580f; // ScreenContent-local: clear of the ~68px MacroActions band
     private const float LotUnitPx = 90f;
@@ -150,6 +151,12 @@ public partial class MacroStreetLiveView : Node2D
     [Export] public NodePath ExpeditionMenuButtonPath { get; set; } =
         "../MacroActions/Actions/ExpeditionMenuButton";
     [Export] public NodePath ExpeditionPanelPath { get; set; } = "../ExpeditionPanel";
+    [Export] public NodePath PoliciesButtonPath { get; set; } =
+        "../MacroActions/Actions/PoliciesButton";
+    [Export] public NodePath PoliciesPanelPath { get; set; } = "../PoliciesPanel";
+    [Export] public NodePath CitizensButtonPath { get; set; } =
+        "../MacroActions/Actions/CitizensButton";
+    [Export] public NodePath CitizensPanelPath { get; set; } = "../MigrantPanel";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
     [Export] public NodePath MacroActionsPath { get; set; } = "../MacroActions";
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
@@ -164,6 +171,10 @@ public partial class MacroStreetLiveView : Node2D
     private ConstructionPanel _constructionPanel = null!;
     private IconButton _expeditionMenuButton = null!;
     private ExpeditionPanel _expeditionPanel = null!;
+    private IconButton _policiesButton = null!;
+    private PoliciesPanel _policiesPanel = null!;
+    private IconButton _citizensButton = null!;
+    private MigrantPanel _citizensPanel = null!;
     private ModalHost _modalHost = null!;
     private Control _macroActions = null!;
     private BuildingDetailView _buildingDetailView = null!;
@@ -188,8 +199,7 @@ public partial class MacroStreetLiveView : Node2D
     // prototype. Free camera state is intentionally separate from the
     // hero's own _heroStreet/_heroLateral (the hero's true position, which
     // keeps moving/routing on its own regardless of camera mode).
-    private bool _cameraFollowsHero = true;
-    private bool _wasFreeCameraBeforePlacement;
+    private bool _cameraFollowsHero = DefaultCameraFollowsHero;
     private float _freeCameraLateral;
     private int _freeCameraStreet;
     private float _cameraDepthAnchor;
@@ -223,9 +233,8 @@ public partial class MacroStreetLiveView : Node2D
     private int _streetCount = 1;
     private float _lateralHalfWidthPx = LotUnitPx;
 
-    // The hero IS the viewer: the vanishing point follows them (validated
-    // in the isolated prototype), so camera lateral == hero lateral and the
-    // depth anchor chases the hero's street.
+    // The founder has an independent physical position. Follow mode may use
+    // it as the camera anchor, but selection and keyboard input never move it.
     private int _heroStreet;
     private float _heroLateral;
     private float _depthAnchor;
@@ -239,28 +248,57 @@ public partial class MacroStreetLiveView : Node2D
     private int? _selectedBuildingId;
 
     private CitizenSpriteCarrier? _heroCarrier;
-    // S-1.4 follow-up: ambient, non-hero assigned citizens standing at
-    // their workplace (see RefreshCitizenVisuals), keyed by citizen id.
-    private readonly record struct WorkerSlot(CitizenSpriteCarrier Carrier, int BuildingId, int Index, int GroupSize);
-    private readonly Dictionary<int, WorkerSlot> _workerCarriers = new();
-    private const float WorkerLateralSpacingPx = 10f;
+    private sealed class CitizenJourney
+    {
+        public CitizenJourney(
+            CitizenId citizenId,
+            CitizenSpriteCarrier carrier,
+            int street,
+            float lateral)
+        {
+            CitizenId = citizenId;
+            Carrier = carrier;
+            Street = street;
+            Lateral = lateral;
+            DepthAnchor = street;
+        }
+
+        public CitizenId CitizenId { get; }
+        public CitizenSpriteCarrier Carrier { get; }
+        public int Street { get; set; }
+        public float Lateral { get; set; }
+        public float DepthAnchor { get; set; }
+        public float? DepthTarget { get; set; }
+        public float TransitionAccumulator { get; set; }
+        public List<StreetRoutePlanner.Waypoint>? Route { get; set; }
+        public int RouteIndex { get; set; }
+        public BuildingId? Destination { get; set; }
+        public bool ReturningHome { get; set; }
+        public bool Walking { get; set; }
+        public bool IsAmbient { get; set; }
+        public int NextAmbientDecisionTick { get; set; }
+    }
+
+    // Every non-founder citizen uses the same street route planner and cadence
+    // as the founder. This is presentation-only and never persists pixels.
+    private readonly Dictionary<int, CitizenJourney> _citizenJourneys = new();
+
+    internal readonly record struct ReconstructedRoutePosition(
+        int Street,
+        float Lateral,
+        int RouteIndex);
     private StreetNavigationServerPlanner? _navmeshPlanner;
     private List<StreetRoutePlanner.Waypoint>? _route;
     private int _routeIndex;
     private (int ForestId, int UnitId)? _pendingGather;
     private BuildingId? _pendingAssignment;
     private bool _pendingReturnHome;
-    // Domain CurrentLocation never leaves AtHome for manual W/S/arrow
-    // movement or a Gather route (neither is a real domain travel action),
-    // so without this latch every subsequent Refresh() (fired on any world
-    // tick) sees "AtHome, no route, no pending return" and re-hides the
-    // founder — whether that is the instant the player stops pressing a
-    // key, or right as CompleteRoute's gather branch clears _route and
-    // calls GatherWood (itself a synchronous refresh trigger). Set by
-    // EnsureHeroCarrierReadyToMove; cleared once a real domain-tracked
-    // journey starts (BeginWalkHome/BeginWalkToAssignment), since a route
-    // already suppresses the hide on its own from then on.
-    private bool _heroWanderedAwayManually;
+    // Domain CurrentLocation stays AtHome during a Gather route because
+    // gathering is not a work assignment. Without this latch a world refresh
+    // could re-hide the founder just as the gather animation resolves.
+    private bool _heroIsGatheringOutsideHome;
+    private bool _heroAmbientRoute;
+    private int _heroNextAmbientDecisionTick;
     // Tracks the domain's own hero.CurrentAssignment so a route to the
     // workplace fires exactly once per NEW assignment (see
     // EnsureHeroCarrier) — without this, every world tick re-triggered the
@@ -292,6 +330,7 @@ public partial class MacroStreetLiveView : Node2D
 
     public override void _Ready()
     {
+        CameraInputActions.EnsureRegistered();
         _controller = GetNode<CityWorldController>(ControllerPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
         _statusPanel.AttachController(_controller);
@@ -303,6 +342,10 @@ public partial class MacroStreetLiveView : Node2D
         _constructionPanel = GetNode<ConstructionPanel>(ConstructionPanelPath);
         _expeditionMenuButton = GetNode<IconButton>(ExpeditionMenuButtonPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
+        _policiesButton = GetNode<IconButton>(PoliciesButtonPath);
+        _policiesPanel = GetNode<PoliciesPanel>(PoliciesPanelPath);
+        _citizensButton = GetNode<IconButton>(CitizensButtonPath);
+        _citizensPanel = GetNode<MigrantPanel>(CitizensPanelPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _macroActions = GetNode<Control>(MacroActionsPath);
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
@@ -331,8 +374,11 @@ public partial class MacroStreetLiveView : Node2D
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
+        _controller.ObservedCitizenChanged += OnObservedCitizenChanged;
         _constructionMenuButton.Pressed += OnConstructionMenuPressed;
         _expeditionMenuButton.Pressed += OnExpeditionMenuPressed;
+        _policiesButton.Pressed += OnPoliciesPressed;
+        _citizensButton.Pressed += OnCitizensPressed;
         _constructionPanel.PlacementRequested += OnPlacementRequested;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
         _modalHost.Closed += OnModalHostClosedForButtonLabel;
@@ -370,8 +416,12 @@ public partial class MacroStreetLiveView : Node2D
         _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
         _controller.SelectionChanged -= OnSelectionChanged;
         _controller.HeroCreated -= OnHeroCreated;
+        _controller.ObservedCitizenChanged -= OnObservedCitizenChanged;
         _actionMenu.GatherRequested -= OnGatherRequested;
         _constructionMenuButton.Pressed -= OnConstructionMenuPressed;
+        _expeditionMenuButton.Pressed -= OnExpeditionMenuPressed;
+        _policiesButton.Pressed -= OnPoliciesPressed;
+        _citizensButton.Pressed -= OnCitizensPressed;
         _constructionPanel.PlacementRequested -= OnPlacementRequested;
         _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
         _modalHost.Closed -= OnModalHostClosedForButtonLabel;
@@ -596,6 +646,28 @@ public partial class MacroStreetLiveView : Node2D
         _modalHost.Close();
     }
 
+    private void OnPoliciesPressed()
+    {
+        if (!Visible) return;
+        if (_modalHost.IsOpen && _modalHost.Content == _policiesPanel)
+        {
+            _modalHost.Close();
+            return;
+        }
+        _policiesPanel.Open();
+    }
+
+    private void OnCitizensPressed()
+    {
+        if (!Visible) return;
+        if (_modalHost.IsOpen && _modalHost.Content == _citizensPanel)
+        {
+            _modalHost.Close();
+            return;
+        }
+        _citizensPanel.Open();
+    }
+
     internal void ShowConstructionForVisualRegression(bool placement)
     {
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
@@ -667,12 +739,6 @@ public partial class MacroStreetLiveView : Node2D
         _selectedBuildingId = null;
         ClearTreeHover();
         _macroActions.Hide();
-        // Placement always renders lots around the founder's current
-        // position — force follow mode for the duration so lots never
-        // render relative to wherever a free camera happens to be looking.
-        _wasFreeCameraBeforePlacement = !_cameraFollowsHero;
-        if (!_cameraFollowsHero) SetCameraFollowsHero(true);
-
         float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
         _placementLots.Clear();
         foreach (ConstructionLot lot in lots)
@@ -695,7 +761,6 @@ public partial class MacroStreetLiveView : Node2D
         _placementFooter.Visible = false;
         _macroActions.Show();
         UpdateConstructionButtonLabel();
-        if (_wasFreeCameraBeforePlacement) SetCameraFollowsHero(false);
         QueueRedraw();
     }
 
@@ -762,11 +827,8 @@ public partial class MacroStreetLiveView : Node2D
         {
             AddPlot(item, totalLotColumns, clickable: false);
         }
-        if (Visible)
-        {
-            EnsureHeroCarrier(snapshot);
-            RefreshCitizenVisuals(snapshot);
-        }
+        EnsureHeroCarrier(snapshot);
+        RefreshCitizenVisuals(snapshot);
         RefreshSelectionInfoIfShown();
         QueueRedraw();
     }
@@ -866,20 +928,36 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>The vanishing point's lateral position — the founder's own
     /// while following, an independently-steered value while free.</summary>
-    private float CameraLateral => _cameraFollowsHero ? _heroLateral : _freeCameraLateral;
+    private float CameraLateral =>
+        _cameraFollowsHero && TryGetObservedCitizenAnchor(out _, out float lateral)
+            ? lateral
+            : _freeCameraLateral;
 
     /// <summary>The vanishing point's smoothed depth — see the class doc's
     /// "Camera mode" note and <see cref="AdvanceTransition"/>.</summary>
-    private float CameraDepthAnchor => _cameraFollowsHero ? _depthAnchor : _cameraDepthAnchor;
+    private float CameraDepthAnchor =>
+        _cameraFollowsHero && TryGetObservedCitizenAnchor(out float depth, out _)
+            ? depth
+            : _cameraDepthAnchor;
+
+    internal static bool FollowsFounderByDefault => DefaultCameraFollowsHero;
+
+    internal bool HasActiveCitizenJourneyForVisualRegression(CitizenId citizenId) =>
+        System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1"
+        && _citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
+        && journey.Route is not null;
 
     public override void _Process(double delta)
     {
-        if (!Visible) return;
+        bool hasCitizenTravel = _route is not null
+            || _citizenJourneys.Values.Any(journey => journey.Route is not null);
+        if (!Visible && !hasCitizenTravel) return;
         _motionAccumulator += (float)delta;
         while (_motionAccumulator >= PixelMotion.CadenceSeconds)
         {
             _motionAccumulator -= PixelMotion.CadenceSeconds;
-            MotionTick();
+            MotionTick(allowCameraInput: Visible);
+            AdvanceCitizenJourneysTick();
         }
         // The founder's own smoothed row (always active — it also paces
         // AdvanceRouteTick regardless of camera mode) and, independently,
@@ -888,8 +966,14 @@ public partial class MacroStreetLiveView : Node2D
         bool cameraDepthAnimating = _cameraDepthTarget.HasValue;
         AdvanceTransition(ref _depthAnchor, ref _depthTarget, ref _transitionAccumulator, delta);
         AdvanceTransition(ref _cameraDepthAnchor, ref _cameraDepthTarget, ref _cameraTransitionAccumulator, delta);
-        if (heroDepthAnimating || cameraDepthAnimating) QueueRedraw();
-        AdvanceBuildingEntry(delta);
+        bool citizenDepthAnimating = false;
+        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        {
+            citizenDepthAnimating |= journey.DepthTarget.HasValue;
+            AdvanceJourneyTransition(journey, delta);
+        }
+        if (heroDepthAnimating || cameraDepthAnimating || citizenDepthAnimating) QueueRedraw();
+        if (Visible) AdvanceBuildingEntry(delta);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -898,6 +982,17 @@ public partial class MacroStreetLiveView : Node2D
         // A building-entry push is a brief, exclusive, non-interruptible
         // transition — same spirit as the fullscreen placement scrim.
         if (_pendingBuildingEntry is not null) return;
+        if (UiInputBoundary.IsWheelEvent(@event))
+        {
+            bool pointerIsOverScrollableUi = UiInputBoundary.IsPointerOverScrollableUi(GetViewport());
+            if (!UiInputBoundary.ShouldWorldCameraHandleWheel(
+                    isWheelEvent: true,
+                    pointerIsOverScrollableUi))
+            {
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+        }
         if (_placementActive && @event.IsActionPressed("ui_cancel"))
         {
             CancelPlacement();
@@ -910,25 +1005,33 @@ public partial class MacroStreetLiveView : Node2D
             GetViewport().SetInputAsHandled();
             return;
         }
+        if (@event.IsActionPressed(CameraInputActions.PanUp))
+        {
+            PanCameraStreet(1);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (@event.IsActionPressed(CameraInputActions.PanDown))
+        {
+            PanCameraStreet(-1);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (@event.IsActionPressed(CameraInputActions.ToggleFollow))
+        {
+            ToggleCameraMode();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
         switch (@event)
         {
-            case InputEventKey { Pressed: true, Echo: false } keyEvent
-                when keyEvent.Keycode is Key.Up or Key.W:
-                StepStreet(1);
-                break;
-            case InputEventKey { Pressed: true, Echo: false } keyEvent
-                when keyEvent.Keycode is Key.Down or Key.S:
-                StepStreet(-1);
-                break;
-            case InputEventKey { Pressed: true, Echo: false } keyEvent
-                when keyEvent.Keycode == Key.F:
-                ToggleCameraMode();
-                break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelUp, Pressed: true }:
                 AdjustZoom(ZoomStep);
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.WheelDown, Pressed: true }:
                 AdjustZoom(-ZoomStep);
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true } click:
                 TryClick(ToLocal(click.Position));
@@ -974,13 +1077,12 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>
     /// Camera mode toggle (design bible §04 "Cámara-sigue"): follow the
-    /// founder (default) or pan freely, independent of any selection.
-    /// Ignored during placement, which always forces follow (see
-    /// BeginPlacement) so lots keep rendering around the founder.
+    /// founder or pan freely (the default), independent of any selection.
+    /// Placement does not alter or lock this choice; directional input keeps
+    /// its camera-only meaning while the player inspects candidate lots.
     /// </summary>
     private void ToggleCameraMode()
     {
-        if (_placementActive) return;
         SetCameraFollowsHero(!_cameraFollowsHero);
     }
 
@@ -992,15 +1094,56 @@ public partial class MacroStreetLiveView : Node2D
             // Entering free mode starts exactly where follow mode left
             // off — no visual jump at the moment of toggling, only
             // subsequent free-camera input diverges it from the founder.
-            _freeCameraLateral = _heroLateral;
-            _freeCameraStreet = _heroStreet;
-            _cameraDepthAnchor = _depthAnchor;
+            float currentLateral = CameraLateral;
+            float currentDepth = CameraDepthAnchor;
+            _freeCameraLateral = currentLateral;
+            _freeCameraStreet = Mathf.RoundToInt(currentDepth);
+            _cameraDepthAnchor = currentDepth;
             _cameraDepthTarget = null;
             _cameraTransitionAccumulator = 0f;
         }
         _cameraFollowsHero = value;
         UpdateCameraModeButtonLabel();
         QueueRedraw();
+    }
+
+    private void OnObservedCitizenChanged(int _)
+    {
+        // Selection only changes the potential target. It deliberately does
+        // not activate follow; if follow was already explicit, it tracks the
+        // newly selected citizen on the next projection.
+        UpdateCameraModeButtonLabel();
+        QueueRedraw();
+    }
+
+    private bool TryGetObservedCitizenAnchor(out float depth, out float lateral)
+    {
+        CitizenId? observedId = _controller.ObservedCitizenId;
+        CitizenId? founderId = _controller.World.Hero?.Id;
+        if (observedId is null || observedId == founderId)
+        {
+            depth = _depthAnchor;
+            lateral = _heroLateral;
+            return founderId is not null;
+        }
+        if (_citizenJourneys.TryGetValue(observedId.Value.Value, out CitizenJourney? journey))
+        {
+            depth = journey.DepthAnchor;
+            lateral = journey.Lateral;
+            return true;
+        }
+
+        CitizenRoutineSnapshot? routine = _controller.World.GetCitizenRoutine(observedId.Value);
+        if (routine?.ContextBuildingId is BuildingId buildingId
+            && FindPlot(buildingId) is PlotBox plot)
+        {
+            depth = WorkplaceEntranceStreet(plot.Street);
+            lateral = plot.LateralOffset;
+            return true;
+        }
+        depth = _depthAnchor;
+        lateral = _heroLateral;
+        return false;
     }
 
     private void UpdateCameraModeButtonLabel()
@@ -1258,42 +1401,27 @@ public partial class MacroStreetLiveView : Node2D
         _pendingReturnHome = false;
         _pendingAssignment = null;
         _pendingGather = (forestId, unitId);
-        _route = PlanHeroRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
+        _route = PlanCitizenRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
         _routeIndex = 0;
     }
 
     /// <summary>
-    /// One 12 Hz quantized motion step. In follow mode: the founder's
-    /// route first, then manual input (exactly as before camera modes
-    /// existed). In free mode, the founder keeps acting on its own — a
-    /// route or idle settle — independent of the free camera's own manual
-    /// input, since the two are no longer the same thing.
+    /// One 12 Hz quantized motion step. The founder advances only along an
+    /// autonomous route. Manual lateral input always belongs to the camera,
+    /// independent of whether follow mode was active before that input.
     /// </summary>
-    private void MotionTick()
+    private void MotionTick(bool allowCameraInput)
     {
-        if (_placementActive) return;
-        if (_cameraFollowsHero)
+        if (_route is not null)
         {
-            if (_route is not null)
-            {
-                AdvanceRouteTick();
-                return;
-            }
-            bool stepped = TryStepHeroLateral();
-            if (!stepped && _heroWalking && !_depthTarget.HasValue)
-            {
-                _heroWalking = false;
-                _heroCarrier?.Idle(Vector2.Down);
-            }
-            return;
+            AdvanceRouteTick();
         }
-        if (_route is not null) AdvanceRouteTick();
         else if (_heroWalking && !_depthTarget.HasValue)
         {
             _heroWalking = false;
             _heroCarrier?.Idle(Vector2.Down);
         }
-        TryStepFreeCameraLateral();
+        if (allowCameraInput) TryPanCameraLateral();
     }
 
     private void AdvanceRouteTick()
@@ -1332,13 +1460,33 @@ public partial class MacroStreetLiveView : Node2D
 
     private void CompleteRoute()
     {
+        if (_heroAmbientRoute)
+        {
+            _heroAmbientRoute = false;
+            _route = null;
+            _routeIndex = 0;
+            _heroWalking = false;
+            _heroNextAmbientDecisionTick = _controller.World.CurrentTick + 30;
+            _heroCarrier?.Idle(Vector2.Down);
+            return;
+        }
         _route = null;
         _routeIndex = 0;
         _heroWalking = false;
         if (_pendingReturnHome)
         {
             _pendingReturnHome = false;
-            _controller.ConfirmCitizenArrivedHome(_controller.World.Hero!.Id);
+            CitizenId founderId = _controller.World.Hero!.Id;
+            BuildingId? homeId = _controller.World.PrimaryHome?.Id;
+            bool arrivedHome = _controller.ConfirmCitizenArrivedHome(founderId);
+            if (!arrivedHome)
+            {
+                LogRejectedArrival(founderId, homeId, returningHome: true);
+                _heroCarrier?.Idle(Vector2.Down);
+                Callable.From(RefreshPlots).CallDeferred();
+                return;
+            }
+            LogCitizenTravel("arrived", founderId, homeId, returningHome: true);
             // Arrival means the citizen crossed the threshold. The macro
             // carrier disappears inside; a later order remounts the same
             // flyweight before planning its next route.
@@ -1350,9 +1498,19 @@ public partial class MacroStreetLiveView : Node2D
             bool arrived = _controller.ConfirmCitizenArrivedAtAssignment(
                 workplace,
                 _controller.World.Hero!.Id);
-            if (arrived
-                || _controller.World.Hero.CurrentLocation != CitizenLocation.InTransit)
+            if (!arrived)
             {
+                LogRejectedArrival(_controller.World.Hero.Id, workplace, returningHome: false);
+                _pendingAssignment = null;
+                Callable.From(RefreshPlots).CallDeferred();
+            }
+            else
+            {
+                LogCitizenTravel(
+                    "arrived",
+                    _controller.World.Hero.Id,
+                    workplace,
+                    returningHome: false);
                 _pendingAssignment = null;
             }
             // Facing "into" the workplace (deeper on this row), matching
@@ -1383,47 +1541,19 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Manual depth step: moves the founder in follow mode (as before), or
-    /// the free camera alone in free mode — see <see cref="_cameraFollowsHero"/>.
+    /// Manual depth input always pans the camera. If follow mode is active,
+    /// the first manual step releases it before moving the observer.
     /// </summary>
-    private void StepStreet(int direction)
+    private void PanCameraStreet(int direction)
     {
-        if (_cameraFollowsHero) StepHeroStreet(direction);
-        else StepFreeCameraStreet(direction);
+        EnsureFreeCameraForManualPan();
+        StepFreeCameraStreet(direction);
     }
 
     /// <summary>
-    /// Founder's own manual depth step. Crossing is only viable through the
-    /// gaps the constructions leave in the band between the two roads —
-    /// the street-plan rule ("las calles viven entre las construcciones").
-    /// </summary>
-    private void StepHeroStreet(int direction)
-    {
-        // A citizen currently assigned to a workplace is busy there, not
-        // free to wander — matches the flat view's own model (an assigned
-        // worker renders at their workplace, not roaming the macro city).
-        if (_placementActive || _lastKnownAssignment is not null || _depthTarget.HasValue || _route is not null) return;
-        int nextStreet = Mathf.Clamp(_heroStreet + direction, 0, _streetCount - 1);
-        if (nextStreet == _heroStreet) return;
-        int band = direction > 0 ? _heroStreet : _heroStreet - 1;
-        if (StreetRoutePlanner.IsCrossingBlocked(GetBandOccupancy(band), _heroLateral, RouteClearancePx))
-        {
-            Notifier.Show(UiText.Get("Something blocks the way — walk along the street to a gap first."));
-            return;
-        }
-        EnsureHeroCarrierReadyToMove();
-        _heroCarrier?.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
-        _heroWalking = true;
-        _heroStreet = nextStreet;
-        _depthTarget = _heroStreet;
-        TrampleHeroTile();
-    }
-
-    /// <summary>
-    /// Called before every hero-initiated macro action that this class does
-    /// not learn about through a synchronous domain event: manual W/S/
-    /// arrow-key movement, and <see cref="OnGatherRequested"/>'s route to a
-    /// tree. An assignment is different — <c>TryAssignCitizen</c> fires
+    /// Called before a founder gather route, which this class does not learn
+    /// about through a synchronous domain travel event. An assignment is
+    /// different — <c>TryAssignCitizen</c> fires
     /// <c>BuildingStateChanged</c>/<c>ProjectStateChanged</c> synchronously,
     /// forcing an <see cref="EnsureHeroCarrier"/> refresh (which un-hides
     /// the carrier) before <see cref="BeginWalkToAssignment"/> ever moves
@@ -1452,13 +1582,13 @@ public partial class MacroStreetLiveView : Node2D
     /// <see cref="_route"/> is cleared, undoing the arrival Slash animation
     /// before the player ever sees it.</description></item>
     /// </list>
-    /// <see cref="_heroWanderedAwayManually"/> is cleared once a real
+    /// <see cref="_heroIsGatheringOutsideHome"/> is cleared once a real
     /// domain-tracked journey takes over (<see cref="BeginWalkToAssignment"/>/
     /// <see cref="BeginWalkHome"/>/departing on an expedition).
     /// </summary>
     private void EnsureHeroCarrierReadyToMove()
     {
-        _heroWanderedAwayManually = true;
+        _heroIsGatheringOutsideHome = true;
         if (_heroCarrier is null) return;
         if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
@@ -1469,12 +1599,12 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>
     /// Free camera's own manual depth step — an observer, not a body, so
-    /// unlike <see cref="StepHeroStreet"/> it never checks obstacle
-    /// clearance (design bible §04: free pan is always available).
+    /// it never checks citizen obstacle clearance (design bible §04: free
+    /// pan is always available).
     /// </summary>
     private void StepFreeCameraStreet(int direction)
     {
-        if (_placementActive || _cameraDepthTarget.HasValue) return;
+        if (_cameraDepthTarget.HasValue) return;
         int nextStreet = Mathf.Clamp(_freeCameraStreet + direction, 0, _streetCount - 1);
         if (nextStreet == _freeCameraStreet) return;
         _freeCameraStreet = nextStreet;
@@ -1507,31 +1637,12 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
-    /// <summary>Returns true when the founder's own manual lateral step happened this tick.</summary>
-    private bool TryStepHeroLateral()
-    {
-        if (_lastKnownAssignment is not null) return false;
-        float direction = ReadLateralDirection();
-        if (direction == 0f) return false;
-        float next = Mathf.Clamp(
-            _heroLateral + direction * PixelMotion.StepPixels,
-            -_lateralHalfWidthPx,
-            _lateralHalfWidthPx);
-        if (next == _heroLateral) return false;
-        EnsureHeroCarrierReadyToMove();
-        _heroCarrier?.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
-        _heroWalking = true;
-        _heroLateral = next;
-        TrampleHeroTile();
-        QueueRedraw();
-        return true;
-    }
-
-    /// <summary>Free camera's own manual lateral step — no carrier/walk-pose side effects.</summary>
-    private bool TryStepFreeCameraLateral()
+    /// <summary>Manual lateral input pans only the camera.</summary>
+    private bool TryPanCameraLateral()
     {
         float direction = ReadLateralDirection();
         if (direction == 0f) return false;
+        EnsureFreeCameraForManualPan();
         float next = Mathf.Clamp(
             _freeCameraLateral + direction * PixelMotion.StepPixels,
             -_lateralHalfWidthPx,
@@ -1540,6 +1651,11 @@ public partial class MacroStreetLiveView : Node2D
         _freeCameraLateral = next;
         QueueRedraw();
         return true;
+    }
+
+    private void EnsureFreeCameraForManualPan()
+    {
+        if (_cameraFollowsHero) SetCameraFollowsHero(false);
     }
 
     /// <summary>
@@ -1551,8 +1667,8 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private static float ReadLateralDirection()
     {
-        if (Input.IsActionPressed("ui_left") || Input.IsKeyPressed(Key.A)) return -1f;
-        if (Input.IsActionPressed("ui_right") || Input.IsKeyPressed(Key.D)) return 1f;
+        if (Input.IsActionPressed(CameraInputActions.PanLeft)) return -1f;
+        if (Input.IsActionPressed(CameraInputActions.PanRight)) return 1f;
         return 0f;
     }
 
@@ -1578,37 +1694,47 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void EnsureHeroCarrier(CityMacroSnapshot snapshot)
     {
-        if (!Visible || snapshot.Hero is not { } hero) return;
-        bool onExpedition = snapshot.Citizens.Count > 0 && snapshot.Citizens[0].IsOnExpedition;
-        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
-            hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
-        if (onExpedition)
+        if (snapshot.Hero is not { } hero) return;
+        CityMacroSnapshot.CitizenItem? heroState = snapshot.Citizens
+            .FirstOrDefault(citizen => citizen.Id == hero.Id);
+        if (heroState is null) return;
+        if (heroState.IsOnExpedition)
         {
-            if (_heroCarrier.GetParent() == this)
+            if (CitizenSpriteBank.Instance.TryGet(hero.Id, out CitizenSpriteCarrier? awayCarrier)
+                && awayCarrier is not null
+                && awayCarrier.GetParent() == this)
             {
-                _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+                awayCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             }
             _lastKnownAssignment = null;
             _lastKnownHeroLocation = null;
-            _heroWanderedAwayManually = false;
+            _heroIsGatheringOutsideHome = false;
             return;
         }
+        if (!Visible && heroState.Location != CitizenLocation.InTransit && _route is null) return;
+        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
+            hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
         CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
-        BuildingId? currentAssignment = snapshot.Citizens.Count > 0
-            ? snapshot.Citizens[0].CurrentAssignment
-            : null;
-        CitizenLocation heroLocation = snapshot.Citizens.Count > 0
-            ? snapshot.Citizens[0].Location
-            : CitizenLocation.AtHome;
+        BuildingId? currentAssignment = heroState.CurrentAssignment;
+        CitizenLocation heroLocation = heroState.Location;
+        if (heroLocation == CitizenLocation.InTransit && _heroAmbientRoute)
+        {
+            _heroAmbientRoute = false;
+            _route = null;
+            _routeIndex = 0;
+            _heroWalking = false;
+        }
         bool hasShelter = snapshot.Buildings.Any(building =>
             building.Kind == BuildingKind.Home && !building.IsUnderConstruction);
+        bool mayWander = CanWander(heroState.Activity);
         if (ShouldHideHeroInsideShelter(
             currentAssignment,
             heroLocation,
             hasShelter,
             hasRoute: _route is not null,
             pendingReturnHome: _pendingReturnHome,
-            hasWanderedManually: _heroWanderedAwayManually))
+            isGatheringOutsideHome: _heroIsGatheringOutsideHome)
+            && !mayWander)
         {
             _heroCarrier.CancelMotion();
             _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
@@ -1642,35 +1768,48 @@ public partial class MacroStreetLiveView : Node2D
             _heroCarrier.Idle(Vector2.Down);
         }
 
+        if (heroLocation == CitizenLocation.AtHome && _route is null)
+        {
+            PlotBox? shelter = FindHomePlot();
+            if (shelter is { } home
+                && _lastKnownHeroLocation != CitizenLocation.AtHome)
+            {
+                _heroStreet = WorkplaceEntranceStreet(home.Street);
+                _heroLateral = home.LateralOffset;
+                _depthAnchor = _heroStreet;
+                _depthTarget = null;
+            }
+            if (mayWander && shelter is { } wanderAnchor)
+            {
+                TryStartHeroAmbientRoute(wanderAnchor);
+            }
+        }
+
         if (currentAssignment != _lastKnownAssignment)
         {
-            if (_lastKnownAssignment.HasValue && currentAssignment is null)
-            {
-                BeginWalkHome();
-            }
             _lastKnownAssignment = currentAssignment;
-            if (currentAssignment is BuildingId workplace) BeginWalkToAssignment(workplace);
         }
-        else if (currentAssignment.HasValue
+        if (currentAssignment.HasValue
             && heroLocation == CitizenLocation.InTransit
-            && snapshot.Citizens[0].IsReturningHome
-            && ShouldBeginReturnHomeRoute(
-                _lastKnownHeroLocation,
-                hasRoute: _route is not null,
-                pendingReturnHome: _pendingReturnHome))
+            && heroState.IsReturningHome
+            && _route is null
+            && !_pendingReturnHome)
         {
-            BeginWalkHome();
+            BeginWalkHome(heroState.TransitStartedAtTick);
         }
-        else if (currentAssignment is BuildingId unsettledWorkplace
-            && snapshot.Citizens.Count > 0
-            && snapshot.Citizens[0].Location == CitizenLocation.InTransit
+        else if (ShouldBeginWorkRoute(
+                currentAssignment,
+                heroState.Location,
+                heroState.IsReturningHome,
+                hasRoute: _route is not null)
+            && currentAssignment is BuildingId unsettledWorkplace
             && _route is null)
         {
             // A view transition can replace the flyweight carrier's previous
             // movement callback. If the domain still says InTransit after the
             // visual route disappeared, resume/reconcile instead of leaving
             // the citizen permanently assigned but non-productive.
-            BeginWalkToAssignment(unsettledWorkplace);
+            BeginWalkToAssignment(unsettledWorkplace, heroState.TransitStartedAtTick);
         }
         _lastKnownHeroLocation = heroLocation;
         UpdateHeroVisual();
@@ -1687,199 +1826,546 @@ public partial class MacroStreetLiveView : Node2D
                 && !pendingReturnHome);
     }
 
+    internal static bool ShouldBeginWorkRoute(
+        BuildingId? currentAssignment,
+        CitizenLocation location,
+        bool isReturningHome,
+        bool hasRoute) =>
+        currentAssignment.HasValue
+        && location == CitizenLocation.InTransit
+        && !isReturningHome
+        && !hasRoute;
+
     internal static bool ShouldHideHeroInsideShelter(
         BuildingId? currentAssignment,
         CitizenLocation location,
         bool hasShelter,
         bool hasRoute,
         bool pendingReturnHome,
-        bool hasWanderedManually = false) =>
+        bool isGatheringOutsideHome = false) =>
         currentAssignment is null
         && location == CitizenLocation.AtHome
         && hasShelter
         && !hasRoute
         && !pendingReturnHome
-        && !hasWanderedManually;
+        && !isGatheringOutsideHome;
 
     /// <summary>
-    /// Which building plot, if any, a non-hero citizen should stand ambient
-    /// at right now: their workplace when assigned, or the Shelter when idle
-    /// at home. Returns <c>null</c> for the hero (own dedicated carrier), an
-    /// expedition member, a citizen physically at work (rendered by the
-    /// building's own worker slots instead), or an idle citizen with no
-    /// Shelter yet to stand at. A recruited citizen with no job must remain
-    /// a visible, concrete presence — not only a roster row — until they are
-    /// given one (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §11.1).
+    /// Resolves the physical destination of a domain-tracked journey. This
+    /// rule deliberately has no founder/non-founder branch: every citizen
+    /// in transit travels to the assignment, or back to the shared home.
     /// </summary>
-    internal static BuildingId? ResolveAmbientPlotKey(
-        bool isHero,
-        bool isOnExpedition,
+    internal static BuildingId? ResolveTravelDestination(
         CitizenLocation location,
+        bool isReturningHome,
         BuildingId? currentAssignment,
         BuildingId? homeBuildingId)
     {
-        if (isHero || isOnExpedition || location == CitizenLocation.AtWork) return null;
-        if (currentAssignment is { } workplace) return workplace;
-        return location == CitizenLocation.AtHome ? homeBuildingId : null;
+        if (location != CitizenLocation.InTransit) return null;
+        return isReturningHome ? homeBuildingId : currentAssignment;
     }
 
+    internal static bool CanWander(CitizenRoutineActivity activity) => activity is
+        CitizenRoutineActivity.Leisure
+        or CitizenRoutineActivity.WaitingForStorage
+        or CitizenRoutineActivity.WaitingForResources
+        or CitizenRoutineActivity.WorkplaceIdle;
+
     /// <summary>
-    /// Ambient presence for assigned, non-hero citizens (S-1.4 follow-up:
-    /// the prerequisite the TO_DO's MultiMesh sub-item was missing —
-    /// citizens weren't visible in this view AT ALL before this). Each
-    /// stands at their workplace's or Shelter's plot in
-    /// <see cref="CitizenSpriteCarrier.VisualState.Macro"/>, the same
-    /// "arrived and settled" pose <see cref="BeginWalkToAssignment"/>/
-    /// <see cref="CompleteRoute"/> gives the hero — no route-walking for
-    /// these, they simply appear once assigned/idle-at-home and vanish once
-    /// on expedition (see <see cref="ResolveAmbientPlotKey"/> for the
-    /// eligibility rule). Reuses the same per-citizen
-    /// <see cref="CitizenSpriteCarrier"/>/<see cref="CitizenSpriteBank"/>
-    /// instancing the hero already uses; today's citizen counts are far
-    /// below the documented 20-25 trigger, so per-node instancing (not
-    /// MultiMesh) is still the right call — see that sub-item's own note.
+    /// Reconciles every non-founder citizen with one real street journey.
+    /// InTransit never means "place at destination": it means plan/continue
+    /// the same obstacle-aware route used by the founder and confirm domain
+    /// arrival only after the final waypoint is physically reached.
     /// </summary>
     private void RefreshCitizenVisuals(CityMacroSnapshot snapshot)
     {
-        BuildingId? homeBuildingId = null;
-        foreach (CityMacroSnapshot.PlotItem building in snapshot.Buildings)
-        {
-            if (building.Kind != BuildingKind.Home) continue;
-            homeBuildingId = building.Id;
-            break;
-        }
-
-        var workersByBuilding = new Dictionary<int, List<CityMacroSnapshot.CitizenItem>>();
-        var assignedCitizenIds = new HashSet<int>();
-        var arrivedWorkers = new List<(BuildingId BuildingId, CitizenId CitizenId)>();
-        var arrivedHome = new List<CitizenId>();
+        PlotBox? homePlot = FindHomePlot();
+        CitizenId? founderId = snapshot.Hero?.Id;
+        var activeCitizenIds = new HashSet<int>();
         foreach (CityMacroSnapshot.CitizenItem citizen in snapshot.Citizens)
         {
-            if (!citizen.IsHero
-                && citizen.Location == CitizenLocation.InTransit
-                && citizen.IsReturningHome)
+            // Only the founding hero owns the dedicated founder carrier path.
+            // A later citizen who earns RoleId.Hero remains an ordinary
+            // citizen for work travel and must not disappear from this loop.
+            if (citizen.Id == founderId) continue;
+            activeCitizenIds.Add(citizen.Id.Value);
+            if (!Visible
+                && citizen.Location != CitizenLocation.InTransit
+                && (!_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing)
+                    || existing.Route is null))
             {
-                arrivedHome.Add(citizen.Id);
                 continue;
             }
-            if (ResolveAmbientPlotKey(
-                    citizen.IsHero, citizen.IsOnExpedition, citizen.Location,
-                    citizen.CurrentAssignment, homeBuildingId) is not { } plotKey) continue;
-            assignedCitizenIds.Add(citizen.Id.Value);
-            if (!workersByBuilding.TryGetValue(plotKey.Value, out List<CityMacroSnapshot.CitizenItem>? workers))
-            {
-                workers = new List<CityMacroSnapshot.CitizenItem>();
-                workersByBuilding[plotKey.Value] = workers;
-            }
-            workers.Add(citizen);
-        }
-
-        foreach ((int buildingId, List<CityMacroSnapshot.CitizenItem> workers) in workersByBuilding)
-        {
-            PlotBox? workplacePlot = null;
-            foreach (PlotBox plot in _plots)
-            {
-                if (plot.BuildingId != buildingId) continue;
-                workplacePlot = plot;
-                break;
-            }
-            if (workplacePlot is null) continue;
-
-            for (int index = 0; index < workers.Count; index++)
-            {
-                CityMacroSnapshot.CitizenItem worker = workers[index];
-                CitizenSpriteCarrier carrier = CitizenSpriteBank.Instance.GetOrCreate(
-                    worker.Id, worker.Lineage, worker.Gender, worker.Appearance);
-                CitizenSpriteBank.Instance.Mount(carrier, this);
-                if (carrier.State != CitizenSpriteCarrier.VisualState.Macro)
-                {
-                    // The carrier may still carry a GoTo started by
-                    // VisibleWorkerSlot's entrance/exit animation (e.g. the
-                    // player left the building's detail view before that
-                    // animation's completion callback fired, so it never
-                    // reached Hidden). Without cancelling it here, that
-                    // leftover interior-space target and this method's own
-                    // UpdateWorkerVisuals both write Position every frame —
-                    // the citizen visibly fights itself sideways in a loop
-                    // instead of settling at its macro plot.
-                    carrier.CancelMotion();
-                    carrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
-                    carrier.Idle(Vector2.Up);
-                }
-                _workerCarriers[worker.Id.Value] = new WorkerSlot(carrier, buildingId, index, workers.Count);
-                if (worker.Location == CitizenLocation.InTransit)
-                {
-                    arrivedWorkers.Add((new BuildingId(buildingId), worker.Id));
-                }
-            }
+            ReconcileCitizenJourney(citizen, homePlot);
         }
 
         List<int>? staleCitizenIds = null;
-        foreach (int citizenId in _workerCarriers.Keys)
+        foreach (int citizenId in _citizenJourneys.Keys)
         {
-            if (assignedCitizenIds.Contains(citizenId)) continue;
+            if (activeCitizenIds.Contains(citizenId)) continue;
             (staleCitizenIds ??= new List<int>()).Add(citizenId);
         }
         if (staleCitizenIds is not null)
         {
             foreach (int citizenId in staleCitizenIds)
             {
-                _workerCarriers.Remove(citizenId, out WorkerSlot slot);
-                if (IsInstanceValid(slot.Carrier))
-                {
-                    slot.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
-                }
+                CitizenJourney journey = _citizenJourneys[citizenId];
+                journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+                _citizenJourneys.Remove(citizenId);
             }
         }
-        UpdateWorkerVisuals();
-        foreach ((BuildingId buildingId, CitizenId citizenId) in arrivedWorkers)
+        UpdateCitizenJourneyVisuals();
+    }
+
+    private void ReconcileCitizenJourney(
+        CityMacroSnapshot.CitizenItem citizen,
+        PlotBox? homePlot)
+    {
+        if (citizen.IsOnExpedition)
         {
-            _controller.ConfirmCitizenArrivedAtAssignment(buildingId, citizenId);
+            if (_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? away))
+            {
+                StopJourney(away);
+                away.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            }
+            return;
         }
-        foreach (CitizenId citizenId in arrivedHome)
+
+        PlotBox? assignmentPlot = citizen.CurrentAssignment is BuildingId assignment
+            ? FindPlot(assignment)
+            : null;
+        CitizenJourney journey = GetOrCreateCitizenJourney(citizen, homePlot, assignmentPlot);
+
+        if (citizen.Location == CitizenLocation.AtWork)
         {
-            _controller.ConfirmCitizenArrivedHome(citizenId);
+            StopJourney(journey);
+            if (assignmentPlot is { } workplace)
+            {
+                SetJourneyPosition(journey, workplace);
+            }
+            journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            return;
         }
+
+        if (citizen.Location == CitizenLocation.AtHome)
+        {
+            if (CanWander(citizen.Activity))
+            {
+                if (journey.Route is null
+                    && _controller.World.CurrentTick >= journey.NextAmbientDecisionTick
+                    && homePlot is { } ambientAnchor)
+                {
+                    StartAmbientJourney(journey, ambientAnchor, _controller.World.CurrentTick);
+                }
+                ShowJourneyCarrier(journey, Vector2.Up);
+                return;
+            }
+            StopJourney(journey);
+            if (homePlot is { } home)
+            {
+                SetJourneyPosition(journey, home);
+                ShowJourneyCarrier(journey, Vector2.Up);
+            }
+            else
+            {
+                journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            }
+            return;
+        }
+
+        BuildingId? destinationId = ResolveTravelDestination(
+            citizen.Location,
+            citizen.IsReturningHome,
+            citizen.CurrentAssignment,
+            homePlot is { } homeBuilding ? new BuildingId(homeBuilding.BuildingId) : null);
+        PlotBox? destination = destinationId is BuildingId id ? FindPlot(id) : null;
+        if (destination is not { } target)
+        {
+            GD.PushWarning(
+                $"Citizen travel unresolved: citizen={citizen.Id.Value}, assignment={citizen.CurrentAssignment?.Value}, " +
+                $"returningHome={citizen.IsReturningHome}, tick={_controller.World.CurrentTick}.");
+            journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            return;
+        }
+
+        bool sameJourney = journey.Route is not null
+            && journey.Destination == new BuildingId(target.BuildingId)
+            && journey.ReturningHome == citizen.IsReturningHome;
+        if (!sameJourney)
+        {
+            StartCitizenJourney(
+                journey,
+                new BuildingId(target.BuildingId),
+                target,
+                citizen.IsReturningHome,
+                citizen.TransitStartedAtTick,
+                _controller.World.CurrentTick);
+        }
+        ShowJourneyCarrier(journey, Vector2.Up);
+    }
+
+    private CitizenJourney GetOrCreateCitizenJourney(
+        CityMacroSnapshot.CitizenItem citizen,
+        PlotBox? homePlot,
+        PlotBox? assignmentPlot)
+    {
+        if (_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing))
+        {
+            return existing;
+        }
+        PlotBox? origin = citizen.Location == CitizenLocation.AtWork
+            || (citizen.Location == CitizenLocation.InTransit && citizen.IsReturningHome)
+                ? assignmentPlot
+                : homePlot;
+        int street = origin is { } plot ? WorkplaceEntranceStreet(plot.Street) : 0;
+        float lateral = origin?.LateralOffset ?? 0f;
+        CitizenSpriteCarrier carrier = CitizenSpriteBank.Instance.GetOrCreate(
+            citizen.Id, citizen.Lineage, citizen.Gender, citizen.Appearance);
+        var created = new CitizenJourney(citizen.Id, carrier, street, lateral);
+        _citizenJourneys.Add(citizen.Id.Value, created);
+        return created;
+    }
+
+    private void StartCitizenJourney(
+        CitizenJourney journey,
+        BuildingId destination,
+        PlotBox target,
+        bool returningHome,
+        int? transitStartedAtTick,
+        int currentTick)
+    {
+        journey.Carrier.CancelMotion();
+        journey.Destination = destination;
+        journey.ReturningHome = returningHome;
+        journey.IsAmbient = false;
+        BuildingVisualAnchors anchors = VisualAnchorsFor(target);
+        journey.Route = PlanCitizenRoute(
+            journey.Street,
+            journey.Lateral,
+            anchors.Entrance.Street,
+            anchors.Entrance.Lateral);
+        journey.RouteIndex = 0;
+        journey.Walking = false;
+        if (transitStartedAtTick is int startedAt && currentTick > startedAt)
+        {
+            ReconstructedRoutePosition reconstructed = ReconstructRouteProgress(
+                journey.Route,
+                journey.Street,
+                journey.Lateral,
+                currentTick - startedAt,
+                CityEconomyRules.AbstractTravelTicks);
+            journey.Street = reconstructed.Street;
+            journey.Lateral = reconstructed.Lateral;
+            journey.DepthAnchor = reconstructed.Street;
+            journey.RouteIndex = reconstructed.RouteIndex;
+        }
+        LogCitizenTravel("started", journey.CitizenId, destination, returningHome);
     }
 
     /// <summary>
-    /// Positions/scales each ambient worker exactly like <see cref="UpdateHeroVisual"/>
-    /// positions the hero when settled at a workplace — same anchor depth
-    /// as the building itself (<see cref="AnchorDepth"/>), so they read as
-    /// standing at its front edge. Workers sharing one building fan out
-    /// laterally by a small pixel-snapped step so they don't fully overlap.
+    /// Rebuilds a presentation position from semantic transit timing. The
+    /// result is ephemeral and never enters WorldSave; it only prevents a load
+    /// or view re-entry from replaying the already elapsed part of a journey.
     /// </summary>
-    private void UpdateWorkerVisuals()
+    internal static ReconstructedRoutePosition ReconstructRouteProgress(
+        IReadOnlyList<StreetRoutePlanner.Waypoint> route,
+        int startStreet,
+        float startLateral,
+        int elapsedTicks,
+        int expectedDurationTicks)
     {
-        foreach (WorkerSlot slot in _workerCarriers.Values)
+        if (route.Count == 0 || elapsedTicks <= 0 || expectedDurationTicks <= 0)
         {
-            if (!IsInstanceValid(slot.Carrier) || slot.Carrier.State != CitizenSpriteCarrier.VisualState.Macro)
+            return new ReconstructedRoutePosition(startStreet, startLateral, 0);
+        }
+
+        int totalSteps = CountRouteSteps(route, startStreet, startLateral);
+        int stepsToApply = Math.Min(
+            Math.Max(0, totalSteps - 1),
+            (int)Math.Floor(totalSteps * Math.Min(1d, (double)elapsedTicks / expectedDurationTicks)));
+        int street = startStreet;
+        float lateral = startLateral;
+        int routeIndex = 0;
+        for (int step = 0; step < stepsToApply && routeIndex < route.Count; step++)
+        {
+            AdvanceReconstructedRouteStep(route, ref street, ref lateral, ref routeIndex);
+        }
+        return new ReconstructedRoutePosition(street, lateral, routeIndex);
+    }
+
+    private static int CountRouteSteps(
+        IReadOnlyList<StreetRoutePlanner.Waypoint> route,
+        int startStreet,
+        float startLateral)
+    {
+        int street = startStreet;
+        float lateral = startLateral;
+        int routeIndex = 0;
+        int steps = 0;
+        while (routeIndex < route.Count)
+        {
+            AdvanceReconstructedRouteStep(route, ref street, ref lateral, ref routeIndex);
+            steps++;
+        }
+        return steps;
+    }
+
+    private static void AdvanceReconstructedRouteStep(
+        IReadOnlyList<StreetRoutePlanner.Waypoint> route,
+        ref int street,
+        ref float lateral,
+        ref int routeIndex)
+    {
+        StreetRoutePlanner.Waypoint waypoint = route[routeIndex];
+        if (waypoint.Street != street)
+        {
+            street += Math.Sign(waypoint.Street - street);
+            return;
+        }
+        if (Mathf.Abs(waypoint.Lateral - lateral) >= 1f)
+        {
+            lateral = Mathf.MoveToward(lateral, waypoint.Lateral, PixelMotion.StepPixels);
+            return;
+        }
+        routeIndex++;
+    }
+
+    private void AdvanceCitizenJourneysTick()
+    {
+        bool advancedAnyJourney = false;
+        foreach ((int citizenId, CitizenJourney journey) in _citizenJourneys.ToArray())
+        {
+            if (journey.Route is null || journey.DepthTarget.HasValue) continue;
+            advancedAnyJourney = true;
+            if (journey.RouteIndex >= journey.Route.Count)
+            {
+                if (journey.IsAmbient) CompleteAmbientJourney(journey);
+                else CompleteCitizenJourney(new CitizenId(citizenId), journey);
+                continue;
+            }
+            StreetRoutePlanner.Waypoint waypoint = journey.Route[journey.RouteIndex];
+            if (waypoint.Street != journey.Street)
+            {
+                int direction = Math.Sign(waypoint.Street - journey.Street);
+                journey.Carrier.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
+                journey.Walking = true;
+                journey.Street += direction;
+                journey.DepthTarget = journey.Street;
+                continue;
+            }
+            if (Mathf.Abs(waypoint.Lateral - journey.Lateral) >= 1f)
+            {
+                float direction = Mathf.Sign(waypoint.Lateral - journey.Lateral);
+                journey.Carrier.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
+                journey.Walking = true;
+                journey.Lateral = Mathf.MoveToward(
+                    journey.Lateral,
+                    waypoint.Lateral,
+                    PixelMotion.StepPixels);
+                continue;
+            }
+            journey.RouteIndex++;
+            if (journey.RouteIndex >= journey.Route.Count)
+            {
+                if (journey.IsAmbient) CompleteAmbientJourney(journey);
+                else CompleteCitizenJourney(new CitizenId(citizenId), journey);
+            }
+        }
+        if (advancedAnyJourney) QueueRedraw();
+    }
+
+    private void CompleteCitizenJourney(CitizenId citizenId, CitizenJourney journey)
+    {
+        BuildingId? destination = journey.Destination;
+        bool returningHome = journey.ReturningHome;
+        StopJourney(journey);
+        bool confirmed = returningHome
+            ? _controller.ConfirmCitizenArrivedHome(citizenId)
+            : destination is BuildingId assignment
+                && _controller.ConfirmCitizenArrivedAtAssignment(assignment, citizenId);
+        if (!confirmed)
+        {
+            LogRejectedArrival(citizenId, destination, returningHome);
+            ReconcileRejectedArrival(citizenId, journey);
+            return;
+        }
+        LogCitizenTravel("arrived", citizenId, destination, returningHome);
+        if (returningHome)
+        {
+            ShowJourneyCarrier(journey, Vector2.Up);
+        }
+        else
+        {
+            journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+        }
+    }
+
+    private void StartAmbientJourney(CitizenJourney journey, PlotBox anchor, int currentTick)
+    {
+        int phase = Math.Abs(journey.CitizenId.Value * 31 + currentTick / 30);
+        int streetDelta = phase % 3 - 1;
+        BuildingVisualAnchors anchors = VisualAnchorsFor(anchor);
+        StreetVisualAnchor leisure = (phase / 3) % 2 == 0
+            ? anchors.LeisureLeft
+            : anchors.LeisureRight;
+        int targetStreet = Mathf.Clamp(
+            leisure.Street + streetDelta,
+            0,
+            _streetCount - 1);
+        float targetLateral = leisure.Lateral;
+        journey.Route = PlanCitizenRoute(
+            journey.Street,
+            journey.Lateral,
+            targetStreet,
+            targetLateral);
+        journey.RouteIndex = 0;
+        journey.Destination = null;
+        journey.ReturningHome = false;
+        journey.IsAmbient = true;
+        journey.Walking = false;
+        journey.NextAmbientDecisionTick = currentTick + 20 + phase % 31;
+    }
+
+    private void CompleteAmbientJourney(CitizenJourney journey)
+    {
+        journey.Route = null;
+        journey.RouteIndex = 0;
+        journey.IsAmbient = false;
+        journey.Walking = false;
+        journey.DepthTarget = null;
+        journey.NextAmbientDecisionTick = _controller.World.CurrentTick + 30;
+        journey.Carrier.Idle(Vector2.Down);
+    }
+
+    private void ReconcileRejectedArrival(CitizenId citizenId, CitizenJourney journey)
+    {
+        Citizen? citizen = _controller.World.GetCitizen(citizenId);
+        if (citizen is null)
+        {
+            journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            return;
+        }
+        Callable.From(RefreshPlots).CallDeferred();
+    }
+
+    private void AdvanceJourneyTransition(CitizenJourney journey, double delta)
+    {
+        float anchor = journey.DepthAnchor;
+        float? target = journey.DepthTarget;
+        float accumulator = journey.TransitionAccumulator;
+        AdvanceTransition(ref anchor, ref target, ref accumulator, delta);
+        journey.DepthAnchor = anchor;
+        journey.DepthTarget = target;
+        journey.TransitionAccumulator = accumulator;
+    }
+
+    private void UpdateCitizenJourneyVisuals()
+    {
+        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        {
+            if (!IsInstanceValid(journey.Carrier)
+                || journey.Carrier.State != CitizenSpriteCarrier.VisualState.Macro)
             {
                 continue;
             }
-            PlotBox? workplacePlot = null;
-            foreach (PlotBox plot in _plots)
-            {
-                if (plot.BuildingId != slot.BuildingId) continue;
-                workplacePlot = plot;
-                break;
-            }
-            if (workplacePlot is not { } plotValue) continue;
-
-            // Anchored at the calle's own front edge (depth, not
-            // AnchorDepth(depth)) — half a tile CLOSER to the viewer than
-            // the building's own anchor, so the worker stands visibly in
-            // front of the building instead of overlapping its sprite.
-            float depth = WorkplaceEntranceStreet(plotValue.Street) - CameraDepthAnchor;
-            float fanOffset = (slot.Index - (slot.GroupSize - 1) * 0.5f) * WorkerLateralSpacingPx;
-            float relativeOffset = plotValue.LateralOffset + fanOffset - CameraLateral;
+            float depth = journey.DepthAnchor - CameraDepthAnchor;
+            float relativeOffset = journey.Lateral - CameraLateral;
             (Vector2 position, Vector2 scale) =
                 StreetDepthProjection.Project(depth, relativeOffset, CenterX, BaseY);
-            slot.Carrier.Scale = CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
-            slot.Carrier.Position = PixelMotion.Snap(new Vector2(
+            journey.Carrier.Scale =
+                CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
+            journey.Carrier.Position = PixelMotion.Snap(new Vector2(
                 position.X,
                 position.Y - HeroFootOffsetMacroPx * scale.Y));
         }
+    }
+
+    private void ShowJourneyCarrier(CitizenJourney journey, Vector2 facing)
+    {
+        CitizenSpriteBank.Instance.Mount(journey.Carrier, this);
+        journey.Carrier.CancelMotion();
+        journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
+        if (!journey.Walking) journey.Carrier.Idle(facing);
+    }
+
+    private static void StopJourney(CitizenJourney journey)
+    {
+        journey.Route = null;
+        journey.RouteIndex = 0;
+        journey.Destination = null;
+        journey.ReturningHome = false;
+        journey.IsAmbient = false;
+        journey.DepthTarget = null;
+        journey.Walking = false;
+        journey.Carrier.CancelMotion();
+    }
+
+    private void SetJourneyPosition(CitizenJourney journey, PlotBox plot)
+    {
+        BuildingVisualAnchors anchors = VisualAnchorsFor(plot);
+        journey.Street = anchors.Entrance.Street;
+        journey.Lateral = anchors.Entrance.Lateral;
+        journey.DepthAnchor = journey.Street;
+        journey.DepthTarget = null;
+    }
+
+    private PlotBox? FindHomePlot()
+    {
+        foreach (PlotBox plot in _plots)
+        {
+            if (plot.Kind == BuildingKind.Home && !plot.IsUnderConstruction) return plot;
+        }
+        return null;
+    }
+
+    private PlotBox? FindPlot(BuildingId buildingId)
+    {
+        foreach (PlotBox plot in _plots)
+        {
+            if (plot.BuildingId == buildingId.Value) return plot;
+        }
+        return null;
+    }
+
+    private BuildingVisualAnchors VisualAnchorsFor(PlotBox plot) =>
+        BuildingVisualAnchors.FromPlacement(
+            WorkplaceEntranceStreet(plot.Street),
+            plot.LateralOffset,
+            _streetCount,
+            _lateralHalfWidthPx,
+            PixelMotion.StepPixels);
+
+    private void LogRejectedArrival(
+        CitizenId citizenId,
+        BuildingId? destination,
+        bool returningHome)
+    {
+        Citizen? citizen = _controller.World.GetCitizen(citizenId);
+        CitizenDebugSnapshot? debug = _controller.GetCitizenDebugSnapshot(citizenId);
+        GD.PushWarning(
+            $"Citizen arrival rejected: citizen={citizenId.Value}, destination={destination?.Value}, " +
+            $"returningHome={returningHome}, tick={_controller.World.CurrentTick}, " +
+            $"daytime={GameClock.IsDaytime(_controller.World.CurrentTick)}, " +
+            $"location={citizen?.CurrentLocation}, assignment={citizen?.CurrentAssignment?.Value}, " +
+            $"activity={debug?.Routine.Activity}, blocker={debug?.Routine.BlockReason}, " +
+            $"started={debug?.Routine.ActivityStartedAtTick}, expected={debug?.Routine.ExpectedCompletionTick}, " +
+            $"next={debug?.Routine.NextTransitionTick}.");
+    }
+
+    private void LogCitizenTravel(
+        string phase,
+        CitizenId citizenId,
+        BuildingId? destination,
+        bool returningHome)
+    {
+        if (!OS.IsDebugBuild()) return;
+        CitizenDebugSnapshot? debug = _controller.GetCitizenDebugSnapshot(citizenId);
+        GD.Print(
+            $"[CitizenTravel] {phase}: citizen={citizenId.Value}, destination={destination?.Value}, " +
+            $"returningHome={returningHome}, tick={_controller.World.CurrentTick}, " +
+            $"activity={debug?.Routine.Activity}, context={debug?.Routine.ContextLocation}, " +
+            $"blocker={debug?.Routine.BlockReason}, started={debug?.Routine.ActivityStartedAtTick}, " +
+            $"expected={debug?.Routine.ExpectedCompletionTick}, next={debug?.Routine.NextTransitionTick}.");
     }
     /// <summary>
     /// Routes the hero from wherever they currently are to their new
@@ -1888,9 +2374,10 @@ public partial class MacroStreetLiveView : Node2D
     /// gather. Once the route completes, <see cref="CompleteRoute"/> just
     /// settles them into an idle "at work" pose instead of gathering wood.
     /// </summary>
-    private void BeginWalkToAssignment(BuildingId workplace)
+    private void BeginWalkToAssignment(BuildingId workplace, int? transitStartedAtTick = null)
     {
-        _heroWanderedAwayManually = false;
+        _heroAmbientRoute = false;
+        _heroIsGatheringOutsideHome = false;
         // The canonical flyweight may still carry a GoTo started by the
         // building-detail slot where the assignment was requested. Once the
         // macro view takes route ownership, that interior movement must stop:
@@ -1907,17 +2394,23 @@ public partial class MacroStreetLiveView : Node2D
         }
         if (target is null)
         {
-            _controller.ConfirmCitizenArrivedAtAssignment(
-                workplace,
-                _controller.World.Hero!.Id);
+            GD.PushWarning(
+                $"Citizen route target missing: citizen={_controller.World.Hero!.Id.Value}, " +
+                $"assignment={workplace.Value}, tick={_controller.World.CurrentTick}.");
             return;
         }
         _pendingGather = null;
         _pendingReturnHome = false;
         _pendingAssignment = workplace;
         int entranceStreet = WorkplaceEntranceStreet(target.Value.Street);
-        _route = PlanHeroRoute(_heroStreet, _heroLateral, entranceStreet, target.Value.LateralOffset);
+        _route = PlanCitizenRoute(_heroStreet, _heroLateral, entranceStreet, target.Value.LateralOffset);
         _routeIndex = 0;
+        ReconstructHeroRouteIfElapsed(transitStartedAtTick);
+        LogCitizenTravel(
+            "started",
+            _controller.World.Hero!.Id,
+            workplace,
+            returningHome: false);
     }
 
     /// <summary>
@@ -1926,9 +2419,10 @@ public partial class MacroStreetLiveView : Node2D
     /// walks back to the Shelter instead of freezing wherever the previous
     /// workplace route was cancelled.
     /// </summary>
-    private void BeginWalkHome()
+    private void BeginWalkHome(int? transitStartedAtTick = null)
     {
-        _heroWanderedAwayManually = false;
+        _heroAmbientRoute = false;
+        _heroIsGatheringOutsideHome = false;
         // Route ownership can also transfer from an interior exit animation.
         // Keep exactly one position writer for the shared citizen carrier.
         _heroCarrier?.CancelMotion();
@@ -1949,16 +2443,71 @@ public partial class MacroStreetLiveView : Node2D
             _pendingReturnHome = false;
             _route = null;
             _heroCarrier?.Idle(Vector2.Down);
+            GD.PushWarning(
+                $"Citizen return route unresolved: citizen={_controller.World.Hero!.Id.Value}, " +
+                $"tick={_controller.World.CurrentTick}, reason=no completed Shelter.");
             return;
         }
 
         _pendingReturnHome = true;
         int entranceStreet = WorkplaceEntranceStreet(shelter.Value.Street);
-        _route = PlanHeroRoute(
+        _route = PlanCitizenRoute(
             _heroStreet,
             _heroLateral,
             entranceStreet,
             shelter.Value.LateralOffset);
+        ReconstructHeroRouteIfElapsed(transitStartedAtTick);
+        LogCitizenTravel(
+            "started",
+            _controller.World.Hero!.Id,
+            new BuildingId(shelter.Value.BuildingId),
+            returningHome: true);
+    }
+
+    private void ReconstructHeroRouteIfElapsed(int? transitStartedAtTick)
+    {
+        if (_route is null
+            || transitStartedAtTick is not int startedAt
+            || _controller.World.CurrentTick <= startedAt)
+        {
+            return;
+        }
+        ReconstructedRoutePosition reconstructed = ReconstructRouteProgress(
+            _route,
+            _heroStreet,
+            _heroLateral,
+            _controller.World.CurrentTick - startedAt,
+            CityEconomyRules.AbstractTravelTicks);
+        _heroStreet = reconstructed.Street;
+        _heroLateral = reconstructed.Lateral;
+        _depthAnchor = reconstructed.Street;
+        _depthTarget = null;
+        _routeIndex = reconstructed.RouteIndex;
+    }
+
+    private void TryStartHeroAmbientRoute(PlotBox anchor)
+    {
+        int currentTick = _controller.World.CurrentTick;
+        if (_route is not null || currentTick < _heroNextAmbientDecisionTick) return;
+        int founderId = _controller.World.Hero?.Id.Value ?? 1;
+        int phase = Math.Abs(founderId * 37 + currentTick / 30);
+        int targetStreet = Mathf.Clamp(
+            WorkplaceEntranceStreet(anchor.Street) + phase % 3 - 1,
+            0,
+            _streetCount - 1);
+        float direction = (phase / 3) % 2 == 0 ? -1f : 1f;
+        float targetLateral = Mathf.Clamp(
+            anchor.LateralOffset + direction * PixelMotion.StepPixels * (2 + phase % 3),
+            -_lateralHalfWidthPx,
+            _lateralHalfWidthPx);
+        _route = PlanCitizenRoute(
+            _heroStreet,
+            _heroLateral,
+            targetStreet,
+            targetLateral);
+        _routeIndex = 0;
+        _heroAmbientRoute = true;
+        _heroNextAmbientDecisionTick = currentTick + 20 + phase % 31;
     }
 
     /// <summary>
@@ -1979,7 +2528,7 @@ public partial class MacroStreetLiveView : Node2D
     /// this view's existing "a best-effort route beats a stranded hero"
     /// philosophy.
     /// </summary>
-    private List<StreetRoutePlanner.Waypoint> PlanHeroRoute(
+    private List<StreetRoutePlanner.Waypoint> PlanCitizenRoute(
         int fromStreet, float fromLateral, int toStreet, float toLateral)
     {
         List<StreetRoutePlanner.Waypoint>? navmeshRoute = _navmeshPlanner?.Plan(
@@ -2047,7 +2596,7 @@ public partial class MacroStreetLiveView : Node2D
             DrawStreetRow(street);
         }
         UpdateHeroVisual();
-        UpdateWorkerVisuals();
+        UpdateCitizenJourneyVisuals();
     }
 
     /// <summary>

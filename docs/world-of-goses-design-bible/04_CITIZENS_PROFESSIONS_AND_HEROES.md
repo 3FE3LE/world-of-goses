@@ -40,6 +40,18 @@ Citizen
 
 La implementación inicial debe ser mínima y crecer según el gameplay.
 
+## Salud persistente y stamina
+
+Las heridas persistentes y la stamina son estados distintos. La stamina
+representa esfuerzo y recuperación cotidiana; descansar puede restaurarla,
+pero nunca cura por sí solo una herida. Una herida sí puede limitar la stamina
+utilizable y restringir trabajo o expediciones.
+
+La recuperación de una herida requiere infraestructura de refugio, tiempo y
+recursos explícitos. Esta separación permite que una persona esté descansada
+pero todavía herida, y evita convertir una consecuencia duradera en otra barra
+que se rellena automáticamente.
+
 ## Habilidades
 
 Todos pueden desarrollar todas las competencias. La interfaz puede mostrar las tres más destacadas, pero el dominio no limita a tres.

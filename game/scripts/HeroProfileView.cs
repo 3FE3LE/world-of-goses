@@ -146,8 +146,26 @@ public partial class HeroProfileView : Control
         AddBody(UiText.Format("ui.hero_profile.spiritual_posture", UiText.Get(hero.SpiritualPosture)));
 
         AddHeading(UiText.Get("ui.hero_profile.condition_heading"));
-        AddStaminaBar(hero.CurrentStamina, hero.MaxStamina);
-        AddIconBody(IconPaths.Heart, UiText.Format("ui.hero_profile.stamina", hero.CurrentStamina, hero.MaxStamina));
+        AddStaminaBar(hero.CurrentStamina, hero.EffectiveMaxStamina);
+        AddIconBody(IconPaths.Heart, UiText.Format(
+            "ui.hero_profile.stamina_effective",
+            hero.CurrentStamina,
+            hero.EffectiveMaxStamina,
+            hero.MaxStamina));
+        if (hero.WoundSeverity is WoundSeverity woundSeverity)
+        {
+            AddIconBody(
+                IconPaths.Heart,
+                UiText.Format(
+                    hero.IsReceivingWoundTreatment
+                        ? "ui.hero_profile.wound_treatment"
+                        : "ui.hero_profile.wound",
+                    UiText.Get(woundSeverity == WoundSeverity.Severe
+                        ? "ui.wound.severe"
+                        : "ui.wound.moderate"),
+                    SimulationTimeText.FormatDurationLocalized(
+                        hero.WoundRecoveryTicksRemaining)));
+        }
         AddIconBody(
             hero.IsAtHome ? IconPaths.House : IconPaths.Building,
             UiText.Get(hero.IsAtHome ? "ui.hero_profile.at_home" : "ui.hero_profile.at_work"));

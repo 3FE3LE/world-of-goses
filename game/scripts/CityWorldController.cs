@@ -73,6 +73,9 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void CitizensChangedEventHandler();
 
+    [Signal]
+    public delegate void ObservedCitizenChangedEventHandler(int citizenId);
+
     /// <summary>
     /// Fired after a successful auto-save. Carries the wall-clock
     /// unix timestamp in milliseconds so the status panel can render
@@ -94,10 +97,14 @@ public partial class CityWorldController : Node
     /// <summary>
     /// Seconds between periodic auto-saves during gameplay. Tunable.
     /// </summary>
-    public double AutoSaveIntervalSeconds { get; set; } = 10.0;
+    public double AutoSaveIntervalSeconds { get; set; } =
+        SimulationPersistencePolicy.AutoSaveInterval.TotalSeconds;
 
     private double _autoSaveTimer;
     private double _simulationTimer;
+    private bool _hasUnsavedChanges;
+    private CitizenId? _observedCitizenId;
+    private long _lastSimulationProcessedAtUnixMillis;
 
     public double SimulationTickIntervalSeconds { get; set; } = 1.0;
 
@@ -120,6 +127,10 @@ public partial class CityWorldController : Node
 
     public SpeedChoice CurrentSpeed => _speed;
     public SpeedChoice LastRunningSpeed => _lastRunningSpeed;
+    public CitizenId? ObservedCitizenId =>
+        _observedCitizenId is CitizenId selected && _world.GetCitizen(selected) is not null
+            ? selected
+            : _world.Hero?.Id;
 
     /// <summary>
     /// Switches the simulation speed and adjusts
@@ -138,6 +149,7 @@ public partial class CityWorldController : Node
             throw new ArgumentOutOfRangeException(nameof(speed), speed, "Unsupported simulation speed.");
         }
 
+        SpeedChoice previous = _speed;
         _speed = speed;
         if (speed != SpeedChoice.Paused) _lastRunningSpeed = speed;
         SimulationTickIntervalSeconds = speed switch
@@ -147,6 +159,10 @@ public partial class CityWorldController : Node
         };
         if (speed == SpeedChoice.Paused) _simulationTimer = 0;
         EmitSignal(SignalName.SimulationSpeedChanged, (int)speed);
+        if (speed == SpeedChoice.Paused && previous != SpeedChoice.Paused)
+        {
+            TryAutoSave();
+        }
     }
 
     public void ToggleSimulationPause() =>
@@ -187,6 +203,7 @@ public partial class CityWorldController : Node
     public override void _Ready()
     {
         if (PersistenceEnabled) TryLoadFromDisk();
+        _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         _world.BuildingChanged += OnDomainBuildingChanged;
         _world.ProjectChanged += OnDomainProjectChanged;
         _world.ExpeditionChanged += OnDomainExpeditionChanged;
@@ -227,6 +244,8 @@ public partial class CityWorldController : Node
             _world.AdvanceWorldTick();
             EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
         }
+        _hasUnsavedChanges = true;
+        _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
     public override void _ExitTree()
@@ -250,7 +269,7 @@ public partial class CityWorldController : Node
     public void SaveNow()
     {
         if (!PersistenceWritesEnabled) return;
-        TryAutoSave();
+        TrySaveNow();
     }
 
     /// <summary>
@@ -310,6 +329,7 @@ public partial class CityWorldController : Node
         try
         {
             WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            _hasUnsavedChanges = false;
             EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return true;
         }
@@ -364,11 +384,12 @@ public partial class CityWorldController : Node
 
     private void TryAutoSave()
     {
-        if (_world.NeedsOnboarding) return;
+        if (_world.NeedsOnboarding || !_hasUnsavedChanges) return;
 
         try
         {
             WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            _hasUnsavedChanges = false;
             EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         }
         catch (Exception ex)
@@ -392,7 +413,21 @@ public partial class CityWorldController : Node
     public bool SelectHero()
     {
         if (_world.Hero is null) return false;
+        SelectCitizenForObservation(_world.Hero.Id);
         EmitSignal(SignalName.SelectionChanged, (int)Selection.HeroProfile);
+        return true;
+    }
+
+    /// <summary>
+    /// Changes only the presentation's observation target. Selection never
+    /// enables camera follow; the macro camera owns that explicit toggle.
+    /// </summary>
+    public bool SelectCitizenForObservation(CitizenId citizenId)
+    {
+        if (_world.GetCitizen(citizenId) is null) return false;
+        if (_observedCitizenId == citizenId) return true;
+        _observedCitizenId = citizenId;
+        EmitSignal(SignalName.ObservedCitizenChanged, citizenId.Value);
         return true;
     }
 
@@ -465,6 +500,23 @@ public partial class CityWorldController : Node
         BuildingDetailSnapshot.From(_world, buildingId);
 
     public CityMacroSnapshot GetCityMacroSnapshot() => CityMacroSnapshot.From(_world);
+
+    public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
+
+    public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
+    {
+        Citizen? citizen = _world.GetCitizen(citizenId);
+        CitizenRoutineSnapshot? routine = _world.GetCitizenRoutine(citizenId);
+        if (citizen is null || routine is null) return null;
+        return new CitizenDebugSnapshot(
+            citizen.Id,
+            citizen.Name,
+            routine,
+            citizen.CurrentAssignment,
+            _world.PrimaryHome?.Id,
+            GameClock.IsWorkday(_world.CurrentTick),
+            _lastSimulationProcessedAtUnixMillis);
+    }
 
     public HeroProfileSnapshot? GetHeroProfileSnapshot() => HeroProfileSnapshot.From(_world);
 
@@ -604,6 +656,7 @@ public partial class CityWorldController : Node
         if (migrated && PersistenceWritesEnabled)
         {
             WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot, slotsDirectory);
+            _hasUnsavedChanges = false;
         }
         return true;
     }
@@ -615,7 +668,8 @@ public partial class CityWorldController : Node
             var now = DateTimeOffset.UtcNow;
             var lastSeenAt = DateTimeOffset.FromUnixTimeMilliseconds(save.LastSeenAtUnixMillis);
             int ticks = OfflineProgression.ComputeTicks(now, lastSeenAt);
-            LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
+        LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
+            if (ticks > 0) _hasUnsavedChanges = true;
 
             if (LastOfflineReport.HadProgression)
             {
@@ -637,16 +691,44 @@ public partial class CityWorldController : Node
         }
     }
 
-    private void OnDomainBuildingChanged(object? sender, CityWorldChangedEventArgs e) =>
+    private void OnDomainBuildingChanged(object? sender, CityWorldChangedEventArgs e)
+    {
+        _hasUnsavedChanges = true;
         EmitSignal(SignalName.BuildingStateChanged, e.BuildingId.Value);
+    }
 
-    private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e) =>
+    private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e)
+    {
+        _hasUnsavedChanges = true;
         EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
+    }
 
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
         var result = _world.StartExpedition(request);
         if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
+    public HeroIncorporationResult TryIncorporateHero(CitizenId citizenId)
+    {
+        HeroIncorporationResult result = _world.TryIncorporateHero(citizenId);
+        if (result.IsSuccess)
+        {
+            SaveNow();
+            EmitSignal(SignalName.CitizensChanged);
+        }
+        return result;
+    }
+
+    public WoundRecoveryResult TryBeginWoundRecovery(CitizenId citizenId)
+    {
+        WoundRecoveryResult result = _world.TryBeginWoundRecovery(citizenId);
+        if (result.IsSuccess)
+        {
+            SaveNow();
+            EmitSignal(SignalName.CitizensChanged);
+        }
         return result;
     }
 
@@ -671,6 +753,9 @@ public partial class CityWorldController : Node
         return false;
     }
 
-    private void OnDomainExpeditionChanged(object? sender, ExpeditionChangedEventArgs e) =>
+    private void OnDomainExpeditionChanged(object? sender, ExpeditionChangedEventArgs e)
+    {
+        _hasUnsavedChanges = true;
         EmitSignal(SignalName.ExpeditionStateChanged, e.ExpeditionId.Value);
+    }
 }

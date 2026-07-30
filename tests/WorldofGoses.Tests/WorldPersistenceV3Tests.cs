@@ -105,7 +105,13 @@ public class WorldPersistenceV3Tests
         var v16Save = WorldPersistence.MigrateV15ToV16(v15Save);
         Assert.Equal(16, v16Save.Version);
 
-        var restored = CityWorld.FromSave(v16Save);
+        var v17Save = WorldPersistence.MigrateV16ToV17(v16Save);
+        Assert.Equal(17, v17Save.Version);
+        var v18Save = WorldPersistence.MigrateV17ToV18(v17Save);
+        var v19Save = WorldPersistence.MigrateV18ToV19(v18Save);
+        Assert.Equal(WorldSave.CurrentVersion, v19Save.Version);
+
+        var restored = CityWorld.FromSave(v19Save);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

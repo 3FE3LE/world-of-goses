@@ -81,7 +81,8 @@ public class OnboardingDomainTests
 
         var report = OfflineProgression.ApplyAll(world, 1000);
 
-        Assert.False(report.HadProgression);
+        Assert.True(report.HadProgression);
+        Assert.Equal(1000, report.TicksApplied);
         Assert.Equal(1000, world.CurrentTick);
         Assert.Equal(CitizenLocation.AtHome, world.Hero!.CurrentLocation);
     }

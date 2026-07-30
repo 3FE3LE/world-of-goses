@@ -79,6 +79,12 @@ public sealed class CityWorld
     public IReadOnlyDictionary<BuildingId, ParcelPlacement> ParcelPlacements =>
         _parcelPlacements;
     public IReadOnlyDictionary<ExpeditionId, Expedition> Expeditions => _expeditions;
+    public CityParcel? NextTerritoryTarget => _parcels.Values
+        .Where(parcel => !parcel.IsUnlocked)
+        .OrderBy(parcel => parcel.LogicalRow)
+        .ThenBy(parcel => parcel.LogicalColumn)
+        .ThenBy(parcel => parcel.Id.Value)
+        .FirstOrDefault();
 
     /// <summary>Read-only view of the chronological event log.</summary>
     public WorldEventLog Log => _log;
@@ -96,6 +102,15 @@ public sealed class CityWorld
     {
         get
         {
+            // Hero remains the compatibility name for the founding hero.
+            // Other citizens may also carry RoleId.Hero after explicit
+            // incorporation, but they must never replace the founder in
+            // onboarding, gathering, construction, or profile flows.
+            if (_citizens.TryGetValue(PrincipalHeroId, out Citizen? founder)
+                && founder.IsHero)
+            {
+                return founder;
+            }
             foreach (var citizen in _citizens.Values)
             {
                 if (citizen.IsHero) return citizen;
@@ -152,9 +167,11 @@ public sealed class CityWorld
             {
                 return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MemberNotFound);
             }
-            if (member.Commitment.Kind is CitizenCommitmentKind.Expedition
-                    or CitizenCommitmentKind.Recovery
-                || member.VitalStatus != CitizenVitalStatus.Stable)
+            if (!member.IsHero)
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MemberNotHero);
+            }
+            if (!member.CanJoinExpedition)
             {
                 return ExpeditionStartResult.Fail(
                     ExpeditionStartOutcome.MemberUnavailable,
@@ -165,6 +182,7 @@ public sealed class CityWorld
 
         if (request.DurationTicks <= 0
             || request.SupplyAmount <= 0
+            || !Enum.IsDefined(request.RetreatPosture)
             || (request.RewardKind == ExpeditionRewardKind.Supplies
                 && request.RewardAmount <= 0)
             || string.IsNullOrWhiteSpace(request.DisplayName))
@@ -203,7 +221,11 @@ public sealed class CityWorld
             request.RewardResource,
             request.RewardAmount,
             request.RewardKind,
-            reservation.Id);
+            reservation.Id,
+            retreatPosture: request.RetreatPosture,
+            targetParcelId: request.RewardKind == ExpeditionRewardKind.Supplies
+                ? NextTerritoryTarget?.Id
+                : null);
 
         // Dispatch is all-or-nothing: if any member becomes unavailable
         // between validation above and here (there is no reentrancy in this
@@ -218,7 +240,7 @@ public sealed class CityWorld
             {
                 foreach (Citizen toRollBack in dispatched)
                 {
-                    toRollBack.ReturnFromExpedition(id, _tick);
+                    toRollBack.CancelExpeditionDispatch(id);
                 }
                 _resources.Release(reservation.Id);
                 return ExpeditionStartResult.Fail(
@@ -240,28 +262,68 @@ public sealed class CityWorld
         return ExpeditionStartResult.Success(id);
     }
 
+    /// <summary>
+    /// Incorporates an existing citizen into the expedition-capable hero
+    /// role by explicit player authorization. Heroism is an accumulated role
+    /// on <see cref="Citizen"/>, never a parallel person type.
+    /// </summary>
+    public HeroIncorporationResult TryIncorporateHero(CitizenId citizenId)
+    {
+        if (Hero is null)
+        {
+            return HeroIncorporationResult.Fail(HeroIncorporationOutcome.NoFounder);
+        }
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen))
+        {
+            return HeroIncorporationResult.Fail(HeroIncorporationOutcome.CitizenNotFound);
+        }
+        if (citizen.IsHero)
+        {
+            return HeroIncorporationResult.Fail(HeroIncorporationOutcome.AlreadyHero);
+        }
+
+        citizen.GrantRole(RoleId.Hero, _tick);
+        return HeroIncorporationResult.Success(citizenId);
+    }
+
     public bool CancelExpedition(ExpeditionId id)
     {
         if (!_expeditions.TryGetValue(id, out Expedition? expedition)
-            || expedition.Status != ExpeditionStatus.Active)
+            || expedition.Status != ExpeditionStatus.Active
+            || expedition.Phase != ExpeditionPhase.Outbound
+            || _tick != expedition.StartTick)
         {
             return false;
         }
         _resources.Release(expedition.ReservationId);
         expedition.MarkCancelled();
-        ReturnMembersFromExpedition(expedition);
+        CancelMemberDispatches(expedition);
         _log.Record(
             _tick,
             WorldEventKind.ExpeditionCancelled,
-            WorldEventSubject.Expedition(id.Value, expedition.DisplayName));
+            WorldEventSubject.Expedition(id.Value, expedition.DisplayName),
+            causeEventId: expedition.DispatchEventId);
         ExpeditionChanged?.Invoke(
             this,
             new ExpeditionChangedEventArgs(id, expedition.Status));
         return true;
     }
 
+    private void CancelMemberDispatches(Expedition expedition)
+    {
+        foreach (CitizenId memberId in expedition.MemberIds)
+        {
+            if (_citizens.TryGetValue(memberId, out Citizen? member))
+            {
+                member.CancelExpeditionDispatch(expedition.Id);
+            }
+        }
+    }
+
     /// <summary>S-1.5 follow-up: the FSM counterpart to every expedition end state (returned/failed/cancelled).</summary>
-    private void ReturnMembersFromExpedition(Expedition expedition)
+    private void ReturnMembersFromExpedition(
+        Expedition expedition,
+        ExpeditionEncounterOutcome outcome)
     {
         foreach (CitizenId memberId in expedition.MemberIds)
         {
@@ -270,6 +332,79 @@ public sealed class CityWorld
                 member.ReturnFromExpedition(expedition.Id, _tick);
             }
         }
+        if (outcome == ExpeditionEncounterOutcome.Setback)
+        {
+            ApplyExpeditionWound(expedition);
+        }
+    }
+
+    private void ApplyExpeditionWound(Expedition expedition)
+    {
+        Citizen? wounded = expedition.MemberIds
+            .Select(memberId => GetCitizen(memberId))
+            .Where(member => member is not null)
+            .Select(member => member!)
+            .OrderBy(member => member.CurrentStamina * 100 / member.MaxStamina)
+            .ThenBy(member => member.Id.Value)
+            .FirstOrDefault();
+        if (wounded is null) return;
+
+        // VS-3 introduces one recoverable wound tier. The enum and rules are
+        // intentionally extensible, but expedition content must earn a
+        // harsher tier before the simulation starts creating one.
+        WoundSeverity severity = WoundSeverity.Moderate;
+        WorldEvent woundEvent = _log.Record(
+            _tick,
+            WorldEventKind.WoundSustained,
+            WorldEventSubject.Citizen(wounded.Id, wounded.Name),
+            (int)severity,
+            expedition.DispatchEventId);
+        wounded.SustainWound(severity, woundEvent.Id);
+    }
+
+    public WoundRecoveryResult TryBeginWoundRecovery(CitizenId citizenId)
+    {
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen))
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.CitizenNotFound);
+        }
+        if (citizen.Wound is null)
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.NotWounded);
+        }
+        if (citizen.Commitment.Kind == CitizenCommitmentKind.Recovery)
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.AlreadyRecovering);
+        }
+        if (citizen.Commitment.Kind == CitizenCommitmentKind.Expedition)
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.OnExpedition);
+        }
+        Building? shelter = _buildings.Values
+            .Where(building => building.Kind == BuildingKind.Home)
+            .OrderBy(building => building.Id.Value)
+            .FirstOrDefault();
+        if (shelter is null)
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.ShelterUnavailable);
+        }
+
+        int foodCost = WoundRules.FoodCostFor(citizen.Wound.Severity);
+        if (!TryConsumeFood(foodCost))
+        {
+            return WoundRecoveryResult.Fail(WoundRecoveryOutcome.MissingFood);
+        }
+        if (!citizen.BeginWoundRecovery(shelter.Id, _tick))
+        {
+            throw new InvalidOperationException("Validated wound recovery could not begin.");
+        }
+        _log.Record(
+            _tick,
+            WorldEventKind.WoundRecoveryStarted,
+            WorldEventSubject.Citizen(citizen.Id, citizen.Name),
+            foodCost,
+            citizen.Wound.OriginatingEventId);
+        return WoundRecoveryResult.Success(citizenId, foodCost);
     }
 
     public enum MigrantOutcome
@@ -611,6 +746,23 @@ public sealed class CityWorld
                     parcelId,
                     new CityParcel(parcelId, column, row, isUnlocked: true));
             }
+        }
+        if (_parcels.Values.All(parcel => parcel.IsUnlocked))
+        {
+            int targetId = _parcels.Count == 0
+                ? 1
+                : _parcels.Keys.Max(id => id.Value) + 1;
+            int targetColumn = _parcels.Count == 0
+                ? 0
+                : _parcels.Values.Max(parcel => parcel.LogicalColumn) + 1;
+            var parcelId = new ParcelId(targetId);
+            _parcels.Add(
+                parcelId,
+                new CityParcel(
+                    parcelId,
+                    targetColumn,
+                    0,
+                    ParcelTerritoryState.Locked));
         }
     }
 
@@ -1421,6 +1573,7 @@ public sealed class CityWorld
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
         ProcessCitizenNeedsAndStandingOrders(completeAbstractTravel);
+        AdvanceWoundRecoveries();
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
@@ -1541,6 +1694,8 @@ public sealed class CityWorld
             {
                 continue;
             }
+            ExpeditionEncounterOutcome outcome =
+                expedition.EncounterOutcome ?? ExpeditionEncounterOutcome.Setback;
             bool committed = _resources.Commit(expedition.ReservationId);
             if (committed)
             {
@@ -1548,9 +1703,19 @@ public sealed class CityWorld
                 // AdvanceExpeditionPhases), but a defensively-missing
                 // outcome (e.g. a DurationTicks=0 edge no validation should
                 // allow) must not silently grant the full reward.
-                ExpeditionEncounterOutcome outcome =
-                    expedition.EncounterOutcome ?? ExpeditionEncounterOutcome.Setback;
-                if (expedition.RewardKind == ExpeditionRewardKind.Migrant)
+                if (expedition.RetreatTriggered)
+                {
+                    expedition.MarkRetreated();
+                    ReturnMembersFromExpedition(expedition, outcome);
+                    _log.Record(
+                        _tick,
+                        WorldEventKind.ExpeditionRetreated,
+                        WorldEventSubject.Expedition(
+                            expedition.Id.Value,
+                            expedition.DisplayName),
+                        causeEventId: expedition.DispatchEventId);
+                }
+                else if (expedition.RewardKind == ExpeditionRewardKind.Migrant)
                 {
                     MigrantOutcome prospect = outcome == ExpeditionEncounterOutcome.Setback
                         ? MigrantOutcome.NoProspect
@@ -1558,7 +1723,7 @@ public sealed class CityWorld
                     if (prospect == MigrantOutcome.Success)
                     {
                         expedition.MarkReturnedProspect();
-                        ReturnMembersFromExpedition(expedition);
+                        ReturnMembersFromExpedition(expedition, outcome);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionReturned,
@@ -1571,7 +1736,7 @@ public sealed class CityWorld
                     else
                     {
                         expedition.MarkFailed();
-                        ReturnMembersFromExpedition(expedition);
+                        ReturnMembersFromExpedition(expedition, outcome);
                         _log.Record(
                             _tick,
                             WorldEventKind.ExpeditionFailed,
@@ -1589,7 +1754,8 @@ public sealed class CityWorld
                         _resources.DepositToCityInventory(expedition.RewardResource, reward);
                     }
                     expedition.MarkReturnedSupplies(reward);
-                    ReturnMembersFromExpedition(expedition);
+                    AdvanceTerritoryFromExpedition(expedition, outcome);
+                    ReturnMembersFromExpedition(expedition, outcome);
                     _log.Record(
                         _tick,
                         WorldEventKind.ExpeditionReturned,
@@ -1604,7 +1770,7 @@ public sealed class CityWorld
             {
                 _resources.Release(expedition.ReservationId);
                 expedition.MarkFailed();
-                ReturnMembersFromExpedition(expedition);
+                ReturnMembersFromExpedition(expedition, outcome);
                 _log.Record(
                     _tick,
                     WorldEventKind.ExpeditionFailed,
@@ -1614,6 +1780,27 @@ public sealed class CityWorld
             ExpeditionChanged?.Invoke(
                 this,
                 new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+        }
+    }
+
+    private void AdvanceTerritoryFromExpedition(
+        Expedition expedition,
+        ExpeditionEncounterOutcome outcome)
+    {
+        if (outcome == ExpeditionEncounterOutcome.Setback
+            || expedition.TargetParcelId is not ParcelId parcelId
+            || !_parcels.TryGetValue(parcelId, out CityParcel? parcel))
+        {
+            return;
+        }
+        while (parcel.AdvanceTerritory())
+        {
+            _log.Record(
+                _tick,
+                WorldEventKind.TerritoryAdvanced,
+                WorldEventSubject.Parcel(parcel.Id, $"Parcel {parcel.Id.Value}"),
+                (int)parcel.TerritoryState,
+                expedition.DispatchEventId);
         }
     }
 
@@ -1664,6 +1851,15 @@ public sealed class CityWorld
                     this,
                     new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
             }
+            if (expedition.Phase == ExpeditionPhase.Encounter
+                && expedition.RetreatTriggered)
+            {
+                expedition.BeginRetreat();
+            }
+            if (expedition.Phase == ExpeditionPhase.Retreating && elapsed >= duration / 2)
+            {
+                expedition.TryAdvancePhase(ExpeditionPhase.Returning);
+            }
             if (expedition.Phase == ExpeditionPhase.Encounter && elapsed >= duration / 2)
             {
                 expedition.TryAdvancePhase(ExpeditionPhase.Objective);
@@ -1710,7 +1906,7 @@ public sealed class CityWorld
         }
         int averageStaminaPercent = memberCount > 0 ? staminaPercentSum / memberCount : 0;
 
-        int seed = HashCode.Combine(expedition.Id.Value, expedition.StartTick);
+        int seed = StableExpeditionSeed(expedition.Id.Value, expedition.StartTick);
         int roll = new Random(seed).Next(0, 30);
 
         int score = teamCompetency
@@ -1721,6 +1917,19 @@ public sealed class CityWorld
         if (score >= 50) return ExpeditionEncounterOutcome.FullSuccess;
         if (score >= 30) return ExpeditionEncounterOutcome.PartialSuccess;
         return ExpeditionEncounterOutcome.Setback;
+    }
+
+    internal static int StableExpeditionSeed(int expeditionId, int startTick)
+    {
+        unchecked
+        {
+            uint value = (uint)expeditionId * 0x9E3779B9u;
+            value ^= (uint)startTick + 0x85EBCA6Bu + (value << 6) + (value >> 2);
+            value ^= value >> 16;
+            value *= 0x7FEB352Du;
+            value ^= value >> 15;
+            return (int)value;
+        }
     }
 
     /// <summary>
@@ -1907,7 +2116,8 @@ public sealed class CityWorld
         {
             if (completeAbstractTravel
                 && citizen.Commitment.Kind is (CitizenCommitmentKind.BuildingWork
-                    or CitizenCommitmentKind.Construction)
+                    or CitizenCommitmentKind.Construction
+                    or CitizenCommitmentKind.Recovery)
                 && citizen.AbstractTravelHasCompleted(_tick))
             {
                 citizen.SetLocation(citizen.IsReturningHome
@@ -1953,6 +2163,7 @@ public sealed class CityWorld
 
             if (!isDaytime
                 || citizen.VitalStatus != CitizenVitalStatus.Stable
+                || citizen.IsWounded
                 || citizen.Commitment.Kind is CitizenCommitmentKind.Expedition
                     or CitizenCommitmentKind.Recovery
                 || citizen.CurrentLocation != CitizenLocation.AtHome
@@ -1963,6 +2174,25 @@ public sealed class CityWorld
                 continue;
             }
             citizen.BeginTravelToAssignment(_tick);
+        }
+    }
+
+    private void AdvanceWoundRecoveries(int tickCount = 1)
+    {
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (citizen.Wound is not { } wound
+                || citizen.Commitment.Kind != CitizenCommitmentKind.Recovery)
+            {
+                continue;
+            }
+            WorldEventId originatingEventId = wound.OriginatingEventId;
+            if (!citizen.AdvanceWoundRecoveryTicks(tickCount)) continue;
+            _log.Record(
+                _tick,
+                WorldEventKind.WoundRecoveryCompleted,
+                WorldEventSubject.Citizen(citizen.Id, citizen.Name),
+                causeEventId: originatingEventId);
         }
     }
 
@@ -2019,7 +2249,7 @@ public sealed class CityWorld
             foreach (var citizenId in building.AssignedCitizenIds)
             {
                 if (_citizens.TryGetValue(citizenId, out var citizen)
-                    && citizen.CurrentLocation is CitizenLocation.AtWork or CitizenLocation.InTransit)
+                    && citizen.CurrentLocation == CitizenLocation.AtWork)
                 {
                     ids.Add(citizen.Id);
                 }
@@ -2030,11 +2260,20 @@ public sealed class CityWorld
 
     public bool ConfirmCitizenArrivedAtAssignment(CitizenId citizenId, BuildingId assignmentId)
     {
-        if (!GameClock.IsDaytime(_tick)
-            || !_citizens.TryGetValue(citizenId, out Citizen? citizen)
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)
             || citizen.CurrentAssignment != assignmentId
             || citizen.CurrentLocation != CitizenLocation.InTransit)
         {
+            return false;
+        }
+        if (!GameClock.IsDaytime(_tick))
+        {
+            // A visible route can finish just after the workday boundary.
+            // Do not leave the citizen indefinitely idle at the threshold:
+            // preserve the standing order and reverse the physical journey.
+            citizen.BeginTravelHome(_tick);
+            if (_buildings.ContainsKey(assignmentId)) RaiseBuildingChanged(assignmentId);
+            else if (_projects.ContainsKey(assignmentId)) RaiseProjectChanged(assignmentId);
             return false;
         }
 
@@ -2085,6 +2324,155 @@ public sealed class CityWorld
             }
             return null;
         }
+    }
+
+    /// <summary>
+    /// Projects the citizen's durable context into one explainable current
+    /// routine. This is safe to query with no Godot scene instantiated and is
+    /// therefore shared by live UI, diagnostics and post-offline reconstruction.
+    /// </summary>
+    public CitizenRoutineSnapshot? GetCitizenRoutine(CitizenId citizenId)
+    {
+        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)) return null;
+
+        BuildingId? shelterId = PrimaryHome?.Id;
+        CitizenWorkOrder? order = citizen.WorkOrder;
+        BuildingId? workplaceId = order?.TargetId;
+        CitizenRoutineActivity activity;
+        CitizenRoutineBlockReason blockReason = CitizenRoutineBlockReason.None;
+        int? startedAt = null;
+        int? expectedAt = null;
+        int? nextTransition = null;
+        BuildingId? originId = null;
+        BuildingId? destinationId = null;
+        CitizenContextLocation contextLocation;
+        BuildingId? contextBuildingId;
+
+        if (IsCitizenOnActiveExpedition(citizenId))
+        {
+            activity = CitizenRoutineActivity.OnExpedition;
+            contextLocation = CitizenContextLocation.Unavailable;
+            contextBuildingId = null;
+        }
+        else if (citizen.CurrentLocation == CitizenLocation.InTransit)
+        {
+            activity = citizen.IsReturningHome
+                ? CitizenRoutineActivity.TravellingHome
+                : CitizenRoutineActivity.TravellingToWork;
+            contextLocation = CitizenContextLocation.InTransit;
+            contextBuildingId = null;
+            startedAt = citizen.TransitStartedAtTick;
+            expectedAt = startedAt + CityEconomyRules.AbstractTravelTicks;
+            nextTransition = expectedAt;
+            originId = citizen.IsReturningHome ? workplaceId : shelterId;
+            destinationId = citizen.IsReturningHome ? shelterId : workplaceId;
+        }
+        else if (citizen.Commitment.Kind == CitizenCommitmentKind.Recovery
+            || citizen.VitalStatus != CitizenVitalStatus.Stable
+            || citizen.IsWounded)
+        {
+            activity = CitizenRoutineActivity.Recovering;
+            contextLocation = CitizenContextLocation.AtShelter;
+            contextBuildingId = shelterId;
+            blockReason = citizen.VitalStatus == CitizenVitalStatus.BlockedNoFood
+                ? CitizenRoutineBlockReason.NoFood
+                : citizen.IsWounded
+                    ? CitizenRoutineBlockReason.Wounded
+                    : CitizenRoutineBlockReason.Recovering;
+            nextTransition = citizen.Wound is { } wound
+                ? _tick + wound.RecoveryTicksRemaining
+                : null;
+        }
+        else if (citizen.CurrentLocation == CitizenLocation.AtWork)
+        {
+            contextLocation = CitizenContextLocation.AtWorkplace;
+            contextBuildingId = workplaceId;
+            nextTransition = GameClock.NextWorkdayEnd(_tick);
+            (activity, blockReason) = ResolveWorkplaceActivity(order);
+        }
+        else
+        {
+            contextLocation = CitizenContextLocation.AtShelter;
+            contextBuildingId = shelterId;
+            (activity, blockReason) = ResolveAtHomeActivity(order);
+            if (!GameClock.IsWorkday(_tick)) nextTransition = GameClock.NextWorkdayStart(_tick);
+        }
+
+        return new CitizenRoutineSnapshot(
+            citizen.Id,
+            activity,
+            contextLocation,
+            contextBuildingId,
+            shelterId,
+            originId,
+            destinationId,
+            startedAt,
+            expectedAt,
+            nextTransition,
+            blockReason,
+            citizen.Behavior,
+            citizen.CurrentLocation,
+            order);
+    }
+
+    private (CitizenRoutineActivity Activity, CitizenRoutineBlockReason BlockReason)
+        ResolveAtHomeActivity(CitizenWorkOrder? order)
+    {
+        if (order is null)
+        {
+            return GameClock.IsWorkday(_tick)
+                ? (CitizenRoutineActivity.Leisure, CitizenRoutineBlockReason.NoAssignment)
+                : (CitizenRoutineActivity.Resting, CitizenRoutineBlockReason.None);
+        }
+        if (!GameClock.IsWorkday(_tick))
+        {
+            return (CitizenRoutineActivity.OffDuty, CitizenRoutineBlockReason.OutsideWorkHours);
+        }
+        return ResolveWorkplaceActivity(order);
+    }
+
+    private (CitizenRoutineActivity Activity, CitizenRoutineBlockReason BlockReason)
+        ResolveWorkplaceActivity(CitizenWorkOrder? order)
+    {
+        if (order is null)
+        {
+            return (CitizenRoutineActivity.Leisure, CitizenRoutineBlockReason.NoAssignment);
+        }
+        if (!GameClock.IsWorkday(_tick))
+        {
+            return (CitizenRoutineActivity.OffDuty, CitizenRoutineBlockReason.OutsideWorkHours);
+        }
+        if (order.Value.Kind == CitizenCommitmentKind.BuildingWork
+            && _buildings.TryGetValue(order.Value.TargetId, out Building? building))
+        {
+            if (!building.ProductionEnabled)
+            {
+                return (CitizenRoutineActivity.WorkplaceIdle, CitizenRoutineBlockReason.WorkplacePaused);
+            }
+            if (building.Stock >= building.MaxStock)
+            {
+                return (CitizenRoutineActivity.WaitingForStorage, CitizenRoutineBlockReason.StorageFull);
+            }
+            if (building.StopCause == ProductionStopCause.MissingInputs)
+            {
+                return (CitizenRoutineActivity.WaitingForResources, CitizenRoutineBlockReason.MissingInputs);
+            }
+            return (CitizenRoutineActivity.Working, CitizenRoutineBlockReason.None);
+        }
+        if (order.Value.Kind == CitizenCommitmentKind.Construction
+            && _projects.TryGetValue(order.Value.TargetId, out ConstructionProject? project))
+        {
+            if (!project.Enabled)
+            {
+                return (CitizenRoutineActivity.WorkplaceIdle, CitizenRoutineBlockReason.WorkplacePaused);
+            }
+            if (project.StopCause == ConstructionStopCause.MissingMaterials)
+            {
+                return (CitizenRoutineActivity.WaitingForResources, CitizenRoutineBlockReason.MissingInputs);
+            }
+            return (CitizenRoutineActivity.Working, CitizenRoutineBlockReason.None);
+        }
+        return (CitizenRoutineActivity.Unavailable, CitizenRoutineBlockReason.NoAssignment);
     }
 
     private void ApplyUpkeep()
@@ -2256,10 +2644,13 @@ public sealed class CityWorld
     internal void AdvanceIdleTicks(int tickCount)
     {
         if (tickCount <= 0) return;
-        if (_buildings.Count != 0 || _projects.Count != 0)
+        if (_buildings.Count != 0
+            || _projects.Count != 0
+            || _expeditions.Values.Any(expedition =>
+                expedition.Status == ExpeditionStatus.Active))
         {
             throw new InvalidOperationException(
-                "Idle fast-forward requires a world with no buildings and no projects.");
+                "Idle fast-forward requires a world with no buildings, projects, or active expeditions.");
         }
 
         _tick += tickCount;
@@ -2279,7 +2670,14 @@ public sealed class CityWorld
     /// </summary>
     internal int TryAdvanceQuiescentTicks(int maxTickCount)
     {
-        if (maxTickCount <= 0 || HasAnyWorkAssignment()) return 0;
+        if (maxTickCount <= 0
+            || HasAnyWorkAssignment()
+            || _citizens.Values.Any(citizen =>
+                citizen.Commitment.Kind == CitizenCommitmentKind.Recovery
+                && citizen.CurrentLocation != CitizenLocation.AtHome))
+        {
+            return 0;
+        }
 
         foreach (var building in _buildings.Values)
         {
@@ -2305,6 +2703,20 @@ public sealed class CityWorld
             : GameClock.TicksPerInGameDay - 1;
         int ticksBeforeBoundary = lastTickInPhase - dayTick;
         int tickCount = Math.Min(maxTickCount, ticksBeforeBoundary);
+        int recoveryBoundary = _citizens.Values
+            .Where(citizen => citizen.Commitment.Kind == CitizenCommitmentKind.Recovery)
+            .Select(citizen => citizen.Wound?.RecoveryTicksRemaining ?? 0)
+            .Where(remaining => remaining > 0)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        tickCount = Math.Min(tickCount, recoveryBoundary);
+        int expeditionBoundary = _expeditions.Values
+            .Where(expedition => expedition.Status == ExpeditionStatus.Active)
+            .Select(ExpeditionTicksUntilNextBoundary)
+            .Where(remaining => remaining > 0)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        tickCount = Math.Min(tickCount, expeditionBoundary);
         if (tickCount <= 0) return 0;
 
         ApplyUpkeepBatch(tickCount);
@@ -2327,7 +2739,8 @@ public sealed class CityWorld
         }
         foreach (var citizen in _citizens.Values)
         {
-            if (!isDaytime)
+            if (!isDaytime
+                && citizen.Commitment.Kind != CitizenCommitmentKind.Expedition)
             {
                 int fedTicks = Math.Min(tickCount, citizen.WellFedRemainingTicks);
                 citizen.RestoreStamina(
@@ -2337,7 +2750,25 @@ public sealed class CityWorld
             citizen.AdvanceWellFedTicks(tickCount);
         }
         _tick += tickCount;
+        AdvanceWoundRecoveries(tickCount);
+        AdvanceExpeditionPhases();
+        CompleteFinishedExpeditions();
         return tickCount;
+    }
+
+    private int ExpeditionTicksUntilNextBoundary(Expedition expedition)
+    {
+        int duration = expedition.EndTick - expedition.StartTick;
+        int boundaryTick = expedition.Phase switch
+        {
+            ExpeditionPhase.Outbound => expedition.StartTick + duration / 4,
+            ExpeditionPhase.Encounter or ExpeditionPhase.Retreating =>
+                expedition.StartTick + duration / 2,
+            ExpeditionPhase.Objective => expedition.StartTick + duration * 3 / 4,
+            ExpeditionPhase.Returning => expedition.EndTick,
+            _ => _tick,
+        };
+        return Math.Max(0, boundaryTick - _tick);
     }
 
     private void ApplyUpkeepBatch(int tickCount)
@@ -2447,7 +2878,14 @@ public sealed class CityWorld
                 new ParcelId(parcel.Id),
                 parcel.LogicalColumn,
                 parcel.LogicalRow,
-                parcel.IsUnlocked);
+                Enum.TryParse(
+                    parcel.TerritoryState,
+                    ignoreCase: true,
+                    out ParcelTerritoryState territoryState)
+                        ? territoryState
+                        : parcel.IsUnlocked
+                            ? ParcelTerritoryState.Available
+                            : ParcelTerritoryState.Locked);
             _parcels.Add(restoredParcel.Id, restoredParcel);
         }
 
@@ -2594,6 +3032,18 @@ public sealed class CityWorld
                 RestoreCitizenWorkOrder(save, cs),
                 vitalStatus,
                 cs.ResumeWorkNotBeforeTick);
+            if (!string.IsNullOrWhiteSpace(cs.WoundSeverity)
+                && cs.WoundOriginatingEventId is int woundEventId
+                && Enum.TryParse(
+                    cs.WoundSeverity,
+                    ignoreCase: true,
+                    out WoundSeverity woundSeverity))
+            {
+                citizen.RestoreWound(new CitizenWound(
+                    woundSeverity,
+                    new WorldEventId(woundEventId),
+                    cs.WoundRecoveryTicksRemaining));
+            }
             if (cs.LastVisitedResourceBuildingId.HasValue
                 && cs.LastVisitedResourceUnitId.HasValue)
             {
@@ -2796,6 +3246,15 @@ public sealed class CityWorld
                 && Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome parsedOutcome)
                     ? parsedOutcome
                     : null;
+            _ = Enum.TryParse(
+                string.IsNullOrEmpty(expedition.RetreatPosture)
+                    ? ExpeditionRetreatPosture.ContinueAfterSetback.ToString()
+                    : expedition.RetreatPosture,
+                true,
+                out ExpeditionRetreatPosture retreatPosture);
+            WorldEventId? dispatchEventId = expedition.DispatchEventId is int eventId
+                ? new WorldEventId(eventId)
+                : null;
             var restored = new Expedition(
                 new ExpeditionId(expedition.Id),
                 expedition.DisplayName,
@@ -2810,19 +3269,16 @@ public sealed class CityWorld
                 new ResourceReservationId(expedition.ReservationId),
                 status,
                 phase,
-                encounterOutcome);
-            if (expedition.ReturnedAmount is int amount)
-            {
-                if (rewardKind == ExpeditionRewardKind.Migrant
-                    && expedition.DeliveredMigrantId is int migrantId)
-                {
-                    restored.MarkReturnedMigrant(new CitizenId(migrantId), amount);
-                }
-                else
-                {
-                    restored.MarkReturnedSupplies(amount);
-                }
-            }
+                encounterOutcome,
+                retreatPosture,
+                dispatchEventId,
+                expedition.ReturnedAmount,
+                expedition.DeliveredMigrantId is int migrantId
+                    ? new CitizenId(migrantId)
+                    : null,
+                expedition.TargetParcelId is int targetParcelId
+                    ? new ParcelId(targetParcelId)
+                    : null);
             _expeditions.Add(restored.Id, restored);
             if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
         }

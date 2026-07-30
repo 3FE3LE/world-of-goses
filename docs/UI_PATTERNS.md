@@ -222,7 +222,31 @@ Adding a new variation requires:
 Coin-ing variations inline (`theme_override_font_sizes/font_size = 42`)
 is allowed only for **single-screen, throwaway** debug UI.
 
+### Pixel-font rendering profile
+
+All three project fonts are dynamic TTF sources but must rasterize as solid
+pixel typography. Their committed `.ttf.import` profiles therefore keep
+`antialiasing=0`, `generate_mipmaps=false`,
+`multichannel_signed_distance_field=false`, `subpixel_positioning=0`, and
+`oversampling=0.0`.
+`oversampling=0.0` delegates the factor to the viewport so 1080p receives a
+fresh target-size raster instead of a 720p glyph atlas enlarged by 1.5. The
+global canvas texture filter remains Nearest. Do not enable MSDF for these
+fonts: it always uses grayscale antialiasing and weakens the hard-edged pixel
+language, especially at body sizes. Run `tools/Test-PixelFontImports.ps1` and
+review `TypographySpecimen.tscn` at 1280×720 and 1920×1080 after changing a
+font, font size, stretch setting, or theme variation.
+
 ## 6. Save / load integration
+
+### Player-facing time
+
+Simulation ticks are an internal domain and persistence unit. UI labels,
+tooltips, buttons, Chronicle rows, and reports must never expose a tick count or
+mislabel ticks as real seconds. Use `SimulationTimeText.FormatDurationLocalized`
+for elapsed/remaining durations and `SimulationTimeText.FormatLocalized` for a
+specific world date. Player-facing durations are expressed as world days,
+hours, and minutes.
 
 The UI must not store state the player cares about. Every state object
 that affects the simulation lives in the domain (`Building`,
@@ -265,6 +289,11 @@ Four rules apply to every screen:
    selections plus one modal layer, so `CityWorldController.Selection` and
    `ModalHost` are the deliberately small navigation stack. Introduce a
    general push/pop stack only when a second nested screen or modal requires it.
+5. **Pointer gestures belong to the hovered UI first.** In particular, the
+   wheel remains reserved for a visible ancestor `ScrollContainer` even when
+   that container is already at its first or last row. World cameras must use
+   `UiInputBoundary` before treating an unhandled wheel event as zoom; reaching
+   a scroll limit must never leak the gesture into the city behind the panel.
 
 Mouse + gamepad coexistence is the default expectation: hover
 triggers tooltips, but gamepad focus also drives the selection ring

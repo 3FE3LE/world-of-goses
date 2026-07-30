@@ -20,9 +20,8 @@ $resolvedOutput = [System.IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Force -Path $resolvedOutput | Out-Null
 
 $resolutions = @(
-    [PSCustomObject]@{ Width = 1024; Height = 576 },
     [PSCustomObject]@{ Width = 1280; Height = 720 },
-    [PSCustomObject]@{ Width = 1600; Height = 900 }
+    [PSCustomObject]@{ Width = 1920; Height = 1080 }
 )
 $captures = @()
 
