@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
 [ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
+[ext_resource type="Script" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -39,6 +40,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 theme_override_constants/separation = 0
 script = ExtResource("24_shell")
 
@@ -319,6 +321,11 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("22_tutorial")
+
+
+[node name="TimeOfDayFilter" type="Control" parent="GameUiShell/ScreenContent" unique_id=1900000002]
+script = ExtResource("33_timeoffilter")
+ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="PauseMenu" parent="." unique_id=1513436726 instance=ExtResource("25_pause_menu")]
 

@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -15,6 +16,9 @@ public partial class MacroActions : PanelContainer
 
     public override void _Ready()
     {
+        // HUD chrome: the navigation buttons must read identically at
+        // 03:00 and at noon, so they sit above the ambient tint.
+        OverlayLayers.Apply(this, OverlayLayers.Hud);
         OffsetLeft = 0f;
         OffsetTop = 0f;
         OffsetRight = 0f;

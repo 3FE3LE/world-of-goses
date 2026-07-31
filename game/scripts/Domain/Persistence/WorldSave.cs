@@ -44,9 +44,10 @@ public sealed class WorldSave
     ///   <item><description>v17 — every expedition member is an explicitly incorporated hero; legacy participants receive the existing hero role during migration.</description></item>
     ///   <item><description>v18 — expedition plans persist a retreat posture and their causal dispatch event; retreat is distinct from pre-travel cancellation.</description></item>
     ///   <item><description>v19 — citizens persist durable wounds and treatment progress independently from stamina; parcels persist an expedition-driven territorial state and expeditions retain their target parcel.</description></item>
+    ///   <item><description>v20 — EG-0 opening measurement (`EarlyGameMetrics`). Purely observational: no rule reads it, so migrated cities start with an empty measurement rather than a reconstructed one. A city that predates the instrumentation genuinely has no measured opening, and inventing one would corrupt the very numbers EG-0 exists to gather.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 19;
+    public const int CurrentVersion = 20;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -74,6 +75,14 @@ public sealed class WorldSave
     public List<NaturalResourcePatchSave> NaturalResourcePatches { get; set; } = new();
     public List<ParcelPlacementSave> ParcelPlacements { get; set; } = new();
     public Dictionary<string, int> CityInventory { get; set; } = new();
+
+    /// <summary>
+    /// EG-0 opening measurement (schema v20). Nullable so a partially written
+    /// or hand-edited save restores as an empty measurement rather than
+    /// throwing: no rule reads these numbers, so their absence can never make
+    /// the city inconsistent. See <see cref="EarlyGameMetricsSave"/>.
+    /// </summary>
+    public EarlyGameMetricsSave? EarlyGameMetrics { get; set; }
     public List<ExpeditionSave> Expeditions { get; set; } = new();
     public int? PendingProspectSeed { get; set; }
     public string? PendingProspectName { get; set; }

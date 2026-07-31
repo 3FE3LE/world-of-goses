@@ -73,6 +73,12 @@ public partial class CityPrototype : Node
             case "wound-recovery":
                 ShowWoundRecoveryForVisualRegression();
                 break;
+            case "world-status-treatment":
+                ShowWorldStatusTreatmentForVisualRegression();
+                break;
+            case "citizen-click-summary":
+                ShowCitizenClickSummaryForVisualRegression();
+                break;
             case "expedition-active":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Active);
                 break;
@@ -96,6 +102,21 @@ public partial class CityPrototype : Node
                 break;
             case "founder-arrival":
                 ShowFounderArrivalForVisualRegression();
+                break;
+            // The four moments the ambient day/night curve is built
+            // around. Reviewing the tint needs a pinned hour: otherwise
+            // the captured time is whatever the save happens to hold.
+            case "time-midnight":
+                PinTimeOfDayForVisualRegression(0.0);
+                break;
+            case "time-dawn":
+                PinTimeOfDayForVisualRegression(0.229);
+                break;
+            case "time-noon":
+                PinTimeOfDayForVisualRegression(0.5);
+                break;
+            case "time-dusk":
+                PinTimeOfDayForVisualRegression(0.771);
                 break;
             case "language-selector":
                 GetNode<PauseMenu>("PauseMenu").Open();
@@ -222,6 +243,12 @@ public partial class CityPrototype : Node
         }
     }
 
+    private void PinTimeOfDayForVisualRegression(double dayFraction)
+    {
+        GetNode<TimeOfDayFilter>("GameUiShell/ScreenContent/TimeOfDayFilter")
+            .PinDayFractionForVisualRegression(dayFraction);
+    }
+
     private void ShowFounderArrivalForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
@@ -273,6 +300,57 @@ public partial class CityPrototype : Node
         controller.World.Resources.DepositToCityInventory(ResourceType.Food, 2);
         GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/ExpeditionPanel")
             .ShowWoundRecoveryForVisualRegression();
+    }
+
+    private void ShowWorldStatusTreatmentForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorld world = controller.World;
+        if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
+
+        int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
+        var patient = new Citizen(
+            new CitizenId(nextId),
+            "Tamara",
+            appearanceSeed: nextId * 11,
+            profile: founder.Profile);
+        world.RegisterCitizen(patient);
+        world.TryIncorporateHero(patient.Id);
+        WorldEvent woundEvent = world.Log.Record(
+            world.CurrentTick,
+            WorldEventKind.WoundSustained,
+            WorldEventSubject.Citizen(patient.Id, patient.Name),
+            (int)WoundSeverity.Moderate);
+        patient.SustainWound(WoundSeverity.Moderate, woundEvent.Id);
+        world.Resources.DepositToCityInventory(ResourceType.Food, WoundRules.ModerateFoodCost);
+        if (!world.TryBeginWoundRecovery(patient.Id).IsSuccess) return;
+
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowCitizenStatusForVisualRegression(patient.Id);
+    }
+
+    private void ShowCitizenClickSummaryForVisualRegression()
+    {
+        // The bubble fixture above already drives the hover path; this one
+        // exercises the dedicated click path (TryClick → SelectCitizen →
+        // SelectionInfoPanel) so the regression matrix proves both the
+        // pointer overlay and the at-a-glance summary arrive when the
+        // player clicks a citizen — not just when the macro view paints
+        // the bubble for a known citizen by hand.
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorld world = controller.World;
+        if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
+
+        int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
+        var inspector = new Citizen(
+            new CitizenId(nextId),
+            "Inspector",
+            appearanceSeed: nextId * 11,
+            profile: founder.Profile);
+        world.RegisterCitizen(inspector);
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        city.TriggerCitizenClickForVisualRegression(inspector.Id);
     }
 
     private void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)

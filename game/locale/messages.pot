@@ -463,10 +463,10 @@ msgstr ""
 msgid "Fire"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
 msgid "Forest"
@@ -1537,7 +1537,19 @@ msgstr ""
 msgid "ui.expedition.cancel_dispatch_hint"
 msgstr ""
 
+msgid "ui.expedition.dispatch_active_hint"
+msgstr ""
+
 msgid "ui.expedition.dispatch_failed"
+msgstr ""
+
+msgid "ui.expedition.dispatch_member_unavailable"
+msgstr ""
+
+msgid "ui.expedition.dispatch_missing_supplies"
+msgstr ""
+
+msgid "ui.expedition.dispatch_no_member_hint"
 msgstr ""
 
 msgid "ui.expedition.incorporate_hero_action"
@@ -1906,6 +1918,12 @@ msgstr ""
 msgid "ui.status.food_stock"
 msgstr ""
 
+msgid "ui.status.off_hours"
+msgstr ""
+
+msgid "ui.status.off_hours_hint"
+msgstr ""
+
 msgid "ui.status.project"
 msgstr ""
 
@@ -1958,6 +1976,51 @@ msgid "ui.tree.regrows_at"
 msgstr ""
 
 msgid "ui.tutorial.title"
+msgstr ""
+
+msgid "ui.world_status.expedition"
+msgstr ""
+
+msgid "ui.world_status.idle"
+msgstr ""
+
+msgid "ui.world_status.no_food"
+msgstr ""
+
+msgid "ui.world_status.off_duty"
+msgstr ""
+
+msgid "ui.world_status.recovering"
+msgstr ""
+
+msgid "ui.world_status.resting"
+msgstr ""
+
+msgid "ui.world_status.storage_full"
+msgstr ""
+
+msgid "ui.world_status.travelling"
+msgstr ""
+
+msgid "ui.world_status.treatment"
+msgstr ""
+
+msgid "ui.world_status.unavailable"
+msgstr ""
+
+msgid "ui.world_status.waiting_resources"
+msgstr ""
+
+msgid "ui.world_status.waiting_storage"
+msgstr ""
+
+msgid "ui.world_status.work_paused"
+msgstr ""
+
+msgid "ui.world_status.working"
+msgstr ""
+
+msgid "ui.world_status.wound"
 msgstr ""
 
 msgid "ui.wound.moderate"

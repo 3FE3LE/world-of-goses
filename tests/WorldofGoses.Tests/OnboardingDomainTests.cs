@@ -79,11 +79,15 @@ public class OnboardingDomainTests
     {
         var world = TestHelpers.NewHeroWorld();
 
+        int tickBefore = world.CurrentTick;
         var report = OfflineProgression.ApplyAll(world, 1000);
 
         Assert.True(report.HadProgression);
         Assert.Equal(1000, report.TicksApplied);
-        Assert.Equal(1000, world.CurrentTick);
+        // WorldWithHome lands at the configured workday tick (1200)
+        // since the 2026-07-30 shift, so absolute tick post-advance
+        // is relative.
+        Assert.Equal(tickBefore + 1000, world.CurrentTick);
         Assert.Equal(CitizenLocation.AtHome, world.Hero!.CurrentLocation);
     }
 }

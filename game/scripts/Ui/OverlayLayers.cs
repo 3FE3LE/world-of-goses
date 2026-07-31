@@ -20,8 +20,24 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public static class OverlayLayers
 {
-    /// <summary>World (terrain, trees, macro plots, HUD chips). Default.</summary>
+    /// <summary>World (terrain, trees, macro plots). Default.
+    /// This layer is diegetic: everything on it is part of the city the
+    /// player is looking at, so <see cref="AmbientTint"/> is allowed to
+    /// colour it. HUD chrome must NOT sit here — see <see cref="Hud"/>.</summary>
     public const int World = 0;
+
+    /// <summary>Ambient day/night tint over the world. Sits above
+    /// <see cref="World"/> and below <see cref="Hud"/>: it is an
+    /// immersion effect for the map, never a wash over the interface.
+    /// A control that gets tinted when it should not is almost always a
+    /// control that forgot to claim <see cref="Hud"/>.</summary>
+    public const int AmbientTint = 5;
+
+    /// <summary>Persistent HUD chrome: status strip, macro action bar,
+    /// and the full-screen views that replace the map (building detail,
+    /// hero profile). Above <see cref="AmbientTint"/> so the interface
+    /// keeps its authored colours at every hour of the in-game day.</summary>
+    public const int Hud = 6;
 
     /// <summary>Contextual menu anchored to an in-world resource.</summary>
     public const int ContextMenu = 8;

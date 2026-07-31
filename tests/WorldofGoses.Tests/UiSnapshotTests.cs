@@ -160,6 +160,39 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
+    public void BuildingDetailSnapshot_HomeCountsCitizensAtHomeNotAssignedWorkers()
+    {
+        // The Home's "_assigned" roster stays empty in normal play — the
+        // Home has no operating recipe, so citizens are never "assigned"
+        // to it. The resting count the detail panel reads must come
+        // from the citizens physically at home (VisibleCitizens), not
+        // from the building's own assigned-workers triplet
+        // (VisibleWorkerCount + HiddenWorkerCount, both derived from
+        // _assigned and therefore zero for the Home).
+        var world = TestHelpers.NewProductionWorld();
+        var home = world.Buildings.Values.Single(building => building.Kind == BuildingKind.Home);
+
+        // Verify the citizen layout the fixture actually produces. The
+        // hero and the first two workers were moved to AtWork in
+        // NewProductionWorld; the remaining registered citizens stay
+        // at their default AtHome location. Count that explicitly so
+        // the assertion documents the expected picture rather than
+        // hardcoding a number the fixture can drift away from.
+        int expectedAtHome = world.Citizens.Values.Count(citizen => citizen.CurrentLocation == CitizenLocation.AtHome);
+        Assert.True(expectedAtHome >= 2, "Fixture should produce multiple citizens at home.");
+
+        var snapshot = BuildingDetailSnapshot.From(world, home.Id);
+
+        Assert.NotNull(snapshot);
+        Assert.Equal(BuildingKind.Home, snapshot!.Kind);
+        Assert.Equal(expectedAtHome, snapshot.VisibleCitizens.Count);
+        // The two counters the panel used to read — both zero because
+        // no citizen is _assigned_ to the Home as a worker.
+        Assert.Equal(0, snapshot.VisibleWorkerCount);
+        Assert.Equal(0, snapshot.HiddenWorkerCount);
+    }
+
+    [Fact]
     public void Snapshots_DoNotChangeWhenWorldMutates()
     {
         var world = TestHelpers.NewHeroWorld();
@@ -187,6 +220,62 @@ public sealed class UiSnapshotTests
         Assert.NotNull(before.Hero);
         Assert.Empty(before.Buildings);
         Assert.Equal(2, CityMacroSnapshot.From(world).Buildings.Count);
+    }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsPersistentStorageFullState()
+    {
+        CityWorld world = TestHelpers.NewProductionWorld();
+        Building building = world.Buildings.Values.First(candidate => candidate.StorageCapacity > 0);
+        building.AddStock(building.StorageCapacity);
+
+        CityMacroSnapshot.PlotItem projected = CityMacroSnapshot.From(world).Buildings.Single(
+            item => item.Id == building.Id);
+
+        Assert.Equal(building.Stock, projected.Stock);
+        Assert.Equal(building.StorageCapacity, projected.StorageCapacity);
+        Assert.True(projected.IsStorageFull);
+    }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsWoundAndTreatmentForHoverStatus()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        Citizen hero = world.Hero!;
+        WorldEvent origin = world.Log.Record(
+            world.CurrentTick,
+            WorldEventKind.WoundSustained,
+            WorldEventSubject.Citizen(hero.Id, hero.Name),
+            (int)WoundSeverity.Moderate);
+        hero.SustainWound(WoundSeverity.Moderate, origin.Id);
+
+        CityMacroSnapshot.CitizenItem wounded = Assert.Single(CityMacroSnapshot.From(world).Citizens);
+        Assert.Equal(WoundSeverity.Moderate, wounded.WoundSeverity);
+        Assert.False(wounded.IsReceivingWoundTreatment);
+
+        world.DepositFood(WoundRules.ModerateFoodCost);
+        Assert.True(world.TryBeginWoundRecovery(hero.Id).IsSuccess);
+
+        CityMacroSnapshot.CitizenItem treating = Assert.Single(CityMacroSnapshot.From(world).Citizens);
+        Assert.True(treating.IsReceivingWoundTreatment);
+        Assert.Equal(WoundRules.ModerateRecoveryTicks, treating.WoundRecoveryTicksRemaining);
+    }
+
+    [Fact]
+    public void CityMacroSnapshot_ProjectsNoFoodRecoveryBlockerForHoverStatus()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        Citizen hero = world.Hero!;
+        if (hero.CurrentLocation == CitizenLocation.InTransit && hero.IsReturningHome)
+        {
+            Assert.True(world.ConfirmCitizenArrivedHome(hero.Id));
+        }
+        hero.MarkFoodBlocked();
+
+        CityMacroSnapshot.CitizenItem projected = Assert.Single(CityMacroSnapshot.From(world).Citizens);
+
+        Assert.Equal(CitizenRoutineActivity.Recovering, projected.Activity);
+        Assert.Equal(CitizenRoutineBlockReason.NoFood, projected.BlockReason);
     }
 
     [Fact]

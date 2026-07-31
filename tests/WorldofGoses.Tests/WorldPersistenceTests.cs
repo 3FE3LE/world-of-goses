@@ -18,7 +18,11 @@ public class WorldPersistenceTests
 
         Assert.Equal(5, save.Citizens.Count);
         Assert.Equal(3, save.Buildings.Count);
-        Assert.Equal(0, save.CurrentTick);
+        // The starting tick matches what WorldWithHome advanced to
+        // (the configured workday start, 08:00 = tick 1200 since the
+        // 2026-07-30 workday shift); assert equality with the live
+        // world so the test does not hard-code the tick number.
+        Assert.Equal(world.CurrentTick, save.CurrentTick);
     }
 
     [Fact]
@@ -410,8 +414,12 @@ public class WorldPersistenceTests
 
             var r1 = WorldPersistence.LoadFromSlot(0, slotsDir);
             var r2 = WorldPersistence.LoadFromSlot(1, slotsDir);
-            Assert.Equal(0, r1.CurrentTick);
-            Assert.Equal(3, r2.CurrentTick);
+            // WorldWithHome lands at the configured workday tick (1200)
+            // since the 2026-07-30 shift, so the assertions are
+            // relative to the world start.
+            Assert.Equal(w1.CurrentTick, r1.CurrentTick);
+            Assert.Equal(w2.CurrentTick, r2.CurrentTick);
+            Assert.Equal(3, r2.CurrentTick - r1.CurrentTick);
         }
         finally
         {

@@ -170,7 +170,7 @@ Tests and documentation:
 ## Verification
 
 - `dotnet build`: 0 errors, 0 warnings.
-- `dotnet test`: 553/553 passing.
+- `dotnet test`: 586/586 passing.
 - Godot 4.7.1 headless boot: schema v19 load, offline catch-up, and clean scene
   startup with no false work route for a storage-blocked founder.
 - Policies visual fixture captured at 1280×720 and 1920×1080. The first capture

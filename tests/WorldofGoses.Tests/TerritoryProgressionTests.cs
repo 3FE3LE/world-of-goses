@@ -27,11 +27,16 @@ public sealed class TerritoryProgressionTests
 
         WorldSave migrated = WorldPersistence.MigrateV18ToV19(legacy);
 
-        Assert.Equal(WorldSave.CurrentVersion, migrated.Version);
+        // The single step under test lands on its own version, not on
+        // whatever the current schema happens to be.
+        Assert.Equal(19, migrated.Version);
         Assert.Equal(9, migrated.Parcels.Count);
         ParcelSave target = Assert.Single(migrated.Parcels, parcel => !parcel.IsUnlocked);
         Assert.Equal(ParcelTerritoryState.Locked.ToString(), target.TerritoryState);
-        WorldPersistence.Validate(migrated);
+
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        Assert.Equal(WorldSave.CurrentVersion, current.Version);
+        WorldPersistence.Validate(current);
     }
 
     [Fact]

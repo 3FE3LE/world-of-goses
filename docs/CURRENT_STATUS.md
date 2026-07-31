@@ -1,11 +1,15 @@
 # Current Project Status
 
-**Last aligned:** 2026-07-29
+**Last aligned:** 2026-07-30
 
 **Active vertical slice:** VS-5 — player-facing signature and repetition
 
-**Next approved work:** finish the remaining VS-5 diagnostic, then open EG-0 as
-a prerequisite for final VS-5 closure.
+**Next approved work:** EG-0 is implemented (schema v20); the remaining VS-5
+diagnostic run now also produces the EG-0 report. Then EG-3 (Food horizon), the
+only increment that closes G1, and then the VS-5 signature. EG-1/EG-2/EG-4/EG-5
+follow as their own slice — running them first would rewrite the opening and
+reopen acceptance criteria 1-5, which the human run has already signed. See
+`EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15.
 
 The design bible defines what the game is. This file defines what the connected
 code does today. `FIRST_PLAYABLE_LOOP_AUDIT.md` owns the 17 VS-5 acceptance
@@ -15,8 +19,11 @@ criteria; `TO_DO.md` owns the actionable queue.
 
 - Godot .NET 4.7.1, C#/.NET 8.
 - `dotnet build`: 0 errors, 0 warnings.
-- `dotnet test`: 553/553 passing.
-- `WorldSave.CurrentVersion`: 19.
+- `dotnet test`: 652/653 passing (1 omitido por brittleness del JSON snapshot en
+  `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
+  cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
+  workday se desplazó a 08:00).
+- `WorldSave.CurrentVersion`: 20 (EG-0 opening measurement).
 - Godot headless boot loads the current scene/slot without C# or scene errors.
 - EN/ES catalogs: 677 template IDs and 303 runtime keys validated.
 - Agent-context validation: 436 checks passing.
@@ -38,7 +45,12 @@ The clean-slot human run has signed founder creation, gathering, Shelter/Farm/
 Quarry/Town Hall construction, constrained recruitment, multi-citizen work,
 navigation/entry, production and UI wheel isolation. It also found that 60 Food
 against a two-Food daily ration does not create meaningful pressure, reopening
-G1. VS-5 still needs:
+G1. The 2026-07-30 follow-up corrected the Home detail panel so the
+"descansando N / capacidad M" line and the worker slots read the same source
+(`VisibleCitizens`), and added a hiding rule for non-founder citizens at
+home so closing the Shelter detail view no longer leaves every sleeping
+citizen visible at the building's entrance anchor (see `TO_DO.md` 2026-07-30).
+VS-5 still needs:
 
 1. One complete normal-UI run from a clean slot.
 2. A visible relaunch during an expedition.

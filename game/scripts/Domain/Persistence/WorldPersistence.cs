@@ -61,6 +61,8 @@ public static class WorldPersistence
             save.CityInventory[resource.ToString()] = amount;
         }
 
+        save.EarlyGameMetrics = CaptureEarlyGameMetrics(world.Metrics);
+
         foreach (var building in world.Buildings.Values)
         {
             var bs = new BuildingSave
@@ -271,6 +273,71 @@ public static class WorldPersistence
         }
 
         return save;
+    }
+
+    internal static EarlyGameMetricsSave CaptureEarlyGameMetrics(EarlyGameMetrics metrics)
+    {
+        var save = new EarlyGameMetricsSave
+        {
+            FirstShelterCompletedAtTick = metrics.FirstShelterCompletedAtTick,
+            FirstExpeditionDispatchedAtTick = metrics.FirstExpeditionDispatchedAtTick,
+            ExpeditionsDispatched = metrics.ExpeditionsDispatched,
+            ExpeditionAbsenceTicks = metrics.ExpeditionAbsenceTicks,
+            DawnSamples = metrics.DawnSamples,
+            IdleCitizenDays = metrics.IdleCitizenDays,
+            ObservedCitizenDays = metrics.ObservedCitizenDays,
+            MinFoodHorizonTenths = metrics.MinFoodHorizonTenths,
+            FoodHorizonTenthsAtFirstShelter = metrics.FoodHorizonTenthsAtFirstShelter,
+        };
+        foreach (KeyValuePair<ResourceType, int> entry in metrics.Gathered)
+        {
+            save.Gathered[entry.Key.ToString()] = entry.Value;
+        }
+        foreach (KeyValuePair<ResourceType, int> entry in metrics.Consumed)
+        {
+            save.Consumed[entry.Key.ToString()] = entry.Value;
+        }
+        return save;
+    }
+
+    /// <summary>
+    /// Rehydrates the EG-0 measurement. A null save, or a resource name this
+    /// build no longer knows, degrades to an empty/skipped entry rather than
+    /// throwing: losing a measurement must never cost the player their city.
+    /// </summary>
+    internal static void RestoreEarlyGameMetrics(
+        EarlyGameMetrics metrics,
+        EarlyGameMetricsSave? save)
+    {
+        if (save is null) return;
+        var gathered = new Dictionary<ResourceType, int>();
+        foreach (KeyValuePair<string, int> entry in save.Gathered)
+        {
+            if (Enum.TryParse(entry.Key, true, out ResourceType resource))
+            {
+                gathered[resource] = entry.Value;
+            }
+        }
+        var consumed = new Dictionary<ResourceType, int>();
+        foreach (KeyValuePair<string, int> entry in save.Consumed)
+        {
+            if (Enum.TryParse(entry.Key, true, out ResourceType resource))
+            {
+                consumed[resource] = entry.Value;
+            }
+        }
+        metrics.Restore(
+            save.FirstShelterCompletedAtTick,
+            save.FirstExpeditionDispatchedAtTick,
+            save.ExpeditionsDispatched,
+            save.ExpeditionAbsenceTicks,
+            save.DawnSamples,
+            save.IdleCitizenDays,
+            save.ObservedCitizenDays,
+            save.MinFoodHorizonTenths,
+            save.FoodHorizonTenthsAtFirstShelter,
+            gathered,
+            consumed);
     }
 
     internal static CitizenProfileSave CaptureProfile(CitizenProfile profile)
@@ -1223,6 +1290,7 @@ public static class WorldPersistence
                 16 => MigrateV16ToV17(save),
                 17 => MigrateV17ToV18(save),
                 18 => MigrateV18ToV19(save),
+                19 => MigrateV19ToV20(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -1651,6 +1719,27 @@ public static class WorldPersistence
             expedition.DispatchEventId = dispatch?.Id;
         }
         save.Version = 18;
+        return save;
+    }
+
+    /// <summary>
+    /// Adds the EG-0 opening measurement. An existing city keeps playing
+    /// exactly as before: the measurement starts empty because that city's
+    /// opening was never instrumented, and inventing retroactive numbers would
+    /// poison the dataset EG-0 exists to collect. Zero
+    /// <see cref="EarlyGameMetricsSave.DawnSamples"/> is the marker that
+    /// separates a migrated city from a measured one.
+    /// </summary>
+    public static WorldSave MigrateV19ToV20(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 19)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV19ToV20 expects version 19 but found {save.Version}.");
+        }
+        save.EarlyGameMetrics = new EarlyGameMetricsSave();
+        save.Version = 20;
         return save;
     }
 

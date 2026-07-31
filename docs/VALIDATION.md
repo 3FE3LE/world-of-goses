@@ -1,8 +1,8 @@
 # Validation against the design bible
 
-**Last aligned:** 2026-07-29
+**Last aligned:** 2026-07-30
 
-**Code baseline:** clean build, 553/553 tests, schema v19, successful Godot
+**Code baseline:** clean build, 586/586 tests, schema v19, successful Godot
 headless boot.
 
 **Active proof:** VS-5 player-facing signature and repetition.

@@ -522,6 +522,12 @@ msgstr "Guardado · {0}"
 msgid "ui.status.saved_short"
 msgstr "Guardado"
 
+msgid "ui.status.off_hours"
+msgstr "Fuera de horario"
+
+msgid "ui.status.off_hours_hint"
+msgstr "Trabajo en pausa. Producción, construcción y movilización de expediciones se reanudan a las 08:00."
+
 msgid "ui.citizens.debug_context"
 msgstr "Depuración — actividad: {0} · contexto: {1} · bloqueo: {2}\nTrabajo: {3} · Shelter: {4}\nInicio: {5} · llegada: {6} · siguiente: {7}\nÚltimo procesamiento de simulación: {8}"
 
@@ -587,6 +593,18 @@ msgstr "{0} (en construcción)"
 
 msgid "ui.expedition.dispatch_failed"
 msgstr "No se pudo enviar: {0}"
+
+msgid "ui.expedition.dispatch_no_member_hint"
+msgstr "Selecciona al menos un ciudadano elegible para enviar."
+
+msgid "ui.expedition.dispatch_active_hint"
+msgstr "Ya hay una expedición en curso."
+
+msgid "ui.expedition.dispatch_missing_supplies"
+msgstr "Necesitas {0} para los suministros de la expedición. Reúnelo o produce primero."
+
+msgid "ui.expedition.dispatch_member_unavailable"
+msgstr "El ciudadano seleccionado no puede unirse: herido, en recuperación o ya comprometido."
 
 msgid "ui.expedition.schedule"
 msgstr "{0} partió el {1} y regresa el {2}."
@@ -2085,3 +2103,48 @@ msgstr "Los trabajadores se recuperan antes de reanudar esta orden"
 
 msgid "Workers cannot resume because no food is available"
 msgstr "Los trabajadores no pueden reanudar porque no hay comida disponible"
+
+msgid "ui.world_status.wound"
+msgstr "Herida {0}"
+
+msgid "ui.world_status.treatment"
+msgstr "En tratamiento — quedan {0}"
+
+msgid "ui.world_status.no_food"
+msgstr "Recuperación bloqueada — no hay comida"
+
+msgid "ui.world_status.storage_full"
+msgstr "Almacén lleno ({0} / {1})"
+
+msgid "ui.world_status.working"
+msgstr "Trabajando"
+
+msgid "ui.world_status.travelling"
+msgstr "En camino"
+
+msgid "ui.world_status.expedition"
+msgstr "En expedición"
+
+msgid "ui.world_status.waiting_storage"
+msgstr "Inactivo — almacén lleno"
+
+msgid "ui.world_status.waiting_resources"
+msgstr "Inactivo — esperando insumos"
+
+msgid "ui.world_status.work_paused"
+msgstr "Inactivo — trabajo pausado"
+
+msgid "ui.world_status.off_duty"
+msgstr "Fuera del horario laboral"
+
+msgid "ui.world_status.resting"
+msgstr "Descansando"
+
+msgid "ui.world_status.recovering"
+msgstr "Descansando para recuperarse"
+
+msgid "ui.world_status.idle"
+msgstr "Inactivo — sin asignación"
+
+msgid "ui.world_status.unavailable"
+msgstr "No disponible"

@@ -153,16 +153,19 @@ public class WorldEventLogTests
     public void OfflineProgression_ApplyAll_ReturnsEventsRecordedDuringBatch()
     {
         var world = TestHelpers.NewProductionWorld();
+        int tickBefore = world.CurrentTick;
         var report = OfflineProgression.ApplyAll(world, ticksToApply: 12);
 
         Assert.True(report.HadProgression);
         Assert.NotEmpty(report.Events);
 
         // Every event in the report must have a tick that lies
-        // within the simulated window.
+        // within the simulated window. The window is relative to
+        // the world's starting tick because the 2026-07-30 workday
+        // shift moves the dawn from tick 0 to tick 1200.
         foreach (var evt in report.Events)
         {
-            Assert.InRange(evt.Tick, 1, 12);
+            Assert.InRange(evt.Tick, tickBefore, tickBefore + 12);
         }
     }
 

@@ -137,6 +137,8 @@ public partial class MacroStreetLiveView : Node2D
     private const int StoneAtlasColumn = 7;
     private const int GroundAtlasRowA = 0;
     private const int GroundAtlasRowB = 1;
+    private const float StatusBadgeSize = 24f;
+    private const float StatusBadgeBorder = 2f;
     private static readonly Color BuildingColor = new("#8a7a54");
     private static readonly Color UnderConstructionModulate = new(0.55f, 0.55f, 0.55f);
     private static readonly Color PlacementAvailableColor = new("#2f8f5b99");
@@ -181,7 +183,13 @@ public partial class MacroStreetLiveView : Node2D
     private IconButton _cameraModeButton = null!;
     private CursorController? _cursorController;
     private Texture2D _terrainAtlas = null!;
+    private Texture2D _storageFullIcon = null!;
+    private WorldStatusBubble _worldStatusBubble = null!;
     private readonly Dictionary<BuildingKind, Texture2D?> _buildingTextureCache = new();
+    private readonly Dictionary<int, CityMacroSnapshot.CitizenItem> _citizenStates = new();
+    private int? _hoveredCitizenId;
+    private int? _hoveredStorageBuildingId;
+    private CitizenId? _visualStatusCitizenId;
     private bool _selectionIsMacro = true;
     private float _zoomLevel = 1f;
     private Vector2 _neutralPosition;
@@ -227,6 +235,8 @@ public partial class MacroStreetLiveView : Node2D
     private readonly TerrainWearGrid _terrainWear = new();
     private readonly List<(Rect2 Rect, int BuildingId)> _clickableRects = new();
     private readonly List<(Rect2 Rect, TreeBox Tree)> _clickableTreeRects = new();
+    private readonly List<(Rect2 Rect, CitizenId CitizenId)> _clickableCitizenRects = new();
+    private readonly List<(Rect2 Rect, PlotBox Plot)> _storageFullBadgeRects = new();
     private readonly Dictionary<int, List<StreetRoutePlanner.Interval>> _bandOccupancy = new();
     private static readonly List<StreetRoutePlanner.Interval> EmptyBand = new();
 
@@ -246,6 +256,7 @@ public partial class MacroStreetLiveView : Node2D
     private SelectionInfoPanel _selectionInfoPanel = null!;
     private TreeBox? _selectedTree;
     private int? _selectedBuildingId;
+    private CitizenId? _selectedCitizenId;
 
     private CitizenSpriteCarrier? _heroCarrier;
     private sealed class CitizenJourney
@@ -316,9 +327,15 @@ public partial class MacroStreetLiveView : Node2D
         float Width,
         float Height,
         int BuildingId,
+        string DisplayName,
         BuildingKind Kind,
         bool IsUnderConstruction,
-        bool IsClickable);
+        bool IsClickable,
+        int Stock,
+        int StorageCapacity)
+    {
+        public bool IsStorageFull => StorageCapacity > 0 && Stock >= StorageCapacity;
+    }
 
     private readonly record struct TreeBox(
         int Street,
@@ -352,6 +369,9 @@ public partial class MacroStreetLiveView : Node2D
         _cameraModeButton = GetNode<IconButton>(CameraModeButtonPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
+        _storageFullIcon = GD.Load<Texture2D>(IconPaths.Check);
+        _worldStatusBubble = new WorldStatusBubble();
+        GetParent().CallDeferred(Node.MethodName.AddChild, _worldStatusBubble);
         // Pixel-art atlas tiles scale up crisp instead of smearing.
         TextureFilter = TextureFilterEnum.Nearest;
 
@@ -522,6 +542,7 @@ public partial class MacroStreetLiveView : Node2D
         _macroActions.Show();
         _actionMenu.Hide();
         _selectionInfoPanel.Hide();
+        _worldStatusBubble.Hide();
         Show();
         RefreshPlots();
         _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
@@ -562,6 +583,8 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>Hides this view plus its own transient surfaces (menu, axe cursor, placement, selection, zoom).</summary>
     private void Deactivate()
     {
+        ClearWorldStatusHover();
+        _visualStatusCitizenId = null;
         Hide();
         _macroActions.Hide();
         _chronicle.Hide();
@@ -599,6 +622,7 @@ public partial class MacroStreetLiveView : Node2D
     private void OnConstructionMenuPressed()
     {
         if (!Visible) return;
+        ClearWorldStatusHover();
         if (_placementActive)
         {
             CancelPlacement();
@@ -618,6 +642,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnExpeditionMenuPressed()
     {
+        ClearWorldStatusHover();
         if (_modalHost.IsOpen && _modalHost.Content == _expeditionPanel)
         {
             _expeditionPanel.Close();
@@ -649,6 +674,7 @@ public partial class MacroStreetLiveView : Node2D
     private void OnPoliciesPressed()
     {
         if (!Visible) return;
+        ClearWorldStatusHover();
         if (_modalHost.IsOpen && _modalHost.Content == _policiesPanel)
         {
             _modalHost.Close();
@@ -660,6 +686,7 @@ public partial class MacroStreetLiveView : Node2D
     private void OnCitizensPressed()
     {
         if (!Visible) return;
+        ClearWorldStatusHover();
         if (_modalHost.IsOpen && _modalHost.Content == _citizensPanel)
         {
             _modalHost.Close();
@@ -680,6 +707,66 @@ public partial class MacroStreetLiveView : Node2D
         _modalHost.Open(_constructionPanel);
         _constructionPanel.Refresh();
         _constructionPanel.ScrollBodyToEndForVisualRegression();
+    }
+
+    internal void ShowCitizenStatusForVisualRegression(CitizenId citizenId)
+    {
+        RefreshPlots();
+        _visualStatusCitizenId = citizenId;
+        CitizenSpriteCarrier? carrier = null;
+        if (_heroCarrier?.Id == citizenId)
+        {
+            carrier = _heroCarrier;
+        }
+        else if (_citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
+        {
+            carrier = journey.Carrier;
+        }
+
+        if (carrier is null || !IsVisibleMacroCarrier(carrier))
+        {
+            GD.PushError($"World-status fixture could not expose citizen {citizenId.Value} on the macro map.");
+            return;
+        }
+        if (!_citizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen)) return;
+        ShowCitizenStatus(citizen, CitizenHoverRect(carrier));
+    }
+
+    /// <summary>
+    /// Exercises the production click path (no direct call to the bubble or
+    /// selection panel) by finding the citizen's hit rect and routing it
+    /// through <see cref="TryClick"/>. The visual regression fixture uses
+    /// this so the matrix proves the citizen summary actually surfaces via
+    /// the same code path the player hits with a real left-click — not just
+    /// via the bubble's manual call.
+    /// </summary>
+    internal void TriggerCitizenClickForVisualRegression(CitizenId citizenId)
+    {
+        RefreshPlots();
+        CitizenSpriteCarrier? carrier = null;
+        if (_heroCarrier?.Id == citizenId)
+        {
+            carrier = _heroCarrier;
+        }
+        else if (_citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
+        {
+            carrier = journey.Carrier;
+        }
+
+        if (carrier is null || !IsVisibleMacroCarrier(carrier))
+        {
+            GD.PushError($"Citizen-click fixture could not expose citizen {citizenId.Value} on the macro map.");
+            return;
+        }
+        Rect2 hit = CitizenHoverRect(carrier);
+        try
+        {
+            TryClick(hit.GetCenter());
+        }
+        catch (System.Exception ex)
+        {
+            GD.PushError($"Citizen-click fixture failed: {ex.Message}");
+        }
     }
 
     private void OnModalHostClosedForButtonLabel()
@@ -812,6 +899,11 @@ public partial class MacroStreetLiveView : Node2D
         _trees.Clear();
         _bandOccupancy.Clear();
         CityMacroSnapshot snapshot = _controller.GetCityMacroSnapshot();
+        _citizenStates.Clear();
+        foreach (CityMacroSnapshot.CitizenItem citizen in snapshot.Citizens)
+        {
+            _citizenStates[citizen.Id.Value] = citizen;
+        }
         float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
 
         foreach (CityMacroSnapshot.PlotItem item in snapshot.Buildings)
@@ -853,6 +945,16 @@ public partial class MacroStreetLiveView : Node2D
             ClearSelection();
             return;
         }
+        if (_selectedCitizenId is { } selectedCitizenId)
+        {
+            if (_citizenStates.ContainsKey(selectedCitizenId.Value))
+            {
+                SelectCitizen(selectedCitizenId);
+                return;
+            }
+            ClearSelection();
+            return;
+        }
         if (_selectedBuildingId is not { } buildingId) return;
         foreach (PlotBox plot in _plots)
         {
@@ -861,6 +963,135 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         ClearSelection();
+    }
+
+    /// <summary>
+    /// Populates the selection panel with the same at-a-glance summary the
+    /// building branch writes (icon + title + detail). The detail is the
+    /// first non-empty line of the citizen's current world status (activity,
+    /// location, wound, treatment) so a single click is enough to read what
+    /// the citizen is doing and why they're not at work — the same affordance
+    /// the player already gets for trees and buildings.
+    /// </summary>
+    private void SelectCitizen(CitizenId citizenId)
+    {
+        if (!_citizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen))
+        {
+            ClearSelection();
+            return;
+        }
+        _selectedCitizenId = citizenId;
+        _selectedTree = null;
+        _selectedBuildingId = null;
+        Texture2D? icon = ResourceLoader.Load<Texture2D>(IconPaths.User);
+        _selectionInfoPanel.ShowSelection(icon, citizen.Name, FormatCitizenSelectionDetail(citizen));
+    }
+
+    internal static string FormatCitizenSelectionDetail(CityMacroSnapshot.CitizenItem citizen)
+    {
+        var lines = new List<string>();
+        foreach (SelectionLine line in BuildCitizenSelectionKeys(citizen))
+        {
+            _ = line.IconPath;
+            if (line.FormatArgs is null)
+            {
+                lines.Add(UiText.Get(line.TextKey));
+                continue;
+            }
+            object[] translated = TranslateSelectionArgs(line.FormatArgs);
+            lines.Add(UiText.Format(line.TextKey, translated));
+        }
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>
+    /// Translates raw domain values into the strings the view layer formats
+    /// via <see cref="UiText.Format"/>. The only translation needed today is
+    /// the wound recovery duration (ticks → human-readable string); the
+    /// severity key is already a localization key and passes through unchanged.
+    /// </summary>
+    private static object[] TranslateSelectionArgs(IReadOnlyList<object> formatArgs)
+    {
+        var translated = new object[formatArgs.Count];
+        for (int index = 0; index < formatArgs.Count; index++)
+        {
+            translated[index] = formatArgs[index] is int ticks
+                ? SimulationTimeText.FormatDurationLocalized(ticks)
+                : formatArgs[index];
+        }
+        return translated;
+    }
+
+    internal readonly record struct SelectionLine(
+        string IconPath,
+        string TextKey,
+        IReadOnlyList<object>? FormatArgs);
+
+    /// <summary>
+    /// Returns the same lines the bubble/body would render, but as raw
+    /// (icon, key, formatArgs) so the structure can be unit-tested without
+    /// pulling Godot's translation runtime into a Godot-free xUnit process.
+    /// Translation happens at the view layer (<see cref="FormatCitizenSelectionDetail"/>).
+    /// The remaining <see cref="citizen.WoundRecoveryTicksRemaining"/> slot
+    /// is the raw tick count; the view layer resolves it to a localized
+    /// duration string before passing it to <see cref="UiText.Format"/>.
+    /// </summary>
+    internal static IReadOnlyList<SelectionLine> BuildCitizenSelectionKeys(CityMacroSnapshot.CitizenItem citizen)
+    {
+        var lines = new List<SelectionLine>();
+        if (citizen.IsOnExpedition)
+        {
+            lines.Add(new SelectionLine(
+                IconPaths.Shield,
+                "ui.world_status.expedition",
+                null));
+        }
+        else
+        {
+            if (citizen.BlockReason == CitizenRoutineBlockReason.NoFood)
+            {
+                lines.Add(new SelectionLine(
+                    IconPaths.Warning,
+                    "ui.world_status.no_food",
+                    null));
+            }
+            else
+            {
+                string key = citizen.Activity switch
+                {
+                    CitizenRoutineActivity.Working => "ui.world_status.working",
+                    CitizenRoutineActivity.TravellingToWork => "ui.world_status.travelling",
+                    CitizenRoutineActivity.TravellingHome => "ui.world_status.travelling",
+                    CitizenRoutineActivity.WaitingForStorage => "ui.world_status.waiting_storage",
+                    CitizenRoutineActivity.WaitingForResources => "ui.world_status.waiting_resources",
+                    CitizenRoutineActivity.WorkplaceIdle => "ui.world_status.work_paused",
+                    CitizenRoutineActivity.OffDuty => "ui.world_status.off_duty",
+                    CitizenRoutineActivity.Resting => "ui.world_status.resting",
+                    CitizenRoutineActivity.Recovering => "ui.world_status.recovering",
+                    CitizenRoutineActivity.Leisure => "ui.world_status.idle",
+                    _ => "ui.world_status.unavailable",
+                };
+                lines.Add(new SelectionLine(IconPaths.Cog, key, null));
+            }
+        }
+        if (citizen.WoundSeverity is WoundSeverity severity)
+        {
+            string severityKey = severity == WoundSeverity.Severe
+                ? "ui.wound.severe"
+                : "ui.wound.moderate";
+            lines.Add(new SelectionLine(
+                IconPaths.Heart,
+                "ui.world_status.wound",
+                new object[] { severityKey }));
+            if (citizen.IsReceivingWoundTreatment)
+            {
+                lines.Add(new SelectionLine(
+                    IconPaths.Clock,
+                    "ui.world_status.treatment",
+                    new object[] { citizen.WoundRecoveryTicksRemaining }));
+            }
+        }
+        return lines;
     }
 
     /// <summary>
@@ -905,9 +1136,12 @@ public partial class MacroStreetLiveView : Node2D
             width,
             item.LotHeight * LotUnitPx,
             item.Id.Value,
+            item.DisplayName,
             item.Kind,
             item.IsUnderConstruction,
-            clickable));
+            clickable,
+            item.Stock,
+            item.StorageCapacity));
         AddBandInterval(street, lateralOffset - width * 0.5f, lateralOffset + width * 0.5f);
     }
 
@@ -973,7 +1207,41 @@ public partial class MacroStreetLiveView : Node2D
             AdvanceJourneyTransition(journey, delta);
         }
         if (heroDepthAnimating || cameraDepthAnimating || citizenDepthAnimating) QueueRedraw();
-        if (Visible) AdvanceBuildingEntry(delta);
+        if (Visible)
+        {
+            AdvanceBuildingEntry(delta);
+            if (!_visualStatusCitizenId.HasValue)
+            {
+                // The world owns the pointer whenever the cursor sits over
+                // a citizen or a full-storage badge. The macro view's own
+                // hit-rects are the single source of truth for what the
+                // world can claim — overlaying a PanelContainer with
+                // MouseFilter = Stop (OfflineReportPanel, MigrantPanel,
+                // etc.) must not strip the bubble, because the macro view
+                // is the only world surface and a Stop overlay sitting
+                // beside a citizen does not mean the world yields input.
+                // Without this, the bubble blinks open on the motion event
+                // and ClearWorldStatusHover hides it one frame later —
+                // the exact symptom the user reported (visible only when
+                // an external window forced a redraw).
+                Vector2 localMouse = ToLocal(GetViewport().GetMousePosition());
+                bool worldOwnsPointer = TryFindHoveredCitizen(localMouse, out _, out _)
+                    || IsCursorOverStorageBadge(localMouse);
+                if (!worldOwnsPointer && (
+                    _modalHost.IsOpen
+                    || _actionMenu.Visible
+                    || _placementActive
+                    || _pendingBuildingEntry is not null
+                    || UiInputBoundary.IsPointerOwnedByUi(GetViewport())))
+                {
+                    ClearWorldStatusHover();
+                }
+                else
+                {
+                    UpdateWorldHover(localMouse);
+                }
+            }
+        }
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -1040,7 +1308,7 @@ public partial class MacroStreetLiveView : Node2D
                 TryRightClick(ToLocal(rightClick.Position));
                 break;
             case InputEventMouseMotion motion:
-                UpdateTreeHover(ToLocal(motion.Position));
+                UpdateWorldHover(ToLocal(motion.Position));
                 break;
         }
     }
@@ -1189,6 +1457,12 @@ public partial class MacroStreetLiveView : Node2D
             SelectTree(tree);
             return;
         }
+        foreach ((Rect2 rect, CitizenId citizenId) in _clickableCitizenRects)
+        {
+            if (!rect.HasPoint(clickPosition)) continue;
+            SelectCitizen(citizenId);
+            return;
+        }
         foreach ((Rect2 rect, int buildingId) in _clickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
@@ -1215,6 +1489,12 @@ public partial class MacroStreetLiveView : Node2D
             if (!rect.HasPoint(clickPosition)) continue;
             SelectTree(tree);
             OpenGatherMenu(tree, rect);
+            return;
+        }
+        foreach ((Rect2 rect, CitizenId citizenId) in _clickableCitizenRects)
+        {
+            if (!rect.HasPoint(clickPosition)) continue;
+            SelectCitizen(citizenId);
             return;
         }
         foreach ((Rect2 rect, int buildingId) in _clickableRects)
@@ -1260,7 +1540,13 @@ public partial class MacroStreetLiveView : Node2D
         _selectedBuildingId = buildingId;
         _selectedTree = null;
         Texture2D? icon = GetBuildingTexture(snapshot.Kind);
-        int occupants = snapshot.VisibleWorkerCount + snapshot.HiddenWorkerCount;
+        // For Home: count citizens physically at home (VisibleCitizens).
+        // For production buildings: VisibleWorkerCount/HiddenWorkerCount
+        // were derived from the building's own _assigned roster, which
+        // can exceed VisibleCitizens during in-transit ticks (assigned
+        // but not yet AtWork). Reading VisibleCitizens keeps the
+        // selection panel consistent with the detail panel.
+        int occupants = snapshot.VisibleCitizens.Count;
         string detail = snapshot.IsHome
             ? UiText.Format("ui.selection.building_home", occupants, snapshot.WorkerCapacity)
             : UiText.Format("ui.selection.building_workers", occupants, snapshot.WorkerCapacity);
@@ -1272,9 +1558,10 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>Extension point: citizens will route here too once they get selection info.</summary>
     private void ClearSelection()
     {
-        if (_selectedTree is null && _selectedBuildingId is null) return;
+        if (_selectedTree is null && _selectedBuildingId is null && _selectedCitizenId is null) return;
         _selectedTree = null;
         _selectedBuildingId = null;
+        _selectedCitizenId = null;
         _selectionInfoPanel.Hide();
     }
 
@@ -1289,6 +1576,7 @@ public partial class MacroStreetLiveView : Node2D
     private void BeginBuildingEntry(BuildingId buildingId, Vector2 pivotLocal)
     {
         if (_pendingBuildingEntry is not null) return;
+        ClearWorldStatusHover();
         _pendingBuildingEntry = buildingId;
         _buildingEntryPivotLocal = pivotLocal;
         _buildingEntryStartZoom = _zoomLevel;
@@ -1339,6 +1627,177 @@ public partial class MacroStreetLiveView : Node2D
         else _cursorController?.RestoreSurfaceCursor();
     }
 
+    private void UpdateWorldHover(Vector2 mousePosition)
+    {
+        if (_placementActive || UiInputBoundary.IsPointerOwnedByUi(GetViewport()))
+        {
+            ClearTreeHover();
+            ClearWorldStatusHover();
+            return;
+        }
+
+        if (TryFindHoveredCitizen(mousePosition, out CityMacroSnapshot.CitizenItem? citizen, out Rect2 citizenRect)
+            && citizen is not null)
+        {
+            ClearTreeHover();
+            if (_hoveredCitizenId != citizen.Id.Value || _hoveredStorageBuildingId.HasValue)
+            {
+                _hoveredCitizenId = citizen.Id.Value;
+                _hoveredStorageBuildingId = null;
+            }
+            ShowCitizenStatus(citizen, citizenRect);
+            return;
+        }
+
+        foreach ((Rect2 rect, PlotBox plot) in _storageFullBadgeRects)
+        {
+            if (!rect.HasPoint(mousePosition)) continue;
+            ClearTreeHover();
+            if (_hoveredCitizenId.HasValue || _hoveredStorageBuildingId != plot.BuildingId)
+            {
+                _hoveredCitizenId = null;
+                _hoveredStorageBuildingId = plot.BuildingId;
+            }
+            _worldStatusBubble.ShowAt(
+                ToGlobal(new Vector2(rect.GetCenter().X, rect.Position.Y)),
+                UiText.Get(plot.DisplayName),
+                new[]
+                {
+                    new WorldStatusBubble.Item(
+                        IconPaths.Check,
+                        UiText.Format("ui.world_status.storage_full", plot.Stock, plot.StorageCapacity)),
+                });
+            return;
+        }
+
+        ClearWorldStatusHover();
+        UpdateTreeHover(mousePosition);
+    }
+
+    private void ClearWorldStatusHover()
+    {
+        _hoveredCitizenId = null;
+        _hoveredStorageBuildingId = null;
+        _worldStatusBubble.Hide();
+    }
+
+    private bool IsCursorOverStorageBadge(Vector2 localMouse)
+    {
+        foreach ((Rect2 rect, PlotBox _) in _storageFullBadgeRects)
+        {
+            if (rect.HasPoint(localMouse)) return true;
+        }
+        return false;
+    }
+
+    private void ShowCitizenStatus(CityMacroSnapshot.CitizenItem citizen, Rect2 citizenRect)
+    {
+        _worldStatusBubble.ShowAt(
+            ToGlobal(new Vector2(citizenRect.GetCenter().X, citizenRect.Position.Y)),
+            citizen.Name,
+            BuildCitizenStatusItems(citizen));
+    }
+
+    private bool TryFindHoveredCitizen(
+        Vector2 mousePosition,
+        out CityMacroSnapshot.CitizenItem? citizen,
+        out Rect2 citizenRect)
+    {
+        if (_heroCarrier is not null
+            && IsVisibleMacroCarrier(_heroCarrier)
+            && _citizenStates.TryGetValue(_heroCarrier.Id.Value, out CityMacroSnapshot.CitizenItem? heroState))
+        {
+            Rect2 heroRect = CitizenHoverRect(_heroCarrier);
+            if (heroRect.HasPoint(mousePosition))
+            {
+                citizen = heroState;
+                citizenRect = heroRect;
+                return true;
+            }
+        }
+
+        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        {
+            if (!IsVisibleMacroCarrier(journey.Carrier)
+                || !_citizenStates.TryGetValue(journey.CitizenId.Value, out CityMacroSnapshot.CitizenItem? state))
+            {
+                continue;
+            }
+            Rect2 rect = CitizenHoverRect(journey.Carrier);
+            if (!rect.HasPoint(mousePosition)) continue;
+            citizen = state;
+            citizenRect = rect;
+            return true;
+        }
+
+        citizen = null;
+        citizenRect = default;
+        return false;
+    }
+
+    private static bool IsVisibleMacroCarrier(CitizenSpriteCarrier carrier) =>
+        IsInstanceValid(carrier)
+        && carrier.Visible
+        && carrier.State == CitizenSpriteCarrier.VisualState.Macro;
+
+    private static Rect2 CitizenHoverRect(CitizenSpriteCarrier carrier)
+    {
+        Vector2 scaledSize = new(
+            Mathf.Max(StatusBadgeSize, PresentationConstants.DetailedCitizenWidth * Mathf.Abs(carrier.Scale.X)),
+            Mathf.Max(StatusBadgeSize, PresentationConstants.DetailedCitizenHeight * Mathf.Abs(carrier.Scale.Y)));
+        return new Rect2(carrier.Position - scaledSize * 0.5f, scaledSize);
+    }
+
+    private static IReadOnlyList<WorldStatusBubble.Item> BuildCitizenStatusItems(
+        CityMacroSnapshot.CitizenItem citizen)
+    {
+        var items = new List<WorldStatusBubble.Item>();
+        if (citizen.WoundSeverity is WoundSeverity severity)
+        {
+            string severityLabel = UiText.Get(severity == WoundSeverity.Severe
+                ? "ui.wound.severe"
+                : "ui.wound.moderate");
+            items.Add(new WorldStatusBubble.Item(
+                IconPaths.Heart,
+                UiText.Format("ui.world_status.wound", severityLabel)));
+            if (citizen.IsReceivingWoundTreatment)
+            {
+                items.Add(new WorldStatusBubble.Item(
+                    IconPaths.Clock,
+                    UiText.Format(
+                        "ui.world_status.treatment",
+                        SimulationTimeText.FormatDurationLocalized(citizen.WoundRecoveryTicksRemaining))));
+            }
+        }
+
+        if (citizen.BlockReason == CitizenRoutineBlockReason.NoFood)
+        {
+            items.Add(new WorldStatusBubble.Item(
+                IconPaths.Warning,
+                UiText.Get("ui.world_status.no_food")));
+            return items;
+        }
+        if (items.Count > 0) return items;
+
+        (string icon, string textKey) = citizen.Activity switch
+        {
+            CitizenRoutineActivity.Working => (IconPaths.Cog, "ui.world_status.working"),
+            CitizenRoutineActivity.TravellingToWork or CitizenRoutineActivity.TravellingHome =>
+                (IconPaths.User, "ui.world_status.travelling"),
+            CitizenRoutineActivity.OnExpedition => (IconPaths.Shield, "ui.world_status.expedition"),
+            CitizenRoutineActivity.WaitingForStorage => (IconPaths.Check, "ui.world_status.waiting_storage"),
+            CitizenRoutineActivity.WaitingForResources => (IconPaths.Warning, "ui.world_status.waiting_resources"),
+            CitizenRoutineActivity.WorkplaceIdle => (IconPaths.Pause, "ui.world_status.work_paused"),
+            CitizenRoutineActivity.OffDuty => (IconPaths.Moon, "ui.world_status.off_duty"),
+            CitizenRoutineActivity.Resting => (IconPaths.Moon, "ui.world_status.resting"),
+            CitizenRoutineActivity.Recovering => (IconPaths.Clock, "ui.world_status.recovering"),
+            CitizenRoutineActivity.Leisure => (IconPaths.Moon, "ui.world_status.idle"),
+            _ => (IconPaths.Info, "ui.world_status.unavailable"),
+        };
+        items.Add(new WorldStatusBubble.Item(icon, UiText.Get(textKey)));
+        return items;
+    }
+
     private void ClearTreeHover()
     {
         if (!_treeHovered) return;
@@ -1362,6 +1821,7 @@ public partial class MacroStreetLiveView : Node2D
         // with its own input handling that this Node2D never sees again)
         // would leave the axe cursor stuck, showing the same icon twice.
         ClearTreeHover();
+        ClearWorldStatusHover();
         Citizen? hero = _controller.World.Hero;
         bool onExpedition = hero is not null && _controller.World.IsCitizenOnActiveExpedition(hero.Id);
         bool canGather = hero is not null && !hero.CurrentAssignment.HasValue && !onExpedition;
@@ -1727,6 +2187,8 @@ public partial class MacroStreetLiveView : Node2D
         bool hasShelter = snapshot.Buildings.Any(building =>
             building.Kind == BuildingKind.Home && !building.IsUnderConstruction);
         bool mayWander = CanWander(heroState.Activity);
+        bool shouldRemainVisibleAtHome = mayWander
+            || heroState.Activity == CitizenRoutineActivity.Recovering;
         if (ShouldHideHeroInsideShelter(
             currentAssignment,
             heroLocation,
@@ -1734,7 +2196,7 @@ public partial class MacroStreetLiveView : Node2D
             hasRoute: _route is not null,
             pendingReturnHome: _pendingReturnHome,
             isGatheringOutsideHome: _heroIsGatheringOutsideHome)
-            && !mayWander)
+            && !shouldRemainVisibleAtHome)
         {
             _heroCarrier.CancelMotion();
             _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
@@ -1772,10 +2234,15 @@ public partial class MacroStreetLiveView : Node2D
         {
             PlotBox? shelter = FindHomePlot();
             if (shelter is { } home
-                && _lastKnownHeroLocation != CitizenLocation.AtHome)
+                && (_lastKnownHeroLocation != CitizenLocation.AtHome
+                    || heroState.Activity == CitizenRoutineActivity.Recovering))
             {
-                _heroStreet = WorkplaceEntranceStreet(home.Street);
-                _heroLateral = home.LateralOffset;
+                BuildingVisualAnchors anchors = VisualAnchorsFor(home);
+                StreetVisualAnchor anchor = heroState.Activity == CitizenRoutineActivity.Recovering
+                    ? anchors.Waiting
+                    : anchors.Entrance;
+                _heroStreet = anchor.Street;
+                _heroLateral = anchor.Lateral;
                 _depthAnchor = _heroStreet;
                 _depthTarget = null;
             }
@@ -1849,6 +2316,22 @@ public partial class MacroStreetLiveView : Node2D
         && !hasRoute
         && !pendingReturnHome
         && !isGatheringOutsideHome;
+
+    /// <summary>
+    /// Mirror of <see cref="ShouldHideHeroInsideShelter"/> for non-founder
+    /// citizens at home. The founder gets the same hiding rule via the
+    /// dedicated founder-carrier path; this helper exists so every
+    /// regular citizen (Resting / OffDuty / etc.) is hidden from the
+    /// macro map when they are physically inside the Home and not
+    /// actively wandering or recovering — leaving them on the entrance
+    /// anchor used to make them reappear at the building's front as
+    /// soon as the player closed the detail view, while the detail
+    /// view itself kept showing the same citizens inside.
+    /// </summary>
+    internal static bool ShouldHideCitizenAtHome(CitizenLocation location, CitizenRoutineActivity activity) =>
+        location == CitizenLocation.AtHome
+        && !CanWander(activity)
+        && activity != CitizenRoutineActivity.Recovering;
 
     /// <summary>
     /// Resolves the physical destination of a domain-tracked journey. This
@@ -1961,9 +2444,17 @@ public partial class MacroStreetLiveView : Node2D
                 return;
             }
             StopJourney(journey);
-            if (homePlot is { } home)
+            // Recovering citizens stay visible at the Waiting anchor so
+            // the player can see who is being treated; every other
+            // at-home activity (Resting, OffDuty, etc.) follows the
+            // same hide-inside-the-home rule the founder uses via
+            // ShouldHideHeroInsideShelter. Without this, leaving the
+            // building detail would snap every resting citizen back to
+            // the home's entrance anchor — visibly outside while the
+            // detail panel had just shown them inside.
+            if (citizen.Activity == CitizenRoutineActivity.Recovering && homePlot is { } home)
             {
-                SetJourneyPosition(journey, home);
+                SetJourneyPosition(journey, home, citizen.Activity);
                 ShowJourneyCarrier(journey, Vector2.Up);
             }
             else
@@ -2280,6 +2771,28 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
+    /// <summary>
+    /// Same hit-rect contract used for trees and buildings: every visible
+    /// macro citizen becomes a clickable rect on the very same frame the
+    /// carrier's Perspective-Projected position is written. The rect is the
+    /// shallow hover box (max(scaledSize, StatusBadgeSize)) so it never
+    /// out-grows the rendered sprite — citizens need a real left-click path
+    /// to surface the same at-a-glance summary trees and buildings already
+    /// get from <see cref="SelectionInfoPanel"/>.
+    /// </summary>
+    private void UpdateCitizenHitRects()
+    {
+        if (_heroCarrier is not null && IsVisibleMacroCarrier(_heroCarrier))
+        {
+            _clickableCitizenRects.Add((CitizenHoverRect(_heroCarrier), _heroCarrier.Id));
+        }
+        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        {
+            if (!IsVisibleMacroCarrier(journey.Carrier)) continue;
+            _clickableCitizenRects.Add((CitizenHoverRect(journey.Carrier), journey.CitizenId));
+        }
+    }
+
     private void ShowJourneyCarrier(CitizenJourney journey, Vector2 facing)
     {
         CitizenSpriteBank.Instance.Mount(journey.Carrier, this);
@@ -2300,11 +2813,17 @@ public partial class MacroStreetLiveView : Node2D
         journey.Carrier.CancelMotion();
     }
 
-    private void SetJourneyPosition(CitizenJourney journey, PlotBox plot)
+    private void SetJourneyPosition(
+        CitizenJourney journey,
+        PlotBox plot,
+        CitizenRoutineActivity activity = CitizenRoutineActivity.Unavailable)
     {
         BuildingVisualAnchors anchors = VisualAnchorsFor(plot);
-        journey.Street = anchors.Entrance.Street;
-        journey.Lateral = anchors.Entrance.Lateral;
+        StreetVisualAnchor anchor = activity == CitizenRoutineActivity.Recovering
+            ? anchors.Waiting
+            : anchors.Entrance;
+        journey.Street = anchor.Street;
+        journey.Lateral = anchor.Lateral;
         journey.DepthAnchor = journey.Street;
         journey.DepthTarget = null;
     }
@@ -2590,13 +3109,16 @@ public partial class MacroStreetLiveView : Node2D
     {
         _clickableRects.Clear();
         _clickableTreeRects.Clear();
+        _clickableCitizenRects.Clear();
         _clickablePlacementRects.Clear();
+        _storageFullBadgeRects.Clear();
         for (int street = _streetCount - 1; street >= 0; street--)
         {
             DrawStreetRow(street);
         }
         UpdateHeroVisual();
         UpdateCitizenJourneyVisuals();
+        UpdateCitizenHitRects();
     }
 
     /// <summary>
@@ -2653,6 +3175,10 @@ public partial class MacroStreetLiveView : Node2D
                 DrawRect(rect, BuildingColor);
             }
             if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
+            if (plot.IsStorageFull)
+            {
+                DrawStorageFullBadge(rect, plot);
+            }
         }
 
         foreach (TreeBox tree in _trees)
@@ -2678,6 +3204,20 @@ public partial class MacroStreetLiveView : Node2D
                 ResourceTree.AtlasRegionRect(column, ResourceTree.TreeAtlasRow));
             _clickableTreeRects.Add((treeRect, tree));
         }
+    }
+
+    private void DrawStorageFullBadge(Rect2 buildingRect, PlotBox plot)
+    {
+        var badgeRect = new Rect2(
+            new Vector2(
+                buildingRect.End.X - StatusBadgeSize,
+                buildingRect.Position.Y - StatusBadgeSize * 0.5f),
+            new Vector2(StatusBadgeSize, StatusBadgeSize));
+        var borderRect = badgeRect.Grow(StatusBadgeBorder);
+        DrawRect(borderRect, LineageThemeRegistry.IconAccent);
+        DrawRect(badgeRect, new Color(0.06f, 0.05f, 0.04f, 0.94f));
+        DrawTextureRect(_storageFullIcon, badgeRect, tile: false);
+        _storageFullBadgeRects.Add((borderRect, plot));
     }
 
     /// <summary>Depth at which sprites anchor within their calle's lot: half a tile

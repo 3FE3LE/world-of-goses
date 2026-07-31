@@ -4,6 +4,7 @@ using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
+using WorldofGoses.Visual;
 
 namespace WorldofGoses;
 
@@ -15,11 +16,16 @@ public partial class HeroProfileView : Control
     private CityWorldController _controller = null!;
     private VBoxContainer _content = null!;
     private Button _backButton = null!;
+    private TextureRect _splash = null!;
+    private Control _splashColumns = null!;
     private CitizenSpriteCarrier? _heroCarrier;
     private CenterContainer? _heroAnchor;
 
     public override void _Ready()
     {
+        // HUD chrome: the hero profile replaces the map entirely, so the
+        // map's ambient tint must not wash over it.
+        OverlayLayers.Apply(this, OverlayLayers.Hud);
         _controller = GetNode<CityWorldController>(ControllerPath);
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
@@ -73,6 +79,44 @@ public partial class HeroProfileView : Control
         _backButton.Pressed += () => _controller.ReturnToCity();
         header.AddChild(_backButton);
 
+        // Portrait on the left at full height, text column on the right. The
+        // art is authored portrait, so anchoring it by height and letting its
+        // width follow shows every lineage whole — the set does not share one
+        // aspect ratio (nine are 3:4, seven are 4:5), and a fixed-size frame
+        // would letterbox one group or crop the other.
+        var columns = new HBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+        };
+        columns.AddThemeConstantOverride("separation", 20);
+        shell.AddChild(columns);
+
+        _splash = new TextureRect
+        {
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        // The width is computed rather than left to an expand mode. Every
+        // proportional mode derives it from a height that is still unresolved
+        // on the first layout pass, so the portrait reports a zero minimum
+        // width, the HBox gives it none, and the art loads but is never drawn.
+        // Recomputing on resize also keeps it correct across window sizes and
+        // across the two aspect groups in the set.
+        _splashColumns = columns;
+        columns.Resized += UpdateSplashWidth;
+        // The illustration is displayed downscaled from its authored size, so
+        // linear filtering with mipmaps reads far better than the nearest
+        // filter the sprite pipeline uses. This is a deliberate, local
+        // exception for splash illustrations; in-world pixel art keeps
+        // nearest.
+        _splash.TextureFilter = TextureFilterEnum.LinearWithMipmaps;
+        columns.AddChild(_splash);
+
         var scroll = new ScrollContainer
         {
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
@@ -82,7 +126,7 @@ public partial class HeroProfileView : Control
         scroll.AddThemeStyleboxOverride(
             "panel",
             new StyleBoxFlat { BgColor = new Color("17202a") });
-        shell.AddChild(scroll);
+        columns.AddChild(scroll);
 
         var contentMargin = new MarginContainer
         {
@@ -103,6 +147,31 @@ public partial class HeroProfileView : Control
         contentMargin.AddChild(_content);
     }
 
+    /// <summary>
+    /// Sizes the portrait column to the art's own proportion at the full
+    /// height available. Anchoring by height and deriving the width is what
+    /// lets both aspect groups in the splash set (3:4 and 4:5) render whole
+    /// without letterboxing one or cropping the other.
+    /// </summary>
+    private void UpdateSplashWidth()
+    {
+        if (_splash?.Texture is not Texture2D texture)
+        {
+            if (_splash is not null) _splash.CustomMinimumSize = Vector2.Zero;
+            return;
+        }
+        int textureHeight = texture.GetHeight();
+        if (textureHeight <= 0) return;
+
+        float availableHeight = _splashColumns.Size.Y;
+        // Before the first layout pass the container has no size yet; fall
+        // back to the canvas height so the very first frame is already right.
+        if (availableHeight <= 0) availableHeight = LineageSplashRegistry.SplashLogicalHeight;
+
+        float aspect = (float)texture.GetWidth() / textureHeight;
+        _splash.CustomMinimumSize = new Vector2(availableHeight * aspect, 0);
+    }
+
     private void Render()
     {
         foreach (var child in _content.GetChildren())
@@ -120,7 +189,16 @@ public partial class HeroProfileView : Control
             return;
         }
 
-        AddHeroSprite(hero);
+        // The splash and the small animated sprite say the same thing, so only
+        // one is shown. The sprite stays as the fallback: a missing splash is
+        // an asset problem, and the profile must still identify its subject
+        // visually rather than degrading to a wall of text.
+        Texture2D? splash = LineageSplashRegistry.Load(hero.Lineage, hero.Gender);
+        _splash.Texture = splash;
+        _splash.Visible = splash is not null;
+        UpdateSplashWidth();
+        if (splash is null) AddHeroSprite(hero);
+
         AddHeroName($"{hero.Name} · {hero.LineageName}");
         AddBody(UiText.Get("ui.hero_profile.role"));
         AddBody(UiText.Get(hero.LineageSummary));

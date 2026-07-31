@@ -40,6 +40,9 @@ public partial class CityStatusPanel : PanelContainer
 
     public override void _Ready()
     {
+        // HUD chrome: stay above the ambient day/night tint so the status
+        // strip keeps its authored contrast at every in-game hour.
+        OverlayLayers.Apply(this, OverlayLayers.Hud);
         EnsureBuilt();
         GetViewport().SizeChanged += OnViewportSizeChanged;
     }
@@ -229,6 +232,7 @@ public partial class CityStatusPanel : PanelContainer
         _savedChip = null;
 
         BuildClockChip(snapshot);
+        BuildOffHoursChip(snapshot);
         BuildResourcesChip(snapshot);
 
         // Construction is intentionally singular in the current slice. Keep
@@ -289,6 +293,23 @@ public partial class CityStatusPanel : PanelContainer
         // Refresh() no longer invokes it. Remove this stub entirely
         // when the seam is reactivated.
         _ = snapshot;
+    }
+
+    /// <summary>
+    /// Surfaces the configured workday window so the player knows at
+    /// a glance whether production, construction and expedition
+    /// mobilisation can run. The chip only appears outside the
+    /// configured 08:00–16:00 window (the day/night clock already
+    /// rotates the icon for the full daily cycle, but the chip is
+    /// the explicit "work paused" cue the player asked for during
+    /// the 2026-07-30 playtest).
+    /// </summary>
+    private void BuildOffHoursChip(CityStatusSnapshot snapshot)
+    {
+        if (GameClock.IsDaytime(snapshot.CurrentTick)) return;
+        var chip = new IconChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
+        chip.TooltipText = UiText.Get("ui.status.off_hours_hint");
+        _row.AddChild(chip);
     }
 
     private void BuildFoodChip(CityStatusSnapshot snapshot)

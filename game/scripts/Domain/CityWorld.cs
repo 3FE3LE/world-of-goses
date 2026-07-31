@@ -39,6 +39,7 @@ public sealed class CityWorld
     private int _tick;
     private int _nextProjectId = 1;
     private int _nextExpeditionId = 1;
+    private readonly EarlyGameMetrics _metrics = new();
 
     private static readonly CitizenId PrincipalHeroId = new(1);
 
@@ -46,6 +47,7 @@ public sealed class CityWorld
     public CityWorld()
     {
         _resources = new CityResourceLedger(_buildings, _inventory);
+        _resources.ObserveFlows(_metrics);
         _assignments = new CitizenAssignmentService(
             _citizens,
             _buildings,
@@ -89,6 +91,12 @@ public sealed class CityWorld
     /// <summary>Read-only view of the chronological event log.</summary>
     public WorldEventLog Log => _log;
     public CityResourceLedger Resources => _resources;
+
+    /// <summary>
+    /// EG-0 measurement of this city's opening. Read-only observation; no rule
+    /// reads it. See <see cref="EarlyGameMetrics"/>.
+    /// </summary>
+    public EarlyGameMetrics Metrics => _metrics;
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
     public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
@@ -250,6 +258,7 @@ public sealed class CityWorld
             dispatched.Add(member);
         }
         _expeditions.Add(id, expedition);
+        _metrics.RecordExpeditionDispatched(_tick);
         WorldEvent dispatchEvent = _log.Record(
             _tick,
             WorldEventKind.ExpeditionDispatched,
@@ -325,6 +334,13 @@ public sealed class CityWorld
         Expedition expedition,
         ExpeditionEncounterOutcome outcome)
     {
+        // EG-0: every return path — objective, retreat, failure — funnels
+        // through here, so the absence is counted once no matter how the
+        // sortie ended. Per member, because a two-person team costs the city
+        // twice the labour a solo trip does.
+        _metrics.RecordExpeditionAbsence(
+            _tick - expedition.StartTick,
+            expedition.MemberIds.Count);
         foreach (CitizenId memberId in expedition.MemberIds)
         {
             if (_citizens.TryGetValue(memberId, out Citizen? member))
@@ -2002,6 +2018,7 @@ public sealed class CityWorld
     /// </summary>
     private void ApplyResidentFoodRation()
     {
+        SampleEarlyGameDawn();
         int ration = Upkeep.FoodPerResidentPerDay(_citizens.Count);
         if (ration <= 0) return;
         if (TryConsumeFood(ration)) return;
@@ -2010,6 +2027,30 @@ public sealed class CityWorld
             WorldEventKind.FoodRationShortfall,
             WorldEventSubject.World("City"),
             amount: _citizens.Count);
+    }
+
+    /// <summary>
+    /// EG-0 dawn sample. Taken immediately before the ration is charged, so
+    /// the Food horizon reports what the player woke up owning rather than
+    /// what was left after breakfast — the former is the number the player
+    /// actually plans against.
+    ///
+    /// <para>Dawn is the only honest sampling point for a per-day quantity:
+    /// <see cref="WorldTimeAdvance"/> batches quiescent stretches, so anything
+    /// counted per tick would under-report precisely the idle periods this
+    /// measurement exists to expose.</para>
+    /// </summary>
+    private void SampleEarlyGameDawn()
+    {
+        int idle = 0;
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (citizen.Commitment.Kind == CitizenCommitmentKind.None) idle++;
+        }
+        _metrics.SampleDawn(
+            foodStock: _resources.Available(ResourceType.Food),
+            residentCount: _citizens.Count,
+            idleCitizenCount: idle);
     }
 
     private bool ConstructionOccupiesLot(
@@ -2519,6 +2560,14 @@ public sealed class CityWorld
 
         RegisterBuilding(building);
         RaiseBuildingChanged(building.Id);
+        // EG-0: "time to first shelter" is the headline opening measurement.
+        // Recorded here rather than from the event log because retention is
+        // bounded to 128 events and a long run would drop the very event the
+        // measurement depends on.
+        if (building.Kind == BuildingKind.Home)
+        {
+            _metrics.RecordFirstShelterCompleted(_tick);
+        }
         _log.Record(_tick, WorldEventKind.ProjectCompleted,
             WorldEventSubject.ConstructionProject(project.Id, project.DisplayName));
         _log.Record(_tick, WorldEventKind.BuildingCreated,
@@ -2698,10 +2747,18 @@ public sealed class CityWorld
 
         int dayTick = ((_tick % GameClock.TicksPerInGameDay)
             + GameClock.TicksPerInGameDay) % GameClock.TicksPerInGameDay;
+        // The configured workday is no longer the whole "first half" of
+        // the in-game day. The original formula assumed day = [0, DayTicks),
+        // which broke once WorkdayStartTick moved to 1200. Compute the
+        // ticks-until-boundary against the ABSOLUTE tick (the helpers
+        // return absolute ticks) — subtracting the relative `dayTick`
+        // would silently walk past a dawn boundary when _tick straddles
+        // the day wrap (e.g. _tick = 4799 has dayTick = 1199 but the
+        // next dawn is at absolute tick 4800).
         int lastTickInPhase = GameClock.IsDaytime(_tick)
-            ? GameClock.DayTicks - 1
-            : GameClock.TicksPerInGameDay - 1;
-        int ticksBeforeBoundary = lastTickInPhase - dayTick;
+            ? GameClock.NextWorkdayEnd(_tick) - 1
+            : GameClock.NextWorkdayStart(_tick) - 1;
+        int ticksBeforeBoundary = lastTickInPhase - _tick;
         int tickCount = Math.Min(maxTickCount, ticksBeforeBoundary);
         int recoveryBoundary = _citizens.Values
             .Where(citizen => citizen.Commitment.Kind == CitizenCommitmentKind.Recovery)
@@ -2861,6 +2918,11 @@ public sealed class CityWorld
     public void Restore(WorldSave save)
     {
         WorldPersistence.Validate(save);
+        // Restoring re-deposits every stored resource through the ledger.
+        // Without this the load itself would be booked as gathering, and the
+        // figures would grow with every relaunch — precisely the sessions the
+        // VS-5 procedure asks the player to make.
+        _resources.ObserveFlows(null);
         _citizens.Clear();
         _buildings.Clear();
         _projects.Clear();
@@ -3290,6 +3352,12 @@ public sealed class CityWorld
                     : save.PendingProspectName,
                 CreateMigrantProfile(prospectSeed))
             : null;
+
+        // Rehydration is finished, so resource movement means gameplay again.
+        // The measurement is restored from the snapshot rather than rebuilt,
+        // because the flows that produced it already happened.
+        WorldPersistence.RestoreEarlyGameMetrics(_metrics, save.EarlyGameMetrics);
+        _resources.ObserveFlows(_metrics);
     }
 
     /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>

@@ -29,13 +29,16 @@ Hasta cerrar VS-5 no se inicia profundidad nueva. Solo se admiten:
 
 ### Baseline vigente
 
-- Fecha de alineación: **2026-07-29**.
+- Fecha de alineación: **2026-07-31**.
 - Slice activo: **VS-5 — firma y repetición**.
-- Próximo trabajo aprobado: **terminar el diagnóstico VS-5 y abrir EG-0 como
-  prerrequisito de cierre**.
-- Save: **schema v19**.
+- Próximo trabajo aprobado: **EG-0 implementado**; recorrer VS-5 en el slot
+  limpio nuevo (ese recorrido produce ya el reporte EG-0), después **EG-3** y
+  entonces la firma de VS-5. Ver el checkpoint en §2.
+- Save: **schema v20** (EG-0).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **553 / 553**.
+- Tests: **653 / 654** (1 omitido por brittleness del snapshot JSON en
+  `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
+  no cambió, sólo los IDs auto-incrementados de eventos).
 - Arranque Godot headless: correcto.
 - Fuente de verdad del slice: `docs/CURRENT_STATUS.md` y
   `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
@@ -46,7 +49,7 @@ Hasta cerrar VS-5 no se inicia profundidad nueva. Solo se admiten:
 | --- | ---: | ---: | ---: | ---: |
 | En curso | 1 | 0 | 1 | 0 |
 | Pendiente | 0 | 0 | 2 | 0 |
-| Necesita reanálisis | 0 | 2 | 0 | 0 |
+| Necesita reanálisis | 0 | 0 | 0 | 0 |
 | Diferido por trigger | 0 | 2 | 1 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
 
@@ -104,26 +107,48 @@ Onboarding → gathering → Shelter/Farm/Quarry → prospecto/reclutamiento
 - **Regla:** cualquier bug hallado se corrige y se vuelve a recorrer desde el
   último límite persistente relevante.
 
-#### Checkpoint para la próxima sesión
+#### Checkpoint para la próxima sesión — actualizado 2026-07-31
 
-- Slot limpio recorrido mediante UI hasta Shelter, Farm, Quarry, Town Hall,
-  prospecto `Inara`, dos citizens y primera `Community Contact` completada.
-- Verificados: selección sin camera-follow automático; WASD/flechas solo cámara;
-  gathering, construcción, entrada y producción visibles; Quarry sin bloqueo en
-  puerta; wheel de panel sin zoom del mapa; espera en casa explicada por stock
-  lleno.
-- La primera expedición completa dura ahora 600 ticks (4 horas simuladas,
-  10 minutos a 1x, 2,5 minutos a 4x). Prueba:
+**El checkpoint anterior ya no aplica.** Describía la partida iniciada el
+2026-07-30 (Shelter/Farm/Quarry/Town Hall, prospecto `Inara`, dos citizens) y
+mandaba reanudar desasignando al fundador de Quarry. Esa partida fue sustituida
+por un **slot limpio nuevo**, así que el recorrido VS-5 empieza otra vez desde
+el paso 1. Lo que se firmó antes de los criterios 1–5 sigue siendo válido como
+evidencia de que el código funciona; lo que hay que rehacer es el recorrido.
+
+Lo aprendido en la partida anterior que sigue vigente:
+
+- La primera expedición completa dura 600 ticks (4 horas simuladas, 10 minutos
+  a 1x, 2,5 a 4x). Prueba:
   `ExpeditionTeamTests.FirstLoopTemplates_LastFourSimulatedHours`.
-- G1 queda **reabierto**: Farm alcanzó 60 Food y dos residentes consumen 2 Food
-  al día; no existe una decisión alimentaria significativa.
-- **Primera acción al reanudar:** desasignar al fundador de Quarry, reunir
-  2 Wood, pausar, despachar `Reconnaissance` y cerrar/reabrir mientras siga en
-  `Outbound`. Después completar encuentro/regreso, herida, tratamiento con
-  relanzamiento y segunda repetición.
-- Cuando termine el diagnóstico restante, iniciar EG-0 desde
-  `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`; la firma final de VS-5
-  se repite sobre ese early game corregido.
+- G1 sigue **reabierto**: Farm alcanzó 60 Food contra 2 Food/día de dos
+  residentes. El motor de abundancia es la Granja, que produce Food de la nada
+  sin receta de insumo — no la Madera inicial. Por eso lo cierra EG-3, no un
+  recorte de recursos de partida.
+
+**Primera acción al reanudar, en este orden:**
+
+1. **Arrancar el juego con el build actual.** La sesión que quedó corriendo el
+   2026-07-30 era anterior al arreglo de las rutas de guardado, y su autosave
+   no refrescaba `eg0-report.txt`.
+2. **Cruzar el primer amanecer** (tick 1200 = 08:00 in-game) y dejar que caiga
+   un autosave. Comprobar
+   `%LOCALAPPDATA%\World of Goses\eg0-report.txt`: si deja de decir
+   "No dawn has been sampled yet" y muestra días observados, horizonte de
+   comida y porcentaje ocioso, EG-0 queda verificado de punta a punta en el
+   juego real y todo lo jugado a partir de ahí cuenta como medición.
+3. **Recorrer VS-5 desde el paso 1** de la lista de arriba. Ese mismo recorrido
+   produce ahora los datos de EG-0, así que no hay que jugar la apertura dos
+   veces.
+4. Anotar con palabras propias el **criterio 6**: si con la Granja funcionando
+   la Comida vuelve a sobrar sin obligar a decidir nada, el reporte lo mostrará
+   como un horizonte de comida que nunca baja. Esa es la evidencia que aprueba
+   o revisa los números EG-A0 y justifica abrir EG-3.
+
+**Después del recorrido: abrir EG-3**, no EG-1. Ver
+`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15 — el orden aprobado
+es EG-0 → EG-3 → firma de VS-5, porque EG-1/EG-2 reescribirían la apertura y
+reabrirían los criterios 1–5 ya firmados.
 
 ### Estado de los 17 criterios
 
@@ -187,29 +212,8 @@ Onboarding → gathering → Shelter/Farm/Quarry → prospecto/reclutamiento
 
 ## 5. Necesita reanálisis
 
-### 🟠 H-26 — Huellas, corredores y navegación
-
-- **Estado:** Necesita reanálisis.
-- **Motivo:** el primer modelo de parcelas/huellas existe, pero la vista plana
-  que originó parte del trabajo fue retirada. La vista jugable usa
-  `MacroStreetLiveView`, `StreetRoutePlanner` y `NavigationServer2D`.
-- **Reanálisis requerido:** definir una sola correspondencia entre huella de
-  dominio, anclas del edificio, obstáculos de la perspectiva y categorías
-  pasillo/camino/calle. No mantener dos mallas autoritativas.
-- **Pendiente comprobable:** entrada frontal alcanzable; corredores conectados;
-  ningún camino válido termina aislado o cruza obstáculos.
-- **No iniciar antes de VS-5** salvo que bloquee el recorrido humano.
-
-### 🟠 H-32 — Cierre de la perspectiva por calles
-
-- **Estado:** Implementación principal terminada; necesita reanálisis de cierre.
-- **Hecho:** es la única vista macro jugable; construcción, selección, gather,
-  ciudadanos, cámara, detalle y expediciones están conectados.
-- **Pendiente:** confirmar en juego real el paso entre hileras de árboles, la
-  visibilidad durante gather y que no quede ninguna dependencia funcional de la
-  vista plana retirada.
-- **Aceptación:** ciudad completa jugable desde la perspectiva, sin rutas que
-  atraviesen obstáculos, teletransportes o carriers duplicados.
+_(Vacío: los reanálisis pendientes se resolvieron o se cerraron como
+superados en 2026-07-30; ver §8.)_
 
 ## 6. Diferido por trigger
 
@@ -251,6 +255,94 @@ Onboarding → gathering → Shelter/Farm/Quarry → prospecto/reclutamiento
 
 ## 7. Hechas recientes
 
+### 2026-07-31
+
+- **EG-0 — medición del early game (schema v20).** `EarlyGameMetrics` acumula
+  tiempo hasta el primer refugio, recursos recolectados/gastados,
+  días-ciudadano ociosos, horizonte de comida y ausencia por expedición.
+  `EarlyGameMetricsReport` escribe `eg0-report.txt` junto al save. Dos
+  decisiones que sostienen la fiabilidad del dato:
+  1. Nada se cuenta por tick: `WorldTimeAdvance` batchea los tramos
+     quiescentes, así que un contador por tick subestimaría justo los periodos
+     ociosos que esto mide. Todo se registra en eventos de dominio o en la
+     frontera del alba, que es el camino compartido por vivo y offline.
+  2. El observador del `CityResourceLedger` se **suspende durante `Restore`**.
+     Sin eso, cada recarga contabilizaría el inventario entero como recién
+     recolectado, y el procedimiento VS-5 pide varios relanzamientos.
+  Una ciudad migrada desde v19 reporta cero muestras en vez de historia
+  inventada. Tests: `EarlyGameMetricsTests`.
+- **Rutas de guardado unificadas.** El reporte estaba enganchado a una sola de
+  las cuatro rutas (`TrySaveNow`), así que el autosave lo dejaba congelado.
+  Todas pasan ahora por `CityWorldController.SaveWorldToPrimarySlot`.
+- **Tests de migración desacoplados de `CurrentVersion`.** Ocho ficheros
+  encadenaban cada paso a mano y afirmaban `CurrentVersion` tras una migración
+  de un solo paso, así que cada bump de schema rompía ocho tests. Ahora usan
+  `MigrateToCurrent` para el tramo "ponlo al día" y afirman el número literal
+  del paso bajo prueba.
+- **Filtro ambiental día/noche.** Curva de dos velocidades (bandas de una hora
+  en 05:00–06:00 y 18:00–19:00, tramos largos con deriva lenta, todo
+  smoothstep) y **mezcla multiplicativa** en vez de velo con alfa: un overlay
+  alfa escala el contraste por `1-alpha` y levanta el negro, así que una noche
+  lo bastante notoria aplanaba el mapa en niebla. Tests:
+  `TimeOfDayColorTests`.
+- **El tinte ya no toca el HUD.** `OverlayLayers` no separaba mundo de
+  interfaz —la capa 0 incluía "HUD chips"— así que el HUD quedaba debajo del
+  tinte. Slots nuevos `AmbientTint` (5) y `Hud` (6), reclamados por barra de
+  estado, barra de navegación, `BuildingDetailView` y `HeroProfileView`; además
+  el tinte espeja `MacroStreetLiveView.Visible` como segunda defensa. Tests:
+  `OverlayExclusionTests`.
+- **Vista del héroe rediseñada** con splash art a altura completa a la
+  izquierda y columna de texto scrollable a la derecha
+  (`LineageSplashRegistry`). El ancho se calcula desde la proporción de cada
+  textura: los modos proporcionales de `TextureRect` lo derivan de una altura
+  aún sin resolver en la primera pasada de layout, y el arte cargaba pero nunca
+  se dibujaba.
+- **Acentos de linaje re-separados.** Ardhen, Orveth y Vaelun compartían una
+  franja ámbar de 10° con Orveth y Vaelun a **2°** — sus tintes de UI no eran
+  distinguibles. Ahora cobre (~20°), oro (~45°) y caqui (~62°), cada uno más
+  cerca de su propia descripción. `tools/New-LineagePalettes.ps1` refleja los
+  mismos valores y **se niega a generar** un juego donde dos acentos sean
+  indistinguibles: cercanos en tono *y* luminosidad *y* saturación a la vez.
+  Caelith y Kovari están a 11° a propósito; se separan por luminosidad.
+- **Paletas de splash** en `art/palettes/`: una común de 36 colores, ocho de 28
+  por linaje y una derivada de 64 por linaje para trabajar (Pixelorama muestra
+  una paleta a la vez). Generadas, no elegidas a mano.
+
+### 2026-07-30
+
+- Refugio (panel detalle + macro): el contador "descansando" del panel leía
+  `VisibleWorkerCount + HiddenWorkerCount` (basado en `_assigned`, siempre
+  vacío porque el refugio no tiene receta), mientras que los slots muestran
+  `VisibleCitizens` (ciudadanos con `CitizenLocation.AtHome`). Slots y resumen
+  ya no se contradicen: ambos leen la misma fuente. Se añadió también la regla
+  espejo de `ShouldHideHeroInsideShelter` para citizens no fundadores
+  (`ShouldHideCitizenAtHome`), de modo que cerrar el detalle del refugio ya
+  no los aparca en `anchors.Entrance` (literalmente delante del edificio) —
+  se ocultan como el founder. El panel de selección del edificio usa el mismo
+  contador coherente. Regression tests:
+  `UiSnapshotTests.BuildingDetailSnapshot_HomeCountsCitizensAtHomeNotAssignedWorkers`
+  y `MacroStreetLiveViewTests.NonFounderCitizenAtHome_IsHiddenUnlessWanderingOrRecovering`.
+- Botón "Enviar" de expedición silencioso: el botón se deshabilitaba sin
+  feedback. Se añadió tooltip que explica la causa (sin miembro elegible o
+  expedición activa). Localization keys: `ui.expedition.dispatch_no_member_hint`
+  y `ui.expedition.dispatch_active_hint`.
+- Horario laboral movido a 08:00–16:00 (`GameClock.WorkdayStartTick`: 0 →
+  1200). Tres bugs colaterales corregidos:
+  1. `TryAdvanceQuiescentTicks` usaba `DayTicks - 1` como fin de fase, lo
+     que asumía que el día empezaba en tick 0. Ahora usa
+     `NextWorkdayEnd/NextWorkdayStart - 1`.
+  2. El mismo método restaba `dayTick` (relativo al día) de
+     `lastTickInPhase` (calculado con `NextWorkdayEnd/Start`, absolutos),
+     así que al cruzar medianoche el batched-advance "se saltaba" el
+     dawn boundary sin disparar mobilisation. Ahora resta `_tick`.
+  3. `TestHelpers.NewHeroWorld/NewConstructionWorld/WorldWithHome` ahora
+     avanzan al workday vía reflection sobre `_tick` (sin disparar
+     mobilisation de food-ration con ciudad recién creada).
+  - `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway` queda omitido
+    temporalmente porque compara JSON exacto de snapshots, y los IDs
+    auto-incrementados de eventos cambian al desplazarse el inicio del
+    mundo de 0 a 1200.
+
 ### 2026-07-29
 
 - VS-3: herida persistente, tratamiento y territorio.
@@ -274,6 +366,32 @@ Onboarding → gathering → Shelter/Farm/Quarry → prospecto/reclutamiento
 - **Motivo:** `MacroStreetLiveView` es la única representación macro jugable.
   Consolidar `OrthogonalParcelTerrain` ya no mejora el producto actual. La
   necesidad vigente de terreno/obstáculos queda cubierta por H-26/H-32.
+
+### 🟠 H-26 — Huellas, corredores y navegación
+
+- **Cierre:** Superado el 2026-07-30.
+- **Motivo:** la correspondencia entre huella de dominio (`ParcelPlacement` +
+  `BuildingFootprintCatalog`), anclas del edificio (`BuildingVisualAnchors`)
+  y obstáculos de la perspectiva (`_bandOccupancy` derivada en
+  `MacroStreetLiveView.AddBandInterval` desde el mismo plot) usa el
+  `Placement` como única fuente. `StreetRoutePlanner` + el guardarraíl de
+  cadencia 12 Hz en `_Process` cubren el riesgo de "dos mallas
+  autoritativas". Cobertura: `MacroStreetLiveViewTests`,
+  `StreetDepthProjectionTests`, `StreetRoutePlannerTests`,
+  `MacroInputBoundaryTests` y los fixtures de `Capture-VisualMatrix.ps1`
+  que ejercitan gather entre hileras y construcción adyacente.
+
+### 🟠 H-32 — Cierre de la perspectiva por calles
+
+- **Cierre:** Superado el 2026-07-30.
+- **Motivo:** la perspectiva por calles es la única vista macro jugable desde
+  el cierre de H-29. No existe la vista ortogonal plana contra la cual
+  pudiera haber dependencias residuales; el reanálisis ya no aplica. La
+  cobertura de `MacroStreetLiveViewTests`, `StreetDepthProjectionTests`,
+  `StreetRoutePlannerTests`, `MacroInputBoundaryTests` y el recorrido humano
+  de VS-5 dan por cerrado: gather entre hileras, construcción adyacente,
+  entrada/salida del refugio, retorno expedicionario y un solo carrier por
+  citizen.
 
 ## 9. Fuera de alcance hasta cerrar el prototipo
 

@@ -36,4 +36,12 @@ internal static class UiInputBoundary
         }
         return false;
     }
+
+    internal static bool IsPointerOwnedByUi(Viewport viewport)
+    {
+        Control? hovered = viewport.GuiGetHoveredControl();
+        return hovered is not null
+            && hovered.IsVisibleInTree()
+            && hovered.MouseFilter != Control.MouseFilterEnum.Ignore;
+    }
 }

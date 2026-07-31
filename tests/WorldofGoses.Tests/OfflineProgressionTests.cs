@@ -13,12 +13,18 @@ public class OfflineProgressionTests
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
+        int tickBefore = world.CurrentTick;
         var report = OfflineProgression.ApplyAll(world, ticksToApply: CityEconomyRules.ProductionCycleTicks);
 
         Assert.True(report.HadProgression);
         Assert.True(quarry.Stock > 0);
         Assert.True(farm.Stock > 0);
-        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
+        // WorldWithHome lands at a workday tick (08:00, tick 1200)
+        // since the 2026-07-30 workday shift, so the assertion is
+        // relative to the world start instead of an absolute tick.
+        Assert.Equal(
+            tickBefore + CityEconomyRules.ProductionCycleTicks,
+            world.CurrentTick);
     }
 
     [Fact]
@@ -138,6 +144,7 @@ public class OfflineProgressionTests
         var bran = world.GetCitizen(new CitizenId(1))!;
         var branExpBefore = bran.GetExperience(CompetencyId.Mining);
 
+        int tickBefore = world.CurrentTick;
         var report = OfflineProgression.Apply(
             world,
             buildingId,
@@ -145,7 +152,11 @@ public class OfflineProgressionTests
 
         Assert.Equal(1, report.TicksApplied);
         Assert.True(report.HadProgression);
-        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
+        // WorldWithHome lands at the workday tick (1200) since the
+        // 2026-07-30 shift, so absolute tick post-advance is relative.
+        Assert.Equal(
+            tickBefore + CityEconomyRules.ProductionCycleTicks,
+            world.CurrentTick);
         // Ten clock ticks contain one productive batch. Two assigned Quarry
         // workers add two Stone and gain one experience event each.
         Assert.Equal(2, world.PrimaryBuilding.Stock);

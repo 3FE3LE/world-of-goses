@@ -5,39 +5,86 @@ namespace WorldofGoses.Tests;
 
 public class GameClockTests
 {
+    // The configured workday is 08:00–16:00 (1200–2400 ticks). Tests
+    // pin the boundaries so a future "let's just shift to 09:00"
+    // change cannot land without a human signature.
+
     [Fact]
-    public void IsDaytime_StartOfDay_IsTrue()
+    public void WorkdayStart_EqualsEightInGameHours()
     {
-        Assert.True(GameClock.IsDaytime(0));
+        // 8 hours * 150 ticks/hour (3600 ticks/day / 24h) = 1200 ticks.
+        const int expected = 8 * (GameClock.TicksPerInGameDay / 24);
+        Assert.Equal(expected, GameClock.WorkdayStartTick);
     }
 
     [Fact]
-    public void IsDaytime_EndOfDay_IsFalse()
+    public void WorkdayEnd_EqualsSixteenInGameHours()
     {
-        Assert.False(GameClock.IsDaytime(GameClock.DayTicks));
+        // 16 hours * 150 ticks/hour = 2400 ticks.
+        const int expected = 16 * (GameClock.TicksPerInGameDay / 24);
+        Assert.Equal(expected, GameClock.WorkdayEndTick);
+    }
+
+    [Fact]
+    public void WorkdayDuration_IsEightInGameHours()
+    {
+        // 8 in-game hours * (3600 / 24) = 1200 ticks = the new workday span.
+        int hours = (GameClock.WorkdayEndTick - GameClock.WorkdayStartTick)
+            / (GameClock.TicksPerInGameDay / 24);
+        Assert.Equal(8, hours);
+    }
+
+    [Fact]
+    public void IsDaytime_BeforeWorkdayStart_IsFalse()
+    {
+        // Tick 0 (00:00) and tick 1199 (07:59) are night. Before the
+        // human run found this confusing the test assumed 00:00 was
+        // already daytime; the human playtest (2026-07-30) signed off
+        // on the 08:00 start.
+        Assert.False(GameClock.IsDaytime(0));
+        Assert.False(GameClock.IsDaytime(GameClock.WorkdayStartTick - 1));
+    }
+
+    [Fact]
+    public void IsDaytime_AtWorkdayStart_IsTrue()
+    {
+        Assert.True(GameClock.IsDaytime(GameClock.WorkdayStartTick));
+    }
+
+    [Fact]
+    public void IsDaytime_AtWorkdayEnd_IsFalse()
+    {
+        // End is exclusive: tick 2400 (16:00) is night.
+        Assert.False(GameClock.IsDaytime(GameClock.WorkdayEndTick));
+    }
+
+    [Fact]
+    public void IsDaytime_JustBeforeWorkdayEnd_IsTrue()
+    {
+        Assert.True(GameClock.IsDaytime(GameClock.WorkdayEndTick - 1));
     }
 
     [Fact]
     public void IsDaytime_MidNight_IsFalse()
     {
-        Assert.False(GameClock.IsDaytime(GameClock.DayTicks + GameClock.NightTicks / 2));
+        int midNightTick = GameClock.WorkdayEndTick
+            + (GameClock.TicksPerInGameDay - GameClock.WorkdayEndTick) / 2;
+        Assert.False(GameClock.IsDaytime(midNightTick));
     }
 
     [Fact]
-    public void IsDaytime_StartOfDayTwo_IsTrue()
+    public void IsDaytime_NextDayWorkdayStart_IsTrue()
     {
-        Assert.True(GameClock.IsDaytime(GameClock.TicksPerInGameDay));
+        Assert.True(GameClock.IsDaytime(
+            GameClock.TicksPerInGameDay + GameClock.WorkdayStartTick));
     }
 
     [Fact]
     public void IsDaytime_HandlesNegativeTicksModularly()
     {
         // Defensive: DayFraction / IsDaytime should not throw on
-        // negative ticks (e.g., before world starts). Using Euclidean
-        // modular arithmetic, tick -1 → 3599 (night) and tick -DayTicks
-        // → DayTicks - DayTicks = 0... wait, actually -2400 mod 3600 =
-        // 1200, which IS daytime. Both are defensive only — what we
-        // assert here is just that the call does not throw.
+        // negative ticks (e.g., before world starts). What we assert
+        // here is just that the call does not throw.
         var ex1 = Record.Exception(() => GameClock.IsDaytime(-1));
         var ex2 = Record.Exception(() => GameClock.IsDaytime(-GameClock.DayTicks));
         Assert.Null(ex1);

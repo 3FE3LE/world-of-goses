@@ -89,9 +89,14 @@ the medium-term investment promised by agriculture.
   supplies, retreat posture, deterministic encounter, outbound, encounter,
   objective/retreat, return, exact-once rewards, wounds, and offline catch-up.
 - Canonically, only citizens explicitly incorporated as heroes may participate.
-- Current request templates are four-day Reconnaissance and Community Contact.
+- Current request templates are Reconnaissance and Community Contact.
   Reconnaissance reserves 1 Wood and may return 1 Stone; Community Contact
   reserves 2 Food and may return a prospect.
+- **Corrected 2026-07-30:** both templates were four simulated days when this
+  section was written. The VS-5 run found that unplayable and they were
+  recalibrated to four simulated hours — `ExpeditionRequest.FirstLoopDurationTicks`
+  is `GameClock.TicksPerInGameDay / 6` = 600 ticks, ten real minutes at 1x.
+  The EG-A0 sortie durations in §8.2 remain shorter still.
 - Resource opportunities, carry limits, route reserves, and Wood/Food sortie
   objectives do not yet exist.
 
@@ -520,12 +525,33 @@ resource opportunity, phase, crop, and capacity state.
 
 ## 15. Incremental implementation order
 
-No implementation begins until VS-5 closes. After that, open a named early-game
-slice and implement in narrow, playable increments:
+**Gate (corrected 2026-07-30).** An earlier draft of this section read "no
+implementation begins until VS-5 closes". That contradicted this document's own
+header and `CURRENT_STATUS.md`, and it deadlocked: VS-5 cannot be signed while
+G1 is open, and G1 only closes with early-game work. The binding order is the
+one in the header — finish the remaining VS-5 diagnostic, open EG-0, and sign
+VS-5 after the early game is corrected.
 
-1. **EG-0 — measurement and contract.** Capture time-to-first-shelter,
-   resources collected/spent, idle time, first Food horizon, and expedition
-   opportunity cost. Approve or revise EG-A0 numbers.
+**Order (revised 2026-07-30).** The list below is a design narrative, not a
+dependency chain. G1 is the only gap blocking the VS-5 signature, and EG-3 is
+the increment that closes it: crops need plot state, `readyAtTick` and an
+offline boundary, none of which depend on the Cache, the rudimentary resources
+or the Founding Site. The approved path is therefore **EG-0 → EG-3 → sign
+VS-5**, with EG-1, EG-2, EG-4 and EG-5 following as their own slice once a
+signed baseline exists. Running them first would rewrite the opening and
+reopen acceptance criteria 1-5, which the human run has already signed.
+
+The increments, in design order:
+
+1. **EG-0 — measurement and contract.** *Implemented 2026-07-30 (schema v20).*
+   `EarlyGameMetrics` accumulates time-to-first-shelter, resources
+   collected/spent, idle citizen-days, the Food horizon and expedition
+   absence; `EarlyGameMetricsReport` writes `eg0-report.txt` beside the save on
+   every successful save. Every counter is event- or dawn-driven because
+   `WorldTimeAdvance` batches quiescent ticks, so a per-tick counter would
+   under-report exactly the idle stretches this measures. A city migrated from
+   v19 reports zero samples rather than invented history. **Still open:** run a
+   clean slot and approve or revise the EG-A0 numbers against the report.
 2. **EG-1 — resource/storage seam.** Generalize natural opportunities, add
    bounded Cache storage and migrations. Keep the legacy opening available
    until the new loop is end-to-end.

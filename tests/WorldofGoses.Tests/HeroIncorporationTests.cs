@@ -105,8 +105,10 @@ public class HeroIncorporationTests
         Assert.Contains(
             migrated.Citizens.Single(c => c.Id == citizenId.Value).Roles,
             role => role.Id == RoleId.Hero.Value);
-        WorldSave current = WorldPersistence.MigrateV17ToV18(migrated);
-        current = WorldPersistence.MigrateV18ToV19(current);
+        // The step under test is asserted above; the rest of the way to today
+        // is the chain's own job, so this test survives future schema bumps.
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        Assert.Equal(WorldSave.CurrentVersion, current.Version);
         WorldPersistence.Validate(current);
     }
 }

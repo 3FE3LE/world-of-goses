@@ -323,12 +323,62 @@ public partial class CityWorldController : Node
         GD.Print($"{FrameTimeLogTag} {processMs.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}");
     }
 
+    /// <summary>
+    /// The single way this controller writes the primary slot. Every save path
+    /// — manual, autosave, soft reset, post-migration — goes through here so
+    /// the EG-0 report cannot drift out of step with the save. Hooking the
+    /// paths individually already failed once: the report was attached only to
+    /// the manual save, so a measured run silently kept a report frozen at
+    /// whatever the first manual save happened to contain.
+    /// </summary>
+    private void SaveWorldToPrimarySlot(string? slotsDirectory = null)
+    {
+        if (slotsDirectory is null)
+        {
+            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+        }
+        else
+        {
+            WorldPersistence.SaveToSlot(
+                _world,
+                WorldPersistence.PrimarySaveSlot,
+                slotsDirectory);
+        }
+        WriteEarlyGameMetricsReport();
+    }
+
+    /// <summary>
+    /// Writes the EG-0 report next to the save so a play session leaves the
+    /// calibration data behind without the player doing anything.
+    ///
+    /// <para>Deliberately swallowed on failure and called only after the save
+    /// itself succeeded: this is a diagnostic artifact, and losing it must
+    /// never cost the player their city. The file is overwritten each time —
+    /// it is a snapshot of the run so far, not a log.</para>
+    /// </summary>
+    private void WriteEarlyGameMetricsReport()
+    {
+        try
+        {
+            string path = System.IO.Path.Combine(
+                WorldPersistence.SaveDirectory,
+                "eg0-report.txt");
+            System.IO.File.WriteAllText(
+                path,
+                EarlyGameMetricsReport.Format(_world.Metrics, _world.CurrentTick));
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"EG-0 report not written: {ex.Message}");
+        }
+    }
+
     public bool TrySaveNow()
     {
         if (!PersistenceWritesEnabled) return true;
         try
         {
-            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            SaveWorldToPrimarySlot();
             _hasUnsavedChanges = false;
             EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return true;
@@ -369,9 +419,7 @@ public partial class CityWorldController : Node
         {
             CityWorld restarted = _world.CreateRestartedCityKeepingHero();
             _world.Restore(WorldPersistence.Capture(restarted));
-            WorldPersistence.SaveToSlot(
-                _world,
-                WorldPersistence.PrimarySaveSlot);
+            SaveWorldToPrimarySlot();
             GetTree().ReloadCurrentScene();
             return true;
         }
@@ -388,7 +436,7 @@ public partial class CityWorldController : Node
 
         try
         {
-            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
+            SaveWorldToPrimarySlot();
             _hasUnsavedChanges = false;
             EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         }
@@ -655,7 +703,7 @@ public partial class CityWorldController : Node
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         if (migrated && PersistenceWritesEnabled)
         {
-            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot, slotsDirectory);
+            SaveWorldToPrimarySlot(slotsDirectory);
             _hasUnsavedChanges = false;
         }
         return true;

@@ -340,7 +340,7 @@ public class ExpeditionEncounterTests
         legacyExpedition.DispatchEventId = null;
 
         WorldSave migrated = WorldPersistence.MigrateV17ToV18(legacy);
-        migrated = WorldPersistence.MigrateV18ToV19(migrated);
+        migrated = WorldPersistence.MigrateToCurrent(migrated);
 
         Assert.Equal(WorldSave.CurrentVersion, migrated.Version);
         Assert.Equal(

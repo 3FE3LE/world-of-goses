@@ -73,18 +73,12 @@ public class ForestTests
         Assert.Equal(7, migrated.Version);
         Assert.Equal(expectedReserve, forest.WoodUnitReserves.Count);
         Assert.All(forest.WoodUnitReserves, reserve => Assert.Equal(1, reserve));
-        WorldSave current = WorldPersistence.MigrateV7ToV8(migrated);
-        current = WorldPersistence.MigrateV8ToV9(current);
-        current = WorldPersistence.MigrateV9ToV10(current);
-        current = WorldPersistence.MigrateV10ToV11(current);
-        current = WorldPersistence.MigrateV11ToV12(current);
-        current = WorldPersistence.MigrateV12ToV13(current);
-        current = WorldPersistence.MigrateV13ToV14(current);
-        current = WorldPersistence.MigrateV14ToV15(current);
-        current = WorldPersistence.MigrateV15ToV16(current);
-        current = WorldPersistence.MigrateV16ToV17(current);
-        current = WorldPersistence.MigrateV17ToV18(current);
-        current = WorldPersistence.MigrateV18ToV19(current);
+        // The step under test is asserted explicitly above; getting from there
+        // to today is the migration chain's own job. Driving it through
+        // MigrateToCurrent keeps this test from needing an edit on every
+        // future schema bump.
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        Assert.Equal(WorldSave.CurrentVersion, current.Version);
         WorldPersistence.Validate(current);
     }
 

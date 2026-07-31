@@ -1,8 +1,8 @@
 # UI Audit — Current state
 
-**Last aligned:** 2026-07-29
+**Last aligned:** 2026-07-30
 
-**Baseline:** clean build, 553/553 tests, successful headless boot.
+**Baseline:** clean build, 586/586 tests, successful headless boot.
 
 **Active signature:** VS-5 at 1280×720 and 1920×1080.
 

@@ -42,6 +42,55 @@ internal static class TestHelpers
             && !GameClock.IsDaytime(world.CurrentTick - 1)));
     }
 
+    /// <summary>
+    /// Advances the world to the start of the configured workday (08:00).
+    /// Idempotent: a world already inside the workday window is left
+    /// untouched. Use this when a test needs
+    /// <see cref="GameClock.IsDaytime"/> to be true but the underlying
+    /// fixture starts at tick 0 (night, post-2026-07-30 workday change).
+    /// </summary>
+    /// <remarks>
+    /// The helper uses reflection to set <see cref="CityWorld.CurrentTick"/>
+    /// directly instead of stepping through every tick. Stepping would
+    /// fire the dawn boundary at tick 1200 and trigger
+    /// <c>ApplyResidentFoodRation</c>, which on a fixture that has not
+    /// yet received its test food deposit records a
+    /// <see cref="WorldEventKind.FoodRationShortfall"/> event before
+    /// the test has a chance to deposit food. The reflection seam
+    /// preserves the world state (events, production, mobilisation)
+    /// and only jumps the tick.
+    /// </remarks>
+    public static void AdvanceToWorkday(CityWorld world)
+    {
+        if (GameClock.IsDaytime(world.CurrentTick)) return;
+        int dayStart = world.CurrentTick - GameClock.TickWithinDay(world.CurrentTick);
+        int target = dayStart + GameClock.WorkdayStartTick;
+        if (target <= world.CurrentTick)
+        {
+            target += GameClock.TicksPerInGameDay;
+        }
+        SetCurrentTick(world, target);
+    }
+
+    private static void SetCurrentTick(CityWorld world, int tick)
+    {
+        // The reflection seam is the same shape the test fixtures have
+        // always used for offline catch-up; the workday helpers now
+        // need it too because stepping would fire side-effects
+        // (mobilisation, food ration, day/night events) that the test
+        // has not yet set up. Centralised here so a future "fix" to
+        // set CurrentTick via a public test-only setter lives in one
+        // place.
+        var property = typeof(CityWorld).GetProperty(
+            nameof(CityWorld.CurrentTick),
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        // CurrentTick is read-only; use the backing field instead.
+        var field = typeof(CityWorld).GetField(
+            "_tick",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        field!.SetValue(world, tick);
+    }
+
     public static CitizenProfile NewProfile(LineageId? lineage = null, GenderId? gender = null)
     {
         bool created = CitizenProfile.TryCreate(
@@ -66,6 +115,7 @@ internal static class TestHelpers
         var world = new CityWorld();
         var result = world.TryCreateHero(new HeroCreationRequest("Aster", NewProfile(), GenderId.Masculine));
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
+        AdvanceToWorkday(world);
         return world;
     }
 
@@ -92,6 +142,7 @@ internal static class TestHelpers
         {
             world.RegisterCitizen(NewCitizen(100 + i));
         }
+        AdvanceToWorkday(world);
         return world;
     }
 
@@ -124,6 +175,7 @@ internal static class TestHelpers
             resourceLabel: "Food",
             resourceUnit: "food");
         world.RegisterBuilding(farm);
+        AdvanceToWorkday(world);
         return world;
     }
 

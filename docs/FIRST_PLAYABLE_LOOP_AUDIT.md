@@ -1,11 +1,13 @@
 # First Playable Loop Audit
 
-**Last aligned:** 2026-07-29
+**Last aligned:** 2026-07-30
 
 **Active slice:** VS-5 — player-facing signature and repetition
 
-**Verified baseline:** clean build, 553/553 tests, save schema v19, successful
-Godot 4.7.1 headless boot.
+**Verified baseline:** clean build, 652/653 tests (1 omitido por brittleness
+del JSON snapshot en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`,
+sin cambio de comportamiento), save schema v20, successful Godot 4.7.1
+headless boot.
 
 ## 1. Executive summary
 
@@ -112,6 +114,16 @@ bounded early-game resource/agriculture work proposed in
 `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`; changing the ration alone
 would hide the structural abundance problem.
 
+**G1 closure path (2026-07-30).** The abundance engine is the Farm, not the
+starting Wood: it produces Food from nothing, with a worker, indefinitely, and
+has no operating-input recipe (§7 debt item 2). Cutting the 640 starting Wood
+would make Wood scarce without touching the Food pressure criterion 6 actually
+failed on. EG-3 (plot, sowing, three-day growth, harvest, ration projection,
+offline crop readiness) is therefore the increment that closes G1, and it does
+not depend on EG-1 or EG-2. EG-0 measurement is implemented (schema v20) and
+the remaining VS-5 run will produce its report; see
+`EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15.
+
 ## 4. System matrix
 
 | System | Status | Honest remaining boundary |
@@ -186,6 +198,26 @@ and Quarry reach 60/60 and 80/80. At the next snapshot both retained their work
 orders while waiting at Home because storage was full. This was behaviorally
 coherent, but Food demand was not: two residents consumed only 2 Food/day
 against a full 60-Food Farm, so criterion 6 failed and G1 reopened.
+
+### VS-5 follow-up — 2026-07-30 (Shelter detail and macro reconciliation)
+
+While inspecting the Shelter at the simulated night boundary, two related
+defects surfaced outside the original VS-5 evidence list. The Home detail
+panel's "descansando N / capacidad M" line read `VisibleWorkerCount +
+HiddenWorkerCount`, which is empty for the Home because the Home has no
+operating recipe and therefore no `_assigned` roster; the worker slots in
+the same view already used `VisibleCitizens` (citizens with
+`CitizenLocation.AtHome`), so the slots and the summary disagreed
+instantaneously. Closing the detail view also parked every non-founder
+resting citizen at the Home's entrance anchor (`anchors.Entrance`),
+visibly outside the building that the slots had just shown them inside.
+The founder was hidden via `ShouldHideHeroInsideShelter`; the same rule
+is now applied to regular citizens through
+`MacroStreetLiveView.ShouldHideCitizenAtHome`, and the Home detail panel
+plus the macro selection panel both read `VisibleCitizens.Count` for the
+resting number. Regression tests:
+`UiSnapshotTests.BuildingDetailSnapshot_HomeCountsCitizensAtHomeNotAssignedWorkers`
+and `MacroStreetLiveViewTests.NonFounderCitizenAtHome_IsHiddenUnlessWanderingOrRecovering`.
 
 **Resume checkpoint:** unassign the founder from Quarry, gather 2 Wood, pause,
 dispatch `Reconnaissance`, and relaunch while its persisted phase is still

@@ -108,10 +108,12 @@ public class WorldPersistenceV3Tests
         var v17Save = WorldPersistence.MigrateV16ToV17(v16Save);
         Assert.Equal(17, v17Save.Version);
         var v18Save = WorldPersistence.MigrateV17ToV18(v17Save);
-        var v19Save = WorldPersistence.MigrateV18ToV19(v18Save);
-        Assert.Equal(WorldSave.CurrentVersion, v19Save.Version);
+        // The chain carries the rest of the way, so this walk-through does not
+        // need a new line on every future schema bump.
+        var currentSave = WorldPersistence.MigrateToCurrent(v18Save);
+        Assert.Equal(WorldSave.CurrentVersion, currentSave.Version);
 
-        var restored = CityWorld.FromSave(v19Save);
+        var restored = CityWorld.FromSave(currentSave);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

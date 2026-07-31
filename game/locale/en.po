@@ -523,6 +523,12 @@ msgstr "Saved · {0}"
 msgid "ui.status.saved_short"
 msgstr "Saved"
 
+msgid "ui.status.off_hours"
+msgstr "Off-hours"
+
+msgid "ui.status.off_hours_hint"
+msgstr "Work paused. Production, construction and expedition mobilisation resume at 08:00."
+
 msgid "ui.citizens.debug_context"
 msgstr "Debug — activity: {0} · context: {1} · blocker: {2}\nWorkplace: {3} · Shelter: {4}\nStarted: {5} · expected: {6} · next: {7}\nLast simulation processing: {8}"
 
@@ -588,6 +594,18 @@ msgstr "{0} (construction)"
 
 msgid "ui.expedition.dispatch_failed"
 msgstr "Could not dispatch: {0}"
+
+msgid "ui.expedition.dispatch_no_member_hint"
+msgstr "Select at least one eligible citizen to dispatch."
+
+msgid "ui.expedition.dispatch_active_hint"
+msgstr "An expedition is already in progress."
+
+msgid "ui.expedition.dispatch_missing_supplies"
+msgstr "Need {0} for expedition supplies. Gather it or build stock first."
+
+msgid "ui.expedition.dispatch_member_unavailable"
+msgstr "Selected citizen cannot join: wounded, recovering, or already committed."
 
 msgid "ui.expedition.schedule"
 msgstr "{0} departed {1} and returns {2}."
@@ -1933,3 +1951,48 @@ msgstr "Workers are recovering before resuming this order"
 
 msgid "Workers cannot resume because no food is available"
 msgstr "Workers cannot resume because no food is available"
+
+msgid "ui.world_status.wound"
+msgstr "{0} wound"
+
+msgid "ui.world_status.treatment"
+msgstr "In treatment — {0} remaining"
+
+msgid "ui.world_status.no_food"
+msgstr "Recovery blocked — no Food"
+
+msgid "ui.world_status.storage_full"
+msgstr "Storage full ({0} / {1})"
+
+msgid "ui.world_status.working"
+msgstr "Working"
+
+msgid "ui.world_status.travelling"
+msgstr "Travelling"
+
+msgid "ui.world_status.expedition"
+msgstr "On expedition"
+
+msgid "ui.world_status.waiting_storage"
+msgstr "Idle — storage full"
+
+msgid "ui.world_status.waiting_resources"
+msgstr "Idle — waiting for inputs"
+
+msgid "ui.world_status.work_paused"
+msgstr "Idle — work paused"
+
+msgid "ui.world_status.off_duty"
+msgstr "Off duty"
+
+msgid "ui.world_status.resting"
+msgstr "Resting"
+
+msgid "ui.world_status.recovering"
+msgstr "Resting to recover"
+
+msgid "ui.world_status.idle"
+msgstr "Idle — no assignment"
+
+msgid "ui.world_status.unavailable"
+msgstr "Unavailable"

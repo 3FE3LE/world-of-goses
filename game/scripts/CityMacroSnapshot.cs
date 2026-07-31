@@ -44,6 +44,9 @@ public sealed record CityMacroSnapshot(
         int? TransitStartedAtTick,
         CitizenRoutineActivity Activity,
         CitizenRoutineBlockReason BlockReason,
+        WoundSeverity? WoundSeverity,
+        int WoundRecoveryTicksRemaining,
+        bool IsReceivingWoundTreatment,
         int CurrentStamina,
         int MaxStamina,
         BuildingId? LastVisitedResourceBuildingId,
@@ -59,6 +62,8 @@ public sealed record CityMacroSnapshot(
         string DisplayName,
         bool IsUnderConstruction,
         bool Enabled,
+        int Stock,
+        int StorageCapacity,
         int WoodReserve,
         IReadOnlyList<int> WoodUnitReserves,
         int TicksUntilRegeneration,
@@ -72,7 +77,10 @@ public sealed record CityMacroSnapshot(
         int LotWidth,
         int LotHeight,
         string? FootprintProfileId,
-        BuildingOrientation Orientation);
+        BuildingOrientation Orientation)
+    {
+        public bool IsStorageFull => StorageCapacity > 0 && Stock >= StorageCapacity;
+    }
 
     public static CityMacroSnapshot From(CityWorld world)
     {
@@ -100,6 +108,8 @@ public sealed record CityMacroSnapshot(
                 building.DisplayName,
                 IsUnderConstruction: false,
                 Enabled: enabled,
+                Stock: building.Stock,
+                StorageCapacity: building.StorageCapacity,
                 WoodReserve: building.WoodReserve,
                 WoodUnitReserves: new List<int>(building.WoodUnitReserves),
                 TicksUntilRegeneration: 0,
@@ -125,6 +135,8 @@ public sealed record CityMacroSnapshot(
                 "Trees",
                 IsUnderConstruction: false,
                 Enabled: patch.TotalReserve > 0,
+                Stock: 0,
+                StorageCapacity: 0,
                 WoodReserve: patch.TotalReserve,
                 WoodUnitReserves: new List<int>(patch.UnitReserves),
                 TicksUntilRegeneration:
@@ -159,6 +171,8 @@ public sealed record CityMacroSnapshot(
                 project.DisplayName,
                 IsUnderConstruction: true,
                 project.Enabled,
+                Stock: 0,
+                StorageCapacity: 0,
                 WoodReserve: 0,
                 WoodUnitReserves: System.Array.Empty<int>(),
                 TicksUntilRegeneration: 0,
@@ -196,6 +210,9 @@ public sealed record CityMacroSnapshot(
                 resident.TransitStartedAtTick,
                 routine.Activity,
                 routine.BlockReason,
+                resident.Wound?.Severity,
+                resident.Wound?.RecoveryTicksRemaining ?? 0,
+                resident.Commitment.Kind == CitizenCommitmentKind.Recovery,
                 resident.CurrentStamina,
                 resident.MaxStamina,
                 resident.LastVisitedResourceBuildingId,

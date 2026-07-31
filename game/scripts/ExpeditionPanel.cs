@@ -48,6 +48,10 @@ public partial class ExpeditionPanel : Control
     private readonly List<CitizenId> _selectedMemberIds = new();
     private bool _hasAppliedDefaultSelection;
     private bool _showRecoveryFixture;
+    // Last dispatch failure shown in the persistent status label so the
+    // player does not miss the cause on a 3-second toast. Cleared on
+    // the next successful dispatch or panel close.
+    private string _lastDispatchFailure = string.Empty;
 
     public override void _Ready()
     {
@@ -144,14 +148,49 @@ public partial class ExpeditionPanel : Control
         ExpeditionStartResult result = _controller.StartExpedition(request);
         if (!result.IsSuccess)
         {
+            // The Notifier toast only lives 3 seconds; the most common
+            // silent failure (no supplies in the city inventory while
+            // buildings are full of produced resources) is easy to miss
+            // because the player conflates building stock with city
+            // inventory. Surface the reason in the persistent status
+            // label so it stays visible until the next attempt.
+            _lastDispatchFailure = DescribeDispatchFailure(result, request);
             Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
         }
         else
         {
+            _lastDispatchFailure = string.Empty;
             _selectedMemberIds.Clear();
             _hasAppliedDefaultSelection = false;
         }
         Refresh();
+    }
+
+    private static string DescribeDispatchFailure(
+        ExpeditionStartResult result,
+        ExpeditionRequest request)
+    {
+        // The dispatch outcome does not always carry the actionable
+        // context (e.g. MissingSupplies doesn't say WHICH supply is
+        // short). Build a sentence that maps the most common outcomes
+        // to concrete next steps so the player does not have to dig
+        // through code to understand what is missing.
+        return result.Outcome switch
+        {
+            ExpeditionStartOutcome.MissingSupplies =>
+                UiText.Format(
+                    "ui.expedition.dispatch_missing_supplies",
+                    UiText.Get(request.SupplyResource.ToString())),
+            ExpeditionStartOutcome.AlreadyActive =>
+                UiText.Get("ui.expedition.dispatch_active_hint"),
+            ExpeditionStartOutcome.MemberUnavailable =>
+                UiText.Get("ui.expedition.dispatch_member_unavailable"),
+            ExpeditionStartOutcome.TownHallUnavailable =>
+                UiText.Get("ui.expedition.town_hall_required"),
+            _ => UiText.Format(
+                "ui.expedition.dispatch_failed",
+                result.Outcome),
+        };
     }
 
     private void OnCancelPressed()
@@ -234,6 +273,15 @@ public partial class ExpeditionPanel : Control
 
         bool canDispatch = active is null && _selectedMemberIds.Count > 0;
         _dispatchButton.Disabled = !canDispatch;
+        // Without this tooltip the disabled button silently does nothing —
+        // the player sees a click with no feedback and assumes the panel
+        // is broken. The status label above already tells them about the
+        // active expedition; this hint covers the most common silent
+        // failure (no eligible member selected).
+        _dispatchButton.TooltipText = UiText.Get(
+            active is null
+                ? "ui.expedition.dispatch_no_member_hint"
+                : "ui.expedition.dispatch_active_hint");
         bool hasTownHall = world.Buildings.Values.Any(building => building.Kind == BuildingKind.TownHall);
         _prospectButton.Disabled = !canDispatch
             || !hasTownHall
@@ -248,7 +296,9 @@ public partial class ExpeditionPanel : Control
             && world.CurrentTick == active.StartTick;
         string territoryStatus = DescribeTerritory(world);
         _statusLabel.Text = (active is null
-            ? UiText.Get("ui.expedition.team_hint")
+            ? (_lastDispatchFailure.Length > 0
+                ? _lastDispatchFailure
+                : UiText.Get("ui.expedition.team_hint"))
             : UiText.Format(
                 "ui.expedition.schedule_with_team",
                 UiText.Get(active.DisplayName),

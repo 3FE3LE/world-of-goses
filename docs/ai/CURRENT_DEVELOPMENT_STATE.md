@@ -4,7 +4,7 @@
 > does not replace design documents or code. Update it when a phase
 > completes, a vertical slice advances, or the build/test baseline shifts.**
 
-**Last updated:** 2026-07-29
+**Last updated:** 2026-07-30
 
 ---
 
@@ -14,8 +14,8 @@
 | --- | --- |
 | Active vertical slice | VS-5 signature and repetition in progress |
 | Next approved work | Finish VS-5 diagnostic, then EG-0 prerequisite |
-| Build | `dotnet build` clean (verified 2026-07-29) |
-| Tests | 553 / 553 passing (verified 2026-07-29) |
+| Build | `dotnet build` clean (verified 2026-07-30) |
+| Tests | 586 / 586 passing (verified 2026-07-30) |
 | Save schema version (code) | `WorldSave.CurrentVersion = 19` |
 | Save schema version (docs) | v19 |
 | Headless boot | OK with `godot --headless --path game --quit-after 3` |
@@ -50,6 +50,55 @@ domain. Treat each as a hard "do not regress" target.
   transition timing without persisting visual coordinates. Mid-transit loads
   reconstruct elapsed visual progress from semantic timing and current map
   anchors; temporary idle/wait states may wander locally through pathfinding.
+- Ambient day/night tint (`TimeOfDayFilter` + pure `TimeOfDayColor`): a
+  full-viewport `ColorRect` driven by `GameClock.DayFraction`. It **multiplies**
+  (`CanvasItemMaterial.BlendModeEnum.Mul`), it is not an alpha veil: an alpha
+  overlay scales contrast by `1-alpha` and lifts the black point, so a night
+  strong enough to read as night flattened the map into fog. `TimeOfDayColor`
+  therefore returns the colour of the *light* — alpha always 1, strength in how
+  far the channels fall below white, noon exactly white so it is a no-op.
+  Two-speed curve: one-hour dawn (05:00-06:00) and dusk (18:00-19:00) bands
+  that move fast, joined by long stretches that keep drifting slowly, all
+  smoothstepped. Invariants: noon is the identity, the small hours stay clearly
+  blue (a warm tint at 03:00 is a regression), no stretch is perfectly
+  constant, and no channel ever exceeds white. Pin an hour for review with the
+  `time-midnight`/`time-dawn`/`time-noon`/`time-dusk` visual fixtures.
+- Ambient tint scope: the tint is an immersion effect for the **map only**.
+  It renders on `OverlayLayers.AmbientTint` (5), below `OverlayLayers.Hud`
+  (6), which the status strip, macro action bar, `BuildingDetailView` and
+  `HeroProfileView` all claim; and it mirrors `MacroStreetLiveView.Visible`
+  so full-screen views that replace the map are untinted even if they never
+  touch the catalog. HUD chrome that renders tinted is HUD chrome that
+  forgot to claim its layer.
+- EG-0 opening measurement (`EarlyGameMetrics` + `EarlyGameMetricsReport`,
+  schema v20): time to first shelter, resources gathered/spent, idle
+  citizen-days, Food horizon, expedition absence. Counters are event- or
+  dawn-driven, never per-tick, because `WorldTimeAdvance` batches quiescent
+  stretches. The `CityResourceLedger` observer is detached during restore, or
+  every reload would book the stockpile as freshly gathered. A v19-migrated
+  city reports zero samples instead of invented history. `eg0-report.txt` is
+  written beside the save on each successful save.
+- Lineage accents (`LineageThemeRegistry.IconAccentByLineage`): Ardhen, Orveth
+  and Vaelun were re-spread to copper (~20°), gold (~45°) and khaki (~62°).
+  They previously shared a 10° amber band with Orveth and Vaelun only 2° apart,
+  so their UI tints were not tellable apart. `tools/New-LineagePalettes.ps1`
+  mirrors these values and refuses to generate a set where two accents are
+  indistinguishable — close in hue *and* lightness *and* saturation. Caelith
+  and Kovari sit 11° apart deliberately; they separate by lightness instead.
+- Splash palettes (`art/palettes/`): one shared 36-colour file plus eight
+  28-colour lineage files, and a derived 64-colour working file per lineage
+  (Pixelorama shows one palette at a time). Generated, not hand-picked.
+- Lineage splash illustrations (`LineageSplashRegistry`, 16 files under
+  `game/assets/characters/splash/`): eight lineages × two body variants, so a
+  splash identifies a *kind of person*, never an individual — two citizens of
+  the same lineage and body variant share one. `HeroProfileView` shows it at
+  full canvas height on the left with the text column scrolling on the right;
+  the small animated sprite is the fallback when the asset is missing. Art is
+  authored portrait and displayed downscaled, so the control uses
+  `LinearWithMipmaps` — a deliberate local exception to the nearest-filter
+  rule that in-world pixel art keeps. The set does not share one aspect ratio
+  (nine 3:4, seven 4:5), which is why the width is computed from each
+  texture's own proportion instead of being fixed.
 - Citizens (basic): single sealed `Citizen`, roles, competencies, stamina,
   profile, gender.
 - Migrant recruitment (first cut): `MigrantPanel`, deterministic name/profile.

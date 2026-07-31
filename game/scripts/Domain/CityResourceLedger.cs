@@ -15,6 +15,7 @@ public sealed class CityResourceLedger
     private readonly CityInventory _inventory;
     private readonly Dictionary<ResourceReservationId, ResourceReservation> _reservations = new();
     private int _nextReservationId = 1;
+    private EarlyGameMetrics? _metrics;
 
     internal CityResourceLedger(
         IReadOnlyDictionary<BuildingId, Building> buildings,
@@ -22,6 +23,25 @@ public sealed class CityResourceLedger
     {
         _buildings = buildings;
         _inventory = inventory;
+    }
+
+    /// <summary>
+    /// Attaches (or, with null, detaches) the EG-0 measurement. Every resource
+    /// that enters or leaves the city passes through this class, so it is the
+    /// one place where "gathered" and "spent" can be counted without
+    /// sprinkling counters over each call site and eventually missing one. The
+    /// observer is write-only: it cannot affect availability, so measuring a
+    /// run cannot change it.
+    ///
+    /// <para>Detaching matters for restore. Rehydrating a save re-deposits
+    /// every stored resource through this ledger, which would otherwise book
+    /// the player's entire stockpile as freshly gathered on every single load
+    /// — and the more the player relaunched, the more inflated the numbers
+    /// would get.</para>
+    /// </summary>
+    internal void ObserveFlows(EarlyGameMetrics? metrics)
+    {
+        _metrics = metrics;
     }
 
     public IReadOnlyCollection<ResourceReservation> Reservations => _reservations.Values;
@@ -119,6 +139,7 @@ public sealed class CityResourceLedger
             if (resource == ResourceType.Iron)
             {
                 building.DepositIron(remaining);
+                _metrics?.RecordGathered(resource, amount);
                 return amount;
             }
             if (building.ProducedResourceType != resource) continue;
@@ -126,11 +147,19 @@ public sealed class CityResourceLedger
             remaining -= added;
             if (remaining == 0) break;
         }
+        // What the city actually kept, not what it was offered: stock refused
+        // by a full building never entered the economy and must not appear as
+        // gathered.
+        _metrics?.RecordGathered(resource, amount - remaining);
         return amount - remaining;
     }
 
-    public int DepositToCityInventory(ResourceType resource, int amount) =>
-        _inventory.Deposit(resource, amount);
+    public int DepositToCityInventory(ResourceType resource, int amount)
+    {
+        int deposited = _inventory.Deposit(resource, amount);
+        _metrics?.RecordGathered(resource, deposited);
+        return deposited;
+    }
 
     public bool TryReserve(
         ResourceType resource,
@@ -197,6 +226,9 @@ public sealed class CityResourceLedger
 
     private void Drain(ResourceType resource, int amount)
     {
+        // Both TryConsume overloads funnel here after their availability
+        // check, so recording once at the top counts every spend exactly once.
+        _metrics?.RecordConsumed(resource, amount);
         int remaining = amount;
         int inventoryAmount = _inventory.AmountOf(resource);
         int inventoryTake = Math.Min(inventoryAmount, remaining);

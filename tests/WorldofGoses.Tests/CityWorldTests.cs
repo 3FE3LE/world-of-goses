@@ -17,9 +17,13 @@ public class CityWorldTests
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
 
+        int tickBefore = world.CurrentTick;
         TestHelpers.AdvanceToNextProductionCycle(world);
 
-        Assert.Equal(CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
+        // The world starts at the configured workday tick (08:00
+        // since the 2026-07-30 workday shift), so the absolute tick
+        // post-advance is relative to that start.
+        Assert.Equal(tickBefore + CityEconomyRules.ProductionCycleTicks, world.CurrentTick);
         Assert.True(quarry.Stock > 0);
         Assert.True(farm.Stock > 0);
     }

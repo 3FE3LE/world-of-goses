@@ -154,7 +154,11 @@ public class MobilizationTests
         Citizen founder = world.Hero!;
 
         Assert.True(world.TryAssignCitizen(quarry.Id, founder.Id).IsSuccess);
-        while (world.CurrentTick < GameClock.DayTicks) world.AdvanceWorldTick();
+        // Advance past the workday end (16:00) so the arrival is
+        // tested against the off-hours boundary. The post-2026-07-30
+        // workday runs 08:00–16:00 (ticks 1200–2400), so this loop
+        // walks to just past tick 2400.
+        while (world.CurrentTick < GameClock.WorkdayEndTick) world.AdvanceWorldTick();
 
         Assert.False(world.ConfirmCitizenArrivedAtAssignment(founder.Id, quarry.Id));
         Assert.Equal(quarry.Id, founder.CurrentAssignment);
@@ -167,6 +171,10 @@ public class MobilizationTests
     public void FullStorage_PreservesStandingOrderWithoutUnnecessaryTravel()
     {
         var world = new CityWorld();
+        // Stand-alone worlds start at tick 0 (night, post-2026-07-30).
+        // Advance to the workday so the standing-order mobilisation
+        // fires; the test's arrival step depends on that.
+        TestHelpers.AdvanceToWorkday(world);
         Citizen citizen = TestHelpers.NewCitizen(42);
         world.RegisterCitizen(citizen);
         var farm = new Building(
@@ -199,6 +207,13 @@ public class MobilizationTests
     public void FullStorage_ReleasesArrivedWorkerButPreservesTravellingWorkerCommitment()
     {
         var world = new CityWorld();
+        // Advance to the configured workday so the arrival check in
+        // ConfirmCitizenArrivedAtAssignment does not reverse the
+        // journey. Tests that build worlds ad-hoc instead of going
+        // through TestHelpers.NewProductionWorld must do this too
+        // since the 2026-07-30 workday change moved the dawn to
+        // 08:00 (tick 1200).
+        TestHelpers.AdvanceToWorkday(world);
         Citizen arrived = TestHelpers.NewCitizen(42);
         Citizen travelling = TestHelpers.NewCitizen(43);
         world.RegisterCitizen(arrived);

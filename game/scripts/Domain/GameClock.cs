@@ -22,9 +22,12 @@ public static class GameClock
     /// <summary>
     /// Provisional start of the configured workday, expressed as a tick within
     /// the in-game day. Kept explicit so presentation and routine scheduling do
-    /// not infer labour policy from a lighting constant.
+    /// not infer labour policy from a lighting constant. 08:00 = 8 hours ×
+    /// (3600 ticks / 24 h) = 1200 ticks; the visual day/night cycle remains
+    /// the whole 24 h so the city still ticks overnight, only the labour
+    /// window has been pushed to a sensible morning-to-afternoon band.
     /// </summary>
-    public const int WorkdayStartTick = 0;
+    public const int WorkdayStartTick = 1200;
 
     /// <summary>Exclusive end of the provisional workday (16:00).</summary>
     public const int WorkdayEndTick = 2400;

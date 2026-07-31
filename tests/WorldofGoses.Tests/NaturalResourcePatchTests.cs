@@ -129,17 +129,10 @@ public sealed class NaturalResourcePatchTests
         Assert.Equal(8, migrated.Version);
         Assert.Equal(2, migrated.Parcels.Count);
         Assert.Equal(2, migrated.NaturalResourcePatches.Count);
-        WorldSave current = WorldPersistence.MigrateV8ToV9(migrated);
-        current = WorldPersistence.MigrateV9ToV10(current);
-        current = WorldPersistence.MigrateV10ToV11(current);
-        current = WorldPersistence.MigrateV11ToV12(current);
-        current = WorldPersistence.MigrateV12ToV13(current);
-        current = WorldPersistence.MigrateV13ToV14(current);
-        current = WorldPersistence.MigrateV14ToV15(current);
-        current = WorldPersistence.MigrateV15ToV16(current);
-        current = WorldPersistence.MigrateV16ToV17(current);
-        current = WorldPersistence.MigrateV17ToV18(current);
-        current = WorldPersistence.MigrateV18ToV19(current);
+        // The step under test is asserted above; the rest of the way to today
+        // is the chain's own job, so this test survives future schema bumps.
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        Assert.Equal(WorldSave.CurrentVersion, current.Version);
         WorldPersistence.Validate(current);
     }
 
