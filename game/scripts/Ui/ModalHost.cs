@@ -144,11 +144,21 @@ public partial class ModalHost : Control
 
     private void CompleteClose()
     {
+        // The close animation uses CallDeferred on the content, so a
+        // route that disposes the content mid-animation (e.g., a scene
+        // swap or a hero profile view tearing down) can leave _content
+        // pointing at a freed wrapper. Touching Visible on a disposed
+        // wrapper throws ObjectDisposedException and the modal stays
+        // open. Guard each touchpoint so the host can still finish
+        // closing and refocus the previous owner if it survived.
         if (_content is not null)
         {
-            _content.Position = _contentRestingPosition;
-            _content.Modulate = Colors.White;
-            _content.Visible = false;
+            if (GodotObject.IsInstanceValid(_content))
+            {
+                _content.Position = _contentRestingPosition;
+                _content.Modulate = Colors.White;
+                _content.Visible = false;
+            }
             _content = null;
         }
         Visible = false;

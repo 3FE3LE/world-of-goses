@@ -59,7 +59,22 @@ public partial class IconButton : Button
             : ResourceLoader.Load<Texture2D>(IconPath);
     }
 
-    private void OnLineageChanged(string lineage) => ApplyAccent();
+    private void OnLineageChanged(string lineage)
+    {
+        // The static LineageThemeRegistry event can outlive this node
+        // when the node is freed through a path that bypasses _ExitTree
+        // (e.g., the parent frees a child whose notification chain was
+        // already torn down). AddThemeColorOverride on a disposed Godot
+        // Control throws ObjectDisposedException, and the rest of the
+        // registry subscribers would lose their callback to that error
+        // because the invocation list stops at the first throw. Discard
+        // the event when the wrapper has already been released so the
+        // surviving buttons keep updating. The defensive check costs a
+        // couple of nanoseconds on the hot path because most buttons are
+        // inside the tree at the moment a lineage change fires.
+        if (!GodotObject.IsInstanceValid(this) || !IsInsideTree()) return;
+        ApplyAccent();
+    }
 
     private void ApplyAccent()
     {

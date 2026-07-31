@@ -54,6 +54,13 @@ public enum WorldEventSubjectKind
     Citizen,
     Expedition,
     Parcel,
+    /// <summary>
+    /// A ground resource patch — i.e. a <see cref="NaturalResourcePatch"/>
+    /// outside the Forest building. EG-1 introduces this subject kind so
+    /// gathering from Branches / Plant Fiber / Small Stone / Wild Food
+    /// patches can be recorded with their own causal context.
+    /// </summary>
+    Patch,
 }
 
 /// <summary>
@@ -82,6 +89,9 @@ public readonly record struct WorldEventSubject(
 
     public static WorldEventSubject Parcel(ParcelId id, string displayName) =>
         new(WorldEventSubjectKind.Parcel, id.Value, displayName);
+
+    public static WorldEventSubject Patch(int patchId, string displayName) =>
+        new(WorldEventSubjectKind.Patch, patchId, displayName);
 }
 
 /// <summary>

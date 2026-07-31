@@ -46,8 +46,9 @@ public sealed class EarlyGameMetricsTests
         // The regression that matters most. Restoring re-deposits every stored
         // resource through the same ledger gathering uses, so without an
         // explicit suspension a reload would count the player's whole
-        // stockpile as newly gathered — and the VS-5 procedure asks for
-        // several relaunches, so the error would compound every single time.
+        // stockpile as newly gathered — and any future playtest of EG-1+
+        // that asks for several relaunches would compound that error every
+        // single time.
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
         world.GatherWood(new BuildingId(100), 6);
@@ -114,7 +115,12 @@ public sealed class EarlyGameMetricsTests
         Assert.Equal(0, migrated.EarlyGameMetrics!.DawnSamples);
         Assert.Null(migrated.EarlyGameMetrics.FirstShelterCompletedAtTick);
         Assert.Empty(migrated.EarlyGameMetrics.Gathered);
-        WorldPersistence.Validate(migrated);
+        // Roll forward through every subsequent migration so the assertion
+        // is about the migration chain, not about which schema Validate
+        // currently happens to accept. As of EG-1 the next hop is V21.
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        Assert.Equal(WorldSave.CurrentVersion, current.Version);
+        WorldPersistence.Validate(current);
     }
 
     [Fact]

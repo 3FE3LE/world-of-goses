@@ -72,7 +72,7 @@ public partial class MacroStreetLiveView : Node2D
     private const float CenterX = 640f;
     private const float BaseY = 580f; // ScreenContent-local: clear of the ~68px MacroActions band
     private const float LotUnitPx = 90f;
-    private const int WorldParcelColumns = 4;
+    private const int WorldParcelColumns = 5;
     private const int WorldParcelRows = 2;
 
     // Quantized zoom: discrete steps, never a continuous drag/slider.
@@ -142,6 +142,12 @@ public partial class MacroStreetLiveView : Node2D
     private static readonly Color BuildingColor = new("#8a7a54");
     private static readonly Color UnderConstructionModulate = new(0.55f, 0.55f, 0.55f);
     private static readonly Color PlacementAvailableColor = new("#2f8f5b99");
+    // Territory tints: opaque for Locked so the player cannot mistake
+    // it for buildable ground; progressively lighter for intermediate
+    // states so the visual cost of an expedition reads at a glance.
+    private static readonly Color LockedParcelColor = new(0.08f, 0.07f, 0.05f, 0.78f);
+    private static readonly Color ReconnoitredParcelColor = new(0.86f, 0.72f, 0.28f, 0.32f);
+    private static readonly Color RouteSecuredParcelColor = new(0.47f, 0.62f, 0.34f, 0.22f);
     private static readonly Color PlacementSelectedColor = new("#f2c94ccc");
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
@@ -3144,6 +3150,13 @@ public partial class MacroStreetLiveView : Node2D
     {
         float depth = street - CameraDepthAnchor;
         DrawTiledFloor(street, depth);
+        // Territory tint per parcel column: visualises the locked /
+        // reconnoitred / route-secured / available state so the player
+        // can see what the world still hides and what an expedition
+        // actually unlocked. Drawn before buildings/trees so the sprites
+        // sit on top of the band; drawn after the floor so the tint
+        // reads as overlay, not as the ground itself.
+        DrawParcelTerritoryTints(street, depth);
         float anchorDepth = AnchorDepth(depth);
 
         if (_placementActive)
@@ -3419,6 +3432,61 @@ public partial class MacroStreetLiveView : Node2D
                 Mathf.Max(Mathf.Max(nearLeft.X, nearRight.X), Mathf.Max(farLeft.X, farRight.X)),
                 Mathf.Max(yNear, yFar));
             _clickablePlacementRects.Add((new Rect2(boundsMin, boundsMax - boundsMin), lot));
+        }
+    }
+
+    /// <summary>
+    /// Per-parcel-column tint driven by <see cref="CityParcel.TerritoryState"/>.
+    /// Available parcels get no overlay so the terrain reads normally;
+    /// Locked gets an opaque dark band so the player cannot mistake it
+    /// for buildable ground; intermediate states get a translucent hue
+    /// so the player can see an expedition has done partial work without
+    /// the tint looking like a hard error. Drawn band-by-band on the
+    /// stepped trapezoid that already projects the floor, so the tint
+    /// shares the same vanishing point and lateral camera offset.
+    /// </summary>
+    private void DrawParcelTerritoryTints(int street, float streetDepth)
+    {
+        if (_controller?.World is not { } world) return;
+        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
+        int lotRowWithinParcel = street % ParcelGrid.LotsPerAxis;
+        int parcelRow = street / ParcelGrid.LotsPerAxis;
+        float depthNear = streetDepth;
+        float depthFar = streetDepth + 1f / ParcelGrid.LotsPerAxis;
+        float yNear = StreetDepthProjection.RowScreenY(depthNear, BaseY);
+        float yFar = StreetDepthProjection.RowScreenY(depthFar, BaseY);
+        float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
+        float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
+        foreach (CityParcel parcel in world.Parcels.Values)
+        {
+            if (parcel.LogicalRow != parcelRow) continue;
+            // Only draw on the front row of each parcel column so the
+            // tint covers the full lateral footprint once per parcel.
+            if (lotRowWithinParcel != 0) continue;
+            Color fill = parcel.TerritoryState switch
+            {
+                ParcelTerritoryState.Locked => LockedParcelColor,
+                ParcelTerritoryState.Reconnoitred => ReconnoitredParcelColor,
+                ParcelTerritoryState.RouteSecured => RouteSecuredParcelColor,
+                ParcelTerritoryState.Available => Colors.Transparent,
+                _ => Colors.Transparent,
+            };
+            if (fill.A == 0) continue;
+            float parcelLeftColumn = parcel.LogicalColumn * ParcelGrid.LotsPerAxis;
+            float parcelLeft = (parcelLeftColumn - totalLotColumns * 0.5f) * LotUnitPx
+                - CameraLateral;
+            float parcelRight = parcelLeft
+                + ParcelGrid.LotsPerAxis * LotUnitPx;
+            var nearLeft = new Vector2(CenterX + parcelLeft * scaleNear, yNear);
+            var nearRight = new Vector2(CenterX + parcelRight * scaleNear, yNear);
+            var farRight = new Vector2(CenterX + parcelRight * scaleFar, yFar);
+            var farLeft = new Vector2(CenterX + parcelLeft * scaleFar, yFar);
+            DrawRect(new Rect2(
+                new Vector2(Mathf.Min(nearLeft.X, farLeft.X), Mathf.Min(yNear, yFar)),
+                new Vector2(
+                    Mathf.Abs(farRight.X - farLeft.X),
+                    Mathf.Max(1f, Mathf.Abs(yFar - yNear)))),
+                fill);
         }
     }
 

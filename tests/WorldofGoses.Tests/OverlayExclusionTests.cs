@@ -8,9 +8,9 @@ namespace WorldofGoses.Tests;
 /// Mechanical guard for the M-12 "exclusión de overlays transitorios" todo:
 /// toast (Notifier), error (Notifier.ShowError), tutorial, Chronicle y
 /// modales deben mantener un orden de pintado determinístico y huecos
-/// para inserción futura. La firma humana del recorrido VS-5 decide si
-/// las posiciones reales se solapan en pantalla; estos tests garantizan
-/// que el contrato del catálogo no se rompe silenciosamente.
+/// para inserción futura. Un playtest EG-* decide si las posiciones
+/// reales se solapan en pantalla; estos tests garantizan que el contrato
+/// del catálogo no se rompe silenciosamente.
 /// </summary>
 public sealed class OverlayExclusionTests
 {

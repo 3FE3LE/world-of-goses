@@ -225,15 +225,45 @@ public class ConstructionTickTests
     [Fact]
     public void Night_RecoversStamina_AndAddsNoProgress()
     {
-        var world = TestHelpers.NewConstructionWorld();
-        var project = FirstProject(world);
+        // The night gate only applies once the founding camp has
+        // consolidated into a Basic Shelter (see
+        // PreShelter_BeforeFirstDawn_ProjectIsNotGatedByWorkday); a
+        // pre-shelter project is treated as 24/7 survival labour.
+        // WorldWithHome gives us a finished Home so the configured
+        // workday (08:00-16:00) is in force for this assertion.
+        var world = TestHelpers.WorldWithHome();
+        Assert.True(world.HasCompletedFirstShelter(),
+            "Test precondition: WorldWithHome has a Home.");
+        // Farm recipe needs Wood × 6 (deposit = 2); deposit with margin
+        // so the authorization does not fail on MissingMaterials.
+        world.DepositResource(ResourceType.Wood, 6);
         var hero = world.Hero!;
+        var project = AuthoriseAndAssignProjectForTest(world, hero.Id, ConstructionKind.Farm);
         Assert.True(project.IsAssigned(hero.Id));
         hero.ConsumeStamina(50);
         world.SetProjectEnabled(project.Id, false);
 
+        // Land one tick before the workday, then advance DayTicks + 5
+        // (= 1205) so the last tick observed is unambiguously five
+        // ticks past the configured 16:00 close.
+        TestHelpers.SetTick(world, GameClock.WorkdayStartTick - 1);
         for (int i = 0; i < GameClock.DayTicks + 5; i++) world.AdvanceWorldTick();
         Assert.Equal(ConstructionStopCause.Night, project.StopCause);
+        Assert.Equal(0, project.LastTickProgressAdded);
+        Assert.True(hero.CurrentStamina > 50,
+            $"Hero stamina should recover during night via ApplyNightRest, got {hero.CurrentStamina}.");
+    }
+
+    private static ConstructionProject AuthoriseAndAssignProjectForTest(
+        CityWorld world, CitizenId workerId, ConstructionKind kind)
+    {
+        var auth = world.TryAuthorizeConstruction(kind);
+        Assert.True(auth.IsSuccess,
+            $"Authorization for {kind} failed: {auth.Outcome}");
+        var project = FirstProject(world);
+        Assert.True(world.TryAssignToProject(project.Id, workerId).IsSuccess);
+        Assert.True(world.ConfirmCitizenArrivedAtAssignment(workerId, project.Id));
+        return project;
     }
 
     [Fact]
@@ -290,6 +320,91 @@ public class ConstructionTickTests
         var restoredProject = FirstProject(restored);
         Assert.Equal(project.Progress, restoredProject.Progress);
         Assert.Equal(project.AssignedCount, restoredProject.AssignedCount);
+    }
+
+    [Fact]
+    public void PreShelter_BeforeFirstDawn_ProjectIsNotGatedByWorkday()
+    {
+        // The configured workday (GameClock.WorkdayStartTick = 1200) is
+        // suspended until the first Basic Shelter exists. A freshly
+        // authored city whose clock starts at midnight must still be
+        // able to make construction progress on its first project; this
+        // is the founding camp, not city labour. See
+        // docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §5.
+        //
+        // NewConstructionWorld() builds the in-flight Basic Shelter
+        // project end-to-end (hero gathered, authorized, arrived at the
+        // worksite) and lands the clock at WorkdayStartTick so existing
+        // tests are unaffected. We then rewind the clock to midnight
+        // (tick 0) to assert the founding-camp bypass.
+        var world = TestHelpers.NewConstructionWorld();
+        var project = FirstProject(world);
+        Assert.True(project.IsAssigned(world.Hero!.Id));
+        Assert.Equal(CitizenLocation.AtWork, world.Hero!.CurrentLocation);
+
+        TestHelpers.SetTick(world, 0);
+        Assert.False(GameClock.IsDaytime(0), "Test precondition: tick 0 is night.");
+        Assert.False(world.HasCompletedFirstShelter(),
+            "Test precondition: no Basic Shelter exists yet.");
+
+        // First midnight tick: project must not be gated as Night.
+        world.AdvanceOfflineWorldTick();
+        Assert.NotEqual(ConstructionStopCause.Night, project.StopCause);
+
+        // Across enough offline ticks to cross at least one work
+        // interval, the project must also gain progress — every
+        // WorkIntervalTicks (= 10) is a contribution boundary
+        // pre-shelter. Cap below WorkdayStartTick so we never reach
+        // dawn; we are testing the founding-camp bypass, not the
+        // post-shelter gate.
+        int progressBefore = project.Progress;
+        for (int i = 0; i < GameClock.WorkdayStartTick - 5; i++)
+        {
+            world.AdvanceOfflineWorldTick();
+        }
+        Assert.True(project.Progress > progressBefore,
+            $"Pre-shelter construction must make progress at midnight (before={progressBefore}, after={project.Progress}).");
+        Assert.NotEqual(ConstructionStopCause.Night, project.StopCause);
+    }
+
+    [Fact]
+    public void PostShelter_BeforeFirstDawn_ProjectIsGatedByWorkday()
+    {
+        // Once the first Basic Shelter exists, the configured workday
+        // (08:00-16:00) governs every subsequent project. At midnight
+        // a post-shelter project must hit ConstructionStopCause.Night,
+        // proving the founding-camp bypass did not leak into the city
+        // phase.
+        //
+        // WorldWithHome() ships a Home (BuildingKind.Home) plus a
+        // placeholder Farm so the next authorization is not blocked by
+        // HomeRequired. We deposit enough Wood for a Farm recipe,
+        // authorise, assign and confirm arrival at the worksite during
+        // the configured workday (because ConfirmCitizenArrivedAtAssignment
+        // refuses to move a citizen from InTransit to AtWork outside
+        // the day window — a deliberate guard for live play, not for
+        // this test). Only then do we rewind the clock to tick 0 and
+        // assert the Night gate at midnight.
+        var world = TestHelpers.WorldWithHome();
+        Assert.True(world.HasCompletedFirstShelter(),
+            "Test precondition: WorldWithHome has a Home.");
+        Assert.True(GameClock.IsDaytime(world.CurrentTick),
+            "Test precondition: WorldWithHome lands inside the workday.");
+        world.DepositResource(ResourceType.Wood, 6);
+
+        var auth = world.TryAuthorizeConstruction(ConstructionKind.Farm);
+        Assert.True(auth.IsSuccess, $"authorization failed with {auth.Outcome}");
+        var project = FirstProject(world);
+        Assert.True(world.TryAssignToProject(project.Id, world.Hero!.Id).IsSuccess);
+        Assert.True(world.ConfirmCitizenArrivedAtAssignment(world.Hero!.Id, project.Id));
+        Assert.Equal(CitizenLocation.AtWork, world.Hero!.CurrentLocation);
+
+        TestHelpers.SetTick(world, 0);
+        Assert.False(GameClock.IsDaytime(0));
+
+        world.AdvanceOfflineWorldTick();
+        Assert.Equal(ConstructionStopCause.Night, project.StopCause);
+        Assert.Equal(0, project.LastTickProgressAdded);
     }
 
     private static ConstructionProject FirstProject(CityWorld world)

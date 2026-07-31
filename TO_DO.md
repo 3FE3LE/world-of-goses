@@ -19,29 +19,39 @@
 | Hecho | Cerrado recientemente; se elimina después de dos días calendario. |
 | Superado | Ya no aplica; se conserva dos días con el motivo. |
 
-### Prioridad del slice
+### Prioridad del increment
 
-Hasta cerrar VS-5 no se inicia profundidad nueva. Solo se admiten:
+> **2026-07-31 — cambio de norte.** Se descarta `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`
+> (VS-5 y sus 17 criterios). El proyecto aún no tiene las dos capas de
+> complejidad (Founding Site + plot lifecycle + resource seam) que pide
+> `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` antes de hablar de herida,
+> tratamiento y territorios desbloqueables. Wound/recovery/territory loops
+> quedan diferidos hasta EG-2 + EG-3 + EG-5 estables.
 
-1. Correcciones encontradas durante el recorrido humano del primer loop.
-2. Evidencia necesaria para firmar los 17 criterios de aceptación.
+Hasta que la acceptance test de `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`
+§17 no se cumpla en un slot limpio nuevo, no se abre profundidad nueva. Solo se
+admiten:
+
+1. Correcciones que un playtest de la apertura EG-A0 exponga como bloqueantes.
+2. Avance de los increments EG-1 a EG-6 en el orden de §15.
 3. Limpieza documental o técnica que no cambie el producto.
 
 ### Baseline vigente
 
 - Fecha de alineación: **2026-07-31**.
-- Slice activo: **VS-5 — firma y repetición**.
-- Próximo trabajo aprobado: **EG-0 implementado**; recorrer VS-5 en el slot
-  limpio nuevo (ese recorrido produce ya el reporte EG-0), después **EG-3** y
-  entonces la firma de VS-5. Ver el checkpoint en §2.
-- Save: **schema v20** (EG-0).
+- Slice activo: **EG-2 — founding site seam**. EG-1 ya cerrado: schema v21,
+  `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
+  `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
+  genérico y cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`.
+  EG-2 introduce el Founding Site 3×3 con módulos Campfire/Bedroll/Cache/Canopy.
+- Save: **schema v21** (EG-1).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **653 / 654** (1 omitido por brittleness del snapshot JSON en
+- Tests: **663 / 664** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
 - Arranque Godot headless: correcto.
-- Fuente de verdad del slice: `docs/CURRENT_STATUS.md` y
-  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+- Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
+  `docs/CURRENT_STATUS.md`.
 
 ## 1. Resumen
 
@@ -53,117 +63,43 @@ Hasta cerrar VS-5 no se inicia profundidad nueva. Solo se admiten:
 | Diferido por trigger | 0 | 2 | 1 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
 
-## 2. Milestone activo — primer loop completo y repetible
+## 2. Increment activo — Apertura EG-A0 (proposal §15)
 
-Flujo objetivo:
+Flujo objetivo de la apertura temprana:
 
 ```text
-Onboarding → gathering → Shelter/Farm/Quarry → prospecto/reclutamiento
-→ asignación y presión de Food → preparación de expedición
-→ salida/encuentro/objetivo o retirada/regreso
-→ herida y territorio → tratamiento/nueva decisión
-→ guardado/carga → segunda expedición sin reset
+Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
+→ Founding Site (Campfire → Bedroll/Cache → Canopy)
+→ Cultivation Site: preparar → sembrar → crecer 3 días → cosechar
+→ primeras expeditions de Food y Wood (2–3 min reales cada una)
+→ consolidación: 3 plots + forestry gate + Farm
+→ segundo ciclo sin reset
 ```
 
-### Estado por fase
+### Estado por increment
 
-| Fase | Estado | Evidencia vigente |
+| Increment | Estado | Evidencia vigente |
 | --- | --- | --- |
-| VS-0 — ciudad causal | Hecho | Orden/compromiso, tránsito visible, stock lleno, descanso y equivalencia offline. |
-| VS-1 — reclutamiento y coste de oportunidad | Implementado; firma pendiente | Ayuntamiento, prospecto expedicionario, vivienda, disponibilidad explicada y ración diaria de Food. |
-| VS-2 — expedición mínima | Hecho | Equipo de 1–2 citizens, suministros, retirada, encuentro determinista, objetivo/retorno y persistencia. |
-| VS-3 — consecuencias y territorio | Hecho | Herida persistente, tratamiento Shelter/Food/tiempo y parcela de cuatro estados. |
-| VS-4 — persistencia | Hecho | Schema v19; reload por fases y tratamiento; resolución exacta una vez. |
-| VS-5 — firma y repetición | En curso | Recorrido humano iniciado; G1 reabierto y faltan relanzamientos visibles. |
+| EG-0 — medición del early game | Hecho | Schema v20; `eg0-report.txt` se actualiza por save; suspende observer durante Restore para no contar el inventario recargado. |
+| EG-1 — resource/storage seam | Hecho | Schema v21; `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`; `SeedStartingOpportunities` siembra EG-A0; `GatherFromPatch` genérico; cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`. |
+| EG-2 — founding site seam | Pendiente | Próximo. Founding Site 3×3 con Campfire → Bedroll/Cache → Canopy. |
+| EG-3 — Food horizon seam | Bloqueado | Espera EG-2. |
+| EG-4 — resource expedition seam | Bloqueado | Espera EG-3. |
+| EG-5 — consolidación | Bloqueado | Espera EG-4. |
+| EG-6 — calibration/signature | Bloqueado | Espera EG-5. |
 
-### 🔴 VS-5 — Firma humana y repetición
+### 🟡 M-14 — Matriz de regresión visual
 
-- **Estado:** En curso.
-- **Prioridad:** Crítica.
-- **Afecta:** flujo completo de `CityPrototype.tscn`, save principal,
-  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, `docs/VISUAL_REGRESSION.md`.
-- **Prueba automatizada existente:**
-  `VerticalSliceRepetitionTests.RecoveredCity_CanCompleteSecondExpeditionWithoutReset`.
-- **Trabajo restante:**
-  1. Empezar con un slot limpio y completar onboarding.
-  2. Recolectar Wood y construir Shelter, Farm y Quarry mediante UI normal.
-  3. Construir Ayuntamiento, obtener un prospecto por expedición y aceptarlo
-     con vivienda disponible.
-  4. Asignar y retirar varios citizens; verificar razones de indisponibilidad.
-  5. Observar varios días y confirmar que la ración de Food crea una decisión
-     legible sin bloquear el bootstrap.
-  6. Preparar una expedición con citizens reales, suministros y postura de
-     retirada.
-  7. Ver salida, encuentro, objetivo o retirada, regreso y resumen causal.
-  8. Verificar herida, tratamiento y desbloqueo territorial.
-  9. Cerrar y relanzar a mitad de expedición.
-  10. Cerrar y relanzar a mitad de tratamiento.
-  11. Iniciar un segundo ciclo sin reset ni herramientas de depuración.
-  12. Firmar contención 1280×720 y 1920×1080, además de foco por teclado y
-      gamepad en las superficies usadas.
-- **Aceptación:** los 17 criterios de
-  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` pasan sin editor, fixtures o comandos de
-  depuración.
-- **Regla:** cualquier bug hallado se corrige y se vuelve a recorrer desde el
-  último límite persistente relevante.
-
-#### Checkpoint para la próxima sesión — actualizado 2026-07-31
-
-**El checkpoint anterior ya no aplica.** Describía la partida iniciada el
-2026-07-30 (Shelter/Farm/Quarry/Town Hall, prospecto `Inara`, dos citizens) y
-mandaba reanudar desasignando al fundador de Quarry. Esa partida fue sustituida
-por un **slot limpio nuevo**, así que el recorrido VS-5 empieza otra vez desde
-el paso 1. Lo que se firmó antes de los criterios 1–5 sigue siendo válido como
-evidencia de que el código funciona; lo que hay que rehacer es el recorrido.
-
-Lo aprendido en la partida anterior que sigue vigente:
-
-- La primera expedición completa dura 600 ticks (4 horas simuladas, 10 minutos
-  a 1x, 2,5 a 4x). Prueba:
-  `ExpeditionTeamTests.FirstLoopTemplates_LastFourSimulatedHours`.
-- G1 sigue **reabierto**: Farm alcanzó 60 Food contra 2 Food/día de dos
-  residentes. El motor de abundancia es la Granja, que produce Food de la nada
-  sin receta de insumo — no la Madera inicial. Por eso lo cierra EG-3, no un
-  recorte de recursos de partida.
-
-**Primera acción al reanudar, en este orden:**
-
-1. **Arrancar el juego con el build actual.** La sesión que quedó corriendo el
-   2026-07-30 era anterior al arreglo de las rutas de guardado, y su autosave
-   no refrescaba `eg0-report.txt`.
-2. **Cruzar el primer amanecer** (tick 1200 = 08:00 in-game) y dejar que caiga
-   un autosave. Comprobar
-   `%LOCALAPPDATA%\World of Goses\eg0-report.txt`: si deja de decir
-   "No dawn has been sampled yet" y muestra días observados, horizonte de
-   comida y porcentaje ocioso, EG-0 queda verificado de punta a punta en el
-   juego real y todo lo jugado a partir de ahí cuenta como medición.
-3. **Recorrer VS-5 desde el paso 1** de la lista de arriba. Ese mismo recorrido
-   produce ahora los datos de EG-0, así que no hay que jugar la apertura dos
-   veces.
-4. Anotar con palabras propias el **criterio 6**: si con la Granja funcionando
-   la Comida vuelve a sobrar sin obligar a decidir nada, el reporte lo mostrará
-   como un horizonte de comida que nunca baja. Esa es la evidencia que aprueba
-   o revisa los números EG-A0 y justifica abrir EG-3.
-
-**Nota sobre `git status`:** `art/exports/characters/splash/` y
-`game/assets/characters/splash/` aparecen como no rastreados **a propósito**.
-Son la misma copia de 38 MB del splash art generado por IA que ya vive
-rastreada en `art/references/`; comitear las tres triplicaría un repositorio de
-57 MB de forma permanente, y sin Git LFS, por placeholders que van a
-sustituirse por PNG dibujados a mano de ~100 KB. Se rastrearán cuando existan
-esas versiones. No añadir a `.gitignore`: eso bloquearía las definitivas.
-`LineageSplashRegistry` cae al sprite animado si el asset falta, así que un
-clon limpio degrada en vez de romperse.
-
-**Después del recorrido: abrir EG-3**, no EG-1. Ver
-`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15 — el orden aprobado
-es EG-0 → EG-3 → firma de VS-5, porque EG-1/EG-2 reescribirían la apertura y
-reabrirían los criterios 1–5 ya firmados.
-
-### Estado de los 17 criterios
-
-| # | Criterio abreviado | Estado |
-| ---: | --- | --- |
+- **Estado:** En curso como contrato transversal.
+- **Prioridad:** Media.
+- **Afecta:** `tools/Capture-VisualMatrix.ps1`,
+  `docs/VISUAL_REGRESSION.md`, escenas/UI tocadas por cada cambio.
+- **Hecho:** harness read-only con medidas reales en 1280×720 y 1920×1080,
+  manifiesto, frame-time del engine y fixtures de las superficies principales.
+- **Pendiente para EG-1:** contención visual de los nodos Branches/Plant
+  Fiber/Small Stone/Wild Food en macro view; firma humana de su comportamiento
+  de recogida.
+- **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
 | 1 | Fundador persistente | Firma humana obtenida |
 | 2 | Gathering y tres edificios iniciales | Firma humana obtenida |
 | 3 | Reclutamiento restringido | Firma humana obtenida |
@@ -192,12 +128,12 @@ reabrirían los criterios 1–5 ya firmados.
   `docs/VISUAL_REGRESSION.md`, escenas/UI tocadas por cada cambio.
 - **Hecho:** harness read-only con medidas reales en 1280×720 y 1920×1080,
   manifiesto, frame-time del engine y fixtures de las superficies principales.
-- **Pendiente para VS-5:** navegación/foco completo por teclado y gamepad,
-  close paths usados en el recorrido y firma humana de estados que no pueden
-  probarse headless.
+- **Pendiente para EG-1:** contención visual de los nodos Branches/Plant
+  Fiber/Small Stone/Wild Food en macro view; firma humana de su comportamiento
+  de recogida y de los mensajes de capacidad del Cache.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
 
-## 4. Pendientes después de VS-5
+## 4. Pendientes después de EG-1
 
 ### 🟡 M-25 — Feedback causal de importancia grande
 
@@ -215,8 +151,9 @@ reabrirían los criterios 1–5 ya firmados.
 - **Afecta:** `Notifier.cs`, `TutorialOverlay.cs`, `OfflineReportPanel.cs`.
 - **Problema:** toast, error, tutorial y Chronicle poseen posiciones de forma
   independiente; pueden coincidir en pantalla.
-- **Dirección:** un host con slots/prioridad solo si VS-5 reproduce el solape o
-  el siguiente slice necesita overlays simultáneos.
+- **Dirección:** un host con slots/prioridad solo si un playtest de la apertura
+  EG-A0 reproduce el solape, o si el siguiente increment requiere overlays
+  simultáneos.
 - **Aceptación:** save toast + error + tutorial no se solapan ni capturan input
   incorrectamente.
 
@@ -267,6 +204,103 @@ superados en 2026-07-30; ver §8.)_
 
 ### 2026-07-31
 
+- **EG-1 — resource/storage seam (schema v21).** Cuatro nuevos
+  `ResourceType`: `Branches`, `PlantFiber`, `SmallStone`, `WildFood`.
+  Cambios en `CityWorld`:
+  1. `GatherFromPatch(int patchId, int? unitId, int amount)` —
+     drain genérico de cualquier `NaturalResourcePatch`, no sólo los
+     Forests. El Forest legacy mantiene `WoodUnitReserves` mirrorado
+     para no romper el recipe gate.
+  2. `SeedStartingOpportunities()` — siembra EG-A0 en parcels libres:
+     14 Branches (7×2), 6 Plant Fiber (3×2), 6 Small Stone (3×2),
+     8 Wild Food (4×2). Idempotente y silenciosa cuando no hay
+     parcelas libres, así que un save con Home/Farm/Town Hall en
+     parcelas 3–6 no se altera retroactivamente.
+  3. `CarriedGroundResourceCapacity = 6` — los cuatro recursos nuevos
+     comparten un cap de carga de 6 unidades (proposal §4). Wood,
+     Stone, Food y compañía ignoran el cap porque van a per-building
+     storage. EG-2 reemplazará este cap por un sistema location-aware
+     (Cache = 12, Shelter = 24).
+  4. `PatchChanged` event + `WorldEventSubjectKind.Patch` para que el
+     presentation layer pueda refrescar overlays de suelo.
+  Persistencia: `WorldSave.CurrentVersion = 21` + `MigrateV20ToV21` (sólo
+  bump de versión; los nuevos tipos aparecen vía `SeedStartingOpportunities`
+  en el Restore). `SeedStartingOpportunities` se llama tanto en
+  `TryCompleteOnboarding` como en el path de Restore para que partidas
+  nuevas y legacy con parcelas libres tengan los mismos recursos EG-A0.
+  8 tests nuevos en `Eg1ResourceSeamTests` cubriendo distribución,
+  idempotencia, gather con cap y migración. Build 0/0; tests 663/664.
+- **Visual de TerritoryState en macro view.** El único parcel bloqueado
+  (Parcel 9, `LogicalColumn = 4`) quedaba fuera del área renderizada
+  (`WorldParcelColumns = 4`) y, aunque las Available no tenían tint
+  distintivo, no había forma de saber que existía territorio
+  descubrible. Tres cambios en `MacroStreetLiveView.cs`:
+  1. `WorldParcelColumns = 5` para que Parcel 9 entre al viewport.
+  2. Nuevo método `DrawParcelTerritoryTints` que pinta una banda
+     trapezoidal por columna de parcel, con color según
+     `CityParcel.TerritoryState`:
+     - `Locked` → opaco oscuro (0.08/0.07/0.05/0.78)
+     - `Reconnoitred` → mostaza translúcida (0.86/0.72/0.28/0.32)
+     - `RouteSecured` → verde oliva translúcida (0.47/0.62/0.34/0.22)
+     - `Available` → sin overlay (terrain tal cual)
+     El tint se proyecta sobre la misma grilla perspectiva que el piso,
+     así que respeta el offset de cámara lateral y el vanishing point.
+  3. Constantes nuevas en la sección de colores:
+     `LockedParcelColor`, `ReconnoitredParcelColor`,
+     `RouteSecuredParcelColor`.
+  Con esto una expedición `Reconnaissance` FullSuccess avanza Parcel 9
+  por tres estados (Locked → Reconnoitred → RouteSecured → Available)
+  y el jugador ve el cambio de color en tiempo real. Build + tests
+  siguen verdes (655/656).
+- **ESC global iterativo + audit de overlay.** Tres cambios en la cadena
+  de input para que un solo ESC cierre exactamente un overlay y no se
+  quede atrapado al abrir varios a la vez:
+  1. `CityPrototype._UnhandledInput` llama a
+     `CityWorldController.ReturnToCity()` cuando recibe `ui_cancel` —
+     HeroProfileView y BuildingDetailView cierran vía
+     `OnSelectionChanged`. Se ejecuta **después** de ModalHost y
+     PauseMenu (leaf-first en Godot), así que respeta la prioridad
+     existente.
+  2. `PauseMenu._UnhandledInput` ya no abre el menú con ESC cuando está
+     oculto; sólo lo cierra cuando está visible. El menú conserva su
+     botón dedicado. Evita que el primer ESC "se lo coma" el menú de
+     pausa y nunca cierre la vista de héroe o el detalle de edificio.
+  3. `ModalHost.CompleteClose` ahora descarta el `_content` si ya está
+     disposed antes de tocarlo (`!GodotObject.IsInstanceValid(_content)`).
+     Antes, una ruta que liberaba el content a mitad de la animación de
+     cierre lanzaba `ObjectDisposedException` y dejaba el modal
+     visible.
+  Auditoría de `OverlayLayers`: las 16 invocaciones están en la capa
+  correcta según el contrato documentado en `OverlayLayers.cs`. World=0,
+  AmbientTint=5, Hud=6, ContextMenu=8, SelectionInfo=9, Chronicle=10,
+  ModalScrim=20, Modal=21, PlacementOverlay=40, Tutorial=50,
+  Onboarding=80, FounderArrival=90, PauseAndNotifier=100. El scrim del
+  ModalHost está en ModalScrim=20 (debajo del Modal=21), así que el
+  panel siempre se ve sobre el scrim. Las vistas que reemplazan el
+  mundo (HeroProfile, BuildingDetail) están en Hud=6 — correctamente
+  por encima del AmbientTint y por debajo de cualquier modal.
+- **`ObjectDisposedException` en `IconButton.OnLineageChanged`.** El
+  manejador estático de `LineageThemeRegistry.ActiveLineageChanged` puede
+  sobrevivir a la liberación del nodo cuando un wrapper C# queda libre
+  sin pasar por `_ExitTree`. El evento se seguía disparando sobre el
+  wrapper muerto y `AddThemeColorOverride` reventaba. Fix: descartar el
+  evento si `!GodotObject.IsInstanceValid(this) || !IsInsideTree()`. El
+  resto de los suscriptores del registro siguen actualizándose.
+- **Bypass del workday antes del primer refugio.** El juego arranca con
+  el reloj en tick 0 (medianoche) pero la política de horario laboral
+  08:00–16:00 estaba activa desde el inicio, así que la primera
+  construcción quedaba en `ApplyNightRest` durante 8 horas. La guarda
+  de `CityWorld.AdvanceWorldTick` (edificios y proyectos) se cambió a
+  `isLaborTime = GameClock.IsDaytime(_tick) || !HasCompletedFirstShelter()`,
+  de modo que el fundador puede construir el refugio inicial a cualquier
+  hora. Una vez que se completa el primer `BuildingKind.Home`, la
+  política 08:00–16:00 entra en vigor normalmente. El bypass alinea el
+  juego con el espíritu de EG-A0 (campamento fundacional = labor manual
+  de supervivencia, no jornada laboral ciudadana). Helpers nuevos:
+  `CityWorld.HasCompletedFirstShelter()`, `TestHelpers.SetTick(world, tick)`.
+  Regression tests: `ConstructionTickTests.PreShelter_BeforeFirstDawn_*`
+  y `ConstructionTickTests.PostShelter_BeforeFirstDawn_*`. Test
+  existente migrado a post-shelter: `Night_RecoversStamina_AndAddsNoProgress`.
 - **EG-0 — medición del early game (schema v20).** `EarlyGameMetrics` acumula
   tiempo hasta el primer refugio, recursos recolectados/gastados,
   días-ciudadano ociosos, horizonte de comida y ausencia por expedición.
@@ -278,7 +312,7 @@ superados en 2026-07-30; ver §8.)_
      frontera del alba, que es el camino compartido por vivo y offline.
   2. El observador del `CityResourceLedger` se **suspende durante `Restore`**.
      Sin eso, cada recarga contabilizaría el inventario entero como recién
-     recolectado, y el procedimiento VS-5 pide varios relanzamientos.
+     recolectado, lo que ensucia cualquier playtest que verifique inventario.
   Una ciudad migrada desde v19 reporta cero muestras en vez de historia
   inventada. Tests: `EarlyGameMetricsTests`.
 - **Rutas de guardado unificadas.** El reporte estaba enganchado a una sola de
@@ -398,10 +432,11 @@ superados en 2026-07-30; ver §8.)_
   el cierre de H-29. No existe la vista ortogonal plana contra la cual
   pudiera haber dependencias residuales; el reanálisis ya no aplica. La
   cobertura de `MacroStreetLiveViewTests`, `StreetDepthProjectionTests`,
-  `StreetRoutePlannerTests`, `MacroInputBoundaryTests` y el recorrido humano
-  de VS-5 dan por cerrado: gather entre hileras, construcción adyacente,
-  entrada/salida del refugio, retorno expedicionario y un solo carrier por
-  citizen.
+  `StreetRoutePlannerTests` y `MacroInputBoundaryTests` da por cerrado:
+  gather entre hileras, construcción adyacente, entrada/salida del refugio y
+  un solo carrier por citizen. El cierre del retorno expedicionario queda
+  dentro de EG-4 (resource expedition seam) una vez el Founding Site provea
+  el Cache que sostiene la duración corta.
 
 ## 9. Fuera de alcance hasta cerrar el prototipo
 

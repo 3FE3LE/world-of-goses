@@ -1291,6 +1291,7 @@ public static class WorldPersistence
                 17 => MigrateV17ToV18(save),
                 18 => MigrateV18ToV19(save),
                 19 => MigrateV19ToV20(save),
+                20 => MigrateV20ToV21(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -1740,6 +1741,32 @@ public static class WorldPersistence
         }
         save.EarlyGameMetrics = new EarlyGameMetricsSave();
         save.Version = 20;
+        return save;
+    }
+
+    /// <summary>
+    /// EG-1 resource seam migration. v20 → v21 only bumps the version
+    /// number; the four new resource kinds (Branches, Plant Fiber,
+    /// Small Stone, Wild Food) live in the existing
+    /// <see cref="ResourceType"/> enum and the existing
+    /// <see cref="NaturalResourcePatch"/> already carries any of them
+    /// after the v21 enum extension. New cities gain the four patches
+    /// via <see cref="CityWorld.SeedStartingOpportunities"/> at
+    /// load time; legacy cities gain them only if parcels 3–6 are
+    /// free, which is the safe default. The carried cap of six units
+    /// is enforced at gather time, not at save time, so an existing
+    /// save with more than six carried units is honoured on load and
+    /// only stopped from growing further.
+    /// </summary>
+    public static WorldSave MigrateV20ToV21(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 20)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV20ToV21 expects version 20 but found {save.Version}.");
+        }
+        save.Version = 21;
         return save;
     }
 

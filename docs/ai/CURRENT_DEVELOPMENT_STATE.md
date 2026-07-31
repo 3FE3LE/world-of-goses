@@ -4,7 +4,7 @@
 > does not replace design documents or code. Update it when a phase
 > completes, a vertical slice advances, or the build/test baseline shifts.**
 
-**Last updated:** 2026-07-30
+**Last updated:** 2026-07-31
 
 ---
 
@@ -12,12 +12,13 @@
 
 | Dimension | Value |
 | --- | --- |
-| Active vertical slice | VS-5 signature and repetition in progress |
-| Next approved work | Finish VS-5 diagnostic, then EG-0 prerequisite |
-| Build | `dotnet build` clean (verified 2026-07-30) |
-| Tests | 586 / 586 passing (verified 2026-07-30) |
-| Save schema version (code) | `WorldSave.CurrentVersion = 19` |
-| Save schema version (docs) | v19 |
+| Active increment | EG-1 — resource/storage seam (proposal §15) |
+| Next approved work | EG-1 introduce Branches/Plant Fiber/Small Stone/Wild Food + capacidad Cache; luego EG-2 (Founding Site), EG-3 (plot lifecycle), EG-4, EG-5, EG-6. |
+| VS-5 audit | Descartado 2026-07-31; `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` borrado. |
+| Build | `dotnet build` clean (verified 2026-07-31) |
+| Tests | 655 / 656 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
+| Save schema version (code) | `WorldSave.CurrentVersion = 20` |
+| Save schema version (docs) | v20 (EG-0) |
 | Headless boot | OK with `godot --headless --path game --quit-after 3` |
 | Audio | No wired buses yet; `game/assets/audio/` is empty |
 | Walkable macro-camera | Detailed walkable-world prototype postponed; street-perspective macro camera is active |
@@ -148,7 +149,7 @@ These are real rules, but the implementation is missing required behavior.
 - Expedition art, formation, equipment, multiple encounters, cargo loss, and
   deeper health/territorial outcomes remain placeholder or absent.
 - Recruitment uses the Town Hall prospect and housing-capacity flow; its costs,
-  cadence and player-facing balance remain provisional until VS-5 signature.
+  cadence and player-facing balance remain provisional until EG-6 (calibration/signature).
 - Hero walking animation is a procedural sinusoid.
 - The official wound matrix has valid 1280×720 and 1920×1080 captures. The
   desktop harness can still intermittently attach to a 50×50 Godot client,
@@ -160,24 +161,24 @@ These are real rules, but the implementation is missing required behavior.
 
 ---
 
-## Critical gaps (from `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` §3)
+## Critical gaps (reformulados al proposal)
 
-| ID | Title | Severity |
+La tabla G0–G7 del antiguo `FIRST_PLAYABLE_LOOP_AUDIT.md` se descarta junto
+con ese documento. Lo que sigue siendo diagnóstico real del código:
+
+| ID | Título | Cómo lo cierra el proposal |
 | --- | --- | --- |
-| G0 | Authoritative citizen commitment/condition | Implemented; VS-5 signature pending |
-| G1 | Meaningful city pressure | Reopened: 60 Food vs 2/day produced no decision |
-| G2 | Constrained recruitment | Town Hall/prospect/housing first cut; VS-5 signature pending |
-| G3 | Expedition plan and team | Closed in VS-2 |
-| G4 | Expedition phase, encounter, and retreat resolution | Closed in VS-2 |
-| G5 | Persistent wound and shelter recovery | Closed in VS-3 |
-| G6 | Territorial state machine and unlock consequence | Closed in VS-3 |
-| G7 | Full snapshot and offline equivalence (cross-cutting) | Closed in VS-4 |
+| Food pressure sin operating-input (antiguo G1) | Granja produce Food sin receta. | **EG-3** — plot lifecycle con `readyAtTick` 10800 ticks. |
+| Territory legible (antiguo G6) | Parcel 9 ahora `Available` y visible (5 columnas + tints por estado). | **EG-4** cuando el Founding Site provea el Cache. |
+| Wound/recovery alcanzable (antiguo G5) | Fórmula de encuentro actual sesgada a FullSuccess para citizens con competency alta. | Diferido hasta **EG-5**; wound como feature sin demo verificable se descarta. |
 
-VS-2 through VS-4 close expedition planning, consequence, territory, and
-persistence boundaries. VS-5 is active: an automated integration test proves a
-save/reload followed by a second expedition with the same founder and no reset.
-The remaining proof is a complete player-facing run and human relaunches at the
-mid-expedition and mid-treatment boundaries without editor/debug paths.
+La cobertura de VS-2 (expedition planning), VS-3 (consequence), VS-4
+(persistence) y VS-0 (city causal) **sigue activa en código** —
+`ExpeditionTeamTests`, `ExpeditionEncounterTests`, `WoundRecoveryTests`,
+`TerritoryProgressionTests`, `VerticalLoopPersistenceTests` siguen pasando,
+aunque sus tests no se invocan como criterios de aceptación. Se conservan
+como regressions de seguridad hasta que la apertura EG-A0 los reescriba en
+EG-2 (Founding Site) y EG-4 (resource expedition).
 
 ## Out of scope (until prototype validates)
 
@@ -204,7 +205,8 @@ mid-expedition and mid-treatment boundaries without editor/debug paths.
 
 - Code facts: derived from the agent's code map (citizen/world/persistence
   paths, test counts, schema version).
-- Gap list: `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` §3.
+- Gap list: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3
+  (diagnóstico de implementación) y §15 (orden de increments).
 - Build / test baselines: `docs/CURRENT_STATUS.md` and the audit.
 - Visual matrix: `docs/VISUAL_REGRESSION.md`.
 

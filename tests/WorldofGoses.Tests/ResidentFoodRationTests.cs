@@ -5,8 +5,8 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// Once-per-day resident Food ration (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §17):
-/// every citizen costs Food at dawn regardless of stamina/work, so recruiting
+/// Once-per-day resident Food ration: every citizen costs Food at dawn
+/// regardless of stamina/work, so recruiting
 /// carries a real ongoing cost even for idle citizens the stamina-driven meal
 /// system would otherwise never charge.
 /// </summary>

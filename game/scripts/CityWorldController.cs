@@ -508,6 +508,11 @@ public partial class CityWorldController : Node
         // the Basic Shelter can be authorised. The wood-cost gate
         // would otherwise deadlock a fresh world.
         _world.SeedStartingForests();
+        // EG-1: also seed the four rudimentary ground resources
+        // (Branches, Plant Fiber, Small Stone, Wild Food) on free
+        // parcels after the Forests. Idempotent and silent on saves
+        // where parcels 3–6 are already taken by player construction.
+        _world.SeedStartingOpportunities();
 
         _onboardingCompletionPending = true;
         if (!TrySaveNow())
@@ -699,6 +704,11 @@ public partial class CityWorldController : Node
         // SeedStartingForests is idempotent — it skips when forests
         // already exist or when no hero is present.
         _world.SeedStartingForests();
+        // EG-1 retroactive seed for the four rudimentary ground
+        // resources on legacy saves. Silent when no free parcel is
+        // available — a save that already built something on
+        // parcels 3–6 keeps its layout and gains no new patches.
+        _world.SeedStartingOpportunities();
         _world.EnsureFoundingShelterContributor();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         if (migrated && PersistenceWritesEnabled)

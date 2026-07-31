@@ -4,8 +4,8 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3: an expedition is a real 1-2 citizen
-/// team, not a hero-only reservation. Covers plan validation (missing/
+/// An expedition is a real 1-2 citizen team, not a hero-only reservation.
+/// Covers plan validation (missing/
 /// duplicate/unavailable members, team size), atomic dispatch/rollback,
 /// and that every member — not just the first — is removed from city
 /// availability while away and restored on return/cancel.

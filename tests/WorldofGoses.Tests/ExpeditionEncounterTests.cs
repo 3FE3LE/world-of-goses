@@ -7,8 +7,8 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4: an active expedition steps through
-/// persisted phases (Outbound/Encounter/Objective/Returning/Resolved) and
+/// An active expedition steps through persisted phases
+/// (Outbound/Encounter/Objective/Returning/Resolved) and
 /// resolves exactly one deterministic encounter that modulates the reward.
 /// </summary>
 public class ExpeditionEncounterTests

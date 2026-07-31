@@ -17,6 +17,33 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CityPrototype : Node
 {
+    /// <summary>
+    /// Top-level back key. Iterates the input tree so a single ESC
+    /// pulse closes exactly one overlay:
+    /// <list type="number">
+    /// <item>Topmost modal — <see cref="ModalHost"/> is the leafmost
+    /// listener and eats the input via <c>SetInputAsHandled</c> when
+    /// <c>IsOpen</c>; no further handler runs.</item>
+    /// <item>Pause menu — closes itself when visible; otherwise
+    /// deliberately lets the event propagate instead of opening
+    /// (the pause menu has its own button, see <see cref="PauseMenu"/>).</item>
+    /// <item>Hero profile / building detail — this handler at the
+    /// scene root returns to <see cref="CityWorldController.Selection.MacroView"/>
+    /// via <see cref="CityWorldController.ReturnToCity"/>.</item>
+    /// </list>
+    /// Without this fallback the player had no way to leave the hero
+    /// profile or building detail with the keyboard once a modal
+    /// had been opened and dismissed.
+    /// </summary>
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!@event.IsActionPressed("ui_cancel")) return;
+        CityWorldController controller = GetNodeOrNull<CityWorldController>("CityWorldController");
+        if (controller is null) return;
+        controller.ReturnToCity();
+        GetViewport().SetInputAsHandled();
+    }
+
     public override void _Ready()
     {
         GD.Print("World of Goses prototype starting.");

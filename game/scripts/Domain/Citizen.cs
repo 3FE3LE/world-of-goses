@@ -436,6 +436,19 @@ public sealed class Citizen
     }
 
     /// <summary>
+    /// EG-1 ground-resource variant. Patches use a raw <c>int</c> id
+    /// rather than a <see cref="BuildingId"/> because they are not
+    /// buildings; the visual recovery still uses
+    /// <see cref="LastVisitedResourcePositionIndex"/>.
+    /// </summary>
+    internal void VisitResource(int patchId, int unitId, int positionIndex)
+    {
+        LastVisitedResourceBuildingId = null;
+        LastVisitedResourceUnitId = unitId;
+        LastVisitedResourcePositionIndex = positionIndex;
+    }
+
+    /// <summary>
     /// Records or updates the citizen's accumulated experience in a
     /// competency. New competencies are added; existing ones are updated.
     /// </summary>

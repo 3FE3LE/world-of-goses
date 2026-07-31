@@ -91,6 +91,17 @@ internal static class TestHelpers
         field!.SetValue(world, tick);
     }
 
+    /// <summary>
+    /// Test-only seam that pins the world's clock at a given tick
+    /// without firing mobilisation, food ration, day/night events or
+    /// any other stepped-tick side effect. Use this when a test wants
+    /// to assert a behaviour at a specific moment of the in-game day
+    /// (for example, midnight before the first dawn) without paying
+    /// the cost of advancing the world tick-by-tick through every
+    /// intervening phase boundary.
+    /// </summary>
+    public static void SetTick(CityWorld world, int tick) => SetCurrentTick(world, tick);
+
     public static CitizenProfile NewProfile(LineageId? lineage = null, GenderId? gender = null)
     {
         bool created = CitizenProfile.TryCreate(

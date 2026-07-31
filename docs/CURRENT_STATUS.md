@@ -1,29 +1,33 @@
 # Current Project Status
 
-**Last aligned:** 2026-07-30
+**Last aligned:** 2026-07-31
 
-**Active vertical slice:** VS-5 — player-facing signature and repetition
+**Active increment:** EG-2 — founding site seam
 
-**Next approved work:** EG-0 is implemented (schema v20); the remaining VS-5
-diagnostic run now also produces the EG-0 report. Then EG-3 (Food horizon), the
-only increment that closes G1, and then the VS-5 signature. EG-1/EG-2/EG-4/EG-5
-follow as their own slice — running them first would rewrite the opening and
-reopen acceptance criteria 1-5, which the human run has already signed. See
-`EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15.
+**Next approved work:** EG-2 introduce el Founding Site 3×3 con módulos
+Campfire → Bedroll/Cache → Canopy, sobre las bases de EG-1. El orden
+canónico es el de `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15:
+EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6. La aperture del antiguo
+VS-5 (17 criterios) se descartó el 2026-07-31: el proyecto aún no tiene las
+dos capas de complejidad (Founding Site + plot lifecycle + resource seam)
+que pide el proposal antes de hablar de herida, tratamiento y territorios
+desbloqueables.
 
 The design bible defines what the game is. This file defines what the connected
-code does today. `FIRST_PLAYABLE_LOOP_AUDIT.md` owns the 17 VS-5 acceptance
-criteria; `TO_DO.md` owns the actionable queue.
+code does today. `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` owns the
+acceptance test; `TO_DO.md` owns the actionable queue.
 
 ## 1. Verified baseline
 
 - Godot .NET 4.7.1, C#/.NET 8.
 - `dotnet build`: 0 errors, 0 warnings.
-- `dotnet test`: 652/653 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 663/664 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 20 (EG-0 opening measurement).
+- `WorldSave.CurrentVersion`: 21 (EG-1 resource seam). EG-0 still serialises its
+  measurement; EG-1 bumps the schema to add Branches/PlantFiber/SmallStone
+  and WildFood without inventing any on legacy saves.
 - Godot headless boot loads the current scene/slot without C# or scene errors.
 - EN/ES catalogs: 677 template IDs and 303 runtime keys validated.
 - Agent-context validation: 436 checks passing.
@@ -44,19 +48,14 @@ onboarding → gathering → construction → constrained recruitment
 The clean-slot human run has signed founder creation, gathering, Shelter/Farm/
 Quarry/Town Hall construction, constrained recruitment, multi-citizen work,
 navigation/entry, production and UI wheel isolation. It also found that 60 Food
-against a two-Food daily ration does not create meaningful pressure, reopening
-G1. The 2026-07-30 follow-up corrected the Home detail panel so the
+against a two-Food daily ration does not create meaningful pressure. The
+2026-07-30 follow-up corrected the Home detail panel so the
 "descansando N / capacidad M" line and the worker slots read the same source
 (`VisibleCitizens`), and added a hiding rule for non-founder citizens at
 home so closing the Shelter detail view no longer leaves every sleeping
 citizen visible at the building's entrance anchor (see `TO_DO.md` 2026-07-30).
-VS-5 still needs:
-
-1. One complete normal-UI run from a clean slot.
-2. A visible relaunch during an expedition.
-3. A visible relaunch during treatment.
-4. EG-0+ correction and revalidation of daily Food pressure.
-5. A second player-facing cycle without reset/debug actions.
+The same playtest informed the G1 diagnosis that motivates EG-3; that
+work is now sequenced under the proposal §15.
 6. 1280×720 and 1920×1080 containment plus keyboard/gamepad focus signature
    for the surfaces exercised by the loop.
 
@@ -135,8 +134,16 @@ No broader product slice is approved until all 17 audit criteria pass.
   releases follow.
 - Scrollable UI owns wheel input even at its first/last row; the world does not
   zoom through panels.
-- Policies exposes provisional 00:00–16:00 workday, production, off-duty and
-  construction rules.
+- Policies exposes provisional 08:00–16:00 workday, production, off-duty and
+  construction rules; the configured workday is suspended before the first
+  Basic Shelter exists so the founder can build the founding camp at any
+  time of day (founding-camp bypass).
+- ESC closes overlays iteratively: ModalHost (topmost modal first), then
+  PauseMenu (close only — open path is the dedicated button), then the
+  hero profile / building detail view via
+  `CityWorldController.ReturnToCity()` from `CityPrototype._UnhandledInput`.
+  `ModalHost.CompleteClose` no longer throws when its content is freed
+  mid-animation.
 - HUD carries immediate time/resources/alerts; save confirmation is temporary.
 - Chronicle compacts routine events and preserves causal links for significant
   results/blockers.
@@ -157,10 +164,12 @@ No broader product slice is approved until all 17 audit criteria pass.
   dimension.
 - Event history retains at most 128 significant events; pinned causal origins
   need scale review before mass wounds/population.
-- Workday hours and travel duration are provisional tuning.
+- Workday hours and travel duration are provisional tuning; the
+  founding-camp bypass keeps solo-survival construction going outside the
+  08:00–16:00 window until the first Basic Shelter registers.
 - Lineages remain qualitative metadata without mechanics.
 - Recruitment opportunity, housing numbers and all first-loop costs are
-  provisional until VS-5 play calibration.
+  provisional until EG-6 (calibration/signature).
 
 ## 5. Placeholder presentation
 
@@ -173,25 +182,26 @@ No broader product slice is approved until all 17 audit criteria pass.
 - No audio buses, streams or final causal sound pack are wired.
 - Some resource/system icons remain graphical debt.
 
-## 6. Closed gaps and active signature
+## 6. Closed implementation islands and active increments
 
-| ID | Status |
-| --- | --- |
-| G0 commitment/condition | Implemented; VS-5 UI signature pending. |
-| G1 city pressure | Reopened by human run: 60 Food vs 2/day created no decision. |
-| G2 constrained recruitment | Town Hall/prospect/housing first cut; VS-5 signature pending. |
-| G3 expedition plan/team | Closed in VS-2. |
-| G4 phases/encounter/retreat/return | Closed in VS-2. |
-| G5 wound/recovery | Closed in VS-3. |
-| G6 territory/unlock | Closed in VS-3. |
-| G7 persistence/offline equivalence | Closed in VS-4. |
+Las primitivas que ya están cerradas en código y pueden reutilizarse en los
+increments EG-*:
 
-The active slice remains the VS-5 diagnostic. G1 is reopened by observed balance
-failure; the approved follow-up is the bounded EG-0 sequence in
-`EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`, followed by a fresh VS-5
-signature.
+| Sistema | Estado | Comentario |
+| --- | --- | --- |
+| Onboarding / founder | Funcional | `AstralOnboardingView` produce un único `Citizen` persistente con rol `hero`. |
+| Commitment exclusivo | Funcional | `Citizen.Commitment` rechaza transiciones incompatibles visiblemente. |
+| Construcción / proyectos | Funcional | `ConstructionProject` + deposit + remainder; phased progress. |
+| Persistencia offline | Funcional | Schema v20 con EG-0; reload exacto por fase y por frontera offline. |
+| Citizens y asignaciones | Funcional | `CitizenRoutine` cubre work, expedition, recovery. |
+| Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código pero se difieren hasta EG-5. |
 
-## 7. Known debt that does not block VS-5
+Los gaps del antiguo VS-5 se reformularon dentro del proposal. La abundancia
+de Food sin receta de insumo (G1) la cierra EG-3; el territorio legible se
+mantiene vivo (Parcel 9 ahora `Available`) pero la herida persistente y el
+tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
+
+## 7. Known debt that does not block EG-2
 
 - Confirm live pathfinding through tree rows and gather visibility in the street
   perspective.
@@ -199,7 +209,7 @@ signature.
   model before expanding territory navigation.
 - Add one operating input→output chain before generalizing the economy.
 - Add a dedicated expedition snapshot before expanding its UI/state surface.
-- Complete large-event feedback and overlay exclusion only where a real VS-5
+- Complete large-event feedback and overlay exclusion only where a real EG-1/EG-2
   interaction requires it.
 - Defer MultiMesh until more than 20–25 citizens are visible or profiler data
   justifies it.
@@ -240,8 +250,10 @@ C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
   --headless --path game --quit-after 3
 ```
 
-VS-5 additionally requires the normal-UI/manual procedure in
-`FIRST_PLAYABLE_LOOP_AUDIT.md`; headless boot is not a substitute.
+La acceptance test del proposal (§17) requerirá un playtest de la apertura
+EG-A0 en un slot limpio nuevo; headless boot no es sustituto. La matriz
+visual (`docs/VISUAL_REGRESSION.md`) sigue siendo el contrato transversal
+de cualquier cambio de UI.
 
 ## 10. Current file map
 
@@ -259,4 +271,5 @@ VS-5 additionally requires the normal-UI/manual procedure in
 - Reusable UI/input: `game/scripts/Ui/`
 - Tests: `tests/WorldofGoses.Tests/`
 - Active backlog: `TO_DO.md`
-- Closure contract: `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`
+- Closure contract: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`
+  §17 (acceptance test del proposal).

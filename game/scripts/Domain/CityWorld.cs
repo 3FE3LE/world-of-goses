@@ -684,6 +684,44 @@ public sealed class CityWorld
     public const int StartingForestStorageCapacity = StartingForestWoodReserve * 2;
 
     /// <summary>
+    /// EG-1 carry cap. Per <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md
+    /// §4</c>, the founder can carry at most six collected units of the
+    /// four rudimentary ground resources (Branches, Plant Fiber, Small
+    /// Stone, Wild Food) before the Cache exists. Wood, Stone, Food and
+    /// the other resource kinds ignore this cap because they flow into
+    /// per-building storage instead of the carried inventory. EG-2
+    /// replaces this with location-aware capacities (Cache = 12, Basic
+    /// Shelter = 24) once the Founding Site modules ship; the cap
+    /// itself is the only enforcement here, not the policy of where
+    /// things sit.
+    /// </summary>
+    public const int CarriedGroundResourceCapacity = 6;
+
+    private static readonly ResourceType[] CarriedGroundResourceTypes =
+    {
+        ResourceType.Branches,
+        ResourceType.PlantFiber,
+        ResourceType.SmallStone,
+        ResourceType.WildFood,
+    };
+
+    /// <summary>
+    /// Total units of <see cref="CarriedGroundResourceTypes"/> currently
+    /// in the city inventory, i.e. ready to be spent on a Founding Site
+    /// module. EG-2 will move this into a location-aware ledger query;
+    /// for EG-1 it is the direct sum of the four type totals.
+    /// </summary>
+    public int CarriedGroundResourceCount()
+    {
+        int total = 0;
+        foreach (ResourceType type in CarriedGroundResourceTypes)
+        {
+            total += _resources.Available(type);
+        }
+        return total;
+    }
+
+    /// <summary>
     /// Drops two Forests into the world so the hero has a wood source
     /// to gather from. Each Forest starts with
     /// <see cref="StartingForestWoodReserve"/> wood still in it.
@@ -747,6 +785,103 @@ public sealed class CityWorld
         RegisterNaturalResourcePatch(new NaturalResourcePatch(
             forest2.Id.Value, new ParcelId(2), ResourceType.Wood,
             forest2.WoodUnitReserves, forest2.Id));
+    }
+
+    /// <summary>
+    /// EG-1 part two: seeds the four rudimentary ground resources from
+    /// <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §4</c>:
+    /// 14 Branches (7 bundles × 2), 6 Plant Fiber (3 × 2), 6 Small
+    /// Stone (3 × 2), 8 Wild Food (4 × 2). Each goes onto the next
+    /// free parcel in the 4×2 visible grid after the Forests, so a
+    /// fresh city ends with parcels 1–2 holding Wood and parcels 3–6
+    /// holding the four rudimentary types in EG-A0 order. Idempotent:
+    /// a save that already has any of the four EG-1 resource types
+    /// in its patch set is left alone. Mid-game saves that already
+    /// occupied parcels 3–6 skip the seeding for whichever type would
+    /// collide; leftover types still appear on the next free parcel.
+    /// </summary>
+    public void SeedStartingOpportunities()
+    {
+        if (_citizens.Count == 0) return;
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.ResourceType == ResourceType.Branches
+                || patch.ResourceType == ResourceType.PlantFiber
+                || patch.ResourceType == ResourceType.SmallStone
+                || patch.ResourceType == ResourceType.WildFood)
+            {
+                return;
+            }
+        }
+
+        EnsureFoundingParcels();
+
+        // Distribute EG-A0 types in declared order onto the first free
+        // parcels after the Forest slots (parcels 1–2). Each tuple is
+        // (resource type, units-each). Bundles/clusters/patches of "×2"
+        // in the proposal mean N entries of 2 units each.
+        var plan = new (ResourceType Type, int UnitCount)[]
+        {
+            (ResourceType.Branches, 7),
+            (ResourceType.PlantFiber, 3),
+            (ResourceType.SmallStone, 3),
+            (ResourceType.WildFood, 4),
+        };
+        foreach ((ResourceType type, int unitCount) in plan)
+        {
+            ParcelId? parcel = NextFreeParcelForGroundPatch();
+            if (parcel is null) return;
+            int patchId = NextGroundPatchId();
+            var reserves = new int[unitCount];
+            for (int i = 0; i < unitCount; i++) reserves[i] = 2;
+            RegisterNaturalResourcePatch(new NaturalResourcePatch(
+                patchId, parcel.Value, type, reserves));
+        }
+    }
+
+    private ParcelId? NextFreeParcelForGroundPatch()
+    {
+        foreach (CityParcel parcel in _parcels.Values)
+        {
+            if (!parcel.IsUnlocked) continue;
+            // A parcel is "free" for a new ground patch when no
+            // existing patch or building placement is bound to it.
+            if (ParcelHasExistingPatch(parcel.Id)) continue;
+            if (ParcelHasBuildingOrProject(parcel.Id)) continue;
+            return parcel.Id;
+        }
+        return null;
+    }
+
+    private bool ParcelHasExistingPatch(ParcelId parcelId)
+    {
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.ParcelId == parcelId) return true;
+        }
+        return false;
+    }
+
+    private bool ParcelHasBuildingOrProject(ParcelId parcelId)
+    {
+        foreach (ParcelPlacement placement in _parcelPlacements.Values)
+        {
+            if (placement.ParcelId == parcelId) return true;
+        }
+        return false;
+    }
+
+    private int NextGroundPatchId()
+    {
+        int max = 0;
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.Id > max) max = patch.Id;
+        }
+        // Keep clear of legacy Forest patch ids (100/101) and the
+        // reserved range that <c>CityWorldController</c> uses for the
+        // synthetic Forest ids. EG-1 ground patches start at 200.
+        return Math.Max(max, 200) + 1;
     }
 
     private void EnsureFoundingParcels()
@@ -968,6 +1103,28 @@ public sealed class CityWorld
         foreach (var citizen in _citizens.Values)
         {
             if (citizen.CurrentAssignment.HasValue) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// True once at least one Basic Shelter (BuildingKind.Home) has been
+    /// completed. The configured workday
+    /// (<see cref="GameClock.WorkdayStartTick"/>–<see cref="GameClock.WorkdayEndTick"/>)
+    /// is suspended until the founding camp consolidates into a permanent
+    /// shelter: solo-survival construction and gathering proceed at any time
+    /// of day, and only after the first Home registers does the 08:00–16:00
+    /// labour window apply to subsequent buildings and projects. See
+    /// docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §5 — the founding
+    /// camp is manual survival labour, not city labour, so a freshly authored
+    /// city whose clock starts at midnight can still build its first shelter
+    /// before the first dawn.
+    /// </summary>
+    internal bool HasCompletedFirstShelter()
+    {
+        foreach (var building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home) return true;
         }
         return false;
     }
@@ -1215,6 +1372,116 @@ public sealed class CityWorld
         }
         return gathered;
     }
+
+    /// <summary>
+    /// EG-1 generalised gather. Drains up to <paramref name="amount"/>
+    /// units from the named <see cref="NaturalResourcePatch"/> and
+    /// credits them to the city inventory under the patch's own
+    /// <see cref="NaturalResourcePatch.ResourceType"/>. Returns the
+    /// amount actually gathered (0 if the patch is depleted, the hero
+    /// is unavailable, or the city inventory is full under the
+    /// carrying cap). When the patch is the legacy Forest
+    /// (<see cref="NaturalResourcePatch.LegacyStorageBuildingId"/>
+    /// pointing at a <see cref="BuildingKind.Forest"/>), the Forest's
+    /// mirrored WoodUnitReserves stay in sync with the patch so the
+    /// legacy building entity never lies about its remaining wood.
+    /// </summary>
+    public int GatherFromPatch(int patchId, int? unitId, int amount)
+    {
+        if (amount <= 0) return 0;
+        Citizen? hero = Hero;
+        if (hero is null || !hero.IsAvailable) return 0;
+        if (!_naturalResourcePatches.TryGetValue(patchId, out NaturalResourcePatch? patch))
+        {
+            return 0;
+        }
+
+        // EG-1 carry cap: clamp the gather so the four rudimentary
+        // resources never exceed CarriedGroundResourceCapacity together.
+        // Wood, Stone, Food, Iron and Potions ignore the cap because
+        // they flow into per-building storage rather than the carried
+        // inventory. Patch drain happens after the clamp so the unit
+        // the hero "wastes" still decrements from the ground.
+        int requested = amount;
+        if (IsCarriedGroundResource(patch.ResourceType))
+        {
+            int headroom = Math.Max(0, CarriedGroundResourceCapacity - CarriedGroundResourceCount());
+            if (headroom <= 0) return 0;
+            requested = Math.Min(requested, headroom);
+        }
+
+        int drained = unitId.HasValue
+            ? patch.GatherUnit(unitId.Value, requested)
+            : patch.Gather(requested);
+
+        if (drained <= 0) return 0;
+
+        // Legacy mirror: the Forest building keeps WoodUnitReserves for
+        // any caller that still reads it (recipe gate, visual regressions).
+        if (patch.LegacyStorageBuildingId is BuildingId buildingId
+            && _buildings.TryGetValue(buildingId, out var legacyBuilding)
+            && legacyBuilding.Kind == BuildingKind.Forest)
+        {
+            legacyBuilding.RestoreWoodUnits(patch.UnitReserves);
+        }
+
+        int gathered = _resources.DepositToCityInventory(patch.ResourceType, drained);
+
+        if (gathered > 0)
+        {
+            if (unitId.HasValue)
+            {
+                hero.VisitResource(
+                    patchId,
+                    unitId.Value,
+                    GroundResourcePositionIndex(patchId, unitId.Value));
+            }
+            _log.Record(_tick, WorldEventKind.StockProduced,
+                WorldEventSubject.Patch(patch.Id, patch.ResourceType.ToString()),
+                gathered);
+            RaisePatchChanged(patchId);
+        }
+        return gathered;
+    }
+
+    private static bool IsCarriedGroundResource(ResourceType type)
+    {
+        foreach (ResourceType carried in CarriedGroundResourceTypes)
+        {
+            if (carried == type) return true;
+        }
+        return false;
+    }
+
+    private int GroundResourcePositionIndex(int patchId, int unitId)
+    {
+        // Linear index over ground patches by their natural-order id,
+        // independent of Forest-specific bookkeeping. The macro view
+        // uses this to remember where the hero last picked from; the
+        // exact pixel offset is recovered from the snapshot.
+        int positionIndex = 0;
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            if (patch.Id == patchId)
+            {
+                return positionIndex + unitId;
+            }
+            positionIndex += patch.UnitReserves.Count;
+        }
+        return Math.Max(0, unitId);
+    }
+
+    private void RaisePatchChanged(int patchId)
+    {
+        PatchChanged?.Invoke(this, new PatchChangedEventArgs(patchId));
+    }
+
+    /// <summary>
+    /// Raised whenever a <see cref="NaturalResourcePatch"/>'s
+    /// <see cref="NaturalResourcePatch.UnitReserves"/> change so the
+    /// presentation layer can refresh the ground-resource overlay.
+    /// </summary>
+    public event EventHandler<PatchChangedEventArgs>? PatchChanged;
 
     private int ResourcePositionIndex(BuildingId forestId, int unitId)
     {
@@ -1590,10 +1857,17 @@ public sealed class CityWorld
         }
         ProcessCitizenNeedsAndStandingOrders(completeAbstractTravel);
         AdvanceWoundRecoveries();
+        // Founding camp bypass: while no Basic Shelter exists yet, every
+        // tick is a labour tick regardless of GameClock.IsDaytime. The
+        // configured workday (08:00-16:00) only governs the city phase
+        // that begins once the founder has built the first Home. See
+        // HasCompletedFirstShelter() for the full rationale.
+        bool isLaborTime = GameClock.IsDaytime(_tick)
+            || !HasCompletedFirstShelter();
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
-            if (GameClock.IsDaytime(_tick))
+            if (isLaborTime)
             {
                 ProductionStopCause previousStopCause = building.StopCause;
                 // Reactive resume: a building whose stock has fallen
@@ -1652,7 +1926,7 @@ public sealed class CityWorld
             int previousProgress = project.Progress;
             ConstructionStopCause previousStopCause = project.StopCause;
             project.LastTickProgressAdded = 0;
-            if (GameClock.IsDaytime(_tick))
+            if (isLaborTime)
             {
                 _construction.SimulateTick(project, isWorkInterval);
                 if (project.LastTickProgressAdded > 0)
@@ -1835,8 +2109,11 @@ public sealed class CityWorld
         };
 
     /// <summary>
-    /// Steps every active expedition through its phase quarters
-    /// (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4) once per tick, live and
+    /// Steps every active expedition through its phase quarters once per tick,
+    /// live and offline equivalently, and resolves the encounter exactly once.
+    /// The phase chain — Outbound → Encounter → Objective or Retreating →
+    /// Returning → Resolved — is documented in <c>ExpeditionPhase</c> and is
+    /// the contract the EG-4 resource sorties will build on.
     /// offline alike (called from the single shared tick body). Uses
     /// sequential ifs re-checking the just-updated phase, not a switch, so
     /// a large offline catch-up jump that lands past more than one boundary
@@ -1888,10 +2165,9 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// The expedition's single deterministic encounter
-    /// (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4). Deterministic from purely
-    /// persisted inputs — team condition (average stamina fraction), each
-    /// member's single best competency (whichever one they have actually
+    /// The expedition's single deterministic encounter. Deterministic from
+    /// purely persisted inputs — team condition (average stamina fraction),
+    /// each member's single best competency (whichever one they have actually
     /// practiced, "already earned in Farm/Quarry" per §11.2), supplies
     /// committed, and a seed derived from the expedition's own persisted id
     /// and start tick — so re-evaluating it after a save/load reload always
@@ -2007,11 +2283,11 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Once-per-day "mouths to feed" pressure (docs/FIRST_PLAYABLE_LOOP_AUDIT.md
-    /// §17, first open question). Every resident, working or idle, costs one
-    /// Food at dawn — recruiting a citizen is never free upkeep-wise, even
-    /// while they are unassigned. A shortfall never blocks or hurts anyone
-    /// directly (that consequence stays owned by the existing stamina/vital
+    /// Once-per-day "mouths to feed" pressure. Every resident, working or idle,
+    /// costs one Food at dawn — recruiting a citizen is never free
+    /// upkeep-wise, even while they are unassigned. A shortfall never blocks
+    /// or hurts anyone directly (that consequence stays owned by the existing
+    /// stamina/vital
     /// status path in <see cref="ProcessCitizenNeedsAndStandingOrders"/>);
     /// it only records a causal, visible event so the player can see Food
     /// reserves are not keeping up with the population.
@@ -2920,8 +3196,9 @@ public sealed class CityWorld
         WorldPersistence.Validate(save);
         // Restoring re-deposits every stored resource through the ledger.
         // Without this the load itself would be booked as gathering, and the
-        // figures would grow with every relaunch — precisely the sessions the
-        // VS-5 procedure asks the player to make.
+        // figures would grow with every relaunch — exactly the behaviour the
+        // EG-0 report cannot tolerate, since the playtest of EG-1+ depends on
+        // the metric being accurate across sessions.
         _resources.ObserveFlows(null);
         _citizens.Clear();
         _buildings.Clear();

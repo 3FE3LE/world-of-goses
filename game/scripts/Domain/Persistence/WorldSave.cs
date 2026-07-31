@@ -45,9 +45,10 @@ public sealed class WorldSave
     ///   <item><description>v18 — expedition plans persist a retreat posture and their causal dispatch event; retreat is distinct from pre-travel cancellation.</description></item>
     ///   <item><description>v19 — citizens persist durable wounds and treatment progress independently from stamina; parcels persist an expedition-driven territorial state and expeditions retain their target parcel.</description></item>
     ///   <item><description>v20 — EG-0 opening measurement (`EarlyGameMetrics`). Purely observational: no rule reads it, so migrated cities start with an empty measurement rather than a reconstructed one. A city that predates the instrumentation genuinely has no measured opening, and inventing one would corrupt the very numbers EG-0 exists to gather.</description></item>
+///   <item><description>v21 — EG-1 resource seam. Adds <c>Branches</c>, <c>PlantFiber</c>, <c>SmallStone</c> and <c>WildFood</c> to the resource enum and lets existing natural-resource patches carry any of them. Founding camp modules are not yet constructible (that is EG-2), but the four rudimentary resources are now present on free parcels of new cities and remain visible in legacy saves whose parcels 3–6 happen to be free. The carried cap of six units applies immediately to those four kinds; Wood, Stone and Food still flow into per-building storage without cap.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 20;
+    public const int CurrentVersion = 21;
 
     public int Version { get; set; } = CurrentVersion;
 

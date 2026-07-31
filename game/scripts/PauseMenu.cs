@@ -113,17 +113,17 @@ public partial class PauseMenu : Control
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        // ESC only closes the pause menu; it never opens it. The menu
+        // has its own button (see <see cref="_openButton"/>) so opening
+        // it via ESC would compete with the iterative back behaviour
+        // added in CityPrototype, which closes the topmost modal first,
+        // then returns to the macro view from a hero profile or
+        // building detail. Opening the pause menu from a single ESC
+        // press would skip those steps.
         if (!@event.IsActionPressed("ui_cancel")) return;
-
-        if (Visible)
-        {
-            if (_resetConfirmation.Visible) HideResetConfirmation();
-            else Close();
-        }
-        else
-        {
-            Open();
-        }
+        if (!Visible) return;
+        if (_resetConfirmation.Visible) HideResetConfirmation();
+        else Close();
         GetViewport().SetInputAsHandled();
     }
 

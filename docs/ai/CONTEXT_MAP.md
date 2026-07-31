@@ -57,7 +57,7 @@ which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `city-simulation`, `narrative-lore`, `lineages-and-cultures`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`, `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G2)
+- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
 - **Code:** `game/scripts/Domain/CitizenProspect.cs`, `CitizenOrigin.cs`, `game/scripts/MigrantPanel.cs`
 - **Consult `city-simulation` when:** housing capacity, consumption, or production is affected.
 - **Consult `narrative-lore` when:** there is dialogue, an origin story, or a historical event.
@@ -95,7 +95,7 @@ which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `expeditions-territory`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (pillar 6), `05_EXPEDITIONS.md`, `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G5)
+- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (pillar 6), `05_EXPEDITIONS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
 - **Code:** `game/scripts/Domain/CitizenVitalStatus.cs`, `StaminaRules.cs`
 - **Open question:** the relationship between persistent wounds and the existing stamina model is **not settled**. See `DECISION_LOG.md` → DEC-0011 (Proposed). Do not assume a wound subsystem exists; read the gap statement first.
 
@@ -103,7 +103,7 @@ which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `city-simulation`, `technical-foundation`, `presentation-experience`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (no instant healing), `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G5)
+- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (no instant healing), `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
 - **Code:** `game/scripts/Domain/CitizenVitalStatus.cs`, `Building.cs` (Basic Shelter), `CitizenNeedsRules.cs`
 - **Consult `city-simulation` when:** recovery consumes beds, staff, food, or medicine.
 
@@ -131,7 +131,7 @@ which domain owns the feature.
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`, `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G1)
+- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §2.3 / §7 (Food horizon seam, EG-3)
 - **Code:** `game/scripts/Domain/Upkeep.cs`, `CitizenNeedsRules.cs`, `CityEconomyRules.cs`, `CityInventory.cs`, `CityResourceLedger.cs`
 - **Note:** `Upkeep.ApplyUpkeep` is currently an intentional no-op. Confirm before assuming upkeep runs.
 
@@ -171,7 +171,7 @@ which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`, `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G4)
+- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §8.4 (resource sortie cohesion)
 - **Code:** `game/scripts/Domain/ExpeditionEncounterOutcome.cs`
 - **Hard rule:** the encounter must be deterministic and reproducible from persisted state.
 
@@ -195,7 +195,7 @@ which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `city-simulation`
 - **Conditional skills:** `core-game-vision`, `technical-foundation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`, `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` (gap G6)
+- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13 (territory advances as part of EG-4 resource sorties)
 - **Code:** `game/scripts/Domain/CityParcel.cs`, `ParcelGrid.cs`, `ParcelId.cs`, `ParcelPlacement.cs`
 
 ### Parcels
