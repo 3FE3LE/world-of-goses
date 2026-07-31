@@ -69,18 +69,26 @@ public static class LineageThemeRegistry
 
     private static readonly Dictionary<string, Color> IconAccentByLineage = new(StringComparer.Ordinal)
     {
-        // Stone and copper for Ardhen (memory, effort, repair).
-        ["ardhen"] = new(0.72f, 0.54f, 0.31f),
+        // Copper for Ardhen (memory, effort, repair). Pulled to ~20° hue so it
+        // reads as copper rather than as a third amber: Ardhen, Orveth and
+        // Vaelun previously sat inside a 10° band (34°/44°/42°), with Orveth
+        // and Vaelun only 2° apart, and no viewer could tell whose accent
+        // they were looking at. The three now occupy copper / gold / khaki.
+        ["ardhen"] = new(0.69f, 0.40f, 0.25f),
         // Soft teal for Eirune (water, growth, symbiosis).
         ["eirune"] = new(0.31f, 0.62f, 0.56f),
         // Blue-grey for Kovari (modular, mechanical, repair).
         ["kovari"] = new(0.42f, 0.54f, 0.68f),
         // Muted purple for Myrven (layers, performance, mediation).
         ["myrven"] = new(0.54f, 0.42f, 0.65f),
-        // Sand and khaki for Vaelun (route, signal, refuge).
-        ["vaelun"] = new(0.77f, 0.66f, 0.40f),
-        // Muted gold for Orveth (contract, reserve, exchange).
-        ["orveth"] = new(0.77f, 0.63f, 0.25f),
+        // Sand and khaki for Vaelun (route, signal, refuge). Pushed to ~62°,
+        // the olive end of its own description, and kept low-saturation so it
+        // reads dusty next to Orveth's rich gold.
+        ["vaelun"] = new(0.71f, 0.72f, 0.42f),
+        // Muted gold for Orveth (contract, reserve, exchange). Held at ~45°
+        // and made the purest of the three: Orveth is the gold lineage, so it
+        // keeps the hue while its neighbours move away from it.
+        ["orveth"] = new(0.81f, 0.66f, 0.19f),
         // Pale blue for Caelith (node, synthesis, diagnosis).
         ["caelith"] = new(0.48f, 0.72f, 0.85f),
         // Soft red for Theryn (pulse, empathy, ceremony).
