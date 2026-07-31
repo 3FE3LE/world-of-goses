@@ -145,6 +145,16 @@ Lo aprendido en la partida anterior que sigue vigente:
    como un horizonte de comida que nunca baja. Esa es la evidencia que aprueba
    o revisa los números EG-A0 y justifica abrir EG-3.
 
+**Nota sobre `git status`:** `art/exports/characters/splash/` y
+`game/assets/characters/splash/` aparecen como no rastreados **a propósito**.
+Son la misma copia de 38 MB del splash art generado por IA que ya vive
+rastreada en `art/references/`; comitear las tres triplicaría un repositorio de
+57 MB de forma permanente, y sin Git LFS, por placeholders que van a
+sustituirse por PNG dibujados a mano de ~100 KB. Se rastrearán cuando existan
+esas versiones. No añadir a `.gitignore`: eso bloquearía las definitivas.
+`LineageSplashRegistry` cae al sprite animado si el asset falta, así que un
+clon limpio degrada en vez de romperse.
+
 **Después del recorrido: abrir EG-3**, no EG-1. Ver
 `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15 — el orden aprobado
 es EG-0 → EG-3 → firma de VS-5, porque EG-1/EG-2 reescribirían la apertura y
