@@ -71,6 +71,7 @@ public sealed class Citizen
         new(CitizenBehaviorState.Idle, CitizenBehaviorRules.IsDocumentedTransition);
 
     public BuildingId? LastVisitedResourceBuildingId { get; private set; }
+    public int? LastVisitedResourcePatchId { get; private set; }
     public int? LastVisitedResourceUnitId { get; private set; }
     public int? LastVisitedResourcePositionIndex { get; private set; }
 
@@ -431,6 +432,7 @@ public sealed class Citizen
     internal void VisitResource(BuildingId buildingId, int unitId, int positionIndex)
     {
         LastVisitedResourceBuildingId = buildingId;
+        LastVisitedResourcePatchId = null;
         LastVisitedResourceUnitId = unitId;
         LastVisitedResourcePositionIndex = positionIndex;
     }
@@ -444,6 +446,7 @@ public sealed class Citizen
     internal void VisitResource(int patchId, int unitId, int positionIndex)
     {
         LastVisitedResourceBuildingId = null;
+        LastVisitedResourcePatchId = patchId;
         LastVisitedResourceUnitId = unitId;
         LastVisitedResourcePositionIndex = positionIndex;
     }

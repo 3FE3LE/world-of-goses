@@ -31,6 +31,10 @@ rules. They must be tested as a complete loop before promotion.
 
 ### 2.1 Resources and gathering
 
+*Historical diagnosis captured when this proposal was written. Schema v23
+supersedes the forest and macro-gathering bullets below; they remain here to
+preserve the reason for the redesign.*
+
 - `CityWorld.SeedStartingForests` creates two natural-resource patches.
 - Each patch contains 8 visible tree units and each tree holds 40 Wood.
 - A new city therefore starts with 16 trees and 640 extractable Wood.
@@ -167,6 +171,12 @@ create a hidden pre-camp warehouse.
   local mature trees are finite. A later regeneration slice may grow a sapling
   over roughly 10-14 in-game days when space and policy permit.
 
+**Implemented correction (2026-07-31, schema v23).** The obsolete prototype
+seed of 16 trees × 40 Wood is migrated proportionally to this six-tree × 8 Wood
+distribution. Branches, Plant Fiber, Small Stone and Wild Food are projected
+into the macro view as selectable, contextual gathering nodes; patch changes
+refresh the world immediately after collection.
+
 This makes local trees a strategic reserve. Early expeditions remain useful
 without making the initial map empty or decorative.
 
@@ -243,6 +253,16 @@ A phase completes through the existing contribution rules. The world advances
 phase boundaries live and offline through the same domain method. Presentation
 reads the current visual state but cannot complete a phase.
 
+**EG-2 tuning decision (2026-07-31).** The existing 720-work Basic Shelter
+budget is divided equally across the four Founding Site modules: 180 work per
+module. This preserves the validated total labour duration while assets and
+playtests are still pending. Because the opening has one founder and each
+module cost fits the capacity available before it, a Founding Site module pays
+its complete material cost when authorized; the legacy 25% construction
+deposit plus interval drawdown remains unchanged for ordinary buildings. This
+prevents the sole founder from becoming committed to construction while still
+needing to gather that same phase's inputs.
+
 For ordinary later buildings the phase sequence can remain linear:
 
 ```text
@@ -273,6 +293,9 @@ Each plot is domain state. Crop visuals only represent `Prepared`, `Sown`,
 ### 7.2 EG-A0 crop timing and yield
 
 - Preparing the first plot costs 1 Branch and 1 Small Stone.
+- The first plot requires a completed Basic Shelter and 180 work to prepare.
+  This bounded EG-3 tuning was confirmed on 2026-07-31; it does not generalize
+  later agricultural construction costs.
 - First crop: ready after 3 full in-game days.
 - First plot seed cost: 1 Food.
 - First harvest: 5 Food.
@@ -407,14 +430,18 @@ The opening remains recoverable without granting infinite free resources:
    accepted;
 2. essential modules cannot consume more than those guaranteed totals;
 3. the Cache reserves capacity for the minimum expedition return at dispatch;
-4. cancellation releases uncommitted reservations; work already performed may
+4. until the Founding Site becomes a shelter, the construction panel exposes
+   an explicit cargo-return action in both blueprint and underway views; it
+   returns every carried rudimentary resource to its matching authored ground
+   patch, so a mistaken 6/6 or 12/12 load cannot erase the next-module path;
+5. cancellation releases uncommitted reservations; work already performed may
    have a visible partial-loss rule, but it cannot erase the only path forward;
-5. the first Food sortie uses a Branch rather than Food, so zero Food does not
+6. the first Food sortie uses a Branch rather than Food, so zero Food does not
    block the Food recovery route;
-6. the first healthy Food sortie returns at least 3 Food;
-7. the UI warns before sowing or spending below the calculated Food horizon;
-8. a new city cannot recruit into an unsupported Food horizon;
-9. old saves with an active legacy shelter are allowed to finish it rather than
+7. the first healthy Food sortie returns at least 3 Food;
+8. the UI warns before sowing or spending below the calculated Food horizon;
+9. a new city cannot recruit into an unsupported Food horizon;
+10. old saves with an active legacy shelter are allowed to finish it rather than
    being rewritten in place.
 
 These are explicit safety rules, not invisible resource gifts.
@@ -525,21 +552,17 @@ resource opportunity, phase, crop, and capacity state.
 
 ## 15. Incremental implementation order
 
-**Gate (corrected 2026-07-30).** An earlier draft of this section read "no
-implementation begins until VS-5 closes". That contradicted this document's own
-header and `CURRENT_STATUS.md`, and it deadlocked: VS-5 cannot be signed while
-G1 is open, and G1 only closes with early-game work. The binding order is the
-one in the header — finish the remaining VS-5 diagnostic, open EG-0, and sign
-VS-5 after the early game is corrected.
+**Gate (corrected 2026-07-31).** The former VS-5 audit was discarded because
+its acceptance criteria predated the Founding Site, plot lifecycle and resource
+seams defined here. No VS-5 signature gates this sequence; each EG increment
+must instead satisfy its own end-to-end acceptance and preserve a completable
+city before the next increment begins.
 
-**Order (revised 2026-07-30).** The list below is a design narrative, not a
-dependency chain. G1 is the only gap blocking the VS-5 signature, and EG-3 is
-the increment that closes it: crops need plot state, `readyAtTick` and an
-offline boundary, none of which depend on the Cache, the rudimentary resources
-or the Founding Site. The approved path is therefore **EG-0 → EG-3 → sign
-VS-5**, with EG-1, EG-2, EG-4 and EG-5 following as their own slice once a
-signed baseline exists. Running them first would rewrite the opening and
-reopen acceptance criteria 1-5, which the human run has already signed.
+**Order (corrected 2026-07-31).** The binding dependency chain is
+**EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6**. The earlier proposal to
+skip directly from EG-0 to EG-3 was discarded with the old VS-5 audit: it would
+have introduced plots before the rudimentary-resource and Founding Site seams
+that make their opening costs and storage causal.
 
 The increments, in design order:
 
@@ -552,13 +575,22 @@ The increments, in design order:
    under-report exactly the idle stretches this measures. A city migrated from
    v19 reports zero samples rather than invented history. **Still open:** run a
    clean slot and approve or revise the EG-A0 numbers against the report.
-2. **EG-1 — resource/storage seam.** Generalize natural opportunities, add
+2. **EG-1 — resource/storage seam.** *Implemented 2026-07-31 (schema v21).*
+   Generalize natural opportunities, add
    bounded Cache storage and migrations. Keep the legacy opening available
    until the new loop is end-to-end.
-3. **EG-2 — founding site seam.** Deliver Campfire -> Bedroll/Cache -> Canopy
-   -> Basic Shelter in one stable 3 x 3 site, including offline phase completion.
-4. **EG-3 — Food horizon seam.** Add one plot, sowing, three-day growth,
-   harvest, ration projection, and offline crop readiness.
+3. **EG-2 — founding site seam.** *Implemented 2026-07-31 (schema v22).*
+   Deliver Campfire -> Bedroll/Cache -> Canopy -> Basic Shelter in one stable
+   3 x 3 site, including offline phase completion. Module facts persist through
+   consolidation; Cache raises rudimentary-resource capacity to 12 and the
+   completed shelter to 24. Authored module sprites remain an art integration,
+   not a domain dependency. A visible pre-Campfire cargo-drop action preserves
+   recoverability after a worst-case full load.
+4. **EG-3 — Food horizon seam.** *Implemented 2026-07-31 (schema v24).*
+   One Cultivation Site requires a completed Basic Shelter, 1 Branch,
+   1 Small Stone and 180 work; sowing consumes 1 Food, readiness resolves at
+   `readyAtTick` after 10,800 ticks in live and offline simulation, and harvest
+   deposits 5 Food. The HUD projects ration horizon and protected Food.
 5. **EG-4 — resource expedition seam.** Add one finite Food opportunity and
    one finite Wood opportunity through the existing full expedition chain.
 6. **EG-5 — consolidation.** Add second/third plots, Farm consolidation, and

@@ -129,6 +129,7 @@ public partial class MacroStreetWorld : Node2D
     {
         for (int street = StreetCount - 1; street >= 0; street--)
         {
+            if (!StreetDepthProjection.IsVisibleDepth(street - _depthAnchor)) continue;
             DrawStreetRow(street);
         }
         DrawAvatar();

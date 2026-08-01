@@ -12,4 +12,6 @@ public enum ConstructionAuthorizationOutcome
     MissingMaterials = 6,
     NoAvailableLot = 7,
     BuildingAlreadyBuilt = 8,
+    InvalidModule = 9,
+    PrerequisitesNotMet = 10,
 }

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;
@@ -54,6 +56,23 @@ public class Eg1ResourceSeamTests
     }
 
     [Fact]
+    public void SeedStartingForests_UsesSixMatureTreesWithEightWoodEach()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+
+        world.SeedStartingForests();
+
+        NaturalResourcePatch[] forests = world.NaturalResourcePatches.Values
+            .Where(patch => patch.ResourceType == ResourceType.Wood)
+            .ToArray();
+        Assert.Equal(2, forests.Length);
+        Assert.Equal(6, forests.Sum(forest => forest.UnitReserves.Count));
+        Assert.All(forests.SelectMany(forest => forest.UnitReserves),
+            reserve => Assert.Equal(8, reserve));
+        Assert.Equal(48, forests.Sum(forest => forest.TotalReserve));
+    }
+
+    [Fact]
     public void SeedStartingOpportunities_IsIdempotent()
     {
         var world = TestHelpers.NewHeroWorld();
@@ -75,6 +94,30 @@ public class Eg1ResourceSeamTests
         int gathered = world.GatherFromPatch(branches.Id, unitId: 0, amount: 1);
         Assert.Equal(1, gathered);
         Assert.Equal(1, world.CarriedGroundResourceCount());
+    }
+
+    [Fact]
+    public void GatherFromPatch_CapturesValidPatchVisitAndRoundTrips()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.SeedStartingOpportunities();
+        NaturalResourcePatch branches = FindFirstPatch(world, ResourceType.Branches);
+
+        Assert.Equal(1, world.GatherFromPatch(branches.Id, unitId: 0, amount: 1));
+
+        WorldSave captured = WorldPersistence.Capture(world);
+        WorldPersistence.Validate(captured);
+        CitizenSave hero = Assert.Single(captured.Citizens);
+        Assert.Null(hero.LastVisitedResourceBuildingId);
+        Assert.Equal(branches.Id, hero.LastVisitedResourcePatchId);
+        Assert.Equal(0, hero.LastVisitedResourceUnitId);
+
+        var restored = new CityWorld();
+        restored.Restore(captured);
+        Assert.Equal(branches.Id, restored.Hero!.LastVisitedResourcePatchId);
+        Assert.Equal(0, restored.Hero.LastVisitedResourceUnitId);
+        WorldPersistence.Validate(WorldPersistence.Capture(restored));
     }
 
     [Fact]
@@ -130,7 +173,7 @@ public class Eg1ResourceSeamTests
         WorldSave migrated = WorldPersistence.MigrateV20ToV21(save);
         Assert.Equal(21, migrated.Version);
         Assert.Equal(patchesBefore, migrated.NaturalResourcePatches.Count);
-        WorldPersistence.Validate(migrated);
+        WorldPersistence.Validate(WorldPersistence.MigrateToCurrent(migrated));
     }
 
     [Fact]
@@ -145,6 +188,40 @@ public class Eg1ResourceSeamTests
         WorldSave migrated = WorldPersistence.MigrateToCurrent(save);
         Assert.Equal(WorldSave.CurrentVersion, migrated.Version);
         WorldPersistence.Validate(migrated);
+    }
+
+    [Fact]
+    public void MigrateV22ToV23_CorrectsLegacyForestsAndPreservesDepletionRatio()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        WorldSave save = WorldPersistence.Capture(world);
+        save.Version = 22;
+        NaturalResourcePatchSave[] woodPatches = save.NaturalResourcePatches
+            .Where(patch => patch.ResourceType == ResourceType.Wood.ToString())
+            .ToArray();
+        Assert.Equal(2, woodPatches.Length);
+        woodPatches[0].UnitReserves = Enumerable.Repeat(5, 8).ToList();
+        woodPatches[1].UnitReserves = Enumerable.Repeat(0, 8).ToList();
+        BuildingSave legacyForest = save.Buildings.First(
+            building => building.Kind == BuildingKind.Forest.ToString());
+        legacyForest.WoodUnitReserves = Enumerable.Repeat(40, 8).ToList();
+        legacyForest.WoodReserve = 320;
+        legacyForest.StorageCapacity = 640;
+        legacyForest.MinStock = 0;
+        legacyForest.MaxStock = 640;
+        legacyForest.TargetStock = 640;
+
+        WorldSave migrated = WorldPersistence.MigrateV22ToV23(save);
+
+        Assert.Equal(23, migrated.Version);
+        Assert.Equal(new[] { 3, 0, 0 }, woodPatches[0].UnitReserves);
+        Assert.Equal(new[] { 0, 0, 0 }, woodPatches[1].UnitReserves);
+        Assert.Equal(new[] { 8, 8, 8 }, legacyForest.WoodUnitReserves);
+        Assert.Equal(24, legacyForest.MaxStock);
+        Assert.Equal(24, legacyForest.TargetStock);
+        WorldSave current = WorldPersistence.MigrateV23ToV24(migrated);
+        WorldPersistence.Validate(current);
     }
 
     private static NaturalResourcePatch FindFirstPatch(

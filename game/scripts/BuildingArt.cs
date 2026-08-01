@@ -80,9 +80,11 @@ public static class BuildingArt
     private static BuildingKind ConstructionKindToBuildingKind(ConstructionKind kind) => kind switch
     {
         ConstructionKind.BasicShelter => BuildingKind.Home,
+        ConstructionKind.FoundingSite => BuildingKind.Home,
         ConstructionKind.Farm => BuildingKind.Farm,
         ConstructionKind.Quarry => BuildingKind.Quarry,
         ConstructionKind.TownHall => BuildingKind.TownHall,
+        ConstructionKind.CultivationSite => BuildingKind.CultivationSite,
         _ => BuildingKind.Home,
     };
 }

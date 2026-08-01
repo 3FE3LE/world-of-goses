@@ -344,15 +344,29 @@ public partial class CityStatusPanel : PanelContainer
     /// </summary>
     private void BuildResourcesChip(CityStatusSnapshot snapshot)
     {
-        bool hasFood = snapshot.MaxFoodStock > 0;
+        bool hasFood = snapshot.FoodStock > 0 || snapshot.DailyFoodRation > 0;
         bool hasWood = snapshot.WoodStock > 0 || snapshot.WoodReserve > 0;
         if (!hasFood && !hasWood) return;
 
         var breakdown = new System.Text.StringBuilder();
         if (hasFood)
         {
+            breakdown.Append(snapshot.MaxFoodStock > 0
+                ? UiText.Format(
+                    "ui.status.food_stock", snapshot.FoodStock, snapshot.MaxFoodStock)
+                : UiText.Format("ui.status.food_amount", snapshot.FoodStock));
+            breakdown.Append('\n');
             breakdown.Append(UiText.Format(
-                "ui.status.food_stock", snapshot.FoodStock, snapshot.MaxFoodStock));
+                "ui.status.food_horizon",
+                snapshot.FoodHorizonDays,
+                snapshot.ProtectedFoodTarget));
+            if (snapshot.TicksUntilFirstHarvest is int ticks)
+            {
+                int days = (int)System.Math.Ceiling(
+                    ticks / (double)GameClock.TicksPerInGameDay);
+                breakdown.Append('\n');
+                breakdown.Append(UiText.Format("ui.status.first_harvest", days));
+            }
         }
         if (hasWood)
         {
@@ -362,8 +376,15 @@ public partial class CityStatusPanel : PanelContainer
                 : UiText.Format("ui.status.wood_stock", snapshot.WoodStock));
         }
 
-        string headline = hasFood && snapshot.MaxFoodStock > 0
-            ? UiText.Format("ui.status.food", snapshot.FoodStock, snapshot.MaxFoodStock)
+        string headline = hasFood
+            ? snapshot.FoodStock < snapshot.ProtectedFoodTarget
+                ? UiText.Format(
+                    "ui.status.food_warning",
+                    snapshot.FoodStock,
+                    snapshot.ProtectedFoodTarget)
+                : snapshot.MaxFoodStock > 0
+                    ? UiText.Format("ui.status.food", snapshot.FoodStock, snapshot.MaxFoodStock)
+                    : UiText.Format("ui.status.food_amount", snapshot.FoodStock)
             : hasWood
                 ? UiText.Format("ui.status.wood", snapshot.WoodStock)
                 : UiText.Get("Resources");

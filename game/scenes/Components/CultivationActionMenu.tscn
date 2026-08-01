@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/CultivationActionMenu.cs" id="1_menu"]
+
+[node name="CultivationActionMenu" type="Button"]
+visible = false
+custom_minimum_size = Vector2(40, 40)
+mouse_filter = 0
+focus_mode = 2
+theme_type_variation = "ButtonPrimary"
+text = ""
+script = ExtResource("1_menu")
+icon_path = "res://assets/ui/icons/24/leaf.svg"
+button_text = ""

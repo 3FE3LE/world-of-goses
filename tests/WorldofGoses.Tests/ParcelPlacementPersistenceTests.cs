@@ -52,13 +52,19 @@ public sealed class ParcelPlacementPersistenceTests
     [Fact]
     public void AuthorizedProject_ReservesFirstAvailableStandardLot()
     {
-        CityWorld world = TestHelpers.NewConstructionWorld();
-        ConstructionProject project = world.Projects.Values.Single();
-        ParcelPlacement placement = world.ParcelPlacements[project.Id];
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 4);
+        ConstructionLot expected = world.AvailableConstructionLots().First();
 
-        Assert.Equal(new ParcelId(1), placement.ParcelId);
-        Assert.Equal(2, placement.LotColumn);
-        Assert.Equal(2, placement.LotRow);
+        ConstructionAuthorizationResult result = world.TryAuthorizeBasicShelter();
+
+        Assert.True(result.IsSuccess, result.Outcome.ToString());
+        ParcelPlacement placement = world.ParcelPlacements[result.ProjectId!.Value];
+
+        Assert.Equal(expected.ParcelId, placement.ParcelId);
+        Assert.Equal(expected.LotColumn, placement.LotColumn);
+        Assert.Equal(expected.LotRow, placement.LotRow);
         Assert.Equal(BuildingFootprintCatalog.StandardWithSideSetbacksId,
             placement.FootprintProfileId);
     }

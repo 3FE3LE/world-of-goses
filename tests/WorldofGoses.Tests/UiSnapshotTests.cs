@@ -134,6 +134,30 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
+    public void CityMacroSnapshot_ProjectsEveryEgA0GroundResourceForInteraction()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.SeedStartingOpportunities();
+
+        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+
+        ResourceType[] projectedTypes = snapshot.Buildings
+            .Where(item => item.GroundResourceType.HasValue)
+            .Select(item => item.GroundResourceType!.Value)
+            .Distinct()
+            .ToArray();
+        Assert.Contains(ResourceType.Wood, projectedTypes);
+        Assert.Contains(ResourceType.Branches, projectedTypes);
+        Assert.Contains(ResourceType.PlantFiber, projectedTypes);
+        Assert.Contains(ResourceType.SmallStone, projectedTypes);
+        Assert.Contains(ResourceType.WildFood, projectedTypes);
+        Assert.Equal(17, snapshot.Buildings
+            .Where(item => item.GroundResourceType is not ResourceType.Wood)
+            .Sum(item => item.WoodUnitReserves.Count));
+    }
+
+    [Fact]
     public void BuildingDetailSnapshot_ContainsOnlyProjectedCitizenData()
     {
         var world = TestHelpers.NewProductionWorld();

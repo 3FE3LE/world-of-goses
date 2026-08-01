@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Domain;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -41,6 +42,7 @@ public partial class ResourceActionMenu : IconButton
     public void Open(
         int forestId,
         int unitId,
+        ResourceType resourceType,
         Vector2 targetPosition,
         Vector2 localAnchor,
         bool canGather,
@@ -49,8 +51,15 @@ public partial class ResourceActionMenu : IconButton
         _forestId = forestId;
         _unitId = unitId;
         _targetPosition = targetPosition;
+        SetIconAndLabel(
+            resourceType == ResourceType.Wood ? ResourceTree.AxeCursorPath : IconPaths.Plus,
+            string.Empty);
         Disabled = !canGather;
-        TooltipText = canGather ? UiText.Get("Gather") : unavailableReason;
+        TooltipText = canGather
+            ? UiText.Format(
+                "ui.gather.resource_action",
+                UiText.Get(resourceType.ToString().ToLowerInvariant()))
+            : unavailableReason;
         Show();
         ResetSize();
         Vector2 wanted = localAnchor + new Vector2(20, -36);

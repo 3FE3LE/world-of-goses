@@ -24,4 +24,6 @@ public enum BuildingKind
     /// </summary>
     Forest = 5,
     TownHall = 6,
+    /// <summary>A prepared agricultural plot that has not consolidated into a Farm.</summary>
+    CultivationSite = 7,
 }

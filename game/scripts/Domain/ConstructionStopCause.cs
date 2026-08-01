@@ -17,4 +17,5 @@ public enum ConstructionStopCause
     NoHero = 6,
     MissingMaterials = 7,
     WorkersInTransit = 8,
+    AwaitingModule = 9,
 }

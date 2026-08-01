@@ -34,6 +34,8 @@ public enum WorldEventKind
     WoundRecoveryStarted,
     WoundRecoveryCompleted,
     TerritoryAdvanced,
+    CropReady,
+    CropHarvested,
 }
 
 /// <summary>
@@ -61,6 +63,7 @@ public enum WorldEventSubjectKind
     /// patches can be recorded with their own causal context.
     /// </summary>
     Patch,
+    CultivationSite,
 }
 
 /// <summary>
@@ -92,6 +95,9 @@ public readonly record struct WorldEventSubject(
 
     public static WorldEventSubject Patch(int patchId, string displayName) =>
         new(WorldEventSubjectKind.Patch, patchId, displayName);
+
+    public static WorldEventSubject CultivationSite(BuildingId id, string displayName) =>
+        new(WorldEventSubjectKind.CultivationSite, id.Value, displayName);
 }
 
 /// <summary>

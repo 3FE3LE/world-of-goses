@@ -641,6 +641,8 @@ public partial class OfflineReportPanel : PanelContainer
         WorldEventKind.MigrantArrived => IconPaths.User,
         WorldEventKind.FoodRationShortfall => IconPaths.Warning,
         WorldEventKind.ExpeditionEncounterResolved => IconPaths.Warning,
+        WorldEventKind.CropReady => IconPaths.Leaf,
+        WorldEventKind.CropHarvested => IconPaths.Leaf,
         _ => null,
     };
 }

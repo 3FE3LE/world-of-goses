@@ -46,6 +46,7 @@ public partial class ConstructionPanel : PanelContainer
     private Mode _mode = Mode.Blueprint;
     private bool _wasAuthorizeEnabled;
     private bool _wasFarmEnabled;
+    private bool _wasCultivationEnabled;
     private bool _wasQuarryEnabled;
     private bool _wasTownHallEnabled;
     private Tween? _pulseTween;
@@ -66,8 +67,13 @@ public partial class ConstructionPanel : PanelContainer
     private VBoxContainer _unavailableList = null!;
     private IconButton _authorizeButton = null!;
     private IconButton _farmButton = null!;
+    private IconButton _cultivationButton = null!;
     private IconButton _quarryButton = null!;
     private IconButton _townHallButton = null!;
+    private IconButton _bedrollButton = null!;
+    private IconButton _cacheButton = null!;
+    private IconButton _canopyButton = null!;
+    private IconButton _clearCargoButton = null!;
     private IconButton _pauseButton = null!;
     private IconButton _resumeButton = null!;
     private IconButton _cancelButton = null!;
@@ -353,11 +359,15 @@ public partial class ConstructionPanel : PanelContainer
 
         _authorizeButton = NewFooterButton(
             iconPath: IconPaths.Check,
-            label: "Authorize Basic Shelter",
+            label: UiText.Get("Establish Founding Site"),
             variation: "ButtonPrimary");
         _farmButton = NewFooterButton(
             iconPath: IconPaths.Leaf,
             label: UiText.Get("Build Farm"),
+            variation: "ButtonPrimary");
+        _cultivationButton = NewFooterButton(
+            iconPath: IconPaths.Leaf,
+            label: UiText.Get("Prepare Cultivation Site"),
             variation: "ButtonPrimary");
         _quarryButton = NewFooterButton(
             iconPath: IconPaths.Building,
@@ -367,6 +377,24 @@ public partial class ConstructionPanel : PanelContainer
             iconPath: IconPaths.Building,
             label: UiText.Get("Build Town Hall"),
             variation: "ButtonPrimary");
+        _bedrollButton = NewFooterButton(
+            iconPath: IconPaths.House,
+            label: UiText.Get("Build Bedroll"),
+            variation: "ButtonPrimary");
+        _cacheButton = NewFooterButton(
+            iconPath: IconPaths.Building,
+            label: UiText.Get("Build Cache"),
+            variation: "ButtonPrimary");
+        _canopyButton = NewFooterButton(
+            iconPath: IconPaths.House,
+            label: UiText.Get("Build Canopy"),
+            variation: "ButtonPrimary");
+        _clearCargoButton = NewFooterButton(
+            iconPath: IconPaths.Close,
+            label: UiText.Get("Return carried cargo"),
+            variation: "ButtonText");
+        _clearCargoButton.TooltipText = UiText.Get(
+            "Returns all carried founding resources to the ground so you can prepare the exact load for the next module.");
         _pauseButton = NewFooterButton(
             iconPath: IconPaths.Pause,
             label: UiText.Get("Pause"),
@@ -386,13 +414,19 @@ public partial class ConstructionPanel : PanelContainer
             label: UiText.Get("View shelter"),
             variation: "ButtonPrimary");
         _authorizeButton.Pressed += () => EmitSignal(
-            SignalName.AuthorizeRequested, (int)ConstructionKind.BasicShelter);
+            SignalName.AuthorizeRequested, (int)ConstructionKind.FoundingSite);
         _farmButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.Farm);
+        _cultivationButton.Pressed += () => EmitSignal(
+            SignalName.AuthorizeRequested, (int)ConstructionKind.CultivationSite);
         _quarryButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.Quarry);
         _townHallButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.TownHall);
+        _bedrollButton.Pressed += () => OnFoundingModuleRequested(FoundingSiteModule.Bedroll);
+        _cacheButton.Pressed += () => OnFoundingModuleRequested(FoundingSiteModule.Cache);
+        _canopyButton.Pressed += () => OnFoundingModuleRequested(FoundingSiteModule.Canopy);
+        _clearCargoButton.Pressed += OnClearCargoRequested;
         _pauseButton.Pressed += () => EmitSignal(SignalName.PauseRequested);
         _resumeButton.Pressed += () => EmitSignal(SignalName.ResumeRequested);
         _cancelButton.Pressed += OnCancelButtonPressed;
@@ -410,12 +444,40 @@ public partial class ConstructionPanel : PanelContainer
         footer.AddChild(_resumeButton);
         footer.AddChild(_cancelButton);
         footer.AddChild(_authorizeButton);
+        footer.AddChild(_cultivationButton);
         footer.AddChild(_farmButton);
         footer.AddChild(_quarryButton);
         footer.AddChild(_townHallButton);
+        footer.AddChild(_bedrollButton);
+        footer.AddChild(_cacheButton);
+        footer.AddChild(_canopyButton);
+        footer.AddChild(_clearCargoButton);
         footer.AddChild(_viewBuildingButton);
 
         _primaryFocus = _authorizeButton;
+    }
+
+    private void OnClearCargoRequested()
+    {
+        int returned = _controller.ReturnFoundingCargo();
+        if (returned > 0)
+        {
+            Notifier.Show(UiText.Format("Returned {0} carried units to the ground.", returned));
+        }
+        Refresh();
+    }
+
+    private void OnFoundingModuleRequested(FoundingSiteModule module)
+    {
+        ConstructionSnapshot.ProjectItem? project = CurrentProject();
+        if (project is null) return;
+        ConstructionAuthorizationResult result =
+            _controller.TryAuthorizeFoundingSiteModule(project.Id, module);
+        if (!result.IsSuccess)
+        {
+            _errorLabel.Text = FormatAuthorizationError(result.Outcome);
+        }
+        Refresh(clearError: result.IsSuccess);
     }
 
     private static IconButton NewFooterButton(string iconPath, string label, string variation) =>
@@ -501,11 +563,11 @@ public partial class ConstructionPanel : PanelContainer
     private void RenderBlueprint(ConstructionSnapshot snapshot)
     {
         bool hasHome = snapshot.HasHome;
-        string blueprintTitle = UiText.Get(hasHome ? "Choose the next construction" : "Build the first shelter");
+        string blueprintTitle = UiText.Get(hasHome ? "Choose the next construction" : "Establish the Founding Site");
         _header.SetTitle(blueprintTitle);
         _title.Text = blueprintTitle;
         // Preview the shelter art so the player knows what they are about to build.
-        var shelterArt = BuildingArt.GetTexturePath(ConstructionKind.BasicShelter);
+        var shelterArt = BuildingArt.GetTexturePath(ConstructionKind.FoundingSite);
         if (shelterArt is { } path)
         {
             _constructionPreview.Texture = ResourceLoader.Load<Texture2D>(path);
@@ -517,7 +579,7 @@ public partial class ConstructionPanel : PanelContainer
         }
         _description.Text = UiText.Get(hasHome
             ? "Choose a productive building. Its worksite will appear automatically in the city; open Construction progress to assign contributors."
-            : "Authorise the Basic Shelter — a modest dwelling that unlocks productive construction.");
+            : "Claim one 3 × 3 site. Build its Campfire first, then choose Bedroll or Cache before adding the Canopy.");
         _phaseLabel.Visible = false;
         _progress.Visible = false;
         _statusLabel.Visible = false;
@@ -528,19 +590,39 @@ public partial class ConstructionPanel : PanelContainer
         _unavailableList.Visible = false;
         _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
         bool canAuthorise = snapshot.HasHero && snapshot.Project is null;
-        var shelter = snapshot.OptionFor(ConstructionKind.BasicShelter);
+        var shelter = snapshot.OptionFor(ConstructionKind.FoundingSite);
         var farm = snapshot.OptionFor(ConstructionKind.Farm);
+        var cultivation = snapshot.OptionFor(ConstructionKind.CultivationSite);
         var quarry = snapshot.OptionFor(ConstructionKind.Quarry);
         var townHall = snapshot.OptionFor(ConstructionKind.TownHall);
         _requirementsLabel.Text = hasHome
-            ? UiText.Format("ui.construction.requirements_three", DescribeMaterials(farm), DescribeMaterials(quarry), DescribeMaterials(townHall))
-            : UiText.Format("ui.construction.requirements_one", DescribeMaterials(shelter));
+            ? UiText.Format(
+                "ui.construction.requirements_four",
+                DescribeMaterials(cultivation),
+                DescribeMaterials(farm),
+                DescribeMaterials(quarry),
+                DescribeMaterials(townHall))
+            : UiText.Format("ui.construction.campfire_requirements", DescribeMaterials(shelter));
         _authorizeButton.Visible = !hasHome;
         bool authorizeEnabled = canAuthorise && shelter.CanPayDeposit;
         _authorizeButton.Disabled = !authorizeEnabled;
         _authorizeButton.TooltipText = UiText.Get(authorizeEnabled
-            ? "Authorise the Basic Shelter."
-            : "Needs 1 wood — gather from a Forest first.");
+            ? "Establish the Founding Site and begin its Campfire."
+            : "Gather 3 Branches and 2 Small Stone for the Campfire.");
+        _cultivationButton.Visible = true;
+        bool cultivationExists = _controller.World.CultivationSites.Count > 0;
+        bool cultivationEnabled = canAuthorise
+            && hasHome
+            && !cultivationExists
+            && cultivation.CanPayDeposit;
+        _cultivationButton.Disabled = !cultivationEnabled;
+        _cultivationButton.TooltipText = UiText.Get(!hasHome
+            ? "Build the Basic Shelter first to prepare a Cultivation Site."
+            : cultivationExists
+                ? "The first Cultivation Site is already prepared."
+                : cultivationEnabled
+                    ? "Prepare one plot with 1 Branch and 1 Small Stone."
+                    : "Gather 1 Branch and 1 Small Stone to prepare the plot.");
         // Farm and Quarry are now always visible so the player can see
         // the upcoming options. They are disabled until the Basic
         // Shelter exists; the tooltip explains the dependency.
@@ -573,6 +655,7 @@ public partial class ConstructionPanel : PanelContainer
                     ? "Build a Town Hall to host one expedition prospect."
                     : "Not enough materials to authorise a Town Hall.");
         DetectEnableTransition(authorizeEnabled, ref _wasAuthorizeEnabled, _authorizeButton);
+        DetectEnableTransition(cultivationEnabled, ref _wasCultivationEnabled, _cultivationButton);
         DetectEnableTransition(farmEnabled, ref _wasFarmEnabled, _farmButton);
         DetectEnableTransition(quarryEnabled, ref _wasQuarryEnabled, _quarryButton);
         DetectEnableTransition(townHallEnabled, ref _wasTownHallEnabled, _townHallButton);
@@ -580,11 +663,21 @@ public partial class ConstructionPanel : PanelContainer
         _resumeButton.Visible = false;
         _cancelButton.Visible = false;
         _viewBuildingButton.Visible = false;
+        _bedrollButton.Visible = false;
+        _cacheButton.Visible = false;
+        _canopyButton.Visible = false;
+        _clearCargoButton.Visible = !hasHome && snapshot.ReturnableFoundingCargoCount > 0;
         _viewHeroButton.Visible = snapshot.HasHero;
         _primaryFocus = !hasHome
-            ? _authorizeButton
-            : !_farmButton.Disabled
-                ? _farmButton
+            ? authorizeEnabled
+                ? _authorizeButton
+                : _clearCargoButton.Visible
+                    ? _clearCargoButton
+                    : _authorizeButton
+            : !_cultivationButton.Disabled
+                ? _cultivationButton
+                : !_farmButton.Disabled
+                    ? _farmButton
                 : !_quarryButton.Disabled
                     ? _quarryButton
                     : !_townHallButton.Disabled
@@ -625,9 +718,19 @@ public partial class ConstructionPanel : PanelContainer
             RenderBlueprint(snapshot);
             return;
         }
-        _header.SetTitle(project.DisplayName);
-        _title.Text = project.DisplayName;
-        _description.Text = project.AssignedCount == 0
+        bool choosingFoundingModule = project.ActiveFoundingModule is null
+            && snapshot.FoundingModuleOptions.Count > 0;
+        string activeTitle = project.ActiveFoundingModule is FoundingSiteModule module
+            ? UiText.Format(
+                "ui.construction.founding_phase",
+                UiText.Get("Founding Site"),
+                UiText.Get(FoundingSiteRules.DisplayNameFor(module)))
+            : project.DisplayName;
+        _header.SetTitle(activeTitle);
+        _title.Text = activeTitle;
+        _description.Text = choosingFoundingModule
+            ? UiText.Get("Choose the next Founding Site module. Bedroll and Cache may be completed in either order; Canopy requires both.")
+            : project.AssignedCount == 0
             ? project.RemainingInputs.Count > 0
                 ? UiText.Format("ui.construction.gather_remaining", DescribeInputs(project.RemainingInputs))
                 : UiText.Get("Assign at least one available citizen below. Construction cannot advance without contributors.")
@@ -636,7 +739,7 @@ public partial class ConstructionPanel : PanelContainer
                 SimulationTimeText.FormatDurationLocalized(
                     ConstructionRules.WorkIntervalTicks));
         _phaseLabel.Visible = true;
-        _progress.Visible = true;
+        _progress.Visible = !choosingFoundingModule;
         _statusLabel.Visible = true;
         _contributors.Visible = true;
         var projectArt = BuildingArt.GetTexturePath(project.ResultingKind);
@@ -658,7 +761,14 @@ public partial class ConstructionPanel : PanelContainer
         _unavailableList.Visible = true;
         _errorLabel.Visible = !string.IsNullOrEmpty(_errorLabel.Text);
         var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
-        _phaseLabel.Text = ConstructionRules.Describe(phase);
+        _phaseLabel.Text = choosingFoundingModule
+            ? UiText.Get("Module complete — awaiting next authorization")
+            : project.ActiveFoundingModule is FoundingSiteModule activeModule
+                ? UiText.Format(
+                    "ui.construction.module_progress",
+                    UiText.Get(FoundingSiteRules.DisplayNameFor(activeModule)),
+                    UiText.Get(ConstructionRules.Describe(phase)))
+                : UiText.Get(ConstructionRules.Describe(phase));
         _progress.MinValue = 0;
         _progress.MaxValue = project.RequiredWork;
         _progress.Value = project.Progress;
@@ -677,15 +787,57 @@ public partial class ConstructionPanel : PanelContainer
 
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
+        _cultivationButton.Visible = false;
         _quarryButton.Visible = false;
         _townHallButton.Visible = false;
+        _clearCargoButton.Visible = snapshot.ReturnableFoundingCargoCount > 0;
+        ConfigureFoundingModuleButton(
+            _bedrollButton,
+            snapshot.FoundingOptionFor(FoundingSiteModule.Bedroll),
+            choosingFoundingModule);
+        ConfigureFoundingModuleButton(
+            _cacheButton,
+            snapshot.FoundingOptionFor(FoundingSiteModule.Cache),
+            choosingFoundingModule);
+        ConfigureFoundingModuleButton(
+            _canopyButton,
+            snapshot.FoundingOptionFor(FoundingSiteModule.Canopy),
+            choosingFoundingModule);
         _viewBuildingButton.Visible = false;
-        _pauseButton.Visible = project.Enabled;
-        _resumeButton.Visible = !project.Enabled;
-        _cancelButton.Visible = true;
+        _pauseButton.Visible = !choosingFoundingModule && project.Enabled;
+        _resumeButton.Visible = !choosingFoundingModule && !project.Enabled;
+        _cancelButton.Visible = project.CompletedFoundingModules.Count == 0;
         _viewHeroButton.Visible = true;
-        _primaryFocus = project.Enabled ? _pauseButton : _resumeButton;
+        _primaryFocus = choosingFoundingModule
+            ? !_bedrollButton.Disabled && _bedrollButton.Visible
+                ? _bedrollButton
+                : !_cacheButton.Disabled && _cacheButton.Visible
+                    ? _cacheButton
+                    : !_canopyButton.Disabled && _canopyButton.Visible
+                        ? _canopyButton
+                        : _clearCargoButton.Visible
+                            ? _clearCargoButton
+                            : _viewHeroButton
+            : project.Enabled ? _pauseButton : _resumeButton;
         _primaryFocus.GrabFocus();
+    }
+
+    private static void ConfigureFoundingModuleButton(
+        IconButton button,
+        ConstructionSnapshot.FoundingModuleOptionItem? option,
+        bool choosingModule)
+    {
+        button.Visible = choosingModule && option is { Completed: false, PrerequisitesMet: true };
+        button.Disabled = option is null || !option.CanAuthorize;
+        button.TooltipText = option is null
+            ? string.Empty
+            : option.Completed
+                ? UiText.Get("Module already completed.")
+                : !option.PrerequisitesMet
+                    ? UiText.Get("Complete the prerequisite modules first.")
+                    : option.CanAuthorize
+                        ? UiText.Get("Authorize this module.")
+                        : UiText.Get("Gather the full module cost first.");
     }
 
     private void RenderCompleted(ConstructionSnapshot snapshot)
@@ -713,8 +865,13 @@ public partial class ConstructionPanel : PanelContainer
         _errorLabel.Visible = false;
         _authorizeButton.Visible = false;
         _farmButton.Visible = false;
+        _cultivationButton.Visible = false;
         _quarryButton.Visible = false;
         _townHallButton.Visible = false;
+        _bedrollButton.Visible = false;
+        _cacheButton.Visible = false;
+        _canopyButton.Visible = false;
+        _clearCargoButton.Visible = false;
         _pauseButton.Visible = false;
         _resumeButton.Visible = false;
         _cancelButton.Visible = false;
@@ -860,6 +1017,7 @@ public partial class ConstructionPanel : PanelContainer
         ConstructionStopCause.WorkersExhausted => UiText.Get("Waiting: contributors exhausted"),
         ConstructionStopCause.Night => UiText.Get("Resting during the night"),
         ConstructionStopCause.Completed => UiText.Get("Completed"),
+        ConstructionStopCause.AwaitingModule => UiText.Get("Awaiting next Founding Site module"),
         ConstructionStopCause.NoHero => UiText.Get("No hero available"),
         _ => project.StopCause.ToString(),
     };
@@ -871,12 +1029,19 @@ public partial class ConstructionPanel : PanelContainer
         foreach (var material in option.Materials)
         {
             string resource = material.Resource.ToString().ToLowerInvariant();
-            parts.Add(UiText.Format(
-                "ui.construction.material",
-                material.DepositRequired,
-                UiText.Get(resource),
-                material.Required,
-                material.Available));
+            parts.Add(option.Kind is ConstructionKind.FoundingSite
+                or ConstructionKind.CultivationSite
+                ? UiText.Format(
+                    "ui.construction.material_full",
+                    material.Required,
+                    UiText.Get(resource),
+                    material.Available)
+                : UiText.Format(
+                    "ui.construction.material",
+                    material.DepositRequired,
+                    UiText.Get(resource),
+                    material.Required,
+                    material.Available));
         }
         return string.Join(" + ", parts);
     }
@@ -903,6 +1068,10 @@ public partial class ConstructionPanel : PanelContainer
             UiText.Get("The founding shelter can only start in the initial world."),
         ConstructionAuthorizationOutcome.NoAvailableLot =>
             UiText.Get("No unlocked parcel has a free building lot."),
+        ConstructionAuthorizationOutcome.InvalidModule =>
+            UiText.Get("That Founding Site module is not available."),
+        ConstructionAuthorizationOutcome.PrerequisitesNotMet =>
+            UiText.Get("Complete the prerequisite Founding Site modules first."),
         _ => UiText.Get("Construction could not be authorized."),
     };
 }

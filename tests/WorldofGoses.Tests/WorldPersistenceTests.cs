@@ -568,6 +568,9 @@ public class WorldPersistenceTests
             Assert.Equal(
                 ec.LastVisitedResourceBuildingId,
                 ac.LastVisitedResourceBuildingId);
+            Assert.Equal(
+                ec.LastVisitedResourcePatchId,
+                ac.LastVisitedResourcePatchId);
             Assert.Equal(ec.LastVisitedResourceUnitId, ac.LastVisitedResourceUnitId);
             Assert.Equal(
                 ec.LastVisitedResourcePositionIndex,

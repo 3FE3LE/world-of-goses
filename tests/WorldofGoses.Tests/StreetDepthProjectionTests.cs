@@ -42,6 +42,27 @@ public class StreetDepthProjectionTests
     }
 
     [Fact]
+    public void AdjacentRows_UseAShallowVerticalStep()
+    {
+        const float baseY = 580f;
+
+        float firstRowStep = baseY - StreetDepthProjection.RowScreenY(1f, baseY);
+
+        Assert.InRange(firstRowStep, 48f, 60f);
+    }
+
+    [Fact]
+    public void NearClip_KeepsOneForegroundRowAndDropsTheSecond()
+    {
+        const float cameraDepth = 2f;
+
+        Assert.False(StreetDepthProjection.IsVisibleDepth(0f - cameraDepth));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(-1.8f));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(1f - cameraDepth));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(2f - cameraDepth));
+    }
+
+    [Fact]
     public void Project_OffsetsLateralPositionsByTheHorizontalScale()
     {
         (Vector2 centered, _) = StreetDepthProjection.Project(2f, 0f, 640f, 580f);

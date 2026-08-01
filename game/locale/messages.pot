@@ -94,10 +94,16 @@ msgstr ""
 msgid "Authorised"
 msgstr ""
 
+msgid "Authorize this module."
+msgstr ""
+
 msgid "Autonomist"
 msgstr ""
 
 msgid "Available"
+msgstr ""
+
+msgid "Awaiting next Founding Site module"
 msgstr ""
 
 msgid "Back"
@@ -112,6 +118,9 @@ msgstr ""
 msgid "Basic Shelter completed"
 msgstr ""
 
+msgid "Bedroll"
+msgstr ""
+
 msgid "Blades"
 msgstr ""
 
@@ -124,16 +133,31 @@ msgstr ""
 msgid "Bold"
 msgstr ""
 
+msgid "branches"
+msgstr ""
+
 msgid "Build a Farm."
 msgstr ""
 
 msgid "Build a Quarry."
 msgstr ""
 
+msgid "Build Bedroll"
+msgstr ""
+
+msgid "Build Cache"
+msgstr ""
+
+msgid "Build Canopy"
+msgstr ""
+
 msgid "Build Farm"
 msgstr ""
 
 msgid "Build Quarry"
+msgstr ""
+
+msgid "Build the Basic Shelter first to prepare a Cultivation Site."
 msgstr ""
 
 msgid "Build the Basic Shelter first to unlock the Farm."
@@ -157,6 +181,12 @@ msgstr ""
 msgid "Buscaré…"
 msgstr ""
 
+msgid "Cache"
+msgstr ""
+
+msgid "Campfire"
+msgstr ""
+
 msgid "Cancel"
 msgstr ""
 
@@ -164,6 +194,9 @@ msgid "Cancel project"
 msgstr ""
 
 msgid "Cancel the project. The deposit is lost and the site is cleared."
+msgstr ""
+
+msgid "Canopy"
 msgstr ""
 
 msgid "Carers, coordinators, artists and protectors of group cohesion."
@@ -176,6 +209,9 @@ msgid "Choose a productive building. Its worksite will appear automatically in t
 msgstr ""
 
 msgid "Choose the next construction"
+msgstr ""
+
+msgid "Choose the next Founding Site module. Bedroll and Cache may be completed in either order; Canopy requires both."
 msgstr ""
 
 msgid "Chronicle — click to collapse"
@@ -200,6 +236,9 @@ msgid "Citizens"
 msgstr ""
 
 msgid "City roster"
+msgstr ""
+
+msgid "Claim one 3 × 3 site. Build its Campfire first, then choose Bedroll or Cache before adding the Canopy."
 msgstr ""
 
 msgid "Clear the city while keeping the current founder and onboarding choices."
@@ -242,6 +281,12 @@ msgid "Complete every single-choice section."
 msgstr ""
 
 msgid "Complete the earlier steps to review the profile."
+msgstr ""
+
+msgid "Complete the prerequisite Founding Site modules first."
+msgstr ""
+
+msgid "Complete the prerequisite modules first."
 msgstr ""
 
 msgid "Completed"
@@ -296,6 +341,9 @@ msgid "Create your hero"
 msgstr ""
 
 msgid "Creativity"
+msgstr ""
+
+msgid "Cultivation Site"
 msgstr ""
 
 msgid "Curious"
@@ -358,7 +406,22 @@ msgstr ""
 msgid "Enter a name between 1 and 32 characters."
 msgstr ""
 
+msgid "Establish Founding Site"
+msgstr ""
+
+msgid "Establish the Founding Site"
+msgstr ""
+
+msgid "Establish the Founding Site and begin its Campfire."
+msgstr ""
+
 msgid "event.building_created"
+msgstr ""
+
+msgid "event.crop_harvested"
+msgstr ""
+
+msgid "event.crop_ready"
 msgstr ""
 
 msgid "event.day_began"
@@ -478,7 +541,19 @@ msgstr ""
 msgid "Founder is already assigned"
 msgstr ""
 
+msgid "Founding Site"
+msgstr ""
+
 msgid "Gather"
+msgstr ""
+
+msgid "Gather 1 Branch and 1 Small Stone to prepare the plot."
+msgstr ""
+
+msgid "Gather 3 Branches and 2 Small Stone for the Campfire."
+msgstr ""
+
+msgid "Gather the full module cost first."
 msgstr ""
 
 msgid "Gender — choose one"
@@ -572,6 +647,12 @@ msgid "Missing materials. Check the requirements above."
 msgstr ""
 
 msgid "Mobility"
+msgstr ""
+
+msgid "Module already completed."
+msgstr ""
+
+msgid "Module complete — awaiting next authorization"
 msgstr ""
 
 msgid "narrative.detail.body"
@@ -1084,6 +1165,9 @@ msgstr ""
 msgid "Personality"
 msgstr ""
 
+msgid "plantfiber"
+msgstr ""
+
 msgid "Polearm"
 msgstr ""
 
@@ -1100,6 +1184,12 @@ msgid "Pragmatic"
 msgstr ""
 
 msgid "Precision"
+msgstr ""
+
+msgid "Prepare Cultivation Site"
+msgstr ""
+
+msgid "Prepare one plot with 1 Branch and 1 Small Stone."
 msgstr ""
 
 msgid "Production"
@@ -1183,10 +1273,19 @@ msgstr ""
 msgid "Resume production"
 msgstr ""
 
+msgid "Return carried cargo"
+msgstr ""
+
 msgid "Return to the city view"
 msgstr ""
 
 msgid "Return to the city."
+msgstr ""
+
+msgid "Returned {0} carried units to the ground."
+msgstr ""
+
+msgid "Returns all carried founding resources to the ground so you can prepare the exact load for the next module."
 msgstr ""
 
 msgid "Risk tolerance"
@@ -1222,6 +1321,9 @@ msgstr ""
 msgid "Skip"
 msgstr ""
 
+msgid "smallstone"
+msgstr ""
+
 msgid "Social relations"
 msgstr ""
 
@@ -1255,6 +1357,9 @@ msgstr ""
 msgid "Territorial control"
 msgstr ""
 
+msgid "That Founding Site module is not available."
+msgstr ""
+
 msgid "The Basic Shelter already exists."
 msgstr ""
 
@@ -1267,6 +1372,9 @@ msgstr ""
 msgid "The city's recent events will be recorded here."
 msgstr ""
 
+msgid "The first Cultivation Site is already prepared."
+msgstr ""
+
 msgid "The founding shelter can only start in the initial world."
 msgstr ""
 
@@ -1274,6 +1382,9 @@ msgid "These are starting tendencies only. Any profession remains learnable."
 msgstr ""
 
 msgid "These choices describe preference. They do not prevent the hero from learning another weapon or role."
+msgstr ""
+
+msgid "This resource node is no longer available."
 msgstr ""
 
 msgid "This tree no longer has wood available."
@@ -1462,6 +1573,9 @@ msgstr ""
 msgid "ui.construction.assign_to_project"
 msgstr ""
 
+msgid "ui.construction.campfire_requirements"
+msgstr ""
+
 msgid "ui.construction.cancelled"
 msgstr ""
 
@@ -1474,16 +1588,28 @@ msgstr ""
 msgid "ui.construction.contributors_interval"
 msgstr ""
 
+msgid "ui.construction.founding_phase"
+msgstr ""
+
 msgid "ui.construction.gather_remaining"
 msgstr ""
 
 msgid "ui.construction.material"
 msgstr ""
 
+msgid "ui.construction.material_full"
+msgstr ""
+
+msgid "ui.construction.module_progress"
+msgstr ""
+
 msgid "ui.construction.percent"
 msgstr ""
 
 msgid "ui.construction.remove_from_project"
+msgstr ""
+
+msgid "ui.construction.requirements_four"
 msgstr ""
 
 msgid "ui.construction.requirements_one"
@@ -1499,6 +1625,45 @@ msgid "ui.construction.still_needed"
 msgstr ""
 
 msgid "ui.construction.waiting_materials"
+msgstr ""
+
+msgid "ui.cultivation.action_unavailable"
+msgstr ""
+
+msgid "ui.cultivation.founder_unavailable"
+msgstr ""
+
+msgid "ui.cultivation.growing"
+msgstr ""
+
+msgid "ui.cultivation.harvest_action"
+msgstr ""
+
+msgid "ui.cultivation.harvest_notice"
+msgstr ""
+
+msgid "ui.cultivation.missing_seed_food"
+msgstr ""
+
+msgid "ui.cultivation.not_ready"
+msgstr ""
+
+msgid "ui.cultivation.prepared"
+msgstr ""
+
+msgid "ui.cultivation.ready"
+msgstr ""
+
+msgid "ui.cultivation.sow_action"
+msgstr ""
+
+msgid "ui.cultivation.sown"
+msgstr ""
+
+msgid "ui.cultivation.sown_notice"
+msgstr ""
+
+msgid "ui.cultivation.spent"
 msgstr ""
 
 msgid "ui.duration.day.many"
@@ -1639,7 +1804,13 @@ msgstr ""
 msgid "ui.gather.away_on_expedition"
 msgstr ""
 
+msgid "ui.gather.gathered_resource"
+msgstr ""
+
 msgid "ui.gather.gathered_wood"
+msgstr ""
+
+msgid "ui.gather.resource_action"
 msgstr ""
 
 msgid "ui.hero_profile.affinities_heading"
@@ -1879,6 +2050,9 @@ msgstr ""
 msgid "ui.production.wood_stock"
 msgstr ""
 
+msgid "ui.resource.units_remain"
+msgstr ""
+
 msgid "ui.resource.wood_remains"
 msgstr ""
 
@@ -1912,10 +2086,22 @@ msgstr ""
 msgid "ui.status.build"
 msgstr ""
 
+msgid "ui.status.first_harvest"
+msgstr ""
+
 msgid "ui.status.food"
 msgstr ""
 
+msgid "ui.status.food_amount"
+msgstr ""
+
+msgid "ui.status.food_horizon"
+msgstr ""
+
 msgid "ui.status.food_stock"
+msgstr ""
+
+msgid "ui.status.food_warning"
 msgstr ""
 
 msgid "ui.status.off_hours"
@@ -2056,10 +2242,13 @@ msgstr ""
 msgid "Water"
 msgstr ""
 
-msgid "Wood"
+msgid "wildfood"
 msgstr ""
 
 msgid "wood"
+msgstr ""
+
+msgid "Wood"
 msgstr ""
 
 msgid "Wood remains"

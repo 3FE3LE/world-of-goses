@@ -45,6 +45,7 @@ public sealed class Building
     private readonly List<CitizenId> _assigned = new();
     private readonly List<RecipeInput> _pendingInputs = new();
     private readonly List<int> _woodUnitReserves = new();
+    private readonly List<FoundingSiteModule> _foundingSiteOriginModules = new();
     private int _maxStockHoldTicks;
 
     public BuildingId Id { get; }
@@ -76,6 +77,7 @@ public sealed class Building
     /// </summary>
     public int WoodReserve { get; private set; }
     public IReadOnlyList<int> WoodUnitReserves => _woodUnitReserves;
+    public IReadOnlyList<FoundingSiteModule> FoundingSiteOriginModules => _foundingSiteOriginModules;
 
     public bool ProductionEnabled { get; private set; }
     public int MinStock { get; private set; }
@@ -162,6 +164,18 @@ public sealed class Building
 
     public bool IsAssigned(CitizenId citizenId) =>
         _assigned.Contains(citizenId);
+
+    internal void RestoreFoundingSiteOriginModules(IEnumerable<FoundingSiteModule> modules)
+    {
+        _foundingSiteOriginModules.Clear();
+        foreach (FoundingSiteModule module in modules)
+        {
+            if (!_foundingSiteOriginModules.Contains(module))
+            {
+                _foundingSiteOriginModules.Add(module);
+            }
+        }
+    }
 
     /// <summary>
     /// Replace the worker-capacity triplet for a Forest whose old save

@@ -8,6 +8,10 @@ public sealed record CityStatusSnapshot(
     int CurrentTick,
     int FoodStock,
     int MaxFoodStock,
+    int DailyFoodRation,
+    int FoodHorizonDays,
+    int ProtectedFoodTarget,
+    int? TicksUntilFirstHarvest,
     int WoodStock,
     int WoodReserve,
     int CitizensAtWork,
@@ -73,7 +77,10 @@ public sealed record CityStatusSnapshot(
         // the chip and the call site are gone, and the snapshot no
         // longer carries the field.
         return new CityStatusSnapshot(world.CurrentTick,
-            world.FoodStock, world.MaxFoodStock, world.TotalWood, world.TotalWoodReserve,
+            world.FoodStock, world.MaxFoodStock,
+            world.DailyFoodRation, world.FoodHorizonDays,
+            world.ProtectedFoodTarget, world.TicksUntilFirstHarvest,
+            world.TotalWood, world.TotalWoodReserve,
             atWork, atHome, projects, buildings, freeNames, world.Hero?.Name,
             hasController, currentSpeed);
     }

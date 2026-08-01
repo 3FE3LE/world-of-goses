@@ -38,6 +38,8 @@ public static class WorldEventTextFormatter
         WorldEventKind.WoundRecoveryStarted => $"{subjectName} began treatment with {amount} Food",
         WorldEventKind.WoundRecoveryCompleted => $"{subjectName} completed treatment",
         WorldEventKind.TerritoryAdvanced => $"{subjectName} advanced to {(ParcelTerritoryState)amount}",
+        WorldEventKind.CropReady => $"{subjectName} crop became ready",
+        WorldEventKind.CropHarvested => $"{subjectName} yielded +{amount} Food",
         _ => subjectName,
     };
 
@@ -85,6 +87,9 @@ public static class WorldEventTextFormatter
             "event.wound_recovery_completed", localizedSubject),
         WorldEventKind.TerritoryAdvanced => UiText.Format(
             "event.territory_advanced", localizedSubject, DescribeTerritoryStateLocalized(amount)),
+        WorldEventKind.CropReady => UiText.Format("event.crop_ready", localizedSubject),
+        WorldEventKind.CropHarvested => UiText.Format(
+            "event.crop_harvested", localizedSubject, amount),
         _ => localizedSubject,
     };
     }

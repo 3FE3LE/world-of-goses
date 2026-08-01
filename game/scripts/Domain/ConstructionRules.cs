@@ -106,6 +106,8 @@ public static class ConstructionRules
         ConstructionKind.Farm => FarmRequiredWork,
         ConstructionKind.Quarry => QuarryRequiredWork,
         ConstructionKind.TownHall => TownHallRequiredWork,
+        ConstructionKind.FoundingSite => FoundingSiteRules.WorkPerModule,
+        ConstructionKind.CultivationSite => CultivationRules.PreparationWork,
         _ => RequiredWork,
     };
 
@@ -115,6 +117,8 @@ public static class ConstructionRules
         ConstructionKind.Farm => "Farm",
         ConstructionKind.Quarry => "Quarry",
         ConstructionKind.TownHall => "Town Hall",
+        ConstructionKind.FoundingSite => "Founding Site",
+        ConstructionKind.CultivationSite => "Cultivation Site",
         _ => "Construction",
     };
 

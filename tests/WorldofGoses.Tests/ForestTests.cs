@@ -83,7 +83,7 @@ public class ForestTests
     }
 
     [Fact]
-    public void DepletedPatch_KeepsCompatibilityStorageForFutureRegeneration()
+    public void DepletedPatch_KeepsCompatibilityStorageWithoutRegeneration()
     {
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
@@ -100,7 +100,8 @@ public class ForestTests
         world.AdvanceWorldTick();
 
         Assert.NotNull(world.GetBuilding(forest.Id));
-        Assert.Equal(7, world.Hero!.LastVisitedResourcePositionIndex);
+        Assert.Equal(CityWorld.StartingForestUnitCount - 1,
+            world.Hero!.LastVisitedResourcePositionIndex);
         WorldPersistence.Validate(WorldPersistence.Capture(world));
     }
 

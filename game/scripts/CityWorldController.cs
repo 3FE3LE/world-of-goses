@@ -68,6 +68,12 @@ public partial class CityWorldController : Node
     public delegate void ProjectStateChangedEventHandler(int projectId);
 
     [Signal]
+    public delegate void NaturalResourceStateChangedEventHandler(int patchId);
+
+    [Signal]
+    public delegate void CultivationSiteStateChangedEventHandler(int siteId);
+
+    [Signal]
     public delegate void ExpeditionStateChangedEventHandler(int expeditionId);
 
     [Signal]
@@ -206,6 +212,8 @@ public partial class CityWorldController : Node
         _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         _world.BuildingChanged += OnDomainBuildingChanged;
         _world.ProjectChanged += OnDomainProjectChanged;
+        _world.PatchChanged += OnDomainPatchChanged;
+        _world.CultivationSiteChanged += OnDomainCultivationSiteChanged;
         _world.ExpeditionChanged += OnDomainExpeditionChanged;
         if (_world.Hero is { } hero)
         {
@@ -252,6 +260,8 @@ public partial class CityWorldController : Node
     {
         _world.BuildingChanged -= OnDomainBuildingChanged;
         _world.ProjectChanged -= OnDomainProjectChanged;
+        _world.PatchChanged -= OnDomainPatchChanged;
+        _world.CultivationSiteChanged -= OnDomainCultivationSiteChanged;
         _world.ExpeditionChanged -= OnDomainExpeditionChanged;
     }
 
@@ -581,6 +591,23 @@ public partial class CityWorldController : Node
     public int GatherWood(BuildingId forestId, int unitId, int amount) =>
         _world.GatherWood(forestId, unitId, amount);
 
+    public int GatherFromPatch(int patchId, int unitId, int amount) =>
+        _world.GatherFromPatch(patchId, unitId, amount);
+
+    public CultivationActionResult TrySowCultivationSite(BuildingId siteId)
+    {
+        CultivationActionResult result = _world.TrySowCultivationSite(siteId);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
+    public CultivationActionResult TryHarvestCultivationSite(BuildingId siteId)
+    {
+        CultivationActionResult result = _world.TryHarvestCultivationSite(siteId);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
     public IReadOnlyList<Citizen> AvailableCitizens() => _world.AvailableCitizens();
 
     public IReadOnlyList<Citizen> AvailableCitizensByPriority() => _world.AvailableCitizensByPriority();
@@ -639,6 +666,22 @@ public partial class CityWorldController : Node
             SaveNow();
         }
         return result;
+    }
+
+    public ConstructionAuthorizationResult TryAuthorizeFoundingSiteModule(
+        BuildingId projectId,
+        FoundingSiteModule module)
+    {
+        var result = _world.TryAuthorizeFoundingSiteModule(projectId, module);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
+    public int ReturnFoundingCargo()
+    {
+        int returned = _world.ReturnFoundingCargo();
+        if (returned > 0) SaveNow();
+        return returned;
     }
 
     public IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
@@ -759,6 +802,20 @@ public partial class CityWorldController : Node
     {
         _hasUnsavedChanges = true;
         EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
+    }
+
+    private void OnDomainPatchChanged(object? sender, PatchChangedEventArgs e)
+    {
+        _hasUnsavedChanges = true;
+        EmitSignal(SignalName.NaturalResourceStateChanged, e.PatchId);
+    }
+
+    private void OnDomainCultivationSiteChanged(
+        object? sender,
+        CityWorldChangedEventArgs e)
+    {
+        _hasUnsavedChanges = true;
+        EmitSignal(SignalName.CultivationSiteStateChanged, e.BuildingId.Value);
     }
 
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)

@@ -20,8 +20,8 @@ namespace WorldofGoses.Prototypes;
 /// </summary>
 public static class StreetDepthProjection
 {
-    // 2026-07-27: flattened per user feedback — the original factors (0.85/0.80)
-    // plus an 80px horizon cap made the "road" tall and steep, so rows far
+    // 2026-07-31: flattened again per user feedback — the original factors (0.85/0.80)
+    // plus an 80px row step made the "road" tall and steep, so rows far
     // from the viewer diverged in aspect (horizontal shrinking much faster
     // than vertical) enough to read as visibly "stretched" rather than
     // gently receding. A smaller gap between the two factors keeps the
@@ -33,12 +33,21 @@ public static class StreetDepthProjection
     // it only consumes whatever screen coordinates these formulas produce.
     public const float VerticalDepthFactor = 0.90f;
     public const float HorizontalDepthFactor = 0.87f;
-    private const float BaseRowSpacingPx = 80f;
+    private const float BaseRowSpacingPx = 64f;
     private const float HorizonY = 200f;
+
+    // Keep exactly one completed street behind the camera as the large
+    // foreground/occlusion band. Once a second street passes behind the
+    // observer it has crossed the near plane and must no longer render.
+    // Clipping at the completed second row lets the foreground travel below
+    // the viewport through every preceding quantized transition frame.
+    public const float NearClipDepth = -2f;
 
     public static float VerticalScale(float depth) => Mathf.Pow(VerticalDepthFactor, depth);
 
     public static float HorizontalScale(float depth) => Mathf.Pow(HorizontalDepthFactor, depth);
+
+    public static bool IsVisibleDepth(float depth) => depth > NearClipDepth;
 
     /// <summary>
     /// Screen-space Y for a given depth: the closest row (depth 0) sits at

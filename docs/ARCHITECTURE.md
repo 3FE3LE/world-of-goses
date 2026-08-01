@@ -307,6 +307,16 @@ street-perspective world. The former flat plot stage and screen-rectangle
 placement overlay were removed; projected ground geometry is now the only
 runtime placement representation.
 
+The first agricultural authorization is a bounded exception to ordinary
+building completion. `ConstructionKind.CultivationSite` still reserves a
+normal persisted lot, but completion replaces the project with the Godot-free
+`CultivationSite` domain entity rather than a productive `Building`. That
+entity owns only `Prepared`/`Sown`/`Growing`/`Ready`/`Spent`, `PlantedTick` and
+`ReadyAtTick`; crop visuals remain a projection. Sowing and harvesting are
+explicit commands, while both live ticks and `WorldTimeAdvance` resolve the
+same absolute readiness boundary. Growth never depends on a scene node or an
+assigned citizen remaining attached.
+
 ### Screen composition shell
 
 `CityPrototype.tscn` owns one typed `GameUiShell` (`VBoxContainer`) with two
@@ -409,7 +419,14 @@ Local persistence is implemented through plain DTOs and
   v6 → v7 adds stable per-unit natural-resource reserves and semantic
   citizen resource visits; v7 → v8 introduces persistent `CityParcel` and
   `NaturalResourcePatch` state; v8 → v9 assigns persistent parcel placements
-  to projects and buildings.
+  to projects and buildings. The current chain continues through v24: v21 →
+  v22 adds the phased Founding Site state, while v22 → v23 proportionally
+  rescales legacy 16×40 founding forests into six finite mature trees with
+  eight Wood each; v23 → v24 adds the Cultivation Site lifecycle and timing
+  fields, initializing an empty list rather than inventing agricultural
+  history in an older city. A resource visit persists exactly one semantic owner — a
+  building id or a natural-patch id — together with its unit and logical
+  terrain slot, so ground-resource gathering remains valid across save/load.
 - The real-time autosave cadence is centralized at three minutes. Periodic,
   pause, and close checks skip unchanged worlds; explicit consequential commands
   may still force an immediate atomic save. Save feedback is temporary UI, not a
@@ -433,9 +450,9 @@ on cancel/failure) without moving the goods. The validator rejects any
 Natural-resource patches persist each visible unit independently and attach it
 to a stable parcel. Forest compatibility state still owns gathered Wood stock
 while recipes transition to a parcel-independent city store. Citizen visits
-are stored as domain IDs plus a logical terrain
-slot rather than viewport coordinates. The logical slot remains valid when the
-depleted Forest entity is removed.
+are stored as exactly one building/patch domain ID plus a logical terrain slot
+rather than viewport coordinates. The logical slot remains valid when a visible
+unit is depleted or its presentation disappears.
 
 `Building` carries two distinct counters so the operating-recipe drawdown
 does not visually shrink the produced-resource amount:
@@ -527,14 +544,24 @@ turning the domain/presentation rule into an executable constraint.
 
 `CityWorldController` projects the mutable world into immutable,
 Godot-free read models: `CityStatusSnapshot`, `ConstructionSnapshot`, and
-`BuildingDetailSnapshot`. The status strip, construction panel, building-detail
+`BuildingDetailSnapshot`; `CityMacroSnapshot` additionally projects every
+`NaturalResourcePatch` type, its independently gatherable units, and each
+Cultivation Site's state/timing on its stable lot. `CityStatusSnapshot`
+projects daily ration, Food horizon, protected target and time to first
+harvest. The status
+strip, construction panel, building-detail
 shell, worker slots, assignment panel, production panel, and forest gather panel
 render those snapshots instead of traversing `CityWorld` or retaining domain
 entities. Commands still flow through the controller and domain; snapshots are
 read-only copies and never become a second source of truth. The v14 slot
 enumerates every citizen through the same `CityMacroSnapshot.CitizenItem`
 record, so the future `RosterView` will render without re-querying
-`CityWorld`.
+`CityWorld`. Domain `PatchChanged` events cross the controller as
+`NaturalResourceStateChanged`; the macro view rebuilds its snapshot after a
+successful gather, while the controller marks the world dirty for autosave.
+`CultivationSiteChanged` crosses as `CultivationSiteStateChanged`; sow and
+harvest wrappers save immediately and the macro view rebuilds from a fresh
+snapshot.
 
 ### Founder narrative boundary
 

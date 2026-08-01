@@ -39,14 +39,17 @@ admiten:
 ### Baseline vigente
 
 - Fecha de alineación: **2026-07-31**.
-- Slice activo: **EG-2 — founding site seam**. EG-1 ya cerrado: schema v21,
+- Slice activo: **EG-4 — resource expedition seam**. EG-3 ya cerrado; schema actual v24,
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
   genérico y cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`.
-  EG-2 introduce el Founding Site 3×3 con módulos Campfire/Bedroll/Cache/Canopy.
-- Save: **schema v21** (EG-1).
+  Founding Site 3×3 con módulos Campfire/Bedroll/Cache/Canopy, capacidad
+  6→12→24, mismo ID/parcela y finalización offline. El primer Cultivation Site
+  requiere Shelter, 1 Branch + 1 Small Stone, 180 work y produce 5 Food tres
+  días después de sembrar 1 Food, con la misma frontera live/offline.
+- Save: **schema v24** (lifecycle persistente del primer Cultivation Site).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **663 / 664** (1 omitido por brittleness del snapshot JSON en
+- Tests: **690 / 691** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
 - Arranque Godot headless: correcto.
@@ -82,9 +85,9 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
 | --- | --- | --- |
 | EG-0 — medición del early game | Hecho | Schema v20; `eg0-report.txt` se actualiza por save; suspende observer durante Restore para no contar el inventario recargado. |
 | EG-1 — resource/storage seam | Hecho | Schema v21; `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`; `SeedStartingOpportunities` siembra EG-A0; `GatherFromPatch` genérico; cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`. |
-| EG-2 — founding site seam | Pendiente | Próximo. Founding Site 3×3 con Campfire → Bedroll/Cache → Canopy. |
-| EG-3 — Food horizon seam | Bloqueado | Espera EG-2. |
-| EG-4 — resource expedition seam | Bloqueado | Espera EG-3. |
+| EG-2 — founding site seam | Hecho | Schema v22; Founding Site estable con Campfire → Bedroll/Cache → Canopy, capacidad 6→12→24, origen persistente y equivalencia offline. |
+| EG-3 — Food horizon seam | Hecho | Schema v24; primer Cultivation Site completo, Food horizon visible y equivalencia live/offline cubierta por `Eg3CultivationSiteTests`. |
+| EG-4 — resource expedition seam | Pendiente | Próximo. Oportunidades finitas de Food/Wood mediante la cadena de expedición existente. |
 | EG-5 — consolidación | Bloqueado | Espera EG-4. |
 | EG-6 — calibration/signature | Bloqueado | Espera EG-5. |
 
@@ -133,7 +136,7 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
   de recogida y de los mensajes de capacidad del Cache.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
 
-## 4. Pendientes después de EG-1
+## 4. Pendientes después de EG-2
 
 ### 🟡 M-25 — Feedback causal de importancia grande
 
@@ -219,8 +222,8 @@ superados en 2026-07-30; ver §8.)_
   3. `CarriedGroundResourceCapacity = 6` — los cuatro recursos nuevos
      comparten un cap de carga de 6 unidades (proposal §4). Wood,
      Stone, Food y compañía ignoran el cap porque van a per-building
-     storage. EG-2 reemplazará este cap por un sistema location-aware
-     (Cache = 12, Shelter = 24).
+     storage. EG-2 reemplaza este cap con la capacidad física vigente:
+     carried = 6, Cache = 12, Shelter = 24.
   4. `PatchChanged` event + `WorldEventSubjectKind.Patch` para que el
      presentation layer pueda refrescar overlays de suelo.
   Persistencia: `WorldSave.CurrentVersion = 21` + `MigrateV20ToV21` (sólo
@@ -230,6 +233,27 @@ superados en 2026-07-30; ver §8.)_
   nuevas y legacy con parcelas libres tengan los mismos recursos EG-A0.
   8 tests nuevos en `Eg1ResourceSeamTests` cubriendo distribución,
   idempotencia, gather con cap y migración. Build 0/0; tests 663/664.
+- **EG-2 — founding site seam (schema v22).** `ConstructionProject` conserva
+  un ID/parcela mientras ejecuta Campfire → Bedroll/Cache → Canopy; Bedroll y
+  Cache aceptan ambos órdenes y Canopy exige los tres módulos previos. Cada
+  módulo usa 180 de trabajo (un cuarto del presupuesto shelter de 720) y paga
+  su coste completo al autorizarlo para que el fundador único no quede ocupado
+  mientras todavía necesita recoger inputs. Cache eleva el cap conjunto a 12;
+  el Home consolidado lo eleva a 24 y persiste los módulos de origen. La
+  interfaz ofrece la decisión de módulo sin autoelegirla y una acción explícita
+  que devuelve toda la carga al terreno evita los soft-locks de inventarios 6/6
+  o 12/12 mal recogidos entre módulos. `MigrateV21ToV22` preserva Homes y Basic
+  Shelter legacy sin inventar historia. 11 casos en `Eg2FoundingSiteTests` cubren ambos órdenes,
+  recuperación de carga, identidad, capacidades, snapshot, round-trip y
+  equivalencia live/offline. Build 0/0; tests 680/681 (1 omitido conocido).
+- **EG-3 — Food horizon seam (schema v24).** Un Cultivation Site posterior al
+  Shelter consume 1 Branch + 1 Small Stone y 180 de trabajo; sembrar consume
+  1 Food, persiste `readyAtTick`, madura exactamente tras 10.800 ticks live u
+  offline y cosechar deposita 5 Food. El HUD muestra ración, horizonte y target
+  protegido; la macro view distingue Prepared/Sown/Growing/Ready/Spent sin
+  depender sólo del color. `MigrateV23ToV24` agrega una lista vacía sin
+  inventar parcelas. Diez casos en `Eg3CultivationSiteTests`, interacción real
+  y matriz 1280×720/1920×1080 verificadas. Build 0/0; tests 690/691 (1 omitido conocido).
 - **Visual de TerritoryState en macro view.** El único parcel bloqueado
   (Parcel 9, `LogicalColumn = 4`) quedaba fuera del área renderizada
   (`WorldParcelColumns = 4`) y, aunque las Available no tenían tint

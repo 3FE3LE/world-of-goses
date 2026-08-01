@@ -12,13 +12,13 @@
 
 | Dimension | Value |
 | --- | --- |
-| Active increment | EG-1 — resource/storage seam (proposal §15) |
-| Next approved work | EG-1 introduce Branches/Plant Fiber/Small Stone/Wild Food + capacidad Cache; luego EG-2 (Founding Site), EG-3 (plot lifecycle), EG-4, EG-5, EG-6. |
+| Active increment | EG-4 — resource expedition seam (proposal §15) |
+| Next approved work | Oportunidades finitas de Food/Wood mediante la cadena de expedición existente. |
 | VS-5 audit | Descartado 2026-07-31; `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` borrado. |
 | Build | `dotnet build` clean (verified 2026-07-31) |
-| Tests | 655 / 656 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
-| Save schema version (code) | `WorldSave.CurrentVersion = 20` |
-| Save schema version (docs) | v20 (EG-0) |
+| Tests | 690 / 691 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
+| Save schema version (code) | `WorldSave.CurrentVersion = 24` |
+| Save schema version (docs) | v24 (EG-3 Cultivation Site + crop boundary) |
 | Headless boot | OK with `godot --headless --path game --quit-after 3` |
 | Audio | No wired buses yet; `game/assets/audio/` is empty |
 | Walkable macro-camera | Detailed walkable-world prototype postponed; street-perspective macro camera is active |
@@ -79,6 +79,12 @@ domain. Treat each as a hard "do not regress" target.
   every reload would book the stockpile as freshly gathered. A v19-migrated
   city reports zero samples instead of invented history. `eg0-report.txt` is
   written beside the save on each successful save.
+- EG-3 first Cultivation Site (`CultivationSite`, schema v24): requires a
+  completed Basic Shelter, 1 Branch + 1 Small Stone and 180 preparation work;
+  sowing consumes 1 Food, the persisted `readyAtTick` resolves exactly after
+  10,800 ticks in live/offline advancement, and harvest deposits 5 Food. The
+  HUD projects daily ration, Food horizon and protected target; the macro view
+  distinguishes Prepared/Sown/Growing/Ready/Spent without color alone.
 - Lineage accents (`LineageThemeRegistry.IconAccentByLineage`): Ardhen, Orveth
   and Vaelun were re-spread to copper (~20°), gold (~45°) and khaki (~62°).
   They previously shared a 10° amber band with Orveth and Vaelun only 2° apart,
@@ -168,7 +174,7 @@ con ese documento. Lo que sigue siendo diagnóstico real del código:
 
 | ID | Título | Cómo lo cierra el proposal |
 | --- | --- | --- |
-| Food pressure sin operating-input (antiguo G1) | Granja produce Food sin receta. | **EG-3** — plot lifecycle con `readyAtTick` 10800 ticks. |
+| Food pressure sin operating-input (antiguo G1) | La Granja heredada aún produce sin receta, pero ya no es la apertura. | **Cerrado en EG-3** — primer plot con semilla, espera y `readyAtTick` 10800 ticks. |
 | Territory legible (antiguo G6) | Parcel 9 ahora `Available` y visible (5 columnas + tints por estado). | **EG-4** cuando el Founding Site provea el Cache. |
 | Wound/recovery alcanzable (antiguo G5) | Fórmula de encuentro actual sesgada a FullSuccess para citizens con competency alta. | Diferido hasta **EG-5**; wound como feature sin demo verificable se descarta. |
 
@@ -177,8 +183,8 @@ La cobertura de VS-2 (expedition planning), VS-3 (consequence), VS-4
 `ExpeditionTeamTests`, `ExpeditionEncounterTests`, `WoundRecoveryTests`,
 `TerritoryProgressionTests`, `VerticalLoopPersistenceTests` siguen pasando,
 aunque sus tests no se invocan como criterios de aceptación. Se conservan
-como regressions de seguridad hasta que la apertura EG-A0 los reescriba en
-EG-2 (Founding Site) y EG-4 (resource expedition).
+como regressions de seguridad: EG-2 ya reemplazó la apertura de shelter y
+EG-4 reescribirá el resource expedition.
 
 ## Out of scope (until prototype validates)
 

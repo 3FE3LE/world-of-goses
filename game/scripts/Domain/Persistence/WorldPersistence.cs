@@ -87,6 +87,9 @@ public static class WorldPersistence
                 MaxStock = building.MaxStock,
                 Priority = building.Priority,
                 AssignedCitizenIds = new List<int>(building.AssignedCitizenIds.Count),
+                FoundingSiteOriginModules = building.FoundingSiteOriginModules
+                    .Select(module => module.ToString())
+                    .ToList(),
             };
             foreach (var cid in building.AssignedCitizenIds)
             {
@@ -160,6 +163,7 @@ public static class WorldPersistence
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
                 LastVisitedResourceBuildingId =
                     citizen.LastVisitedResourceBuildingId?.Value,
+                LastVisitedResourcePatchId = citizen.LastVisitedResourcePatchId,
                 LastVisitedResourceUnitId = citizen.LastVisitedResourceUnitId,
                 LastVisitedResourcePositionIndex =
                     citizen.LastVisitedResourcePositionIndex,
@@ -195,12 +199,36 @@ public static class WorldPersistence
                 WorkerCapacity = project.WorkerCapacity,
                 Enabled = project.Enabled,
                 AssignedCitizenIds = new List<int>(project.AssignedCitizenIds.Count),
+                ActiveFoundingModule = project.ActiveFoundingModule?.ToString(),
+                CompletedFoundingModules = project.CompletedFoundingModules
+                    .Select(module => module.ToString())
+                    .ToList(),
+                PhaseStartedAtTick = project.PhaseStartedAtTick,
             };
             foreach (var cid in project.AssignedCitizenIds)
             {
                 ps.AssignedCitizenIds.Add(cid.Value);
             }
+            foreach (RecipeInput input in project.DepositedInputs)
+            {
+                ps.DepositedInputs[input.Resource.ToString()] = input.Amount;
+            }
+            foreach (RecipeInput input in project.RemainingInputs)
+            {
+                ps.RemainingInputs[input.Resource.ToString()] = input.Amount;
+            }
             save.Projects.Add(ps);
+        }
+
+        foreach (CultivationSite site in world.CultivationSites.Values)
+        {
+            save.CultivationSites.Add(new CultivationSiteSave
+            {
+                Id = site.Id.Value,
+                State = site.State.ToString(),
+                PlantedTick = site.PlantedTick,
+                ReadyAtTick = site.ReadyAtTick,
+            });
         }
 
         var pinnedEventIds = new HashSet<int>(world.Expeditions.Values
@@ -414,6 +442,10 @@ public static class WorldPersistence
         if (save.Projects is null)
         {
             throw new InvalidOperationException("Save.Projects is null.");
+        }
+        if (save.CultivationSites is null)
+        {
+            throw new InvalidOperationException("Save.CultivationSites is null.");
         }
         if (save.Events is null)
         {
@@ -683,6 +715,7 @@ public static class WorldPersistence
 
         var buildingIds = new HashSet<int>();
         var projectIds = new HashSet<int>();
+        var cultivationSiteIds = new HashSet<int>();
         foreach (var b in save.Buildings)
         {
             if (b is null)
@@ -777,6 +810,31 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     $"Building {b.Id}: aggregate wood reserve does not match its units.");
             }
+            if (b.FoundingSiteOriginModules is null)
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: FoundingSiteOriginModules is null.");
+            }
+            if (b.FoundingSiteOriginModules.Count
+                != b.FoundingSiteOriginModules.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: duplicate Founding Site origin module.");
+            }
+            foreach (string module in b.FoundingSiteOriginModules)
+            {
+                if (!Enum.TryParse(module, true, out FoundingSiteModule _))
+                {
+                    throw new InvalidOperationException(
+                        $"Building {b.Id}: unknown Founding Site origin module '{module}'.");
+                }
+            }
+            if (b.FoundingSiteOriginModules.Count > 0
+                && !string.Equals(b.Kind, BuildingKind.Home.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Building {b.Id}: only a Home may retain Founding Site origin modules.");
+            }
         }
         var citizenIds = new HashSet<int>();
         foreach (var c in save.Citizens)
@@ -868,13 +926,18 @@ public static class WorldPersistence
                 }
             }
             bool hasVisitedBuilding = c.LastVisitedResourceBuildingId.HasValue;
+            bool hasVisitedPatch = c.LastVisitedResourcePatchId.HasValue;
             bool hasVisitedUnit = c.LastVisitedResourceUnitId.HasValue;
-            if (hasVisitedBuilding != hasVisitedUnit)
+            bool hasVisitedPosition = c.LastVisitedResourcePositionIndex.HasValue;
+            bool hasVisitedIdentity = hasVisitedBuilding || hasVisitedPatch;
+            if ((hasVisitedBuilding && hasVisitedPatch)
+                || hasVisitedIdentity != hasVisitedUnit
+                || hasVisitedIdentity != hasVisitedPosition)
             {
                 throw new InvalidOperationException(
                     $"Citizen {c.Id}: resource visit identity is incomplete.");
             }
-            if (hasVisitedBuilding
+            if (hasVisitedIdentity
                 && (c.LastVisitedResourceUnitId < 0
                     || c.LastVisitedResourcePositionIndex < 0))
             {
@@ -924,6 +987,11 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException($"Duplicate project id {p.Id}.");
             }
+            if (!Enum.TryParse(p.Kind, true, out ConstructionKind projectKind))
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: unknown construction kind '{p.Kind}'.");
+            }
             if (buildingIds.Contains(p.Id))
             {
                 throw new InvalidOperationException(
@@ -966,10 +1034,130 @@ public static class WorldPersistence
                         $"Project {p.Id} references unknown citizen {cid}.");
                 }
             }
+            if (p.CompletedFoundingModules is null)
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: CompletedFoundingModules is null.");
+            }
+            if (p.CompletedFoundingModules.Count
+                != p.CompletedFoundingModules.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: duplicate completed Founding Site module.");
+            }
+            if (string.Equals(p.Kind, ConstructionKind.FoundingSite.ToString(), StringComparison.OrdinalIgnoreCase))
+            {
+                var completedModules = new HashSet<FoundingSiteModule>();
+                foreach (string module in p.CompletedFoundingModules)
+                {
+                    if (!Enum.TryParse(module, true, out FoundingSiteModule parsedModule))
+                    {
+                        throw new InvalidOperationException(
+                            $"Project {p.Id}: unknown Founding Site module '{module}'.");
+                    }
+                    completedModules.Add(parsedModule);
+                }
+                if (completedModules.Contains(FoundingSiteModule.Canopy))
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id}: completed Canopy must already be a Home.");
+                }
+                if ((completedModules.Contains(FoundingSiteModule.Bedroll)
+                        || completedModules.Contains(FoundingSiteModule.Cache))
+                    && !completedModules.Contains(FoundingSiteModule.Campfire))
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id}: Founding Site modules violate prerequisites.");
+                }
+                FoundingSiteModule? activeModule = null;
+                if (p.ActiveFoundingModule is not null)
+                {
+                    if (!Enum.TryParse(p.ActiveFoundingModule, true, out FoundingSiteModule parsedActive))
+                    {
+                        throw new InvalidOperationException(
+                            $"Project {p.Id}: unknown active Founding Site module '{p.ActiveFoundingModule}'.");
+                    }
+                    activeModule = parsedActive;
+                    if (completedModules.Contains(parsedActive)
+                        || !FoundingSiteRules.PrerequisitesMet(parsedActive, completedModules.Contains))
+                    {
+                        throw new InvalidOperationException(
+                            $"Project {p.Id}: active Founding Site module violates prerequisites.");
+                    }
+                }
+                if (activeModule is null && p.Progress != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id}: an idle Founding Site cannot retain phase progress.");
+                }
+                if (p.RequiredWork != FoundingSiteRules.WorkPerModule)
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id}: Founding Site work budget must be {FoundingSiteRules.WorkPerModule}.");
+                }
+                if (p.PhaseStartedAtTick < 0 || p.PhaseStartedAtTick > save.CurrentTick)
+                {
+                    throw new InvalidOperationException(
+                        $"Project {p.Id}: PhaseStartedAtTick is outside world time.");
+                }
+            }
+            if (projectKind == ConstructionKind.CultivationSite
+                && (p.RequiredWork != CultivationRules.PreparationWork
+                    || p.WorkerCapacity != CultivationRules.WorkerCapacity))
+            {
+                throw new InvalidOperationException(
+                    $"Project {p.Id}: Cultivation Site preparation tuning is invalid.");
+            }
+        }
+        if (save.CultivationSites.Count > 1)
+        {
+            throw new InvalidOperationException(
+                "EG-3 supports exactly one Cultivation Site.");
+        }
+        foreach (CultivationSiteSave site in save.CultivationSites)
+        {
+            if (site is null)
+            {
+                throw new InvalidOperationException(
+                    "Save.CultivationSites contains a null entry.");
+            }
+            bool hasTiming = site.PlantedTick.HasValue && site.ReadyAtTick.HasValue;
+            bool hasAnyTiming = site.PlantedTick.HasValue || site.ReadyAtTick.HasValue;
+            if (site.Id <= 0
+                || !cultivationSiteIds.Add(site.Id)
+                || buildingIds.Contains(site.Id)
+                || projectIds.Contains(site.Id)
+                || !Enum.TryParse(site.State, true, out CultivationPlotState state)
+                || !Enum.IsDefined(state)
+                || (state == CultivationPlotState.Prepared && hasAnyTiming)
+                || (state != CultivationPlotState.Prepared && !hasTiming)
+                || (state == CultivationPlotState.Sown
+                    && site.PlantedTick != save.CurrentTick)
+                || (state == CultivationPlotState.Growing
+                    && (site.PlantedTick >= save.CurrentTick
+                        || site.ReadyAtTick <= save.CurrentTick))
+                || (hasTiming && (site.PlantedTick < 0
+                    || site.ReadyAtTick != site.PlantedTick + CultivationRules.GrowthTicks
+                    || site.ReadyAtTick > save.CurrentTick
+                        && state is CultivationPlotState.Ready or CultivationPlotState.Spent)))
+            {
+                throw new InvalidOperationException(
+                    "Save contains an invalid Cultivation Site.");
+            }
+        }
+        int cultivationProjectCount = save.Projects.Count(project =>
+            Enum.TryParse(project.Kind, true, out ConstructionKind kind)
+            && kind == ConstructionKind.CultivationSite);
+        if (cultivationProjectCount + save.CultivationSites.Count > 1)
+        {
+            throw new InvalidOperationException(
+                "Save contains more than one active or completed Cultivation Site.");
         }
         foreach (int entityId in placementEntityIds)
         {
-            if (!buildingIds.Contains(entityId) && !projectIds.Contains(entityId))
+            if (!buildingIds.Contains(entityId)
+                && !projectIds.Contains(entityId)
+                && !cultivationSiteIds.Contains(entityId))
             {
                 throw new InvalidOperationException(
                     $"Parcel placement references unknown entity {entityId}.");
@@ -990,6 +1178,14 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException(
                     $"Project {project.Id} has no parcel placement.");
+            }
+        }
+        foreach (CultivationSiteSave site in save.CultivationSites)
+        {
+            if (!placementEntityIds.Contains(site.Id))
+            {
+                throw new InvalidOperationException(
+                    $"Cultivation Site {site.Id} has no parcel placement.");
             }
         }
 
@@ -1292,6 +1488,9 @@ public static class WorldPersistence
                 18 => MigrateV18ToV19(save),
                 19 => MigrateV19ToV20(save),
                 20 => MigrateV20ToV21(save),
+                21 => MigrateV21ToV22(save),
+                22 => MigrateV22ToV23(save),
+                23 => MigrateV23ToV24(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -1536,6 +1735,7 @@ public static class WorldPersistence
 
     public static WorldSave MigrateV9ToV10(WorldSave save)
     {
+        const int LegacyTreeUnitCapacity = 40;
         ArgumentNullException.ThrowIfNull(save);
         if (save.Version != 9)
         {
@@ -1556,7 +1756,7 @@ public static class WorldPersistence
             while (remaining > 0
                 && patch.UnitReserves.Count < NaturalResourcePatch.MaximumUnits)
             {
-                int reserve = Math.Min(remaining, CityWorld.StartingTreeWoodReserve);
+                int reserve = Math.Min(remaining, LegacyTreeUnitCapacity);
                 patch.UnitReserves.Add(reserve);
                 remaining -= reserve;
             }
@@ -1767,6 +1967,112 @@ public static class WorldPersistence
                 $"MigrateV20ToV21 expects version 20 but found {save.Version}.");
         }
         save.Version = 21;
+        return save;
+    }
+
+    /// <summary>
+    /// EG-2 adds optional Founding Site phase fields. Existing projects and
+    /// completed Homes remain legacy entities; the migration does not invent
+    /// module history or replace an in-flight Basic Shelter.
+    /// </summary>
+    public static WorldSave MigrateV21ToV22(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 21)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV21ToV22 expects version 21 but found {save.Version}.");
+        }
+        save.Version = 22;
+        return save;
+    }
+
+    /// <summary>
+    /// Aligns legacy founding forests with proposal §4. Remaining Wood is
+    /// scaled proportionally from the former 320-unit patch into the new
+    /// 24-unit patch, preserving depletion progress without retaining the
+    /// prototype's inflated absolute economy.
+    /// </summary>
+    public static WorldSave MigrateV22ToV23(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 22)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV22ToV23 expects version 22 but found {save.Version}.");
+        }
+
+        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
+        {
+            if (!string.Equals(
+                    patch.ResourceType,
+                    ResourceType.Wood.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                || (patch.UnitReserves.Count == 3
+                    && patch.UnitReserves.All(reserve => reserve <= 8)))
+            {
+                continue;
+            }
+            patch.UnitReserves = ScaleLegacyForest(patch.UnitReserves);
+        }
+
+        foreach (BuildingSave building in save.Buildings)
+        {
+            if (!string.Equals(
+                    building.Kind,
+                    BuildingKind.Forest.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                || (building.WoodUnitReserves.Count == 3
+                    && building.WoodUnitReserves.All(reserve => reserve <= 8)))
+            {
+                continue;
+            }
+            building.WoodUnitReserves = ScaleLegacyForest(building.WoodUnitReserves);
+            building.WoodReserve = building.WoodUnitReserves.Sum();
+            building.StorageCapacity = 24;
+            building.MinStock = Math.Min(building.MinStock ?? 0, 24);
+            building.MaxStock = Math.Min(building.MaxStock ?? 24, 24);
+            if (building.TargetStock.HasValue)
+            {
+                building.TargetStock = Math.Min(building.TargetStock.Value, 24);
+            }
+        }
+
+        save.Version = 23;
+        return save;
+
+        static List<int> ScaleLegacyForest(IReadOnlyCollection<int> legacyReserves)
+        {
+            const int LegacyPatchCapacity = 8 * 40;
+            const int CurrentPatchCapacity = 3 * 8;
+            int legacyTotal = Math.Clamp(legacyReserves.Sum(), 0, LegacyPatchCapacity);
+            int scaledTotal = (int)Math.Ceiling(
+                legacyTotal * (double)CurrentPatchCapacity / LegacyPatchCapacity);
+            var result = new List<int>(3);
+            for (int unitId = 0; unitId < 3; unitId++)
+            {
+                int reserve = Math.Min(8, scaledTotal);
+                result.Add(reserve);
+                scaledTotal -= reserve;
+            }
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// EG-3 adds an explicit Cultivation Site collection. Existing cities keep
+    /// their history and receive no invented plot or crop.
+    /// </summary>
+    public static WorldSave MigrateV23ToV24(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 23)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV23ToV24 expects version 23 but found {save.Version}.");
+        }
+        save.CultivationSites ??= new List<CultivationSiteSave>();
+        save.Version = 24;
         return save;
     }
 

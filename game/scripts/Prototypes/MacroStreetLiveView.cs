@@ -113,6 +113,8 @@ public partial class MacroStreetLiveView : Node2D
     private const float HeroFootOffsetMacroPx = 7f;
 
     private const string ResourceActionMenuScenePath = "res://scenes/Components/ResourceActionMenu.tscn";
+    private const string CultivationActionMenuScenePath =
+        "res://scenes/Components/CultivationActionMenu.tscn";
 
     // Floor tiles sample the Kenney atlas ResourceTree already uses for
     // trees (S-1.3 biome pass), keyed by street so the corridor reads as
@@ -175,6 +177,7 @@ public partial class MacroStreetLiveView : Node2D
     private CityStatusPanel _statusPanel = null!;
     private OfflineReportPanel _chronicle = null!;
     private ResourceActionMenu _actionMenu = null!;
+    private CultivationActionMenu _cultivationActionMenu = null!;
     private IconButton _constructionMenuButton = null!;
     private ConstructionPanel _constructionPanel = null!;
     private IconButton _expeditionMenuButton = null!;
@@ -338,7 +341,9 @@ public partial class MacroStreetLiveView : Node2D
         bool IsUnderConstruction,
         bool IsClickable,
         int Stock,
-        int StorageCapacity)
+        int StorageCapacity,
+        CultivationPlotState? CultivationState,
+        int? ReadyAtTick)
     {
         public bool IsStorageFull => StorageCapacity > 0 && Stock >= StorageCapacity;
     }
@@ -348,8 +353,8 @@ public partial class MacroStreetLiveView : Node2D
         float LateralOffset,
         int ForestId,
         int UnitId,
-        int Reserve,
-        int TicksUntilRegeneration);
+        ResourceType ResourceType,
+        int Reserve);
 
     public override void _Ready()
     {
@@ -390,6 +395,10 @@ public partial class MacroStreetLiveView : Node2D
         // ScreenContent is still mid-_Ready() for its children, so transient
         // controls are attached after the scene-tree setup pass.
         GetParent().CallDeferred(Node.MethodName.AddChild, _actionMenu);
+        _cultivationActionMenu = GD.Load<PackedScene>(CultivationActionMenuScenePath)
+            .Instantiate<CultivationActionMenu>();
+        _cultivationActionMenu.CultivationRequested += OnCultivationRequested;
+        GetParent().CallDeferred(Node.MethodName.AddChild, _cultivationActionMenu);
         _selectionInfoPanel = new SelectionInfoPanel();
         GetParent().CallDeferred(Node.MethodName.AddChild, _selectionInfoPanel);
         _navmeshPlanner = new StreetNavigationServerPlanner();
@@ -397,6 +406,8 @@ public partial class MacroStreetLiveView : Node2D
 
         _controller.BuildingStateChanged += OnWorldChanged;
         _controller.ProjectStateChanged += OnWorldChanged;
+        _controller.NaturalResourceStateChanged += OnWorldChanged;
+        _controller.CultivationSiteStateChanged += OnWorldChanged;
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.SelectionChanged += OnSelectionChanged;
         _controller.HeroCreated += OnHeroCreated;
@@ -439,11 +450,14 @@ public partial class MacroStreetLiveView : Node2D
     {
         _controller.BuildingStateChanged -= OnWorldChanged;
         _controller.ProjectStateChanged -= OnWorldChanged;
+        _controller.NaturalResourceStateChanged -= OnWorldChanged;
+        _controller.CultivationSiteStateChanged -= OnWorldChanged;
         _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
         _controller.SelectionChanged -= OnSelectionChanged;
         _controller.HeroCreated -= OnHeroCreated;
         _controller.ObservedCitizenChanged -= OnObservedCitizenChanged;
         _actionMenu.GatherRequested -= OnGatherRequested;
+        _cultivationActionMenu.CultivationRequested -= OnCultivationRequested;
         _constructionMenuButton.Pressed -= OnConstructionMenuPressed;
         _expeditionMenuButton.Pressed -= OnExpeditionMenuPressed;
         _policiesButton.Pressed -= OnPoliciesPressed;
@@ -511,6 +525,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnWorldChanged(int _)
     {
+        _cultivationActionMenu.Hide();
         _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
@@ -547,6 +562,7 @@ public partial class MacroStreetLiveView : Node2D
     {
         _macroActions.Show();
         _actionMenu.Hide();
+        _cultivationActionMenu.Hide();
         _selectionInfoPanel.Hide();
         _worldStatusBubble.Hide();
         Show();
@@ -595,6 +611,7 @@ public partial class MacroStreetLiveView : Node2D
         _macroActions.Hide();
         _chronicle.Hide();
         _actionMenu.Hide();
+        _cultivationActionMenu.Hide();
         _selectionInfoPanel.Hide();
         _selectedTree = null;
         _selectedBuildingId = null;
@@ -715,6 +732,11 @@ public partial class MacroStreetLiveView : Node2D
         _constructionPanel.ScrollBodyToEndForVisualRegression();
     }
 
+    internal void ShowEarlyGameResourcesForVisualRegression()
+    {
+        ActivatePerspective();
+    }
+
     internal void ShowCitizenStatusForVisualRegression(CitizenId citizenId)
     {
         RefreshPlots();
@@ -827,6 +849,7 @@ public partial class MacroStreetLiveView : Node2D
         _placementInstruction.Visible = true;
         _placementFooter.Visible = true;
         _actionMenu.Hide();
+        _cultivationActionMenu.Hide();
         _selectionInfoPanel.Hide();
         _selectedTree = null;
         _selectedBuildingId = null;
@@ -932,9 +955,8 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Keeps the selection panel's numbers (wood remaining, regrowth
-    /// time) live as the world ticks — a gather or regeneration tick
-    /// would otherwise leave stale figures on screen. Clears the
+    /// Keeps the selection panel's remaining reserve live as the world ticks
+    /// or a gather completes. Clears the
     /// selection if the selected tree is gone (fully depleted units are
     /// dropped from <see cref="_trees"/> — see <see cref="AddTrees"/>).
     /// </summary>
@@ -1122,8 +1144,8 @@ public partial class MacroStreetLiveView : Node2D
                 lateralOffset,
                 forest.Id.Value,
                 unitId,
-                forest.WoodUnitReserves[unitId],
-                forest.TicksUntilRegeneration));
+                forest.GroundResourceType ?? ResourceType.Wood,
+                forest.WoodUnitReserves[unitId]));
             AddBandInterval(street, lateralOffset - TreeBlockHalfWidthPx, lateralOffset + TreeBlockHalfWidthPx);
         }
     }
@@ -1147,7 +1169,9 @@ public partial class MacroStreetLiveView : Node2D
             item.IsUnderConstruction,
             clickable,
             item.Stock,
-            item.StorageCapacity));
+            item.StorageCapacity,
+            item.CultivationState,
+            item.ReadyAtTick));
         AddBandInterval(street, lateralOffset - width * 0.5f, lateralOffset + width * 0.5f);
     }
 
@@ -1186,6 +1210,17 @@ public partial class MacroStreetLiveView : Node2D
         System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1"
         && _citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
         && journey.Route is not null;
+
+    public void ShowThirdStreetDepthForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        SetCameraFollowsHero(false);
+        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _cameraDepthAnchor = _freeCameraStreet;
+        _cameraDepthTarget = null;
+        _cameraTransitionAccumulator = 0f;
+        QueueRedraw();
+    }
 
     public override void _Process(double delta)
     {
@@ -1276,6 +1311,12 @@ public partial class MacroStreetLiveView : Node2D
         if (_actionMenu.Visible && @event.IsActionPressed("ui_cancel"))
         {
             _actionMenu.Hide();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_cultivationActionMenu.Visible && @event.IsActionPressed("ui_cancel"))
+        {
+            _cultivationActionMenu.Hide();
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -1444,6 +1485,7 @@ public partial class MacroStreetLiveView : Node2D
         // getting here at all means "outside" it. Dismiss without
         // gathering.
         if (_actionMenu.Visible) _actionMenu.Hide();
+        if (_cultivationActionMenu.Visible) _cultivationActionMenu.Hide();
 
         // Placement mode is exclusive and blocks every other world click
         // while a lot is being chosen.
@@ -1507,25 +1549,34 @@ public partial class MacroStreetLiveView : Node2D
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectBuildingPlot(buildingId);
+            PlotBox? plot = FindPlot(new BuildingId(buildingId));
+            if (plot is { CultivationState: CultivationPlotState state })
+            {
+                OpenCultivationMenu(plot.Value, state, rect);
+                return;
+            }
             BeginBuildingEntry(new BuildingId(buildingId), clickPosition);
             return;
         }
         if (_actionMenu.Visible) _actionMenu.Hide();
+        if (_cultivationActionMenu.Visible) _cultivationActionMenu.Hide();
     }
 
     private void SelectTree(TreeBox tree)
     {
         _selectedTree = tree;
         _selectedBuildingId = null;
-        Texture2D icon = ResourceTree.CreateRegion(
-            _terrainAtlas,
-            (tree.ForestId + tree.UnitId) % 2 == 0 ? ResourceTree.TreeAtlasColumnA : ResourceTree.TreeAtlasColumnB,
-            ResourceTree.TreeAtlasRow);
-        int futureTick = _controller.World.CurrentTick + tree.TicksUntilRegeneration;
-        string detail = UiText.Format("ui.resource.wood_remains", tree.Reserve)
-            + "\n"
-            + UiText.Format("ui.tree.regrows_at", SimulationTimeText.FormatLocalized(futureTick));
-        _selectionInfoPanel.ShowSelection(icon, UiText.Get("ui.selection.tree_title"), detail);
+        Texture2D icon = tree.ResourceType == ResourceType.Wood
+            ? ResourceTree.CreateRegion(
+                _terrainAtlas,
+                (tree.ForestId + tree.UnitId) % 2 == 0
+                    ? ResourceTree.TreeAtlasColumnA
+                    : ResourceTree.TreeAtlasColumnB,
+                ResourceTree.TreeAtlasRow)
+            : GD.Load<Texture2D>(IconPaths.Leaf);
+        string resourceName = UiText.Get(tree.ResourceType.ToString().ToLowerInvariant());
+        string detail = UiText.Format("ui.resource.units_remain", tree.Reserve, resourceName);
+        _selectionInfoPanel.ShowSelection(icon, resourceName, detail);
     }
 
     /// <summary>
@@ -1537,6 +1588,19 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void SelectBuildingPlot(int buildingId)
     {
+        PlotBox? selectedPlot = FindPlot(new BuildingId(buildingId));
+        if (selectedPlot is { CultivationState: CultivationPlotState state })
+        {
+            PlotBox plot = selectedPlot.Value;
+            _selectedBuildingId = buildingId;
+            _selectedTree = null;
+            string cultivationDetail = CultivationDetail(plot, state);
+            _selectionInfoPanel.ShowSelection(
+                GD.Load<Texture2D>(IconPaths.Leaf),
+                UiText.Get("Cultivation Site"),
+                cultivationDetail);
+            return;
+        }
         BuildingDetailSnapshot? snapshot = _controller.GetBuildingDetailSnapshot(new BuildingId(buildingId));
         if (snapshot is null)
         {
@@ -1559,6 +1623,93 @@ public partial class MacroStreetLiveView : Node2D
         string fullLabel = UiText.Format(
             "ui.building_detail.full_label", UiText.Get(snapshot.DisplayName), UiText.Get(snapshot.ResourceLabel));
         _selectionInfoPanel.ShowSelection(icon, fullLabel, detail);
+    }
+
+    private string CultivationDetail(PlotBox plot, CultivationPlotState state)
+    {
+        if (state == CultivationPlotState.Growing
+            && plot.ReadyAtTick is int readyAtTick)
+        {
+            int remaining = Mathf.Max(0, readyAtTick - _controller.World.CurrentTick);
+            int days = (int)System.Math.Ceiling(
+                remaining / (double)GameClock.TicksPerInGameDay);
+            return UiText.Format("ui.cultivation.growing", days);
+        }
+        return state switch
+        {
+            CultivationPlotState.Prepared => UiText.Get("ui.cultivation.prepared"),
+            CultivationPlotState.Sown => UiText.Get("ui.cultivation.sown"),
+            CultivationPlotState.Ready => UiText.Format(
+                "ui.cultivation.ready", CultivationRules.HarvestFoodYield),
+            CultivationPlotState.Spent => UiText.Get("ui.cultivation.spent"),
+            _ => UiText.Get("Cultivation Site"),
+        };
+    }
+
+    private void OpenCultivationMenu(
+        PlotBox plot,
+        CultivationPlotState state,
+        Rect2 rect)
+    {
+        Citizen? founder = _controller.World.Hero;
+        bool founderAvailable = founder?.IsAvailable == true;
+        bool canAct = founderAvailable
+            && state is (CultivationPlotState.Prepared or CultivationPlotState.Ready);
+        string tooltip = !founderAvailable
+            ? UiText.Get("ui.cultivation.founder_unavailable")
+            : state switch
+        {
+            CultivationPlotState.Prepared => _controller.World.FoodStock
+                >= CultivationRules.SeedFoodCost
+                    ? UiText.Get("ui.cultivation.sow_action")
+                    : UiText.Get("ui.cultivation.missing_seed_food"),
+            CultivationPlotState.Ready => UiText.Get("ui.cultivation.harvest_action"),
+            CultivationPlotState.Sown or CultivationPlotState.Growing =>
+                UiText.Get("ui.cultivation.not_ready"),
+            _ => UiText.Get("ui.cultivation.spent"),
+        };
+        if (state == CultivationPlotState.Prepared
+            && _controller.World.FoodStock < CultivationRules.SeedFoodCost)
+        {
+            canAct = false;
+        }
+        _actionMenu.Hide();
+        Vector2 menuAnchor = ToGlobal(rect.GetCenter())
+            - ((Control)GetParent()).GlobalPosition;
+        _cultivationActionMenu.Open(
+            plot.BuildingId,
+            state,
+            menuAnchor,
+            canAct,
+            tooltip);
+    }
+
+    private void OnCultivationRequested(int siteId)
+    {
+        CultivationSite? site = _controller.World.GetCultivationSite(new BuildingId(siteId));
+        if (site is null) return;
+        CultivationActionResult result = site.State == CultivationPlotState.Prepared
+            ? _controller.TrySowCultivationSite(site.Id)
+            : _controller.TryHarvestCultivationSite(site.Id);
+        if (result.IsSuccess)
+        {
+            Notifier.Show(result.FoodDelta < 0
+                ? UiText.Get("ui.cultivation.sown_notice")
+                : UiText.Format("ui.cultivation.harvest_notice", result.FoodDelta));
+            _statusPanel.Refresh(_controller);
+        }
+        else
+        {
+            string key = result.Outcome switch
+            {
+                CultivationActionOutcome.FounderUnavailable =>
+                    "ui.cultivation.founder_unavailable",
+                CultivationActionOutcome.MissingFood =>
+                    "ui.cultivation.missing_seed_food",
+                _ => "ui.cultivation.action_unavailable",
+            };
+            Notifier.ShowError(UiText.Get(key));
+        }
     }
 
     /// <summary>Extension point: citizens will route here too once they get selection info.</summary>
@@ -1828,6 +1979,7 @@ public partial class MacroStreetLiveView : Node2D
         // would leave the axe cursor stuck, showing the same icon twice.
         ClearTreeHover();
         ClearWorldStatusHover();
+        _cultivationActionMenu.Hide();
         Citizen? hero = _controller.World.Hero;
         bool onExpedition = hero is not null && _controller.World.IsCitizenOnActiveExpedition(hero.Id);
         bool canGather = hero is not null && !hero.CurrentAssignment.HasValue && !onExpedition;
@@ -1843,6 +1995,7 @@ public partial class MacroStreetLiveView : Node2D
         _actionMenu.Open(
             tree.ForestId,
             tree.UnitId,
+            tree.ResourceType,
             menuAnchor,
             menuAnchor,
             canGather,
@@ -1994,9 +2147,23 @@ public partial class MacroStreetLiveView : Node2D
         // The tree stands behind the hero's road (deeper), so swing away
         // from the viewer, then settle back to idle after the one-shot.
         _heroCarrier?.Slash(Vector2.Up);
-        int gathered = _controller.GatherWood(new BuildingId(pending.Value.ForestId), pending.Value.UnitId, 2);
-        if (gathered > 0) Notifier.Show(UiText.Format("ui.gather.gathered_wood", gathered));
-        else Notifier.ShowError("This tree no longer has wood available.");
+        TreeBox? target = _trees.FirstOrDefault(tree =>
+            tree.ForestId == pending.Value.ForestId && tree.UnitId == pending.Value.UnitId);
+        int gathered = _controller.GatherFromPatch(
+            pending.Value.ForestId,
+            pending.Value.UnitId,
+            amount: 2);
+        if (gathered > 0 && target is TreeBox gatheredTarget)
+        {
+            Notifier.Show(UiText.Format(
+                "ui.gather.gathered_resource",
+                gathered,
+                UiText.Get(gatheredTarget.ResourceType.ToString().ToLowerInvariant())));
+        }
+        else
+        {
+            Notifier.ShowError(UiText.Get("This resource node is no longer available."));
+        }
         GetTree().CreateTimer(0.6).Timeout += () =>
         {
             if (IsInstanceValid(this) && _route is null && IsInstanceValid(_heroCarrier))
@@ -2766,6 +2933,8 @@ public partial class MacroStreetLiveView : Node2D
                 continue;
             }
             float depth = journey.DepthAnchor - CameraDepthAnchor;
+            journey.Carrier.Visible = StreetDepthProjection.IsVisibleDepth(depth);
+            if (!journey.Carrier.Visible) continue;
             float relativeOffset = journey.Lateral - CameraLateral;
             (Vector2 position, Vector2 scale) =
                 StreetDepthProjection.Project(depth, relativeOffset, CenterX, BaseY);
@@ -3101,6 +3270,8 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         float depth = _depthAnchor - CameraDepthAnchor;
+        _heroCarrier.Visible = StreetDepthProjection.IsVisibleDepth(depth);
+        if (!_heroCarrier.Visible) return;
         float lateralOffset = _heroLateral - CameraLateral;
         (Vector2 position, Vector2 scale) =
             StreetDepthProjection.Project(depth, lateralOffset, CenterX, BaseY);
@@ -3120,6 +3291,7 @@ public partial class MacroStreetLiveView : Node2D
         _storageFullBadgeRects.Clear();
         for (int street = _streetCount - 1; street >= 0; street--)
         {
+            if (!StreetDepthProjection.IsVisibleDepth(street - CameraDepthAnchor)) continue;
             DrawStreetRow(street);
         }
         UpdateHeroVisual();
@@ -3174,6 +3346,12 @@ public partial class MacroStreetLiveView : Node2D
             var rect = new Rect2(
                 new Vector2(position.X - size.X * 0.5f, position.Y - size.Y),
                 size);
+            if (plot.CultivationState is CultivationPlotState cultivationState)
+            {
+                DrawCultivationSite(rect, cultivationState);
+                if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
+                continue;
+            }
             Texture2D? texture = GetBuildingTexture(plot.Kind);
             if (texture is not null)
             {
@@ -3206,16 +3384,109 @@ public partial class MacroStreetLiveView : Node2D
             var treeRect = new Rect2(
                 new Vector2(treePosition.X - treeSize.X * 0.5f, treePosition.Y - treeSize.Y),
                 treeSize);
-            // Same two Kenney atlas tiles the flat view's ResourceTree uses,
-            // variant kept stable per individual tree.
-            int column = (tree.ForestId + tree.UnitId) % 2 == 0
+            DrawNaturalResourceUnit(tree, treeRect);
+            _clickableTreeRects.Add((treeRect, tree));
+        }
+    }
+
+    private void DrawCultivationSite(Rect2 rect, CultivationPlotState state)
+    {
+        Color soil = state == CultivationPlotState.Prepared
+            ? new Color("#71513a")
+            : new Color("#59412f");
+        DrawRect(rect, soil);
+        float lineWidth = Mathf.Max(2f, rect.Size.X * 0.035f);
+        for (int row = 1; row <= 3; row++)
+        {
+            float y = Mathf.Round(rect.Position.Y + rect.Size.Y * row / 4f);
+            DrawLine(
+                new Vector2(rect.Position.X + rect.Size.X * 0.12f, y),
+                new Vector2(rect.End.X - rect.Size.X * 0.12f, y),
+                new Color("#3d2b22"),
+                lineWidth,
+                antialiased: false);
+        }
+        if (state == CultivationPlotState.Prepared) return;
+
+        Color plant = state switch
+        {
+            CultivationPlotState.Sown => new Color("#b89a52"),
+            CultivationPlotState.Growing => new Color("#6f9f48"),
+            CultivationPlotState.Ready => new Color("#d2b24c"),
+            CultivationPlotState.Spent => new Color("#8a7457"),
+            _ => Colors.White,
+        };
+        int markerCount = state == CultivationPlotState.Sown ? 3 : 5;
+        float markerSize = Mathf.Max(3f, rect.Size.X * 0.075f);
+        for (int marker = 0; marker < markerCount; marker++)
+        {
+            float x = rect.Position.X
+                + rect.Size.X * (marker + 1f) / (markerCount + 1f);
+            float height = state switch
+            {
+                CultivationPlotState.Sown => markerSize,
+                CultivationPlotState.Growing => markerSize * 2f,
+                CultivationPlotState.Ready => markerSize * 3f,
+                _ => markerSize * 1.4f,
+            };
+            DrawRect(
+                new Rect2(
+                    new Vector2(
+                        Mathf.Round(x - markerSize * 0.5f),
+                        Mathf.Round(rect.End.Y - rect.Size.Y * 0.22f - height)),
+                    new Vector2(markerSize, height)),
+                plant);
+        }
+        if (state == CultivationPlotState.Ready)
+        {
+            float badge = Mathf.Max(5f, rect.Size.X * 0.12f);
+            DrawCircle(
+                new Vector2(rect.End.X - badge, rect.Position.Y + badge),
+                badge * 0.55f,
+                new Color("#f2d35f"),
+                filled: true,
+                width: -1f,
+                antialiased: false);
+        }
+    }
+
+    private void DrawNaturalResourceUnit(TreeBox unit, Rect2 rect)
+    {
+        if (unit.ResourceType == ResourceType.Wood)
+        {
+            int column = (unit.ForestId + unit.UnitId) % 2 == 0
                 ? ResourceTree.TreeAtlasColumnA
                 : ResourceTree.TreeAtlasColumnB;
             DrawTextureRectRegion(
                 _terrainAtlas,
-                treeRect,
+                rect,
                 ResourceTree.AtlasRegionRect(column, ResourceTree.TreeAtlasRow));
-            _clickableTreeRects.Add((treeRect, tree));
+            return;
+        }
+
+        Rect2 marker = rect.Grow(-rect.Size.X * 0.22f);
+        Color baseColor = unit.ResourceType switch
+        {
+            ResourceType.Branches => new Color("#8f5b32"),
+            ResourceType.PlantFiber => new Color("#73a942"),
+            ResourceType.SmallStone => new Color("#8a8f93"),
+            ResourceType.WildFood => new Color("#477a3b"),
+            _ => Colors.White,
+        };
+        DrawRect(marker, baseColor);
+        if (unit.ResourceType == ResourceType.WildFood)
+        {
+            float berrySize = Mathf.Max(2f, marker.Size.X * 0.18f);
+            DrawRect(new Rect2(marker.Position + marker.Size * 0.18f, new Vector2(berrySize, berrySize)), new Color("#c4514f"));
+            DrawRect(new Rect2(marker.Position + marker.Size * 0.58f, new Vector2(berrySize, berrySize)), new Color("#d9a441"));
+        }
+        else if (unit.ResourceType == ResourceType.Branches)
+        {
+            DrawLine(marker.Position, marker.End, new Color("#4f321f"), Mathf.Max(2f, marker.Size.X * 0.12f), antialiased: false);
+        }
+        else if (unit.ResourceType == ResourceType.SmallStone)
+        {
+            DrawRect(new Rect2(marker.Position + marker.Size * 0.45f, marker.Size * 0.5f), new Color("#b5b8b8"));
         }
     }
 

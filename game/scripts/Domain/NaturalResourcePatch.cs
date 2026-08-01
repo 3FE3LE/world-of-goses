@@ -60,6 +60,28 @@ public sealed class NaturalResourcePatch
     }
 
     /// <summary>
+    /// Returns explicitly dropped cargo to this opportunity without creating a
+    /// new patch. The least-stocked unit receives it so the same authored set
+    /// of ground nodes remains stable and no guaranteed opening material is
+    /// destroyed.
+    /// </summary>
+    internal int Return(int amount)
+    {
+        if (amount <= 0 || _unitReserves.Count == 0) return 0;
+        for (int returned = 0; returned < amount; returned++)
+        {
+            int targetUnit = 0;
+            for (int unitId = 1; unitId < _unitReserves.Count; unitId++)
+            {
+                if (_unitReserves[unitId] < _unitReserves[targetUnit]) targetUnit = unitId;
+            }
+            _unitReserves[targetUnit] = checked(_unitReserves[targetUnit] + 1);
+            TotalReserve = checked(TotalReserve + 1);
+        }
+        return amount;
+    }
+
+    /// <summary>
     /// Regenerates existing eligible units and sprouts at most one new unit in
     /// the next free lot. Returns the total reserve added this boundary.
     /// </summary>

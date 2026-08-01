@@ -31,6 +31,7 @@ public static class WorldTimeAdvance
         int eventCursor = world.Log.Events.Count;
         if (world.Buildings.Count == 0
             && world.Projects.Count == 0
+            && world.CultivationSites.Count == 0
             && !world.Expeditions.Values.Any(expedition =>
                 expedition.Status == ExpeditionStatus.Active))
         {

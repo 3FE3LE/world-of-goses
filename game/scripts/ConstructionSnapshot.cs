@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using WorldofGoses.Domain;
 
 namespace WorldofGoses;
@@ -11,7 +12,9 @@ public sealed record ConstructionSnapshot(
     ConstructionSnapshot.ProjectItem? Project,
     IReadOnlyList<ConstructionSnapshot.CitizenItem> AvailableCitizens,
     IReadOnlyList<ConstructionSnapshot.UnavailableCitizenItem> UnavailableCitizens,
-    IReadOnlyList<ConstructionSnapshot.OptionItem> Options)
+    IReadOnlyList<ConstructionSnapshot.OptionItem> Options,
+    IReadOnlyList<ConstructionSnapshot.FoundingModuleOptionItem> FoundingModuleOptions,
+    int ReturnableFoundingCargoCount)
 {
     public bool HasHome => HomeBuildingId.HasValue;
 
@@ -45,6 +48,17 @@ public sealed record ConstructionSnapshot(
         }
     }
 
+    public sealed record FoundingModuleOptionItem(
+        FoundingSiteModule Module,
+        bool PrerequisitesMet,
+        bool Completed,
+        IReadOnlyList<MaterialItem> Materials)
+    {
+        public bool CanAuthorize => PrerequisitesMet
+            && !Completed
+            && Materials.All(material => material.Available >= material.Required);
+    }
+
     public sealed record ProjectItem(
         BuildingId Id,
         string DisplayName,
@@ -55,7 +69,9 @@ public sealed record ConstructionSnapshot(
         bool Enabled,
         ConstructionStopCause StopCause,
         IReadOnlyList<CitizenItem> AssignedCitizens,
-        IReadOnlyList<RecipeInput> RemainingInputs)
+        IReadOnlyList<RecipeInput> RemainingInputs,
+        FoundingSiteModule? ActiveFoundingModule,
+        IReadOnlyList<FoundingSiteModule> CompletedFoundingModules)
     {
         public int AssignedCount => AssignedCitizens.Count;
         public bool IsAtCapacity => AssignedCount >= WorkerCapacity;
@@ -91,7 +107,9 @@ public sealed record ConstructionSnapshot(
             }
             projectItem = new ProjectItem(current.Id, current.DisplayName, current.ResultingKind,
                 current.Progress, current.RequiredWork, current.WorkerCapacity, current.Enabled,
-                current.StopCause, assigned, new List<RecipeInput>(current.RemainingInputs));
+                current.StopCause, assigned, new List<RecipeInput>(current.RemainingInputs),
+                current.ActiveFoundingModule,
+                new List<FoundingSiteModule>(current.CompletedFoundingModules));
         }
 
         var available = new List<CitizenItem>();
@@ -112,7 +130,7 @@ public sealed record ConstructionSnapshot(
         }
 
         var options = new List<OptionItem>();
-        foreach (var kind in new[] { ConstructionKind.BasicShelter, ConstructionKind.Farm, ConstructionKind.Quarry, ConstructionKind.TownHall })
+        foreach (var kind in new[] { ConstructionKind.FoundingSite, ConstructionKind.BasicShelter, ConstructionKind.CultivationSite, ConstructionKind.Farm, ConstructionKind.Quarry, ConstructionKind.TownHall })
         {
             var materials = new List<MaterialItem>();
             var recipe = Recipes.ConstructionRecipeFor(kind);
@@ -120,15 +138,42 @@ public sealed record ConstructionSnapshot(
             {
                 foreach (var input in recipe.RequiredInputs)
                 {
+                    int deposit = kind is ConstructionKind.FoundingSite
+                        or ConstructionKind.CultivationSite
+                        ? input.Amount
+                        : ConstructionRules.DepositOf(input.Amount);
                     materials.Add(new MaterialItem(input.Resource, input.Amount,
-                        world.Resources.Available(input.Resource), ConstructionRules.DepositOf(input.Amount)));
+                        world.Resources.Available(input.Resource), deposit));
                 }
             }
             options.Add(new OptionItem(kind, materials));
         }
 
+        var moduleOptions = new List<FoundingModuleOptionItem>();
+        if (current?.Kind == ConstructionKind.FoundingSite)
+        {
+            foreach (FoundingSiteModule module in System.Enum.GetValues<FoundingSiteModule>())
+            {
+                var materials = new List<MaterialItem>();
+                foreach (RecipeInput input in FoundingSiteRules.InputsFor(module))
+                {
+                    materials.Add(new MaterialItem(
+                        input.Resource,
+                        input.Amount,
+                        world.Resources.Available(input.Resource),
+                        input.Amount));
+                }
+                moduleOptions.Add(new FoundingModuleOptionItem(
+                    module,
+                    FoundingSiteRules.PrerequisitesMet(module, current.HasCompletedFoundingModule),
+                    current.HasCompletedFoundingModule(module),
+                    materials));
+            }
+        }
+
         return new ConstructionSnapshot(world.Hero is not null, world.Hero?.Name, homeId,
-            projectItem, available, unavailable, options);
+            projectItem, available, unavailable, options, moduleOptions,
+            world.ReturnableFoundingCargoCount());
     }
 
     private static string? ResolveCommitmentLocationName(CityWorld world, int? entityId)
@@ -148,5 +193,14 @@ public sealed record ConstructionSnapshot(
             if (option.Kind == kind) return option;
         }
         return new OptionItem(kind, System.Array.Empty<MaterialItem>());
+    }
+
+    public FoundingModuleOptionItem? FoundingOptionFor(FoundingSiteModule module)
+    {
+        foreach (FoundingModuleOptionItem option in FoundingModuleOptions)
+        {
+            if (option.Module == module) return option;
+        }
+        return null;
     }
 }

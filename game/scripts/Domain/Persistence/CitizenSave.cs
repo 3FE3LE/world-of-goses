@@ -63,6 +63,12 @@ public sealed class CitizenSave
     /// </summary>
     public int WellFedRemainingTicks { get; set; }
     public int? LastVisitedResourceBuildingId { get; set; }
+    /// <summary>
+    /// Ground-resource identity used instead of
+    /// <see cref="LastVisitedResourceBuildingId"/>. Exactly one of the two
+    /// identity fields is present for a recorded resource visit.
+    /// </summary>
+    public int? LastVisitedResourcePatchId { get; set; }
     public int? LastVisitedResourceUnitId { get; set; }
     public int? LastVisitedResourcePositionIndex { get; set; }
 }

@@ -59,6 +59,10 @@ public sealed record CityMacroSnapshot(
     public sealed record PlotItem(
         BuildingId Id,
         BuildingKind Kind,
+        ResourceType? GroundResourceType,
+        CultivationPlotState? CultivationState,
+        int? PlantedTick,
+        int? ReadyAtTick,
         string DisplayName,
         bool IsUnderConstruction,
         bool Enabled,
@@ -66,7 +70,6 @@ public sealed record CityMacroSnapshot(
         int StorageCapacity,
         int WoodReserve,
         IReadOnlyList<int> WoodUnitReserves,
-        int TicksUntilRegeneration,
         int Progress,
         int RequiredWork,
         ParcelId? ParcelId,
@@ -105,6 +108,10 @@ public sealed record CityMacroSnapshot(
             buildings.Add(new PlotItem(
                 building.Id,
                 building.Kind,
+                GroundResourceType: null,
+                CultivationState: null,
+                PlantedTick: null,
+                ReadyAtTick: null,
                 building.DisplayName,
                 IsUnderConstruction: false,
                 Enabled: enabled,
@@ -112,7 +119,6 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: building.StorageCapacity,
                 WoodReserve: building.WoodReserve,
                 WoodUnitReserves: new List<int>(building.WoodUnitReserves),
-                TicksUntilRegeneration: 0,
                 Progress: 0,
                 RequiredWork: 0,
                 placement?.ParcelId,
@@ -127,21 +133,21 @@ public sealed record CityMacroSnapshot(
         }
         foreach (NaturalResourcePatch patch in world.NaturalResourcePatches.Values)
         {
-            if (patch.ResourceType != ResourceType.Wood) continue;
             world.Parcels.TryGetValue(patch.ParcelId, out CityParcel? parcel);
             buildings.Add(new PlotItem(
                 new BuildingId(patch.Id),
                 BuildingKind.Forest,
-                "Trees",
+                patch.ResourceType,
+                CultivationState: null,
+                PlantedTick: null,
+                ReadyAtTick: null,
+                patch.ResourceType.ToString(),
                 IsUnderConstruction: false,
                 Enabled: patch.TotalReserve > 0,
                 Stock: 0,
                 StorageCapacity: 0,
                 WoodReserve: patch.TotalReserve,
                 WoodUnitReserves: new List<int>(patch.UnitReserves),
-                TicksUntilRegeneration:
-                    GameClock.TicksPerInGameDay
-                    - world.CurrentTick % GameClock.TicksPerInGameDay,
                 Progress: 0,
                 RequiredWork: 0,
                 ParcelId: patch.ParcelId,
@@ -153,6 +159,40 @@ public sealed record CityMacroSnapshot(
                 LotHeight: 1,
                 FootprintProfileId: null,
                 Orientation: BuildingOrientation.South));
+        }
+        foreach (CultivationSite site in world.CultivationSites.Values)
+        {
+            world.ParcelPlacements.TryGetValue(site.Id, out ParcelPlacement? placement);
+            CityParcel? parcel = placement is not null
+                && world.Parcels.TryGetValue(placement.ParcelId, out CityParcel? resolved)
+                    ? resolved
+                    : null;
+            buildings.Add(new PlotItem(
+                site.Id,
+                BuildingKind.CultivationSite,
+                GroundResourceType: null,
+                site.State,
+                site.PlantedTick,
+                site.ReadyAtTick,
+                "Cultivation Site",
+                IsUnderConstruction: false,
+                Enabled: site.State is CultivationPlotState.Prepared
+                    or CultivationPlotState.Ready,
+                Stock: 0,
+                StorageCapacity: 0,
+                WoodReserve: 0,
+                WoodUnitReserves: System.Array.Empty<int>(),
+                Progress: 0,
+                RequiredWork: 0,
+                placement?.ParcelId,
+                ParcelColumn: parcel?.LogicalColumn ?? 0,
+                ParcelRow: parcel?.LogicalRow ?? 0,
+                LotColumn: placement?.LotColumn ?? 0,
+                LotRow: placement?.LotRow ?? 0,
+                LotWidth: placement?.LotWidth ?? 1,
+                LotHeight: placement?.LotHeight ?? 1,
+                FootprintProfileId: placement?.FootprintProfileId,
+                Orientation: placement?.Orientation ?? BuildingOrientation.South));
         }
 
         var projects = new List<PlotItem>();
@@ -168,6 +208,10 @@ public sealed record CityMacroSnapshot(
             projects.Add(new PlotItem(
                 project.Id,
                 project.ResultingKind,
+                GroundResourceType: null,
+                CultivationState: null,
+                PlantedTick: null,
+                ReadyAtTick: null,
                 project.DisplayName,
                 IsUnderConstruction: true,
                 project.Enabled,
@@ -175,7 +219,6 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: 0,
                 WoodReserve: 0,
                 WoodUnitReserves: System.Array.Empty<int>(),
-                TicksUntilRegeneration: 0,
                 project.Progress,
                 project.RequiredWork,
                 placement?.ParcelId,

@@ -27,7 +27,7 @@ public static class BuildingFootprintCatalog
             new HalfTileRect(0, 0, 6, 4));
 
     public static string ProfileIdFor(ConstructionKind kind) =>
-        kind == ConstructionKind.Quarry
+        kind is ConstructionKind.Quarry or ConstructionKind.FoundingSite
             ? StandardFullWidthId
             : StandardWithSideSetbacksId;
 

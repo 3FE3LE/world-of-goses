@@ -9,7 +9,7 @@ namespace WorldofGoses.Tests;
 public sealed class NaturalResourcePatchTests
 {
     [Fact]
-    public void Dawn_RegeneratesDepletedUnitsAndSproutsInFreeLot()
+    public void Dawn_DoesNotRegenerateFiniteMatureTrees()
     {
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
@@ -21,36 +21,24 @@ public sealed class NaturalResourcePatchTests
 
         WorldTimeAdvance.Advance(world, GameClock.TicksPerInGameDay);
 
-        Assert.Equal(1, patch.UnitReserves[0]);
-        Assert.Equal(NaturalResourcePatch.MaximumUnits, patch.UnitReserves.Count);
-        Assert.Equal(1, patch.UnitReserves[8]);
+        Assert.Equal(0, patch.UnitReserves[0]);
+        Assert.Equal(CityWorld.StartingForestUnitCount, patch.UnitReserves.Count);
     }
 
     [Fact]
-    public void Dawn_DoesNotSproutUnderConstruction()
+    public void Dawn_DoesNotSproutAdditionalTreeUnits()
     {
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
         NaturalResourcePatch patch = world.NaturalResourcePatches.Values.First();
         world.GatherWood(new BuildingId(patch.Id), amount: 1);
-        var occupiedLot = new ConstructionLot(
-            patch.ParcelId,
-            ParcelColumn: 0,
-            ParcelRow: 0,
-            LotColumn: 2,
-            LotRow: 2);
-        ConstructionAuthorizationResult authorization = world.TryAuthorizeConstruction(
-            ConstructionKind.BasicShelter,
-            occupiedLot);
-
         WorldTimeAdvance.Advance(world, GameClock.TicksPerInGameDay);
 
-        Assert.True(authorization.IsSuccess);
         Assert.Equal(CityWorld.StartingForestUnitCount, patch.UnitReserves.Count);
     }
 
     [Fact]
-    public void Regeneration_LiveAndOfflineBatchProduceEquivalentSnapshot()
+    public void FiniteTrees_LiveAndOfflineBatchProduceEquivalentSnapshot()
     {
         CityWorld source = TestHelpers.NewHeroWorld();
         source.SeedStartingForests();

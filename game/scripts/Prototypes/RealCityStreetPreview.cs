@@ -190,6 +190,7 @@ public partial class RealCityStreetPreview : Node2D
     {
         for (int street = _streetCount - 1; street >= 0; street--)
         {
+            if (!StreetDepthProjection.IsVisibleDepth(street - _depthAnchor)) continue;
             DrawStreetRow(street);
         }
         DrawAvatar();

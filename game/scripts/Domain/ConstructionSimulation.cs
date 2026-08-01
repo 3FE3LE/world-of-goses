@@ -41,6 +41,11 @@ internal sealed class ConstructionSimulation
             project.StopCause = ConstructionStopCause.Paused;
             return;
         }
+        if (!project.HasActiveWork)
+        {
+            project.StopCause = ConstructionStopCause.AwaitingModule;
+            return;
+        }
         if (project.Progress >= project.RequiredWork)
         {
             project.StopCause = ConstructionStopCause.Completed;

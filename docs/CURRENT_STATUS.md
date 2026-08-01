@@ -2,16 +2,17 @@
 
 **Last aligned:** 2026-07-31
 
-**Active increment:** EG-2 — founding site seam
+**Active increment:** EG-4 — resource expedition seam
 
-**Next approved work:** EG-2 introduce el Founding Site 3×3 con módulos
-Campfire → Bedroll/Cache → Canopy, sobre las bases de EG-1. El orden
+**Next approved work:** EG-4 introduce las primeras oportunidades finitas de
+Food y Wood mediante la cadena de expedición existente. EG-3 ya conecta
+preparar → sembrar → crecer tres días → cosechar. El orden
 canónico es el de `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15:
 EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6. La aperture del antiguo
 VS-5 (17 criterios) se descartó el 2026-07-31: el proyecto aún no tiene las
-dos capas de complejidad (Founding Site + plot lifecycle + resource seam)
-que pide el proposal antes de hablar de herida, tratamiento y territorios
-desbloqueables.
+capas completas que pide el proposal. Founding Site y el primer plot lifecycle
+ya están conectados; EG-4 y EG-5 aún deben entregar las expediciones de
+recursos y la consolidación antes de retomar herida/tratamiento como objetivo.
 
 The design bible defines what the game is. This file defines what the connected
 code does today. `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` owns the
@@ -21,15 +22,16 @@ acceptance test; `TO_DO.md` owns the actionable queue.
 
 - Godot .NET 4.7.1, C#/.NET 8.
 - `dotnet build`: 0 errors, 0 warnings.
-- `dotnet test`: 663/664 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 690/691 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 21 (EG-1 resource seam). EG-0 still serialises its
-  measurement; EG-1 bumps the schema to add Branches/PlantFiber/SmallStone
-  and WildFood without inventing any on legacy saves.
+- `WorldSave.CurrentVersion`: 24. V22→V23 rescales the obsolete 16×40 founding
+  forests to six finite mature trees with 8 Wood each while preserving their
+  depletion ratio; V23→V24 adds the EG-3 Cultivation Site lifecycle without
+  inventing a plot in migrated cities.
 - Godot headless boot loads the current scene/slot without C# or scene errors.
-- EN/ES catalogs: 677 template IDs and 303 runtime keys validated.
+- EN/ES catalogs: 761 template IDs and 339 runtime keys validated.
 - Agent-context validation: 436 checks passing.
 - Official visual review sizes: 1280×720 and 1920×1080.
 
@@ -59,7 +61,8 @@ work is now sequenced under the proposal §15.
 6. 1280×720 and 1920×1080 containment plus keyboard/gamepad focus signature
    for the surfaces exercised by the loop.
 
-No broader product slice is approved until all 17 audit criteria pass.
+No broader product slice is approved until the proposal's EG-4→EG-6 sequence
+and §17 acceptance test are complete.
 
 ## 3. Connected functionality
 
@@ -80,8 +83,10 @@ No broader product slice is approved until all 17 audit criteria pass.
 
 ### City, construction and economy
 
-- Natural resource patches provide gathered Wood and occupy persisted parcel
-  lots.
+- Natural-resource patches expose Wood, Branches, Plant Fiber, Small Stone and
+  Wild Food as selectable macro-world units. The four rudimentary resources
+  use the founder's contextual route and enter carried inventory; the opening
+  contains six finite mature trees × 8 Wood with no daily regeneration.
 - Placeable Basic Shelter, Farm, Quarry and Town Hall construction projects.
 - Atomic recipe deposit/drawdown, pause/resume, contributor assignment and
   completion preserving placement identity.
@@ -89,6 +94,10 @@ No broader product slice is approved until all 17 audit criteria pass.
   and min/max policy. Ten-tick production cadence and visible stop causes.
 - Daily Food ration per resident plus Food-funded stamina recovery and wound
   treatment. Shortage is causal and visible; it does not silently kill/delete.
+- One post-Shelter Cultivation Site: 1 Branch + 1 Small Stone, 180 preparation
+  work, 1 Food seed, exact three-day growth and 5 Food harvest. Prepared,
+  Sown/Growing, Ready and Spent remain distinct in state and provisional art;
+  the HUD exposes Food horizon and protected target.
 - Town Hall hosts at most one expedition prospect. Acceptance requires housing
   capacity; the prospect persists but cannot work before acceptance.
 
@@ -108,7 +117,7 @@ No broader product slice is approved until all 17 audit criteria pass.
 ### Persistence and offline simulation
 
 - Atomic JSON snapshot, temporary write, `.bak`, structural validation and
-  explicit migration chain from v2 through v19.
+  explicit migration chain from v2 through v24.
 - Citizens, prospects, buildings/projects, resources/reservations, expedition,
   wounds/treatment, territory and significant causal events round-trip.
 - Offline progression runs before visual instantiation and uses the same domain
@@ -191,17 +200,18 @@ increments EG-*:
 | --- | --- | --- |
 | Onboarding / founder | Funcional | `AstralOnboardingView` produce un único `Citizen` persistente con rol `hero`. |
 | Commitment exclusivo | Funcional | `Citizen.Commitment` rechaza transiciones incompatibles visiblemente. |
-| Construcción / proyectos | Funcional | `ConstructionProject` + deposit + remainder; phased progress. |
-| Persistencia offline | Funcional | Schema v20 con EG-0; reload exacto por fase y por frontera offline. |
+| Construcción / proyectos | Funcional | `ConstructionProject` + deposit + remainder; Founding Site semántico Campfire → Bedroll/Cache → Canopy, con mismo ID/parcela y progreso offline. |
+| Persistencia offline | Funcional | Schema v24; EG-2 conserva reload por módulo/fase, v23 corrige bosques heredados y v24 conserva el crop boundary sin inventar parcelas al migrar. |
+| Primer Cultivation Site | Funcional | Schema v24; Shelter requerido, preparación 180, semilla 1 Food, `readyAtTick` a 10.800 ticks, cosecha 5 Food y transición exacta live/offline. |
 | Citizens y asignaciones | Funcional | `CitizenRoutine` cubre work, expedition, recovery. |
 | Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código pero se difieren hasta EG-5. |
 
 Los gaps del antiguo VS-5 se reformularon dentro del proposal. La abundancia
-de Food sin receta de insumo (G1) la cierra EG-3; el territorio legible se
+de Food sin receta de insumo (G1) queda cerrada por el lifecycle de EG-3; el territorio legible se
 mantiene vivo (Parcel 9 ahora `Available`) pero la herida persistente y el
 tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 
-## 7. Known debt that does not block EG-2
+## 7. Known debt that does not block EG-4
 
 - Confirm live pathfinding through tree rows and gather visibility in the street
   perspective.
@@ -209,7 +219,7 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
   model before expanding territory navigation.
 - Add one operating input→output chain before generalizing the economy.
 - Add a dedicated expedition snapshot before expanding its UI/state surface.
-- Complete large-event feedback and overlay exclusion only where a real EG-1/EG-2
+- Complete large-event feedback and overlay exclusion only where a real EG-2/EG-3
   interaction requires it.
 - Defer MultiMesh until more than 20–25 citizens are visible or profiler data
   justifies it.

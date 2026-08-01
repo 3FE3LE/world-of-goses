@@ -26,6 +26,7 @@ public sealed class CityWorld
     private readonly Dictionary<CitizenId, Citizen> _citizens = new();
     private readonly Dictionary<BuildingId, Building> _buildings = new();
     private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
+    private readonly Dictionary<BuildingId, CultivationSite> _cultivationSites = new();
     private readonly Dictionary<ParcelId, CityParcel> _parcels = new();
     private readonly Dictionary<int, NaturalResourcePatch> _naturalResourcePatches = new();
     private readonly Dictionary<BuildingId, ParcelPlacement> _parcelPlacements = new();
@@ -75,6 +76,8 @@ public sealed class CityWorld
     public CitizenProspect? PendingProspect { get; private set; }
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
+    public IReadOnlyDictionary<BuildingId, CultivationSite> CultivationSites =>
+        _cultivationSites;
     public IReadOnlyDictionary<ParcelId, CityParcel> Parcels => _parcels;
     public IReadOnlyDictionary<int, NaturalResourcePatch> NaturalResourcePatches =>
         _naturalResourcePatches;
@@ -100,6 +103,7 @@ public sealed class CityWorld
 
     public event EventHandler<CityWorldChangedEventArgs>? BuildingChanged;
     public event EventHandler<CityWorldChangedEventArgs>? ProjectChanged;
+    public event EventHandler<CityWorldChangedEventArgs>? CultivationSiteChanged;
     public event EventHandler<ExpeditionChangedEventArgs>? ExpeditionChanged;
 
     /// <summary>
@@ -671,17 +675,17 @@ public sealed class CityWorld
     /// <summary>
     /// Number of individually visible trees in each founding resource patch.
     /// </summary>
-    public const int StartingForestUnitCount = 8;
+    public const int StartingForestUnitCount = 3;
 
     /// <summary>Wood held by each tree in a founding resource patch.</summary>
-    public const int StartingTreeWoodReserve = 40;
+    public const int StartingTreeWoodReserve = 8;
 
     /// <summary>Total reserve across one founding resource patch.</summary>
     public const int StartingForestWoodReserve =
         StartingForestUnitCount * StartingTreeWoodReserve;
 
     /// <summary>Per-forest compatibility-storage capacity for gathered wood.</summary>
-    public const int StartingForestStorageCapacity = StartingForestWoodReserve * 2;
+    public const int StartingForestStorageCapacity = StartingForestWoodReserve;
 
     /// <summary>
     /// EG-1 carry cap. Per <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md
@@ -720,6 +724,80 @@ public sealed class CityWorld
         }
         return total;
     }
+
+    /// <summary>
+    /// Capacity granted by the current physical founding state: carried before
+    /// Cache, bounded Cache storage while the site is open, and the consolidated
+    /// shelter capacity after transformation.
+    /// </summary>
+    public int GroundResourceCapacity()
+    {
+        foreach (Building building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home) return FoundingSiteRules.ShelterCapacity;
+        }
+        foreach (ConstructionProject project in _projects.Values)
+        {
+            if (project.Kind == ConstructionKind.FoundingSite
+                && project.HasCompletedFoundingModule(FoundingSiteModule.Cache))
+            {
+                return FoundingSiteRules.CacheCapacity;
+            }
+        }
+        return FoundingSiteRules.CarriedCapacity;
+    }
+
+    /// <summary>Queries persisted Founding Site capabilities without exposing storage details.</summary>
+    public bool HasFoundingSiteModule(FoundingSiteModule module)
+    {
+        foreach (ConstructionProject project in _projects.Values)
+        {
+            if (project.Kind == ConstructionKind.FoundingSite
+                && project.HasCompletedFoundingModule(module)) return true;
+        }
+        foreach (Building building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home
+                && building.FoundingSiteOriginModules.Contains(module)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Explicit recovery action while the Founding Site remains incomplete.
+    /// It returns every carried rudimentary unit to its matching authored patch,
+    /// allowing the player to gather the exact load for whichever module comes
+    /// next without destroying or converting any opening resource.
+    /// </summary>
+    public int ReturnFoundingCargo()
+    {
+        if (HasCompletedFirstShelter()) return 0;
+        int returned = 0;
+        foreach (ResourceType type in CarriedGroundResourceTypes)
+        {
+            NaturalResourcePatch? returnPatch = null;
+            foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+            {
+                if (patch.ResourceType == type)
+                {
+                    returnPatch = patch;
+                    break;
+                }
+            }
+            if (returnPatch is null) continue;
+            int carried = _inventory.AmountOf(type);
+            if (carried > 0 && _inventory.TryConsume(type, carried))
+            {
+                returnPatch.Return(carried);
+                returned += carried;
+                RaisePatchChanged(returnPatch.Id);
+            }
+        }
+        return returned;
+    }
+
+    public int ReturnableFoundingCargoCount() =>
+        HasCompletedFirstShelter() ? 0 : CarriedGroundResourceCount();
 
     /// <summary>
     /// Drops two Forests into the world so the hero has a wood source
@@ -1082,7 +1160,7 @@ public sealed class CityWorld
     internal void RegisterProject(ConstructionProject project)
     {
         ArgumentNullException.ThrowIfNull(project);
-        if (_buildings.ContainsKey(project.Id))
+        if (_buildings.ContainsKey(project.Id) || _cultivationSites.ContainsKey(project.Id))
         {
             throw new InvalidOperationException(
                 $"Project id {project.Id.Value} collides with an existing building.");
@@ -1096,6 +1174,20 @@ public sealed class CityWorld
 
     public ConstructionProject? GetProject(BuildingId projectId) =>
         _projects.TryGetValue(projectId, out var project) ? project : null;
+
+    public CultivationSite? GetCultivationSite(BuildingId siteId) =>
+        _cultivationSites.TryGetValue(siteId, out CultivationSite? site) ? site : null;
+
+    private void RegisterCultivationSite(CultivationSite site)
+    {
+        ArgumentNullException.ThrowIfNull(site);
+        if (_buildings.ContainsKey(site.Id) || _projects.ContainsKey(site.Id)
+            || !_cultivationSites.TryAdd(site.Id, site))
+        {
+            throw new InvalidOperationException(
+                $"Cultivation Site id {site.Id.Value} collides with another entity.");
+        }
+    }
 
     /// <summary>True when at least one citizen is assigned to a project or building as a worker.</summary>
     internal bool HasAnyWorkAssignment()
@@ -1159,15 +1251,16 @@ public sealed class CityWorld
         _buildings.TryGetValue(id, out var building) ? building : null;
 
     /// <summary>
-    /// Aggregate food available across every Farm-kind building.
-    /// Thin facade today; replaceable by a real shared inventory
-    /// without touching <see cref="Building"/> or its callers.
+    /// Edible stock available to the opening: stored Food plus gathered Wild
+    /// Food. The latter is intentionally edible and seed-capable; otherwise
+    /// the proposal's eight-unit starting horizon would be decorative.
     /// </summary>
     public int FoodStock
     {
         get
         {
-            return _resources.Total(ResourceType.Food);
+            return _resources.Total(ResourceType.Food)
+                + _resources.Total(ResourceType.WildFood);
         }
     }
 
@@ -1226,13 +1319,72 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Atomically removes <paramref name="amount"/> food from Farm-kind
-    /// buildings. Returns <c>false</c> (and leaves state untouched)
-    /// when there is not enough food.
+    /// Atomically removes <paramref name="amount"/> edible stock. Stored Food
+    /// is used first, then gathered Wild Food; a failed request changes
+    /// neither pool.
     /// </summary>
     public bool TryConsumeFood(int amount)
     {
-        return _resources.TryConsume(ResourceType.Food, amount);
+        int edibleAvailable = _resources.Available(ResourceType.Food)
+            + _resources.Available(ResourceType.WildFood);
+        if (amount < 0 || edibleAvailable < amount) return false;
+        int storedFood = _resources.Available(ResourceType.Food);
+        int foodTake = Math.Min(amount, storedFood);
+        if (foodTake > 0 && !_resources.TryConsume(ResourceType.Food, foodTake))
+        {
+            return false;
+        }
+        int wildTake = amount - foodTake;
+        return wildTake <= 0 || _resources.TryConsume(ResourceType.WildFood, wildTake);
+    }
+
+    public int DailyFoodRation => Upkeep.FoodPerResidentPerDay(_citizens.Count);
+
+    public int? TicksUntilFirstHarvest
+    {
+        get
+        {
+            foreach (CultivationSite site in _cultivationSites.Values)
+            {
+                return site.State switch
+                {
+                    CultivationPlotState.Prepared => CultivationRules.GrowthTicks,
+                    CultivationPlotState.Sown or CultivationPlotState.Growing =>
+                        Math.Max(0, site.ReadyAtTick.GetValueOrDefault() - _tick),
+                    CultivationPlotState.Ready => 0,
+                    _ => null,
+                };
+            }
+            return null;
+        }
+    }
+
+    public int FoodHorizonDays => DailyFoodRation <= 0
+        ? 0
+        : FoodStock / DailyFoodRation;
+
+    public int ProtectedFoodTarget
+    {
+        get
+        {
+            int daysUntilHarvest = TicksUntilFirstHarvest is int ticks
+                ? (int)Math.Ceiling(ticks / (double)GameClock.TicksPerInGameDay)
+                : 0;
+            int expeditionFood = 0;
+            foreach (ResourceReservation reservation in _resources.Reservations)
+            {
+                if (reservation.Owner.Kind == ResourceReservationOwnerKind.Expedition
+                    && reservation.Resource is ResourceType.Food or ResourceType.WildFood)
+                {
+                    expeditionFood += reservation.Amount;
+                }
+            }
+            int plannedExpeditionFood = TicksUntilFirstHarvest.HasValue
+                ? CultivationRules.PlannedWoodExpeditionFoodSupply
+                : 0;
+            return DailyFoodRation * (daysUntilHarvest + 1)
+                + Math.Max(expeditionFood, plannedExpeditionFood);
+        }
     }
 
     /// <summary>
@@ -1405,7 +1557,7 @@ public sealed class CityWorld
         int requested = amount;
         if (IsCarriedGroundResource(patch.ResourceType))
         {
-            int headroom = Math.Max(0, CarriedGroundResourceCapacity - CarriedGroundResourceCount());
+            int headroom = Math.Max(0, GroundResourceCapacity() - CarriedGroundResourceCount());
             if (headroom <= 0) return 0;
             requested = Math.Min(requested, headroom);
         }
@@ -1608,6 +1760,7 @@ public sealed class CityWorld
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.AlreadyAuthorized);
         }
         bool hasHome = false;
+        bool isFoundingConstruction = kind is ConstructionKind.BasicShelter or ConstructionKind.FoundingSite;
         foreach (var building in _buildings.Values)
         {
             if (kind == ConstructionKind.TownHall && building.Kind == BuildingKind.TownHall)
@@ -1618,17 +1771,23 @@ public sealed class CityWorld
             if (building.Kind == BuildingKind.Home)
             {
                 hasHome = true;
-                if (kind == ConstructionKind.BasicShelter)
+                if (isFoundingConstruction)
                 {
                     return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeAlreadyBuilt);
                 }
             }
         }
-        if (kind == ConstructionKind.BasicShelter && _citizens.Count > 1)
+        if (kind == ConstructionKind.CultivationSite
+            && _cultivationSites.Count > 0)
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.BuildingAlreadyBuilt);
+        }
+        if (isFoundingConstruction && _citizens.Count > 1)
         {
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.WorldNotEmpty);
         }
-        if (kind != ConstructionKind.BasicShelter && !hasHome)
+        if (!isFoundingConstruction && !hasHome)
         {
             return ConstructionAuthorizationResult.Fail(ConstructionAuthorizationOutcome.HomeRequired);
         }
@@ -1647,7 +1806,10 @@ public sealed class CityWorld
                 ConstructionAuthorizationOutcome.NoAvailableLot);
         }
 
-        // Recipe gate: a non-empty recipe must be satisfiable up-front
+        // Recipe gate: Founding Site modules pay their full bounded cost before
+        // labour begins so the sole founder is never committed to a phase while
+        // still needing to gather its inputs. Legacy buildings retain the 25%
+        // deposit plus interval drawdown.
         // (deposit = ceil(total * 0.25)) or the authorisation fails
         // and the city state is unchanged.
         var recipe = Recipes.ConstructionRecipeFor(kind);
@@ -1656,7 +1818,10 @@ public sealed class CityWorld
             var deposits = new List<RecipeInput>();
             foreach (var input in recipe.RequiredInputs)
             {
-                int deposit = ConstructionRules.DepositOf(input.Amount);
+                int deposit = kind is ConstructionKind.FoundingSite
+                    or ConstructionKind.CultivationSite
+                    ? input.Amount
+                    : ConstructionRules.DepositOf(input.Amount);
                 if (deposit > 0) deposits.Add(new RecipeInput(input.Resource, deposit));
             }
             if (TryConsumeResources(deposits) is not null)
@@ -1670,15 +1835,25 @@ public sealed class CityWorld
             kind: kind,
             displayName: ConstructionRules.DisplayNameFor(kind),
             requiredWork: ConstructionRules.RequiredWorkFor(kind),
-            workerCapacity: ConstructionRules.WorkerCapacity,
+            workerCapacity: kind == ConstructionKind.CultivationSite
+                ? CultivationRules.WorkerCapacity
+                : ConstructionRules.WorkerCapacity,
             enabled: true)
         {
             StopCause = ConstructionStopCause.NoWorkers,
         };
+        if (kind == ConstructionKind.FoundingSite)
+        {
+            project.BeginFoundingModule(
+                FoundingSiteModule.Campfire,
+                _tick,
+                FoundingSiteRules.InputsFor(FoundingSiteModule.Campfire));
+        }
         // Seed the remaining-inputs list from the recipe. Each entry
         // starts at the post-deposit remainder; the simulation drains
         // it 1 unit per work interval.
-        if (recipe is not null && recipe.RequiredInputs.Count > 0)
+        if (kind is not (ConstructionKind.FoundingSite or ConstructionKind.CultivationSite)
+            && recipe is not null && recipe.RequiredInputs.Count > 0)
         {
             var remaining = new List<RecipeInput>();
             foreach (var input in recipe.RequiredInputs)
@@ -1693,9 +1868,41 @@ public sealed class CityWorld
         }
         RegisterProject(project);
         RegisterParcelPlacement(placement);
-        if (kind == ConstructionKind.BasicShelter)
+        if (isFoundingConstruction)
         {
             EnsureFoundingShelterContributor();
+        }
+        RaiseProjectChanged(projectId);
+        return ConstructionAuthorizationResult.Success(projectId);
+    }
+
+    /// <summary>Starts the next valid phase on the existing Founding Site.</summary>
+    public ConstructionAuthorizationResult TryAuthorizeFoundingSiteModule(
+        BuildingId projectId,
+        FoundingSiteModule module)
+    {
+        if (!_projects.TryGetValue(projectId, out ConstructionProject? project)
+            || project.Kind != ConstructionKind.FoundingSite)
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.InvalidModule);
+        }
+        if (!project.CanStartFoundingModule(module))
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.PrerequisitesNotMet);
+        }
+
+        IReadOnlyList<RecipeInput> inputs = FoundingSiteRules.InputsFor(module);
+        if (TryConsumeResources(inputs) is not null)
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.MissingMaterials);
+        }
+        if (!project.BeginFoundingModule(module, _tick, inputs))
+        {
+            return ConstructionAuthorizationResult.Fail(
+                ConstructionAuthorizationOutcome.InvalidModule);
         }
         RaiseProjectChanged(projectId);
         return ConstructionAuthorizationResult.Success(projectId);
@@ -1712,9 +1919,10 @@ public sealed class CityWorld
         if (hero is null || !hero.IsAvailable) return false;
         foreach (ConstructionProject project in _projects.Values)
         {
-            if (project.Kind != ConstructionKind.BasicShelter
+            if (project.Kind is not (ConstructionKind.BasicShelter or ConstructionKind.FoundingSite)
                 || project.AssignedCount > 0
                 || project.Progress >= project.RequiredWork
+                || !project.HasActiveWork
                 || !HasRemainingInputsAvailable(project))
             {
                 continue;
@@ -1742,6 +1950,11 @@ public sealed class CityWorld
     public bool CancelProject(BuildingId projectId)
     {
         if (!_projects.TryGetValue(projectId, out var project)) return false;
+        if (project.Kind == ConstructionKind.FoundingSite
+            && project.CompletedFoundingModules.Count > 0)
+        {
+            return false;
+        }
         foreach (var cid in project.AssignedCitizenIds)
         {
             if (_citizens.TryGetValue(cid, out var citizen))
@@ -1775,7 +1988,9 @@ public sealed class CityWorld
     private BuildingId NextAvailableProjectId()
     {
         var candidate = new BuildingId(_nextProjectId);
-        while (_buildings.ContainsKey(candidate) || _projects.ContainsKey(candidate))
+        while (_buildings.ContainsKey(candidate)
+            || _projects.ContainsKey(candidate)
+            || _cultivationSites.ContainsKey(candidate))
         {
             candidate = new BuildingId(++_nextProjectId);
         }
@@ -1850,7 +2065,6 @@ public sealed class CityWorld
             if (GameClock.IsDaytime(_tick))
             {
                 _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
-                RegenerateNaturalResources();
                 ApplyResidentFoodRation();
             }
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
@@ -1958,6 +2172,7 @@ public sealed class CityWorld
         }
         InterruptCitizensRequiringRecovery();
         CompleteFinishedProjects();
+        AdvanceCultivationSites();
         DemolishDepletedForests();
         DecrementAllWellFed();
         AdvanceExpeditionPhases();
@@ -2258,30 +2473,6 @@ public sealed class CityWorld
         }
     }
 
-    private void RegenerateNaturalResources()
-    {
-        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
-        {
-            if (patch.ResourceType != ResourceType.Wood) continue;
-            int added = patch.Regenerate(
-                amountPerUnit: 1,
-                unitCapacity: StartingTreeWoodReserve,
-                canGrowAtUnit: unitId =>
-                {
-                    (int column, int row) = ParcelGrid.NaturalResourceLot(unitId);
-                    return !ConstructionOccupiesLot(patch.ParcelId, column, row);
-                });
-            if (added <= 0) continue;
-            if (patch.LegacyStorageBuildingId is not BuildingId storageId
-                || !_buildings.TryGetValue(storageId, out Building? storage))
-            {
-                continue;
-            }
-            storage.RestoreWoodUnits(patch.UnitReserves);
-            RaiseBuildingChanged(storageId);
-        }
-    }
-
     /// <summary>
     /// Once-per-day "mouths to feed" pressure. Every resident, working or idle,
     /// costs one Food at dawn — recruiting a citizen is never free
@@ -2329,25 +2520,6 @@ public sealed class CityWorld
             idleCitizenCount: idle);
     }
 
-    private bool ConstructionOccupiesLot(
-        ParcelId parcelId,
-        int lotColumn,
-        int lotRow)
-    {
-        foreach (ParcelPlacement placement in _parcelPlacements.Values)
-        {
-            if (placement.ParcelId != parcelId) continue;
-            if (lotColumn >= placement.LotColumn
-                && lotColumn < placement.LotColumn + placement.LotWidth
-                && lotRow >= placement.LotRow
-                && lotRow < placement.LotRow + placement.LotHeight)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private void CompleteFinishedProjects()
     {
         if (_projects.Count == 0) return;
@@ -2363,9 +2535,126 @@ public sealed class CityWorld
         if (completed is null) return;
         for (int i = 0; i < completed.Count; i++)
         {
-            CompleteProject(completed[i]);
+            BuildingId projectId = completed[i];
+            if (_projects.TryGetValue(projectId, out ConstructionProject? project)
+                && project.Kind == ConstructionKind.FoundingSite)
+            {
+                FoundingSiteModule? completedModule = project.CompleteActiveFoundingModule();
+                if (completedModule == FoundingSiteModule.Canopy)
+                {
+                    CompleteProject(projectId);
+                }
+                else if (completedModule.HasValue)
+                {
+                    RaiseProjectChanged(projectId);
+                }
+                continue;
+            }
+            if (_projects.TryGetValue(projectId, out project)
+                && project.Kind == ConstructionKind.CultivationSite)
+            {
+                CompleteCultivationSiteProject(projectId);
+                continue;
+            }
+            CompleteProject(projectId);
         }
     }
+
+    private void CompleteCultivationSiteProject(BuildingId projectId)
+    {
+        if (!_projects.TryGetValue(projectId, out ConstructionProject? project)) return;
+        var contributorIds = new List<CitizenId>(project.AssignedCitizenIds);
+        _projects.Remove(projectId);
+        RegisterCultivationSite(new CultivationSite(projectId));
+        _log.Record(
+            _tick,
+            WorldEventKind.ProjectCompleted,
+            WorldEventSubject.ConstructionProject(projectId, project.DisplayName));
+        foreach (CitizenId citizenId in contributorIds)
+        {
+            project.TryUnassign(citizenId);
+            if (_citizens.TryGetValue(citizenId, out Citizen? citizen))
+            {
+                bool released = citizen.ReleaseCommitment(
+                    CitizenCommitmentKind.Construction,
+                    projectId.Value);
+                if (released && citizen.CurrentLocation != CitizenLocation.AtHome)
+                {
+                    citizen.BeginTravelHome(_tick);
+                }
+            }
+        }
+        RaiseProjectChanged(projectId);
+        RaiseCultivationSiteChanged(projectId);
+    }
+
+    public CultivationActionResult TrySowCultivationSite(BuildingId siteId)
+    {
+        if (!_cultivationSites.TryGetValue(siteId, out CultivationSite? site))
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.SiteNotFound);
+        }
+        if (Hero is not Citizen hero || !hero.IsAvailable)
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.FounderUnavailable);
+        }
+        if (site.State != CultivationPlotState.Prepared)
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.WrongState);
+        }
+        if (!TryConsumeFood(CultivationRules.SeedFoodCost))
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.MissingFood);
+        }
+        if (!site.TrySow(_tick))
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.WrongState);
+        }
+        RaiseCultivationSiteChanged(siteId);
+        return CultivationActionResult.Success(-CultivationRules.SeedFoodCost);
+    }
+
+    public CultivationActionResult TryHarvestCultivationSite(BuildingId siteId)
+    {
+        if (!_cultivationSites.TryGetValue(siteId, out CultivationSite? site))
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.SiteNotFound);
+        }
+        if (Hero is not Citizen hero || !hero.IsAvailable)
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.FounderUnavailable);
+        }
+        if (!site.TryHarvest())
+        {
+            return CultivationActionResult.Fail(CultivationActionOutcome.WrongState);
+        }
+        int harvested = _resources.DepositToCityInventory(
+            ResourceType.Food,
+            CultivationRules.HarvestFoodYield);
+        _log.Record(
+            _tick,
+            WorldEventKind.CropHarvested,
+            WorldEventSubject.CultivationSite(siteId, "Cultivation Site"),
+            harvested);
+        RaiseCultivationSiteChanged(siteId);
+        return CultivationActionResult.Success(harvested);
+    }
+
+    private void AdvanceCultivationSites()
+    {
+        foreach (CultivationSite site in _cultivationSites.Values)
+        {
+            if (!site.AdvanceTo(_tick)) continue;
+            _log.Record(
+                _tick,
+                WorldEventKind.CropReady,
+                WorldEventSubject.CultivationSite(site.Id, "Cultivation Site"));
+            RaiseCultivationSiteChanged(site.Id);
+        }
+    }
+
+    private void RaiseCultivationSiteChanged(BuildingId siteId) =>
+        CultivationSiteChanged?.Invoke(this, new CityWorldChangedEventArgs(siteId));
 
     /// <summary>
     /// Compares day/night state before and after the tick and
@@ -2868,8 +3157,10 @@ public sealed class CityWorld
         RaiseProjectChanged(projectId);
     }
 
-    private static Building CreateCompletedBuilding(ConstructionProject project) => project.Kind switch
+    private static Building CreateCompletedBuilding(ConstructionProject project)
     {
+        Building building = project.Kind switch
+        {
         ConstructionKind.Farm => new Building(
             id: project.Id,
             displayName: project.DisplayName,
@@ -2920,7 +3211,13 @@ public sealed class CityWorld
             resourceLabel: "Rest",
             resourceUnit: "rest",
             productionEnabled: false),
-    };
+        };
+        if (project.Kind == ConstructionKind.FoundingSite)
+        {
+            building.RestoreFoundingSiteOriginModules(project.CompletedFoundingModules);
+        }
+        return building;
+    }
 
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority)
     {
@@ -2971,6 +3268,7 @@ public sealed class CityWorld
         if (tickCount <= 0) return;
         if (_buildings.Count != 0
             || _projects.Count != 0
+            || _cultivationSites.Count != 0
             || _expeditions.Values.Any(expedition =>
                 expedition.Status == ExpeditionStatus.Active))
         {
@@ -3050,6 +3348,16 @@ public sealed class CityWorld
             .DefaultIfEmpty(int.MaxValue)
             .Min();
         tickCount = Math.Min(tickCount, expeditionBoundary);
+        int cropBoundary = _cultivationSites.Values
+            .Where(site => site.State is CultivationPlotState.Sown
+                or CultivationPlotState.Growing)
+            .Select(site => site.ReadyAtTick.HasValue
+                ? site.ReadyAtTick.Value - _tick
+                : int.MaxValue)
+            .Where(remaining => remaining > 0)
+            .DefaultIfEmpty(int.MaxValue)
+            .Min();
+        tickCount = Math.Min(tickCount, cropBoundary);
         if (tickCount <= 0) return 0;
 
         ApplyUpkeepBatch(tickCount);
@@ -3083,6 +3391,7 @@ public sealed class CityWorld
             citizen.AdvanceWellFedTicks(tickCount);
         }
         _tick += tickCount;
+        AdvanceCultivationSites();
         AdvanceWoundRecoveries(tickCount);
         AdvanceExpeditionPhases();
         CompleteFinishedExpeditions();
@@ -3203,6 +3512,7 @@ public sealed class CityWorld
         _citizens.Clear();
         _buildings.Clear();
         _projects.Clear();
+        _cultivationSites.Clear();
         _parcels.Clear();
         _naturalResourcePatches.Clear();
         _parcelPlacements.Clear();
@@ -3305,6 +3615,18 @@ public sealed class CityWorld
                 building.SeedWoodReserve(bs.WoodReserve ?? 0);
             }
             building.DepositIron(bs.IronStock);
+            if (bs.FoundingSiteOriginModules is { Count: > 0 })
+            {
+                var originModules = new List<FoundingSiteModule>();
+                foreach (string savedModule in bs.FoundingSiteOriginModules)
+                {
+                    if (Enum.TryParse(savedModule, ignoreCase: true, out FoundingSiteModule module))
+                    {
+                        originModules.Add(module);
+                    }
+                }
+                building.RestoreFoundingSiteOriginModules(originModules);
+            }
 
             RegisterBuilding(building, placeIfMissing: false);
 
@@ -3394,6 +3716,15 @@ public sealed class CityWorld
                             new BuildingId(cs.LastVisitedResourceBuildingId.Value),
                             cs.LastVisitedResourceUnitId.Value));
             }
+            else if (cs.LastVisitedResourcePatchId.HasValue
+                && cs.LastVisitedResourceUnitId.HasValue
+                && cs.LastVisitedResourcePositionIndex.HasValue)
+            {
+                citizen.VisitResource(
+                    cs.LastVisitedResourcePatchId.Value,
+                    cs.LastVisitedResourceUnitId.Value,
+                    cs.LastVisitedResourcePositionIndex.Value);
+            }
 
             foreach (var entry in cs.Competencies)
             {
@@ -3443,6 +3774,40 @@ public sealed class CityWorld
                     }
                 }
                 project.SetRemainingInputs(remaining);
+                var deposited = new List<RecipeInput>();
+                if (ps.DepositedInputs is { Count: > 0 })
+                {
+                    foreach (var pair in ps.DepositedInputs)
+                    {
+                        if (Enum.TryParse(pair.Key, ignoreCase: true, out ResourceType resource)
+                            && pair.Value > 0)
+                        {
+                            deposited.Add(new RecipeInput(resource, pair.Value));
+                        }
+                    }
+                }
+                var completedModules = new List<FoundingSiteModule>();
+                if (ps.CompletedFoundingModules is { Count: > 0 })
+                {
+                    foreach (string savedModule in ps.CompletedFoundingModules)
+                    {
+                        if (Enum.TryParse(savedModule, ignoreCase: true, out FoundingSiteModule module))
+                        {
+                            completedModules.Add(module);
+                        }
+                    }
+                }
+                FoundingSiteModule? activeModule = Enum.TryParse(
+                    ps.ActiveFoundingModule,
+                    ignoreCase: true,
+                    out FoundingSiteModule parsedModule)
+                        ? parsedModule
+                        : null;
+                project.RestoreFoundingState(
+                    activeModule,
+                    completedModules,
+                    ps.PhaseStartedAtTick,
+                    deposited);
                 RegisterProject(project);
                 foreach (var cid in ps.AssignedCitizenIds)
                 {
@@ -3450,6 +3815,20 @@ public sealed class CityWorld
                 }
                 if (ps.Id >= _nextProjectId) _nextProjectId = ps.Id + 1;
             }
+        }
+
+        foreach (CultivationSiteSave savedSite in save.CultivationSites)
+        {
+            _ = Enum.TryParse(
+                savedSite.State,
+                ignoreCase: true,
+                out CultivationPlotState state);
+            RegisterCultivationSite(new CultivationSite(
+                new BuildingId(savedSite.Id),
+                state,
+                savedSite.PlantedTick,
+                savedSite.ReadyAtTick));
+            if (savedSite.Id >= _nextProjectId) _nextProjectId = savedSite.Id + 1;
         }
 
         foreach (ParcelPlacementSave placement in save.ParcelPlacements)

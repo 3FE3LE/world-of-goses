@@ -2148,3 +2148,192 @@ msgstr "Inactivo — sin asignación"
 
 msgid "ui.world_status.unavailable"
 msgstr "No disponible"
+
+msgid "Authorize this module."
+msgstr "Autorizar este módulo."
+
+msgid "Awaiting next Founding Site module"
+msgstr "Esperando el siguiente módulo del sitio fundacional"
+
+msgid "Bedroll"
+msgstr "Petate"
+
+msgid "Build Bedroll"
+msgstr "Construir petate"
+
+msgid "Build Cache"
+msgstr "Construir depósito"
+
+msgid "Build Canopy"
+msgstr "Construir cubierta"
+
+msgid "Cache"
+msgstr "Depósito"
+
+msgid "Campfire"
+msgstr "Fogata"
+
+msgid "Canopy"
+msgstr "Cubierta"
+
+msgid "Choose the next Founding Site module. Bedroll and Cache may be completed in either order; Canopy requires both."
+msgstr "Elige el siguiente módulo del sitio fundacional. Puedes completar el petate y el depósito en cualquier orden; la cubierta requiere ambos."
+
+msgid "Claim one 3 × 3 site. Build its Campfire first, then choose Bedroll or Cache before adding the Canopy."
+msgstr "Reclama un solar de 3 × 3. Construye primero la fogata; después elige entre el petate y el depósito antes de añadir la cubierta."
+
+msgid "Complete the prerequisite Founding Site modules first."
+msgstr "Completa primero los módulos requeridos del sitio fundacional."
+
+msgid "Complete the prerequisite modules first."
+msgstr "Completa primero los módulos requeridos."
+
+msgid "Return carried cargo"
+msgstr "Devolver carga al terreno"
+
+msgid "Returned {0} carried units to the ground."
+msgstr "Se devolvieron {0} unidades transportadas al terreno."
+
+msgid "Returns all carried founding resources to the ground so you can prepare the exact load for the next module."
+msgstr "Devuelve al terreno todos los recursos fundacionales transportados para que prepares la carga exacta del siguiente módulo."
+
+msgid "Establish Founding Site"
+msgstr "Establecer sitio fundacional"
+
+msgid "Establish the Founding Site"
+msgstr "Establecer el sitio fundacional"
+
+msgid "Establish the Founding Site and begin its Campfire."
+msgstr "Establecer el sitio fundacional y comenzar su fogata."
+
+msgid "Founding Site"
+msgstr "Sitio fundacional"
+
+msgid "Gather 3 Branches and 2 Small Stone for the Campfire."
+msgstr "Recoge 3 ramas y 2 piedras pequeñas para la fogata."
+
+msgid "Gather the full module cost first."
+msgstr "Recoge primero el coste completo del módulo."
+
+msgid "Module already completed."
+msgstr "Módulo ya completado."
+
+msgid "Module complete — awaiting next authorization"
+msgstr "Módulo completado — esperando la siguiente autorización"
+
+msgid "That Founding Site module is not available."
+msgstr "Ese módulo del sitio fundacional no está disponible."
+
+msgid "ui.construction.founding_phase"
+msgstr "{0} — {1}"
+
+msgid "ui.construction.module_progress"
+msgstr "{0} · {1}"
+
+msgid "branches"
+msgstr "ramas"
+
+msgid "plantfiber"
+msgstr "fibra vegetal"
+
+msgid "smallstone"
+msgstr "piedras pequeñas"
+
+msgid "wildfood"
+msgstr "comida silvestre"
+
+msgid "ui.resource.units_remain"
+msgstr "Quedan {0} unidades de {1}"
+
+msgid "ui.gather.resource_action"
+msgstr "Recoger {0}"
+
+msgid "ui.gather.gathered_resource"
+msgstr "Se recogieron {0} de {1}."
+
+msgid "This resource node is no longer available."
+msgstr "Este nodo de recursos ya no está disponible."
+
+msgid "ui.construction.campfire_requirements"
+msgstr "Fogata — {0}"
+
+msgid "ui.construction.material_full"
+msgstr "{0} {1} (disponible: {2})"
+
+msgid "Cultivation Site"
+msgstr "Solar de cultivo"
+
+msgid "Prepare Cultivation Site"
+msgstr "Preparar solar de cultivo"
+
+msgid "Build the Basic Shelter first to prepare a Cultivation Site."
+msgstr "Construye primero el refugio básico para preparar un solar de cultivo."
+
+msgid "The first Cultivation Site is already prepared."
+msgstr "El primer solar de cultivo ya está preparado."
+
+msgid "Prepare one plot with 1 Branch and 1 Small Stone."
+msgstr "Prepara una parcela con 1 rama y 1 piedra pequeña."
+
+msgid "Gather 1 Branch and 1 Small Stone to prepare the plot."
+msgstr "Recoge 1 rama y 1 piedra pequeña para preparar la parcela."
+
+msgid "ui.construction.requirements_four"
+msgstr "Solar de cultivo — {0}\nGranja — {1}\nCantera — {2}\nAyuntamiento — {3}"
+
+msgid "ui.status.food_amount"
+msgstr "Comida {0}"
+
+msgid "ui.status.food_horizon"
+msgstr "Horizonte de raciones: {0} días · objetivo protegido: {1}"
+
+msgid "ui.status.first_harvest"
+msgstr "Primera cosecha en {0} días"
+
+msgid "ui.status.food_warning"
+msgstr "Comida {0}/{1} objetivo"
+
+msgid "ui.cultivation.growing"
+msgstr "Creciendo · lista en {0} días"
+
+msgid "ui.cultivation.prepared"
+msgstr "Preparada · siembra con 1 de comida"
+
+msgid "ui.cultivation.sown"
+msgstr "Sembrada · el crecimiento ha comenzado"
+
+msgid "ui.cultivation.ready"
+msgstr "Lista · cosecha {0} de comida"
+
+msgid "ui.cultivation.spent"
+msgstr "Agotada · otra parcela llegará con EG-5"
+
+msgid "ui.cultivation.sow_action"
+msgstr "Sembrar 1 de comida"
+
+msgid "ui.cultivation.missing_seed_food"
+msgstr "Hace falta 1 de comida o comida silvestre para sembrar."
+
+msgid "ui.cultivation.harvest_action"
+msgstr "Cosechar el cultivo"
+
+msgid "ui.cultivation.not_ready"
+msgstr "El cultivo todavía está creciendo."
+
+msgid "ui.cultivation.sown_notice"
+msgstr "La primera parcela fue sembrada. La cosecha estará lista en tres días."
+
+msgid "ui.cultivation.harvest_notice"
+msgstr "Cosecha recogida: +{0} de comida."
+
+msgid "ui.cultivation.founder_unavailable"
+msgstr "La persona fundadora debe estar disponible para atender esta parcela."
+
+msgid "ui.cultivation.action_unavailable"
+msgstr "Esta acción de cultivo no está disponible."
+
+msgid "event.crop_ready"
+msgstr "{0}: el cultivo está listo para cosechar"
+
+msgid "event.crop_harvested"
+msgstr "{0}: la cosecha produjo +{1} de comida"

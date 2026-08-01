@@ -41,4 +41,5 @@ public sealed class BuildingSave
     /// <summary>Nullable for forward-compat reads of v2 saves; defaults to 0.</summary>
     public int? Priority { get; set; }
     public List<int> AssignedCitizenIds { get; set; } = new();
+    public List<string> FoundingSiteOriginModules { get; set; } = new();
 }

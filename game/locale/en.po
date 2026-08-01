@@ -1996,3 +1996,192 @@ msgstr "Idle — no assignment"
 
 msgid "ui.world_status.unavailable"
 msgstr "Unavailable"
+
+msgid "Authorize this module."
+msgstr "Authorize this module."
+
+msgid "Awaiting next Founding Site module"
+msgstr "Awaiting next Founding Site module"
+
+msgid "Bedroll"
+msgstr "Bedroll"
+
+msgid "Build Bedroll"
+msgstr "Build Bedroll"
+
+msgid "Build Cache"
+msgstr "Build Cache"
+
+msgid "Build Canopy"
+msgstr "Build Canopy"
+
+msgid "Cache"
+msgstr "Cache"
+
+msgid "Campfire"
+msgstr "Campfire"
+
+msgid "Canopy"
+msgstr "Canopy"
+
+msgid "Choose the next Founding Site module. Bedroll and Cache may be completed in either order; Canopy requires both."
+msgstr "Choose the next Founding Site module. Bedroll and Cache may be completed in either order; Canopy requires both."
+
+msgid "Claim one 3 × 3 site. Build its Campfire first, then choose Bedroll or Cache before adding the Canopy."
+msgstr "Claim one 3 × 3 site. Build its Campfire first, then choose Bedroll or Cache before adding the Canopy."
+
+msgid "Complete the prerequisite Founding Site modules first."
+msgstr "Complete the prerequisite Founding Site modules first."
+
+msgid "Complete the prerequisite modules first."
+msgstr "Complete the prerequisite modules first."
+
+msgid "Return carried cargo"
+msgstr "Return carried cargo"
+
+msgid "Returned {0} carried units to the ground."
+msgstr "Returned {0} carried units to the ground."
+
+msgid "Returns all carried founding resources to the ground so you can prepare the exact load for the next module."
+msgstr "Returns all carried founding resources to the ground so you can prepare the exact load for the next module."
+
+msgid "Establish Founding Site"
+msgstr "Establish Founding Site"
+
+msgid "Establish the Founding Site"
+msgstr "Establish the Founding Site"
+
+msgid "Establish the Founding Site and begin its Campfire."
+msgstr "Establish the Founding Site and begin its Campfire."
+
+msgid "Founding Site"
+msgstr "Founding Site"
+
+msgid "Gather 3 Branches and 2 Small Stone for the Campfire."
+msgstr "Gather 3 Branches and 2 Small Stone for the Campfire."
+
+msgid "Gather the full module cost first."
+msgstr "Gather the full module cost first."
+
+msgid "Module already completed."
+msgstr "Module already completed."
+
+msgid "Module complete — awaiting next authorization"
+msgstr "Module complete — awaiting next authorization"
+
+msgid "That Founding Site module is not available."
+msgstr "That Founding Site module is not available."
+
+msgid "ui.construction.founding_phase"
+msgstr "{0} — {1}"
+
+msgid "ui.construction.module_progress"
+msgstr "{0} · {1}"
+
+msgid "branches"
+msgstr "branches"
+
+msgid "plantfiber"
+msgstr "plant fiber"
+
+msgid "smallstone"
+msgstr "small stone"
+
+msgid "wildfood"
+msgstr "wild food"
+
+msgid "ui.resource.units_remain"
+msgstr "{0} units of {1} remain"
+
+msgid "ui.gather.resource_action"
+msgstr "Gather {0}"
+
+msgid "ui.gather.gathered_resource"
+msgstr "Gathered {0} {1}."
+
+msgid "This resource node is no longer available."
+msgstr "This resource node is no longer available."
+
+msgid "ui.construction.campfire_requirements"
+msgstr "Campfire — {0}"
+
+msgid "ui.construction.material_full"
+msgstr "{0} {1} (available: {2})"
+
+msgid "Cultivation Site"
+msgstr "Cultivation Site"
+
+msgid "Prepare Cultivation Site"
+msgstr "Prepare Cultivation Site"
+
+msgid "Build the Basic Shelter first to prepare a Cultivation Site."
+msgstr "Build the Basic Shelter first to prepare a Cultivation Site."
+
+msgid "The first Cultivation Site is already prepared."
+msgstr "The first Cultivation Site is already prepared."
+
+msgid "Prepare one plot with 1 Branch and 1 Small Stone."
+msgstr "Prepare one plot with 1 Branch and 1 Small Stone."
+
+msgid "Gather 1 Branch and 1 Small Stone to prepare the plot."
+msgstr "Gather 1 Branch and 1 Small Stone to prepare the plot."
+
+msgid "ui.construction.requirements_four"
+msgstr "Cultivation Site — {0}\nFarm — {1}\nQuarry — {2}\nTown Hall — {3}"
+
+msgid "ui.status.food_amount"
+msgstr "Food {0}"
+
+msgid "ui.status.food_horizon"
+msgstr "Ration horizon: {0} days · protected target: {1}"
+
+msgid "ui.status.first_harvest"
+msgstr "First harvest in {0} days"
+
+msgid "ui.status.food_warning"
+msgstr "Food {0}/{1} target"
+
+msgid "ui.cultivation.growing"
+msgstr "Growing · ready in {0} days"
+
+msgid "ui.cultivation.prepared"
+msgstr "Prepared · sow with 1 Food"
+
+msgid "ui.cultivation.sown"
+msgstr "Sown · growth has begun"
+
+msgid "ui.cultivation.ready"
+msgstr "Ready · harvest {0} Food"
+
+msgid "ui.cultivation.spent"
+msgstr "Spent · another plot arrives with EG-5"
+
+msgid "ui.cultivation.sow_action"
+msgstr "Sow 1 Food"
+
+msgid "ui.cultivation.missing_seed_food"
+msgstr "One Food or Wild Food is required to sow."
+
+msgid "ui.cultivation.harvest_action"
+msgstr "Harvest the crop"
+
+msgid "ui.cultivation.not_ready"
+msgstr "The crop is still growing."
+
+msgid "ui.cultivation.sown_notice"
+msgstr "The first plot was sown. Harvest in three days."
+
+msgid "ui.cultivation.harvest_notice"
+msgstr "Harvest collected: +{0} Food."
+
+msgid "ui.cultivation.founder_unavailable"
+msgstr "The founder must be available to tend this plot."
+
+msgid "ui.cultivation.action_unavailable"
+msgstr "This crop action is not available."
+
+msgid "event.crop_ready"
+msgstr "{0}: the crop is ready to harvest"
+
+msgid "event.crop_harvested"
+msgstr "{0}: harvest yielded +{1} Food"

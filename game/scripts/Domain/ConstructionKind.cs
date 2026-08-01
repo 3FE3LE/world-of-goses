@@ -13,4 +13,6 @@ public enum ConstructionKind
     Farm = 1,
     Quarry = 2,
     TownHall = 3,
+    FoundingSite = 4,
+    CultivationSite = 5,
 }

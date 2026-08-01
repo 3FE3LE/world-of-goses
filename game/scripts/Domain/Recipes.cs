@@ -61,12 +61,22 @@ public static class Recipes
                 },
                 Output: ResourceType.Stone),
 
+            [new RecipeId("construction.foundingsite.campfire")] = new Recipe(
+                new RecipeId("construction.foundingsite.campfire"),
+                RequiredInputs: FoundingSiteRules.InputsFor(FoundingSiteModule.Campfire),
+                Output: ResourceType.Stone),
+
             [new RecipeId("construction.farm")] = new Recipe(
                 new RecipeId("construction.farm"),
                 RequiredInputs: new[]
                 {
                     new RecipeInput(ResourceType.Wood, 6),
                 },
+                Output: ResourceType.Food),
+
+            [new RecipeId("construction.cultivationsite")] = new Recipe(
+                new RecipeId("construction.cultivationsite"),
+                RequiredInputs: CultivationRules.InputsForPreparation(),
                 Output: ResourceType.Food),
 
             [new RecipeId("construction.quarry")] = new Recipe(
@@ -117,6 +127,8 @@ public static class Recipes
         ConstructionKind.Farm => new RecipeId("construction.farm"),
         ConstructionKind.Quarry => new RecipeId("construction.quarry"),
         ConstructionKind.TownHall => new RecipeId("construction.townhall"),
+        ConstructionKind.FoundingSite => new RecipeId("construction.foundingsite.campfire"),
+        ConstructionKind.CultivationSite => new RecipeId("construction.cultivationsite"),
         _ => new RecipeId($"construction.{kind.ToString().ToLowerInvariant()}"),
     };
 

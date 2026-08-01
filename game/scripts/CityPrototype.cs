@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Persistence;
 using WorldofGoses.Ui;
 using WorldofGoses.Prototypes;
 
@@ -91,6 +92,21 @@ public partial class CityPrototype : Node
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: true);
                 break;
+            case "founding-blueprint":
+                ShowFoundingSiteForVisualRegression(moduleChoice: false, blockedCargo: false);
+                break;
+            case "founding-module-choice":
+                ShowFoundingSiteForVisualRegression(moduleChoice: true, blockedCargo: false);
+                break;
+            case "founding-blocked-cargo":
+                ShowFoundingSiteForVisualRegression(moduleChoice: false, blockedCargo: true);
+                break;
+            case "early-game-resources":
+                ShowEarlyGameResourcesForVisualRegression();
+                break;
+            case "cultivation-prepared":
+                ShowCultivationForVisualRegression();
+                break;
             case "expedition-idle":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Idle);
                 break;
@@ -155,6 +171,10 @@ public partial class CityPrototype : Node
             case "citizen-travel":
                 ShowCitizenTravelForVisualRegression();
                 break;
+            case "camera-depth-third-row":
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowThirdStreetDepthForVisualRegression();
+                break;
             case "policies":
                 GetNode<PoliciesPanel>("GameUiShell/ScreenContent/PoliciesPanel").Open();
                 break;
@@ -163,6 +183,161 @@ public partial class CityPrototype : Node
                     .ShowForVisualRegression();
                 break;
         }
+    }
+
+    private void ShowFoundingSiteForVisualRegression(bool moduleChoice, bool blockedCargo)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        Citizen? loadedFounder = controller.World.Hero;
+        if (loadedFounder is null)
+        {
+            GD.PushError("Founding Site visual fixture requires a loaded founder profile.");
+            return;
+        }
+
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            loadedFounder.Profile,
+            loadedFounder.Profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Founding Site visual fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        fixture.Resources.DepositToCityInventory(ResourceType.Branches, 3);
+        fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 2);
+
+        if (moduleChoice || blockedCargo)
+        {
+            ConstructionAuthorizationResult authorization =
+                fixture.TryAuthorizeConstruction(ConstructionKind.FoundingSite);
+            if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
+            {
+                GD.PushError($"Founding Site visual fixture authorization failed: {authorization.Outcome}.");
+                return;
+            }
+            ConstructionProject project = fixture.GetProject(projectId)!;
+            project.Progress = project.RequiredWork;
+            fixture.AdvanceWorldTick();
+            if (blockedCargo)
+            {
+                fixture.TryUnassignFromProject(project.Id, fixture.Hero!.Id);
+                fixture.Resources.DepositToCityInventory(
+                    ResourceType.WildFood,
+                    FoundingSiteRules.CarriedCapacity);
+            }
+            else
+            {
+                fixture.Resources.DepositToCityInventory(ResourceType.Branches, 2);
+                fixture.Resources.DepositToCityInventory(ResourceType.PlantFiber, 3);
+            }
+        }
+
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowConstructionForVisualRegression(placement: false);
+    }
+
+    private void ShowEarlyGameResourcesForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        bool profileCreated = CitizenProfile.TryCreate(
+            LineageId.Ardhen,
+            GenderId.Masculine,
+            new[] { AptitudeId.Observation, AptitudeId.Empathy, AptitudeId.ManualPrecision },
+            new[] { ProfessionFamilyId.Extraction, ProfessionFamilyId.MedicineCare, ProfessionFamilyId.ResearchEducation },
+            ElementalAffinityId.Water,
+            CombatStyleId.DefensiveSupport,
+            new[] { WeaponPreferenceId.Polearm, WeaponPreferenceId.Shield },
+            new[] { PersonalityTraitId.Patient, PersonalityTraitId.Protective, PersonalityTraitId.Reflective },
+            PoliticalOrientationId.Communitarian,
+            SpiritualPostureId.Contemplative,
+            out CitizenProfile? profile,
+            out string profileError);
+        if (!profileCreated || profile is null)
+        {
+            GD.PushError($"Early-game resource fixture could not create a profile: {profileError}.");
+            return;
+        }
+
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            profile,
+            profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Early-game resource fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowEarlyGameResourcesForVisualRegression();
+    }
+
+    private void ShowCultivationForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        Citizen? loadedFounder = controller.World.Hero;
+        if (loadedFounder is null)
+        {
+            GD.PushError("Cultivation visual fixture requires a loaded founder profile.");
+            return;
+        }
+
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            loadedFounder.Profile,
+            loadedFounder.Profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Cultivation visual fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        fixture.Resources.DepositToCityInventory(ResourceType.Wood, 4);
+        ConstructionAuthorizationResult shelter =
+            fixture.TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+        if (!shelter.IsSuccess || shelter.ProjectId is not BuildingId shelterId)
+        {
+            GD.PushError($"Cultivation visual fixture could not authorize shelter: {shelter.Outcome}.");
+            return;
+        }
+        ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
+        shelterProject.Progress = shelterProject.RequiredWork;
+        fixture.AdvanceWorldTick();
+        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+
+        fixture.Resources.DepositToCityInventory(ResourceType.Branches, 1);
+        fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 1);
+        fixture.Resources.DepositToCityInventory(ResourceType.WildFood, 8);
+        ConstructionAuthorizationResult cultivation =
+            fixture.TryAuthorizeConstruction(ConstructionKind.CultivationSite);
+        if (!cultivation.IsSuccess || cultivation.ProjectId is not BuildingId cultivationId)
+        {
+            GD.PushError(
+                $"Cultivation visual fixture could not authorize site: {cultivation.Outcome}.");
+            return;
+        }
+        ConstructionProject cultivationProject = fixture.GetProject(cultivationId)!;
+        cultivationProject.Progress = cultivationProject.RequiredWork;
+        fixture.AdvanceWorldTick();
+        while (!GameClock.IsDaytime(fixture.CurrentTick)) fixture.AdvanceWorldTick();
+
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowEarlyGameResourcesForVisualRegression();
     }
 
     private void ShowCitizenTravelForVisualRegression()
