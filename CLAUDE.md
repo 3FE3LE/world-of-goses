@@ -107,7 +107,12 @@ another line. They mirror `AGENTS.md` §3.
   **Do not delete** existing files without a clear reason in the report.
 - **Commit authorship.** Use only the Git identity already configured by
   the user. Do not add `Co-authored-by`, `Signed-off-by`, generated-by
-  notices, agent names, or Codex attribution.
+  notices, agent names, or Codex attribution. The repository carries
+  `.githooks/commit-msg` and `tools/Install-AuthorGuardHook.ps1`; on every
+  session start the snapshot script sets `core.hooksPath = .githooks`, so a
+  commit that tries to credit an AI agent **fails**. The override
+  `git commit --no-verify` exists, and using it requires a written reason
+  in the final report.
 - **Documentation must follow architecture.** Update the relevant `docs/`
   file in the same change.
 - **Every session records its state.** See §5.1. The `SessionStart` hook in

@@ -101,7 +101,11 @@ compressed, and not negotiable.
   already configured by the user. Do not add `Co-authored-by`,
   `Signed-off-by`, generated-by notices, agent names, or Codex attribution.
   Do not change `user.name`, `user.email`, signing configuration, or any
-  other Git identity setting.
+  other Git identity setting. The repository carries `.githooks/commit-msg`
+  and `tools/Install-AuthorGuardHook.ps1`; on every session start the
+  snapshot script sets `core.hooksPath = .githooks`, so a commit that tries
+  to credit an AI agent **fails**. The override `git commit --no-verify`
+  exists, and using it requires a written reason in the final report.
 - **Documentation must follow architecture.** When a folder layout,
   dependency rule, build command, technology choice, or scope boundary
   changes, update the relevant `docs/` file in the same change.

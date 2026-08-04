@@ -47,6 +47,51 @@ Claude Code, the written rule is the only trigger under Codex.
 
 ---
 
+## Author guard: no AI agent may appear as a contributor
+
+**2026-08-03**
+
+Nine commits carried a `Co-Authored-By: Claude <noreply@anthropic.com>`
+trailer; three of them additionally had Claude as the **author and
+committer**, which would have surfaced Claude as a GitHub contributor with
+its own avatar. The remote `origin` was configured but had no branches, so
+rewriting history was cheap; that window will not stay open after the first
+push.
+
+`git filter-branch` with `--all` was run once:
+
+- `noreply@anthropic.com` is reassigned to the repository owner
+  (`3l33f3@gmail.com`) wherever it appeared as `GIT_AUTHOR_*` or
+  `GIT_COMMITTER_*`.
+- `Co-Authored-By:` and AI-domain `Signed-off-by:` trailers are stripped
+  from every message. Other body text is left alone.
+- Original commit dates and content are preserved (`git diff
+  refs/original/refs/heads/main HEAD --stat` is empty).
+
+Prose in `CLAUDE.md` and `AGENTS.md` had carried the rule already. Prose
+failed; prose alone is a request, not a guard. The repository now carries
+`.githooks/commit-msg`, which rejects:
+
+- Any `Co-Authored-By:` or `Signed-off-by:` trailer.
+- Any `Generated with …` notice naming an AI agent.
+- The robot marker `🤖`.
+- Any author or committer identity whose email or display name matches an
+  AI agent (anthropic.com, openai.com, GitHub-managed copilot addresses,
+  or names like `Claude` / `Codex` / `Copilot`).
+
+`tools/Install-AuthorGuardHook.ps1` points `core.hooksPath` at
+`.githooks`, idempotent and safe to re-run. The snapshot script runs it on
+every `-Mode Full` and reports the resulting state on its `Author guard`
+line. The override `git commit --no-verify` exists; using it requires a
+written reason in the final report.
+
+The full pre-rewrite history is preserved in
+`%TEMP%\wog-authorship-backup\pre-authorship-rewrite.bundle` for the day
+something needs to be cross-checked, and `git reflog` still points to the
+pre-rewrite `refs/original/*` copies until they expire.
+
+---
+
 ## EG-4 — resource expeditions on a dynamic frontage grid
 
 **2026-08-03 · `2d949f6c`**

@@ -149,6 +149,7 @@ $testResult = $unmeasured
 $bootResult = $unmeasured
 $contextResult = $unmeasured
 $localeResult = $unmeasured
+$hookResult = $unmeasured
 $captureLines = @("$unmeasured")
 
 if ($Mode -eq "Full") {
@@ -157,6 +158,15 @@ if ($Mode -eq "Full") {
     # English for the duration of this process so the regexes below have one
     # shape to match instead of one per installed language pack.
     $env:DOTNET_CLI_UI_LANGUAGE = "en"
+
+    $hookResult = Invoke-Probe "author guard" {
+        $current = (git -C $repoRoot config --local --get core.hooksPath 2>$null)
+        if ($current -ne ".githooks") {
+            & (Join-Path $repoRoot "tools\Install-AuthorGuardHook.ps1") | Out-Null
+            $current = (git -C $repoRoot config --local --get core.hooksPath)
+        }
+        "active (core.hooksPath = $current)"
+    } "could not install .githooks/commit-msg"
 
     $buildResult = Invoke-Probe "build" {
         $run = Invoke-Capture "dotnet" @("build") (Join-Path $repoRoot "game")
@@ -291,6 +301,7 @@ $report.Add("Tests           : $testResult")
 $report.Add("Headless boot   : $bootResult")
 $report.Add("Agent context   : $contextResult")
 $report.Add("Localization    : $localeResult")
+$report.Add("Author guard    : $hookResult")
 $report.Add("")
 $report.Add("Capture")
 $report.Add("-------")

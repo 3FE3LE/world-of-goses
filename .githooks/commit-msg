@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# Refuses any commit that credits an AI agent as an author or collaborator.
+#
+# CLAUDE.md and AGENTS.md have carried this rule in prose since the
+# agent-context layer landed, and nine commits shipped with
+# "Co-Authored-By: Claude" anyway, three of them additionally authored by
+# Claude <noreply@anthropic.com>. Prose in a contract file is a request; this
+# is the part that says no. Removing those trailers afterwards meant rewriting
+# 35 commits, which is only cheap while nothing has been pushed.
+#
+# Install once per clone:
+#     git config core.hooksPath .githooks
+#
+# tools/New-SessionSnapshot.ps1 verifies that setting on every session start.
+#
+# Deliberate override, for the day a real human co-author exists:
+#     git commit --no-verify
+
+message_file="$1"
+failures=""
+
+fail() {
+    failures="${failures}  - $1
+"
+}
+
+# Trailers. Matched case-insensitively and anchored to the start of a line so
+# a commit that merely discusses attribution in its body still passes.
+if grep -qiE '^[[:space:]]*co-authored-by:' "$message_file"; then
+    fail "the message carries a Co-authored-by trailer"
+fi
+
+if grep -qiE '^[[:space:]]*signed-off-by:' "$message_file"; then
+    fail "the message carries a Signed-off-by trailer"
+fi
+
+if grep -qiE 'generated (with|by) .*(claude|codex|copilot|cursor|gpt|gemini)' "$message_file"; then
+    fail "the message carries a generated-by notice"
+fi
+
+if grep -qE '🤖' "$message_file"; then
+    fail "the message carries the robot marker used by agent-generated notices"
+fi
+
+# Identity. GIT_AUTHOR_IDENT / GIT_COMMITTER_IDENT are set by git for this
+# hook, so this catches an agent that configured its own user.email rather
+# than merely appending a trailer.
+author_ident=$(git var GIT_AUTHOR_IDENT 2>/dev/null)
+committer_ident=$(git var GIT_COMMITTER_IDENT 2>/dev/null)
+ai_identity='anthropic\.com|openai\.com|users\.noreply\.github\.com.*(claude|copilot)|^claude|^codex|^copilot'
+
+if printf '%s' "$author_ident" | grep -qiE "$ai_identity"; then
+    fail "the author identity is an AI agent: $author_ident"
+fi
+
+if printf '%s' "$committer_ident" | grep -qiE "$ai_identity"; then
+    fail "the committer identity is an AI agent: $committer_ident"
+fi
+
+if [ -n "$failures" ]; then
+    printf '\ncommit rejected: no AI agent may appear as an author or collaborator.\n\n'
+    printf '%s' "$failures"
+    printf '\nSee CLAUDE.md / AGENTS.md section 3, "Commit authorship".\n'
+    printf 'Use the Git identity already configured by the repository owner.\n\n'
+    exit 1
+fi
+
+exit 0
