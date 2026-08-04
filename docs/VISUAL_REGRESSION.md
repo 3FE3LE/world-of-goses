@@ -86,6 +86,16 @@ opens the current 8×9 windowed terrarium in a normal Godot window without
 touching the live save. Pass `-Rows 16 -Columns 3` or `-Rows 21 -Columns 3` to
 revisit the historical depth probes.
 
+## Session capture
+
+`tools/New-SessionSnapshot.ps1 -Mode Full` drives this same harness once per
+session and commits the resulting `1280×720` frame to `docs/session-state/`.
+That capture is **not** a matrix row and does not sign off anything: it uses
+the live slot with no fixture and no clicks, so it records what the city
+happened to look like rather than a prepared state. Its purpose is a scrubable
+visual history, not acceptance. The matrix below still owns sign-off, and its
+review artifacts still stay out of the repository.
+
 ## Required matrix
 
 | State | Fixture/precondition | Automated capture | Human assertions |

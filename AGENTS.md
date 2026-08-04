@@ -105,6 +105,13 @@ compressed, and not negotiable.
 - **Documentation must follow architecture.** When a folder layout,
   dependency rule, build command, technology choice, or scope boundary
   changes, update the relevant `docs/` file in the same change.
+- **Every session records its state.** See §5.1. Before the session's
+  **first commit**, run `pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full`,
+  include `docs/session-state/` in that commit, and extend `CHANGELOG.md`
+  with an entry for the increment. A session that changes nothing commits
+  nothing and owes nothing. Claude Code additionally refreshes the state
+  file automatically through a `SessionStart` hook; Codex has no equivalent
+  hook, so here this rule is the only trigger.
 
 ## 4. Conventions in one paragraph
 
@@ -135,6 +142,42 @@ pwsh ./scripts/Validate-AgentContext.ps1
 
 There is no linter or CI configured yet. Do not invent commands. Do not
 install global tools.
+
+### 5.1 Session state
+
+`docs/session-state/` holds the *measured* baseline, as opposed to the
+hand-written claims in `CURRENT_STATUS.md` and
+`docs/ai/CURRENT_DEVELOPMENT_STATE.md`. The two drift: on 2026-08-03 the prose
+claimed 728 and 721 passing tests against a real 730, and 761 template IDs
+against a real 804. When they disagree, the measurement wins and the prose
+gets corrected in the same change.
+
+```powershell
+# Cheap. Git and source only: no dotnet, no Godot, under a second.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast
+
+# Before the session's first commit. Measures build, tests, headless boot,
+# agent context and catalogs, and captures a dated 1280x720 frame of the
+# live city.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full
+
+# Same, where no interactive desktop exists.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full -SkipCapture
+```
+
+Then, in that same commit:
+
+1. `docs/session-state/STATE.txt` and the dated `.png`.
+2. A `CHANGELOG.md` entry for the increment — what a player can now do that
+   they could not before, the schema range crossed, the measured baseline.
+   Not a list of touched files; `git log` already owns that.
+
+The capture needs a real Godot window and can intermittently report a `50×50`
+client (`docs/VISUAL_REGRESSION.md`). The script records that failure and
+continues; it never blocks a session. Never hand-edit `STATE.txt` — the next
+run overwrites it, and a state file you can write by hand proves nothing.
+
+Full prose in [`docs/session-state/README.md`](docs/session-state/README.md).
 
 ## 6. Source-of-truth hierarchy
 

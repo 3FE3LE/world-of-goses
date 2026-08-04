@@ -32,6 +32,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | File | Owns |
 | --- | --- |
 | `CURRENT_STATUS.md` | What slice is live, what the next proof should be, verification commands. |
+| `session-state/` | **Generated, not written.** The measured baseline and a dated screenshot of the city at the start of each session. When it disagrees with the prose above, it wins. |
 | `ARCHITECTURE.md` | Folder layout, the engine/domain boundary, three visual scales, persistence boundary, what is out of scope. |
 | `VISUAL_REGRESSION.md` | Reproducible capture harness, required UI-state matrix, and human sign-off contract. |
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
@@ -82,6 +83,9 @@ automatic addition to `game/assets/`.
 | "What does each lineage mean and look like?" | bible `06_LINEAGES.md` + `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` |
 | "How should it sound?" | bible `09_AUDIO_GUIDELINES.md` |
 | "What is the current slice and what ships next?" | `CURRENT_STATUS.md` |
+| "What are the real build/test/schema numbers right now?" | `session-state/STATE.txt` |
+| "What did the city actually look like last session?" | `session-state/<date>-macro-1280x720.png` |
+| "How did we get here?" | `../CHANGELOG.md` |
 | "How is the code organised today?" | `ARCHITECTURE.md` |
 | "How should I build a new screen or widget?" | `UI_PATTERNS.md` |
 | "What does the current UI look like in practice?" | `UI_AUDIT.md` |

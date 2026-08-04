@@ -16,7 +16,7 @@
 | Next approved work | Segundo/tercer plot y Farm consolidation; firma humana del hacha y apertura acotada. |
 | VS-5 audit | Descartado 2026-07-31; `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` borrado. |
 | Build | `dotnet build` clean (verified 2026-08-03) |
-| Tests | 721 / 722 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
+| Tests | 730 / 731 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
 | Save schema version (code) | `WorldSave.CurrentVersion = 28` |
 | Save schema version (docs) | v28 (durable Shelter tool set; Primitive Axe forestry gate) |
 | Headless boot | OK with `godot --headless --path game --quit-after 3` |

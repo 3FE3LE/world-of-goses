@@ -110,6 +110,12 @@ another line. They mirror `AGENTS.md` §3.
   notices, agent names, or Codex attribution.
 - **Documentation must follow architecture.** Update the relevant `docs/`
   file in the same change.
+- **Every session records its state.** See §5.1. The `SessionStart` hook in
+  `.claude/settings.json` refreshes `docs/session-state/STATE.txt` for you;
+  the part you owe is the rest: before the session's **first commit**, run
+  `pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full`, add
+  `docs/session-state/` to that commit, and extend `CHANGELOG.md`. A session
+  that changes nothing commits nothing and owes nothing.
 
 ## 4. Conventions
 
@@ -147,6 +153,38 @@ pwsh ./scripts/Validate-AgentContext.ps1
 
 There is no linter or CI configured yet. Do not invent commands. Do not
 install global tools.
+
+### 5.1 Session state
+
+`docs/session-state/` holds the *measured* baseline, as opposed to the
+hand-written claims in `CURRENT_STATUS.md`. The two drift: on 2026-08-03 the
+prose claimed 728 passing tests against a real 730, and 761 template IDs
+against a real 804. When they disagree, the measurement wins and the prose
+gets corrected in the same change.
+
+```powershell
+# Automatic at session start (SessionStart hook). Git and source only,
+# no dotnet, no Godot, under a second.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast
+
+# Yours to run, before the session's first commit. Measures build, tests,
+# headless boot, agent context and catalogs, and captures a dated
+# 1280x720 frame of the live city.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full
+```
+
+Then, in that same commit:
+
+1. `docs/session-state/STATE.txt` and the dated `.png`.
+2. A `CHANGELOG.md` entry for the increment — what a player can now do that
+   they could not before, the schema range crossed, the measured baseline.
+   Not a list of touched files; `git log` already owns that.
+
+The capture needs a real Godot window and can intermittently report a `50×50`
+client (`docs/VISUAL_REGRESSION.md`). The script records that failure and
+continues; it never blocks a session. Use `-SkipCapture` where no interactive
+desktop exists. Never hand-edit `STATE.txt` — the next session start
+overwrites it, and a state file you can write by hand proves nothing.
 
 ## 6. Source-of-truth hierarchy
 
