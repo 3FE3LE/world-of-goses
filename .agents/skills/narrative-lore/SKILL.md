@@ -34,10 +34,14 @@ proposes implications; mechanics decide.
 
 - `docs/world-of-goses-design-bible/01_GAME_VISION.md` — fantasy and naming
   discipline.
-- `docs/world-of-goses-design-bible/06_LINEAGES.md` — per-lineage cultural
-  identity.
+- `docs/world-of-goses-design-bible/06_LINEAGES.md` — lineage index.
+- `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md` — per-lineage
+  cultural identity (detail).
 - `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md` —
   founder, astral arrival, profile composition.
+- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — canonical cube
+  mechanics; relevant when writing founder-related copy or dialogue
+  that touches the cube profile, elemental affinity or line signature.
 
 ## Conditional documentation
 

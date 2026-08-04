@@ -39,8 +39,8 @@ which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `lineages-and-cultures`, `presentation-experience`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`
-- **Code:** `game/scripts/Domain/FounderNarrativeCatalog.cs`, `FounderNarrativeSession.cs`, `FounderNarrativeScorer.cs`, `game/scripts/AstralOnboardingView.cs`, `OnboardingView.cs`
+- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`, `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`
+- **Code:** `game/scripts/Domain/FounderNarrativeCatalog.cs`, `FounderNarrativeSession.cs`, `FounderNarrativeScorer.cs`, `FounderNarrativeModels.cs`, `game/scripts/AstralOnboardingView.cs`, `OnboardingView.cs`
 - **Consult `citizens-rpg` when:** the produced profile, aptitudes, or competencies change.
 - **Consult `lineages-and-cultures` when:** lineage is inferred, presented, or selected.
 - **Consult `technical-foundation` when:** the profile shape is persisted.
@@ -49,7 +49,7 @@ which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`
+- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`, `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`
 - **Code:** `game/scripts/FounderArrivalSequence.cs`, `game/scripts/Domain/HeroCreationRequest.cs`, `HeroCreationResult.cs`, `CitizenProfile.cs`
 - **Hard rule:** the founder must not become a permanent global bonus. See `CROSS_DOMAIN_INVARIANTS.md` → Citizens.
 
@@ -213,7 +213,7 @@ which domain owns the feature.
 - **Primary agent:** depends on what changes. Lineages have **no owning agent**.
 - **Required skills:** `lineages-and-cultures`, plus the skill of the domain being changed
 - **Conditional skills:** `narrative-lore`, `citizens-rpg`, `presentation-experience`, `city-simulation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/06_LINEAGES.md`, `docs/LINEAGE_DESIGN_MATRIX.md`
+- **Canonical docs:** `docs/world-of-goses-design-bible/06_LINEAGES.md` (index), `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`, `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md`, `docs/LINEAGE_DESIGN_MATRIX.md`
 - **Code:** `game/scripts/Domain/LineageDefinition.cs`, `LineageId.cs`, `game/scripts/visual/CharacterVisualRegistry.cs`
 - **Hard rule:** lineages are not classes, do not block professions, and must not become automatic multipliers.
 
@@ -221,7 +221,7 @@ which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `lineages-and-cultures`, `citizens-rpg`, `presentation-experience`
-- **Canonical docs:** `docs/world-of-goses-design-bible/01_GAME_VISION.md`, `06_LINEAGES.md`, `07_ONBOARDING_AND_FOUNDER.md`
+- **Canonical docs:** `docs/world-of-goses-design-bible/01_GAME_VISION.md`, `06_LINEAGES.md`, `07_ONBOARDING_AND_FOUNDER.md`, `13_KOVARI_CUBE.md`, `14-21_LINEAGES_*.md`
 - **Code:** `game/scripts/Domain/Dialogue.cs`, `DialogueRunner.cs`, `FounderNarrativeCatalog.cs`, `game/scripts/Ui/WorldEventTextFormatter.cs`
 - **Hard rule:** `narrative-lore` may not invent mechanics or bonuses. It proposes; the mechanical domain decides.
 

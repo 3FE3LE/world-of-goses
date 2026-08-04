@@ -40,7 +40,9 @@
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/01_GAME_VISION.md`,
-   `06_LINEAGES.md`, and `07_ONBOARDING_AND_FOUNDER.md`.
+   `06_LINEAGES.md` (index), the relevant `14-21_LINEAGES_*.md`
+   chapter(s), `07_ONBOARDING_AND_FOUNDER.md`, and
+   `13_KOVARI_CUBE.md` when founder/cube copy is touched.
 2. Identify the lineage(s), cultural register, and diegetic level.
 3. Draft in the appropriate voice. Keep copy short and concrete.
 4. For dialogue, route the change through `Dialogue.cs`,

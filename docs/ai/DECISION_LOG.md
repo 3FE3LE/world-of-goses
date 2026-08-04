@@ -292,6 +292,99 @@ change pay for a third routine capture.
 
 ---
 
+## DEC-0013: Onboarding output, canonical cube axes, elemental affinities
+
+**Status:** Accepted
+**Date:** 2026-08-04
+
+**Decision:**
+
+1. **Onboarding output is reduced to a `CubeProfile`.** The onboarding
+   produces only `LineageId`, `ElementalAffinity`, `FounderCubeProfile`
+   (six continuous stats), and `FounderNarrativeMemory`. It must **not**
+   produce `WeaponPreferences`, `ProfessionalAffinities`, `CombatStyle`,
+   `PoliticalOrientation`, `SpiritualPosture`, `LeadershipStyle`,
+   `RiskProfile`, or `Traits`. These fields are eliminated from the
+   output. Traits and competencies are acquired during the citizen's
+   life (see `bible/04` § *Cinco capas de competencia*).
+
+2. **Canonical cube stat names** are `Cuerpo`, `Vínculo`, `Estabilidad`,
+   `Impulso`, `Dominio`, `Alcance`. Cultural aliases (`Sustancia`,
+   `Relación`, `Contención`, `Proyección`, `Concentración`,
+   `Distribución`) may appear in lore copy but are not the technical
+   identifiers.
+
+3. **Initial bonus anchoring** is `60/40` per cube axis at the lineage
+   vertex, with `±8` per axis as the onboarding variation range
+   (≈52–68). The cube is calculated in **shadow mode** in parallel with
+   the existing lineage scoring; the existing scoring remains the
+   source of truth until parity is demonstrated. The cube never
+   replaces the current algorithm without explicit parity evidence.
+
+4. **Six elemental affinities** are defined as the six cube faces,
+   independent of lineage: `Tierra`, `Éter`, `Agua`, `Fuego`,
+   `Neutra/Silencio`, `Aire`. Element does not select lineage and
+   lineage does not force element.
+
+5. **Equipment is a channel and a demand, not a source of power.** The
+   citizen produces the capacity; equipment channels it, demands
+   effort, and wears. Equipment must not grant attack base or speed
+   base independently of the citizen.
+
+6. **Eight line signatures** are canonized as visible one-liners
+   expressing each lineage vertex: Ardhen = Anclaje, Eirune = Corola,
+   Kovari = Reconfiguración, Vaelun = Rumbo, Orveth = Custodia,
+   Myrven = Adaptación, Theryn = Resonancia, Caelith = Síntesis.
+   Each is a small interaction, never a class definition.
+
+7. **Lineage lore and lineage system guidelines** are consolidated into
+   `bible/14-21_LINEAGES_*.md` (one chapter per lineage) and the
+   shared cube mechanics into `bible/13_KOVARI_CUBE.md`. The original
+   `docs/ravatha_lore_package/`, `docs/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/`
+   and `docs/KOVARI_CUBE_ONBOARDING_INTEGRATION_GUIDELINE.md` are
+   archived under `docs/_archive/ravatha-source-2026-08-04/` for
+   traceability. They are no longer canonical.
+
+**Reason:**
+The user explicitly chose this model on 2026-08-04 during the Ravatha
+documentation consolidation session. It aligns with `DEC-0002`
+(lineages are not classes), with `bible/04` § *Reglas de datos y
+balance* (no flat bonuses), and with `bible/06` § *No son profesiones
+ni clases de combate*. It removes contradictory scoring shapes
+described in three different places (the cube doc, the cube stats
+system doc, and the cube guideline) and gives the cube a stable
+integration path via shadow mode.
+
+**Affected domains:** onboarding, citizens, lineage, narrative,
+presentation, combat, persistence.
+
+**Consequences:**
+`FounderNarrativeResult` and `FounderNarrativeScorer` must drop the
+fields listed above. The persisted founder record stores the cube
+profile and the narrative memory, not the eliminated fields. The
+`Profile` snapshot rendered by `FounderArrivalSequence` must show
+only lineage, affinity, three cube axes and the narrative summary;
+not weapons, professions, politics, posture, risk or leadership
+style. Lineage UI themes continue to change palette/borders/fills
+only; the cube panel is functionally shared across lineages and
+constrained to a numerate breakdown (see
+`bible/13_KOVARI_CUBE.md` § *Estadísticas derivadas y desglose
+explícito*).
+
+**Documents affected:** `bible/06_LINEAGES.md` (rewritten as index),
+`bible/07_ONBOARDING_AND_FOUNDER.md` (rewritten Result section +
+prologue expansion), new `bible/13_KOVARI_CUBE.md`, new
+`bible/14-21_LINEAGES_*.md`, `docs/_archive/ravatha-source-2026-08-04/`.
+
+**Code affected:** `game/scripts/Domain/FounderNarrativeCatalog.cs`,
+`FounderNarrativeScorer.cs`, `FounderNarrativeSession.cs`,
+`FounderNarrativeModels.cs`, `HeroCreationRequest.cs`,
+`HeroCreationResult.cs`, `CitizenProfile.cs`. Migration via
+`WorldSave` schema bump — see `bible/13_KOVARI_CUBE.md` § *Migración
+y fallback*.
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

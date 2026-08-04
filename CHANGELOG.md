@@ -144,6 +144,76 @@ which supersedes the rigid nine-lot partition previously described in chapter 03
 
 ---
 
+## Doc consolidation — Ravatha, Cubo Kovari y onboarding
+
+**2026-08-04**
+
+Documentation only. No code, schema, tests, build, baseline or
+catalog numbers change in this commit; it captures the consolidation of
+22 delivered docs (the `ravatha_lore_package`, the
+`RAVATHA_LINEAGE_SYSTEM_GUIDELINES` and the
+`KOVARI_CUBE_ONBOARDING_INTEGRATION_GUIDELINE`) into the canonical
+design bible.
+
+### Connected
+
+- `bible/13_KOVARI_CUBE.md` — single source of truth for the cube
+  mechanics: geometry, the three axes (Cuerpo/Vínculo,
+  Estabilidad/Impulso, Dominio/Alcance) with their six canonical stat
+  names and cultural aliases, the eight lineage vertices, the six
+  elemental affinities (Tierra, Éter, Agua, Fuego, Neutra/Silencio,
+  Aire) as independent cube faces, derived stats with explicit
+  breakdown, equipment as channel-and-demand (Weight, Demand,
+  MaxIntegrity, CurrentCondition, ElementalResonance,
+  ElementalTolerance, WearProfile), shadow-mode coexistence with the
+  current lineage scoring, migration and fallback rules.
+- `bible/14-21_LINEAGES_*.md` — one chapter per lineage (Ardhen,
+  Eirune, Kovari, Myrven, Vaelun, Orveth, Caelith, Theryn), each with
+  §1 Cultura, §2 Sistema jugable, §3 Firma sistémica and
+  §4 Vértice del Cubo. The eight line signatures are canonized:
+  Anclaje, Corola, Reconfiguración, Rumbo, Custodia, Adaptación,
+  Resonancia, Síntesis.
+- `bible/06_LINEAGES.md` rewritten as a one-table index that links to
+  the eight lineage chapters and to `bible/13_KOVARI_CUBE.md`.
+- `bible/07_ONBOARDING_AND_FOUNDER.md` Result section reduced to
+  `FounderOnboardingResult { Lineage, ElementalAffinity, CubeProfile,
+  NarrativeMemory }`; the prologue's seven scenes (Before the Sky,
+  Interference, Separation, Sky of Ravatha, Descent, Impact, Wait)
+  are added as canonical narrative sequence.
+- Agent and skill routing updated to point at the bible: the
+  `lineages-and-cultures`, `narrative-lore` and `citizens-rpg`
+  skills, the `narrative-lore` agent, and `docs/ai/CONTEXT_MAP.md`
+  routes `Onboarding`, `Founder`, `Lineages` and `Narrative`.
+
+### Reshaped
+
+- The three delivered packages are no longer canonical. They live
+  under `docs/_archive/ravatha-source-2026-08-04/` as a historical
+  source, including the two `.zip` originals. The README in the
+  archive maps every archived file to its bible destination.
+- `DEC-0013` is added to `docs/ai/DECISION_LOG.md` and records:
+  onboarding output is the cube profile only (no Traits,
+  WeaponPreferences, ProfessionalAffinities, CombatStyle,
+  PoliticalOrientation, SpiritualPosture, LeadershipStyle or
+  RiskProfile); six canonical stat names; 60/40 base + ±8 onboarding
+  range; six elemental affinities as cube faces; equipment is channel
+  not power; eight line signatures; lore + systems consolidated into
+  bible/13-21 with the original packages archived.
+
+### Schema
+
+None. No `WorldSave` version bump; no persisted field changes. The
+migration and fallback rules in `bible/13_KOVARI_CUBE.md` are
+forward-looking and apply when the cube schema is introduced.
+
+### Baseline
+
+Unchanged from EG-4. Build, tests, headless boot, agent-context
+validation, schema version and locale catalogs are not modified by
+this commit.
+
+---
+
 ## Reconstructed history
 
 Thin entries, recovered from commit subjects only. See each commit for content.

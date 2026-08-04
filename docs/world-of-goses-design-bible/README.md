@@ -23,6 +23,15 @@ Sirve para:
 9. `09_AUDIO_GUIDELINES.md`
 10. `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`
 11. `12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`
+12. `13_KOVARI_CUBE.md`
+13. `14_LINEAGES_ARDHEN.md`
+14. `15_LINEAGES_EIRUNE.md`
+15. `16_LINEAGES_KOVARI.md`
+16. `17_LINEAGES_MYRVEN.md`
+17. `18_LINEAGES_VAELUN.md`
+18. `19_LINEAGES_ORVETH.md`
+19. `20_LINEAGES_CAELITH.md`
+20. `21_LINEAGES_THERYN.md`
 
 ## Jerarquía de autoridad
 
@@ -41,8 +50,9 @@ Ya está definido:
 - Vista macro, escenas detalladas de edificios y expediciones laterales.
 - Habitantes con identidad, competencias múltiples e historia.
 - Héroe como rango o función de un habitante, no como entidad separada.
-- Ocho linajes fundacionales.
-- Afinidades profesionales sin profesiones bloqueadas.
+- Ocho linajes fundacionales con cultura, sistema jugable, firma y vértice del Cubo (capítulos 14–21).
+- Cubo Kovari como sistema mecánico común: tres ejes (Cuerpo/Vínculo, Estabilidad/Impulso, Dominio/Alcance), seis caras elementales, ocho vértices, stats derivados, equipamiento y modo sombra (capítulo 13).
+- Afinidades profesionales sin profesiones bloqueadas; ocho enfoques por oficio.
 - Expansión territorial mediante expediciones.
 - Producción causal basada en población, territorio, herramientas, logística y almacenamiento.
 - Reservas urbanas dinámicas por columnas, huellas físicas parciales y corredores transitables.
@@ -56,7 +66,6 @@ Todavía requiere aterrizaje:
 - Fórmulas de aprendizaje, producción y envejecimiento.
 - Sistema político completo.
 - Nombre final del eje regenerativo/extractivo.
-- Elementos, armas y habilidades.
 - Mezcla cultural entre linajes.
 - Persistencia final y progreso offline.
-- Gramática musical completa.
+- Gramática musical completa (más allá del esqueleto Theryn del capítulo 21).

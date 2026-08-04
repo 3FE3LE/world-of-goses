@@ -1,105 +1,156 @@
-# Ocho linajes fundacionales
+# Linajes fundacionales — índice
+
+> **Capítulo índice.** Cada linaje tiene un capítulo dedicado:
+> [`bible/14_LINEAGES_ARDHEN.md`](14_LINEAGES_ARDHEN.md) ·
+> [`bible/15_LINEAGES_EIRUNE.md`](15_LINEAGES_EIRUNE.md) ·
+> [`bible/16_LINEAGES_KOVARI.md`](16_LINEAGES_KOVARI.md) ·
+> [`bible/17_LINEAGES_MYRVEN.md`](17_LINEAGES_MYRVEN.md) ·
+> [`bible/18_LINEAGES_VAELUN.md`](18_LINEAGES_VAELUN.md) ·
+> [`bible/19_LINEAGES_ORVETH.md`](19_LINEAGES_ORVETH.md) ·
+> [`bible/20_LINEAGES_CAELITH.md`](20_LINEAGES_CAELITH.md) ·
+> [`bible/21_LINEAGES_THERYN.md`](21_LINEAGES_THERYN.md).
+>
+> El sistema mecánico común (Cubo, stats, equipamiento) vive en
+> [`bible/13_KOVARI_CUBE.md`](13_KOVARI_CUBE.md).
 
 ## Principio
 
-Los linajes combinan naturaleza corporal o espiritual, memoria histórica, cultura originaria, afinidades, instituciones, arquitectura, gramática visual y tensiones internas.
+Los linajes combinan naturaleza corporal o espiritual, memoria
+histórica, cultura originaria, afinidades, instituciones, arquitectura,
+gramática visual y tensiones internas.
 
-No son profesiones ni clases de combate.
+**No son profesiones ni clases de combate.** Un linaje no bloquea
+ningún oficio, no garantiza competencia y no sustituye experiencia.
+Las afinidades aceleran aprendizaje y transferencia, pero no otorgan
+propiedad exclusiva sobre un oficio. Cada profesión admite ocho
+enfoques, uno por linaje.
 
-| Linaje | Núcleo | Afinidades principales |
+Las reglas de datos y balance viven en
+[`bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`](04_CITIZENS_PROFESSIONS_AND_HEROES.md)
+§ *Reglas de datos y balance*.
+
+## Tabla resumen
+
+| Linaje | Núcleo | Dirección | Eje opuesto | Doctrina | Firma | Capítulo |
+|---|---|---|---|---|---|---|
+| **Ardhen** | obra, carga y consecuencia | Oeste | Caelith | El Falso Anclaje | Anclaje | [bible/14](14_LINEAGES_ARDHEN.md) |
+| **Eirune** | simbiosis y continuidad vital | Noreste | Theryn | La Semilla Celeste | Corola | [bible/15](15_LINEAGES_EIRUNE.md) |
+| **Kovari** | intervención e improvisación | Noroeste | Myrven | La Pieza Imposible | Reconfiguración | [bible/16](16_LINEAGES_KOVARI.md) |
+| **Myrven** | identidad y representación | Sureste | Kovari | El Rostro sin Historia | Adaptación | [bible/17](17_LINEAGES_MYRVEN.md) |
+| **Vaelun** | ruta y pertenencia móvil | Norte | Orveth | El Retornado | Rumbo | [bible/18](18_LINEAGES_VAELUN.md) |
+| **Orveth** | valor y reciprocidad | Sur | Vaelun | La Reliquia sin Dueño | Custodia | [bible/19](19_LINEAGES_ORVETH.md) |
+| **Caelith** | síntesis y conocimiento | Este | Ardhen | La Fase Ausente | Síntesis | [bible/20](20_LINEAGES_CAELITH.md) |
+| **Theryn** | vínculo e intensidad compartida | Suroeste | Eirune | El Pulso Extraño | Resonancia | [bible/21](21_LINEAGES_THERYN.md) |
+
+## Sistemas jugables (uno por tradición)
+
+| Linaje | Tradición | Sistema jugable |
 |---|---|---|
-| Ardhen | Obra, carga y consecuencia | extracción, construcción, rescate, rehabilitación, logística física |
-| Eirune | Simbiosis y continuidad vital | agricultura, medicina, crianza, ecología, farmacología |
-| Kovari | Intervención e improvisación | ingeniería, manufactura, mantenimiento, demolición, automatización |
-| Myrven | Identidad y representación | diplomacia, psicología, política, inteligencia, artes escénicas |
-| Vaelun | Ruta y pertenencia móvil | exploración, navegación, transporte, prospección, supervivencia |
-| Orveth | Valor y reciprocidad | comercio, administración, almacenamiento, negociación, hospitalidad |
-| Caelith | Síntesis y conocimiento | investigación, educación, diagnóstico, planificación, análisis |
-| Theryn | Vínculo e intensidad compartida | cuidados, liderazgo, mediación, artes, seguridad comunitaria |
+| Vaelun | La Brújula | rutas, mapa, logística y expediciones |
+| Eirune | La Corola | clima, agricultura y redes vivas |
+| Caelith | El Ciclo | conocimiento, diagnóstico e investigación |
+| Myrven | Las Máscaras | identidad, ciudadanía y diplomacia |
+| Orveth | El Relicario | comercio, reservas, custodia e intercambio |
+| Theryn | El Octagrama | música reactiva, pulso ambiental y ritmo de combate |
+| Ardhen | Los Anclajes | arquitectura, integridad y mantenimiento |
+| Kovari | El Cubo | predisposiciones, atributos, estadísticas, builds y expresión del ciudadano |
 
-## Ardhen
+Cada sistema debe disponer de una manifestación recurrente en gameplay,
+métricas explícitas, decisiones comprensibles, ventajas y costes,
+integración con ciudad y expediciones, estados de fallo propios,
+instituciones culturales que profundicen el sistema, una interfaz
+reconocible y puntos de extensión para contenido futuro. La
+equivalencia buscada es de importancia y presencia, no de simetría
+artificial.
 
-- **Idea:** una intención vale cuando produce una consecuencia sostenible.
-- **Naturaleza:** memoria corporal y adaptación al esfuerzo repetido.
-- **Cultura:** obra verificable, práctica, responsabilidad, reparación y cuadrillas.
-- **Afinidades:** minería, cantería, tala, construcción, caminos, rescate, trauma, rehabilitación y transporte.
-- **Tensiones:** acción contra planificación; trabajo visible contra cuidado invisible; resistencia contra explotación; mérito contra oportunidad.
-- **Ciudad:** soportes visibles, contrafuertes, piedra, cobre, caminos amplios y reparaciones históricas.
+## Vértices del Cubo
 
-## Eirune
+Los ocho linajes ocupan los ocho vértices del Cubo. Cada vértice es la
+combinación de un polo por eje (Cuerpo↔Vínculo, Estabilidad↔Impulso,
+Dominio↔Alcance).
 
-- **Idea:** ningún organismo existe aislado de aquello que lo sostiene.
-- **Naturaleza:** adaptación a relaciones biológicas y simbióticas.
-- **Cultura:** prevención, ciclos, cuidado, diversidad, adaptación y reciprocidad vital.
-- **Afinidades:** cultivo, crianza, silvicultura, medicina, farmacología, toxicología, nutrición, ecología y agua.
-- **Tensiones:** cuidado contra control; colectivo contra autonomía; diversidad contra pureza; curación contra optimización.
-- **Ciudad:** canales, patios húmedos, jardines internos, materiales cultivados y formas celulares.
+| Linaje | Eje I | Eje II | Eje III | Lectura |
+|---|---|---|---|---|
+| Ardhen | Cuerpo | Estabilidad | Dominio | materia estable reunida en un punto de carga |
+| Eirune | Cuerpo | Estabilidad | Alcance | vida preservada mediante redes |
+| Kovari | Cuerpo | Impulso | Dominio | intervención técnica precisa |
+| Vaelun | Cuerpo | Impulso | Alcance | movimiento material a través de rutas |
+| Orveth | Vínculo | Estabilidad | Dominio | confianza y valor custodiados en acuerdos |
+| Myrven | Vínculo | Estabilidad | Alcance | identidad sostenida por contextos y representaciones |
+| Theryn | Vínculo | Impulso | Dominio | intensidad colectiva enfocada |
+| Caelith | Vínculo | Impulso | Alcance | conocimiento conectado y aplicado en redes |
 
-## Kovari
+El detalle del Cubo (geometría, ejes con sus efectos mecánicos, stats
+derivados, equipamiento, modo sombra) está en
+[`bible/13_KOVARI_CUBE.md`](13_KOVARI_CUBE.md).
 
-- **Idea:** todo sistema puede desmontarse, repararse o recombinarse.
-- **Naturaleza:** sensibilidad a ritmos, vibraciones, secuencias y manipulación técnica.
-- **Cultura:** reparabilidad, experimentación, autonomía técnica, herramientas e improvisación.
-- **Afinidades:** mecánica, herrería, manufactura, reparación, automatización, demolición, reciclaje, prótesis y logística técnica.
-- **Tensiones:** innovación contra seguridad; conocimiento abierto contra monopolio; reparación contra obsolescencia; descentralización contra dependencia de expertos.
-- **Ciudad:** conductos, pasarelas, remaches, módulos, talleres y sistemas incompletos visibles.
+## Ejes opuestos
 
-## Myrven
+| Eje | Tensión |
+|---|---|
+| Vaelun ↔ Orveth | abrir la ruta ↔ estabilizar el intercambio |
+| Eirune ↔ Theryn | continuidad biológica ↔ continuidad social |
+| Caelith ↔ Ardhen | comprensión abstracta ↔ consecuencia material |
+| Myrven ↔ Kovari | transformación simbólica ↔ transformación física |
 
-- **Idea:** una persona contiene múltiples identidades legítimas.
-- **Naturaleza:** plasticidad expresiva, memoria social y lectura de comportamiento.
-- **Cultura:** privacidad, representación, contexto, interpretación y mediación.
-- **Afinidades:** diplomacia, traducción, psicología, derecho, política, inteligencia, actuación e investigación social.
-- **Tensiones:** privacidad contra ocultamiento; papel contra autenticidad; secreto contra confianza; flexibilidad contra fragmentación.
-- **Ciudad:** fachadas dobles, espacios transformables, pasajes, teatros, marcos y capas.
+Los opuestos no son enemigos naturales. Son culturas que interrogan el
+mismo problema desde extremos distintos.
 
-## Vaelun
+## Postura oficial ante la Caída
 
-- **Idea:** el hogar puede ser una ruta y la posibilidad de regresar.
-- **Naturaleza:** orientación, memoria espacial y lectura ambiental.
-- **Cultura:** camino, refugio, señales, retorno, hospitalidad y preparación para partir.
-- **Afinidades:** cartografía, navegación, rastreo, supervivencia, prospección, transporte, mensajería, caminos y primer contacto.
-- **Tensiones:** movilidad contra arraigo; exploración contra invasión; hospitalidad contra seguridad; cartografía contra apropiación.
-- **Ciudad:** torres de señal, puentes, caravanas, refugios y líneas de ruta.
+### Favorables
 
-## Orveth
+- **Vaelun:** la llegada confirma que existe una ruta hacia el Centro.
+- **Eirune:** la vida ha arraigado donde no podía hacerlo.
+- **Caelith:** apareció la fase que faltaba en sus ciclos.
+- **Kovari:** surgió una configuración imposible capaz de revelar el
+  mecanismo.
 
-- **Idea:** el valor nace de relaciones entre necesidad, confianza, riesgo y retorno.
-- **Naturaleza:** sensibilidad a cantidad, pérdida y desequilibrio.
-- **Cultura:** reciprocidad, reserva, contrato, registro, intercambio y hospitalidad.
-- **Afinidades:** comercio, contabilidad, negociación, crédito, seguros, inventarios, almacenamiento, distribución, cocina y hospedaje.
-- **Tensiones:** valor contra precio; reserva contra acaparamiento; crédito contra dependencia; riesgo contra especulación.
-- **Ciudad:** mercados, almacenes, bóvedas, hospederías, simetría y unidades repetidas.
+### Contrarias
 
-## Caelith
+- **Orveth:** una figura sin procedencia ni custodio amenaza la
+  legitimidad territorial.
+- **Theryn:** un pulso ajeno puede desestabilizar el equilibrio entre
+  los pueblos.
+- **Ardhen:** ninguna ciudad debería construirse sobre una anomalía sin
+  cimientos verificables.
+- **Myrven:** un rostro sin historia es la identidad perfecta para que
+  otros poderes proyecten sus intereses.
 
-- **Idea:** ningún conocimiento aislado explica suficiente.
-- **Naturaleza:** memoria asociativa y detección de patrones.
-- **Cultura:** evidencia, relación, debate, síntesis, revisión y traducción entre disciplinas.
-- **Afinidades:** investigación, diagnóstico, estadística, historia, astronomía, enseñanza, planificación, políticas y estrategia.
-- **Tensiones:** conocimiento contra autoridad; síntesis contra apropiación; teoría contra acción; equilibrio contra neutralidad moral.
-- **Ciudad:** observatorios, bibliotecas, laboratorios, retículas, nodos y conexiones.
+Estas son posturas institucionales predominantes, no opiniones
+obligatorias de cada habitante. Cada capítulo por linaje (bible/14-21)
+documenta las tres lecturas (ortodoxa, reformista, renegada) que
+permiten que una expedición encuentre aliados, adversarios y críticos
+dentro del mismo linaje.
 
-## Theryn
+## Regla contra el lore decorativo
 
-- **Idea:** las emociones son fuerzas sociales que deben procesarse, no negarse.
-- **Naturaleza:** sensibilidad empática a ritmos, tensión y estados colectivos.
-- **Cultura:** presencia, lealtad, expresión, duelo, celebración, cohesión y límites emocionales.
-- **Afinidades:** psicología, cuidados, mediación, liderazgo, música, ceremonias, seguridad comunitaria, evacuación y coordinación.
-- **Tensiones:** comunidad contra individualidad; intensidad contra estabilidad; lealtad contra justicia; catarsis contra violencia.
-- **Ciudad:** plazas, anfiteatros, viviendas agrupadas, monumentos de memoria, ondas y pulsos.
+Toda pieza importante de lore debe producir al menos una de estas
+consecuencias:
 
-## Balance
+- una decisión;
+- una relación;
+- una ruta;
+- una institución;
+- un conflicto;
+- una migración;
+- una modificación urbana;
+- una ventaja con coste;
+- una pista sobre la segunda conciencia;
+- una alteración del legado del fundador.
 
-Cada profesión admite ocho enfoques. En minería:
+## Dónde profundizar
 
-- Ardhen: cuerpo, estructura y seguridad.
-- Eirune: toxicología y restauración.
-- Kovari: maquinaria y explosivos.
-- Myrven: organización laboral e inteligencia.
-- Vaelun: prospección y rutas.
-- Orveth: costes, reservas y concesiones.
-- Caelith: geología y predicción.
-- Theryn: coordinación y respuesta a crisis.
-
-Las afinidades aceleran aprendizaje y transferencia, pero no otorgan propiedad exclusiva sobre un oficio.
+- **Cultura detallada de cada linaje:** `bible/14-21_LINEAGES_*.md` §1
+  Cultura.
+- **Sistema mecánico del Cubo:** `bible/13_KOVARI_CUBE.md`.
+- **Cinco capas de competencia y doce familias profesionales:**
+  [`bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`](04_CITIZENS_PROFESSIONS_AND_HEROES.md).
+- **Visual por linaje:** `LINEAGE_DESIGN_MATRIX.md` y
+  [`bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`](08_VISUAL_UI_AND_ASSET_GUIDELINES.md)
+  § *Identidad resumida*.
+- **Audio por linaje:**
+  [`bible/09_AUDIO_GUIDELINES.md`](09_AUDIO_GUIDELINES.md)
+  § *Identidad por linaje*.
+- **Prólogo y La Caída:**
+  [`bible/07_ONBOARDING_AND_FOUNDER.md`](07_ONBOARDING_AND_FOUNDER.md).

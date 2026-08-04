@@ -24,6 +24,15 @@
 | `world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` | Synthetic retro audio, bus layout, per-lineage sonic identity, first audio pack. |
 | `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |
 | `world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md` | Dynamic frontage rows, construction reservations, structural footprints, corridors, expansion, and their persistence contract. |
+| `world-of-goses-design-bible/13_KOVARI_CUBE.md` | Cubo Kovari: geometría, ejes mecánicos, vértices, afinidades elementales, stats derivados, equipamiento, modo sombra. |
+| `world-of-goses-design-bible/14_LINEAGES_ARDHEN.md` | Ardhen — cultura + sistema de Anclajes (estructura, integridad, mantenimiento) + vértice del Cubo. |
+| `world-of-goses-design-bible/15_LINEAGES_EIRUNE.md` | Eirune — cultura + sistema de Corola (clima, agricultura, redes vivas) + vértice del Cubo. |
+| `world-of-goses-design-bible/16_LINEAGES_KOVARI.md` | Kovari — cultura + Cubo aplicado a stats y builds + vértice del Cubo. |
+| `world-of-goses-design-bible/17_LINEAGES_MYRVEN.md` | Myrven — cultura + sistema de Máscaras (identidad, ciudadanía, diplomacia) + vértice del Cubo. |
+| `world-of-goses-design-bible/18_LINEAGES_VAELUN.md` | Vaelun — cultura + sistema de Brújula (rutas, mapa, expediciones) + vértice del Cubo. |
+| `world-of-goses-design-bible/19_LINEAGES_ORVETH.md` | Orveth — cultura + sistema de Relicario (comercio, reservas, custodia) + vértice del Cubo. |
+| `world-of-goses-design-bible/20_LINEAGES_CAELITH.md` | Caelith — cultura + sistema de Ciclo (conocimiento, diagnóstico, investigación) + vértice del Cubo. |
+| `world-of-goses-design-bible/21_LINEAGES_THERYN.md` | Theryn — cultura + sistema de Octagrama (música, ambiente, ritmo de combate) + vértice del Cubo. |
 
 ## Implementation-aware docs
 
@@ -48,6 +57,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | `GAME_VISION.md` | **Pointer.** The vision, principles, and pillars live in the bible; this file maps old sections to their new homes. |
 | `LINEAGES_AND_PROFESSIONAL_AFFINITIES.md` | **Pointer.** The eight lineages, twelve-family vocabulary, five layers, and balance rules live in the bible; this file maps old sections to their new homes. |
 | `DESIGN_INFLUENCES.md` | **Pointer + audit trail.** The IP boundary and naming discipline live in the bible; the retired MVP shorthand stays here as a historical note. |
+| `_archive/ravatha-source-2026-08-04/` | **Historical source.** Original Ravatha lore package, RAVATHA_LINEAGE_SYSTEM guidelines and Kovari Cube onboarding doc, archived after being consolidated into the bible. Do not edit; consult only as a reference for the consolidation. |
 
 The optional lineage splash workflow is documented beside the tool at
 [`art/world-of-goses-minimax-splash-generator/README.md`](../art/world-of-goses-minimax-splash-generator/README.md).
