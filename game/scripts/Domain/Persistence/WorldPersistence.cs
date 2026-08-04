@@ -60,6 +60,10 @@ public static class WorldPersistence
         {
             save.CityInventory[resource.ToString()] = amount;
         }
+        foreach (ToolKind tool in world.Tools.OrderBy(tool => tool))
+        {
+            save.Tools.Add(tool.ToString());
+        }
 
         save.EarlyGameMetrics = CaptureEarlyGameMetrics(world.Metrics);
 
@@ -111,14 +115,23 @@ public static class WorldPersistence
         }
         foreach (NaturalResourcePatch patch in world.NaturalResourcePatches.Values)
         {
-            save.NaturalResourcePatches.Add(new NaturalResourcePatchSave
+            var patchSave = new NaturalResourcePatchSave
             {
                 Id = patch.Id,
                 ParcelId = patch.ParcelId.Value,
                 ResourceType = patch.ResourceType.ToString(),
                 LegacyStorageBuildingId = patch.LegacyStorageBuildingId?.Value,
                 UnitReserves = new List<int>(patch.UnitReserves),
-            });
+            };
+            foreach (NaturalResourceUnitPosition position in patch.UnitPositions)
+            {
+                patchSave.UnitPositions.Add(new NaturalResourceUnitPositionSave
+                {
+                    RowWithinParcel = position.RowWithinParcel,
+                    FrontageColumnWithinParcel = position.FrontageColumnWithinParcel,
+                });
+            }
+            save.NaturalResourcePatches.Add(patchSave);
         }
         foreach (ParcelPlacement placement in world.ParcelPlacements.Values)
         {
@@ -130,8 +143,25 @@ public static class WorldPersistence
                 LotRow = placement.LotRow,
                 LotWidth = placement.LotWidth,
                 LotHeight = placement.LotHeight,
+                RowId = placement.RowId.Value,
+                StartColumn = placement.StartColumn,
+                FrontageColumns = placement.FrontageColumns,
+                DepthRows = placement.DepthRows,
+                BaseFrontageColumns = placement.BaseFrontageColumns,
+                LeftExpansionColumns = placement.LeftExpansionColumns,
+                RightExpansionColumns = placement.RightExpansionColumns,
                 FootprintProfileId = placement.FootprintProfileId,
                 Orientation = placement.Orientation.ToString(),
+            });
+        }
+        foreach (CorridorReservation corridor in world.CorridorReservations.Values)
+        {
+            save.CorridorReservations.Add(new CorridorReservationSave
+            {
+                Id = corridor.Id,
+                RowId = corridor.RowId.Value,
+                StartColumn = corridor.StartColumn,
+                FrontageColumns = corridor.FrontageColumns,
             });
         }
 
@@ -270,6 +300,17 @@ public static class WorldPersistence
             });
         }
 
+        foreach (ResourceOpportunity opportunity in world.ResourceOpportunities.Values)
+        {
+            save.ResourceOpportunities.Add(new ResourceOpportunitySave
+            {
+                Id = opportunity.Id.Value,
+                Kind = opportunity.Kind.ToString(),
+                State = opportunity.State.ToString(),
+                ReservedByExpeditionId = opportunity.ReservedByExpeditionId?.Value,
+            });
+        }
+
         foreach (Expedition expedition in world.Expeditions.Values)
         {
             save.Expeditions.Add(new ExpeditionSave
@@ -297,6 +338,11 @@ public static class WorldPersistence
                     ? dispatchEventId.Value
                     : null,
                 TargetParcelId = expedition.TargetParcelId?.Value,
+                ResourceOpportunityId = expedition.ResourceOpportunityId?.Value,
+                ResourceOpportunityKind = expedition.ResourceOpportunityKind?.ToString(),
+                SetbackReturn = expedition.SetbackReturn,
+                PartialReturn = expedition.PartialReturn,
+                CarryCapacity = expedition.CarryCapacity,
             });
         }
 
@@ -459,6 +505,17 @@ public static class WorldPersistence
         {
             throw new InvalidOperationException("Save.Expeditions is null.");
         }
+        if (save.ResourceOpportunities is null)
+        {
+            throw new InvalidOperationException("Save.ResourceOpportunities is null.");
+        }
+        if (save.Tools is null
+            || save.Tools.Count != save.Tools.Distinct(StringComparer.OrdinalIgnoreCase).Count()
+            || save.Tools.Any(tool => !Enum.TryParse(tool, true, out ToolKind parsed)
+                || !Enum.IsDefined(parsed)))
+        {
+            throw new InvalidOperationException("Save.Tools is invalid.");
+        }
         if (save.Parcels is null)
         {
             throw new InvalidOperationException("Save.Parcels is null.");
@@ -470,6 +527,10 @@ public static class WorldPersistence
         if (save.ParcelPlacements is null)
         {
             throw new InvalidOperationException("Save.ParcelPlacements is null.");
+        }
+        if (save.CorridorReservations is null)
+        {
+            throw new InvalidOperationException("Save.CorridorReservations is null.");
         }
         if (save.CityInventory is null
             || save.CityInventory.Any(pair =>
@@ -491,6 +552,7 @@ public static class WorldPersistence
             throw new InvalidOperationException("Save.CurrentTick is negative.");
         }
         var parcelIds = new HashSet<int>();
+        var parcelsById = new Dictionary<int, ParcelSave>();
         foreach (ParcelSave parcel in save.Parcels)
         {
             if (parcel is null
@@ -506,8 +568,11 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException("Save contains an invalid parcel.");
             }
+            parcelsById.Add(parcel.Id, parcel);
         }
         var patchIds = new HashSet<int>();
+        var resourceCells = new HashSet<(int ParcelId, int Row, int Column)>();
+        var globalResourceCells = new HashSet<(int RowId, int Column)>();
         foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
         {
             if (patch is null
@@ -516,6 +581,8 @@ public static class WorldPersistence
                 || !parcelIds.Contains(patch.ParcelId)
                 || !Enum.TryParse(patch.ResourceType, true, out ResourceType _)
                 || patch.UnitReserves is null
+                || patch.UnitPositions is null
+                || patch.UnitPositions.Count != patch.UnitReserves.Count
                 || patch.UnitReserves.Any(value => value < 0)
                 || patch.UnitReserves.Count > NaturalResourcePatch.MaximumUnits
                 || (patch.ResourceType == ResourceType.Wood.ToString()
@@ -524,6 +591,29 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException(
                     "Save contains an invalid natural-resource patch.");
+            }
+            foreach (NaturalResourceUnitPositionSave position in patch.UnitPositions)
+            {
+                if (position is null
+                    || position.RowWithinParcel < 0
+                    || position.RowWithinParcel >= ParcelGrid.ConstructionRowsPerParcel
+                    || position.FrontageColumnWithinParcel < 0
+                    || position.FrontageColumnWithinParcel
+                        >= ParcelGrid.FrontageColumnsPerParcel
+                    || !resourceCells.Add((
+                        patch.ParcelId,
+                        position.RowWithinParcel,
+                        position.FrontageColumnWithinParcel)))
+                {
+                    throw new InvalidOperationException(
+                        "Save contains overlapping or invalid natural-resource positions.");
+                }
+                ParcelSave resourceParcel = parcelsById[patch.ParcelId];
+                globalResourceCells.Add((
+                    resourceParcel.LogicalRow * ParcelGrid.ConstructionRowsPerParcel
+                        + position.RowWithinParcel,
+                    resourceParcel.LogicalColumn * ParcelGrid.FrontageColumnsPerParcel
+                        + position.FrontageColumnWithinParcel));
             }
         }
         var placementEntityIds = new HashSet<int>();
@@ -546,6 +636,13 @@ public static class WorldPersistence
                 restored = new ParcelPlacement(
                     new BuildingId(placement.EntityId),
                     new ParcelId(placement.ParcelId),
+                    new ConstructionRowId(placement.RowId),
+                    placement.StartColumn,
+                    placement.FrontageColumns,
+                    placement.DepthRows,
+                    placement.BaseFrontageColumns,
+                    placement.LeftExpansionColumns,
+                    placement.RightExpansionColumns,
                     placement.LotColumn,
                     placement.LotRow,
                     placement.LotWidth,
@@ -563,7 +660,91 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException("Save contains overlapping parcel placements.");
             }
+            ParcelSave anchor = parcelsById[placement.ParcelId];
+            if (placement.RowId / ParcelGrid.ConstructionRowsPerParcel != anchor.LogicalRow
+                || placement.StartColumn / ParcelGrid.FrontageColumnsPerParcel
+                    != anchor.LogicalColumn)
+            {
+                throw new InvalidOperationException(
+                    "Save contains a parcel placement whose anchor disagrees with its frontage coordinates.");
+            }
+            for (int column = placement.StartColumn;
+                 column < placement.StartColumn + placement.FrontageColumns;
+                 column++)
+            {
+                int requiredParcelColumn = column / ParcelGrid.FrontageColumnsPerParcel;
+                int requiredParcelRow = placement.RowId / ParcelGrid.ConstructionRowsPerParcel;
+                bool available = save.Parcels.Any(candidate =>
+                    candidate.LogicalColumn == requiredParcelColumn
+                    && candidate.LogicalRow == requiredParcelRow
+                    && candidate.IsUnlocked);
+                if (!available)
+                {
+                    throw new InvalidOperationException(
+                        "Save contains a frontage reservation across unavailable territory.");
+                }
+                if (globalResourceCells.Contains((placement.RowId, column)))
+                {
+                    throw new InvalidOperationException(
+                        "Save contains a construction reservation over a natural resource.");
+                }
+            }
             restoredPlacements.Add(restored);
+        }
+        var corridorIds = new HashSet<int>();
+        var restoredCorridors = new List<CorridorReservation>();
+        foreach (CorridorReservationSave corridor in save.CorridorReservations)
+        {
+            if (corridor is null || !corridorIds.Add(corridor.Id))
+            {
+                throw new InvalidOperationException("Save contains an invalid corridor reservation.");
+            }
+            CorridorReservation restored;
+            try
+            {
+                restored = new CorridorReservation(
+                    corridor.Id,
+                    new ConstructionRowId(corridor.RowId),
+                    corridor.StartColumn,
+                    corridor.FrontageColumns);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidOperationException(
+                    "Save contains an invalid corridor reservation.",
+                    exception);
+            }
+            bool overlapsCorridor = restoredCorridors.Any(
+                existing => restored.Overlaps(existing));
+            bool overlapsPlacement = restoredPlacements.Any(placement =>
+                placement.RowId == restored.RowId
+                && Enumerable.Range(restored.StartColumn, restored.FrontageColumns)
+                    .Any(placement.Reservation.ContainsColumn));
+            bool overlapsResource = Enumerable.Range(
+                    restored.StartColumn,
+                    restored.FrontageColumns)
+                .Any(column => globalResourceCells.Contains((corridor.RowId, column)));
+            if (overlapsCorridor || overlapsPlacement || overlapsResource)
+            {
+                throw new InvalidOperationException(
+                    "Save contains an overlapping corridor reservation.");
+            }
+            for (int column = restored.StartColumn;
+                 column < restored.EndColumnExclusive;
+                 column++)
+            {
+                int requiredParcelColumn = column / ParcelGrid.FrontageColumnsPerParcel;
+                int requiredParcelRow = restored.RowId.Value / ParcelGrid.ConstructionRowsPerParcel;
+                if (!save.Parcels.Any(parcel =>
+                    parcel.LogicalColumn == requiredParcelColumn
+                    && parcel.LogicalRow == requiredParcelRow
+                    && parcel.IsUnlocked))
+                {
+                    throw new InvalidOperationException(
+                        "Save contains a corridor across unavailable territory.");
+                }
+            }
+            restoredCorridors.Add(restored);
         }
         if (save.Events.Count > WorldEventRetention.MaximumPersistedEvents)
         {
@@ -631,6 +812,32 @@ public static class WorldPersistence
             reservedByResource.TryGetValue(resource, out int reserved);
             reservedByResource[resource] = checked(reserved + reservation.Amount);
         }
+        var opportunityIds = new HashSet<int>();
+        var opportunitiesById = new Dictionary<int, ResourceOpportunitySave>();
+        foreach (ResourceOpportunitySave opportunity in save.ResourceOpportunities)
+        {
+            if (opportunity is null
+                || opportunity.Id <= 0
+                || !opportunityIds.Add(opportunity.Id)
+                || !Enum.TryParse(
+                    opportunity.Kind,
+                    true,
+                    out ResourceOpportunityKind _)
+                || !Enum.TryParse(
+                    opportunity.State,
+                    true,
+                    out ResourceOpportunityState state)
+                || ((state == ResourceOpportunityState.Reserved)
+                    != opportunity.ReservedByExpeditionId.HasValue)
+                || (opportunity.ReservedByExpeditionId.HasValue
+                    && opportunity.ReservedByExpeditionId.Value <= 0))
+            {
+                throw new InvalidOperationException(
+                    "Save contains an invalid resource opportunity.");
+            }
+            opportunitiesById.Add(opportunity.Id, opportunity);
+        }
+
         var expeditionIds = new HashSet<int>();
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
@@ -665,7 +872,23 @@ public static class WorldPersistence
                     expedition.RewardKind,
                     ExpeditionRewardKind.Supplies.ToString(),
                     StringComparison.OrdinalIgnoreCase)
-                    && expedition.RewardAmount <= 0))
+                    && expedition.RewardAmount <= 0)
+                || (expedition.ResourceOpportunityId.HasValue
+                    && (!opportunitiesById.ContainsKey(expedition.ResourceOpportunityId.Value)
+                        || !Enum.TryParse(
+                            expedition.ResourceOpportunityKind,
+                            true,
+                            out ResourceOpportunityKind _)
+                        || expedition.SetbackReturn <= 0
+                        || expedition.PartialReturn < expedition.SetbackReturn
+                        || expedition.RewardAmount < expedition.PartialReturn
+                        || expedition.CarryCapacity < expedition.SetbackReturn
+                        || expedition.CarryCapacity > expedition.RewardAmount))
+                || (!expedition.ResourceOpportunityId.HasValue
+                    && (!string.IsNullOrEmpty(expedition.ResourceOpportunityKind)
+                        || expedition.SetbackReturn != 0
+                        || expedition.PartialReturn != 0
+                        || expedition.CarryCapacity != 0)))
             {
                 throw new InvalidOperationException("Save contains an invalid expedition.");
             }
@@ -702,6 +925,22 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException(
                     $"Expedition {expedition.Id} references unknown dispatch event {dispatchEventId}.");
+            }
+        }
+        foreach (ResourceOpportunitySave opportunity in save.ResourceOpportunities)
+        {
+            if (opportunity.ReservedByExpeditionId is not int expeditionId) continue;
+            ExpeditionSave? expedition = save.Expeditions.FirstOrDefault(
+                candidate => candidate.Id == expeditionId);
+            if (expedition is null
+                || expedition.ResourceOpportunityId != opportunity.Id
+                || !string.Equals(
+                    expedition.Status,
+                    ExpeditionStatus.Active.ToString(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Resource opportunity {opportunity.Id} has an invalid reservation.");
             }
         }
         foreach (var evt in save.Events)
@@ -1491,6 +1730,10 @@ public static class WorldPersistence
                 21 => MigrateV21ToV22(save),
                 22 => MigrateV22ToV23(save),
                 23 => MigrateV23ToV24(save),
+                24 => MigrateV24ToV25(save),
+                25 => MigrateV25ToV26(save),
+                26 => MigrateV26ToV27(save),
+                27 => MigrateV27ToV28(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2074,6 +2317,225 @@ public static class WorldPersistence
         save.CultivationSites ??= new List<CultivationSiteSave>();
         save.Version = 24;
         return save;
+    }
+
+    /// <summary>
+    /// Re-expresses fixed 3×3 lot rectangles as intervals of one-tile frontage
+    /// columns. The anchor parcel fields remain for diagnostics and old test
+    /// fixtures, but v25 rules read RowId/StartColumn/FrontageColumns.
+    /// </summary>
+    public static WorldSave MigrateV24ToV25(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 24)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV24ToV25 expects version 24 but found {save.Version}.");
+        }
+
+        Dictionary<int, ParcelSave> parcels = save.Parcels.ToDictionary(parcel => parcel.Id);
+        save.CorridorReservations ??= new List<CorridorReservationSave>();
+        foreach (ParcelPlacementSave placement in save.ParcelPlacements)
+        {
+            if (!parcels.TryGetValue(placement.ParcelId, out ParcelSave? parcel))
+            {
+                throw new InvalidOperationException(
+                    $"Placement {placement.EntityId} references missing parcel {placement.ParcelId}.");
+            }
+            if (placement.LotHeight != 1 || placement.LotWidth is < 1 or > 2)
+            {
+                throw new InvalidOperationException(
+                    $"Placement {placement.EntityId} cannot migrate to fixed depth/frontage limits.");
+            }
+
+            placement.RowId = ParcelGrid.ConstructionRow(
+                parcel.LogicalRow,
+                placement.LotRow).Value;
+            placement.StartColumn = ParcelGrid.GlobalFrontageColumn(
+                parcel.LogicalColumn,
+                placement.LotColumn);
+            placement.FrontageColumns = checked(
+                placement.LotWidth * ParcelGrid.TilesPerStandardLot);
+            placement.DepthRows = BuildingReservation.RequiredDepthRows;
+            placement.BaseFrontageColumns = BuildingReservation.MinimumFrontageColumns;
+            placement.LeftExpansionColumns = 0;
+            placement.RightExpansionColumns =
+                placement.FrontageColumns - placement.BaseFrontageColumns;
+        }
+
+        save.Version = 25;
+        return save;
+    }
+
+    /// <summary>
+    /// Replaces the former unitId→3×3 lot derivation with explicit compact
+    /// resource cells. Existing resources are deterministically reflowed around
+    /// buildings, corridors and the founder's central arrival cell.
+    /// </summary>
+    public static WorldSave MigrateV25ToV26(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 25)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV25ToV26 expects version 25 but found {save.Version}.");
+        }
+
+        int seed = save.Citizens
+            .OrderBy(citizen => citizen.Id)
+            .Select(citizen => citizen.AppearanceSeed)
+            .FirstOrDefault();
+        var occupiedByParcel = new Dictionary<int, HashSet<NaturalResourceUnitPosition>>();
+        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches.OrderBy(p => p.Id))
+        {
+            IReadOnlyList<NaturalResourceUnitPosition>? allocated = null;
+            ParcelSave? selectedParcel = null;
+            foreach (ParcelSave parcel in save.Parcels
+                         .Where(candidate => candidate.IsUnlocked)
+                         .OrderBy(candidate => NaturalResourceLayoutPlanner.ParcelScore(
+                             seed,
+                             patch.Id,
+                             new ParcelId(candidate.Id))))
+            {
+                if (!occupiedByParcel.TryGetValue(
+                        parcel.Id,
+                        out HashSet<NaturalResourceUnitPosition>? unavailable))
+                {
+                    unavailable = new HashSet<NaturalResourceUnitPosition>();
+                    occupiedByParcel.Add(parcel.Id, unavailable);
+                }
+                var attemptUnavailable = new HashSet<NaturalResourceUnitPosition>(unavailable);
+                if (parcel.LogicalColumn == FoundingLayout.InitialParcelColumn
+                    && parcel.LogicalRow == FoundingLayout.InitialParcelRow)
+                {
+                    attemptUnavailable.Add(FoundingLayout.FounderLocalPosition);
+                }
+                AddPersistedReservationCells(save, parcel, attemptUnavailable);
+                allocated = NaturalResourceLayoutPlanner.TryAllocate(
+                    patch.UnitReserves.Count,
+                    seed,
+                    patch.Id,
+                    attemptUnavailable);
+                if (allocated is null) continue;
+                selectedParcel = parcel;
+                foreach (NaturalResourceUnitPosition position in allocated)
+                {
+                    unavailable.Add(position);
+                }
+                break;
+            }
+            if (allocated is null || selectedParcel is null)
+            {
+                throw new InvalidOperationException(
+                    $"No compact cells are available while migrating resource patch {patch.Id}.");
+            }
+            patch.ParcelId = selectedParcel.Id;
+            patch.UnitPositions = allocated.Select(position =>
+                new NaturalResourceUnitPositionSave
+                {
+                    RowWithinParcel = position.RowWithinParcel,
+                    FrontageColumnWithinParcel = position.FrontageColumnWithinParcel,
+                }).ToList();
+        }
+        save.Version = 26;
+        return save;
+    }
+
+    public static WorldSave MigrateV26ToV27(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 26)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV26ToV27 expects version 26 but found {save.Version}.");
+        }
+        save.ResourceOpportunities ??= new List<ResourceOpportunitySave>();
+        if (save.Citizens.Count > 0)
+        {
+            AddMigratedResourceOpportunity(
+                save,
+                1,
+                ResourceOpportunityKind.NearbyFoodForage);
+            AddMigratedResourceOpportunity(
+                save,
+                2,
+                ResourceOpportunityKind.FallenWoodSearch);
+        }
+        save.Version = 27;
+        return save;
+    }
+
+    public static WorldSave MigrateV27ToV28(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 27)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV27ToV28 expects version 27 but found {save.Version}.");
+        }
+        save.Tools ??= new List<string>();
+        save.Version = 28;
+        return save;
+    }
+
+    private static void AddMigratedResourceOpportunity(
+        WorldSave save,
+        int id,
+        ResourceOpportunityKind kind)
+    {
+        if (save.ResourceOpportunities.Any(opportunity => opportunity.Id == id)) return;
+        save.ResourceOpportunities.Add(new ResourceOpportunitySave
+        {
+            Id = id,
+            Kind = kind.ToString(),
+            State = ResourceOpportunityState.Available.ToString(),
+        });
+    }
+
+    private static void AddPersistedReservationCells(
+        WorldSave save,
+        ParcelSave parcel,
+        HashSet<NaturalResourceUnitPosition> unavailable)
+    {
+        int parcelStart = parcel.LogicalColumn * ParcelGrid.FrontageColumnsPerParcel;
+        foreach (ParcelPlacementSave placement in save.ParcelPlacements)
+        {
+            if (placement.RowId / ParcelGrid.ConstructionRowsPerParcel != parcel.LogicalRow)
+            {
+                continue;
+            }
+            for (int column = placement.StartColumn;
+                 column < placement.StartColumn + placement.FrontageColumns;
+                 column++)
+            {
+                int localColumn = column - parcelStart;
+                if (localColumn >= 0 && localColumn < ParcelGrid.FrontageColumnsPerParcel)
+                {
+                    unavailable.Add(new NaturalResourceUnitPosition(
+                        placement.RowId % ParcelGrid.ConstructionRowsPerParcel,
+                        localColumn));
+                }
+            }
+        }
+        foreach (CorridorReservationSave corridor in save.CorridorReservations)
+        {
+            if (corridor.RowId / ParcelGrid.ConstructionRowsPerParcel != parcel.LogicalRow)
+            {
+                continue;
+            }
+            for (int column = corridor.StartColumn;
+                 column < corridor.StartColumn + corridor.FrontageColumns;
+                 column++)
+            {
+                int localColumn = column - parcelStart;
+                if (localColumn >= 0 && localColumn < ParcelGrid.FrontageColumnsPerParcel)
+                {
+                    unavailable.Add(new NaturalResourceUnitPosition(
+                        corridor.RowId % ParcelGrid.ConstructionRowsPerParcel,
+                        localColumn));
+                }
+            }
+        }
     }
 
     public static WorldSave MigrateV18ToV19(WorldSave save)

@@ -58,6 +58,40 @@ A growing heap during steady state is a red flag. Common offenders:
   `MultiMeshInstance2D` (S-1.4) or `TileMap` (S-1.3) earlier than
   the original trigger.
 
+## Territory extent budget
+
+A fresh city currently projects three horizontal parcels and 23 finite natural
+resource units. This is the opening composition, not the complete envelope.
+The current target maximum is 8×9 parcels; it remains provisional until dense
+building/resource layouts and 25/50 visible-citizen fixtures prove that the
+simultaneous presentation load is viable.
+
+Expansion remains mechanically suspended until those measurements and its
+causal acquisition rules exist. Persisted off-screen parcels need not be
+rendered: the bounded 8×9 “digital terrarium” uses a moving depth window,
+provided the visible set can be brought inside the budgets above.
+
+`terrarium-8x9-window` is the current presentation-only extent probe: eight
+parcel rows by nine columns, 72 parcels total, with only a thirteen-street
+camera window rendered at once. It does not alter fresh worlds or saves. The
+older 16/21-row probes remain historical evidence for rejecting full-territory
+rendering.
+
+Three windowed runs on 2026-08-03 ranged from `6.117` to `40.115 ms` process
+time per frame with empty added rows; the direct-viewport capture run remained
+between `28.665` and `40.115 ms`. Even the best sample exceeds the `< 4 ms`
+empty-city budget, while the worst exceeds its `8 ms` spike budget several
+times over.
+Drawing the entire semantic territory every frame is therefore rejected at
+this extent. A large final city requires visible-street culling/LOD before
+dense buildings or citizens are added; this does not argue for reducing the
+semantic territory itself.
+
+The final 8×9 windowed capture measured `15.201 ms` while rendering thirteen
+street bands. That is a material improvement over drawing all 48 streets, but
+it still breaches the empty-city budget. Lateral culling or batching remains
+required before this envelope becomes production territory.
+
 ## Hooks in the capture harness
 
 `tools/Capture-VisualMatrix.ps1` measures frame time on the

@@ -1,13 +1,125 @@
+using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Persistence;
 using WorldofGoses.Prototypes;
 using WorldofGoses.Ui;
 using Xunit;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WorldofGoses.Tests;
 
 public class MacroStreetLiveViewTests
 {
+    [Fact]
+    public void ResourceGainPopup_FollowsMovingCarrierWhileKeepingQuantizedRise()
+    {
+        Vector2 first = ResourceGainPopup.FollowedPosition(
+            new Vector2(100f, 200f),
+            Vector2.Up * 72f,
+            motionStep: 2);
+        Vector2 moved = ResourceGainPopup.FollowedPosition(
+            new Vector2(124f, 208f),
+            Vector2.Up * 72f,
+            motionStep: 2);
+
+        Assert.Equal(new Vector2(24f, 8f), moved - first);
+        Assert.Equal(new Vector2(100f, 124f), first);
+    }
+
+    [Fact]
+    public void Snapshot_ContainsOnlyRealTerritoryParcels_NoPhantomRightColumnCell()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingOpportunities();
+
+        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+
+        Assert.Equal(3, snapshot.Parcels.Count);
+        Assert.Equal(new[] { 0, 1, 2 }, snapshot.Parcels
+            .OrderBy(item => item.LogicalColumn)
+            .Select(item => item.LogicalColumn));
+        Assert.All(snapshot.Parcels, item =>
+        {
+            Assert.Equal(0, item.LogicalRow);
+            Assert.Equal(ParcelTerritoryState.Available, item.TerritoryState);
+        });
+    }
+
+    [Theory]
+    [InlineData(15, 16, 48)]
+    [InlineData(20, 21, 63)]
+    public void LongTerrariumFixture_AddsRequestedRowsAtTheFoundingWidth(
+        int additionalRows,
+        int expectedRows,
+        int expectedParcels)
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        WorldSave save = WorldPersistence.Capture(world);
+
+        CityPrototype.AddTerrariumRowsForVisualRegression(save, additionalRows);
+
+        Assert.Equal(expectedParcels, save.Parcels.Count);
+        Assert.Equal(Enumerable.Range(0, expectedRows), save.Parcels
+            .Select(parcel => parcel.LogicalRow)
+            .Distinct()
+            .OrderBy(row => row));
+        Assert.All(save.Parcels.GroupBy(parcel => parcel.LogicalRow),
+            row => Assert.Equal(3, row.Count()));
+        Assert.All(save.Parcels,
+            parcel => Assert.Equal(
+                ParcelTerritoryState.Available.ToString(),
+                parcel.TerritoryState));
+    }
+
+    [Fact]
+    public void TerrariumWindowFixture_BuildsEightByNinePresentationEnvelope()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        WorldSave save = WorldPersistence.Capture(world);
+        save.ParcelPlacements.Add(new ParcelPlacementSave
+        {
+            EntityId = 99,
+            ParcelId = 2,
+            LotColumn = 1,
+            StartColumn = 2,
+        });
+        save.CorridorReservations.Add(new CorridorReservationSave
+        {
+            Id = 99,
+            RowId = 0,
+            StartColumn = 2,
+            FrontageColumns = 1,
+        });
+
+        CityPrototype.ResizeTerrariumForVisualRegression(save, rows: 8, columns: 9);
+
+        Assert.Equal(72, save.Parcels.Count);
+        Assert.Equal(Enumerable.Range(0, 8), save.Parcels
+            .Select(parcel => parcel.LogicalRow)
+            .Distinct()
+            .OrderBy(row => row));
+        Assert.All(save.Parcels.GroupBy(parcel => parcel.LogicalRow),
+            row => Assert.Equal(9, row.Count()));
+        Assert.Equal(new[] { 3, 4, 5 }, save.Parcels
+            .Where(parcel => parcel.Id <= 3)
+            .OrderBy(parcel => parcel.Id)
+            .Select(parcel => parcel.LogicalColumn));
+        Assert.Equal(10, save.ParcelPlacements.Single(item => item.EntityId == 99).LotColumn);
+        Assert.Equal(29, save.ParcelPlacements.Single(item => item.EntityId == 99).StartColumn);
+        Assert.Equal(29, save.CorridorReservations.Single(item => item.Id == 99).StartColumn);
+    }
+
+    [Fact]
+    public void GatherRequest_MicroDoubleClickDoesNotRestartPendingRoute()
+    {
+        Assert.True(MacroStreetLiveView.IsDuplicateGatherRequest((100, 2), 100, 2));
+        Assert.False(MacroStreetLiveView.IsDuplicateGatherRequest(null, 100, 2));
+        Assert.False(MacroStreetLiveView.IsDuplicateGatherRequest((100, 1), 100, 2));
+    }
+
     [Theory]
     [InlineData(true, false, true)]
     [InlineData(true, true, false)]
@@ -146,6 +258,49 @@ public class MacroStreetLiveViewTests
     public void CameraStartsFreeAndRequiresExplicitFollowToggle()
     {
         Assert.False(MacroStreetLiveView.FollowsFounderByDefault);
+    }
+
+    [Fact]
+    public void MinimumZoom_FramesThirteenStreetWindowWithoutChangingProjection()
+    {
+        float zoom = MacroStreetLiveView.MinimumZoomForTests;
+        float pivotY = MacroStreetLiveView.CameraZoomPivotYForTests;
+        float nearY = pivotY + zoom
+            * (StreetDepthProjection.RowScreenY(-2f, 580f) - pivotY);
+        float farY = pivotY + zoom
+            * (StreetDepthProjection.RowScreenY(11f, 580f) - pivotY);
+
+        Assert.InRange(nearY, 704f, 716f);
+        Assert.InRange(farY, 72f, 88f);
+    }
+
+    [Fact]
+    public void MaximumZoom_AllowsACloserViewThanThePreviousLimit()
+    {
+        Assert.Equal(2.2f, MacroStreetLiveView.MaximumZoomForTests);
+        Assert.True(MacroStreetLiveView.MaximumZoomForTests > 1.75f);
+    }
+
+    [Fact]
+    public void HeldVerticalPan_AcceleratesGraduallyAndRemainsBounded()
+    {
+        float initialRepeat = MacroStreetLiveView.VerticalPanRepeatSeconds(0f);
+        float middleRepeat = MacroStreetLiveView.VerticalPanRepeatSeconds(1.5f);
+        float finalRepeat = MacroStreetLiveView.VerticalPanRepeatSeconds(3f);
+        float afterCurveRepeat = MacroStreetLiveView.VerticalPanRepeatSeconds(30f);
+
+        Assert.Equal(0.48f, initialRepeat, precision: 3);
+        Assert.InRange(middleRepeat, finalRepeat, initialRepeat);
+        Assert.Equal(0.26f, finalRepeat, precision: 3);
+        Assert.Equal(finalRepeat, afterCurveRepeat);
+
+        float initialSpeed = MacroStreetLiveView.VerticalPanTransitionMultiplier(0f);
+        float middleSpeed = MacroStreetLiveView.VerticalPanTransitionMultiplier(1.5f);
+        float finalSpeed = MacroStreetLiveView.VerticalPanTransitionMultiplier(3f);
+
+        Assert.Equal(1f, initialSpeed);
+        Assert.InRange(middleSpeed, initialSpeed, finalSpeed);
+        Assert.Equal(1.55f, finalSpeed, precision: 3);
     }
 
     [Fact]

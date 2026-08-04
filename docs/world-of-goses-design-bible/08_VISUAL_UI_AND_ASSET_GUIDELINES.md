@@ -113,6 +113,15 @@ contradice "No 2.5D como dirección principal".
 - Navegación horizontal dentro de una calle: cuantizada (misma cadencia que
   el resto del "Pixel-motion grammar" abajo), "medianamente libre" — no
   salta de calle, solo se mueve dentro de la actual.
+- El ángulo y la convergencia no cambian con el zoom. La cámara muestra una
+  ventana móvil de aproximadamente cuatro filas de parcelas: trece calles de
+  construcción, incluyendo dos franjas delante de la calle enfocada; la cuarta
+  posición contando el foco cruza el plano cercano. El territorio semántico
+  fuera de esa ventana no se comprime ni se estira para caber: se revela al
+  avanzar la cámara por calles discretas.
+- El zoom-out máximo usa escala uniforme. Con el foco inicial en la tercera
+  calle, la primera fila queda cerca del borde inferior y la última fila de la
+  ventana cerca del borde superior, sin alterar la pendiente del trapecio.
 
 ### Cámara (ambos sub-modelos)
 
@@ -163,6 +172,29 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
   likely telegraph its own motion.
 - UI scrolling may remain smooth. Continuous character fades or subpixel
   locomotion require an explicit visual exception.
+
+## Recursos, Shelter y Chronicle
+
+- La barra de estado global reserva su espacio para tiempo, velocidad,
+  alertas y acciones globales; no enumera existencias de recursos.
+- El inventario de la ciudad se consulta desde el Shelter mediante una
+  sección plegable, con icono, cantidad total y reserva disponible cuando
+  corresponda. Esta ubicación es una superficie de gestión, no implica que
+  todos los recursos compartan un único contenedor físico.
+- Antes del Cache no existe un almacén implícito: la interfaz de Construcción
+  muestra abierta la carga personal del fundador (6 unidades rudimentarias).
+  Al completar el Cache, la misma superficie cambia a almacenamiento del sitio
+  (12); después de consolidar el Shelter, su detalle asume la gestión (24).
+- El Chronicle conserva hitos, decisiones, bloqueos y cadenas causales, pero
+  no muestra la aritmética rutinaria de obtención (`StockProduced` ni
+  `CropHarvested`). Esos hechos siguen existiendo en el dominio para métricas,
+  persistencia y causalidad.
+- Al recoger un recurso básico del terreno se muestra únicamente su icono y
+  `+cantidad` sobre el propietario físico actual: el fundador mientras carga,
+  el Founding Site después del Cache o el Shelter consolidado. El aviso
+  desaparece en pocos pasos discretos. Mientras el fundador sea el propietario,
+  el aviso sigue su posición durante todo su recorrido; no queda fijado al
+  punto del terreno donde terminó la recolección.
 
 ## UI por linaje
 

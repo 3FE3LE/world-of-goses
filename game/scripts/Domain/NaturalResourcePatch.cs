@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -5,14 +6,17 @@ namespace WorldofGoses.Domain;
 
 public sealed class NaturalResourcePatch
 {
-    public const int MaximumUnits = ParcelGrid.LotsPerAxis * ParcelGrid.LotsPerAxis;
+    public const int MaximumUnits =
+        ParcelGrid.ConstructionRowsPerParcel * ParcelGrid.FrontageColumnsPerParcel;
     private readonly List<int> _unitReserves = new();
+    private readonly List<NaturalResourceUnitPosition> _unitPositions = new();
 
     public int Id { get; }
     public ParcelId ParcelId { get; }
     public ResourceType ResourceType { get; }
     public BuildingId? LegacyStorageBuildingId { get; }
     public IReadOnlyList<int> UnitReserves => _unitReserves;
+    public IReadOnlyList<NaturalResourceUnitPosition> UnitPositions => _unitPositions;
     public int TotalReserve { get; private set; }
 
     public NaturalResourcePatch(
@@ -20,7 +24,8 @@ public sealed class NaturalResourcePatch
         ParcelId parcelId,
         ResourceType resourceType,
         IEnumerable<int> unitReserves,
-        BuildingId? legacyStorageBuildingId = null)
+        BuildingId? legacyStorageBuildingId = null,
+        IEnumerable<NaturalResourceUnitPosition>? unitPositions = null)
     {
         if (id <= 0) throw new ArgumentOutOfRangeException(nameof(id));
         ArgumentNullException.ThrowIfNull(unitReserves);
@@ -33,6 +38,36 @@ public sealed class NaturalResourcePatch
             int validated = Math.Max(0, reserve);
             _unitReserves.Add(validated);
             TotalReserve += validated;
+        }
+        if (unitPositions is null)
+        {
+            for (int unitId = 0; unitId < _unitReserves.Count; unitId++)
+            {
+                (int lotColumn, int lotRow) = ParcelGrid.NaturalResourceLot(unitId);
+                _unitPositions.Add(new NaturalResourceUnitPosition(
+                    lotRow,
+                    lotColumn * ParcelGrid.TilesPerStandardLot + 1));
+            }
+        }
+        else
+        {
+            foreach (NaturalResourceUnitPosition position in unitPositions)
+            {
+                _unitPositions.Add(position.Validate());
+            }
+        }
+        if (_unitPositions.Count != _unitReserves.Count)
+        {
+            throw new ArgumentException(
+                "Every natural-resource unit requires exactly one position.",
+                nameof(unitPositions));
+        }
+        if (new HashSet<NaturalResourceUnitPosition>(_unitPositions).Count
+            != _unitPositions.Count)
+        {
+            throw new ArgumentException(
+                "Natural-resource unit positions must be unique within a patch.",
+                nameof(unitPositions));
         }
     }
 
@@ -82,8 +117,9 @@ public sealed class NaturalResourcePatch
     }
 
     /// <summary>
-    /// Regenerates existing eligible units and sprouts at most one new unit in
-    /// the next free lot. Returns the total reserve added this boundary.
+    /// Regenerates existing eligible units. Creating another obstacle requires
+    /// CityWorld to allocate a globally free position through the layout planner.
+    /// Returns the total reserve added this boundary.
     /// </summary>
     public int Regenerate(
         int amountPerUnit,
@@ -104,17 +140,6 @@ public sealed class NaturalResourcePatch
             added += growth;
         }
 
-        if (_unitReserves.Count < MaximumUnits)
-        {
-            int newUnitId = _unitReserves.Count;
-            if (canGrowAtUnit(newUnitId))
-            {
-                int growth = Math.Min(amountPerUnit, unitCapacity);
-                _unitReserves.Add(growth);
-                TotalReserve += growth;
-                added += growth;
-            }
-        }
         return added;
     }
 }

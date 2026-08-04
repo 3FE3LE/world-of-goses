@@ -18,7 +18,7 @@ public sealed class VerticalSliceRepetitionTests
 
         Expedition first = CompleteHealthyExpedition(world);
         Assert.Equal(ExpeditionStatus.Returned, first.Status);
-        Assert.Equal(ParcelTerritoryState.Available, world.Parcels[first.TargetParcelId!.Value].TerritoryState);
+        Assert.Null(first.TargetParcelId);
 
         world = CityWorld.FromSave(WorldPersistence.Capture(world));
         Citizen founder = world.GetCitizen(founderId)!;

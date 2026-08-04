@@ -564,6 +564,12 @@ public partial class CityWorldController : Node
 
     public CityMacroSnapshot GetCityMacroSnapshot() => CityMacroSnapshot.From(_world);
 
+    public ConstructionPlacementSnapshot GetConstructionPlacementSnapshot() =>
+        ConstructionPlacementSnapshot.From(_world);
+
+    public ExpeditionPlanningSnapshot GetExpeditionPlanningSnapshot() =>
+        ExpeditionPlanningSnapshot.From(_world);
+
     public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
 
     public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
@@ -593,6 +599,24 @@ public partial class CityWorldController : Node
 
     public int GatherFromPatch(int patchId, int unitId, int amount) =>
         _world.GatherFromPatch(patchId, unitId, amount);
+
+    public NaturalResourceGatherResult GetNaturalResourceGatherAvailability(
+        int patchId,
+        int unitId) =>
+        _world.NaturalResourceGatherAvailability(patchId, unitId);
+
+    public NaturalResourceGatherResult TryGatherFromPatch(
+        int patchId,
+        int unitId,
+        int amount) =>
+        _world.TryGatherFromPatch(patchId, unitId, amount);
+
+    public ToolCraftResult TryCraftTool(ToolKind tool)
+    {
+        ToolCraftResult result = _world.TryCraftTool(tool);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
 
     public CultivationActionResult TrySowCultivationSite(BuildingId siteId)
     {
@@ -821,6 +845,19 @@ public partial class CityWorldController : Node
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
         var result = _world.StartExpedition(request);
+        if (result.IsSuccess) SaveNow();
+        return result;
+    }
+
+    public ExpeditionStartResult StartResourceExpedition(
+        ResourceOpportunityId opportunityId,
+        IReadOnlyList<CitizenId> memberIds,
+        ExpeditionRetreatPosture retreatPosture)
+    {
+        ExpeditionStartResult result = _world.StartResourceExpedition(
+            opportunityId,
+            memberIds,
+            retreatPosture);
         if (result.IsSuccess) SaveNow();
         return result;
     }

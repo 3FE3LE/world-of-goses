@@ -22,6 +22,7 @@ Sirve para:
 8. `08_VISUAL_UI_AND_ASSET_GUIDELINES.md`
 9. `09_AUDIO_GUIDELINES.md`
 10. `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`
+11. `12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`
 
 ## Jerarquía de autoridad
 
@@ -44,6 +45,7 @@ Ya está definido:
 - Afinidades profesionales sin profesiones bloqueadas.
 - Expansión territorial mediante expediciones.
 - Producción causal basada en población, territorio, herramientas, logística y almacenamiento.
+- Reservas urbanas dinámicas por columnas, huellas físicas parciales y corredores transitables.
 - Interfaz temática por linaje.
 - Jerarquía tipográfica de tres niveles.
 - Sixteen Pixel Perfect como generador paramétrico de UI para Godot.

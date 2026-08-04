@@ -1,3 +1,4 @@
+using System.Linq;
 using Godot;
 using WorldofGoses.Prototypes;
 using Xunit;
@@ -48,18 +49,16 @@ public class StreetDepthProjectionTests
 
         float firstRowStep = baseY - StreetDepthProjection.RowScreenY(1f, baseY);
 
-        Assert.InRange(firstRowStep, 48f, 60f);
+        Assert.InRange(firstRowStep, 51f, 53f);
     }
 
     [Fact]
-    public void NearClip_KeepsOneForegroundRowAndDropsTheSecond()
+    public void DepthWindow_KeepsTwoForegroundRowsAndDropsTheFourthPosition()
     {
-        const float cameraDepth = 2f;
-
-        Assert.False(StreetDepthProjection.IsVisibleDepth(0f - cameraDepth));
-        Assert.True(StreetDepthProjection.IsVisibleDepth(-1.8f));
-        Assert.True(StreetDepthProjection.IsVisibleDepth(1f - cameraDepth));
-        Assert.True(StreetDepthProjection.IsVisibleDepth(2f - cameraDepth));
+        Assert.False(StreetDepthProjection.IsVisibleDepth(-3f));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(-2f));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(-1f));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(0f));
     }
 
     [Fact]
@@ -71,5 +70,17 @@ public class StreetDepthProjectionTests
         Assert.Equal(640f, centered.X);
         Assert.Equal(640f + 100f * scale.X, offset.X);
         Assert.Equal(centered.Y, offset.Y);
+    }
+
+    [Fact]
+    public void DepthWindow_ContainsThirteenStreetBandsAtAnIntegerAnchor()
+    {
+        Assert.Equal(13, Enumerable.Range(-3, 15)
+            .Count(depth => StreetDepthProjection.IsVisibleDepth(depth)));
+        Assert.True(StreetDepthProjection.IsVisibleDepth(10f));
+        Assert.False(StreetDepthProjection.IsVisibleDepth(11f));
+        Assert.True(
+            StreetDepthProjection.RowScreenY(10f, 580f)
+            > StreetDepthProjection.RowScreenY(11f, 580f));
     }
 }

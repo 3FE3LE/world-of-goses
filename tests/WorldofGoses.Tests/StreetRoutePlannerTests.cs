@@ -60,22 +60,21 @@ public class StreetRoutePlannerTests
     }
 
     /// <summary>
-    /// Regression for the real bug behind "walks around the whole row
-    /// instead of between two adjacent trees": with a dense row of trees
-    /// 90 px apart (LotUnitPx) each blocking a 44 px span
-    /// (TreeBlockHalfWidthPx = 22), the viable gap between any two
-    /// adjacent trees is only ~18 px wide (e.g. [36,54] between trees at
+    /// Regression for clearance-defined obstacles in a dense row. With
+    /// reservations 90 px apart and authored solid intervals 44 px wide,
+    /// the viable gap between any two adjacent obstacles is only ~18 px
+    /// wide (e.g. [36,54] between obstacles at
     /// 0 and 90). A coarse scan step divides evenly into that 90 px
     /// spacing (30 px, the original step, is exactly 90/3) and so lands
-    /// on the SAME relative offset for every tree in the row — if it
-    /// misses the gap next to one tree, it misses it next to all of
+    /// on the same relative offset for every obstacle in the row — if it
+    /// misses the gap next to one obstacle, it misses it next to all of
     /// them, forcing the search past the entire row before finding open
     /// space beyond its far end (here, that would be lateral 240 — over
     /// 4x farther than the real gap at ~36-54). The fine
     /// <see cref="ScanStep"/> must land inside the near gap instead.
     /// </summary>
     [Fact]
-    public void NarrowGapBetweenAdjacentTreesInADenseRow_IsFound_NotSkippedOver()
+    public void NarrowGapBetweenAdjacentClearanceDefinedObstacles_IsFound_NotSkippedOver()
     {
         var intervals = new List<StreetRoutePlanner.Interval>();
         foreach (float center in new[] { -180f, -90f, 0f, 90f, 180f })
@@ -88,7 +87,7 @@ public class StreetRoutePlannerTests
         };
 
         // Preferred (destination) lateral sits on the row's own center
-        // tree, forcing the planner to actually scan for a nearby gap
+        // obstacle, forcing the planner to actually scan for a nearby gap
         // instead of getting one for free.
         List<StreetRoutePlanner.Waypoint> route = StreetRoutePlanner.Plan(
             0, 0f, 1, 0f, Bands(bands), Min, Max, Clearance, ScanStep);
@@ -96,7 +95,7 @@ public class StreetRoutePlannerTests
         float crossingLateral = Math.Abs(route[0].Lateral);
         Assert.True(
             crossingLateral < 100f,
-            $"crossing at {route[0].Lateral} skipped over the near inter-tree gap and detoured around the whole row instead");
+            $"crossing at {route[0].Lateral} skipped over the near clearance-defined gap and detoured around the whole row instead");
     }
 
     [Fact]

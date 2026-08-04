@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
 using Xunit;
@@ -89,6 +90,27 @@ public sealed class UiSnapshotTests
 
         Assert.Equal(2, Assert.Single(after.Materials).Available);
         Assert.True(after.CanPayDeposit);
+    }
+
+    [Fact]
+    public void ConstructionSnapshot_BeforeCacheProjectsFoundersCarriedLoad()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.Resources.DepositToCityInventory(ResourceType.Food, 6);
+        world.Resources.DepositToCityInventory(ResourceType.Branches, 2);
+        world.Resources.DepositToCityInventory(ResourceType.PlantFiber, 1);
+
+        ConstructionSnapshot snapshot = ConstructionSnapshot.From(world);
+
+        Assert.False(snapshot.HasFoundingCache);
+        Assert.Equal(3, snapshot.FoundingStorageCount);
+        Assert.Equal(FoundingSiteRules.CarriedCapacity, snapshot.FoundingStorageCapacity);
+        Assert.DoesNotContain(snapshot.FoundingResources,
+            item => item.Resource == ResourceType.Food);
+        Assert.Equal(2, Assert.Single(snapshot.FoundingResources,
+            item => item.Resource == ResourceType.Branches).TotalAmount);
+        Assert.Equal(1, Assert.Single(snapshot.FoundingResources,
+            item => item.Resource == ResourceType.PlantFiber).TotalAmount);
     }
 
     [Fact]
@@ -214,6 +236,29 @@ public sealed class UiSnapshotTests
         // no citizen is _assigned_ to the Home as a worker.
         Assert.Equal(0, snapshot.VisibleWorkerCount);
         Assert.Equal(0, snapshot.HiddenWorkerCount);
+    }
+
+    [Fact]
+    public void BuildingDetailSnapshot_HomeProjectsShelterResourceInventory()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        Building home = world.Buildings.Values.Single(building => building.Kind == BuildingKind.Home);
+        world.Resources.DepositToCityInventory(ResourceType.Branches, 2);
+        world.Resources.DepositToCityInventory(ResourceType.PlantFiber, 1);
+
+        BuildingDetailSnapshot snapshot = Assert.IsType<BuildingDetailSnapshot>(
+            BuildingDetailSnapshot.From(world, home.Id));
+
+        Assert.Equal(world.FoundingStorageCount(), snapshot.FoundingStorageCount);
+        Assert.Equal(world.GroundResourceCapacity(), snapshot.FoundingStorageCapacity);
+        Assert.Equal(2, Assert.Single(
+            snapshot.Resources,
+            item => item.Resource == ResourceType.Branches).TotalAmount);
+        Assert.Equal(1, Assert.Single(
+            snapshot.Resources,
+            item => item.Resource == ResourceType.PlantFiber).AvailableAmount);
+        Assert.Contains(snapshot.Resources, item =>
+            item.Resource == ResourceType.SmallStone && item.TotalAmount == 0);
     }
 
     [Fact]
@@ -353,6 +398,36 @@ public sealed class UiSnapshotTests
         Assert.Equal(2, compacted[0].LastTick);
         Assert.Equal(WorldEventKind.DayBegan, compacted[1].Kind);
         Assert.Equal(4, compacted[2].Amount);
+    }
+
+    [Fact]
+    public void ChronicleProjection_RemovesResourceGainReportsButKeepsHistory()
+    {
+        var log = new WorldEventLog();
+        log.Record(
+            1,
+            WorldEventKind.StockProduced,
+            WorldEventSubject.Patch(200, ResourceType.PlantFiber.ToString()),
+            2);
+        log.Record(
+            2,
+            WorldEventKind.CropHarvested,
+            WorldEventSubject.CultivationSite(new BuildingId(20), "Cultivation Site"),
+            5);
+        log.Record(3, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        log.Record(
+            4,
+            WorldEventKind.ProjectCompleted,
+            WorldEventSubject.ConstructionProject(new BuildingId(2), "Shelter"));
+
+        IReadOnlyList<WorldEvent> visible =
+            OfflineReportPanel.VisibleChronicleEvents(log.Events);
+
+        Assert.Equal(2, visible.Count);
+        Assert.DoesNotContain(visible, evt => evt.Kind == WorldEventKind.StockProduced);
+        Assert.DoesNotContain(visible, evt => evt.Kind == WorldEventKind.CropHarvested);
+        Assert.Contains(visible, evt => evt.Kind == WorldEventKind.DayBegan);
+        Assert.Contains(visible, evt => evt.Kind == WorldEventKind.ProjectCompleted);
     }
 
     [Fact]

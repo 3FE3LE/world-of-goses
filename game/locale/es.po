@@ -565,7 +565,7 @@ msgid "ui.construction.material"
 msgstr "Depósito: {0} {1} ahora · Total: {2} {1} · Disponible: {3}"
 
 msgid "ui.construction.choose_lot"
-msgstr "Elige un solar para {0}"
+msgstr "Elige un frente de tres columnas para {0}"
 
 msgid "ui.citizens.recruit_failed"
 msgstr "No se pudo reclutar: {0}"
@@ -662,6 +662,39 @@ msgstr "Regresar tras un contratiempo"
 
 msgid "ui.expedition.posture_hint"
 msgstr "Elige la orden permanente que seguirá el equipo si el encuentro sale mal."
+
+msgid "ui.expedition.objective_label"
+msgstr "Objetivo"
+
+msgid "ui.expedition.title"
+msgstr "Expediciones"
+
+msgid "ui.expedition.objective.food"
+msgstr "Comida cercana"
+
+msgid "ui.expedition.objective.wood"
+msgstr "Madera caída"
+
+msgid "ui.expedition.resource_unlock_hint"
+msgstr "Completa la Fogata y el Almacén para desbloquear salidas de recursos cercanos."
+
+msgid "ui.expedition.opportunity_unavailable"
+msgstr "Esta oportunidad no está disponible."
+
+msgid "ui.expedition.opportunity_depleted"
+msgstr "Esta oportunidad finita ya se agotó."
+
+msgid "ui.expedition.return_capacity_missing"
+msgstr "Libera espacio en el Almacén para al menos el retorno mínimo."
+
+msgid "ui.expedition.objective_summary"
+msgstr "{0}; cuesta {1} de {2}; retorna {3}/{4}/{5} de {6}; capacidad reservada {7}."
+
+msgid "Nearby Food Forage"
+msgstr "Recolección de comida cercana"
+
+msgid "Fallen Wood Search"
+msgstr "Búsqueda de madera caída"
 
 msgid "ui.expedition.active_posture"
 msgstr "Orden activa: {0}"
@@ -1733,7 +1766,7 @@ msgid "No hero available"
 msgstr "No hay héroe disponible"
 
 msgid "No unlocked parcel has a free building lot."
-msgstr "Ninguna parcela desbloqueada tiene un lote de construcción libre."
+msgstr "Ningún territorio disponible tiene un frente libre de tres columnas."
 
 msgid "none selected"
 msgstr "ninguno seleccionado"
@@ -2251,6 +2284,42 @@ msgstr "Recoger {0}"
 msgid "ui.gather.gathered_resource"
 msgstr "Se recogieron {0} de {1}."
 
+msgid "ui.gather.founder_unavailable"
+msgstr "El fundador no está disponible para recolectar."
+
+msgid "ui.gather.storage_full"
+msgstr "La carga o el almacén del Refugio están llenos. Libera espacio antes de recolectar."
+
+msgid "ui.gather.axe_required"
+msgstr "Se necesita un hacha primitiva almacenada en el Refugio para cortar este árbol."
+
+msgid "ui.gather.action_unavailable"
+msgstr "Este recurso no se puede recolectar ahora."
+
+msgid "ui.tools.primitive_axe_stored"
+msgstr "Hacha primitiva: almacenada en el Refugio."
+
+msgid "ui.tools.primitive_axe_missing"
+msgstr "Hacha primitiva: sin fabricar. Los árboles no se pueden talar."
+
+msgid "ui.tools.primitive_axe_owned"
+msgstr "Hacha primitiva almacenada"
+
+msgid "ui.tools.craft_primitive_axe"
+msgstr "Fabricar hacha primitiva"
+
+msgid "ui.tools.primitive_axe_recipe"
+msgstr "Requiere 1 Rama y 1 Piedra pequeña. La herramienta es durable."
+
+msgid "ui.tools.primitive_axe_missing_resource"
+msgstr "Falta {0}. Receta: 1 Rama y 1 Piedra pequeña."
+
+msgid "ui.tools.craft_failed"
+msgstr "No se pudo fabricar el hacha primitiva."
+
+msgid "ui.tools.primitive_axe_crafted"
+msgstr "Hacha primitiva fabricada y almacenada en el Refugio."
+
 msgid "This resource node is no longer available."
 msgstr "Este nodo de recursos ya no está disponible."
 
@@ -2337,3 +2406,63 @@ msgstr "{0}: el cultivo está listo para cosechar"
 
 msgid "event.crop_harvested"
 msgstr "{0}: la cosecha produjo +{1} de comida"
+
+msgid "ui.shelter_storage.capacity"
+msgstr "Almacén fundacional {0}/{1}"
+
+msgid "ui.shelter_storage.reserved"
+msgstr "{0} reservado · {1} disponible"
+
+msgid "ui.shelter_storage.collapse"
+msgstr "Recursos del Refugio — contraer"
+
+msgid "ui.shelter_storage.expand"
+msgstr "Recursos del Refugio · {0} tipos disponibles — desplegar"
+
+msgid "ui.shelter_storage.collapse_tooltip"
+msgstr "Contrae el inventario de recursos del Refugio."
+
+msgid "ui.shelter_storage.expand_tooltip"
+msgstr "Muestra los recursos de la ciudad gestionados desde el Refugio."
+
+msgid "ui.founding_storage.cargo_capacity"
+msgstr "Carga del fundador {0}/{1}"
+
+msgid "ui.founding_storage.cache_capacity"
+msgstr "Almacén fundacional {0}/{1}"
+
+msgid "ui.founding_storage.cargo_collapse"
+msgstr "Carga del fundador — contraer"
+
+msgid "ui.founding_storage.cargo_expand"
+msgstr "Carga del fundador · {0} tipos transportados — desplegar"
+
+msgid "ui.founding_storage.cache_collapse"
+msgstr "Almacén fundacional — contraer"
+
+msgid "ui.founding_storage.cache_expand"
+msgstr "Almacén fundacional · {0} tipos disponibles — desplegar"
+
+msgid "ui.resource_inventory.collapse_tooltip"
+msgstr "Contrae este inventario de recursos."
+
+msgid "ui.resource_inventory.expand_tooltip"
+msgstr "Muestra este inventario de recursos."
+
+msgid "ui.construction.placement_valid"
+msgstr "[OK] Frente válido — haz clic para seleccionarlo."
+
+msgid "ui.construction.placement_selected"
+msgstr "[OK] Colocación seleccionada — confirma cuando quieras."
+
+msgid "ui.construction.placement_blocked_resource"
+msgstr "[X] Bloqueado por un recurso natural."
+
+msgid "ui.construction.placement_blocked_building"
+msgstr "[X] Bloqueado por una construcción."
+
+msgid "ui.construction.placement_blocked_corridor"
+msgstr "[X] Bloqueado por un corredor protegido."
+
+msgid "ui.construction.placement_blocked_territory"
+msgstr "[X] Fuera del territorio disponible."

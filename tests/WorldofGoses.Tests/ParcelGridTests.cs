@@ -16,7 +16,7 @@ public sealed class ParcelGridTests
     }
 
     [Fact]
-    public void NaturalResourceUnit_HasStableLotIndependentOfSiblingDepletion()
+    public void LegacyNaturalResourceUnitMapping_RemainsAvailableForMigration()
     {
         Assert.Equal((0, 0), ParcelGrid.NaturalResourceLot(0));
         Assert.Equal((1, 0), ParcelGrid.NaturalResourceLot(1));
@@ -26,27 +26,27 @@ public sealed class ParcelGridTests
     [Fact]
     public void StandardTemplates_PreserveFrontalAccess()
     {
-        Assert.Equal(2, BuildingFootprintCatalog.StandardWithSideSetbacks.FrontSetback);
-        Assert.Equal(2, BuildingFootprintCatalog.StandardFullWidth.FrontSetback);
+        Assert.Equal(2, BuildingFootprintCatalog.StandardWithSideSetbacks.FrontClearance);
+        Assert.Equal(2, BuildingFootprintCatalog.StandardFullWidth.FrontClearance);
     }
 
     [Theory]
-    [InlineData(false, false, 0, 2, PassageClass.Path)]
-    [InlineData(false, true, 0, 1, PassageClass.NarrowPassage)]
+    [InlineData(false, false, 0, 2, PassageClass.NarrowPassage)]
+    [InlineData(false, true, 0, 1, PassageClass.Blocked)]
     [InlineData(true, true, 0, 0, PassageClass.Blocked)]
-    [InlineData(false, false, 2, 4, PassageClass.Street)]
-    [InlineData(true, true, 4, 4, PassageClass.Street)]
-    public void AdjacentBuildings_ProduceExpectedClearance(
+    [InlineData(false, false, 2, 4, PassageClass.Path)]
+    [InlineData(true, true, 4, 4, PassageClass.Path)]
+    public void AdjacentObstacles_ProduceExpectedClearance(
         bool leftFullWidth,
         bool rightFullWidth,
         int deliberatelyEmptyHalfTiles,
         int expectedClearance,
         PassageClass expectedClass)
     {
-        BuildingFootprintTemplate left = leftFullWidth
+        ObstacleFootprintTemplate left = leftFullWidth
             ? BuildingFootprintCatalog.StandardFullWidth
             : BuildingFootprintCatalog.StandardWithSideSetbacks;
-        BuildingFootprintTemplate right = rightFullWidth
+        ObstacleFootprintTemplate right = rightFullWidth
             ? BuildingFootprintCatalog.StandardFullWidth
             : BuildingFootprintCatalog.StandardWithSideSetbacks;
 
@@ -60,11 +60,23 @@ public sealed class ParcelGridTests
     }
 
     [Fact]
-    public void Template_RejectsSolidAreaOutsideReservedLot()
+    public void ObstacleTemplate_RejectsSolidAreaOutsideReservedLot()
     {
-        Assert.Throws<ArgumentException>(() => new BuildingFootprintTemplate(
+        Assert.Throws<ArgumentException>(() => new ObstacleFootprintTemplate(
             "invalid",
             new HalfTileRect(0, 0, 6, 6),
             new HalfTileRect(1, 0, 6, 6)));
+    }
+
+    [Fact]
+    public void NaturalResourceProfile_LeavesAuthoredTraversalClearance()
+    {
+        ObstacleFootprintTemplate resource =
+            NaturalResourceFootprintCatalog.StandardGroundResource;
+
+        Assert.Equal(0, resource.LeftClearance);
+        Assert.Equal(1, resource.RightClearance);
+        Assert.Equal(1, resource.SolidArea.Width);
+        Assert.Equal(2, resource.FrontClearance);
     }
 }

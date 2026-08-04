@@ -81,13 +81,38 @@ Una parcela puede contener:
 - Conexiones.
 - Uso actual.
 
-La unidad urbanística estándar de una parcela es una matriz de 3 × 3 solares.
-Cada solar equivale a 3 × 3 tiles visuales, pero la geometría lógica admite
-medios tiles para diferenciar el área reservada de la huella sólida de un
-edificio. Los márgenes de edificios adyacentes pueden combinarse en pasillos
-de 0.5 tile, caminos de 1 tile o calles de 2 tiles. Esta granularidad no implica
-colocación libre: los edificios se ajustan a solares y los complejos pueden
-reservar varios solares contiguos o una parcela completa.
+Una parcela aporta territorio a filas urbanas de profundidad fija, pero no se
+subdivide de manera autoritativa en nueve solares rígidos. La unidad mínima de
+reserva es una columna de frente por tres tiles de profundidad. Una construcción
+normal reserva entre tres y seis columnas contiguas dentro de una misma fila.
+
+La geometría lógica admite medios tiles dentro de la reserva para separar el
+área territorial de la huella sólida. Los clearances de obstáculos adyacentes
+pueden combinarse en callejones y caminos. Una construcción reserva su intervalo
+completo, pero una unidad de recurso ocupa solo una celda de frente explícita:
+varios árboles, alimentos, ramas, fibras o piedras pueden compartir parcela y
+fila. Las celdas restantes siguen disponibles para construir; navegación solo
+bloquea la huella sólida de cada obstáculo.
+Las reglas completas viven en
+[`12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`](12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md).
+
+### Apertura territorial acotada
+
+Una ciudad nueva comienza con tres parcelas disponibles dispuestas a lo ancho.
+No se proyecta una parcela desbloqueable ni una máscara oscura sobre terreno
+vacío mientras el sistema de expansión esté sin definir. Esta apertura acotada
+debe leerse como un terrario digital finito, no como un fragmento arbitrario de
+un mapa infinito.
+
+La dirección visual candidata para el borde futuro es un límite físico
+autoral —por ejemplo, bosque denso o un borde natural equivalente— que explique
+por qué el espacio termina. El sobre territorial objetivo queda acotado a ocho
+filas por nueve columnas de parcelas, conservando una columna central. No se
+muestra completo a la vez: la perspectiva mantiene una ventana móvil de unas
+cuatro filas de parcelas. Este máximo visual no desbloquea gratis las 72
+parcelas ni define todavía su adquisición causal. Los saves antiguos conservan
+sus parcelas; la expansión sigue suspendida hasta diseñar cómo se obtiene cada
+parte del sobre.
 
 Estados sugeridos:
 

@@ -214,8 +214,8 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-        // The status bar is intentionally bounded: clock, speed controls,
-        // resources, and — only when a project exists — a concise project
+		// The status bar is intentionally bounded: clock, speed controls,
+		// and — only when a project exists — a concise project
         // chip. The mobilisation, hero, and empty-state chips moved to
         // their natural surface (BuildingDetailView, EmptyPanel); a
         // building's own StopCause is visible on its detail view and
@@ -231,9 +231,8 @@ public partial class CityStatusPanel : PanelContainer
         }
         _savedChip = null;
 
-        BuildClockChip(snapshot);
-        BuildOffHoursChip(snapshot);
-        BuildResourcesChip(snapshot);
+		BuildClockChip(snapshot);
+		BuildOffHoursChip(snapshot);
 
         // Construction is intentionally singular in the current slice. Keep
         // one concise progress chip instead of allowing future projects to
@@ -309,88 +308,6 @@ public partial class CityStatusPanel : PanelContainer
         if (GameClock.IsDaytime(snapshot.CurrentTick)) return;
         var chip = new IconChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
         chip.TooltipText = UiText.Get("ui.status.off_hours_hint");
-        _row.AddChild(chip);
-    }
-
-    private void BuildFoodChip(CityStatusSnapshot snapshot)
-    {
-        // Kept for backward compatibility (call sites may still want the
-        // standalone chip). The default Refresh() uses BuildResourcesChip
-        // to fit on 1280×720.
-        int food = snapshot.FoodStock;
-        int cap = snapshot.MaxFoodStock;
-        if (cap <= 0) return;
-        _row.AddChild(new IconChip(IconPaths.Leaf, UiText.Format("ui.status.food_stock", food, cap)));
-    }
-
-    private void BuildWoodChip(CityStatusSnapshot snapshot)
-    {
-        // Kept for backward compatibility. Default Refresh() uses
-        // BuildResourcesChip to fit on 1280×720.
-        int stock = snapshot.WoodStock;
-        int reserve = snapshot.WoodReserve;
-        if (stock == 0 && reserve == 0) return;
-        _row.AddChild(new IconChip(
-            IconPaths.Tree,
-            reserve > 0
-                ? UiText.Format("ui.status.wood_reserve", stock, reserve)
-                : UiText.Format("ui.status.wood_stock", stock)));
-    }
-
-    /// <summary>
-    /// Combines Food and Wood into a single compact chip when both
-    /// categories are active, so the status bar stops overflowing on
-    /// 1280×720. The tooltip exposes the full breakdown.
-    /// </summary>
-    private void BuildResourcesChip(CityStatusSnapshot snapshot)
-    {
-        bool hasFood = snapshot.FoodStock > 0 || snapshot.DailyFoodRation > 0;
-        bool hasWood = snapshot.WoodStock > 0 || snapshot.WoodReserve > 0;
-        if (!hasFood && !hasWood) return;
-
-        var breakdown = new System.Text.StringBuilder();
-        if (hasFood)
-        {
-            breakdown.Append(snapshot.MaxFoodStock > 0
-                ? UiText.Format(
-                    "ui.status.food_stock", snapshot.FoodStock, snapshot.MaxFoodStock)
-                : UiText.Format("ui.status.food_amount", snapshot.FoodStock));
-            breakdown.Append('\n');
-            breakdown.Append(UiText.Format(
-                "ui.status.food_horizon",
-                snapshot.FoodHorizonDays,
-                snapshot.ProtectedFoodTarget));
-            if (snapshot.TicksUntilFirstHarvest is int ticks)
-            {
-                int days = (int)System.Math.Ceiling(
-                    ticks / (double)GameClock.TicksPerInGameDay);
-                breakdown.Append('\n');
-                breakdown.Append(UiText.Format("ui.status.first_harvest", days));
-            }
-        }
-        if (hasWood)
-        {
-            if (breakdown.Length > 0) breakdown.Append('\n');
-            breakdown.Append(snapshot.WoodReserve > 0
-                ? UiText.Format("ui.status.wood_reserve", snapshot.WoodStock, snapshot.WoodReserve)
-                : UiText.Format("ui.status.wood_stock", snapshot.WoodStock));
-        }
-
-        string headline = hasFood
-            ? snapshot.FoodStock < snapshot.ProtectedFoodTarget
-                ? UiText.Format(
-                    "ui.status.food_warning",
-                    snapshot.FoodStock,
-                    snapshot.ProtectedFoodTarget)
-                : snapshot.MaxFoodStock > 0
-                    ? UiText.Format("ui.status.food", snapshot.FoodStock, snapshot.MaxFoodStock)
-                    : UiText.Format("ui.status.food_amount", snapshot.FoodStock)
-            : hasWood
-                ? UiText.Format("ui.status.wood", snapshot.WoodStock)
-                : UiText.Get("Resources");
-
-        var chip = new IconChip(IconPaths.Leaf, headline);
-        chip.TooltipText = breakdown.ToString();
         _row.AddChild(chip);
     }
 

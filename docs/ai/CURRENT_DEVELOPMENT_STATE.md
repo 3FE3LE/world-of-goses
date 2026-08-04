@@ -4,7 +4,7 @@
 > does not replace design documents or code. Update it when a phase
 > completes, a vertical slice advances, or the build/test baseline shifts.**
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-03
 
 ---
 
@@ -12,13 +12,13 @@
 
 | Dimension | Value |
 | --- | --- |
-| Active increment | EG-4 — resource expedition seam (proposal §15) |
-| Next approved work | Oportunidades finitas de Food/Wood mediante la cadena de expedición existente. |
+| Active increment | EG-5 — consolidation (proposal §15) |
+| Next approved work | Segundo/tercer plot y Farm consolidation; firma humana del hacha y apertura acotada. |
 | VS-5 audit | Descartado 2026-07-31; `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` borrado. |
-| Build | `dotnet build` clean (verified 2026-07-31) |
-| Tests | 690 / 691 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
-| Save schema version (code) | `WorldSave.CurrentVersion = 24` |
-| Save schema version (docs) | v24 (EG-3 Cultivation Site + crop boundary) |
+| Build | `dotnet build` clean (verified 2026-08-03) |
+| Tests | 721 / 722 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
+| Save schema version (code) | `WorldSave.CurrentVersion = 28` |
+| Save schema version (docs) | v28 (durable Shelter tool set; Primitive Axe forestry gate) |
 | Headless boot | OK with `godot --headless --path game --quit-after 3` |
 | Audio | No wired buses yet; `game/assets/audio/` is empty |
 | Walkable macro-camera | Detailed walkable-world prototype postponed; street-perspective macro camera is active |
@@ -31,12 +31,18 @@ The following are wired end to end in `game/scenes/CityPrototype.tscn` and the
 domain. Treat each as a hard "do not regress" target.
 
 - Founder onboarding, hero creation, profile view, lineage theme pack.
-- Macro city view (`MacroStreetLiveView`), status bar, lineage ornament.
+- Macro city view (`MacroStreetLiveView`), resource-free status bar, lineage
+  ornament, physical-owner-anchored basic-resource gain feedback, and
+  collapsible Shelter inventory. Before Cache the feedback follows the
+  founder; afterward it anchors to Founding Site/Shelter storage.
+- Before Shelter, Construction exposes the founder's six-unit carried load and
+  then the Founding Cache's twelve-unit storage; unrelated legacy Food/Wood no
+  longer blocks rudimentary gathering before Cache.
 - Building placement + construction (Basic Shelter, Farm, Quarry) with
   recipe deposit, contributor assignment, pause/resume, deterministic
   drawdown, completion replacing the project.
-- Wood gathering via the Forest detail panel; reserve drains into spendable
-  pool.
+- Rudimentary gathering is capacity-safe and idempotent; mature-tree Wood
+  requires a persisted Primitive Axe crafted after Shelter completion.
 - Production (Farm, Quarry) with recipe gate, workers, competency XP, stamina,
   day/night, min/max policy, visible stop causes; 10-tick batch cadence.
 - Worker assignment service: single source of truth, auto-release at max
@@ -175,7 +181,7 @@ con ese documento. Lo que sigue siendo diagnóstico real del código:
 | ID | Título | Cómo lo cierra el proposal |
 | --- | --- | --- |
 | Food pressure sin operating-input (antiguo G1) | La Granja heredada aún produce sin receta, pero ya no es la apertura. | **Cerrado en EG-3** — primer plot con semilla, espera y `readyAtTick` 10800 ticks. |
-| Territory legible (antiguo G6) | Parcel 9 ahora `Available` y visible (5 columnas + tints por estado). | **EG-4** cuando el Founding Site provea el Cache. |
+| Territory legible (antiguo G6) | La franja oscura era la parcela 9 bloqueada; el modelo fresco ahora expone solo tres parcelas horizontales y no renderiza frontier. | **Reabierto en EG-5**: sobre visual objetivo 8×9 y ventana móvil de 13 calles definidos; expansión suspendida hasta diseñar borde, adquisición causal y culling/batching lateral. |
 | Wound/recovery alcanzable (antiguo G5) | Fórmula de encuentro actual sesgada a FullSuccess para citizens con competency alta. | Diferido hasta **EG-5**; wound como feature sin demo verificable se descarta. |
 
 La cobertura de VS-2 (expedition planning), VS-3 (consequence), VS-4
@@ -184,7 +190,7 @@ La cobertura de VS-2 (expedition planning), VS-3 (consequence), VS-4
 `TerritoryProgressionTests`, `VerticalLoopPersistenceTests` siguen pasando,
 aunque sus tests no se invocan como criterios de aceptación. Se conservan
 como regressions de seguridad: EG-2 ya reemplazó la apertura de shelter y
-EG-4 reescribirá el resource expedition.
+EG-4 ya sustituyó la salida genérica de recursos por oportunidades finitas.
 
 ## Out of scope (until prototype validates)
 

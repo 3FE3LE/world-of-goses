@@ -231,11 +231,12 @@ public partial class OfflineReportPanel : PanelContainer
     /// Populates the panel with a fresh offline report. The panel
     /// shows itself; passing a report with no events keeps it hidden.
     /// </summary>
-    public void ShowReport(OfflineProgressionReport report)
-    {
-        ClearRows();
+	public void ShowReport(OfflineProgressionReport report)
+	{
+		ClearRows();
+		IReadOnlyList<WorldEvent> visibleEvents = VisibleChronicleEvents(report.Events);
 
-        if (!report.HadProgression || report.Events.Count == 0)
+		if (!report.HadProgression || visibleEvents.Count == 0)
         {
             Hide();
             return;
@@ -248,7 +249,7 @@ public partial class OfflineReportPanel : PanelContainer
         // the player sees what requires attention at a glance. Each
         // row is a clickable button when the subject resolves to a
         // building currently in the world.
-        var decisions = GroupDecisionsNeeded(report.Events);
+		var decisions = GroupDecisionsNeeded(visibleEvents);
         if (decisions.Count > 0)
         {
             var header = new Label
@@ -267,7 +268,7 @@ public partial class OfflineReportPanel : PanelContainer
 
         // Show the most recent N events; older ones would only add
         // noise to the panel.
-        IReadOnlyList<EventItem> events = CompactConsecutiveEvents(report.Events);
+		IReadOnlyList<EventItem> events = CompactConsecutiveEvents(visibleEvents);
         int skip = System.Math.Max(0, events.Count - MaxRows);
         for (int i = skip; i < events.Count; i++)
         {
@@ -291,12 +292,13 @@ public partial class OfflineReportPanel : PanelContainer
     /// language as the offline report while making the simulation's
     /// event slice visible during play.
     /// </summary>
-    public void ShowLog(IReadOnlyList<WorldEvent> events)
-    {
-        if (_visualRegressionFixtureActive) return;
-        _currentLiveEvents = events;
-        WorldEventId? newestId = events.Count > 0 ? events[^1].Id : null;
-        if (_lastLiveEventCount == events.Count && _lastLiveEventId == newestId)
+	public void ShowLog(IReadOnlyList<WorldEvent> events)
+	{
+		if (_visualRegressionFixtureActive) return;
+		IReadOnlyList<WorldEvent> visibleEvents = VisibleChronicleEvents(events);
+		_currentLiveEvents = events;
+		WorldEventId? newestId = visibleEvents.Count > 0 ? visibleEvents[^1].Id : null;
+		if (_lastLiveEventCount == visibleEvents.Count && _lastLiveEventId == newestId)
         {
             Show();
             return;
@@ -311,8 +313,8 @@ public partial class OfflineReportPanel : PanelContainer
 
         ClearRows();
 
-        var liveDecisions = GroupDecisionsNeeded(events);
-        IReadOnlyList<EventItem> compactedEvents = CompactConsecutiveEvents(events);
+		var liveDecisions = GroupDecisionsNeeded(visibleEvents);
+		IReadOnlyList<EventItem> compactedEvents = CompactConsecutiveEvents(visibleEvents);
         _compactedCount = compactedEvents.Count;
         if (liveDecisions.Count > 0)
         {
@@ -325,7 +327,7 @@ public partial class OfflineReportPanel : PanelContainer
         }
         else
         {
-            _summary.Text = events.Count == 0
+			_summary.Text = visibleEvents.Count == 0
                 ? UiText.Get("ui.chronicle.empty")
                 : UiText.Get("ui.chronicle.newest_bottom");
         }
@@ -341,7 +343,7 @@ public partial class OfflineReportPanel : PanelContainer
         }
 
         Show();
-        _lastLiveEventCount = events.Count;
+		_lastLiveEventCount = visibleEvents.Count;
         _lastLiveEventId = newestId;
         ApplyExpandedState();
         _followNewestAfterLayout = wasFollowingNewest;
@@ -387,13 +389,31 @@ public partial class OfflineReportPanel : PanelContainer
         if (bar is not null) bar.Value = bar.MaxValue;
     }
 
-    private static string SummariseReport(OfflineProgressionReport report)
-    {
-        string time = FormatTime(report.SimulatedTime);
-        return report.StockAdded > 0
-            ? UiText.Format("ui.chronicle.welcome_stock", time, report.StockAdded)
-            : UiText.Format("ui.chronicle.welcome", time);
-    }
+	private static string SummariseReport(OfflineProgressionReport report)
+	{
+		string time = FormatTime(report.SimulatedTime);
+		return UiText.Format("ui.chronicle.welcome", time);
+	}
+
+	/// <summary>
+	/// Chronicle records history and decisions, not inventory arithmetic.
+	/// Resource gains remain in the domain log for causality and metrics but
+	/// are projected as transient storage feedback instead of Chronicle rows.
+	/// </summary>
+	public static IReadOnlyList<WorldEvent> VisibleChronicleEvents(
+		IReadOnlyList<WorldEvent> events)
+	{
+		var visible = new List<WorldEvent>();
+		foreach (WorldEvent evt in events)
+		{
+			if (evt.Kind is WorldEventKind.StockProduced or WorldEventKind.CropHarvested)
+			{
+				continue;
+			}
+			visible.Add(evt);
+		}
+		return visible;
+	}
 
     /// <summary>
     /// Groups <see cref="WorldEventKind.ProductionBlocked"/> events

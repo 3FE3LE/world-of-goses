@@ -38,8 +38,8 @@ admiten:
 
 ### Baseline vigente
 
-- Fecha de alineación: **2026-07-31**.
-- Slice activo: **EG-4 — resource expedition seam**. EG-3 ya cerrado; schema actual v24,
+- Fecha de alineación: **2026-08-03**.
+- Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado; schema actual v28,
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
   genérico y cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`.
@@ -47,14 +47,19 @@ admiten:
   6→12→24, mismo ID/parcela y finalización offline. El primer Cultivation Site
   requiere Shelter, 1 Branch + 1 Small Stone, 180 work y produce 5 Food tres
   días después de sembrar 1 Food, con la misma frontera live/offline.
-- Save: **schema v24** (lifecycle persistente del primer Cultivation Site).
+- Save: **schema v28** (herramientas durables; oportunidades finitas de
+  Food/Wood y capacidad de retorno siguen en v27).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **690 / 691** (1 omitido por brittleness del snapshot JSON en
+- Tests: **721 / 722** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
 - Arranque Godot headless: correcto.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
   `docs/CURRENT_STATUS.md`.
+- La implementación histórica de Parcel 9 y sus tints, conservada más abajo
+  como registro, queda **superada** para ciudades nuevas: no se renderiza
+  frontera desbloqueable ni se selecciona objetivo territorial hasta definir
+  el borde y la expansión del terrario.
 
 ## 1. Resumen
 
@@ -87,8 +92,8 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
 | EG-1 — resource/storage seam | Hecho | Schema v21; `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`; `SeedStartingOpportunities` siembra EG-A0; `GatherFromPatch` genérico; cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`. |
 | EG-2 — founding site seam | Hecho | Schema v22; Founding Site estable con Campfire → Bedroll/Cache → Canopy, capacidad 6→12→24, origen persistente y equivalencia offline. |
 | EG-3 — Food horizon seam | Hecho | Schema v24; primer Cultivation Site completo, Food horizon visible y equivalencia live/offline cubierta por `Eg3CultivationSiteTests`. |
-| EG-4 — resource expedition seam | Pendiente | Próximo. Oportunidades finitas de Food/Wood mediante la cadena de expedición existente. |
-| EG-5 — consolidación | Bloqueado | Espera EG-4. |
+| EG-4 — resource expedition seam | Hecho | Schema v27; oportunidades finitas de Food/Wood, cadena completa, supply/oportunidad/capacidad reservados y equivalencia live/offline. |
+| EG-5 — consolidación | En curso | Forestry gate conectado: Shelter + hacha primitiva durable (1 Branch + 1 Small Stone). Apertura acotada a tres parcelas horizontales, sin frontier desbloqueable, y recursos dispersos. Pendientes segundo/tercer plot y Farm consolidation. |
 | EG-6 — calibration/signature | Bloqueado | Espera EG-5. |
 
 ### 🟡 M-14 — Matriz de regresión visual
@@ -131,9 +136,12 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
   `docs/VISUAL_REGRESSION.md`, escenas/UI tocadas por cada cambio.
 - **Hecho:** harness read-only con medidas reales en 1280×720 y 1920×1080,
   manifiesto, frame-time del engine y fixtures de las superficies principales.
-- **Pendiente para EG-1:** contención visual de los nodos Branches/Plant
-  Fiber/Small Stone/Wild Food en macro view; firma humana de su comportamiento
-  de recogida y de los mensajes de capacidad del Cache.
+- **Pendiente para EG-5:** firma humana de recolección idempotente, bloqueo por
+  capacidad/hacha, layout disperso de tres parcelas y fabricación del hacha en
+  el Shelter; firma del chevron de recursos y del aviso pasajero icono +
+  cantidad siguiendo al fundador antes del Cache y sobre el almacén después,
+  confirmando que barra global y Chronicle no recuperan contadores rutinarios;
+  firma de la retícula de construcción completa y sus estados hover `[OK]`/`[X]`.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
 
 ## 4. Pendientes después de EG-2
@@ -197,7 +205,7 @@ superados en 2026-07-30; ver §8.)_
 | --- | --- |
 | S-1.1 i18n | Hecho para UI actual; mantener EN/ES y validador. |
 | S-1.2 NavigationServer2D | Primer corte hecho; reconciliar dentro de H-26. |
-| S-1.3 terreno perspectiva | Primer corte hecho; no forzar TileMap sobre trapecios proyectados. |
+| S-1.3 terreno perspectiva | Primer corte hecho; se rechazó el overview estirado. Una única perspectiva y zoom uniforme muestran una ventana móvil de 13 calles sobre el sobre objetivo 8×9. La captura vacía final aún cuesta 15,201 ms: implementar culling/batching lateral y validar navegación por ventanas antes de habilitar expansión; no forzar TileMap sobre trapecios proyectados. |
 | S-1.4 MultiMesh | Diferido al trigger de H-30. |
 | S-1.5 FSM | Seam mínimo hecho; ampliar solo con comportamiento autónomo real. |
 | S-1.6 diálogos | Seam mínimo hecho; ampliar con H-31. |
@@ -253,7 +261,7 @@ superados en 2026-07-30; ver §8.)_
   protegido; la macro view distingue Prepared/Sown/Growing/Ready/Spent sin
   depender sólo del color. `MigrateV23ToV24` agrega una lista vacía sin
   inventar parcelas. Diez casos en `Eg3CultivationSiteTests`, interacción real
-  y matriz 1280×720/1920×1080 verificadas. Build 0/0; tests 690/691 (1 omitido conocido).
+  y matriz 1280×720/1920×1080 verificadas. Build 0/0; tests 704/705 (1 omitido conocido).
 - **Visual de TerritoryState en macro view.** El único parcel bloqueado
   (Parcel 9, `LogicalColumn = 4`) quedaba fuera del área renderizada
   (`WorldParcelColumns = 4`) y, aunque las Available no tenían tint
@@ -269,7 +277,10 @@ superados en 2026-07-30; ver §8.)_
      - `Available` → sin overlay (terrain tal cual)
      El tint se proyecta sobre la misma grilla perspectiva que el piso,
      así que respeta el offset de cámara lateral y el vanishing point.
-  3. Constantes nuevas en la sección de colores:
+  3. Corrección 2026-08-03: el envelope ahora se deriva del snapshot de
+     parcelas reales; `(4,1)` no existe y ya no se dibuja como franja/terreno
+     fantasma. El tint ocupa la profundidad completa de cada parcela real.
+  4. Constantes nuevas en la sección de colores:
      `LockedParcelColor`, `ReconnoitredParcelColor`,
      `RouteSecuredParcelColor`.
   Con esto una expedición `Reconnaissance` FullSuccess avanza Parcel 9
@@ -459,8 +470,8 @@ superados en 2026-07-30; ver §8.)_
   `StreetRoutePlannerTests` y `MacroInputBoundaryTests` da por cerrado:
   gather entre hileras, construcción adyacente, entrada/salida del refugio y
   un solo carrier por citizen. El cierre del retorno expedicionario queda
-  dentro de EG-4 (resource expedition seam) una vez el Founding Site provea
-  el Cache que sostiene la duración corta.
+  cerrado por EG-4: Campfire + Cache habilitan las salidas cortas finitas y su
+  retorno usa la misma ruta visual.
 
 ## 9. Fuera de alcance hasta cerrar el prototipo
 

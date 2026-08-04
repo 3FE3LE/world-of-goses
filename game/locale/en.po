@@ -566,7 +566,7 @@ msgid "ui.construction.material"
 msgstr "Deposit: {0} {1} now · Total: {2} {1} · Available: {3}"
 
 msgid "ui.construction.choose_lot"
-msgstr "Choose a lot for {0}"
+msgstr "Choose a three-column frontage for {0}"
 
 msgid "ui.citizens.recruit_failed"
 msgstr "Could not recruit: {0}"
@@ -663,6 +663,39 @@ msgstr "Return after a setback"
 
 msgid "ui.expedition.posture_hint"
 msgstr "Choose the standing order the team follows if the encounter goes badly."
+
+msgid "ui.expedition.objective_label"
+msgstr "Objective"
+
+msgid "ui.expedition.title"
+msgstr "Expeditions"
+
+msgid "ui.expedition.objective.food"
+msgstr "Nearby food"
+
+msgid "ui.expedition.objective.wood"
+msgstr "Fallen wood"
+
+msgid "ui.expedition.resource_unlock_hint"
+msgstr "Complete the Campfire and Cache to unlock nearby resource sorties."
+
+msgid "ui.expedition.opportunity_unavailable"
+msgstr "This opportunity is not available."
+
+msgid "ui.expedition.opportunity_depleted"
+msgstr "This finite opportunity has been depleted."
+
+msgid "ui.expedition.return_capacity_missing"
+msgstr "Make room in the Cache for at least the minimum return."
+
+msgid "ui.expedition.objective_summary"
+msgstr "{0}; costs {1} {2}; returns {3}/{4}/{5} {6}; reserved capacity {7}."
+
+msgid "Nearby Food Forage"
+msgstr "Nearby food forage"
+
+msgid "Fallen Wood Search"
+msgstr "Fallen wood search"
 
 msgid "ui.expedition.active_posture"
 msgstr "Standing order: {0}"
@@ -1566,7 +1599,7 @@ msgid "No hero available"
 msgstr "No hero available"
 
 msgid "No unlocked parcel has a free building lot."
-msgstr "No unlocked parcel has a free building lot."
+msgstr "No available territory has a free three-column frontage."
 
 msgid "none selected"
 msgstr "none selected"
@@ -2099,6 +2132,42 @@ msgstr "Gather {0}"
 msgid "ui.gather.gathered_resource"
 msgstr "Gathered {0} {1}."
 
+msgid "ui.gather.founder_unavailable"
+msgstr "The founder is not available to gather."
+
+msgid "ui.gather.storage_full"
+msgstr "Carried cargo or Shelter storage is full. Make room before gathering."
+
+msgid "ui.gather.axe_required"
+msgstr "A primitive axe stored in the Shelter is required to cut this tree."
+
+msgid "ui.gather.action_unavailable"
+msgstr "This resource cannot be gathered right now."
+
+msgid "ui.tools.primitive_axe_stored"
+msgstr "Primitive axe: stored in the Shelter."
+
+msgid "ui.tools.primitive_axe_missing"
+msgstr "Primitive axe: not crafted. Trees cannot be cut."
+
+msgid "ui.tools.primitive_axe_owned"
+msgstr "Primitive axe stored"
+
+msgid "ui.tools.craft_primitive_axe"
+msgstr "Craft primitive axe"
+
+msgid "ui.tools.primitive_axe_recipe"
+msgstr "Requires 1 Branch and 1 Small Stone. The tool is durable."
+
+msgid "ui.tools.primitive_axe_missing_resource"
+msgstr "Missing {0}. Recipe: 1 Branch and 1 Small Stone."
+
+msgid "ui.tools.craft_failed"
+msgstr "The primitive axe could not be crafted."
+
+msgid "ui.tools.primitive_axe_crafted"
+msgstr "Primitive axe crafted and stored in the Shelter."
+
 msgid "This resource node is no longer available."
 msgstr "This resource node is no longer available."
 
@@ -2185,3 +2254,63 @@ msgstr "{0}: the crop is ready to harvest"
 
 msgid "event.crop_harvested"
 msgstr "{0}: harvest yielded +{1} Food"
+
+msgid "ui.shelter_storage.capacity"
+msgstr "Founding storage {0}/{1}"
+
+msgid "ui.shelter_storage.reserved"
+msgstr "{0} reserved · {1} available"
+
+msgid "ui.shelter_storage.collapse"
+msgstr "Shelter resources — collapse"
+
+msgid "ui.shelter_storage.expand"
+msgstr "Shelter resources · {0} types in stock — expand"
+
+msgid "ui.shelter_storage.collapse_tooltip"
+msgstr "Collapse the Shelter resource inventory."
+
+msgid "ui.shelter_storage.expand_tooltip"
+msgstr "Show city resources managed from the Shelter."
+
+msgid "ui.founding_storage.cargo_capacity"
+msgstr "Founder's carried load {0}/{1}"
+
+msgid "ui.founding_storage.cache_capacity"
+msgstr "Founding Cache {0}/{1}"
+
+msgid "ui.founding_storage.cargo_collapse"
+msgstr "Founder's load — collapse"
+
+msgid "ui.founding_storage.cargo_expand"
+msgstr "Founder's load · {0} types carried — expand"
+
+msgid "ui.founding_storage.cache_collapse"
+msgstr "Founding Cache — collapse"
+
+msgid "ui.founding_storage.cache_expand"
+msgstr "Founding Cache · {0} types in stock — expand"
+
+msgid "ui.resource_inventory.collapse_tooltip"
+msgstr "Collapse this resource inventory."
+
+msgid "ui.resource_inventory.expand_tooltip"
+msgstr "Show this resource inventory."
+
+msgid "ui.construction.placement_valid"
+msgstr "[OK] Valid frontage — click to select."
+
+msgid "ui.construction.placement_selected"
+msgstr "[OK] Placement selected — confirm when ready."
+
+msgid "ui.construction.placement_blocked_resource"
+msgstr "[X] Blocked by a natural resource."
+
+msgid "ui.construction.placement_blocked_building"
+msgstr "[X] Blocked by a building."
+
+msgid "ui.construction.placement_blocked_corridor"
+msgstr "[X] Blocked by a protected corridor."
+
+msgid "ui.construction.placement_blocked_territory"
+msgstr "[X] Outside available territory."

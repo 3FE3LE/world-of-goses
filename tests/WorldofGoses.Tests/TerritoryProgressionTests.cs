@@ -40,59 +40,41 @@ public sealed class TerritoryProgressionTests
     }
 
     [Fact]
-    public void FirstSuccessfulReconnaissance_RevealsAvailableLotThroughCausalStates()
+    public void FreshCity_HasThreeHorizontalParcelsAndNoExpansionTarget()
     {
-        CityWorld world = NewTerritoryWorld();
-        CityParcel target = world.NextTerritoryTarget!;
-        Assert.Equal(ParcelTerritoryState.Locked, target.TerritoryState);
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingOpportunities();
 
-        CompleteSuccessfulReconnaissance(world);
-
-        Assert.Equal(ParcelTerritoryState.Available, target.TerritoryState);
-        WorldEvent[] advances = world.Log.Events
-            .Where(evt => evt.Kind == WorldEventKind.TerritoryAdvanced)
-            .ToArray();
-        Assert.Equal(3, advances.Length);
-        Assert.Equal(
-            new[]
-            {
-                (int)ParcelTerritoryState.Reconnoitred,
-                (int)ParcelTerritoryState.RouteSecured,
-                (int)ParcelTerritoryState.Available,
-            },
-            advances.Select(evt => evt.Amount));
-        Assert.All(advances, advanced =>
+        Assert.Null(world.NextTerritoryTarget);
+        Assert.Equal(3, world.Parcels.Count);
+        Assert.Equal(new[] { 0, 1, 2 }, world.Parcels.Values
+            .OrderBy(parcel => parcel.LogicalColumn)
+            .Select(parcel => parcel.LogicalColumn));
+        Assert.All(world.Parcels.Values, parcel =>
         {
-            Assert.Equal(target.Id.Value, advanced.Subject.EntityId);
-            Assert.NotNull(advanced.CauseEventId);
+            Assert.Equal(0, parcel.LogicalRow);
+            Assert.Equal(ParcelTerritoryState.Available, parcel.TerritoryState);
         });
-        Assert.Contains(
-            world.AvailableConstructionLots(),
-            lot => lot.ParcelId == target.Id);
     }
 
     [Fact]
-    public void FirstSuccessfulReconnaissance_MakesTargetLotPersistentlyAvailable()
+    public void Reconnaissance_DoesNotUnlockTerrainWhileExpansionIsSuspended()
     {
         CityWorld world = NewTerritoryWorld();
-        CityParcel target = world.NextTerritoryTarget!;
-        Assert.DoesNotContain(
-            world.AvailableConstructionLots(),
-            lot => lot.ParcelId == target.Id);
+        int parcelsBefore = world.Parcels.Count;
 
         CompleteSuccessfulReconnaissance(world);
 
-        Assert.Equal(ParcelTerritoryState.Available, target.TerritoryState);
-        Assert.Contains(
-            world.AvailableConstructionLots(),
-            lot => lot.ParcelId == target.Id);
+        Expedition expedition = Assert.Single(world.Expeditions.Values);
+        Assert.Null(expedition.TargetParcelId);
+        Assert.Equal(parcelsBefore, world.Parcels.Count);
+        Assert.DoesNotContain(
+            world.Log.Events,
+            evt => evt.Kind == WorldEventKind.TerritoryAdvanced);
 
         CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
-        CityParcel restoredTarget = restored.Parcels[target.Id];
-        Assert.Equal(ParcelTerritoryState.Available, restoredTarget.TerritoryState);
-        Assert.Contains(
-            restored.AvailableConstructionLots(),
-            lot => lot.ParcelId == target.Id);
+        Assert.Null(restored.NextTerritoryTarget);
+        Assert.Equal(parcelsBefore, restored.Parcels.Count);
     }
 
     private static CityWorld NewTerritoryWorld()

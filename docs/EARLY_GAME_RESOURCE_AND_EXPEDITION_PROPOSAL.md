@@ -144,13 +144,35 @@ test. Leaves are a visual variant of Plant Fiber rather than another counter.
 | Small Stone | 3 clusters x 2 | 6 | Fire ring and later preparation |
 | Wild Food | 4 patches x 2 | 8 | Four-day buffer, seed, or supplies |
 
-Ground nodes are finite. Collecting one should take a short contextual action
-and use the existing visual pathfinding, but it should not require a tool. The
-domain records source identity, remaining reserve, assigned collector if any,
-and result; the walk and pickup animation remain presentation.
+These four rudimentary ground-node kinds are finite and tool-free. Collecting
+one takes a short contextual action and uses the existing visual pathfinding.
+That rule does not include mature trees: Wood extraction has the capability
+gate defined below. The domain records source identity, remaining reserve,
+assigned collector if any, and result; the walk and pickup animation remain
+presentation.
 
 Starting resources remain on their nodes until collected. They do not count
 against storage before collection.
+
+**Spatial integration (approved 2026-08-03, schema v26).** Every ground node
+owns one explicit frontage cell, not a dedicated `3×3` building lot. Nodes of
+different types may share a parcel and row, but fresh layouts scatter their
+cells procedurally instead of forming repeated single-file runs. The scatter is
+deterministic from the founder seed, preserves the central arrival cell, and
+persists each unit position. A live node
+prevents construction only through windows that actually include its cell;
+other empty cells in the parcel remain eligible. Rendering anchors the asset
+behind the street edge so citizens can pass visibly in front, while navigation
+uses the shared obstacle-footprint and clearance contract.
+
+**Opening territory correction (approved 2026-08-03).** A fresh city exposes
+three available parcels in one horizontal band. It does not render a locked
+parcel or a dark mask over nominally empty terrain. Territory expansion is
+suspended until its boundary language and acquisition loop are designed; the
+preferred direction to test is a finite digital-terrarium edge, potentially an
+authored forest enclosure, rather than an unexplained shaded wasteland. Older
+saves retain their parcel records, but no new reconnaissance unlock target is
+selected while this decision remains open.
 
 Before the Cache exists, the founder may carry at most 6 collected units. The
 Cache holds 12 total units and the consolidated Basic Shelter raises site
@@ -158,13 +180,23 @@ storage to 24. These are domain capacities, not visual slot counts. Building a
 module consumes carried or stored inputs through the ledger; the game does not
 create a hidden pre-camp warehouse.
 
+**Ownership presentation correction (approved 2026-08-03).** The Construction
+surface exposes the founder's six-unit rudimentary load before Cache and keeps
+it expanded by default. On Cache completion it relabels the same inventory as
+the site's 12-unit storage; after Shelter consolidation, resource management
+moves to the Shelter detail drawer. Basic-gather feedback follows that same
+physical owner. Legacy Food or Wood in city inventory cannot consume the
+founder's pre-Cache carrying allowance.
+
 ### Mature trees
 
 - Seed 6 mature trees near the founding area, not 16.
 - Each tree represents 8 units of usable Wood, for 48 Wood total potential.
 - A mature tree cannot be exploited at the start.
 - Unlock exploitation only after the founding shelter and a minimal forestry
-  capability: a suitable tool or a worker assigned through a forestry order.
+  capability. The first implemented capability is one durable Primitive Axe,
+  crafted after Shelter completion from 1 Branch + 1 Small Stone and stored in
+  the Shelter. It is a narrow gate, not a general crafting or durability system.
 - Extraction should take four work boundaries of 2 Wood, rather than granting
   the full tree instantly.
 - Do not regenerate 1 Wood per tree every day. In the first implementation,
@@ -453,7 +485,7 @@ Persist semantic context only.
 ### Resource opportunities
 
 - opportunity ID and kind;
-- parcel/lot or route anchor;
+- parcel plus explicit unit-cell anchor, or route anchor;
 - remaining reserve;
 - availability/cooldown boundary;
 - access requirement state.
@@ -488,7 +520,7 @@ transitions as live play and record each exact-once result.
 
 ## 12. Existing systems to reuse
 
-- `NaturalResourcePatch`: stable unit reserves and parcel occupancy.
+- `NaturalResourcePatch`: stable unit reserves and explicit per-unit positions.
 - `CityResourceLedger`: atomic consumption and durable reservations.
 - `ConstructionProject` and `ConstructionSimulation`: work, contributors,
   material drawdown, stop causes, and completion events.
@@ -497,7 +529,8 @@ transitions as live play and record each exact-once result.
   result, return, and wounds.
 - `WorldTimeAdvance` / `OfflineProgression`: shared live/offline advancement.
 - `WorldEventLog`: causal reports and visible blockers.
-- parcel lots and placements: stable 3 x 3 site identity.
+- frontage reservations: stable 3 x 3 identity for construction sites, never
+  implicit exclusivity for a one-cell resource node.
 - macro pathfinding and building anchors: live visual travel only.
 
 ## 13. Systems to create or refactor
@@ -578,7 +611,8 @@ The increments, in design order:
 2. **EG-1 — resource/storage seam.** *Implemented 2026-07-31 (schema v21).*
    Generalize natural opportunities, add
    bounded Cache storage and migrations. Keep the legacy opening available
-   until the new loop is end-to-end.
+   until the new loop is end-to-end. Spatial placement was subsequently
+   compacted and persisted per unit in schema v26 (2026-08-03).
 3. **EG-2 — founding site seam.** *Implemented 2026-07-31 (schema v22).*
    Deliver Campfire -> Bedroll/Cache -> Canopy -> Basic Shelter in one stable
    3 x 3 site, including offline phase completion. Module facts persist through
@@ -591,10 +625,26 @@ The increments, in design order:
    1 Small Stone and 180 work; sowing consumes 1 Food, readiness resolves at
    `readyAtTick` after 10,800 ticks in live and offline simulation, and harvest
    deposits 5 Food. The HUD projects ration horizon and protected Food.
-5. **EG-4 — resource expedition seam.** Add one finite Food opportunity and
-   one finite Wood opportunity through the existing full expedition chain.
-6. **EG-5 — consolidation.** Add second/third plots, Farm consolidation, and
-   gate mature-tree exploitation behind the first real forestry capability.
+5. **EG-4 — resource expedition seam.** *Implemented 2026-08-03 (schema v27).*
+   One finite nearby-Food opportunity and one finite fallen-Wood opportunity
+   use the existing outbound → encounter → objective/retreat → return chain.
+   Campfire + Cache unlock both. Food costs 1 Branch, lasts 120 ticks and
+   returns 3/5/7 Food; Wood costs 1 Food, lasts 180 ticks and returns 4/6/8
+   Wood. Dispatch atomically reserves the opportunity, supply and bounded
+   return capacity; cancellation or retreat releases the opportunity, while a
+   completed objective depletes it. Live, offline and save/load resolution use
+   the same persisted state.
+6. **EG-5 — consolidation.** *In progress; first correction implemented
+   2026-08-03 (schema v28).* Fresh terrain is three horizontal parcels with no
+   unlockable frontier; resources use deterministic scatter and generic
+   clearance-based traversal. A durable Primitive Axe (1 Branch + 1 Small
+   Stone after Shelter completion) gates mature-tree Wood. Second/third plots
+   and Farm consolidation remain. Resource quantities no longer occupy the
+   global status strip: the completed Shelter exposes a collapsible inventory
+   surface. Routine gains remain domain facts but are omitted from Chronicle;
+   gathering a basic ground resource instead raises a transient icon and
+   `+amount` above its current owner: founder before Cache, Founding Site after
+   Cache, and Shelter after consolidation.
 7. **EG-6 — calibration/signature.** Run two new-city cycles with relaunches,
    one suboptimal-but-recoverable decision, and no debug actions. Only then
    retire the legacy founding flow.

@@ -1,8 +1,8 @@
 # UI Audit — Current state
 
-**Last aligned:** 2026-07-30
+**Last aligned:** 2026-08-03
 
-**Baseline:** clean build, 586/586 tests, successful headless boot.
+**Baseline:** clean build, 728/729 tests (1 known skipped JSON snapshot).
 
 **Active signature:** VS-5 at 1280×720 and 1920×1080.
 
@@ -14,14 +14,16 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 | Area | Current state |
 | --- | --- |
 | Macro world | `MacroStreetLiveView` is the only runtime macro representation. |
-| HUD | CanvasLayer-independent status/navigation surfaces; immediate time/resources/alerts only. |
+| HUD | CanvasLayer-independent status/navigation surfaces; immediate time/alerts and global actions, without resource counters. |
+| Shelter resources | Collapsible icon-and-quantity inventory in Shelter detail; reservation detail remains available by tooltip. |
+| Founding cargo | Construction shows the founder's 6-unit load expanded before Cache, then the site's 12-unit Cache; no hidden pre-camp warehouse. |
 | Modals | `ModalHost` owns scrim, focus restoration, ESC and outside-click close. |
 | Reusable controls | `StandardButtons`, `PanelHeader`, `AssignmentRow`, `SafeAreaMarginContainer` and shared theme variations. |
 | Citizens | Selectable roster; selection does not activate camera follow; debug builds expose semantic routine context. |
 | Policies | Read-only workday/production/off-duty/construction surface with bounded scroll. |
-| Chronicle | Bounded scroll, compaction and causal blockers; macro-only visibility. |
+| Chronicle | Bounded scroll, compaction and causal blockers; routine resource gains are excluded from its presentation. |
 | Save feedback | Temporary confirmation; no permanent `Saved` navigation chip. |
-| Camera | Free default, explicit follow, WASD/arrows camera-only. |
+| Camera | Free default, explicit follow, WASD/arrows camera-only; uniform zoom preserves one perspective while a thirteen-street render window moves through the territory. |
 | Wheel input | A hovered `ScrollContainer` owns the wheel at both scroll limits; map zoom cannot leak through. |
 | Localization | Native EN/ES PO catalogs and hot locale changes. |
 
@@ -66,13 +68,29 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 - [ ] Storage/food/schedule blockers produce a coherent wait/rest/leisure state,
       not a frozen citizen at an entrance.
 - [ ] Multiple citizens never duplicate a carrier when switching macro/detail.
-- [ ] Gather routes remain visible and pass through valid gaps between trees.
+- [ ] Routes remain visible and pass through every valid clearance-defined gap,
+      regardless of whether adjacent obstacles are resources or constructions.
 
 ### Complete-loop feedback
 
 - [ ] Prospect arrival and housing restriction are understandable.
 - [ ] Daily Food pressure is visible before it becomes a soft lock.
-- [ ] Expedition team, supplies and retreat posture are discoverable.
+- [x] Expedition team, finite Food/Wood objectives, supplies and retreat
+      posture are discoverable; posture uses pixel-font `[X]/[ ]` buttons,
+      verified by real pointer capture at 1280×720 and 1920×1080.
+- [ ] Shelter detail makes the Primitive Axe recipe, missing input and durable
+      stored state legible with the shared pixel UI; tree gathering explains
+      the missing-tool blocker before movement.
+- [ ] Shelter resource inventory opens and closes through its real chevron;
+      basic gathering raises icon + amount above the physical owner, follows
+      the founder before Cache, then disappears without adding a Chronicle row
+      or restoring counters to the status bar.
+- [ ] Before Cache, Construction exposes the founder's carried load and gain
+      feedback follows the founder; after Cache, both label and feedback move
+      to the Founding Site without changing the gathered quantities.
+- [ ] Construction placement shows both axes of the full frontage/depth grid;
+      hovering a valid or blocked window previews `[OK]`/`[X]` feedback before
+      click, and resource/building obstacles never erase explanatory lines.
 - [ ] Encounter, return, wound and territory changes identify subject and cause.
 - [ ] Treatment communicates Food cost, duration and completion.
 - [ ] Save confirmation appears briefly and disappears.
@@ -84,8 +102,6 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 - Large-event feedback needs final human tuning.
 - Toast/tutorial/Chronicle exclusion is not centralized; implement a shared host
   only if VS-5 reproduces an actual collision.
-- Expedition UI should consume a dedicated presentation snapshot before adding
-  another planning/outcome dimension.
 - No final audio feedback or bus tree is wired.
 
 ## 5. Sign-off rule

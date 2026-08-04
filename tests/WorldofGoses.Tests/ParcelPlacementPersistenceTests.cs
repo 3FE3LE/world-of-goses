@@ -10,7 +10,7 @@ namespace WorldofGoses.Tests;
 public sealed class ParcelPlacementPersistenceTests
 {
     [Fact]
-    public void AvailableLots_ExcludeOnlyLotsWithLiveNaturalResourceUnits()
+    public void AvailableWindows_ExcludeResourceCellsButKeepOtherSameParcelSpace()
     {
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
@@ -18,16 +18,17 @@ public sealed class ParcelPlacementPersistenceTests
         IReadOnlyList<ConstructionLot> lots = world.AvailableConstructionLots();
 
         Assert.NotEmpty(lots);
-        Assert.DoesNotContain(
-            lots,
-            lot => lot.ParcelId == new ParcelId(1)
-                && lot.LotColumn == 0
-                && lot.LotRow == 0);
-        Assert.Contains(
-            lots,
-            lot => lot.ParcelId == new ParcelId(1)
-                && lot.LotColumn == 2
-                && lot.LotRow == 2);
+        NaturalResourcePatch patch = world.NaturalResourcePatches.Values.First();
+        CityParcel parcel = world.Parcels[patch.ParcelId];
+        NaturalResourceUnitPosition position = patch.UnitPositions[0];
+        ConstructionRowId row = position.GlobalRow(parcel);
+        int column = position.GlobalFrontageColumn(parcel);
+
+        Assert.DoesNotContain(lots, lot =>
+            lot.RowId == row
+            && lot.StartColumn <= column
+            && lot.StartColumn + lot.FrontageColumns > column);
+        Assert.Contains(lots, lot => lot.ParcelId == patch.ParcelId);
     }
 
     [Fact]
@@ -112,6 +113,12 @@ public sealed class ParcelPlacementPersistenceTests
                 restored.ParcelPlacements[expected.EntityId].LotColumn);
             Assert.Equal(expected.LotRow,
                 restored.ParcelPlacements[expected.EntityId].LotRow);
+            Assert.Equal(expected.RowId,
+                restored.ParcelPlacements[expected.EntityId].RowId);
+            Assert.Equal(expected.StartColumn,
+                restored.ParcelPlacements[expected.EntityId].StartColumn);
+            Assert.Equal(expected.FrontageColumns,
+                restored.ParcelPlacements[expected.EntityId].FrontageColumns);
             Assert.Equal(expected.FootprintProfileId,
                 restored.ParcelPlacements[expected.EntityId].FootprintProfileId);
         }
@@ -126,6 +133,8 @@ public sealed class ParcelPlacementPersistenceTests
         second.ParcelId = first.ParcelId;
         second.LotColumn = first.LotColumn;
         second.LotRow = first.LotRow;
+        second.RowId = first.RowId;
+        second.StartColumn = first.StartColumn;
 
         Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(save));
     }

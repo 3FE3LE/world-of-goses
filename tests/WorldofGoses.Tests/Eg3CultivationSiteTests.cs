@@ -184,7 +184,8 @@ public sealed class Eg3CultivationSiteTests
 
         Assert.Equal(24, migrated.Version);
         Assert.Empty(migrated.CultivationSites);
-        WorldPersistence.Validate(migrated);
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        WorldPersistence.Validate(current);
     }
 
     [Fact]
@@ -203,8 +204,14 @@ public sealed class Eg3CultivationSiteTests
             pendingSave.ParcelPlacements,
             item => item.EntityId == pendingId.Value);
         placement.EntityId = project.Id;
-        placement.LotColumn = 2;
+        ParcelSave freeParcel = save.Parcels.First(parcel =>
+            parcel.IsUnlocked
+            && save.ParcelPlacements.All(existing => existing.ParcelId != parcel.Id));
+        placement.ParcelId = freeParcel.Id;
+        placement.LotColumn = 0;
         placement.LotRow = 0;
+        placement.RowId = ParcelGrid.ConstructionRow(freeParcel.LogicalRow, 0).Value;
+        placement.StartColumn = ParcelGrid.GlobalFrontageColumn(freeParcel.LogicalColumn, 0);
         save.Projects.Add(project);
         save.ParcelPlacements.Add(placement);
 

@@ -3,8 +3,9 @@ using System;
 namespace WorldofGoses.Domain;
 
 /// <summary>
-/// Logical parcel geometry. A parcel contains 3×3 standard lots; every lot is
-/// 3×3 visual tiles, represented as 6×6 half-tile cells.
+/// Logical parcel geometry. A parcel contributes nine frontage columns to
+/// each of three construction rows. Legacy 3×3 lot helpers remain only for
+/// resource anchoring and v24 migration.
 /// </summary>
 public static class ParcelGrid
 {
@@ -15,6 +16,40 @@ public static class ParcelGrid
         TilesPerStandardLot * HalfTilesPerTile;
     public const int HalfTilesPerParcel =
         LotsPerAxis * HalfTilesPerStandardLot;
+    public const int FrontageColumnsPerParcel =
+        LotsPerAxis * TilesPerStandardLot;
+    public const int ConstructionRowsPerParcel = LotsPerAxis;
+
+    public static ConstructionRowId ConstructionRow(int parcelRow, int lotRow)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(parcelRow);
+        if (lotRow < 0 || lotRow >= ConstructionRowsPerParcel)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lotRow));
+        }
+        return new ConstructionRowId(
+            checked(parcelRow * ConstructionRowsPerParcel + lotRow));
+    }
+
+    public static int GlobalFrontageColumn(
+        int parcelColumn,
+        int lotColumn,
+        int tileColumnWithinLot = 0)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(parcelColumn);
+        if (lotColumn < 0 || lotColumn >= LotsPerAxis)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lotColumn));
+        }
+        if (tileColumnWithinLot < 0 || tileColumnWithinLot >= TilesPerStandardLot)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tileColumnWithinLot));
+        }
+        return checked(
+            parcelColumn * FrontageColumnsPerParcel
+            + lotColumn * TilesPerStandardLot
+            + tileColumnWithinLot);
+    }
 
     public static HalfTileRect StandardLot(int column, int row)
     {
@@ -45,26 +80,36 @@ public static class ParcelGrid
         return (lotIndex % LotsPerAxis, lotIndex / LotsPerAxis);
     }
 
+    public static int NaturalResourceFrontageColumn(int parcelColumn, int unitId)
+    {
+        return checked(NaturalResourceFrontageStartColumn(parcelColumn, unitId) + 1);
+    }
+
+    public static int NaturalResourceFrontageStartColumn(int parcelColumn, int unitId)
+    {
+        (int lotColumn, _) = NaturalResourceLot(unitId);
+        return GlobalFrontageColumn(parcelColumn, lotColumn);
+    }
+
     public static PassageClass ClassifyPassage(int widthInHalfTiles)
     {
-        if (widthInHalfTiles < 1) return PassageClass.Blocked;
-        if (widthInHalfTiles == 1) return PassageClass.NarrowPassage;
-        if (widthInHalfTiles < 4) return PassageClass.Path;
-        if (widthInHalfTiles < 6) return PassageClass.Street;
+        if (widthInHalfTiles < 2) return PassageClass.Blocked;
+        if (widthInHalfTiles < 4) return PassageClass.NarrowPassage;
+        if (widthInHalfTiles < 6) return PassageClass.Path;
         return PassageClass.OpenSpace;
     }
 
     public static int HorizontalClearance(
-        BuildingFootprintTemplate left,
+        ObstacleFootprintTemplate left,
         int deliberatelyEmptyHalfTiles,
-        BuildingFootprintTemplate right)
+        ObstacleFootprintTemplate right)
     {
         ArgumentNullException.ThrowIfNull(left);
         ArgumentNullException.ThrowIfNull(right);
         ArgumentOutOfRangeException.ThrowIfNegative(deliberatelyEmptyHalfTiles);
         return checked(
-            left.RightSetback
+            left.RightClearance
             + deliberatelyEmptyHalfTiles
-            + right.LeftSetback);
+            + right.LeftClearance);
     }
 }

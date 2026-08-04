@@ -71,14 +71,24 @@ public partial class MacroStreetLiveView : Node2D
     private const bool DefaultCameraFollowsHero = false;
     private const float CenterX = 640f;
     private const float BaseY = 580f; // ScreenContent-local: clear of the ~68px MacroActions band
+    private const float CameraZoomPivotY = 680f;
     private const float LotUnitPx = 90f;
-    private const int WorldParcelColumns = 5;
-    private const int WorldParcelRows = 2;
+    private const int DefaultWorldParcelColumns = 5;
+    private const int DefaultWorldParcelRows = 2;
 
     // Quantized zoom: discrete steps, never a continuous drag/slider.
     private const float ZoomStep = 0.15f;
-    private const float MinZoom = 0.7f;
-    private const float MaxZoom = 1.6f;
+    private const float MinZoom = 1.3f;
+    private const float DefaultZoom = 1.45f;
+    private const float MaxZoom = 2.2f;
+
+    // Holding vertical pan repeats slowly at first, then gently accelerates.
+    // The camera still advances only on the 12 Hz pixel-motion cadence and
+    // still crosses integer streets through discrete transition steps.
+    private const float VerticalPanInitialRepeatSeconds = 0.48f;
+    private const float VerticalPanMinimumRepeatSeconds = 0.26f;
+    private const float VerticalPanAccelerationSeconds = 3f;
+    private const float VerticalPanMaximumTransitionMultiplier = 1.55f;
 
     // Same cadence discipline as the earlier prototypes (design bible §08,
     // "Pixel-motion grammar"): no continuous tweening.
@@ -90,14 +100,12 @@ public partial class MacroStreetLiveView : Node2D
     // never a continuous Tween), applied to THIS node's own Scale/Position
     // (the map), not to BuildingDetailView. See BeginBuildingEntry.
     private const int BuildingEntryZoomSteps = 5;
-    private const float BuildingEntryZoomLevel = MaxZoom;
+    private const float BuildingEntryZoomLevel = 1.75f;
 
-    // Trees reuse the flat view's Kenney atlas tiles (ResourceTree) so both
-    // world views share one visual identity; 44 px base ≈ the flat view's
-    // 48 px tree on this view's 30 px/tile lots.
-    private const float TreeBaseSizePx = 44f;
+    // One resource unit owns one frontage cell. Its visual canvas therefore
+    // stays within that cell instead of visually claiming a whole 3×3 lot.
+    private const float ResourceUnitBaseSizePx = TileUnitPx;
     // Lateral span a living tree blocks when crossing its band (its lot).
-    private const float TreeBlockHalfWidthPx = 22f;
     // Half hero width plus a small margin: how much free lateral space a
     // crossing between streets needs to count as viable.
     private const float RouteClearancePx = 14f;
@@ -143,7 +151,11 @@ public partial class MacroStreetLiveView : Node2D
     private const float StatusBadgeBorder = 2f;
     private static readonly Color BuildingColor = new("#8a7a54");
     private static readonly Color UnderConstructionModulate = new(0.55f, 0.55f, 0.55f);
-    private static readonly Color PlacementAvailableColor = new("#2f8f5b99");
+    private static readonly Color PlacementAvailableColor = new("#2f8f5b22");
+    private static readonly Color PlacementHoveredValidColor = new("#45c87866");
+    private static readonly Color PlacementHoveredInvalidColor = new("#c94f4f70");
+    private static readonly Color PlacementBlockedCellColor = new("#8f3f3f2e");
+    private static readonly Color PlacementGridColor = new("#d8cda566");
     // Territory tints: opaque for Locked so the player cannot mistake
     // it for buildable ground; progressively lighter for intermediate
     // states so the visual cost of an expedition reads at a glance.
@@ -200,7 +212,7 @@ public partial class MacroStreetLiveView : Node2D
     private int? _hoveredStorageBuildingId;
     private CitizenId? _visualStatusCitizenId;
     private bool _selectionIsMacro = true;
-    private float _zoomLevel = 1f;
+    private float _zoomLevel = DefaultZoom;
     private Vector2 _neutralPosition;
 
     // Building-entry push state (see BeginBuildingEntry/AdvanceBuildingEntry).
@@ -222,16 +234,36 @@ public partial class MacroStreetLiveView : Node2D
     private float _cameraDepthAnchor;
     private float? _cameraDepthTarget;
     private float _cameraTransitionAccumulator;
+    private int _verticalPanDirection;
+    private float _verticalPanHoldSeconds;
+    private float _verticalPanRepeatAccumulator;
 
-    // Placement mode: select-then-confirm lot picking projected directly on
+    // Placement mode: select-then-confirm frontage picking projected directly on
     // the same terrain geometry as the city.
     private readonly record struct PlacementLotBox(
-        ConstructionLot Lot, int Street, float LateralOffset, float Width, float Height);
+        ConstructionPlacementSnapshot.WindowItem Window,
+        int Street,
+        float LateralOffset,
+        float Width,
+        float Height);
+    private readonly record struct PlacementCellBox(
+        ConstructionPlacementSnapshot.CellItem Cell,
+        int Street,
+        float LateralOffset,
+        float Width,
+        float Height);
+    private readonly record struct ResourceFeedbackAnchor(
+        Vector2 Position,
+        Node2D? FollowTarget,
+        Vector2 FollowOffset);
     private readonly List<PlacementLotBox> _placementLots = new();
+    private readonly List<PlacementCellBox> _placementCells = new();
     private readonly List<(Rect2 Rect, PlacementLotBox Lot)> _clickablePlacementRects = new();
     private bool _placementActive;
     private ConstructionKind _placementKind;
     private ConstructionLot? _selectedPlacementLot;
+    private PlacementLotBox? _hoveredPlacementLot;
+    private string _placementBaseInstruction = string.Empty;
     private Label _placementInstruction = null!;
     private Button _placementConfirmButton = null!;
     private Button _placementCancelButton = null!;
@@ -251,6 +283,9 @@ public partial class MacroStreetLiveView : Node2D
 
     private int _streetCount = 1;
     private float _lateralHalfWidthPx = LotUnitPx;
+    private int _worldParcelColumns = DefaultWorldParcelColumns;
+    private int _worldParcelRows = DefaultWorldParcelRows;
+    private readonly Dictionary<(int Row, int Column), ParcelTerritoryState> _parcelTerritory = new();
 
     // The founder has an independent physical position. Follow mode may use
     // it as the camera anchor, but selection and keyboard input never move it.
@@ -261,6 +296,7 @@ public partial class MacroStreetLiveView : Node2D
     private float _motionAccumulator;
     private float _transitionAccumulator;
     private bool _heroWalking;
+    private bool _heroPositionInitialized;
 
     private SelectionInfoPanel _selectionInfoPanel = null!;
     private TreeBox? _selectedTree;
@@ -386,9 +422,9 @@ public partial class MacroStreetLiveView : Node2D
         // Pixel-art atlas tiles scale up crisp instead of smearing.
         TextureFilter = TextureFilterEnum.Nearest;
 
-        _streetCount = WorldParcelRows * ParcelGrid.LotsPerAxis;
+        _streetCount = _worldParcelRows * ParcelGrid.LotsPerAxis;
         _lateralHalfWidthPx =
-            WorldParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
+            _worldParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
 
         _actionMenu = GD.Load<PackedScene>(ResourceActionMenuScenePath).Instantiate<ResourceActionMenu>();
         _actionMenu.GatherRequested += OnGatherRequested;
@@ -424,6 +460,8 @@ public partial class MacroStreetLiveView : Node2D
         UpdateConstructionButtonLabel();
 
         RefreshPlots();
+        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _cameraDepthAnchor = _freeCameraStreet;
         Visible = false;
         // ScreenContent (this node's parent) sits below CityStatusPanel
         // inside a VBoxContainer, so its own local (0,0) is NOT the
@@ -444,6 +482,8 @@ public partial class MacroStreetLiveView : Node2D
     {
         Position -= GlobalPosition;
         _neutralPosition = Position;
+        Scale = Vector2.One;
+        ZoomTowardPivot(DefaultZoom, new Vector2(CenterX, CameraZoomPivotY));
     }
 
     public override void _ExitTree()
@@ -572,19 +612,17 @@ public partial class MacroStreetLiveView : Node2D
 
     public Vector2 GetFoundingArrivalGlobalPosition()
     {
-        IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
-        if (lots.Count == 0) return ToGlobal(new Vector2(CenterX, BaseY));
-
-        ConstructionLot lot = lots[0];
-        int street = lot.ParcelRow * ParcelGrid.LotsPerAxis + lot.LotRow;
-        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
-        float lotCenterColumn = lot.ParcelColumn * ParcelGrid.LotsPerAxis + lot.LotColumn + 0.5f;
-        float lateral = (lotCenterColumn - totalLotColumns * 0.5f) * LotUnitPx;
-        (Vector2 position, _) = StreetDepthProjection.Project(
+        int street = FoundingLayout.InitialParcelRow * ParcelGrid.ConstructionRowsPerParcel
+            + FoundingLayout.FounderRowWithinParcel;
+        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+        float frontageCenter = FoundingLayout.InitialParcelColumn
+            * ParcelGrid.FrontageColumnsPerParcel
+            + FoundingLayout.FounderFrontageColumnWithinParcel
+            + 0.5f;
+        float lateral = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+        (Vector2 position, _) = ProjectDepth(
             AnchorDepth(street - CameraDepthAnchor),
-            lateral - CameraLateral,
-            CenterX,
-            BaseY);
+            lateral - CameraLateral);
         return ToGlobal(position);
     }
 
@@ -635,9 +673,10 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void ResetZoom()
     {
-        _zoomLevel = 1f;
+        _zoomLevel = DefaultZoom;
         Scale = Vector2.One;
         Position = _neutralPosition;
+        ZoomTowardPivot(DefaultZoom, new Vector2(CenterX, CameraZoomPivotY));
         _pendingBuildingEntry = null;
     }
 
@@ -678,14 +717,15 @@ public partial class MacroStreetLiveView : Node2D
     private void OnPlacementRequested(int constructionKind)
     {
         if (!Visible) return;
-        IReadOnlyList<ConstructionLot> lots = _controller.AvailableConstructionLots();
-        if (lots.Count == 0)
+        ConstructionPlacementSnapshot placement =
+            _controller.GetConstructionPlacementSnapshot();
+        if (!placement.Windows.Any(window => window.IsValid))
         {
             Notifier.ShowError(UiText.Get("No unlocked parcel has a free building lot."));
             return;
         }
         _modalHost.Close();
-        BeginPlacement((ConstructionKind)constructionKind, lots);
+        BeginPlacement((ConstructionKind)constructionKind, placement);
     }
 
     private void OnConstructionPanelCloseRequested()
@@ -730,6 +770,21 @@ public partial class MacroStreetLiveView : Node2D
         _modalHost.Open(_constructionPanel);
         _constructionPanel.Refresh();
         _constructionPanel.ScrollBodyToEndForVisualRegression();
+    }
+
+    internal void ShowConstructionPlacementHoverForVisualRegression(bool valid)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        ActivatePerspective();
+        OnPlacementRequested((int)ConstructionKind.Farm);
+        foreach (PlacementLotBox candidate in _placementLots)
+        {
+            if (candidate.Window.IsValid != valid) continue;
+            _hoveredPlacementLot = candidate;
+            _placementInstruction.Text = PlacementHoverText(candidate.Window.State);
+            QueueRedraw();
+            return;
+        }
     }
 
     internal void ShowEarlyGameResourcesForVisualRegression()
@@ -831,21 +886,24 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>
     /// Enters select-then-confirm placement mode: projects each available
-    /// lot at its calle/lateral position (same mapping <see cref="AddPlot"/>
-    /// uses), matching real domain <see cref="ConstructionLot"/> data —
-    /// standard blueprints are always exactly one lot wide/tall in
-    /// production today (see H-26), so <see cref="LotUnitPx"/> is used
-    /// directly for both dimensions.
+    /// frontage window at its calle/lateral position (same mapping
+    /// <see cref="AddPlot"/> uses), matching real domain
+    /// <see cref="ConstructionLot"/> data. Base blueprints reserve three
+    /// whole frontage columns and three depth rows.
     /// </summary>
-    private void BeginPlacement(ConstructionKind kind, IReadOnlyList<ConstructionLot> lots)
+    private void BeginPlacement(
+        ConstructionKind kind,
+        ConstructionPlacementSnapshot placement)
     {
         _placementActive = true;
         _placementKind = kind;
         _selectedPlacementLot = null;
+        _hoveredPlacementLot = null;
         _placementConfirmButton.Disabled = true;
-        _placementInstruction.Text = UiText.Format(
+        _placementBaseInstruction = UiText.Format(
             "ui.construction.choose_lot",
             UiText.Get(ConstructionRules.DisplayNameFor(kind)));
+        _placementInstruction.Text = _placementBaseInstruction;
         _placementInstruction.Visible = true;
         _placementFooter.Visible = true;
         _actionMenu.Hide();
@@ -855,14 +913,32 @@ public partial class MacroStreetLiveView : Node2D
         _selectedBuildingId = null;
         ClearTreeHover();
         _macroActions.Hide();
-        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
+        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
         _placementLots.Clear();
-        foreach (ConstructionLot lot in lots)
+        _placementCells.Clear();
+        foreach (ConstructionPlacementSnapshot.WindowItem window in placement.Windows)
         {
-            int street = lot.ParcelRow * ParcelGrid.LotsPerAxis + lot.LotRow;
-            float lotCenterColumn = lot.ParcelColumn * ParcelGrid.LotsPerAxis + lot.LotColumn + 0.5f;
-            float lateralOffset = (lotCenterColumn - totalLotColumns * 0.5f) * LotUnitPx;
-            _placementLots.Add(new PlacementLotBox(lot, street, lateralOffset, LotUnitPx, LotUnitPx));
+            ConstructionLot lot = window.Lot;
+            int street = lot.RowId.Value;
+            float frontageCenter = lot.StartColumn + lot.FrontageColumns * 0.5f;
+            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            _placementLots.Add(new PlacementLotBox(
+                window,
+                street,
+                lateralOffset,
+                lot.FrontageColumns * TileUnitPx,
+                BuildingReservation.RequiredDepthRows * TileUnitPx));
+        }
+        foreach (ConstructionPlacementSnapshot.CellItem cell in placement.Cells)
+        {
+            float frontageCenter = cell.FrontageColumn + 0.5f;
+            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            _placementCells.Add(new PlacementCellBox(
+                cell,
+                cell.RowId.Value,
+                lateralOffset,
+                TileUnitPx,
+                BuildingReservation.RequiredDepthRows * TileUnitPx));
         }
         QueueRedraw();
     }
@@ -871,7 +947,9 @@ public partial class MacroStreetLiveView : Node2D
     {
         _placementActive = false;
         _selectedPlacementLot = null;
+        _hoveredPlacementLot = null;
         _placementLots.Clear();
+        _placementCells.Clear();
         _clickablePlacementRects.Clear();
         _placementInstruction.Visible = false;
         _placementFooter.Visible = false;
@@ -882,10 +960,52 @@ public partial class MacroStreetLiveView : Node2D
 
     private void SelectPlacementLot(PlacementLotBox lot)
     {
-        _selectedPlacementLot = lot.Lot;
+        if (!lot.Window.IsValid)
+        {
+            _selectedPlacementLot = null;
+            _placementConfirmButton.Disabled = true;
+            _placementInstruction.Text = PlacementHoverText(lot.Window.State);
+            QueueRedraw();
+            return;
+        }
+        _selectedPlacementLot = lot.Window.Lot;
         _placementConfirmButton.Disabled = false;
+        _placementInstruction.Text = UiText.Get("ui.construction.placement_selected");
         QueueRedraw();
     }
+
+    private void UpdatePlacementHover(Vector2 mousePosition)
+    {
+        PlacementLotBox? nearest = null;
+        float nearestDistanceSquared = float.MaxValue;
+        foreach ((Rect2 rect, PlacementLotBox lot) in _clickablePlacementRects)
+        {
+            if (!rect.HasPoint(mousePosition)) continue;
+            float distanceSquared = mousePosition.DistanceSquaredTo(rect.GetCenter());
+            if (distanceSquared >= nearestDistanceSquared) continue;
+            nearest = lot;
+            nearestDistanceSquared = distanceSquared;
+        }
+
+        if (_hoveredPlacementLot == nearest) return;
+        _hoveredPlacementLot = nearest;
+        _placementInstruction.Text = nearest is PlacementLotBox hovered
+            ? PlacementHoverText(hovered.Window.State)
+            : _selectedPlacementLot.HasValue
+                ? UiText.Get("ui.construction.placement_selected")
+                : _placementBaseInstruction;
+        QueueRedraw();
+    }
+
+    private static string PlacementHoverText(FrontageCellState state) =>
+        UiText.Get(state switch
+        {
+            FrontageCellState.Available => "ui.construction.placement_valid",
+            FrontageCellState.NaturalResource => "ui.construction.placement_blocked_resource",
+            FrontageCellState.ReservedByBuilding => "ui.construction.placement_blocked_building",
+            FrontageCellState.ReservedAsCorridor => "ui.construction.placement_blocked_corridor",
+            _ => "ui.construction.placement_blocked_territory",
+        });
 
     private void OnPlacementConfirmPressed()
     {
@@ -928,12 +1048,13 @@ public partial class MacroStreetLiveView : Node2D
         _trees.Clear();
         _bandOccupancy.Clear();
         CityMacroSnapshot snapshot = _controller.GetCityMacroSnapshot();
+        RefreshParcelEnvelope(snapshot);
         _citizenStates.Clear();
         foreach (CityMacroSnapshot.CitizenItem citizen in snapshot.Citizens)
         {
             _citizenStates[citizen.Id.Value] = citizen;
         }
-        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
+        float totalLotColumns = _worldParcelColumns * ParcelGrid.LotsPerAxis;
 
         foreach (CityMacroSnapshot.PlotItem item in snapshot.Buildings)
         {
@@ -942,16 +1063,36 @@ public partial class MacroStreetLiveView : Node2D
                 AddTrees(item, totalLotColumns);
                 continue;
             }
-            AddPlot(item, totalLotColumns, clickable: true);
+            AddPlot(item, clickable: true);
         }
         foreach (CityMacroSnapshot.PlotItem item in snapshot.Projects)
         {
-            AddPlot(item, totalLotColumns, clickable: false);
+            AddPlot(item, clickable: false);
         }
         EnsureHeroCarrier(snapshot);
         RefreshCitizenVisuals(snapshot);
         RefreshSelectionInfoIfShown();
         QueueRedraw();
+    }
+
+    private void RefreshParcelEnvelope(CityMacroSnapshot snapshot)
+    {
+        _parcelTerritory.Clear();
+        int maximumColumn = -1;
+        int maximumRow = -1;
+        foreach (CityMacroSnapshot.ParcelItem parcel in snapshot.Parcels)
+        {
+            _parcelTerritory[(parcel.LogicalRow, parcel.LogicalColumn)] = parcel.TerritoryState;
+            maximumColumn = Math.Max(maximumColumn, parcel.LogicalColumn);
+            maximumRow = Math.Max(maximumRow, parcel.LogicalRow);
+        }
+        _worldParcelColumns = Math.Max(1, maximumColumn + 1);
+        _worldParcelRows = Math.Max(1, maximumRow + 1);
+        _streetCount = _worldParcelRows * ParcelGrid.ConstructionRowsPerParcel;
+        _lateralHalfWidthPx = _worldParcelColumns
+            * ParcelGrid.LotsPerAxis
+            * LotUnitPx
+            * 0.5f;
     }
 
     /// <summary>
@@ -1123,22 +1264,25 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Each forest patch has one reserve per individual tree
-    /// (<c>WoodUnitReserves</c>); <c>ParcelGrid.NaturalResourceLot</c>
-    /// gives each unit its own lot within the patch's parcel, so trees get
-    /// the same calle/lateral projection as buildings instead of all
-    /// bunching up at the patch's own (fixed 0,0) lot. Depleted units
-    /// (reserve 0) are skipped.
+    /// Each natural-resource patch has one reserve per visible unit;
+    /// <c>ParcelGrid.NaturalResourceLot</c> gives every unit a stable minimum
+    /// reservation. Navigation uses the unit's authored obstacle clearances,
+    /// never a special rule for trees or the full reserved lot.
     /// </summary>
     private void AddTrees(CityMacroSnapshot.PlotItem forest, float totalLotColumns)
     {
         for (int unitId = 0; unitId < forest.WoodUnitReserves.Count; unitId++)
         {
             if (forest.WoodUnitReserves[unitId] <= 0) continue;
-            (int lotColumn, int lotRow) = ParcelGrid.NaturalResourceLot(unitId);
-            int street = forest.ParcelRow * ParcelGrid.LotsPerAxis + lotRow;
-            float lotCenterColumn = forest.ParcelColumn * ParcelGrid.LotsPerAxis + lotColumn + 0.5f;
-            float lateralOffset = (lotCenterColumn - totalLotColumns * 0.5f) * LotUnitPx;
+            if (unitId >= forest.ResourceUnitPositions.Count) continue;
+            NaturalResourceUnitPosition position = forest.ResourceUnitPositions[unitId];
+            int street = forest.ParcelRow * ParcelGrid.ConstructionRowsPerParcel
+                + position.RowWithinParcel;
+            float totalFrontageColumns = totalLotColumns * ParcelGrid.TilesPerStandardLot;
+            float frontageCenter = forest.ParcelColumn * ParcelGrid.FrontageColumnsPerParcel
+                + position.FrontageColumnWithinParcel
+                + 0.5f;
+            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
             _trees.Add(new TreeBox(
                 street,
                 lateralOffset,
@@ -1146,23 +1290,31 @@ public partial class MacroStreetLiveView : Node2D
                 unitId,
                 forest.GroundResourceType ?? ResourceType.Wood,
                 forest.WoodUnitReserves[unitId]));
-            AddBandInterval(street, lateralOffset - TreeBlockHalfWidthPx, lateralOffset + TreeBlockHalfWidthPx);
+            ObstacleFootprintTemplate footprint = NaturalResourceFootprintCatalog.Get(
+                forest.GroundResourceType ?? ResourceType.Wood);
+            float halfTileUnitPx = TileUnitPx * 0.5f;
+            float reservedWidth = footprint.ReservedArea.Width * halfTileUnitPx;
+            StreetRoutePlanner.Interval obstacle = ObstacleIntervalFromClearances(
+                lateralOffset - reservedWidth * 0.5f,
+                reservedWidth,
+                footprint.LeftClearance * halfTileUnitPx,
+                footprint.RightClearance * halfTileUnitPx);
+            AddBandInterval(street, obstacle.Start, obstacle.End);
         }
     }
 
-    private void AddPlot(CityMacroSnapshot.PlotItem item, float totalLotColumns, bool clickable)
+    private void AddPlot(CityMacroSnapshot.PlotItem item, bool clickable)
     {
-        int street = item.ParcelRow * ParcelGrid.LotsPerAxis + item.LotRow;
-        float lotCenterColumn = item.ParcelColumn * ParcelGrid.LotsPerAxis
-            + item.LotColumn
-            + item.LotWidth * 0.5f;
-        float lateralOffset = (lotCenterColumn - totalLotColumns * 0.5f) * LotUnitPx;
-        float width = item.LotWidth * LotUnitPx;
+        int street = item.RowId;
+        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+        float frontageCenter = item.StartColumn + item.FrontageColumns * 0.5f;
+        float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+        float width = item.FrontageColumns * TileUnitPx;
         _plots.Add(new PlotBox(
             street,
             lateralOffset,
             width,
-            item.LotHeight * LotUnitPx,
+            item.DepthRows * TileUnitPx,
             item.Id.Value,
             item.DisplayName,
             item.Kind,
@@ -1172,7 +1324,48 @@ public partial class MacroStreetLiveView : Node2D
             item.StorageCapacity,
             item.CultivationState,
             item.ReadyAtTick));
-        AddBandInterval(street, lateralOffset - width * 0.5f, lateralOffset + width * 0.5f);
+        StreetRoutePlanner.Interval obstacle = BuildingObstacleInterval(
+            item,
+            totalFrontageColumns,
+            TileUnitPx);
+        AddBandInterval(street, obstacle.Start, obstacle.End);
+    }
+
+    internal static StreetRoutePlanner.Interval BuildingObstacleInterval(
+        CityMacroSnapshot.PlotItem item,
+        float totalFrontageColumns,
+        float tileUnitPx)
+    {
+        float reservedLeft = (item.StartColumn
+            - totalFrontageColumns * 0.5f) * tileUnitPx;
+        float reservedWidth = item.FrontageColumns * tileUnitPx;
+        float solidLeft = (item.StructuralStartHalfColumn * 0.5f
+            - totalFrontageColumns * 0.5f) * tileUnitPx;
+        float solidWidth = item.StructuralFrontageHalfColumns * 0.5f * tileUnitPx;
+        return ObstacleIntervalFromClearances(
+            reservedLeft,
+            reservedWidth,
+            solidLeft - reservedLeft,
+            reservedLeft + reservedWidth - solidLeft - solidWidth);
+    }
+
+    internal static StreetRoutePlanner.Interval ObstacleIntervalFromClearances(
+        float reservedStart,
+        float reservedWidth,
+        float leftClearance,
+        float rightClearance)
+    {
+        if (reservedWidth <= 0f) throw new ArgumentOutOfRangeException(nameof(reservedWidth));
+        if (leftClearance < 0f) throw new ArgumentOutOfRangeException(nameof(leftClearance));
+        if (rightClearance < 0f) throw new ArgumentOutOfRangeException(nameof(rightClearance));
+        if (leftClearance + rightClearance >= reservedWidth)
+        {
+            throw new ArgumentException(
+                "Obstacle clearances must leave a positive solid interval.");
+        }
+        return new StreetRoutePlanner.Interval(
+            reservedStart + leftClearance,
+            reservedStart + reservedWidth - rightClearance);
     }
 
     private void AddBandInterval(int band, float start, float end)
@@ -1204,7 +1397,27 @@ public partial class MacroStreetLiveView : Node2D
             ? depth
             : _cameraDepthAnchor;
 
+    private bool IsProjectedDepthVisible(float relativeDepth) =>
+        StreetDepthProjection.IsVisibleDepth(relativeDepth);
+
+    private static float ProjectedRowScreenY(float relativeDepth) =>
+        StreetDepthProjection.RowScreenY(relativeDepth, BaseY);
+
+    private static float ProjectedHorizontalScale(float relativeDepth) =>
+        StreetDepthProjection.HorizontalScale(relativeDepth);
+
+    private (Vector2 Position, Vector2 Scale) ProjectDepth(
+        float relativeDepth,
+        float lateralOffset) => StreetDepthProjection.Project(
+            relativeDepth,
+            lateralOffset,
+            CenterX,
+            BaseY);
+
     internal static bool FollowsFounderByDefault => DefaultCameraFollowsHero;
+    internal static float MinimumZoomForTests => MinZoom;
+    internal static float MaximumZoomForTests => MaxZoom;
+    internal static float CameraZoomPivotYForTests => CameraZoomPivotY;
 
     internal bool HasActiveCitizenJourneyForVisualRegression(CitizenId citizenId) =>
         System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1"
@@ -1220,6 +1433,45 @@ public partial class MacroStreetLiveView : Node2D
         _cameraDepthTarget = null;
         _cameraTransitionAccumulator = 0f;
         QueueRedraw();
+    }
+
+    public void ShowLongTerrariumForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        ActivatePerspective();
+        SetCameraFollowsHero(false);
+        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _cameraDepthAnchor = _freeCameraStreet;
+        _cameraDepthTarget = null;
+        _cameraTransitionAccumulator = 0f;
+        ZoomTowardPivot(MinZoom, new Vector2(CenterX, CameraZoomPivotY));
+        GD.Print(
+            $"Long terrarium fixture: {_worldParcelRows} parcel rows, "
+            + $"{_streetCount} streets, zoom {_zoomLevel:F2}.");
+        QueueRedraw();
+        if (!string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable(
+                "WOG_LONG_TERRARIUM_CAPTURE")))
+        {
+            GetTree().CreateTimer(0.75).Timeout += CaptureLongTerrariumViewport;
+        }
+    }
+
+    private void CaptureLongTerrariumViewport()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        string? configuredPath = System.Environment.GetEnvironmentVariable(
+            "WOG_LONG_TERRARIUM_CAPTURE");
+        if (string.IsNullOrWhiteSpace(configuredPath)) return;
+        string outputPath = configuredPath;
+        Error result = GetViewport().GetTexture().GetImage().SavePng(outputPath);
+        if (result == Error.Ok)
+        {
+            GD.Print($"Long terrarium viewport captured: {outputPath}");
+        }
+        else
+        {
+            GD.PushError($"Long terrarium viewport capture failed: {result}.");
+        }
     }
 
     public override void _Process(double delta)
@@ -1240,7 +1492,12 @@ public partial class MacroStreetLiveView : Node2D
         bool heroDepthAnimating = _depthTarget.HasValue;
         bool cameraDepthAnimating = _cameraDepthTarget.HasValue;
         AdvanceTransition(ref _depthAnchor, ref _depthTarget, ref _transitionAccumulator, delta);
-        AdvanceTransition(ref _cameraDepthAnchor, ref _cameraDepthTarget, ref _cameraTransitionAccumulator, delta);
+        AdvanceTransition(
+            ref _cameraDepthAnchor,
+            ref _cameraDepthTarget,
+            ref _cameraTransitionAccumulator,
+            delta,
+            DepthStepSize * VerticalPanTransitionMultiplier(_verticalPanHoldSeconds));
         bool citizenDepthAnimating = false;
         foreach (CitizenJourney journey in _citizenJourneys.Values)
         {
@@ -1266,6 +1523,10 @@ public partial class MacroStreetLiveView : Node2D
                 // the exact symptom the user reported (visible only when
                 // an external window forced a redraw).
                 Vector2 localMouse = ToLocal(GetViewport().GetMousePosition());
+                if (_placementActive)
+                {
+                    UpdatePlacementHover(localMouse);
+                }
                 bool worldOwnsPointer = TryFindHoveredCitizen(localMouse, out _, out _)
                     || IsCursorOverStorageBadge(localMouse);
                 if (!worldOwnsPointer && (
@@ -1322,13 +1583,13 @@ public partial class MacroStreetLiveView : Node2D
         }
         if (@event.IsActionPressed(CameraInputActions.PanUp))
         {
-            PanCameraStreet(1);
+            BeginVerticalCameraPan(1);
             GetViewport().SetInputAsHandled();
             return;
         }
         if (@event.IsActionPressed(CameraInputActions.PanDown))
         {
-            PanCameraStreet(-1);
+            BeginVerticalCameraPan(-1);
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -1355,7 +1616,14 @@ public partial class MacroStreetLiveView : Node2D
                 TryRightClick(ToLocal(rightClick.Position));
                 break;
             case InputEventMouseMotion motion:
-                UpdateWorldHover(ToLocal(motion.Position));
+                if (_placementActive)
+                {
+                    UpdatePlacementHover(ToLocal(motion.Position));
+                }
+                else
+                {
+                    UpdateWorldHover(ToLocal(motion.Position));
+                }
                 break;
         }
     }
@@ -1363,15 +1631,16 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>
     /// Quantized camera zoom (discrete steps, never a continuous drag) via
     /// this node's own <see cref="Node2D.Scale"/>, keeping the vanishing
-    /// point (<see cref="CenterX"/>,<see cref="BaseY"/> in local space)
-    /// fixed on screen so zooming feels centered on the avatar rather than
-    /// dragging the whole view toward a corner.
+    /// point (<see cref="CenterX"/>,<see cref="CameraZoomPivotY"/> in local
+    /// space) fixed on screen. The lower-than-terrain pivot lets maximum
+    /// zoom-out frame the first and last bands of a four-parcel-row window
+    /// near the viewport edges without changing the projection angle.
     /// </summary>
     private void AdjustZoom(float delta)
     {
         float newZoom = Mathf.Clamp(_zoomLevel + delta, MinZoom, MaxZoom);
         if (Mathf.IsEqualApprox(newZoom, _zoomLevel)) return;
-        ZoomTowardPivot(newZoom, new Vector2(CenterX, BaseY));
+        ZoomTowardPivot(newZoom, new Vector2(CenterX, CameraZoomPivotY));
     }
 
     /// <summary>
@@ -1491,12 +1760,17 @@ public partial class MacroStreetLiveView : Node2D
         // while a lot is being chosen.
         if (_placementActive)
         {
+            PlacementLotBox? nearest = null;
+            float nearestDistanceSquared = float.MaxValue;
             foreach ((Rect2 rect, PlacementLotBox lot) in _clickablePlacementRects)
             {
                 if (!rect.HasPoint(clickPosition)) continue;
-                SelectPlacementLot(lot);
-                return;
+                float distanceSquared = clickPosition.DistanceSquaredTo(rect.GetCenter());
+                if (distanceSquared >= nearestDistanceSquared) continue;
+                nearest = lot;
+                nearestDistanceSquared = distanceSquared;
             }
+            if (nearest is PlacementLotBox selected) SelectPlacementLot(selected);
             return;
         }
         foreach ((Rect2 rect, TreeBox tree) in _clickableTreeRects)
@@ -1980,14 +2254,10 @@ public partial class MacroStreetLiveView : Node2D
         ClearTreeHover();
         ClearWorldStatusHover();
         _cultivationActionMenu.Hide();
-        Citizen? hero = _controller.World.Hero;
-        bool onExpedition = hero is not null && _controller.World.IsCitizenOnActiveExpedition(hero.Id);
-        bool canGather = hero is not null && !hero.CurrentAssignment.HasValue && !onExpedition;
-        string unavailableReason = hero is null
-            ? UiText.Get("No founder is available to gather.")
-            : onExpedition
-                ? UiText.Format("ui.gather.away_on_expedition", hero.Name)
-                : UiText.Format("ui.gather.already_assigned", hero.Name);
+        NaturalResourceGatherResult availability =
+            _controller.GetNaturalResourceGatherAvailability(tree.ForestId, tree.UnitId);
+        bool canGather = availability.CanGather;
+        string unavailableReason = DescribeGatherBlocker(availability.Outcome);
         // The menu is a sibling child of ScreenContent, not a child of this
         // (possibly zoomed/offset) Node2D — convert the local rect center to
         // global space first, then into ScreenContent's own local space.
@@ -2004,6 +2274,17 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnGatherRequested(int forestId, int unitId, Vector2 _)
     {
+        // A faulty mouse can emit two presses within the same frame. The first
+        // request owns the route; accepting the duplicate would restart that
+        // route and can make the founder appear never to arrive.
+        if (IsDuplicateGatherRequest(_pendingGather, forestId, unitId)) return;
+        NaturalResourceGatherResult availability =
+            _controller.GetNaturalResourceGatherAvailability(forestId, unitId);
+        if (!availability.CanGather)
+        {
+            Notifier.ShowError(DescribeGatherBlocker(availability.Outcome));
+            return;
+        }
         TreeBox? target = null;
         foreach (TreeBox tree in _trees)
         {
@@ -2024,6 +2305,11 @@ public partial class MacroStreetLiveView : Node2D
         _routeIndex = 0;
     }
 
+    internal static bool IsDuplicateGatherRequest(
+        (int ForestId, int UnitId)? pendingGather,
+        int forestId,
+        int unitId) => pendingGather == (forestId, unitId);
+
     /// <summary>
     /// One 12 Hz quantized motion step. The founder advances only along an
     /// autonomous route. Manual lateral input always belongs to the camera,
@@ -2040,7 +2326,9 @@ public partial class MacroStreetLiveView : Node2D
             _heroWalking = false;
             _heroCarrier?.Idle(Vector2.Down);
         }
-        if (allowCameraInput) TryPanCameraLateral();
+        if (!allowCameraInput) return;
+        TryPanCameraLateral();
+        ContinueVerticalCameraPan();
     }
 
     private void AdvanceRouteTick()
@@ -2149,20 +2437,34 @@ public partial class MacroStreetLiveView : Node2D
         _heroCarrier?.Slash(Vector2.Up);
         TreeBox? target = _trees.FirstOrDefault(tree =>
             tree.ForestId == pending.Value.ForestId && tree.UnitId == pending.Value.UnitId);
-        int gathered = _controller.GatherFromPatch(
+        NaturalResourceGatherResult gatherResult = _controller.TryGatherFromPatch(
             pending.Value.ForestId,
             pending.Value.UnitId,
             amount: 2);
-        if (gathered > 0 && target is TreeBox gatheredTarget)
+        if (gatherResult.IsSuccess && target is TreeBox gatheredTarget)
         {
-            Notifier.Show(UiText.Format(
-                "ui.gather.gathered_resource",
-                gathered,
-                UiText.Get(gatheredTarget.ResourceType.ToString().ToLowerInvariant())));
+            ResourceFeedbackAnchor anchor = ResolveFoundingStoragePopupAnchor();
+            if (anchor.FollowTarget is Node2D followTarget)
+            {
+                ResourceGainPopup.ShowGainFollowing(
+                    this,
+                    followTarget,
+                    gatheredTarget.ResourceType,
+                    gatherResult.GatheredAmount,
+                    anchor.FollowOffset);
+            }
+            else
+            {
+                ResourceGainPopup.ShowGain(
+                    this,
+                    gatheredTarget.ResourceType,
+                    gatherResult.GatheredAmount,
+                    anchor.Position);
+            }
         }
         else
         {
-            Notifier.ShowError(UiText.Get("This resource node is no longer available."));
+            Notifier.ShowError(DescribeGatherBlocker(gatherResult.Outcome));
         }
         GetTree().CreateTimer(0.6).Timeout += () =>
         {
@@ -2174,6 +2476,94 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
+    /// Resource feedback belongs to the storage destination, not the citizen.
+    /// A completed Shelter wins; an incomplete Founding Site becomes storage
+    /// only after its Cache module exists. Before that the founder physically
+    /// carries the six-unit load, so feedback truthfully follows the citizen.
+    /// </summary>
+    private ResourceFeedbackAnchor ResolveFoundingStoragePopupAnchor()
+    {
+        PlotBox? storagePlot = null;
+        foreach (PlotBox plot in _plots)
+        {
+            if (plot.Kind != BuildingKind.Home) continue;
+            if (!plot.IsUnderConstruction)
+            {
+                storagePlot = plot;
+                break;
+            }
+        }
+        if (storagePlot is null)
+        {
+            foreach (ConstructionProject project in _controller.World.Projects.Values)
+            {
+                if (project.Kind != ConstructionKind.FoundingSite
+                    || !project.HasCompletedFoundingModule(FoundingSiteModule.Cache))
+                {
+                    continue;
+                }
+                foreach (PlotBox plot in _plots)
+                {
+                    if (plot.BuildingId != project.Id.Value) continue;
+                    storagePlot = plot;
+                    break;
+                }
+                break;
+            }
+        }
+        if (storagePlot is PlotBox plotBox)
+        {
+            float depth = AnchorDepth(plotBox.Street - CameraDepthAnchor);
+            float lateral = plotBox.LateralOffset - CameraLateral;
+            (Vector2 position, Vector2 scale) = ProjectDepth(depth, lateral);
+            return new ResourceFeedbackAnchor(
+                PixelMotion.Snap(new Vector2(
+                    position.X,
+                    position.Y - plotBox.Height * scale.Y - 12f)),
+                null,
+                Vector2.Zero);
+        }
+
+        if (IsInstanceValid(_heroCarrier))
+        {
+            return new ResourceFeedbackAnchor(
+                Vector2.Zero,
+                _heroCarrier,
+                Vector2.Up * 72f);
+        }
+
+        int street = FoundingLayout.InitialParcelRow * ParcelGrid.ConstructionRowsPerParcel
+            + FoundingLayout.FounderRowWithinParcel;
+        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+        float frontageCenter = FoundingLayout.InitialParcelColumn
+            * ParcelGrid.FrontageColumnsPerParcel
+            + FoundingLayout.FounderFrontageColumnWithinParcel
+            + 0.5f;
+        float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+        (Vector2 fallback, _) = ProjectDepth(
+            AnchorDepth(street - CameraDepthAnchor),
+            lateralOffset - CameraLateral);
+        return new ResourceFeedbackAnchor(
+            PixelMotion.Snap(fallback + Vector2.Up * 48f),
+            null,
+            Vector2.Zero);
+    }
+
+    private static string DescribeGatherBlocker(NaturalResourceGatherOutcome outcome) =>
+        UiText.Get(outcome switch
+        {
+            NaturalResourceGatherOutcome.HeroUnavailable =>
+                "ui.gather.founder_unavailable",
+            NaturalResourceGatherOutcome.StorageFull =>
+                "ui.gather.storage_full",
+            NaturalResourceGatherOutcome.MissingRequiredTool =>
+                "ui.gather.axe_required",
+            NaturalResourceGatherOutcome.NodeUnavailable =>
+                "This resource node is no longer available.",
+            _ => "ui.gather.action_unavailable",
+        });
+
+    /// <summary>
     /// Manual depth input always pans the camera. If follow mode is active,
     /// the first manual step releases it before moving the observer.
     /// </summary>
@@ -2181,6 +2571,65 @@ public partial class MacroStreetLiveView : Node2D
     {
         EnsureFreeCameraForManualPan();
         StepFreeCameraStreet(direction);
+    }
+
+    private void BeginVerticalCameraPan(int direction)
+    {
+        if (_verticalPanDirection == direction) return;
+        _verticalPanDirection = direction;
+        _verticalPanHoldSeconds = 0f;
+        _verticalPanRepeatAccumulator = 0f;
+        PanCameraStreet(direction);
+    }
+
+    private void ContinueVerticalCameraPan()
+    {
+        int direction = ReadVerticalDirection();
+        if (direction == 0)
+        {
+            ResetVerticalCameraPanHold();
+            return;
+        }
+        if (direction != _verticalPanDirection)
+        {
+            BeginVerticalCameraPan(direction);
+            return;
+        }
+
+        _verticalPanHoldSeconds += PixelMotion.CadenceSeconds;
+        _verticalPanRepeatAccumulator += PixelMotion.CadenceSeconds;
+        float repeatSeconds = VerticalPanRepeatSeconds(_verticalPanHoldSeconds);
+        if (_verticalPanRepeatAccumulator < repeatSeconds) return;
+        _verticalPanRepeatAccumulator -= repeatSeconds;
+        PanCameraStreet(direction);
+    }
+
+    private void ResetVerticalCameraPanHold()
+    {
+        _verticalPanDirection = 0;
+        _verticalPanHoldSeconds = 0f;
+        _verticalPanRepeatAccumulator = 0f;
+    }
+
+    internal static float VerticalPanRepeatSeconds(float holdSeconds)
+    {
+        float progress = VerticalPanAccelerationProgress(holdSeconds);
+        return Mathf.Lerp(
+            VerticalPanInitialRepeatSeconds,
+            VerticalPanMinimumRepeatSeconds,
+            progress);
+    }
+
+    internal static float VerticalPanTransitionMultiplier(float holdSeconds)
+    {
+        float progress = VerticalPanAccelerationProgress(holdSeconds);
+        return Mathf.Lerp(1f, VerticalPanMaximumTransitionMultiplier, progress);
+    }
+
+    private static float VerticalPanAccelerationProgress(float holdSeconds)
+    {
+        float linear = Mathf.Clamp(holdSeconds / VerticalPanAccelerationSeconds, 0f, 1f);
+        return linear * linear * (3f - 2f * linear);
     }
 
     /// <summary>
@@ -2237,7 +2686,6 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void StepFreeCameraStreet(int direction)
     {
-        if (_cameraDepthTarget.HasValue) return;
         int nextStreet = Mathf.Clamp(_freeCameraStreet + direction, 0, _streetCount - 1);
         if (nextStreet == _freeCameraStreet) return;
         _freeCameraStreet = nextStreet;
@@ -2250,7 +2698,12 @@ public partial class MacroStreetLiveView : Node2D
     /// paces the founder's own row-crossing pose, a second, independent
     /// instance paces the free camera's row-crossing when not following.
     /// </summary>
-    private static void AdvanceTransition(ref float anchor, ref float? target, ref float accumulator, double delta)
+    private static void AdvanceTransition(
+        ref float anchor,
+        ref float? target,
+        ref float accumulator,
+        double delta,
+        float stepSize = DepthStepSize)
     {
         if (!target.HasValue) return;
         accumulator += (float)delta;
@@ -2258,14 +2711,14 @@ public partial class MacroStreetLiveView : Node2D
         {
             accumulator -= PixelMotion.CadenceSeconds;
             float value = target.Value;
-            if (Mathf.Abs(value - anchor) <= DepthStepSize)
+            if (Mathf.Abs(value - anchor) <= stepSize)
             {
                 anchor = value;
                 target = null;
             }
             else
             {
-                anchor += Mathf.Sign(value - anchor) * DepthStepSize;
+                anchor += Mathf.Sign(value - anchor) * stepSize;
             }
         }
     }
@@ -2303,6 +2756,13 @@ public partial class MacroStreetLiveView : Node2D
         if (Input.IsActionPressed(CameraInputActions.PanLeft)) return -1f;
         if (Input.IsActionPressed(CameraInputActions.PanRight)) return 1f;
         return 0f;
+    }
+
+    private static int ReadVerticalDirection()
+    {
+        if (Input.IsActionPressed(CameraInputActions.PanUp)) return 1;
+        if (Input.IsActionPressed(CameraInputActions.PanDown)) return -1;
+        return 0;
     }
 
     /// <summary>
@@ -2348,6 +2808,21 @@ public partial class MacroStreetLiveView : Node2D
         _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
             hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
         CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
+        if (!_heroPositionInitialized)
+        {
+            _heroStreet = FoundingLayout.InitialParcelRow
+                * ParcelGrid.ConstructionRowsPerParcel
+                + FoundingLayout.FounderRowWithinParcel;
+            float totalFrontageColumns =
+                _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+            float frontageCenter = FoundingLayout.InitialParcelColumn
+                * ParcelGrid.FrontageColumnsPerParcel
+                + FoundingLayout.FounderFrontageColumnWithinParcel
+                + 0.5f;
+            _heroLateral = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            _depthAnchor = _heroStreet;
+            _heroPositionInitialized = true;
+        }
         BuildingId? currentAssignment = heroState.CurrentAssignment;
         CitizenLocation heroLocation = heroState.Location;
         if (heroLocation == CitizenLocation.InTransit && _heroAmbientRoute)
@@ -2933,11 +3408,10 @@ public partial class MacroStreetLiveView : Node2D
                 continue;
             }
             float depth = journey.DepthAnchor - CameraDepthAnchor;
-            journey.Carrier.Visible = StreetDepthProjection.IsVisibleDepth(depth);
+            journey.Carrier.Visible = IsProjectedDepthVisible(depth);
             if (!journey.Carrier.Visible) continue;
             float relativeOffset = journey.Lateral - CameraLateral;
-            (Vector2 position, Vector2 scale) =
-                StreetDepthProjection.Project(depth, relativeOffset, CenterX, BaseY);
+            (Vector2 position, Vector2 scale) = ProjectDepth(depth, relativeOffset);
             journey.Carrier.Scale =
                 CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
             journey.Carrier.Position = PixelMotion.Snap(new Vector2(
@@ -3270,11 +3744,10 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         float depth = _depthAnchor - CameraDepthAnchor;
-        _heroCarrier.Visible = StreetDepthProjection.IsVisibleDepth(depth);
+        _heroCarrier.Visible = IsProjectedDepthVisible(depth);
         if (!_heroCarrier.Visible) return;
         float lateralOffset = _heroLateral - CameraLateral;
-        (Vector2 position, Vector2 scale) =
-            StreetDepthProjection.Project(depth, lateralOffset, CenterX, BaseY);
+        (Vector2 position, Vector2 scale) = ProjectDepth(depth, lateralOffset);
         _heroCarrier.Scale =
             CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
         _heroCarrier.Position = PixelMotion.Snap(new Vector2(
@@ -3291,7 +3764,7 @@ public partial class MacroStreetLiveView : Node2D
         _storageFullBadgeRects.Clear();
         for (int street = _streetCount - 1; street >= 0; street--)
         {
-            if (!StreetDepthProjection.IsVisibleDepth(street - CameraDepthAnchor)) continue;
+            if (!IsProjectedDepthVisible(street - CameraDepthAnchor)) continue;
             DrawStreetRow(street);
         }
         UpdateHeroVisual();
@@ -3340,8 +3813,7 @@ public partial class MacroStreetLiveView : Node2D
         {
             if (plot.Street != street) continue;
             float relativeOffset = plot.LateralOffset - CameraLateral;
-            (Vector2 position, Vector2 scale) =
-                StreetDepthProjection.Project(anchorDepth, relativeOffset, CenterX, BaseY);
+            (Vector2 position, Vector2 scale) = ProjectDepth(anchorDepth, relativeOffset);
             var size = new Vector2(plot.Width * scale.X, plot.Height * scale.Y);
             var rect = new Rect2(
                 new Vector2(position.X - size.X * 0.5f, position.Y - size.Y),
@@ -3377,10 +3849,10 @@ public partial class MacroStreetLiveView : Node2D
             if (tree.Street != street) continue;
             float treeRelativeOffset = tree.LateralOffset - CameraLateral;
             (Vector2 treePosition, Vector2 treeScale) =
-                StreetDepthProjection.Project(anchorDepth, treeRelativeOffset, CenterX, BaseY);
+                ProjectDepth(anchorDepth, treeRelativeOffset);
             var treeSize = new Vector2(
-                TreeBaseSizePx * treeScale.X,
-                TreeBaseSizePx * treeScale.Y);
+                ResourceUnitBaseSizePx * treeScale.X,
+                ResourceUnitBaseSizePx * treeScale.Y);
             var treeRect = new Rect2(
                 new Vector2(treePosition.X - treeSize.X * 0.5f, treePosition.Y - treeSize.Y),
                 treeSize);
@@ -3527,18 +3999,21 @@ public partial class MacroStreetLiveView : Node2D
     {
         int baseAtlasColumn = StreetGroundAtlasColumn(street);
         int totalTiles = Mathf.RoundToInt(2f * _lateralHalfWidthPx / TileUnitPx);
+        int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         for (int tileRow = 0; tileRow < ParcelGrid.TilesPerStandardLot; tileRow++)
         {
             float depthNear = depth + tileRow / (float)ParcelGrid.TilesPerStandardLot;
             float depthFar = depth + (tileRow + 1) / (float)ParcelGrid.TilesPerStandardLot;
-            float yNear = StreetDepthProjection.RowScreenY(depthNear, BaseY);
-            float yFar = StreetDepthProjection.RowScreenY(depthFar, BaseY);
-            float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
-            float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
+            float yNear = ProjectedRowScreenY(depthNear);
+            float yFar = ProjectedRowScreenY(depthFar);
+            float scaleNear = ProjectedHorizontalScale(depthNear);
+            float scaleFar = ProjectedHorizontalScale(depthFar);
             int globalTileRow = street * ParcelGrid.TilesPerStandardLot + tileRow;
 
             for (int tileIndex = 0; tileIndex < totalTiles; tileIndex++)
             {
+                int parcelColumn = tileIndex / ParcelGrid.FrontageColumnsPerParcel;
+                if (!_parcelTerritory.ContainsKey((parcelRow, parcelColumn))) continue;
                 float tileCenterGlobal = (tileIndex + 0.5f) * TileUnitPx - _lateralHalfWidthPx;
                 float leftGlobal = tileCenterGlobal - TileUnitPx * 0.5f - CameraLateral;
                 float rightGlobal = tileCenterGlobal + TileUnitPx * 0.5f - CameraLateral;
@@ -3667,43 +4142,128 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>
-    /// Renders each available construction lot as its real 3x3 ground
-    /// footprint. Every cell projects its near and far edges independently,
+    /// Renders each available three-column frontage window as its real 3x3
+    /// ground footprint. Overlapping windows stay lightly filled and a click
+    /// resolves to the nearest projected center. Every window projects its
+    /// near and far edges independently,
     /// so the blueprint shares the terrain's vanishing point instead of
     /// becoming an axis-aligned screen rectangle after projecting only its
     /// centre.
     /// </summary>
     private void DrawPlacementLots(int street, float streetDepth)
     {
+        foreach (PlacementCellBox cell in _placementCells)
+        {
+            if (cell.Street != street) continue;
+            ProjectPlacementFootprint(
+                cell.LateralOffset,
+                cell.Width,
+                streetDepth,
+                out Vector2 nearLeft,
+                out Vector2 nearRight,
+                out Vector2 farRight,
+                out Vector2 farLeft);
+            bool blocked = cell.Cell.State != FrontageCellState.Available;
+            DrawSteppedPlacementFootprint(
+                nearLeft,
+                nearRight,
+                farRight,
+                farLeft,
+                blocked ? PlacementBlockedCellColor : PlacementAvailableColor,
+                PlacementGridColor,
+                frontageDivisions: 1,
+                depthDivisions: BuildingReservation.RequiredDepthRows,
+                drawInvalidMarker: blocked);
+        }
+
         foreach (PlacementLotBox lot in _placementLots)
         {
             if (lot.Street != street) continue;
-            bool isSelected = _selectedPlacementLot is ConstructionLot selectedLot
-                && selectedLot == lot.Lot;
-            Color fill = isSelected ? PlacementSelectedColor : PlacementAvailableColor;
-            Color outline = new("#f4e7b2");
-            float lotLeft = lot.LateralOffset - lot.Width * 0.5f - CameraLateral;
-            float lotRight = lotLeft + lot.Width;
-            float depthNear = streetDepth;
-            float depthFar = streetDepth + 1f;
-            float yNear = StreetDepthProjection.RowScreenY(depthNear, BaseY);
-            float yFar = StreetDepthProjection.RowScreenY(depthFar, BaseY);
-            float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
-            float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
-            Vector2 nearLeft = new(CenterX + lotLeft * scaleNear, yNear);
-            Vector2 nearRight = new(CenterX + lotRight * scaleNear, yNear);
-            Vector2 farRight = new(CenterX + lotRight * scaleFar, yFar);
-            Vector2 farLeft = new(CenterX + lotLeft * scaleFar, yFar);
-
-            DrawSteppedPlacementFootprint(nearLeft, nearRight, farRight, farLeft, fill, outline);
+            ProjectPlacementFootprint(
+                lot.LateralOffset,
+                lot.Width,
+                streetDepth,
+                out Vector2 nearLeft,
+                out Vector2 nearRight,
+                out Vector2 farRight,
+                out Vector2 farLeft);
             Vector2 boundsMin = new(
                 Mathf.Min(Mathf.Min(nearLeft.X, nearRight.X), Mathf.Min(farLeft.X, farRight.X)),
-                Mathf.Min(yNear, yFar));
+                Mathf.Min(nearLeft.Y, farLeft.Y));
             Vector2 boundsMax = new(
                 Mathf.Max(Mathf.Max(nearLeft.X, nearRight.X), Mathf.Max(farLeft.X, farRight.X)),
-                Mathf.Max(yNear, yFar));
+                Mathf.Max(nearLeft.Y, farLeft.Y));
             _clickablePlacementRects.Add((new Rect2(boundsMin, boundsMax - boundsMin), lot));
         }
+
+        PlacementLotBox? preview = _hoveredPlacementLot is PlacementLotBox hovered
+            && hovered.Street == street
+                ? hovered
+                : null;
+        if (preview is null && _selectedPlacementLot is ConstructionLot selected)
+        {
+            foreach (PlacementLotBox candidate in _placementLots)
+            {
+                if (candidate.Street != street || candidate.Window.Lot != selected) continue;
+                preview = candidate;
+                break;
+            }
+        }
+        if (preview is not PlacementLotBox highlighted) return;
+        ProjectPlacementFootprint(
+            highlighted.LateralOffset,
+            highlighted.Width,
+            streetDepth,
+            out Vector2 previewNearLeft,
+            out Vector2 previewNearRight,
+            out Vector2 previewFarRight,
+            out Vector2 previewFarLeft);
+        bool isSelected = _selectedPlacementLot is ConstructionLot selectedLot
+            && selectedLot == highlighted.Window.Lot
+            && _hoveredPlacementLot is null;
+        Color previewFill = !highlighted.Window.IsValid
+            ? PlacementHoveredInvalidColor
+            : isSelected
+                ? PlacementSelectedColor
+                : PlacementHoveredValidColor;
+        Color previewOutline = !highlighted.Window.IsValid
+            ? new Color("#ff7777")
+            : isSelected
+                ? new Color("#ffe08a")
+                : new Color("#8dffad");
+        DrawSteppedPlacementFootprint(
+            previewNearLeft,
+            previewNearRight,
+            previewFarRight,
+            previewFarLeft,
+            previewFill,
+            previewOutline,
+            frontageDivisions: highlighted.Window.Lot.FrontageColumns,
+            depthDivisions: BuildingReservation.RequiredDepthRows,
+            drawInvalidMarker: !highlighted.Window.IsValid);
+    }
+
+    private void ProjectPlacementFootprint(
+        float lateralOffset,
+        float width,
+        float streetDepth,
+        out Vector2 nearLeft,
+        out Vector2 nearRight,
+        out Vector2 farRight,
+        out Vector2 farLeft)
+    {
+        float lotLeft = lateralOffset - width * 0.5f - CameraLateral;
+        float lotRight = lotLeft + width;
+        float depthNear = streetDepth;
+        float depthFar = streetDepth + 1f;
+        float yNear = ProjectedRowScreenY(depthNear);
+        float yFar = ProjectedRowScreenY(depthFar);
+        float scaleNear = ProjectedHorizontalScale(depthNear);
+        float scaleFar = ProjectedHorizontalScale(depthFar);
+        nearLeft = new Vector2(CenterX + lotLeft * scaleNear, yNear);
+        nearRight = new Vector2(CenterX + lotRight * scaleNear, yNear);
+        farRight = new Vector2(CenterX + lotRight * scaleFar, yFar);
+        farLeft = new Vector2(CenterX + lotLeft * scaleFar, yFar);
     }
 
     /// <summary>
@@ -3718,23 +4278,18 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void DrawParcelTerritoryTints(int street, float streetDepth)
     {
-        if (_controller?.World is not { } world) return;
-        float totalLotColumns = WorldParcelColumns * ParcelGrid.LotsPerAxis;
-        int lotRowWithinParcel = street % ParcelGrid.LotsPerAxis;
-        int parcelRow = street / ParcelGrid.LotsPerAxis;
+        float totalLotColumns = _worldParcelColumns * ParcelGrid.LotsPerAxis;
+        int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         float depthNear = streetDepth;
-        float depthFar = streetDepth + 1f / ParcelGrid.LotsPerAxis;
-        float yNear = StreetDepthProjection.RowScreenY(depthNear, BaseY);
-        float yFar = StreetDepthProjection.RowScreenY(depthFar, BaseY);
-        float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
-        float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
-        foreach (CityParcel parcel in world.Parcels.Values)
+        float depthFar = streetDepth + 1f;
+        float yNear = ProjectedRowScreenY(depthNear);
+        float yFar = ProjectedRowScreenY(depthFar);
+        float scaleNear = ProjectedHorizontalScale(depthNear);
+        float scaleFar = ProjectedHorizontalScale(depthFar);
+        foreach (((int Row, int Column) coordinate, ParcelTerritoryState territoryState) in _parcelTerritory)
         {
-            if (parcel.LogicalRow != parcelRow) continue;
-            // Only draw on the front row of each parcel column so the
-            // tint covers the full lateral footprint once per parcel.
-            if (lotRowWithinParcel != 0) continue;
-            Color fill = parcel.TerritoryState switch
+            if (coordinate.Row != parcelRow) continue;
+            Color fill = territoryState switch
             {
                 ParcelTerritoryState.Locked => LockedParcelColor,
                 ParcelTerritoryState.Reconnoitred => ReconnoitredParcelColor,
@@ -3743,7 +4298,7 @@ public partial class MacroStreetLiveView : Node2D
                 _ => Colors.Transparent,
             };
             if (fill.A == 0) continue;
-            float parcelLeftColumn = parcel.LogicalColumn * ParcelGrid.LotsPerAxis;
+            float parcelLeftColumn = coordinate.Column * ParcelGrid.LotsPerAxis;
             float parcelLeft = (parcelLeftColumn - totalLotColumns * 0.5f) * LotUnitPx
                 - CameraLateral;
             float parcelRight = parcelLeft
@@ -3752,11 +4307,34 @@ public partial class MacroStreetLiveView : Node2D
             var nearRight = new Vector2(CenterX + parcelRight * scaleNear, yNear);
             var farRight = new Vector2(CenterX + parcelRight * scaleFar, yFar);
             var farLeft = new Vector2(CenterX + parcelLeft * scaleFar, yFar);
+            DrawSteppedTintTrapezoid(nearLeft, nearRight, farRight, farLeft, fill);
+        }
+    }
+
+    private void DrawSteppedTintTrapezoid(
+        Vector2 nearLeft,
+        Vector2 nearRight,
+        Vector2 farRight,
+        Vector2 farLeft,
+        Color fill)
+    {
+        float height = Mathf.Abs(farLeft.Y - nearLeft.Y);
+        int stripes = Mathf.Max(1, Mathf.CeilToInt(height / PixelStepPx));
+        for (int index = 0; index < stripes; index++)
+        {
+            float t0 = index / (float)stripes;
+            float t1 = (index + 1) / (float)stripes;
+            Vector2 left0 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t0));
+            Vector2 right0 = PixelMotion.Snap(nearRight.Lerp(farRight, t0));
+            Vector2 left1 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t1));
+            Vector2 right1 = PixelMotion.Snap(nearRight.Lerp(farRight, t1));
+            float top = Mathf.Min(left0.Y, left1.Y);
+            float bottom = Mathf.Max(left0.Y, left1.Y);
+            float left = Mathf.Min(left0.X, left1.X);
+            float right = Mathf.Max(right0.X, right1.X);
             DrawRect(new Rect2(
-                new Vector2(Mathf.Min(nearLeft.X, farLeft.X), Mathf.Min(yNear, yFar)),
-                new Vector2(
-                    Mathf.Abs(farRight.X - farLeft.X),
-                    Mathf.Max(1f, Mathf.Abs(yFar - yNear)))),
+                new Vector2(left, top),
+                new Vector2(Mathf.Max(1f, right - left), Mathf.Max(1f, bottom - top))),
                 fill);
         }
     }
@@ -3767,7 +4345,10 @@ public partial class MacroStreetLiveView : Node2D
         Vector2 farRight,
         Vector2 farLeft,
         Color fill,
-        Color outline)
+        Color outline,
+        int frontageDivisions,
+        int depthDivisions,
+        bool drawInvalidMarker)
     {
         const float stripeHeight = 2f;
         float height = Mathf.Abs(farLeft.Y - nearLeft.Y);
@@ -3800,5 +4381,46 @@ public partial class MacroStreetLiveView : Node2D
             previousRight = right1;
         }
         DrawLine(previousLeft, previousRight, outline, 2f, antialiased: false);
+
+        for (int column = 1; column < frontageDivisions; column++)
+        {
+            float t = column / (float)frontageDivisions;
+            Vector2 near = PixelMotion.Snap(nearLeft.Lerp(nearRight, t));
+            Vector2 far = PixelMotion.Snap(farLeft.Lerp(farRight, t));
+            DrawSteppedPlacementEdge(near, far, stripes, outline);
+        }
+        for (int row = 1; row < depthDivisions; row++)
+        {
+            float t = row / (float)depthDivisions;
+            Vector2 left = PixelMotion.Snap(nearLeft.Lerp(farLeft, t));
+            Vector2 right = PixelMotion.Snap(nearRight.Lerp(farRight, t));
+            DrawLine(left, right, outline, 2f, antialiased: false);
+        }
+        if (drawInvalidMarker)
+        {
+            Vector2 topLeft = PixelMotion.Snap(nearLeft.Lerp(farLeft, 0.75f));
+            Vector2 topRight = PixelMotion.Snap(nearRight.Lerp(farRight, 0.75f));
+            Vector2 bottomLeft = PixelMotion.Snap(nearLeft.Lerp(farLeft, 0.25f));
+            Vector2 bottomRight = PixelMotion.Snap(nearRight.Lerp(farRight, 0.25f));
+            DrawLine(topLeft.Lerp(topRight, 0.2f), bottomLeft.Lerp(bottomRight, 0.8f), outline, 3f, false);
+            DrawLine(topRight.Lerp(topLeft, 0.2f), bottomRight.Lerp(bottomLeft, 0.8f), outline, 3f, false);
+        }
+    }
+
+    private void DrawSteppedPlacementEdge(
+        Vector2 from,
+        Vector2 to,
+        int steps,
+        Color color)
+    {
+        Vector2 previous = from;
+        for (int index = 1; index <= steps; index++)
+        {
+            Vector2 next = PixelMotion.Snap(from.Lerp(to, index / (float)steps));
+            Vector2 corner = new(next.X, previous.Y);
+            DrawLine(previous, corner, color, 2f, false);
+            DrawLine(corner, next, color, 2f, false);
+            previous = next;
+        }
     }
 }

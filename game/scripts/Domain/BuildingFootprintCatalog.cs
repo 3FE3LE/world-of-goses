@@ -12,14 +12,14 @@ public static class BuildingFootprintCatalog
     private static readonly HalfTileRect StandardReservedArea =
         new(0, 0, ParcelGrid.HalfTilesPerStandardLot, ParcelGrid.HalfTilesPerStandardLot);
 
-    public static BuildingFootprintTemplate StandardWithSideSetbacks { get; } =
+    public static ObstacleFootprintTemplate StandardWithSideSetbacks { get; } =
         new(
             StandardWithSideSetbacksId,
             StandardReservedArea,
             // 0.5 tile on both sides, 1 tile of frontal access.
             new HalfTileRect(1, 0, 4, 4));
 
-    public static BuildingFootprintTemplate StandardFullWidth { get; } =
+    public static ObstacleFootprintTemplate StandardFullWidth { get; } =
         new(
             StandardFullWidthId,
             StandardReservedArea,
@@ -36,7 +36,7 @@ public static class BuildingFootprintCatalog
             ? StandardFullWidthId
             : StandardWithSideSetbacksId;
 
-    public static BuildingFootprintTemplate Get(string? profileId) =>
+    public static ObstacleFootprintTemplate Get(string? profileId) =>
         profileId == StandardFullWidthId
             ? StandardFullWidth
             : StandardWithSideSetbacks;

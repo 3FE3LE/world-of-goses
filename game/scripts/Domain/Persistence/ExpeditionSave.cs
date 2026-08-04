@@ -44,4 +44,9 @@ public sealed class ExpeditionSave
     public string RetreatPosture { get; set; } = string.Empty;
     public int? DispatchEventId { get; set; }
     public int? TargetParcelId { get; set; }
+    public int? ResourceOpportunityId { get; set; }
+    public string? ResourceOpportunityKind { get; set; }
+    public int SetbackReturn { get; set; }
+    public int PartialReturn { get; set; }
+    public int CarryCapacity { get; set; }
 }

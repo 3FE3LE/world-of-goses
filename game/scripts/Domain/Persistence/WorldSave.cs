@@ -49,9 +49,13 @@ public sealed class WorldSave
     ///   <item><description>v22 — EG-2 Founding Site modules and origin facts.</description></item>
     ///   <item><description>v23 — proportionally rescales legacy founding forests from 16 trees × 40 Wood to the proposal's 6 trees × 8 Wood.</description></item>
     ///   <item><description>v24 — EG-3 persists the first Cultivation Site plot lifecycle and exact crop boundaries.</description></item>
+    ///   <item><description>v25 — replaces fixed parcel lots with continuous three-tile-deep frontage reservations while retaining legacy anchors for migration diagnostics.</description></item>
+    ///   <item><description>v26 — persists compact per-unit natural-resource positions, allowing mixed resource rows without reserving whole building lots.</description></item>
+    ///   <item><description>v27 — EG-4 persists finite Food/Wood opportunities and each resource expedition's reserved return capacity.</description></item>
+    ///   <item><description>v28 — persists durable city tools; fresh terrain contracts to three horizontal founding parcels while legacy topology remains valid.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 24;
+    public const int CurrentVersion = 28;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -79,7 +83,9 @@ public sealed class WorldSave
     public List<ParcelSave> Parcels { get; set; } = new();
     public List<NaturalResourcePatchSave> NaturalResourcePatches { get; set; } = new();
     public List<ParcelPlacementSave> ParcelPlacements { get; set; } = new();
+    public List<CorridorReservationSave> CorridorReservations { get; set; } = new();
     public Dictionary<string, int> CityInventory { get; set; } = new();
+    public List<string> Tools { get; set; } = new();
 
     /// <summary>
     /// EG-0 opening measurement (schema v20). Nullable so a partially written
@@ -89,6 +95,7 @@ public sealed class WorldSave
     /// </summary>
     public EarlyGameMetricsSave? EarlyGameMetrics { get; set; }
     public List<ExpeditionSave> Expeditions { get; set; } = new();
+    public List<ResourceOpportunitySave> ResourceOpportunities { get; set; } = new();
     public int? PendingProspectSeed { get; set; }
     public string? PendingProspectName { get; set; }
 }

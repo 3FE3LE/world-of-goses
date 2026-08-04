@@ -26,7 +26,12 @@ public sealed class Expedition
         WorldEventId? dispatchEventId = null,
         int? returnedAmount = null,
         CitizenId? deliveredMigrantId = null,
-        ParcelId? targetParcelId = null)
+        ParcelId? targetParcelId = null,
+        ResourceOpportunityId? resourceOpportunityId = null,
+        ResourceOpportunityKind? resourceOpportunityKind = null,
+        int setbackReturn = 0,
+        int partialReturn = 0,
+        int carryCapacity = 0)
     {
         if (id.Value <= 0) throw new ArgumentOutOfRangeException(nameof(id));
         if (string.IsNullOrWhiteSpace(displayName)) throw new ArgumentException("Display name is required.", nameof(displayName));
@@ -52,6 +57,24 @@ public sealed class Expedition
         {
             throw new ArgumentOutOfRangeException(nameof(targetParcelId));
         }
+        if (resourceOpportunityId.HasValue
+            && (!resourceOpportunityKind.HasValue
+                || setbackReturn <= 0
+                || partialReturn < setbackReturn
+                || rewardAmount < partialReturn
+                || carryCapacity < setbackReturn
+                || carryCapacity > rewardAmount))
+        {
+            throw new ArgumentException("Resource expedition return values are invalid.");
+        }
+        if (!resourceOpportunityId.HasValue
+            && (resourceOpportunityKind.HasValue
+                || setbackReturn != 0
+                || partialReturn != 0
+                || carryCapacity != 0))
+        {
+            throw new ArgumentException("Legacy expeditions cannot carry resource-opportunity state.");
+        }
 
         Id = id;
         DisplayName = displayName;
@@ -72,6 +95,11 @@ public sealed class Expedition
         ReturnedAmount = returnedAmount;
         DeliveredMigrantId = deliveredMigrantId;
         TargetParcelId = targetParcelId;
+        ResourceOpportunityId = resourceOpportunityId;
+        ResourceOpportunityKind = resourceOpportunityKind;
+        SetbackReturn = setbackReturn;
+        PartialReturn = partialReturn;
+        CarryCapacity = carryCapacity;
     }
 
     public ExpeditionId Id { get; }
@@ -96,6 +124,31 @@ public sealed class Expedition
     public ExpeditionEncounterOutcome? EncounterOutcome { get; private set; }
     public ExpeditionRetreatPosture RetreatPosture { get; }
     public ParcelId? TargetParcelId { get; }
+    public ResourceOpportunityId? ResourceOpportunityId { get; }
+    public ResourceOpportunityKind? ResourceOpportunityKind { get; }
+    public int SetbackReturn { get; }
+    public int PartialReturn { get; }
+    public int CarryCapacity { get; }
+
+    public int ReturnFor(ExpeditionEncounterOutcome outcome)
+    {
+        int planned = ResourceOpportunityId.HasValue
+            ? outcome switch
+            {
+                ExpeditionEncounterOutcome.FullSuccess => RewardAmount,
+                ExpeditionEncounterOutcome.PartialSuccess => PartialReturn,
+                _ => SetbackReturn,
+            }
+            : outcome switch
+            {
+                ExpeditionEncounterOutcome.FullSuccess => RewardAmount,
+                ExpeditionEncounterOutcome.PartialSuccess => Math.Max(1, RewardAmount / 2),
+                _ => 0,
+            };
+        return ResourceOpportunityId.HasValue
+            ? Math.Min(planned, CarryCapacity)
+            : planned;
+    }
     public bool RetreatTriggered =>
         RetreatPosture == ExpeditionRetreatPosture.RetreatAfterSetback
         && EncounterOutcome == ExpeditionEncounterOutcome.Setback;

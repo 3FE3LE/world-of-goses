@@ -16,17 +16,29 @@ namespace WorldofGoses;
 [GlobalClass]
 public partial class ExpeditionPanel : Control
 {
-    private static readonly Vector2 PreferredSize = new(520, 380);
+    private static readonly Vector2 PreferredSize = new(600, 560);
     private const float ViewportInset = 32f;
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../../CityWorldController";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
     [Export] public NodePath StatusLabelPath { get; set; } = "Surface/Margin/Layout/StatusLabel";
+    [Export] public NodePath TitlePath { get; set; } = "Surface/Margin/Layout/Title";
+    [Export] public NodePath ObjectiveHeaderPath { get; set; } =
+        "Surface/Margin/Layout/ObjectiveHeader";
+    [Export] public NodePath FoodObjectiveButtonPath { get; set; } =
+        "Surface/Margin/Layout/ObjectiveButtons/FoodButton";
+    [Export] public NodePath WoodObjectiveButtonPath { get; set; } =
+        "Surface/Margin/Layout/ObjectiveButtons/WoodButton";
+    [Export] public NodePath ObjectiveSummaryPath { get; set; } =
+        "Surface/Margin/Layout/ObjectiveSummary";
     [Export] public NodePath TeamHeaderPath { get; set; } = "Surface/Margin/Layout/TeamHeader";
     [Export] public NodePath TeamScrollPath { get; set; } = "Surface/Margin/Layout/TeamScroll";
     [Export] public NodePath TeamListPath { get; set; } = "Surface/Margin/Layout/TeamScroll/TeamList";
     [Export] public NodePath RetreatHeaderPath { get; set; } = "Surface/Margin/Layout/RetreatHeader";
-    [Export] public NodePath RetreatPosturePath { get; set; } = "Surface/Margin/Layout/RetreatPosture";
+    [Export] public NodePath ContinuePostureButtonPath { get; set; } =
+        "Surface/Margin/Layout/RetreatPosture/ContinueButton";
+    [Export] public NodePath RetreatPostureButtonPath { get; set; } =
+        "Surface/Margin/Layout/RetreatPosture/RetreatButton";
     [Export] public NodePath DispatchButtonPath { get; set; } = "Surface/Margin/Layout/DispatchButton";
     [Export] public NodePath CancelButtonPath { get; set; } = "Surface/Margin/Layout/CancelButton";
     [Export] public NodePath ProspectButtonPath { get; set; } = "Surface/Margin/Layout/ProspectButton";
@@ -35,11 +47,17 @@ public partial class ExpeditionPanel : Control
     private CityWorldController _controller = null!;
     private ModalHost _modalHost = null!;
     private Label _statusLabel = null!;
+    private Label _title = null!;
+    private Label _objectiveHeader = null!;
+    private Button _foodObjectiveButton = null!;
+    private Button _woodObjectiveButton = null!;
+    private Label _objectiveSummary = null!;
     private Label _teamHeader = null!;
     private Control _teamScroll = null!;
     private VBoxContainer _teamList = null!;
     private Label _retreatHeader = null!;
-    private OptionButton _retreatPosture = null!;
+    private Button _continuePostureButton = null!;
+    private Button _retreatPostureButton = null!;
     private Button _dispatchButton = null!;
     private Button _cancelButton = null!;
     private Button _prospectButton = null!;
@@ -48,6 +66,9 @@ public partial class ExpeditionPanel : Control
     private readonly List<CitizenId> _selectedMemberIds = new();
     private bool _hasAppliedDefaultSelection;
     private bool _showRecoveryFixture;
+    private ExpeditionRetreatPosture _selectedRetreatPosture =
+        ExpeditionRetreatPosture.RetreatAfterSetback;
+    private ResourceOpportunityId? _selectedOpportunityId;
     // Last dispatch failure shown in the persistent status label so the
     // player does not miss the cause on a 3-second toast. Cleared on
     // the next successful dispatch or panel close.
@@ -60,29 +81,39 @@ public partial class ExpeditionPanel : Control
         _controller = GetNode<CityWorldController>(ControllerPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _statusLabel = GetNode<Label>(StatusLabelPath);
+        _title = GetNode<Label>(TitlePath);
+        _objectiveHeader = GetNode<Label>(ObjectiveHeaderPath);
+        _foodObjectiveButton = GetNode<Button>(FoodObjectiveButtonPath);
+        _woodObjectiveButton = GetNode<Button>(WoodObjectiveButtonPath);
+        _objectiveSummary = GetNode<Label>(ObjectiveSummaryPath);
         _teamHeader = GetNode<Label>(TeamHeaderPath);
         _teamScroll = GetNode<Control>(TeamScrollPath);
         _teamList = GetNode<VBoxContainer>(TeamListPath);
         _retreatHeader = GetNode<Label>(RetreatHeaderPath);
-        _retreatPosture = GetNode<OptionButton>(RetreatPosturePath);
+        _continuePostureButton = GetNode<Button>(ContinuePostureButtonPath);
+        _retreatPostureButton = GetNode<Button>(RetreatPostureButtonPath);
         _dispatchButton = GetNode<Button>(DispatchButtonPath);
         _cancelButton = GetNode<Button>(CancelButtonPath);
         _prospectButton = GetNode<Button>(ProspectButtonPath);
         _closeButton = GetNode<Button>(CloseButtonPath);
 
+        _title.Text = UiText.Get("ui.expedition.title");
         _retreatHeader.Text = UiText.Get("ui.expedition.posture_label");
-        _retreatPosture.AddItem(
-            UiText.Get("ui.expedition.posture.continue"),
-            (int)ExpeditionRetreatPosture.ContinueAfterSetback);
-        _retreatPosture.AddItem(
-            UiText.Get("ui.expedition.posture.retreat"),
-            (int)ExpeditionRetreatPosture.RetreatAfterSetback);
-        _retreatPosture.Select(1);
-        _retreatPosture.TooltipText = UiText.Get("ui.expedition.posture_hint");
+        _objectiveHeader.Text = UiText.Get("ui.expedition.objective_label");
+        _continuePostureButton.TooltipText = UiText.Get("ui.expedition.posture_hint");
+        _retreatPostureButton.TooltipText = UiText.Get("ui.expedition.posture_hint");
         _cancelButton.Text = UiText.Get("ui.expedition.cancel_dispatch");
         _cancelButton.TooltipText = UiText.Get("ui.expedition.cancel_dispatch_hint");
 
         _dispatchButton.Pressed += OnDispatchPressed;
+        _foodObjectiveButton.Pressed += () => SelectResourceOpportunity(
+            ResourceOpportunityKind.NearbyFoodForage);
+        _woodObjectiveButton.Pressed += () => SelectResourceOpportunity(
+            ResourceOpportunityKind.FallenWoodSearch);
+        _continuePostureButton.Pressed += () => SelectRetreatPosture(
+            ExpeditionRetreatPosture.ContinueAfterSetback);
+        _retreatPostureButton.Pressed += () => SelectRetreatPosture(
+            ExpeditionRetreatPosture.RetreatAfterSetback);
         _cancelButton.Pressed += OnCancelPressed;
         _prospectButton.Pressed += OnProspectPressed;
         _closeButton.Pressed += OnClosePressed;
@@ -93,6 +124,7 @@ public partial class ExpeditionPanel : Control
         GetViewport().SizeChanged += ApplyResponsiveBounds;
 
         Hide();
+        RefreshRetreatPostureButtons();
         CallDeferred(MethodName.ApplyResponsiveBounds);
     }
 
@@ -142,10 +174,14 @@ public partial class ExpeditionPanel : Control
     private void OnDispatchPressed()
     {
         if (_selectedMemberIds.Count == 0) return;
-        var request = ExpeditionRequest.Reconnaissance(
+        ExpeditionPlanningSnapshot snapshot = _controller.GetExpeditionPlanningSnapshot();
+        ExpeditionPlanningSnapshot.OpportunityItem? selected = snapshot.Opportunities
+            .FirstOrDefault(item => item.Id == _selectedOpportunityId);
+        if (selected is null) return;
+        ExpeditionStartResult result = _controller.StartResourceExpedition(
+            selected.Id,
             _selectedMemberIds.ToArray(),
             SelectedRetreatPosture());
-        ExpeditionStartResult result = _controller.StartExpedition(request);
         if (!result.IsSuccess)
         {
             // The Notifier toast only lives 3 seconds; the most common
@@ -154,7 +190,9 @@ public partial class ExpeditionPanel : Control
             // because the player conflates building stock with city
             // inventory. Surface the reason in the persistent status
             // label so it stays visible until the next attempt.
-            _lastDispatchFailure = DescribeDispatchFailure(result, request);
+            _lastDispatchFailure = DescribeDispatchFailure(
+                result,
+                selected.SupplyResource);
             Notifier.ShowError(UiText.Format("ui.expedition.dispatch_failed", result.Outcome));
         }
         else
@@ -168,7 +206,7 @@ public partial class ExpeditionPanel : Control
 
     private static string DescribeDispatchFailure(
         ExpeditionStartResult result,
-        ExpeditionRequest request)
+        ResourceType supplyResource)
     {
         // The dispatch outcome does not always carry the actionable
         // context (e.g. MissingSupplies doesn't say WHICH supply is
@@ -180,13 +218,19 @@ public partial class ExpeditionPanel : Control
             ExpeditionStartOutcome.MissingSupplies =>
                 UiText.Format(
                     "ui.expedition.dispatch_missing_supplies",
-                    UiText.Get(request.SupplyResource.ToString())),
+                    UiText.Get(supplyResource.ToString())),
             ExpeditionStartOutcome.AlreadyActive =>
                 UiText.Get("ui.expedition.dispatch_active_hint"),
             ExpeditionStartOutcome.MemberUnavailable =>
                 UiText.Get("ui.expedition.dispatch_member_unavailable"),
             ExpeditionStartOutcome.TownHallUnavailable =>
                 UiText.Get("ui.expedition.town_hall_required"),
+            ExpeditionStartOutcome.ResourceSortiesUnavailable =>
+                UiText.Get("ui.expedition.resource_unlock_hint"),
+            ExpeditionStartOutcome.OpportunityUnavailable =>
+                UiText.Get("ui.expedition.opportunity_unavailable"),
+            ExpeditionStartOutcome.InsufficientReturnCapacity =>
+                UiText.Get("ui.expedition.return_capacity_missing"),
             _ => UiText.Format(
                 "ui.expedition.dispatch_failed",
                 result.Outcome),
@@ -239,6 +283,7 @@ public partial class ExpeditionPanel : Control
     private void Refresh()
     {
         CityWorld world = _controller.World;
+        ExpeditionPlanningSnapshot planning = _controller.GetExpeditionPlanningSnapshot();
         Expedition? active = null;
         foreach (Expedition expedition in world.Expeditions.Values)
         {
@@ -268,10 +313,19 @@ public partial class ExpeditionPanel : Control
         _teamHeader.Visible = showTeamPicker;
         _teamScroll.Visible = showTeamPicker;
         _retreatHeader.Visible = showTeamPicker;
-        _retreatPosture.Visible = showTeamPicker;
+        _continuePostureButton.GetParent<Control>().Visible = showTeamPicker;
+        _objectiveHeader.Visible = showTeamPicker;
+        _foodObjectiveButton.GetParent<Control>().Visible = showTeamPicker;
+        _objectiveSummary.Visible = showTeamPicker;
+        if (showTeamPicker) RefreshObjectives(planning);
         if (showTeamPicker) PopulateTeamList(world);
 
-        bool canDispatch = active is null && _selectedMemberIds.Count > 0;
+        ExpeditionPlanningSnapshot.OpportunityItem? selectedOpportunity =
+            planning.Opportunities.FirstOrDefault(item => item.Id == _selectedOpportunityId);
+        bool canChooseTeam = active is null && _selectedMemberIds.Count > 0;
+        bool canDispatch = canChooseTeam
+            && planning.ResourceSortiesUnlocked
+            && selectedOpportunity is { CanDispatch: true };
         _dispatchButton.Disabled = !canDispatch;
         // Without this tooltip the disabled button silently does nothing —
         // the player sees a click with no feedback and assumes the panel
@@ -283,7 +337,7 @@ public partial class ExpeditionPanel : Control
                 ? "ui.expedition.dispatch_no_member_hint"
                 : "ui.expedition.dispatch_active_hint");
         bool hasTownHall = world.Buildings.Values.Any(building => building.Kind == BuildingKind.TownHall);
-        _prospectButton.Disabled = !canDispatch
+        _prospectButton.Disabled = !canChooseTeam
             || !hasTownHall
             || world.PendingProspect is not null;
         _prospectButton.TooltipText = UiText.Get(!hasTownHall
@@ -317,6 +371,85 @@ public partial class ExpeditionPanel : Control
             + "\n" + territoryStatus;
     }
 
+    private void SelectResourceOpportunity(ResourceOpportunityKind kind)
+    {
+        ExpeditionPlanningSnapshot snapshot = _controller.GetExpeditionPlanningSnapshot();
+        ExpeditionPlanningSnapshot.OpportunityItem? selected = snapshot.Opportunities
+            .FirstOrDefault(item => item.Kind == kind);
+        if (selected is null) return;
+        _selectedOpportunityId = selected.Id;
+        RefreshObjectives(snapshot);
+    }
+
+    private void RefreshObjectives(ExpeditionPlanningSnapshot snapshot)
+    {
+        if (_selectedOpportunityId is null
+            || !snapshot.Opportunities.Any(item =>
+                item.Id == _selectedOpportunityId && item.CanDispatch))
+        {
+            _selectedOpportunityId = snapshot.Opportunities
+                .FirstOrDefault(item => item.CanDispatch)?.Id
+                ?? snapshot.Opportunities.FirstOrDefault()?.Id;
+        }
+        ConfigureObjectiveButton(
+            _foodObjectiveButton,
+            snapshot,
+            ResourceOpportunityKind.NearbyFoodForage,
+            UiText.Get("ui.expedition.objective.food"));
+        ConfigureObjectiveButton(
+            _woodObjectiveButton,
+            snapshot,
+            ResourceOpportunityKind.FallenWoodSearch,
+            UiText.Get("ui.expedition.objective.wood"));
+
+        ExpeditionPlanningSnapshot.OpportunityItem? selected = snapshot.Opportunities
+            .FirstOrDefault(item => item.Id == _selectedOpportunityId);
+        if (!snapshot.ResourceSortiesUnlocked)
+        {
+            _objectiveSummary.Text = UiText.Get("ui.expedition.resource_unlock_hint");
+            return;
+        }
+        if (selected is null)
+        {
+            _objectiveSummary.Text = UiText.Get("ui.expedition.opportunity_unavailable");
+            return;
+        }
+        _objectiveSummary.Text = selected.State == ResourceOpportunityState.Depleted
+            ? UiText.Get("ui.expedition.opportunity_depleted")
+            : UiText.Format(
+                "ui.expedition.objective_summary",
+                SimulationTimeText.FormatDurationLocalized(selected.DurationTicks),
+                selected.SupplyAmount,
+                UiText.Get(selected.SupplyResource.ToString()),
+                selected.MinimumReturn,
+                selected.PartialReturn,
+                selected.MaximumReturn,
+                UiText.Get(selected.RewardResource.ToString()),
+                selected.CarryCapacity);
+    }
+
+    private void ConfigureObjectiveButton(
+        Button button,
+        ExpeditionPlanningSnapshot snapshot,
+        ResourceOpportunityKind kind,
+        string label)
+    {
+        ExpeditionPlanningSnapshot.OpportunityItem? item = snapshot.Opportunities
+            .FirstOrDefault(candidate => candidate.Kind == kind);
+        bool selected = item is not null && item.Id == _selectedOpportunityId;
+        button.Text = $"[{(selected ? "X" : " ")}] {label}";
+        button.ThemeTypeVariation = selected ? "ButtonPrimary" : "ButtonText";
+        button.ButtonPressed = selected;
+        button.Disabled = !snapshot.ResourceSortiesUnlocked || item is not { CanDispatch: true };
+        button.TooltipText = !snapshot.ResourceSortiesUnlocked
+            ? UiText.Get("ui.expedition.resource_unlock_hint")
+            : item?.State == ResourceOpportunityState.Depleted
+                ? UiText.Get("ui.expedition.opportunity_depleted")
+                : item is { CanDispatch: false }
+                    ? UiText.Get("ui.expedition.return_capacity_missing")
+                    : string.Empty;
+    }
+
     private static string DescribePhase(Expedition expedition)
     {
         string phaseText = UiText.Get(expedition.Phase switch
@@ -338,8 +471,34 @@ public partial class ExpeditionPanel : Control
         return UiText.Format("ui.expedition.phase_with_outcome", phaseText, outcomeText);
     }
 
-    private ExpeditionRetreatPosture SelectedRetreatPosture() =>
-        (ExpeditionRetreatPosture)_retreatPosture.GetSelectedId();
+    private ExpeditionRetreatPosture SelectedRetreatPosture() => _selectedRetreatPosture;
+
+    private void SelectRetreatPosture(ExpeditionRetreatPosture posture)
+    {
+        _selectedRetreatPosture = posture;
+        RefreshRetreatPostureButtons();
+    }
+
+    private void RefreshRetreatPostureButtons()
+    {
+        bool continues = _selectedRetreatPosture
+            == ExpeditionRetreatPosture.ContinueAfterSetback;
+        ConfigurePostureButton(
+            _continuePostureButton,
+            continues,
+            UiText.Get("ui.expedition.posture.continue"));
+        ConfigurePostureButton(
+            _retreatPostureButton,
+            !continues,
+            UiText.Get("ui.expedition.posture.retreat"));
+    }
+
+    private static void ConfigurePostureButton(Button button, bool selected, string label)
+    {
+        button.Text = $"[{(selected ? "X" : " ")}] {label}";
+        button.ThemeTypeVariation = selected ? "ButtonPrimary" : "ButtonText";
+        button.ButtonPressed = selected;
+    }
 
     private void PopulateTeamList(CityWorld world)
     {

@@ -24,6 +24,12 @@ public sealed record BuildingDetailSnapshot(
     int VisibleWorkerCount,
     int HiddenWorkerCount,
     int WoodReserve,
+    bool HasPrimitiveAxe,
+    bool CanCraftPrimitiveAxe,
+    ResourceType? PrimitiveAxeMissingResource,
+    int FoundingStorageCount,
+    int FoundingStorageCapacity,
+    IReadOnlyList<ResourceInventoryItem> Resources,
     IReadOnlyList<RecipeInput> PendingInputs,
     IReadOnlyList<BuildingDetailSnapshot.CitizenItem> AssignedCitizens,
     IReadOnlyList<BuildingDetailSnapshot.CitizenItem> AvailableCitizens,
@@ -80,15 +86,47 @@ public sealed record BuildingDetailSnapshot(
             unavailable.Add(new UnavailableCitizenItem(citizen.Id, citizen.Name, citizen.AvailabilityReason, locationName));
         }
 
+        var resources = new List<ResourceInventoryItem>();
+        ResourceType[] foundingResources =
+        {
+            ResourceType.Food,
+            ResourceType.WildFood,
+            ResourceType.Wood,
+            ResourceType.Branches,
+            ResourceType.PlantFiber,
+            ResourceType.SmallStone,
+        };
+        var included = new HashSet<ResourceType>();
+        foreach (ResourceType resource in foundingResources)
+        {
+            resources.Add(ToResourceItem(world, resource));
+            included.Add(resource);
+        }
+        foreach (ResourceType resource in System.Enum.GetValues<ResourceType>())
+        {
+            if (included.Contains(resource) || world.Resources.Total(resource) <= 0) continue;
+            resources.Add(ToResourceItem(world, resource));
+        }
+
         return new BuildingDetailSnapshot(building.Id, building.DisplayName, building.FullDisplayLabel,
             building.Kind, building.ResourceLabel, building.ResourceUnit, building.Stock,
             building.StorageCapacity, world.CurrentProductionRate(building.Id), CityEconomyRules.ProductionCycleTicks,
             building.ProductionEnabled,
             building.MinStock, building.MaxStock, building.Priority, building.StopCause,
             building.WorkerCapacity, building.VisibleWorkerCount, building.HiddenWorkerCount,
-            building.WoodReserve, new List<RecipeInput>(building.PendingInputs), assigned, available, visible,
+            building.WoodReserve,
+            world.HasTool(ToolKind.PrimitiveAxe),
+            world.ToolCraftAvailability(ToolKind.PrimitiveAxe).IsSuccess,
+            world.ToolCraftAvailability(ToolKind.PrimitiveAxe).MissingResource,
+            world.FoundingStorageCount(),
+            world.GroundResourceCapacity(),
+            resources,
+            new List<RecipeInput>(building.PendingInputs), assigned, available, visible,
             unavailable);
     }
+
+    internal static ResourceInventoryItem ToResourceItem(CityWorld world, ResourceType resource) =>
+        new(resource, world.Resources.Total(resource), world.Resources.Available(resource));
 
     private static CitizenItem ToItem(Citizen citizen) =>
         new(citizen.Id, citizen.Name, citizen.Profile.Lineage, citizen.Profile.Gender, citizen.AppearanceVariant);

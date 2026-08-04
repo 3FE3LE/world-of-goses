@@ -7,6 +7,14 @@ public sealed class ParcelPlacement
 {
     public BuildingId EntityId { get; }
     public ParcelId ParcelId { get; }
+    public BuildingReservation Reservation { get; }
+    public ConstructionRowId RowId => Reservation.RowId;
+    public int StartColumn => Reservation.StartColumn;
+    public int FrontageColumns => Reservation.FrontageColumns;
+    public int DepthRows => Reservation.DepthRows;
+    public int BaseFrontageColumns => Reservation.BaseFrontageColumns;
+    public int LeftExpansionColumns => Reservation.LeftExpansionColumns;
+    public int RightExpansionColumns => Reservation.RightExpansionColumns;
     public int LotColumn { get; }
     public int LotRow { get; }
     public int LotWidth { get; }
@@ -17,6 +25,13 @@ public sealed class ParcelPlacement
     public ParcelPlacement(
         BuildingId entityId,
         ParcelId parcelId,
+        ConstructionRowId rowId,
+        int startColumn,
+        int frontageColumns,
+        int depthRows,
+        int baseFrontageColumns,
+        int leftExpansionColumns,
+        int rightExpansionColumns,
         int lotColumn,
         int lotRow,
         int lotWidth,
@@ -48,6 +63,15 @@ public sealed class ParcelPlacement
         }
         EntityId = entityId;
         ParcelId = parcelId;
+        Reservation = new BuildingReservation(
+            entityId,
+            rowId,
+            startColumn,
+            frontageColumns,
+            depthRows,
+            baseFrontageColumns,
+            leftExpansionColumns,
+            rightExpansionColumns);
         LotColumn = lotColumn;
         LotRow = lotRow;
         LotWidth = lotWidth;
@@ -56,10 +80,5 @@ public sealed class ParcelPlacement
         Orientation = orientation;
     }
 
-    public bool Overlaps(ParcelPlacement other) =>
-        ParcelId == other.ParcelId
-        && LotColumn < other.LotColumn + other.LotWidth
-        && LotColumn + LotWidth > other.LotColumn
-        && LotRow < other.LotRow + other.LotHeight
-        && LotRow + LotHeight > other.LotRow;
+    public bool Overlaps(ParcelPlacement other) => Reservation.Overlaps(other.Reservation);
 }

@@ -14,6 +14,10 @@ public sealed record ConstructionSnapshot(
     IReadOnlyList<ConstructionSnapshot.UnavailableCitizenItem> UnavailableCitizens,
     IReadOnlyList<ConstructionSnapshot.OptionItem> Options,
     IReadOnlyList<ConstructionSnapshot.FoundingModuleOptionItem> FoundingModuleOptions,
+    bool HasFoundingCache,
+    int FoundingStorageCount,
+    int FoundingStorageCapacity,
+    IReadOnlyList<ResourceInventoryItem> FoundingResources,
     int ReturnableFoundingCargoCount)
 {
     public bool HasHome => HomeBuildingId.HasValue;
@@ -171,8 +175,40 @@ public sealed record ConstructionSnapshot(
             }
         }
 
+        bool hasFoundingCache = current?.Kind == ConstructionKind.FoundingSite
+            && current.HasCompletedFoundingModule(FoundingSiteModule.Cache);
+        var foundingResources = new List<ResourceInventoryItem>();
+        ResourceType[] visibleFoundingResources = hasFoundingCache
+            ? new[]
+            {
+                ResourceType.Food,
+                ResourceType.WildFood,
+                ResourceType.Wood,
+                ResourceType.Branches,
+                ResourceType.PlantFiber,
+                ResourceType.SmallStone,
+            }
+            : new[]
+            {
+                ResourceType.WildFood,
+                ResourceType.Branches,
+                ResourceType.PlantFiber,
+                ResourceType.SmallStone,
+            };
+        foreach (ResourceType resource in visibleFoundingResources)
+        {
+            foundingResources.Add(BuildingDetailSnapshot.ToResourceItem(world, resource));
+        }
+
+        int foundingStorageCount = hasFoundingCache
+            ? world.FoundingStorageCount()
+            : world.CarriedGroundResourceCount();
         return new ConstructionSnapshot(world.Hero is not null, world.Hero?.Name, homeId,
             projectItem, available, unavailable, options, moduleOptions,
+            hasFoundingCache,
+            foundingStorageCount,
+            world.GroundResourceCapacity(),
+            foundingResources,
             world.ReturnableFoundingCargoCount());
     }
 

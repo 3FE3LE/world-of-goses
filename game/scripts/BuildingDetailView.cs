@@ -35,6 +35,8 @@ public partial class BuildingDetailView : Control
 	private Label _provisionalArtLabel = null!;
 	private PanelContainer? _homeSummary;
 	private Label? _homeSummaryLabel;
+	private Button? _craftAxeButton;
+	private ResourceInventoryPanel? _shelterResourcesPanel;
 	private PanelContainer? _townHallPanel;
 	private Label? _prospectLabel;
 	private Button? _acceptProspectButton;
@@ -315,6 +317,27 @@ public partial class BuildingDetailView : Control
 			1 => UiText.Format("ui.building_detail.capacity_resting_one", capacity, resting),
 			_ => UiText.Format("ui.building_detail.capacity_resting_many", capacity, resting),
 		};
+		string shelterState = _homeSummaryLabel.Text;
+		_homeSummaryLabel.Text = shelterState + "\n" + UiText.Get(
+			snapshot.HasPrimitiveAxe
+				? "ui.tools.primitive_axe_stored"
+				: "ui.tools.primitive_axe_missing");
+		_craftAxeButton!.Text = UiText.Get(snapshot.HasPrimitiveAxe
+			? "ui.tools.primitive_axe_owned"
+			: "ui.tools.craft_primitive_axe");
+		_craftAxeButton.Disabled = snapshot.HasPrimitiveAxe || !snapshot.CanCraftPrimitiveAxe;
+		_craftAxeButton.TooltipText = snapshot.HasPrimitiveAxe
+			? UiText.Get("ui.tools.primitive_axe_stored")
+			: snapshot.PrimitiveAxeMissingResource is ResourceType missing
+				? UiText.Format(
+					"ui.tools.primitive_axe_missing_resource",
+					UiText.Get(missing.ToString().ToLowerInvariant()))
+				: UiText.Get("ui.tools.primitive_axe_recipe");
+		_shelterResourcesPanel!.Render(
+			snapshot.Resources,
+			snapshot.FoundingStorageCount,
+			snapshot.FoundingStorageCapacity,
+			ResourceInventoryOwner.Shelter);
 		_homeSummary!.Visible = true;
 	}
 
@@ -329,11 +352,45 @@ public partial class BuildingDetailView : Control
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 
+		_craftAxeButton = StandardButtons.TextAction(
+			UiText.Get("ui.tools.craft_primitive_axe"),
+			UiText.Get("ui.tools.primitive_axe_recipe"));
+		_craftAxeButton.ThemeTypeVariation = "ButtonPrimary";
+		_craftAxeButton.CustomMinimumSize = new Vector2(0, 44);
+		_craftAxeButton.Pressed += OnCraftPrimitiveAxe;
+		var layout = new VBoxContainer();
+		layout.AddThemeConstantOverride("separation", 8);
+		layout.AddChild(_homeSummaryLabel);
+		_shelterResourcesPanel = new ResourceInventoryPanel();
+		layout.AddChild(_shelterResourcesPanel);
+		layout.AddChild(_craftAxeButton);
+
 		_homeSummary = new PanelContainer { Name = "HomeSummary" };
 		_homeSummary.AddThemeStyleboxOverride(
 			"panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
-		_homeSummary.AddChild(_homeSummaryLabel);
+		_homeSummary.AddChild(layout);
 		_productionPanel.GetParent().AddChild(_homeSummary);
+	}
+
+	private void OnCraftPrimitiveAxe()
+	{
+		ToolCraftResult result = _controller.TryCraftTool(ToolKind.PrimitiveAxe);
+		if (!result.IsSuccess)
+		{
+			Notifier.ShowError(UiText.Get("ui.tools.craft_failed"));
+		}
+		else
+		{
+			Notifier.Show(UiText.Get("ui.tools.primitive_axe_crafted"));
+		}
+		Refresh();
+	}
+
+	internal void ExpandShelterResourcesForVisualRegression()
+	{
+		if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+		Refresh();
+		_shelterResourcesPanel?.SetExpandedForVisualRegression(expanded: true);
 	}
 
 	private void OnSlotCitizenClicked(int citizenIdValue)
@@ -384,7 +441,9 @@ public partial class BuildingDetailView : Control
 
 	private void OnBuildingStateChanged(int buildingId)
 	{
-		if (buildingId != _currentBuilding.Value) return;
+		if (!Visible) return;
+		BuildingDetailSnapshot? current = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+		if (buildingId != _currentBuilding.Value && current?.IsHome != true) return;
 		Refresh();
 	}
 

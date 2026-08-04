@@ -4,16 +4,16 @@
 
 [node name="ExpeditionPanel" type="Control"]
 visible = false
-custom_minimum_size = Vector2(520, 380)
+custom_minimum_size = Vector2(600, 560)
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -190.0
-offset_right = 260.0
-offset_bottom = 190.0
+offset_left = -300.0
+offset_top = -280.0
+offset_right = 300.0
+offset_bottom = 280.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
@@ -29,19 +29,19 @@ theme_type_variation = "OverlayPanel"
 
 [node name="Margin" type="MarginContainer" parent="Surface"]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="Layout" type="VBoxContainer" parent="Surface/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 6
 
 [node name="Title" type="Label" parent="Surface/Margin/Layout"]
 layout_mode = 2
 theme_type_variation = "ScreenTitle"
-text = "Reconnaissance"
+text = "Expeditions"
 horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="Surface/Margin/Layout"]
@@ -50,13 +50,45 @@ theme_type_variation = "BodyText"
 text = "Dispatch a reconnaissance."
 autowrap_mode = 3
 
+[node name="ObjectiveHeader" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "SectionTitle"
+text = "Objective"
+
+[node name="ObjectiveButtons" type="HBoxContainer" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="FoodButton" type="Button" parent="Surface/Margin/Layout/ObjectiveButtons"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "ButtonText"
+toggle_mode = true
+text = "[X] Food"
+
+[node name="WoodButton" type="Button" parent="Surface/Margin/Layout/ObjectiveButtons"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "ButtonText"
+toggle_mode = true
+text = "[ ] Wood"
+
+[node name="ObjectiveSummary" type="Label" parent="Surface/Margin/Layout"]
+layout_mode = 2
+theme_type_variation = "BodySmall"
+text = "Duration, supply, return and capacity"
+autowrap_mode = 3
+
 [node name="TeamHeader" type="Label" parent="Surface/Margin/Layout"]
 layout_mode = 2
 theme_type_variation = "SectionTitle"
 text = "Team"
 
 [node name="TeamScroll" type="ScrollContainer" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
@@ -71,32 +103,48 @@ layout_mode = 2
 theme_type_variation = "SectionTitle"
 text = "Retreat posture"
 
-[node name="RetreatPosture" type="OptionButton" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 40)
+[node name="RetreatPosture" type="HBoxContainer" parent="Surface/Margin/Layout"]
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ContinueButton" type="Button" parent="Surface/Margin/Layout/RetreatPosture"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = "ButtonText"
+toggle_mode = true
+text = "[ ] Continue"
+
+[node name="RetreatButton" type="Button" parent="Surface/Margin/Layout/RetreatPosture"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "ButtonText"
+toggle_mode = true
+text = "[X] Retreat"
 
 [node name="DispatchButton" type="Button" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_type_variation = "ButtonPrimary"
 text = "Dispatch"
 
 [node name="ProspectButton" type="Button" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_type_variation = "ButtonPrimary"
 text = "Seek a prospect"
 
 [node name="CancelButton" type="Button" parent="Surface/Margin/Layout"]
 visible = false
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_type_variation = "ButtonWarning"
 text = "Cancel dispatch"
 
 [node name="CloseButton" type="Button" parent="Surface/Margin/Layout"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 theme_type_variation = "ButtonText"
 text = "Close"

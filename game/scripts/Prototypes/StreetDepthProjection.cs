@@ -32,22 +32,28 @@ public static class StreetDepthProjection
     // technique itself (DrawPixelStaircaseTrapezoid) is untouched by this —
     // it only consumes whatever screen coordinates these formulas produce.
     public const float VerticalDepthFactor = 0.90f;
-    public const float HorizontalDepthFactor = 0.87f;
-    private const float BaseRowSpacingPx = 64f;
+    public const float HorizontalDepthFactor = 0.88f;
+    private const float BaseRowSpacingPx = 58f;
     private const float HorizonY = 200f;
 
-    // Keep exactly one completed street behind the camera as the large
-    // foreground/occlusion band. Once a second street passes behind the
-    // observer it has crossed the near plane and must no longer render.
-    // Clipping at the completed second row lets the foreground travel below
-    // the viewport through every preceding quantized transition frame.
-    public const float NearClipDepth = -2f;
+    // Keep the focused street plus the two completed streets immediately in
+    // front of it. The fourth foreground street crosses the near plane.
+    public const float NearClipDepth = -3f;
+
+    // Thirteen street bands total remain renderable at an integer camera
+    // anchor: two foreground bands (-2/-1), the focused band (0), and ten
+    // receding bands (1..10). That is four complete three-street parcel rows
+    // plus the leading band of the next row. Camera movement shifts this
+    // window through a larger semantic city before the original projection
+    // would collapse rows onto its authored y=200 horizon.
+    public const float FarClipDepth = 11f;
 
     public static float VerticalScale(float depth) => Mathf.Pow(VerticalDepthFactor, depth);
 
     public static float HorizontalScale(float depth) => Mathf.Pow(HorizontalDepthFactor, depth);
 
-    public static bool IsVisibleDepth(float depth) => depth > NearClipDepth;
+    public static bool IsVisibleDepth(float depth) =>
+        depth > NearClipDepth && depth < FarClipDepth;
 
     /// <summary>
     /// Screen-space Y for a given depth: the closest row (depth 0) sits at

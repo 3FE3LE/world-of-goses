@@ -92,6 +92,10 @@ public partial class CityPrototype : Node
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: true);
                 break;
+            case "construction-placement-hover-invalid":
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowConstructionPlacementHoverForVisualRegression(valid: false);
+                break;
             case "founding-blueprint":
                 ShowFoundingSiteForVisualRegression(moduleChoice: false, blockedCargo: false);
                 break;
@@ -103,6 +107,9 @@ public partial class CityPrototype : Node
                 break;
             case "early-game-resources":
                 ShowEarlyGameResourcesForVisualRegression();
+                break;
+            case "shelter-resources":
+                ShowShelterResourcesForVisualRegression();
                 break;
             case "cultivation-prepared":
                 ShowCultivationForVisualRegression();
@@ -175,6 +182,15 @@ public partial class CityPrototype : Node
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowThirdStreetDepthForVisualRegression();
                 break;
+            case "long-terrarium-20-rows":
+                ShowLongTerrariumForVisualRegression(additionalRows: 20);
+                break;
+            case "long-terrarium-16-rows":
+                ShowLongTerrariumForVisualRegression(additionalRows: 15);
+                break;
+            case "terrarium-8x9-window":
+                ShowTerrariumWindowForVisualRegression(rows: 8, columns: 9);
+                break;
             case "policies":
                 GetNode<PoliciesPanel>("GameUiShell/ScreenContent/PoliciesPanel").Open();
                 break;
@@ -182,6 +198,174 @@ public partial class CityPrototype : Node
                 GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
                     .ShowForVisualRegression();
                 break;
+        }
+    }
+
+    private void ShowLongTerrariumForVisualRegression(int additionalRows)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        Citizen? loadedFounder = controller.World.Hero;
+        var fixture = new CityWorld();
+        if (loadedFounder is not null)
+        {
+            HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+                "Aster",
+                loadedFounder.Profile,
+                loadedFounder.Profile.Gender));
+            if (!heroResult.IsSuccess)
+            {
+                GD.PushError($"Long-terrarium fixture could not create founder: {heroResult.Outcome}.");
+                return;
+            }
+            fixture.SeedStartingForests();
+            fixture.SeedStartingOpportunities();
+        }
+
+        WorldSave save = WorldPersistence.Capture(fixture);
+        AddTerrariumRowsForVisualRegression(save, additionalRows);
+        controller.World.Restore(save);
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowLongTerrariumForVisualRegression();
+    }
+
+    private void ShowTerrariumWindowForVisualRegression(int rows, int columns)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        Citizen? loadedFounder = controller.World.Hero;
+        var fixture = new CityWorld();
+        if (loadedFounder is not null)
+        {
+            HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+                "Aster",
+                loadedFounder.Profile,
+                loadedFounder.Profile.Gender));
+            if (!heroResult.IsSuccess)
+            {
+                GD.PushError($"Terrarium fixture could not create founder: {heroResult.Outcome}.");
+                return;
+            }
+            fixture.SeedStartingForests();
+            fixture.SeedStartingOpportunities();
+        }
+
+        WorldSave save = WorldPersistence.Capture(fixture);
+        ResizeTerrariumForVisualRegression(save, rows, columns);
+        controller.World.Restore(save);
+        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+            .ShowLongTerrariumForVisualRegression();
+    }
+
+    internal static void ResizeTerrariumForVisualRegression(
+        WorldSave save,
+        int rows,
+        int columns)
+    {
+        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
+
+        int existingColumnCount = save.Parcels
+            .Select(parcel => parcel.LogicalColumn)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+        if (columns < existingColumnCount)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(columns),
+                "Terrarium fixture cannot discard existing parcel columns.");
+        }
+        int addedColumns = columns - existingColumnCount;
+        if (addedColumns % 2 != 0)
+        {
+            throw new ArgumentException(
+                "Terrarium fixture must add the same number of columns on both sides.",
+                nameof(columns));
+        }
+        int leftParcelColumns = addedColumns / 2;
+        if (leftParcelColumns > 0)
+        {
+            foreach (ParcelSave parcel in save.Parcels)
+            {
+                parcel.LogicalColumn += leftParcelColumns;
+            }
+            int leftLotColumns = leftParcelColumns * ParcelGrid.LotsPerAxis;
+            int leftFrontageColumns =
+                leftParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+            foreach (ParcelPlacementSave placement in save.ParcelPlacements)
+            {
+                placement.LotColumn += leftLotColumns;
+                placement.StartColumn += leftFrontageColumns;
+            }
+            foreach (CorridorReservationSave corridor in save.CorridorReservations)
+            {
+                corridor.StartColumn += leftFrontageColumns;
+            }
+        }
+
+        var existing = save.Parcels
+            .ToDictionary(parcel => (parcel.LogicalRow, parcel.LogicalColumn));
+        int nextParcelId = save.Parcels
+            .Select(parcel => parcel.Id)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+        for (int row = 0; row < rows; row++)
+        {
+            for (int column = 0; column < columns; column++)
+            {
+                if (existing.ContainsKey((row, column))) continue;
+                save.Parcels.Add(new ParcelSave
+                {
+                    Id = nextParcelId++,
+                    LogicalColumn = column,
+                    LogicalRow = row,
+                    IsUnlocked = true,
+                    TerritoryState = ParcelTerritoryState.Available.ToString(),
+                });
+            }
+        }
+    }
+
+    internal static void AddTerrariumRowsForVisualRegression(
+        WorldSave save,
+        int additionalRows)
+    {
+        if (additionalRows < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(additionalRows));
+        }
+        if (additionalRows == 0) return;
+
+        int columnCount = save.Parcels
+            .Where(parcel => parcel.LogicalRow == 0)
+            .Select(parcel => parcel.LogicalColumn)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+        if (columnCount <= 0)
+        {
+            throw new InvalidOperationException(
+                "Long-terrarium fixture requires an initialized founding parcel row.");
+        }
+        int firstNewRow = save.Parcels
+            .Select(parcel => parcel.LogicalRow)
+            .DefaultIfEmpty(-1)
+            .Max() + 1;
+        int nextParcelId = save.Parcels
+            .Select(parcel => parcel.Id)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        for (int row = firstNewRow; row < firstNewRow + additionalRows; row++)
+        {
+            for (int column = 0; column < columnCount; column++)
+            {
+                save.Parcels.Add(new ParcelSave
+                {
+                    Id = nextParcelId++,
+                    LogicalColumn = column,
+                    LogicalRow = row,
+                    IsUnlocked = true,
+                    TerritoryState = ParcelTerritoryState.Available.ToString(),
+                });
+            }
         }
     }
 
@@ -279,6 +463,52 @@ public partial class CityPrototype : Node
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowEarlyGameResourcesForVisualRegression();
+    }
+
+    private void ShowShelterResourcesForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        Citizen? loadedFounder = controller.World.Hero;
+        if (loadedFounder is null)
+        {
+            GD.PushError("Shelter resources visual fixture requires a loaded founder profile.");
+            return;
+        }
+
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            loadedFounder.Profile,
+            loadedFounder.Profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Shelter resources visual fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        fixture.Resources.DepositToCityInventory(ResourceType.Wood, 4);
+        ConstructionAuthorizationResult shelter =
+            fixture.TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+        if (!shelter.IsSuccess || shelter.ProjectId is not BuildingId shelterId)
+        {
+            GD.PushError($"Shelter resources visual fixture could not authorize shelter: {shelter.Outcome}.");
+            return;
+        }
+        ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
+        shelterProject.Progress = shelterProject.RequiredWork;
+        fixture.AdvanceWorldTick();
+        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        fixture.Resources.DepositToCityInventory(ResourceType.Branches, 3);
+        fixture.Resources.DepositToCityInventory(ResourceType.PlantFiber, 2);
+        fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 2);
+        fixture.Resources.DepositToCityInventory(ResourceType.WildFood, 4);
+
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        controller.SelectBuilding(shelterId);
+        GetNode<BuildingDetailView>("GameUiShell/ScreenContent/BuildingDetailView")
+            .ExpandShelterResourcesForVisualRegression();
     }
 
     private void ShowCultivationForVisualRegression()

@@ -70,8 +70,8 @@ public sealed class NaturalResourcePatchTests
         CityWorld world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
 
-        Assert.Equal(9, world.Parcels.Count);
-        Assert.Equal(8, world.Parcels.Values.Count(parcel => parcel.IsUnlocked));
+        Assert.Equal(3, world.Parcels.Count);
+        Assert.Equal(3, world.Parcels.Values.Count(parcel => parcel.IsUnlocked));
         Assert.Equal(2, world.NaturalResourcePatches.Count);
         Assert.All(world.NaturalResourcePatches.Values, patch =>
         {

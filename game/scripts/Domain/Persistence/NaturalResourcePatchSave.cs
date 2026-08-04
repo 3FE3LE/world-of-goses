@@ -9,4 +9,5 @@ public sealed class NaturalResourcePatchSave
     public string ResourceType { get; set; } = Domain.ResourceType.Wood.ToString();
     public int? LegacyStorageBuildingId { get; set; }
     public List<int> UnitReserves { get; set; } = new();
+    public List<NaturalResourceUnitPositionSave> UnitPositions { get; set; } = new();
 }

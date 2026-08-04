@@ -23,6 +23,7 @@
 | `world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md` | Pixel art direction, three visual scales, typography hierarchy, Sixteen Pixel Perfect, per-lineage visual identity. |
 | `world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` | Synthetic retro audio, bus layout, per-lineage sonic identity, first audio pack. |
 | `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |
+| `world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md` | Dynamic frontage rows, construction reservations, structural footprints, corridors, expansion, and their persistence contract. |
 
 ## Implementation-aware docs
 

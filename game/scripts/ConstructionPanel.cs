@@ -62,6 +62,7 @@ public partial class ConstructionPanel : PanelContainer
     private ProgressBar _progress = null!;
     private Label _contributors = null!;
     private Label _requirementsLabel = null!;
+    private ResourceInventoryPanel _foundingResourcesPanel = null!;
     private VBoxContainer _assignList = null!;
     private VBoxContainer _availableList = null!;
     private VBoxContainer _unavailableList = null!;
@@ -326,6 +327,12 @@ public partial class ConstructionPanel : PanelContainer
         };
         _bodyContent.AddChild(_requirementsLabel);
 
+        // Before the Shelter exists, resources are the founder's six-unit
+        // load and then the Founding Site Cache. Keep that ownership visible
+        // beside the module requirements that consume it.
+        _foundingResourcesPanel = new ResourceInventoryPanel(expandedByDefault: true);
+        _bodyContent.AddChild(_foundingResourcesPanel);
+
         var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         lists.AddThemeConstantOverride("separation", 16);
         _bodyContent.AddChild(lists);
@@ -546,6 +553,17 @@ public partial class ConstructionPanel : PanelContainer
 
     private void Render(ConstructionSnapshot snapshot)
     {
+        _foundingResourcesPanel.Visible = !snapshot.HasHome;
+        if (!snapshot.HasHome)
+        {
+            _foundingResourcesPanel.Render(
+                snapshot.FoundingResources,
+                snapshot.FoundingStorageCount,
+                snapshot.FoundingStorageCapacity,
+                snapshot.HasFoundingCache
+                    ? ResourceInventoryOwner.FoundingCache
+                    : ResourceInventoryOwner.FounderCargo);
+        }
         switch (_mode)
         {
             case Mode.Blueprint:

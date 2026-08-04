@@ -8,6 +8,7 @@ public sealed record CityMacroSnapshot(
     int CitizenCount,
     CityMacroSnapshot.HeroVisual? Hero,
     IReadOnlyList<CityMacroSnapshot.CitizenItem> Citizens,
+    IReadOnlyList<CityMacroSnapshot.ParcelItem> Parcels,
     IReadOnlyList<CityMacroSnapshot.PlotItem> Buildings,
     IReadOnlyList<CityMacroSnapshot.PlotItem> Projects,
     IReadOnlyList<WorldEvent> Events)
@@ -26,6 +27,12 @@ public sealed record CityMacroSnapshot(
     }
 
     public sealed record HeroVisual(CitizenId Id, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
+
+    public sealed record ParcelItem(
+        ParcelId Id,
+        int LogicalColumn,
+        int LogicalRow,
+        ParcelTerritoryState TerritoryState);
 
     /// <summary>
     /// Citizen summary used by the macro view. Carries the visible
@@ -70,6 +77,7 @@ public sealed record CityMacroSnapshot(
         int StorageCapacity,
         int WoodReserve,
         IReadOnlyList<int> WoodUnitReserves,
+        IReadOnlyList<NaturalResourceUnitPosition> ResourceUnitPositions,
         int Progress,
         int RequiredWork,
         ParcelId? ParcelId,
@@ -79,6 +87,12 @@ public sealed record CityMacroSnapshot(
         int LotRow,
         int LotWidth,
         int LotHeight,
+        int RowId,
+        int StartColumn,
+        int FrontageColumns,
+        int DepthRows,
+        int StructuralStartHalfColumn,
+        int StructuralFrontageHalfColumns,
         string? FootprintProfileId,
         BuildingOrientation Orientation)
     {
@@ -105,6 +119,9 @@ public sealed record CityMacroSnapshot(
             bool enabled = building.Kind == Domain.BuildingKind.Forest
                 ? building.WoodReserve > 0
                 : true;
+            ObstacleFootprintTemplate? footprint = placement is null
+                ? null
+                : BuildingFootprintCatalog.Get(placement.FootprintProfileId);
             buildings.Add(new PlotItem(
                 building.Id,
                 building.Kind,
@@ -119,6 +136,7 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: building.StorageCapacity,
                 WoodReserve: building.WoodReserve,
                 WoodUnitReserves: new List<int>(building.WoodUnitReserves),
+                ResourceUnitPositions: System.Array.Empty<NaturalResourceUnitPosition>(),
                 Progress: 0,
                 RequiredWork: 0,
                 placement?.ParcelId,
@@ -128,6 +146,15 @@ public sealed record CityMacroSnapshot(
                 LotRow: placement?.LotRow ?? 0,
                 LotWidth: placement?.LotWidth ?? 1,
                 LotHeight: placement?.LotHeight ?? 1,
+                RowId: placement?.RowId.Value ?? 0,
+                StartColumn: placement?.StartColumn ?? 0,
+                FrontageColumns: placement?.FrontageColumns ?? BuildingReservation.MinimumFrontageColumns,
+                DepthRows: placement?.DepthRows ?? BuildingReservation.RequiredDepthRows,
+                StructuralStartHalfColumn: placement is null || footprint is null
+                    ? 0
+                    : checked((placement.StartColumn + placement.LeftExpansionColumns) * 2
+                        + footprint.LeftClearance),
+                StructuralFrontageHalfColumns: footprint?.SolidArea.Width ?? 0,
                 FootprintProfileId: placement?.FootprintProfileId,
                 Orientation: placement?.Orientation ?? BuildingOrientation.South));
         }
@@ -148,6 +175,7 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: 0,
                 WoodReserve: patch.TotalReserve,
                 WoodUnitReserves: new List<int>(patch.UnitReserves),
+                ResourceUnitPositions: new List<NaturalResourceUnitPosition>(patch.UnitPositions),
                 Progress: 0,
                 RequiredWork: 0,
                 ParcelId: patch.ParcelId,
@@ -157,6 +185,12 @@ public sealed record CityMacroSnapshot(
                 LotRow: 0,
                 LotWidth: 1,
                 LotHeight: 1,
+                RowId: 0,
+                StartColumn: 0,
+                FrontageColumns: BuildingReservation.MinimumFrontageColumns,
+                DepthRows: BuildingReservation.RequiredDepthRows,
+                StructuralStartHalfColumn: 0,
+                StructuralFrontageHalfColumns: 0,
                 FootprintProfileId: null,
                 Orientation: BuildingOrientation.South));
         }
@@ -167,6 +201,9 @@ public sealed record CityMacroSnapshot(
                 && world.Parcels.TryGetValue(placement.ParcelId, out CityParcel? resolved)
                     ? resolved
                     : null;
+            ObstacleFootprintTemplate? footprint = placement is null
+                ? null
+                : BuildingFootprintCatalog.Get(placement.FootprintProfileId);
             buildings.Add(new PlotItem(
                 site.Id,
                 BuildingKind.CultivationSite,
@@ -182,6 +219,7 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: 0,
                 WoodReserve: 0,
                 WoodUnitReserves: System.Array.Empty<int>(),
+                ResourceUnitPositions: System.Array.Empty<NaturalResourceUnitPosition>(),
                 Progress: 0,
                 RequiredWork: 0,
                 placement?.ParcelId,
@@ -191,6 +229,15 @@ public sealed record CityMacroSnapshot(
                 LotRow: placement?.LotRow ?? 0,
                 LotWidth: placement?.LotWidth ?? 1,
                 LotHeight: placement?.LotHeight ?? 1,
+                RowId: placement?.RowId.Value ?? 0,
+                StartColumn: placement?.StartColumn ?? 0,
+                FrontageColumns: placement?.FrontageColumns ?? BuildingReservation.MinimumFrontageColumns,
+                DepthRows: placement?.DepthRows ?? BuildingReservation.RequiredDepthRows,
+                StructuralStartHalfColumn: placement is null || footprint is null
+                    ? 0
+                    : checked((placement.StartColumn + placement.LeftExpansionColumns) * 2
+                        + footprint.LeftClearance),
+                StructuralFrontageHalfColumns: footprint?.SolidArea.Width ?? 0,
                 FootprintProfileId: placement?.FootprintProfileId,
                 Orientation: placement?.Orientation ?? BuildingOrientation.South));
         }
@@ -205,6 +252,9 @@ public sealed record CityMacroSnapshot(
                 && world.Parcels.TryGetValue(placement.ParcelId, out CityParcel? resolved)
                     ? resolved
                     : null;
+            ObstacleFootprintTemplate? footprint = placement is null
+                ? null
+                : BuildingFootprintCatalog.Get(placement.FootprintProfileId);
             projects.Add(new PlotItem(
                 project.Id,
                 project.ResultingKind,
@@ -219,6 +269,7 @@ public sealed record CityMacroSnapshot(
                 StorageCapacity: 0,
                 WoodReserve: 0,
                 WoodUnitReserves: System.Array.Empty<int>(),
+                ResourceUnitPositions: System.Array.Empty<NaturalResourceUnitPosition>(),
                 project.Progress,
                 project.RequiredWork,
                 placement?.ParcelId,
@@ -228,6 +279,15 @@ public sealed record CityMacroSnapshot(
                 LotRow: placement?.LotRow ?? 0,
                 LotWidth: placement?.LotWidth ?? 1,
                 LotHeight: placement?.LotHeight ?? 1,
+                RowId: placement?.RowId.Value ?? 0,
+                StartColumn: placement?.StartColumn ?? 0,
+                FrontageColumns: placement?.FrontageColumns ?? BuildingReservation.MinimumFrontageColumns,
+                DepthRows: placement?.DepthRows ?? BuildingReservation.RequiredDepthRows,
+                StructuralStartHalfColumn: placement is null || footprint is null
+                    ? 0
+                    : checked((placement.StartColumn + placement.LeftExpansionColumns) * 2
+                        + footprint.LeftClearance),
+                StructuralFrontageHalfColumns: footprint?.SolidArea.Width ?? 0,
                 FootprintProfileId: placement?.FootprintProfileId,
                 Orientation: placement?.Orientation ?? BuildingOrientation.South));
         }
@@ -266,10 +326,25 @@ public sealed record CityMacroSnapshot(
                 resident.AppearanceVariant));
         }
 
+        var parcels = new List<ParcelItem>();
+        foreach (CityParcel parcel in world.Parcels.Values)
+        {
+            // Persisted frontier parcels remain in old saves, but expansion is
+            // suspended until its visual language is designed. Do not render a
+            // dark empty appendage that looks like broken terrain.
+            if (!parcel.IsUnlocked) continue;
+            parcels.Add(new ParcelItem(
+                parcel.Id,
+                parcel.LogicalColumn,
+                parcel.LogicalRow,
+                parcel.TerritoryState));
+        }
+
         return new CityMacroSnapshot(
             world.Citizens.Count,
             hero,
             citizens,
+            parcels,
             buildings,
             projects,
             new List<WorldEvent>(world.Log.Events));

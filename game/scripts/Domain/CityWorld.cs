@@ -30,6 +30,7 @@ public sealed class CityWorld
     private readonly Dictionary<ParcelId, CityParcel> _parcels = new();
     private readonly Dictionary<int, NaturalResourcePatch> _naturalResourcePatches = new();
     private readonly Dictionary<BuildingId, ParcelPlacement> _parcelPlacements = new();
+    private readonly Dictionary<int, CorridorReservation> _corridorReservations = new();
     private readonly WorldEventLog _log = new();
     private readonly CityInventory _inventory = new();
     private readonly CityResourceLedger _resources;
@@ -37,9 +38,13 @@ public sealed class CityWorld
     private readonly BuildingProductionSimulation _production;
     private readonly ConstructionSimulation _construction;
     private readonly Dictionary<ExpeditionId, Expedition> _expeditions = new();
+    private readonly Dictionary<ResourceOpportunityId, ResourceOpportunity>
+        _resourceOpportunities = new();
+    private readonly HashSet<ToolKind> _tools = new();
     private int _tick;
     private int _nextProjectId = 1;
     private int _nextExpeditionId = 1;
+    private int _nextCorridorReservationId = 1;
     private readonly EarlyGameMetrics _metrics = new();
 
     private static readonly CitizenId PrincipalHeroId = new(1);
@@ -83,13 +88,16 @@ public sealed class CityWorld
         _naturalResourcePatches;
     public IReadOnlyDictionary<BuildingId, ParcelPlacement> ParcelPlacements =>
         _parcelPlacements;
+    public IReadOnlyDictionary<int, CorridorReservation> CorridorReservations =>
+        _corridorReservations;
     public IReadOnlyDictionary<ExpeditionId, Expedition> Expeditions => _expeditions;
-    public CityParcel? NextTerritoryTarget => _parcels.Values
-        .Where(parcel => !parcel.IsUnlocked)
-        .OrderBy(parcel => parcel.LogicalRow)
-        .ThenBy(parcel => parcel.LogicalColumn)
-        .ThenBy(parcel => parcel.Id.Value)
-        .FirstOrDefault();
+    public IReadOnlyDictionary<ResourceOpportunityId, ResourceOpportunity> ResourceOpportunities =>
+        _resourceOpportunities;
+    public IReadOnlySet<ToolKind> Tools => _tools;
+    // Territory expansion is intentionally suspended while the finite visual
+    // boundary is redesigned. Persisted frontier parcels remain valid save
+    // data, but no expedition may target or expose them in this increment.
+    public CityParcel? NextTerritoryTarget => null;
 
     /// <summary>Read-only view of the chronological event log.</summary>
     public WorldEventLog Log => _log;
@@ -152,6 +160,24 @@ public sealed class CityWorld
         return false;
     }
 
+    public ExpeditionStartResult StartResourceExpedition(
+        ResourceOpportunityId opportunityId,
+        IReadOnlyList<CitizenId> memberIds,
+        ExpeditionRetreatPosture retreatPosture)
+    {
+        if (!_resourceOpportunities.TryGetValue(
+                opportunityId,
+                out ResourceOpportunity? opportunity))
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityNotFound);
+        }
+
+        return StartExpedition(ExpeditionRequest.ResourceSortie(
+            opportunity,
+            memberIds,
+            retreatPosture));
+    }
+
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
         if (Hero is null) return ExpeditionStartResult.Fail(ExpeditionStartOutcome.NoHero);
@@ -201,6 +227,52 @@ public sealed class CityWorld
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
         }
+
+        ResourceOpportunity? resourceOpportunity = null;
+        int carryCapacity = 0;
+        if (request.ResourceOpportunityId is ResourceOpportunityId opportunityId)
+        {
+            if (!HasFoundingSiteModule(FoundingSiteModule.Campfire)
+                || !HasFoundingSiteModule(FoundingSiteModule.Cache))
+            {
+                return ExpeditionStartResult.Fail(
+                    ExpeditionStartOutcome.ResourceSortiesUnavailable);
+            }
+            if (!_resourceOpportunities.TryGetValue(opportunityId, out resourceOpportunity))
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityNotFound);
+            }
+            if (resourceOpportunity.State != ResourceOpportunityState.Available)
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityUnavailable);
+            }
+            ResourceExpeditionDefinition definition =
+                ResourceExpeditionRules.Definition(resourceOpportunity.Kind);
+            if (request.ResourceOpportunityKind != resourceOpportunity.Kind
+                || request.DurationTicks != definition.DurationTicks
+                || request.SupplyResource != definition.SupplyResource
+                || request.SupplyAmount != definition.SupplyAmount
+                || request.RewardResource != definition.RewardResource
+                || request.SetbackReturn != definition.SetbackReturn
+                || request.PartialReturn != definition.PartialReturn
+                || request.RewardAmount != definition.FullReturn)
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
+            }
+            int returnHeadroom = AvailableFoundingStorageCapacity();
+            if (returnHeadroom < definition.SetbackReturn)
+            {
+                return ExpeditionStartResult.Fail(
+                    ExpeditionStartOutcome.InsufficientReturnCapacity);
+            }
+            carryCapacity = Math.Min(definition.FullReturn, returnHeadroom);
+        }
+        else if (request.ResourceOpportunityKind.HasValue
+            || request.SetbackReturn != 0
+            || request.PartialReturn != 0)
+        {
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
+        }
         foreach (Expedition existing in _expeditions.Values)
         {
             if (existing.Status == ExpeditionStatus.Active)
@@ -221,6 +293,11 @@ public sealed class CityWorld
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MissingSupplies);
         }
+        if (resourceOpportunity is not null && !resourceOpportunity.TryReserve(id))
+        {
+            _resources.Release(reservation.Id);
+            return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityUnavailable);
+        }
 
         var expedition = new Expedition(
             id,
@@ -236,8 +313,14 @@ public sealed class CityWorld
             reservation.Id,
             retreatPosture: request.RetreatPosture,
             targetParcelId: request.RewardKind == ExpeditionRewardKind.Supplies
+                && resourceOpportunity is null
                 ? NextTerritoryTarget?.Id
-                : null);
+                : null,
+            resourceOpportunityId: request.ResourceOpportunityId,
+            resourceOpportunityKind: request.ResourceOpportunityKind,
+            setbackReturn: request.SetbackReturn,
+            partialReturn: request.PartialReturn,
+            carryCapacity: carryCapacity);
 
         // Dispatch is all-or-nothing: if any member becomes unavailable
         // between validation above and here (there is no reentrancy in this
@@ -255,6 +338,7 @@ public sealed class CityWorld
                     toRollBack.CancelExpeditionDispatch(id);
                 }
                 _resources.Release(reservation.Id);
+                resourceOpportunity?.Release(id);
                 return ExpeditionStartResult.Fail(
                     ExpeditionStartOutcome.MemberUnavailable,
                     member.AvailabilityReason);
@@ -309,6 +393,7 @@ public sealed class CityWorld
             return false;
         }
         _resources.Release(expedition.ReservationId);
+        ReleaseResourceOpportunity(expedition);
         expedition.MarkCancelled();
         CancelMemberDispatches(expedition);
         _log.Record(
@@ -747,6 +832,69 @@ public sealed class CityWorld
         return FoundingSiteRules.CarriedCapacity;
     }
 
+    public int FoundingStorageCount()
+    {
+        int total = 0;
+        foreach ((ResourceType _, int amount) in _inventory.Amounts)
+        {
+            total = checked(total + amount);
+        }
+        return total;
+    }
+
+    public int AvailableFoundingStorageCapacity(ExpeditionId? excludeExpeditionId = null)
+    {
+        int reserved = 0;
+        foreach (Expedition expedition in _expeditions.Values)
+        {
+            if (expedition.Status != ExpeditionStatus.Active
+                || expedition.ResourceOpportunityId is null
+                || expedition.Id == excludeExpeditionId) continue;
+            reserved = checked(reserved + expedition.CarryCapacity);
+        }
+        return Math.Max(0, GroundResourceCapacity() - FoundingStorageCount() - reserved);
+    }
+
+    /// <summary>
+    /// Capacity available to the four rudimentary resources gathered from the
+    /// ground. Before a Cache exists those units are carried by the founder,
+    /// so unrelated legacy Food/Wood in city inventory cannot fill the
+    /// six-unit personal load. Once a Cache or Shelter exists, every founding
+    /// resource shares that physical storage and the aggregate capacity
+    /// applies.
+    /// </summary>
+    private int AvailableGroundGatherCapacity()
+    {
+        if (!HasFoundingCacheOrShelter())
+        {
+            return Math.Max(0, FoundingSiteRules.CarriedCapacity
+                - CarriedGroundResourceCount());
+        }
+        return AvailableFoundingStorageCapacity();
+    }
+
+    private bool HasFoundingCacheOrShelter()
+    {
+        foreach (Building building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home) return true;
+        }
+        return HasFoundingSiteModule(FoundingSiteModule.Cache);
+    }
+
+    private int DepositToFoundingStorage(
+        ResourceType resource,
+        int amount,
+        ExpeditionId? returningExpeditionId = null)
+    {
+        int accepted = Math.Min(
+            Math.Max(0, amount),
+            AvailableFoundingStorageCapacity(returningExpeditionId));
+        return accepted <= 0
+            ? 0
+            : _resources.DepositToCityInventory(resource, accepted);
+    }
+
     /// <summary>Queries persisted Founding Site capabilities without exposing storage details.</summary>
     public bool HasFoundingSiteModule(FoundingSiteModule module)
     {
@@ -761,6 +909,49 @@ public sealed class CityWorld
                 && building.FoundingSiteOriginModules.Contains(module)) return true;
         }
         return false;
+    }
+
+    public bool HasTool(ToolKind tool) => _tools.Contains(tool);
+
+    public ToolCraftResult ToolCraftAvailability(ToolKind tool)
+    {
+        if (!Enum.IsDefined(tool))
+        {
+            return new ToolCraftResult(ToolCraftOutcome.InvalidTool);
+        }
+        if (!HasCompletedFirstShelter())
+        {
+            return new ToolCraftResult(ToolCraftOutcome.ShelterRequired);
+        }
+        if (_tools.Contains(tool))
+        {
+            return new ToolCraftResult(ToolCraftOutcome.AlreadyOwned);
+        }
+        foreach (RecipeInput input in ToolRules.InputsFor(tool))
+        {
+            if (_resources.Available(input.Resource) < input.Amount)
+            {
+                return new ToolCraftResult(
+                    ToolCraftOutcome.MissingResource,
+                    input.Resource);
+            }
+        }
+        return new ToolCraftResult(ToolCraftOutcome.Crafted);
+    }
+
+    public ToolCraftResult TryCraftTool(ToolKind tool)
+    {
+        ToolCraftResult availability = ToolCraftAvailability(tool);
+        if (!availability.IsSuccess) return availability;
+        if (!_resources.TryConsume(ToolRules.InputsFor(tool), out ResourceType? missing))
+        {
+            return new ToolCraftResult(ToolCraftOutcome.MissingResource, missing);
+        }
+
+        _tools.Add(tool);
+        Building? shelter = PrimaryHome;
+        if (shelter is not null) RaiseBuildingChanged(shelter.Id);
+        return new ToolCraftResult(ToolCraftOutcome.Crafted);
     }
 
     /// <summary>
@@ -857,30 +1048,33 @@ public sealed class CityWorld
         RegisterBuilding(forest1);
         RegisterBuilding(forest2);
         EnsureFoundingParcels();
-        RegisterNaturalResourcePatch(new NaturalResourcePatch(
-            forest1.Id.Value, new ParcelId(1), ResourceType.Wood,
-            forest1.WoodUnitReserves, forest1.Id));
-        RegisterNaturalResourcePatch(new NaturalResourcePatch(
-            forest2.Id.Value, new ParcelId(2), ResourceType.Wood,
-            forest2.WoodUnitReserves, forest2.Id));
+        RegisterNaturalResourcePatch(CreateProceduralResourcePatch(
+            forest1.Id.Value,
+            ResourceType.Wood,
+            forest1.WoodUnitReserves,
+            forest1.Id));
+        RegisterNaturalResourcePatch(CreateProceduralResourcePatch(
+            forest2.Id.Value,
+            ResourceType.Wood,
+            forest2.WoodUnitReserves,
+            forest2.Id));
     }
 
     /// <summary>
     /// EG-1 part two: seeds the four rudimentary ground resources from
     /// <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §4</c>:
     /// 14 Branches (7 bundles × 2), 6 Plant Fiber (3 × 2), 6 Small
-    /// Stone (3 × 2), 8 Wild Food (4 × 2). Each goes onto the next
-    /// free parcel in the 4×2 visible grid after the Forests, so a
-    /// fresh city ends with parcels 1–2 holding Wood and parcels 3–6
-    /// holding the four rudimentary types in EG-A0 order. Idempotent:
+    /// Stone (3 × 2), 8 Wild Food (4 × 2). Units occupy independent frontage
+    /// cells in deterministic scatter and may share a parcel with other resource
+    /// types; no patch claims an entire building lot. Idempotent:
     /// a save that already has any of the four EG-1 resource types
-    /// in its patch set is left alone. Mid-game saves that already
-    /// occupied parcels 3–6 skip the seeding for whichever type would
-    /// collide; leftover types still appear on the next free parcel.
+    /// in its patch set is left alone. Mid-game cities allocate around
+    /// existing buildings, corridors and resource cells.
     /// </summary>
     public void SeedStartingOpportunities()
     {
         if (_citizens.Count == 0) return;
+        EnsureStartingResourceExpeditionOpportunities();
         foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
         {
             if (patch.ResourceType == ResourceType.Branches
@@ -894,8 +1088,8 @@ public sealed class CityWorld
 
         EnsureFoundingParcels();
 
-        // Distribute EG-A0 types in declared order onto the first free
-        // parcels after the Forest slots (parcels 1–2). Each tuple is
+        // Distribute EG-A0 types in declared order through deterministic
+        // scatter. Each tuple is
         // (resource type, units-each). Bundles/clusters/patches of "×2"
         // in the proposal mean N entries of 2 units each.
         var plan = new (ResourceType Type, int UnitCount)[]
@@ -907,46 +1101,119 @@ public sealed class CityWorld
         };
         foreach ((ResourceType type, int unitCount) in plan)
         {
-            ParcelId? parcel = NextFreeParcelForGroundPatch();
-            if (parcel is null) return;
             int patchId = NextGroundPatchId();
             var reserves = new int[unitCount];
             for (int i = 0; i < unitCount; i++) reserves[i] = 2;
-            RegisterNaturalResourcePatch(new NaturalResourcePatch(
-                patchId, parcel.Value, type, reserves));
+            RegisterNaturalResourcePatch(CreateProceduralResourcePatch(
+                patchId,
+                type,
+                reserves));
         }
     }
 
-    private ParcelId? NextFreeParcelForGroundPatch()
+    public void EnsureStartingResourceExpeditionOpportunities()
     {
-        foreach (CityParcel parcel in _parcels.Values)
+        if (_citizens.Count == 0) return;
+        var foodId = new ResourceOpportunityId(1);
+        var woodId = new ResourceOpportunityId(2);
+        _resourceOpportunities.TryAdd(
+            foodId,
+            new ResourceOpportunity(foodId, ResourceOpportunityKind.NearbyFoodForage));
+        _resourceOpportunities.TryAdd(
+            woodId,
+            new ResourceOpportunity(woodId, ResourceOpportunityKind.FallenWoodSearch));
+    }
+
+    private NaturalResourcePatch CreateProceduralResourcePatch(
+        int patchId,
+        ResourceType resourceType,
+        IReadOnlyList<int> reserves,
+        BuildingId? legacyStorageBuildingId = null)
+    {
+        int seed = Hero?.AppearanceSeed ?? 0;
+        foreach (CityParcel parcel in _parcels.Values
+                     .Where(candidate => candidate.IsUnlocked)
+                     .OrderBy(candidate => NaturalResourceLayoutPlanner.ParcelScore(
+                         seed,
+                         patchId,
+                         candidate.Id)))
         {
-            if (!parcel.IsUnlocked) continue;
-            // A parcel is "free" for a new ground patch when no
-            // existing patch or building placement is bound to it.
-            if (ParcelHasExistingPatch(parcel.Id)) continue;
-            if (ParcelHasBuildingOrProject(parcel.Id)) continue;
-            return parcel.Id;
+            HashSet<NaturalResourceUnitPosition> unavailable =
+                UnavailableResourcePositions(parcel);
+            IReadOnlyList<NaturalResourceUnitPosition>? positions =
+                NaturalResourceLayoutPlanner.TryAllocate(
+                    reserves.Count,
+                    seed,
+                    patchId,
+                    unavailable);
+            if (positions is null) continue;
+            return new NaturalResourcePatch(
+                patchId,
+                parcel.Id,
+                resourceType,
+                reserves,
+                legacyStorageBuildingId,
+                positions);
         }
-        return null;
+        throw new InvalidOperationException(
+            $"No compact resource cells are available for patch {patchId}.");
     }
 
-    private bool ParcelHasExistingPatch(ParcelId parcelId)
+    private HashSet<NaturalResourceUnitPosition> UnavailableResourcePositions(
+        CityParcel parcel)
     {
+        var unavailable = new HashSet<NaturalResourceUnitPosition>();
+        if (FoundingLayout.IsInitialParcel(parcel))
+        {
+            unavailable.Add(FoundingLayout.FounderLocalPosition);
+        }
         foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
         {
-            if (patch.ParcelId == parcelId) return true;
+            if (patch.ParcelId != parcel.Id) continue;
+            foreach (NaturalResourceUnitPosition position in patch.UnitPositions)
+            {
+                unavailable.Add(position);
+            }
         }
-        return false;
-    }
-
-    private bool ParcelHasBuildingOrProject(ParcelId parcelId)
-    {
         foreach (ParcelPlacement placement in _parcelPlacements.Values)
         {
-            if (placement.ParcelId == parcelId) return true;
+            int parcelRow = placement.RowId.Value / ParcelGrid.ConstructionRowsPerParcel;
+            if (parcelRow != parcel.LogicalRow) continue;
+            int parcelStart = parcel.LogicalColumn * ParcelGrid.FrontageColumnsPerParcel;
+            for (int column = placement.StartColumn;
+                 column < placement.StartColumn + placement.FrontageColumns;
+                 column++)
+            {
+                int localColumn = column - parcelStart;
+                if (localColumn < 0 || localColumn >= ParcelGrid.FrontageColumnsPerParcel)
+                {
+                    continue;
+                }
+                unavailable.Add(new NaturalResourceUnitPosition(
+                    placement.RowId.Value % ParcelGrid.ConstructionRowsPerParcel,
+                    localColumn));
+            }
         }
-        return false;
+        foreach (CorridorReservation corridor in _corridorReservations.Values)
+        {
+            int parcelRow = corridor.RowId.Value / ParcelGrid.ConstructionRowsPerParcel;
+            if (parcelRow != parcel.LogicalRow) continue;
+            int parcelStart = parcel.LogicalColumn * ParcelGrid.FrontageColumnsPerParcel;
+            for (int column = corridor.StartColumn;
+                 column < corridor.EndColumnExclusive;
+                 column++)
+            {
+                int localColumn = column - parcelStart;
+                if (localColumn < 0 || localColumn >= ParcelGrid.FrontageColumnsPerParcel)
+                {
+                    continue;
+                }
+                unavailable.Add(new NaturalResourceUnitPosition(
+                    corridor.RowId.Value % ParcelGrid.ConstructionRowsPerParcel,
+                    localColumn));
+            }
+        }
+        return unavailable;
     }
 
     private int NextGroundPatchId()
@@ -964,8 +1231,12 @@ public sealed class CityWorld
 
     private void EnsureFoundingParcels()
     {
-        const int columnCount = 4;
-        const int rowCount = 2;
+        // A fresh terrarium starts as one readable horizontal strip. Three
+        // parcels provide 81 frontage cells: enough for the founding resources,
+        // shelter and first cultivation site without presenting a mature city's
+        // empty land on day one.
+        const int columnCount = 3;
+        const int rowCount = 1;
         for (int row = 0; row < rowCount; row++)
         {
             for (int column = 0; column < columnCount; column++)
@@ -976,31 +1247,40 @@ public sealed class CityWorld
                     new CityParcel(parcelId, column, row, isUnlocked: true));
             }
         }
-        if (_parcels.Values.All(parcel => parcel.IsUnlocked))
-        {
-            int targetId = _parcels.Count == 0
-                ? 1
-                : _parcels.Keys.Max(id => id.Value) + 1;
-            int targetColumn = _parcels.Count == 0
-                ? 0
-                : _parcels.Values.Max(parcel => parcel.LogicalColumn) + 1;
-            var parcelId = new ParcelId(targetId);
-            _parcels.Add(
-                parcelId,
-                new CityParcel(
-                    parcelId,
-                    targetColumn,
-                    0,
-                    ParcelTerritoryState.Locked));
-        }
     }
 
     private void RegisterNaturalResourcePatch(NaturalResourcePatch patch)
     {
-        if (!_parcels.ContainsKey(patch.ParcelId))
+        if (!_parcels.TryGetValue(patch.ParcelId, out CityParcel? parcel))
         {
             throw new InvalidOperationException(
                 $"Natural resource patch {patch.Id} references unknown parcel {patch.ParcelId.Value}.");
+        }
+        for (int unitId = 0; unitId < patch.UnitPositions.Count; unitId++)
+        {
+            NaturalResourceUnitPosition position = patch.UnitPositions[unitId];
+            ConstructionRowId rowId = position.GlobalRow(parcel);
+            int column = position.GlobalFrontageColumn(parcel);
+            foreach (NaturalResourcePatch existing in _naturalResourcePatches.Values)
+            {
+                if (!_parcels.TryGetValue(existing.ParcelId, out CityParcel? existingParcel))
+                {
+                    continue;
+                }
+                for (int existingUnitId = 0;
+                     existingUnitId < existing.UnitPositions.Count;
+                     existingUnitId++)
+                {
+                    NaturalResourceUnitPosition existingPosition =
+                        existing.UnitPositions[existingUnitId];
+                    if (existingPosition.GlobalRow(existingParcel) == rowId
+                        && existingPosition.GlobalFrontageColumn(existingParcel) == column)
+                    {
+                        throw new InvalidOperationException(
+                            $"Natural resource patch {patch.Id} overlaps patch {existing.Id}.");
+                    }
+                }
+            }
         }
         if (!_naturalResourcePatches.TryAdd(patch.Id, patch))
         {
@@ -1016,13 +1296,28 @@ public sealed class CityWorld
             throw new InvalidOperationException(
                 $"Placement {placement.EntityId.Value} requires an unlocked parcel.");
         }
-        if (NaturalResourceOccupiesLot(
-            placement.ParcelId,
-            placement.LotColumn,
-            placement.LotRow))
+        for (int column = placement.StartColumn;
+             column < placement.StartColumn + placement.FrontageColumns;
+             column++)
         {
-            throw new InvalidOperationException(
-                $"Placement {placement.EntityId.Value} overlaps a natural resource.");
+            if (!TryGetAvailableParcelForFrontageCell(placement.RowId, column, out _))
+            {
+                throw new InvalidOperationException(
+                    $"Placement {placement.EntityId.Value} crosses unavailable territory.");
+            }
+            if (NaturalResourceOccupiesFrontageCell(placement.RowId, column))
+            {
+                throw new InvalidOperationException(
+                    $"Placement {placement.EntityId.Value} overlaps a natural resource.");
+            }
+            foreach (CorridorReservation corridor in _corridorReservations.Values)
+            {
+                if (corridor.RowId == placement.RowId && corridor.ContainsColumn(column))
+                {
+                    throw new InvalidOperationException(
+                        $"Placement {placement.EntityId.Value} overlaps protected corridor {corridor.Id}.");
+                }
+            }
         }
         foreach (ParcelPlacement existing in _parcelPlacements.Values)
         {
@@ -1052,48 +1347,161 @@ public sealed class CityWorld
     public IReadOnlyList<ConstructionLot> AvailableConstructionLots()
     {
         var lots = new List<ConstructionLot>();
-        var candidateId = new BuildingId(int.MaxValue);
-        foreach (CityParcel parcel in _parcels.Values)
+        foreach (CityParcel parcel in _parcels.Values
+                     .OrderBy(candidate => candidate.LogicalRow)
+                     .ThenBy(candidate => candidate.LogicalColumn))
         {
             if (!parcel.IsUnlocked) continue;
-            for (int row = 0; row < ParcelGrid.LotsPerAxis; row++)
+            for (int lotRow = 0; lotRow < ParcelGrid.ConstructionRowsPerParcel; lotRow++)
             {
-                for (int column = 0; column < ParcelGrid.LotsPerAxis; column++)
+                ConstructionRowId rowId = ParcelGrid.ConstructionRow(
+                    parcel.LogicalRow,
+                    lotRow);
+                int parcelStart = checked(
+                    parcel.LogicalColumn * ParcelGrid.FrontageColumnsPerParcel);
+                for (int localStart = 0;
+                     localStart < ParcelGrid.FrontageColumnsPerParcel;
+                     localStart++)
                 {
-                    if (NaturalResourceOccupiesLot(parcel.Id, column, row)) continue;
+                    int startColumn = checked(parcelStart + localStart);
                     var lot = new ConstructionLot(
                         parcel.Id,
                         parcel.LogicalColumn,
                         parcel.LogicalRow,
-                        column,
-                        row);
-                    ParcelPlacement candidate = CreatePlacement(
-                        candidateId,
-                        lot,
-                        BuildingFootprintCatalog.StandardWithSideSetbacksId);
-                    bool occupied = false;
-                    foreach (ParcelPlacement existing in _parcelPlacements.Values)
+                        rowId,
+                        startColumn,
+                        BuildingReservation.MinimumFrontageColumns);
+                    if (ConstructionLotState(lot) == FrontageCellState.Available)
                     {
-                        if (candidate.Overlaps(existing))
-                        {
-                            occupied = true;
-                            break;
-                        }
+                        lots.Add(lot);
                     }
-                    if (!occupied) lots.Add(lot);
                 }
             }
         }
         return lots;
     }
 
-    private static ParcelPlacement CreatePlacement(
+    public FrontageCellState FrontageState(ConstructionRowId rowId, int frontageColumn)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(frontageColumn);
+        if (!TryGetAvailableParcelForFrontageCell(rowId, frontageColumn, out _))
+        {
+            return FrontageCellState.Unavailable;
+        }
+        foreach (ParcelPlacement placement in _parcelPlacements.Values)
+        {
+            if (placement.RowId == rowId
+                && placement.Reservation.ContainsColumn(frontageColumn))
+            {
+                return FrontageCellState.ReservedByBuilding;
+            }
+        }
+        foreach (CorridorReservation corridor in _corridorReservations.Values)
+        {
+            if (corridor.RowId == rowId && corridor.ContainsColumn(frontageColumn))
+            {
+                return FrontageCellState.ReservedAsCorridor;
+            }
+        }
+        return NaturalResourceOccupiesFrontageCell(rowId, frontageColumn)
+            ? FrontageCellState.NaturalResource
+            : FrontageCellState.Available;
+    }
+
+    public CorridorReservation? TryReserveCorridor(
+        ConstructionRowId rowId,
+        int startColumn,
+        int frontageColumns = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(startColumn);
+        if (frontageColumns <= 0) throw new ArgumentOutOfRangeException(nameof(frontageColumns));
+        for (int column = startColumn; column < startColumn + frontageColumns; column++)
+        {
+            if (FrontageState(rowId, column) is not FrontageCellState.Available) return null;
+        }
+        var reservation = new CorridorReservation(
+            _nextCorridorReservationId++,
+            rowId,
+            startColumn,
+            frontageColumns);
+        _corridorReservations.Add(reservation.Id, reservation);
+        return reservation;
+    }
+
+    public bool ReleaseCorridor(int reservationId) =>
+        _corridorReservations.Remove(reservationId);
+
+    private void RegisterCorridorReservation(CorridorReservation reservation)
+    {
+        for (int column = reservation.StartColumn;
+             column < reservation.EndColumnExclusive;
+             column++)
+        {
+            if (FrontageState(reservation.RowId, column) is not FrontageCellState.Available)
+            {
+                throw new InvalidOperationException(
+                    $"Corridor reservation {reservation.Id} overlaps unavailable frontage.");
+            }
+        }
+        if (!_corridorReservations.TryAdd(reservation.Id, reservation))
+        {
+            throw new InvalidOperationException(
+                $"Corridor reservation {reservation.Id} already exists.");
+        }
+        _nextCorridorReservationId = Math.Max(
+            _nextCorridorReservationId,
+            reservation.Id + 1);
+    }
+
+    /// <summary>
+    /// Returns Available only when every frontage cell in the candidate
+    /// window can be reserved. Otherwise returns the first blocking state in
+    /// deterministic column order so presentation can preview the same reason
+    /// before the player confirms.
+    /// </summary>
+    public FrontageCellState ConstructionLotState(ConstructionLot lot)
+    {
+        for (int column = lot.StartColumn;
+             column < lot.StartColumn + lot.FrontageColumns;
+             column++)
+        {
+            FrontageCellState state = FrontageState(lot.RowId, column);
+            if (state is not FrontageCellState.Available)
+            {
+                return state;
+            }
+        }
+        return FrontageCellState.Available;
+    }
+
+    private bool TryGetAvailableParcelForFrontageCell(
+        ConstructionRowId rowId,
+        int frontageColumn,
+        out CityParcel? parcel)
+    {
+        int parcelRow = rowId.Value / ParcelGrid.ConstructionRowsPerParcel;
+        int parcelColumn = frontageColumn / ParcelGrid.FrontageColumnsPerParcel;
+        parcel = _parcels.Values.FirstOrDefault(candidate =>
+            candidate.LogicalRow == parcelRow
+            && candidate.LogicalColumn == parcelColumn
+            && candidate.IsUnlocked);
+        return parcel is not null;
+    }
+
+    private ParcelPlacement CreatePlacement(
         BuildingId entityId,
         ConstructionLot lot,
         string footprintProfileId) =>
         new(
             entityId,
             lot.ParcelId,
+            lot.RowId,
+            lot.StartColumn,
+            lot.FrontageColumns,
+            BuildingReservation.RequiredDepthRows,
+            BuildingReservation.MinimumFrontageColumns,
+            leftExpansionColumns: 0,
+            rightExpansionColumns: 0,
             lot.LotColumn,
             lot.LotRow,
             lotWidth: 1,
@@ -1101,19 +1509,22 @@ public sealed class CityWorld
             footprintProfileId,
             BuildingOrientation.South);
 
-    private bool NaturalResourceOccupiesLot(
-        ParcelId parcelId,
-        int lotColumn,
-        int lotRow)
+    private bool NaturalResourceOccupiesFrontageCell(
+        ConstructionRowId rowId,
+        int frontageColumn)
     {
         foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
         {
-            if (patch.ParcelId != parcelId) continue;
+            if (!_parcels.TryGetValue(patch.ParcelId, out CityParcel? parcel)) continue;
             for (int unitId = 0; unitId < patch.UnitReserves.Count; unitId++)
             {
                 if (patch.UnitReserves[unitId] <= 0) continue;
-                (int column, int row) = ParcelGrid.NaturalResourceLot(unitId);
-                if (column == lotColumn && row == lotRow) return true;
+                NaturalResourceUnitPosition position = patch.UnitPositions[unitId];
+                if (position.GlobalRow(parcel) == rowId
+                    && position.GlobalFrontageColumn(parcel) == frontageColumn)
+                {
+                    return true;
+                }
             }
         }
         return false;
@@ -1538,27 +1949,75 @@ public sealed class CityWorld
     /// mirrored WoodUnitReserves stay in sync with the patch so the
     /// legacy building entity never lies about its remaining wood.
     /// </summary>
-    public int GatherFromPatch(int patchId, int? unitId, int amount)
+    public NaturalResourceGatherResult NaturalResourceGatherAvailability(
+        int patchId,
+        int? unitId)
     {
-        if (amount <= 0) return 0;
         Citizen? hero = Hero;
-        if (hero is null || !hero.IsAvailable) return 0;
+        if (hero is null || !hero.IsAvailable)
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.HeroUnavailable);
+        }
         if (!_naturalResourcePatches.TryGetValue(patchId, out NaturalResourcePatch? patch))
         {
-            return 0;
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.NodeUnavailable);
+        }
+        if (unitId is int requestedUnit
+            && (requestedUnit < 0
+                || requestedUnit >= patch.UnitReserves.Count
+                || patch.UnitReserves[requestedUnit] <= 0))
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.NodeUnavailable);
+        }
+        if (patch.TotalReserve <= 0)
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.NodeUnavailable);
+        }
+        if (patch.ResourceType == ResourceType.Wood
+            && !HasTool(ToolKind.PrimitiveAxe))
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.MissingRequiredTool,
+                RequiredTool: ToolKind.PrimitiveAxe);
         }
 
-        // EG-1 carry cap: clamp the gather so the four rudimentary
-        // resources never exceed CarriedGroundResourceCapacity together.
-        // Wood, Stone, Food, Iron and Potions ignore the cap because
-        // they flow into per-building storage rather than the carried
-        // inventory. Patch drain happens after the clamp so the unit
-        // the hero "wastes" still decrements from the ground.
+        if (IsCarriedGroundResource(patch.ResourceType))
+        {
+            int headroom = AvailableGroundGatherCapacity();
+            if (headroom <= 0)
+            {
+                return new NaturalResourceGatherResult(
+                    NaturalResourceGatherOutcome.StorageFull);
+            }
+        }
+
+        return new NaturalResourceGatherResult(NaturalResourceGatherOutcome.Available);
+    }
+
+    public NaturalResourceGatherResult TryGatherFromPatch(
+        int patchId,
+        int? unitId,
+        int amount)
+    {
+        if (amount <= 0)
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.NodeUnavailable);
+        }
+        NaturalResourceGatherResult availability =
+            NaturalResourceGatherAvailability(patchId, unitId);
+        if (!availability.CanGather) return availability;
+        NaturalResourcePatch patch = _naturalResourcePatches[patchId];
+        Citizen hero = Hero!;
+
         int requested = amount;
         if (IsCarriedGroundResource(patch.ResourceType))
         {
-            int headroom = Math.Max(0, GroundResourceCapacity() - CarriedGroundResourceCount());
-            if (headroom <= 0) return 0;
+            int headroom = AvailableGroundGatherCapacity();
             requested = Math.Min(requested, headroom);
         }
 
@@ -1566,7 +2025,11 @@ public sealed class CityWorld
             ? patch.GatherUnit(unitId.Value, requested)
             : patch.Gather(requested);
 
-        if (drained <= 0) return 0;
+        if (drained <= 0)
+        {
+            return new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.NodeUnavailable);
+        }
 
         // Legacy mirror: the Forest building keeps WoodUnitReserves for
         // any caller that still reads it (recipe gate, visual regressions).
@@ -1593,8 +2056,16 @@ public sealed class CityWorld
                 gathered);
             RaisePatchChanged(patchId);
         }
-        return gathered;
+        return gathered > 0
+            ? new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.Gathered,
+                gathered)
+            : new NaturalResourceGatherResult(
+                NaturalResourceGatherOutcome.StorageFull);
     }
+
+    public int GatherFromPatch(int patchId, int? unitId, int amount) =>
+        TryGatherFromPatch(patchId, unitId, amount).GatheredAmount;
 
     private static bool IsCarriedGroundResource(ResourceType type)
     {
@@ -2210,6 +2681,7 @@ public sealed class CityWorld
                 // allow) must not silently grant the full reward.
                 if (expedition.RetreatTriggered)
                 {
+                    ReleaseResourceOpportunity(expedition);
                     expedition.MarkRetreated();
                     ReturnMembersFromExpedition(expedition, outcome);
                     _log.Record(
@@ -2253,11 +2725,19 @@ public sealed class CityWorld
                 }
                 else
                 {
-                    int reward = ApplyEncounterOutcomeToReward(expedition.RewardAmount, outcome);
+                    int reward = expedition.ReturnFor(outcome);
                     if (reward > 0)
                     {
-                        _resources.DepositToCityInventory(expedition.RewardResource, reward);
+                        reward = expedition.ResourceOpportunityId.HasValue
+                            ? DepositToFoundingStorage(
+                                expedition.RewardResource,
+                                reward,
+                                expedition.Id)
+                            : _resources.DepositToCityInventory(
+                                expedition.RewardResource,
+                                reward);
                     }
+                    DepleteResourceOpportunity(expedition);
                     expedition.MarkReturnedSupplies(reward);
                     AdvanceTerritoryFromExpedition(expedition, outcome);
                     ReturnMembersFromExpedition(expedition, outcome);
@@ -2274,6 +2754,7 @@ public sealed class CityWorld
             else
             {
                 _resources.Release(expedition.ReservationId);
+                ReleaseResourceOpportunity(expedition);
                 expedition.MarkFailed();
                 ReturnMembersFromExpedition(expedition, outcome);
                 _log.Record(
@@ -2285,6 +2766,28 @@ public sealed class CityWorld
             ExpeditionChanged?.Invoke(
                 this,
                 new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+        }
+    }
+
+    private void ReleaseResourceOpportunity(Expedition expedition)
+    {
+        if (expedition.ResourceOpportunityId is ResourceOpportunityId opportunityId
+            && _resourceOpportunities.TryGetValue(
+                opportunityId,
+                out ResourceOpportunity? opportunity))
+        {
+            opportunity.Release(expedition.Id);
+        }
+    }
+
+    private void DepleteResourceOpportunity(Expedition expedition)
+    {
+        if (expedition.ResourceOpportunityId is ResourceOpportunityId opportunityId
+            && _resourceOpportunities.TryGetValue(
+                opportunityId,
+                out ResourceOpportunity? opportunity))
+        {
+            opportunity.Deplete(expedition.Id);
         }
     }
 
@@ -3516,9 +4019,12 @@ public sealed class CityWorld
         _parcels.Clear();
         _naturalResourcePatches.Clear();
         _parcelPlacements.Clear();
+        _corridorReservations.Clear();
+        _resourceOpportunities.Clear();
         _log.Clear();
         _resources.ClearReservations();
         _nextProjectId = 1;
+        _nextCorridorReservationId = 1;
         _tick = save.CurrentTick;
 
         foreach (ParcelSave parcel in save.Parcels)
@@ -3652,7 +4158,11 @@ public sealed class CityWorld
                 patch.UnitReserves,
                 patch.LegacyStorageBuildingId.HasValue
                     ? new BuildingId(patch.LegacyStorageBuildingId.Value)
-                    : null));
+                    : null,
+                patch.UnitPositions.Select(position =>
+                    new NaturalResourceUnitPosition(
+                        position.RowWithinParcel,
+                        position.FrontageColumnWithinParcel))));
         }
         EnsureFoundingParcels();
 
@@ -3831,6 +4341,15 @@ public sealed class CityWorld
             if (savedSite.Id >= _nextProjectId) _nextProjectId = savedSite.Id + 1;
         }
 
+        foreach (CorridorReservationSave corridor in save.CorridorReservations)
+        {
+            RegisterCorridorReservation(new CorridorReservation(
+                corridor.Id,
+                new ConstructionRowId(corridor.RowId),
+                corridor.StartColumn,
+                corridor.FrontageColumns));
+        }
+
         foreach (ParcelPlacementSave placement in save.ParcelPlacements)
         {
             BuildingOrientation orientation = Enum.TryParse(
@@ -3842,16 +4361,29 @@ public sealed class CityWorld
             var restoredPlacement = new ParcelPlacement(
                 new BuildingId(placement.EntityId),
                 new ParcelId(placement.ParcelId),
+                new ConstructionRowId(placement.RowId),
+                placement.StartColumn,
+                placement.FrontageColumns,
+                placement.DepthRows,
+                placement.BaseFrontageColumns,
+                placement.LeftExpansionColumns,
+                placement.RightExpansionColumns,
                 placement.LotColumn,
                 placement.LotRow,
                 placement.LotWidth,
                 placement.LotHeight,
                 placement.FootprintProfileId,
                 orientation);
-            if (NaturalResourceOccupiesLot(
-                restoredPlacement.ParcelId,
-                restoredPlacement.LotColumn,
-                restoredPlacement.LotRow))
+            bool overlapsResource = false;
+            for (int column = restoredPlacement.StartColumn;
+                 column < restoredPlacement.StartColumn + restoredPlacement.FrontageColumns;
+                 column++)
+            {
+                if (!NaturalResourceOccupiesFrontageCell(restoredPlacement.RowId, column)) continue;
+                overlapsResource = true;
+                break;
+            }
+            if (overlapsResource)
             {
                 restoredPlacement = FindFirstAvailablePlacement(
                     restoredPlacement.EntityId,
@@ -3941,6 +4473,33 @@ public sealed class CityWorld
             restoredInventory[resource] = amount;
         }
         _inventory.Restore(restoredInventory);
+        _tools.Clear();
+        foreach (string savedTool in save.Tools)
+        {
+            if (Enum.TryParse(savedTool, true, out ToolKind tool)) _tools.Add(tool);
+        }
+
+        foreach (ResourceOpportunitySave opportunity in save.ResourceOpportunities)
+        {
+            _ = Enum.TryParse(
+                opportunity.Kind,
+                true,
+                out ResourceOpportunityKind kind);
+            _ = Enum.TryParse(
+                opportunity.State,
+                true,
+                out ResourceOpportunityState state);
+            var id = new ResourceOpportunityId(opportunity.Id);
+            _resourceOpportunities.Add(
+                id,
+                new ResourceOpportunity(
+                    id,
+                    kind,
+                    state,
+                    opportunity.ReservedByExpeditionId is int expeditionId
+                        ? new ExpeditionId(expeditionId)
+                        : null));
+        }
 
         _expeditions.Clear();
         _nextExpeditionId = 1;
@@ -3996,7 +4555,19 @@ public sealed class CityWorld
                     : null,
                 expedition.TargetParcelId is int targetParcelId
                     ? new ParcelId(targetParcelId)
-                    : null);
+                    : null,
+                expedition.ResourceOpportunityId is int opportunityId
+                    ? new ResourceOpportunityId(opportunityId)
+                    : null,
+                Enum.TryParse(
+                    expedition.ResourceOpportunityKind,
+                    true,
+                    out ResourceOpportunityKind opportunityKind)
+                        ? opportunityKind
+                        : null,
+                expedition.SetbackReturn,
+                expedition.PartialReturn,
+                expedition.CarryCapacity);
             _expeditions.Add(restored.Id, restored);
             if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
         }

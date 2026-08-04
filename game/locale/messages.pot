@@ -514,6 +514,9 @@ msgstr ""
 msgid "Extraction"
 msgstr ""
 
+msgid "Fallen Wood Search"
+msgstr ""
+
 msgid "Farm"
 msgstr ""
 
@@ -1031,6 +1034,9 @@ msgid "narrative.world.option.water.label"
 msgstr ""
 
 msgid "narrative.world.title"
+msgstr ""
+
+msgid "Nearby Food Forage"
 msgstr ""
 
 msgid "Needs 1 wood — gather from a Forest first."
@@ -1606,6 +1612,24 @@ msgstr ""
 msgid "ui.construction.percent"
 msgstr ""
 
+msgid "ui.construction.placement_blocked_building"
+msgstr ""
+
+msgid "ui.construction.placement_blocked_corridor"
+msgstr ""
+
+msgid "ui.construction.placement_blocked_resource"
+msgstr ""
+
+msgid "ui.construction.placement_blocked_territory"
+msgstr ""
+
+msgid "ui.construction.placement_selected"
+msgstr ""
+
+msgid "ui.construction.placement_valid"
+msgstr ""
+
 msgid "ui.construction.remove_from_project"
 msgstr ""
 
@@ -1726,6 +1750,24 @@ msgstr ""
 msgid "ui.expedition.incorporation_failed"
 msgstr ""
 
+msgid "ui.expedition.objective_label"
+msgstr ""
+
+msgid "ui.expedition.objective_summary"
+msgstr ""
+
+msgid "ui.expedition.objective.food"
+msgstr ""
+
+msgid "ui.expedition.objective.wood"
+msgstr ""
+
+msgid "ui.expedition.opportunity_depleted"
+msgstr ""
+
+msgid "ui.expedition.opportunity_unavailable"
+msgstr ""
+
 msgid "ui.expedition.phase_with_outcome"
 msgstr ""
 
@@ -1762,6 +1804,12 @@ msgstr ""
 msgid "ui.expedition.prospect_waiting"
 msgstr ""
 
+msgid "ui.expedition.resource_unlock_hint"
+msgstr ""
+
+msgid "ui.expedition.return_capacity_missing"
+msgstr ""
+
 msgid "ui.expedition.schedule"
 msgstr ""
 
@@ -1786,6 +1834,9 @@ msgstr ""
 msgid "ui.expedition.territory_target"
 msgstr ""
 
+msgid "ui.expedition.title"
+msgstr ""
+
 msgid "ui.expedition.town_hall_required"
 msgstr ""
 
@@ -1798,10 +1849,37 @@ msgstr ""
 msgid "ui.expedition.wounded_member_hint"
 msgstr ""
 
+msgid "ui.founding_storage.cache_capacity"
+msgstr ""
+
+msgid "ui.founding_storage.cache_collapse"
+msgstr ""
+
+msgid "ui.founding_storage.cache_expand"
+msgstr ""
+
+msgid "ui.founding_storage.cargo_capacity"
+msgstr ""
+
+msgid "ui.founding_storage.cargo_collapse"
+msgstr ""
+
+msgid "ui.founding_storage.cargo_expand"
+msgstr ""
+
+msgid "ui.gather.action_unavailable"
+msgstr ""
+
 msgid "ui.gather.already_assigned"
 msgstr ""
 
 msgid "ui.gather.away_on_expedition"
+msgstr ""
+
+msgid "ui.gather.axe_required"
+msgstr ""
+
+msgid "ui.gather.founder_unavailable"
 msgstr ""
 
 msgid "ui.gather.gathered_resource"
@@ -1811,6 +1889,9 @@ msgid "ui.gather.gathered_wood"
 msgstr ""
 
 msgid "ui.gather.resource_action"
+msgstr ""
+
+msgid "ui.gather.storage_full"
 msgstr ""
 
 msgid "ui.hero_profile.affinities_heading"
@@ -2050,6 +2131,12 @@ msgstr ""
 msgid "ui.production.wood_stock"
 msgstr ""
 
+msgid "ui.resource_inventory.collapse_tooltip"
+msgstr ""
+
+msgid "ui.resource_inventory.expand_tooltip"
+msgstr ""
+
 msgid "ui.resource.units_remain"
 msgstr ""
 
@@ -2063,6 +2150,24 @@ msgid "ui.selection.building_workers"
 msgstr ""
 
 msgid "ui.selection.tree_title"
+msgstr ""
+
+msgid "ui.shelter_storage.capacity"
+msgstr ""
+
+msgid "ui.shelter_storage.collapse"
+msgstr ""
+
+msgid "ui.shelter_storage.collapse_tooltip"
+msgstr ""
+
+msgid "ui.shelter_storage.expand"
+msgstr ""
+
+msgid "ui.shelter_storage.expand_tooltip"
+msgstr ""
+
+msgid "ui.shelter_storage.reserved"
 msgstr ""
 
 msgid "ui.speed.change"
@@ -2141,6 +2246,30 @@ msgid "ui.territory.route_secured"
 msgstr ""
 
 msgid "ui.time.day"
+msgstr ""
+
+msgid "ui.tools.craft_failed"
+msgstr ""
+
+msgid "ui.tools.craft_primitive_axe"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_crafted"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_missing"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_missing_resource"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_owned"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_recipe"
+msgstr ""
+
+msgid "ui.tools.primitive_axe_stored"
 msgstr ""
 
 msgid "ui.town_hall.accept"

@@ -32,9 +32,9 @@ public class Eg1ResourceSeamTests
     public void SeedStartingOpportunities_PlacesEgA0Distribution()
     {
         var world = TestHelpers.NewHeroWorld();
-        // Two forests seeded by SeedStartingForests consume parcels 1–2.
+        // Forest units seed first but claim only their explicit cells.
         world.SeedStartingForests();
-        // The four EG-A0 types go onto the next four free parcels.
+        // EG-A0 types may share parcels while remaining independent units.
         world.SeedStartingOpportunities();
 
         int branches = 0, plantFiber = 0, smallStone = 0, wildFood = 0;
@@ -146,14 +146,44 @@ public class Eg1ResourceSeamTests
     }
 
     [Fact]
-    public void GatherFromPatch_DoesNotCapWood()
+    public void GatherFromPatch_BeforeCache_IgnoresUnrelatedLegacyInventory()
     {
-        // Wood is not in CarriedGroundResourceTypes — it still flows
-        // into per-building storage. The legacy Forest gather path is
-        // the regression that this assertion protects.
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.SeedStartingOpportunities();
+        world.Resources.DepositToCityInventory(ResourceType.Food, 6);
+        world.Resources.DepositToCityInventory(ResourceType.Wood, 4);
+        NaturalResourcePatch branches = FindFirstPatch(world, ResourceType.Branches);
+
+        NaturalResourceGatherResult result = world.TryGatherFromPatch(
+            branches.Id,
+            unitId: 0,
+            amount: 2);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.GatheredAmount);
+        Assert.Equal(2, world.CarriedGroundResourceCount());
+        Assert.Equal(4, world.GroundResourceCapacity()
+            - world.CarriedGroundResourceCount());
+    }
+
+    [Fact]
+    public void GatherFromPatch_RequiresAxeAndDoesNotCapWood()
+    {
         var world = TestHelpers.NewHeroWorld();
         world.SeedStartingForests();
         NaturalResourcePatch forest = FindFirstPatch(world, ResourceType.Wood);
+        NaturalResourceGatherResult blocked = world.NaturalResourceGatherAvailability(
+            forest.Id,
+            unitId: 0);
+        Assert.Equal(NaturalResourceGatherOutcome.MissingRequiredTool, blocked.Outcome);
+        Assert.Equal(ToolKind.PrimitiveAxe, blocked.RequiredTool);
+        Assert.Equal(0, world.GatherFromPatch(forest.Id, unitId: 0, amount: 1));
+
+        WorldSave equipped = WorldPersistence.Capture(world);
+        equipped.Tools.Add(ToolKind.PrimitiveAxe.ToString());
+        world = CityWorld.FromSave(equipped);
+        forest = FindFirstPatch(world, ResourceType.Wood);
         int before = world.CarriedGroundResourceCount();
         int gathered = world.GatherFromPatch(forest.Id, unitId: 0, amount: 1);
         Assert.Equal(1, gathered);
@@ -220,7 +250,7 @@ public class Eg1ResourceSeamTests
         Assert.Equal(new[] { 8, 8, 8 }, legacyForest.WoodUnitReserves);
         Assert.Equal(24, legacyForest.MaxStock);
         Assert.Equal(24, legacyForest.TargetStock);
-        WorldSave current = WorldPersistence.MigrateV23ToV24(migrated);
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
         WorldPersistence.Validate(current);
     }
 

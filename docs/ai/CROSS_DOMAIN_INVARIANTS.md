@@ -88,6 +88,20 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 - Construction is collaborative, phased work. Its duration emerges from the
   assigned citizens, their skills, conditions, tools, and logistics — it is not
   a fixed countdown.
+- Territorial reservation and physical obstruction are distinct for every
+  obstacle. A resource unit occupies one explicit frontage cell rather than a
+  building lot; different resource types may share a parcel and row. Buildings
+  retain multi-column reservations. Navigation blocks only each authored solid
+  footprint and respects its clearances. Trees receive no special exception.
+  *(bible/03, bible/12)*
+- Rudimentary ground resources are tool-free, but mature-tree Wood requires a
+  persisted forestry capability. The first capability is a durable Primitive
+  Axe stored after Shelter completion; repeated input cannot gather a depleted
+  node twice, and storage rejection cannot drain it. *(early-game proposal §4)*
+- Before Cache, rudimentary resources occupy the founder's six-unit carried
+  load; unrelated inventory cannot fill it. Cache and Shelter supersede that
+  owner with capacities 12 and 24, and presentation must expose the current
+  owner rather than imply a hidden pre-camp warehouse. *(early-game proposal §4)*
 
 ## Architecture
 

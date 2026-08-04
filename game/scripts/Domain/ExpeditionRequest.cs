@@ -17,7 +17,11 @@ public readonly record struct ExpeditionRequest(
     int RewardAmount,
     ExpeditionRewardKind RewardKind,
     string DisplayName,
-    ExpeditionRetreatPosture RetreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback)
+    ExpeditionRetreatPosture RetreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback,
+    ResourceOpportunityId? ResourceOpportunityId = null,
+    ResourceOpportunityKind? ResourceOpportunityKind = null,
+    int SetbackReturn = 0,
+    int PartialReturn = 0)
 {
     /// <summary>
     /// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3: "select 1-2 real citizens".
@@ -72,6 +76,29 @@ public readonly record struct ExpeditionRequest(
             RewardKind: ExpeditionRewardKind.Migrant,
             DisplayName: "Community contact",
             RetreatPosture: retreatPosture);
+
+    public static ExpeditionRequest ResourceSortie(
+        ResourceOpportunity opportunity,
+        IReadOnlyList<CitizenId> memberIds,
+        ExpeditionRetreatPosture retreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback)
+    {
+        ResourceExpeditionDefinition definition =
+            ResourceExpeditionRules.Definition(opportunity.Kind);
+        return new ExpeditionRequest(
+            memberIds,
+            definition.DurationTicks,
+            definition.SupplyResource,
+            definition.SupplyAmount,
+            definition.RewardResource,
+            definition.FullReturn,
+            ExpeditionRewardKind.Supplies,
+            definition.DisplayName,
+            retreatPosture,
+            opportunity.Id,
+            opportunity.Kind,
+            definition.SetbackReturn,
+            definition.PartialReturn);
+    }
 }
 
 public enum ExpeditionStartOutcome
@@ -86,6 +113,10 @@ public enum ExpeditionStartOutcome
     TownHallUnavailable = 7,
     DuplicateMember = 8,
     MemberNotHero = 9,
+    ResourceSortiesUnavailable = 10,
+    OpportunityNotFound = 11,
+    OpportunityUnavailable = 12,
+    InsufficientReturnCapacity = 13,
 }
 
 public readonly record struct ExpeditionStartResult(

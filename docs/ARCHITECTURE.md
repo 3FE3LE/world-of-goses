@@ -193,6 +193,14 @@ context only; following the selected citizen requires the explicit camera toggle
 and the arrow keys always pan the camera. Manual pan releases follow mode and
 never changes the founder's physical street position.
 
+`StreetDepthProjection` has one focus-relative perspective at every zoom level;
+zoom is always a uniform node transform and never renormalizes or stretches the
+terrain. Its visible window is bounded to thirteen construction streets: two
+foreground streets, the focused street and ten receding streets. The fourth
+position counting the focus crosses the near plane. `MacroStreetLiveView`
+shifts this window as the camera advances through a larger semantic territory,
+so off-window parcels are neither drawn nor folded onto the fixed horizon.
+
 Citizen persistence remains semantic in schema v19: work order, commitment,
 logical location, travel start and direction are authoritative; pixel position,
 route cursor, sprite, animation, and node state are not stored. After restore and
@@ -292,24 +300,47 @@ The numbers above live as constants in
 `game/scripts/PresentationConstants.cs` so future art can rely on the
 same anchors.
 
-Logical placement does not use pixel rectangles. A parcel contains a 3 × 3
-matrix of standard lots. Each standard lot covers 3 × 3 visual tiles and is
-represented by 6 × 6 integer half-tile cells. A building footprint separates
-its reserved lot area from its solid collision area; adjacent setbacks can
-therefore combine into a 0.5-tile passage, 1-tile path, or 2-tile street.
-Godot remains responsible for translating this domain geometry to pixels.
-Schema v9 now persists each building/project placement as parcel ID, lot
-rectangle, orientation, and footprint-profile ID. A construction project
-reserves its lot when authorised, releases it on cancellation, and keeps the
-same placement when it becomes a building. The macro snapshot projects this
-placement and `MacroStreetLiveView` translates parcel/lot coordinates into the
-street-perspective world. The former flat plot stage and screen-rectangle
-placement overlay were removed; projected ground geometry is now the only
-runtime placement representation.
+Logical placement does not use pixel rectangles. A parcel contributes nine
+one-tile frontage columns to each of three construction rows. Standard
+buildings reserve a sliding window of three contiguous columns with fixed
+three-tile depth; the domain permits later growth up to six columns. Windows
+may cross adjacent parcel boundaries only when every contributing parcel is
+available. `BuildingReservation` owns this interval while
+`ObstacleFootprintTemplate` describes the smaller solid geometry and authored
+clearances in integer half-tiles for resources, constructions and
+infrastructure. Protected `CorridorReservation` intervals cannot be consumed
+by construction.
+
+Schema v25 persists row, start column, total frontage, fixed depth and
+directional expansion counts. The v24→v25 migration maps every former 3×3 lot
+deterministically to three frontage columns while preserving the entity ID and
+legacy anchor fields for diagnostics. The macro snapshot projects reservation
+and solid footprint separately: placement draws the reserved area, while
+`MacroStreetLiveView` sends only the clearance-derived solid interval to
+navigation. Schema v26 persists one `NaturalResourceUnitPosition` per reserve
+entry (`RowWithinParcel`, `FrontageColumnWithinParcel`). Fresh layouts use
+`NaturalResourceLayoutPlanner` with the founder's stable seed; v25 saves are
+deterministically reflowed around construction, corridors and the protected
+founder arrival cell. Fresh positions are scattered across available cells
+rather than authored as repeated compact rows. Patches of different resource
+types may share a parcel.
+Each live resource blocks one frontage cell for construction and uses the same
+obstacle pipeline through `NaturalResourceFootprintCatalog`; trees have no
+special collision rule. Godot translates this domain geometry to projected
+pixels and anchors citizens on the street side; it does not decide placement
+legality.
+
+`ConstructionPlacementSnapshot` projects every visible frontage cell and every
+candidate three-column window together with the domain-owned
+`FrontageCellState`. `MacroStreetLiveView` uses that single read model for the
+full two-axis grid, blocked-cell marks, hover feedback and final selection, so
+hover cannot promise a placement that confirmation later rejects under a
+different presentation-only rule.
 
 The first agricultural authorization is a bounded exception to ordinary
 building completion. `ConstructionKind.CultivationSite` still reserves a
-normal persisted lot, but completion replaces the project with the Godot-free
+normal persisted three-column frontage window, but completion replaces the
+project with the Godot-free
 `CultivationSite` domain entity rather than a productive `Building`. That
 entity owns only `Prepared`/`Sown`/`Growing`/`Ready`/`Spent`, `PlantedTick` and
 `ReadyAtTick`; crop visuals remain a projection. Sowing and harvesting are
@@ -333,6 +364,27 @@ to bounded subsections whose data can grow without a practical visual limit
 (for example Chronicle entries or citizen assignment lists). The shell keeps
 screen chrome stable; each screen must still fit its primary composition in the
 available content region and delegate overflow only to the growing subsection.
+
+Resource quantities are intentionally absent from `CityStatusPanel`.
+`BuildingDetailSnapshot` projects the inventory read model consumed by the
+Shelter's collapsible resource panel; presentation never queries scene nodes
+to infer stock. `StockProduced` and `CropHarvested` remain persisted domain
+events for metrics and causal history, while `OfflineReportPanel` excludes
+them from the player-facing Chronicle. Basic ground-resource gathering emits
+a transient `ResourceGainPopup` at the current physical owner (founder,
+Founding Cache, or Shelter); this feedback is presentation-only and cannot
+mutate inventory. Before Cache, the popup samples the founder carrier's world
+position at each quantized motion step; building-owned feedback remains fixed
+to the projected storage anchor.
+
+Before a Cache exists, the four rudimentary resources are a six-unit founder
+load rather than general city storage. `ConstructionSnapshot` projects that
+load to the Construction surface; after Cache it projects aggregate 12-unit
+site storage, and `BuildingDetailSnapshot` takes over after Shelter
+consolidation. Legacy Food/Wood inventory is deliberately excluded from the
+pre-Cache carrying headroom. The popup anchor follows the same derived owner,
+so this presentation transition adds no persisted location field or schema
+version.
 
 ## 7b. Citizen visual carrier: one citizen, one sprite
 
@@ -419,12 +471,19 @@ Local persistence is implemented through plain DTOs and
   v6 → v7 adds stable per-unit natural-resource reserves and semantic
   citizen resource visits; v7 → v8 introduces persistent `CityParcel` and
   `NaturalResourcePatch` state; v8 → v9 assigns persistent parcel placements
-  to projects and buildings. The current chain continues through v24: v21 →
+  to projects and buildings. The current chain continues through v28: v21 →
   v22 adds the phased Founding Site state, while v22 → v23 proportionally
   rescales legacy 16×40 founding forests into six finite mature trees with
   eight Wood each; v23 → v24 adds the Cultivation Site lifecycle and timing
   fields, initializing an empty list rather than inventing agricultural
-  history in an older city. A resource visit persists exactly one semantic owner — a
+  history in an older city; v24 → v25 converts fixed lots to dynamic frontage
+  reservations and initializes an empty protected-corridor collection without
+  inventing urban decisions; v25 → v26 persists compact per-unit resource
+  positions; v26 → v27 adds finite resource opportunities plus each active
+  sortie's opportunity link, exact return tiers and reserved cargo capacity;
+  v27 → v28 adds the durable city/Shelter tool set, initially the Primitive
+  Axe. A v27 migration initializes an empty set and never grants a tool.
+  A resource visit persists exactly one semantic owner — a
   building id or a natural-patch id — together with its unit and logical
   terrain slot, so ground-resource gathering remains valid across save/load.
 - The real-time autosave cadence is centralized at three minutes. Periodic,

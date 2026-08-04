@@ -202,8 +202,8 @@ which domain owns the feature.
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`
 - **Conditional skills:** `expeditions-territory`, `presentation-experience`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md` (3x3 solar matrix)
-- **Code:** `game/scripts/Domain/CityParcel.cs`, `ParcelGrid.cs`, `ParcelPlacement.cs`, `PassageClass.cs`, `BuildingFootprintCatalog.cs`
+- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`, `docs/world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`
+- **Code:** `game/scripts/Domain/CityParcel.cs`, `ParcelGrid.cs`, `ParcelPlacement.cs`, `ConstructionRowId.cs`, `BuildingReservation.cs`, `CorridorReservation.cs`, `PassageClass.cs`, `BuildingFootprintCatalog.cs`
 
 ---
 
