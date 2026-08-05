@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable CS0618 // v29 must read and rewrite DEC-0013 legacy profile fields.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -191,6 +192,12 @@ public static class WorldPersistence
                 StaminaCurrent = citizen.CurrentStamina,
                 StaminaMax = citizen.MaxStamina,
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
+                EquipmentLoadout = CaptureEquipmentLoadout(citizen.EquipmentLoadout),
+                CurrentHealthAndCondition = new CurrentHealthAndConditionSave
+                {
+                    CurrentHealth = citizen.CurrentHealthAndCondition.CurrentHealth,
+                    ConditionFactor = citizen.CurrentHealthAndCondition.ConditionFactor,
+                },
                 LastVisitedResourceBuildingId =
                     citizen.LastVisitedResourceBuildingId?.Value,
                 LastVisitedResourcePatchId = citizen.LastVisitedResourcePatchId,
@@ -204,6 +211,15 @@ public static class WorldPersistence
                 {
                     Id = entry.Id.Value,
                     Experience = entry.Experience,
+                });
+            }
+            foreach (CompetencyProgress progress in citizen.WeaponCompetencies.Values)
+            {
+                cs.WeaponCompetencies.Add(new WeaponCompetencySave
+                {
+                    Family = progress.Family.ToString(),
+                    Level = progress.Level,
+                    Experience = progress.Experience,
                 });
             }
             foreach (var role in citizen.Roles)
@@ -429,6 +445,18 @@ public static class WorldPersistence
         save.ProfessionalAffinities.AddRange(profile.ProfessionalAffinities.Select(value => value.Value));
         save.WeaponPreferences.AddRange(profile.WeaponPreferences.Select(value => value.Value));
         save.PersonalityTraits.AddRange(profile.PersonalityTraits.Select(value => value.Value));
+        save.CubeProfile = CaptureCubeProfile(profile.CubeProfile);
+        if (profile.FounderOnboardingResult is { } onboarding)
+        {
+            save.ElementalAffinity = onboarding.ElementalAffinity.ToString().ToLowerInvariant();
+            save.NarrativeMemory = new FounderNarrativeMemorySave
+            {
+                AnswerIds = onboarding.NarrativeMemory.AnswerIds.ToList(),
+                BelievedFinalWordId = onboarding.NarrativeMemory.BelievedFinalWordId,
+                PreservedDetailId = onboarding.NarrativeMemory.PreservedDetailId,
+                EchoIds = onboarding.NarrativeMemory.EchoIds.ToList(),
+            };
+        }
         return save;
     }
 
@@ -444,24 +472,101 @@ public static class WorldPersistence
         {
             gender = parsed;
         }
-        if (!CitizenProfile.TryCreate(
-                new LineageId(save.Lineage),
-                gender,
-                save.Aptitudes.Select(value => new AptitudeId(value)),
-                save.ProfessionalAffinities.Select(value => new ProfessionFamilyId(value)),
-                new ElementalAffinityId(save.ElementalAffinity),
-                new CombatStyleId(save.CombatStyle),
-                save.WeaponPreferences.Select(value => new WeaponPreferenceId(value)),
-                save.PersonalityTraits.Select(value => new PersonalityTraitId(value)),
-                new PoliticalOrientationId(save.PoliticalOrientation),
-                new SpiritualPostureId(save.SpiritualPosture),
-                out CitizenProfile? profile,
-                out string error))
+        LineageId lineage = new(save.Lineage);
+        FounderCubeProfileSave cubeSave = save.CubeProfile
+            ?? throw new InvalidOperationException("Citizen cube profile is missing.");
+        var cube = new FounderCubeProfile(
+            cubeSave.Body,
+            cubeSave.Bond,
+            cubeSave.Stability,
+            cubeSave.Impulse,
+            cubeSave.Mastery,
+            cubeSave.Reach);
+        FounderOnboardingResult? onboarding = null;
+        if (save.NarrativeMemory is { } memory)
         {
-            throw new InvalidOperationException($"Invalid citizen profile: {error}");
+            onboarding = new FounderOnboardingResult(
+                lineage,
+                CitizenProfile.ToCanonicalAffinity(new ElementalAffinityId(save.ElementalAffinity)),
+                cube,
+                new FounderNarrativeMemory(
+                    memory.AnswerIds ?? new List<string>(),
+                    memory.BelievedFinalWordId,
+                    memory.PreservedDetailId,
+                    memory.EchoIds ?? new List<string>()));
         }
-        return profile!;
+
+        return CitizenProfile.Restore(
+            lineage,
+            gender,
+            save.Aptitudes.Select(value => new AptitudeId(value)),
+            save.ProfessionalAffinities.Select(value => new ProfessionFamilyId(value)),
+            new ElementalAffinityId(save.ElementalAffinity),
+            new CombatStyleId(save.CombatStyle),
+            save.WeaponPreferences.Select(value => new WeaponPreferenceId(value)),
+            save.PersonalityTraits.Select(value => new PersonalityTraitId(value)),
+            new PoliticalOrientationId(save.PoliticalOrientation),
+            new SpiritualPostureId(save.SpiritualPosture),
+            cube,
+            onboarding);
     }
+
+    private static FounderCubeProfileSave CaptureCubeProfile(FounderCubeProfile cube) => new()
+    {
+        Body = cube.Body,
+        Bond = cube.Bond,
+        Stability = cube.Stability,
+        Impulse = cube.Impulse,
+        Mastery = cube.Mastery,
+        Reach = cube.Reach,
+    };
+
+    internal static EquipmentLoadoutSave CaptureEquipmentLoadout(EquipmentLoadout loadout) => new()
+    {
+        Weapon = loadout.Weapon is null ? null : new WeaponChannelProfileSave
+        {
+            Family = loadout.Weapon.Family.ToString(),
+            PhysicalTransfer = loadout.Weapon.PhysicalTransfer,
+            ElementalResonance = loadout.Weapon.ElementalResonance,
+        },
+        Helmet = CaptureGearSupport(loadout.Helmet),
+        Chest = CaptureGearSupport(loadout.Chest),
+        Legs = CaptureGearSupport(loadout.Legs),
+        Boots = CaptureGearSupport(loadout.Boots),
+        Gloves = CaptureGearSupport(loadout.Gloves),
+    };
+
+    private static GearSupportProfileSave CaptureGearSupport(GearSupportProfile support) => new()
+    {
+        Body = support.Body,
+        Bond = support.Bond,
+        Stability = support.Stability,
+        Impulse = support.Impulse,
+        Domain = support.Domain,
+        Reach = support.Reach,
+    };
+
+    internal static EquipmentLoadout RestoreEquipmentLoadout(EquipmentLoadoutSave? save)
+    {
+        if (save is null) return EquipmentLoadout.Empty;
+        WeaponChannelProfile? weapon = save.Weapon is null
+            ? null
+            : new WeaponChannelProfile(
+                Enum.Parse<WeaponFamily>(save.Weapon.Family, ignoreCase: true),
+                save.Weapon.PhysicalTransfer,
+                save.Weapon.ElementalResonance);
+        return new EquipmentLoadout(
+            weapon,
+            RestoreGearSupport(save.Helmet),
+            RestoreGearSupport(save.Chest),
+            RestoreGearSupport(save.Legs),
+            RestoreGearSupport(save.Boots),
+            RestoreGearSupport(save.Gloves));
+    }
+
+    private static GearSupportProfile RestoreGearSupport(GearSupportProfileSave? save) => save is null
+        ? GearSupportProfile.None
+        : new GearSupportProfile(save.Body, save.Bond, save.Stability, save.Impulse, save.Domain, save.Reach);
 
     /// <summary>
     /// Validates the structural and cross-entity invariants of a
@@ -1101,11 +1206,16 @@ public static class WorldPersistence
             {
                 _ = RestoreProfile(c.Profile);
             }
-            catch (InvalidOperationException ex)
+            catch (Exception ex) when (ex is InvalidOperationException
+                or ArgumentException)
             {
                 throw new InvalidOperationException($"Citizen {c.Id}: {ex.Message}", ex);
             }
-            if (c.Competencies is null || c.Roles is null)
+            if (c.Competencies is null
+                || c.WeaponCompetencies is null
+                || c.Roles is null
+                || c.EquipmentLoadout is null
+                || c.CurrentHealthAndCondition is null)
             {
                 throw new InvalidOperationException($"Citizen {c.Id}: attachment collection is null.");
             }
@@ -1114,6 +1224,52 @@ public static class WorldPersistence
                 || entry.Experience < 0))
             {
                 throw new InvalidOperationException($"Citizen {c.Id}: invalid competency entry.");
+            }
+            if (c.WeaponCompetencies.Any(entry => entry is null
+                || string.IsNullOrWhiteSpace(entry.Family)
+                || !double.IsFinite(entry.Experience)
+                || entry.Experience < 0)
+                || c.WeaponCompetencies
+                    .Where(entry => entry is not null)
+                    .GroupBy(entry => entry.Family, StringComparer.OrdinalIgnoreCase)
+                    .Any(group => group.Count() > 1))
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: invalid weapon competency entry.");
+            }
+            if (c.EquipmentLoadout.Helmet is null
+                || c.EquipmentLoadout.Chest is null
+                || c.EquipmentLoadout.Legs is null
+                || c.EquipmentLoadout.Boots is null
+                || c.EquipmentLoadout.Gloves is null)
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: equipment loadout has a missing armor slot.");
+            }
+            try
+            {
+                _ = RestoreEquipmentLoadout(c.EquipmentLoadout);
+                if (c.CurrentHealthAndCondition.CurrentHealth.HasValue
+                    != c.CurrentHealthAndCondition.ConditionFactor.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "CurrentHealth and ConditionFactor must both be present or both be unresolved.");
+                }
+                if (c.CurrentHealthAndCondition is
+                    { CurrentHealth: double currentHealth, ConditionFactor: double conditionFactor })
+                {
+                    _ = new CurrentHealthAndCondition(currentHealth, conditionFactor);
+                }
+                foreach (WeaponCompetencySave entry in c.WeaponCompetencies)
+                {
+                    _ = new CompetencyProgress(
+                        Enum.Parse<WeaponFamily>(entry.Family, ignoreCase: true),
+                        entry.Level,
+                        entry.Experience);
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or ArgumentException)
+            {
+                throw new InvalidOperationException($"Citizen {c.Id}: invalid combat statistics state: {ex.Message}", ex);
             }
             if (c.Roles.Any(role => role is null || string.IsNullOrWhiteSpace(role.Id)))
             {
@@ -1734,6 +1890,8 @@ public static class WorldPersistence
                 25 => MigrateV25ToV26(save),
                 26 => MigrateV26ToV27(save),
                 27 => MigrateV27ToV28(save),
+                28 => MigrateV28ToV29(save),
+                29 => MigrateV29ToV30(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2477,6 +2635,112 @@ public static class WorldPersistence
         save.Version = 28;
         return save;
     }
+
+    public static WorldSave MigrateV28ToV29(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 28)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV28ToV29 expects version 28 but found {save.Version}.");
+        }
+
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            if (!string.Equals(
+                    citizen.Origin,
+                    CitizenOrigin.AstralFounder.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                || citizen.Profile is not { } profile)
+            {
+                continue;
+            }
+
+            profile.ElementalAffinity = NormalizeAffinityForV29(profile.ElementalAffinity);
+            if (profile.CubeProfile is null)
+            {
+                FounderCubeProfile cube = CubeScoring.ComputeCubeVertex(new LineageId(profile.Lineage));
+                profile.CubeProfile = new FounderCubeProfileSave
+                {
+                    Body = cube.Body,
+                    Bond = cube.Bond,
+                    Stability = cube.Stability,
+                    Impulse = cube.Impulse,
+                    Mastery = cube.Mastery,
+                    Reach = cube.Reach,
+                };
+            }
+            profile.NarrativeMemory ??= new FounderNarrativeMemorySave();
+        }
+
+        save.Version = 29;
+        return save;
+    }
+
+    public static WorldSave MigrateV29ToV30(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 29)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV29ToV30 expects version 29 but found {save.Version}.");
+        }
+
+        StatisticsBalanceConfig balance = StatisticsBalanceConfig.Default;
+        var defenseCalculator = new DefensiveStatisticsCalculator(balance);
+        var neutralContext = new StatCalculationContext(
+            balance.MinimumSkillLevel,
+            balance.NeutralConditionFactor,
+            balance.NeutralCitySupportFactor,
+            balance);
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            CitizenProfileSave profile = citizen.Profile
+                ?? throw new InvalidOperationException($"Citizen {citizen.Id}: profile is missing during v30 migration.");
+            profile.ElementalAffinity = NormalizeAffinityForV29(profile.ElementalAffinity);
+            if (profile.CubeProfile is null)
+            {
+                FounderCubeProfile fallback = CubeScoring.ComputeCubeVertex(new LineageId(profile.Lineage));
+                profile.CubeProfile = CaptureCubeProfile(fallback);
+            }
+
+            citizen.WeaponCompetencies ??= new List<WeaponCompetencySave>();
+            citizen.EquipmentLoadout ??= new EquipmentLoadoutSave();
+            if (citizen.CurrentHealthAndCondition is null)
+            {
+                if (!string.IsNullOrWhiteSpace(citizen.WoundSeverity))
+                {
+                    citizen.CurrentHealthAndCondition = new CurrentHealthAndConditionSave();
+                    continue;
+                }
+                FounderCubeProfileSave savedCube = profile.CubeProfile;
+                var cube = new FounderCubeProfile(
+                    savedCube.Body,
+                    savedCube.Bond,
+                    savedCube.Stability,
+                    savedCube.Impulse,
+                    savedCube.Mastery,
+                    savedCube.Reach);
+                EquipmentLoadout loadout = RestoreEquipmentLoadout(citizen.EquipmentLoadout);
+                double maxHealth = defenseCalculator.Calculate(cube, loadout, neutralContext).MaxHealth.Value;
+                citizen.CurrentHealthAndCondition = new CurrentHealthAndConditionSave
+                {
+                    CurrentHealth = maxHealth,
+                    ConditionFactor = balance.NeutralConditionFactor,
+                };
+            }
+        }
+
+        save.Version = 30;
+        return save;
+    }
+
+    private static string NormalizeAffinityForV29(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            || string.Equals(value, "none", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "neutral", StringComparison.OrdinalIgnoreCase)
+                ? ElementalAffinity.Silence.ToString().ToLowerInvariant()
+                : value.ToLowerInvariant();
 
     private static void AddMigratedResourceOpportunity(
         WorldSave save,

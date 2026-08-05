@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable CS0618 // Legacy citizen detail remains readable during the v29 compatibility window.
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;

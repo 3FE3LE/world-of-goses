@@ -60,7 +60,8 @@ public sealed class ToolGatheringTests
 
         Assert.Equal(28, migrated.Version);
         Assert.Empty(migrated.Tools);
-        WorldPersistence.Validate(migrated);
+        WorldPersistence.Validate(WorldPersistence.MigrateV29ToV30(
+            WorldPersistence.MigrateV28ToV29(migrated)));
         Assert.False(CityWorld.FromSave(migrated).HasTool(ToolKind.PrimitiveAxe));
     }
 

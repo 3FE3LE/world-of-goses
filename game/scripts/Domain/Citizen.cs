@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -19,6 +20,7 @@ namespace WorldofGoses.Domain;
 public sealed class Citizen
 {
     private readonly Dictionary<CompetencyId, CompetencyEntry> _competencies = new();
+    private readonly Dictionary<WeaponFamily, CompetencyProgress> _weaponCompetencies = new();
     private readonly List<Role> _roles = new();
 
     public CitizenId Id { get; }
@@ -26,12 +28,16 @@ public sealed class Citizen
     public int AppearanceSeed { get; }
     public AppearanceVariantId AppearanceVariant { get; private set; }
     public CitizenProfile Profile { get; }
+    public FounderCubeProfile CubeProfile => Profile.CubeProfile;
+    public CombatNature CombatNature => Profile.CombatNature;
+    public EquipmentLoadout EquipmentLoadout { get; private set; }
+    public CurrentHealthAndCondition CurrentHealthAndCondition { get; private set; }
     public CitizenOrigin Origin { get; }
     public CitizenCommitment Commitment { get; private set; } = CitizenCommitment.None;
     public CitizenWorkOrder? WorkOrder { get; private set; }
     public BuildingId? CurrentAssignment => WorkOrder?.TargetId;
     public CitizenVitalStatus VitalStatus { get; private set; }
-    public CitizenWound Wound { get; private set; }
+    public CitizenWound? Wound { get; private set; }
     public bool IsWounded => Wound is not null;
     public int ResumeWorkNotBeforeTick { get; private set; }
     public Availability Availability => IsAvailable
@@ -100,6 +106,8 @@ public sealed class Citizen
 
     public IReadOnlyDictionary<CompetencyId, CompetencyEntry> Competencies =>
         _competencies;
+    public IReadOnlyDictionary<WeaponFamily, CompetencyProgress> WeaponCompetencies =>
+        _weaponCompetencies;
     public IReadOnlyList<Role> Roles => _roles;
     public bool IsHero => HasRole(RoleId.Hero);
     public bool CanJoinExpedition => IsHero
@@ -117,7 +125,10 @@ public sealed class Citizen
         int? maxStamina = null,
         int initialWellFedTicks = 0,
         AppearanceVariantId? appearanceVariant = null,
-        CitizenOrigin origin = CitizenOrigin.Mortal)
+        CitizenOrigin origin = CitizenOrigin.Mortal,
+        EquipmentLoadout? equipmentLoadout = null,
+        CurrentHealthAndCondition? currentHealthAndCondition = null,
+        IEnumerable<CompetencyProgress>? weaponCompetencies = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
         Id = id;
@@ -126,6 +137,18 @@ public sealed class Citizen
         AppearanceVariant = appearanceVariant ?? AppearanceVariantId.Standard;
         Profile = profile;
         Origin = origin;
+        EquipmentLoadout = equipmentLoadout ?? EquipmentLoadout.Empty;
+        CurrentHealthAndCondition = currentHealthAndCondition
+            ?? CreateFullHealth(profile.CubeProfile, EquipmentLoadout);
+        if (weaponCompetencies is not null)
+        {
+            foreach (CompetencyProgress progress in weaponCompetencies)
+            {
+                ArgumentNullException.ThrowIfNull(progress);
+                if (!_weaponCompetencies.TryAdd(progress.Family, progress))
+                    throw new ArgumentException($"Duplicate weapon competency {progress.Family}.", nameof(weaponCompetencies));
+            }
+        }
         MaxStamina = maxStamina ?? StaminaRules.MaxStamina;
         CurrentStamina = initialStamina ?? MaxStamina;
         WellFedRemainingTicks = initialWellFedTicks;
@@ -479,6 +502,59 @@ public sealed class Citizen
     public int GetExperience(CompetencyId competency)
     {
         return _competencies.TryGetValue(competency, out var entry) ? entry.Experience : 0;
+    }
+
+    public void SetEquipmentLoadout(EquipmentLoadout loadout)
+    {
+        ArgumentNullException.ThrowIfNull(loadout);
+        EquipmentLoadout = loadout;
+    }
+
+    public void SetCurrentHealthAndCondition(CurrentHealthAndCondition value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        CurrentHealthAndCondition = value;
+    }
+
+    public void SetWeaponCompetency(CompetencyProgress progress)
+    {
+        ArgumentNullException.ThrowIfNull(progress);
+        _weaponCompetencies[progress.Family] = progress;
+    }
+
+    public double GrantWeaponExperience(
+        WeaponFamily family,
+        double generatedExperience,
+        StatisticsBalanceConfig? balance = null)
+    {
+        StatisticsBalanceConfig config = balance ?? StatisticsBalanceConfig.Default;
+        CompetencyProgress current = _weaponCompetencies.TryGetValue(family, out CompetencyProgress? progress)
+            ? progress
+            : new CompetencyProgress(family, config.MinimumSkillLevel, 0, config);
+        CompetencyProgress updated = current.GrantGeneratedExperience(generatedExperience, CombatNature, config);
+        _weaponCompetencies[family] = updated;
+        return updated.Experience - current.Experience;
+    }
+
+    public int WeaponSkillLevel(WeaponFamily family) =>
+        _weaponCompetencies.TryGetValue(family, out CompetencyProgress? progress)
+            ? progress.Level
+            : StatisticsBalanceConfig.Default.MinimumSkillLevel;
+
+    private static CurrentHealthAndCondition CreateFullHealth(
+        FounderCubeProfile cube,
+        EquipmentLoadout loadout)
+    {
+        StatisticsBalanceConfig balance = StatisticsBalanceConfig.Default;
+        var context = new StatCalculationContext(
+            balance.MinimumSkillLevel,
+            balance.NeutralConditionFactor,
+            balance.NeutralCitySupportFactor,
+            balance);
+        double maxHealth = new DefensiveStatisticsCalculator(balance)
+            .Calculate(cube, loadout, context)
+            .MaxHealth.Value;
+        return new CurrentHealthAndCondition(maxHealth, balance.NeutralConditionFactor, balance);
     }
 
     /// <summary>

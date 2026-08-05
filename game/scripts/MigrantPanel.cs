@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable CS0618 // Migrant legacy affinities remain readable during the v29 compatibility window.
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;

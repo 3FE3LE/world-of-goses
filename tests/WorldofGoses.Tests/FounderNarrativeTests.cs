@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;
@@ -11,12 +12,12 @@ public sealed class FounderNarrativeTests
     public void Catalog_HasTwelveStableQuestionsWithUniqueChoiceIds()
     {
         Assert.Equal(12, FounderNarrativeCatalog.Questions.Count);
-        var questionIds = new System.Collections.Generic.HashSet<string>();
+        var questionIds = new HashSet<string>();
         foreach (FounderNarrativeQuestion question in FounderNarrativeCatalog.Questions)
         {
             Assert.True(questionIds.Add(question.Id));
             Assert.InRange(question.Choices.Count, 4, 6);
-            var choiceIds = new System.Collections.Generic.HashSet<string>();
+            var choiceIds = new HashSet<string>();
             foreach (FounderNarrativeChoice choice in question.Choices)
             {
                 Assert.True(choiceIds.Add(choice.Id));
@@ -25,49 +26,126 @@ public sealed class FounderNarrativeTests
         }
     }
 
-    [Fact]
-    public void Session_ReplacingAnswerRecalculatesFromStableIds()
+    [Theory]
+    [InlineData(false, "ardhen")]
+    [InlineData(true, "vaelun")]
+    public void LegacyLineageScoring_GoldenInputsAndTieBreakRemainUnchanged(bool lastChoices, string expected)
+    {
+        FounderOnboardingResult result = FounderNarrativeScorer.Calculate(
+            lastChoices ? CompleteWithLastChoices() : CompleteWithFirstChoices());
+
+        Assert.Equal(expected, result.Lineage.Value);
+    }
+
+    [Theory]
+    [InlineData("earth", ElementalAffinity.Earth)]
+    [InlineData("water", ElementalAffinity.Water)]
+    [InlineData("fire", ElementalAffinity.Fire)]
+    [InlineData("air", ElementalAffinity.Air)]
+    [InlineData("aether", ElementalAffinity.Aether)]
+    [InlineData("none", ElementalAffinity.Silence)]
+    public void ElementScoring_GoldenWorldAnswersRemainCanonical(
+        string choiceId,
+        ElementalAffinity expected)
     {
         FounderNarrativeSession session = CompleteWithFirstChoices();
-        FounderNarrativeResult before = FounderNarrativeScorer.Calculate(session);
+        session.Answer("world", choiceId);
+
+        Assert.Equal(expected, FounderNarrativeScorer.Calculate(session).ElementalAffinity);
+    }
+
+    [Fact]
+    public void ElementalAffinity_RemainsIndependentWhenLineageAnswersChange()
+    {
+        FounderNarrativeSession first = CompleteWithFirstChoices();
+        FounderNarrativeSession last = CompleteWithLastChoices();
+        first.Answer("world", "fire");
+        last.Answer("world", "fire");
+
+        FounderOnboardingResult firstResult = FounderNarrativeScorer.Calculate(first);
+        FounderOnboardingResult lastResult = FounderNarrativeScorer.Calculate(last);
+
+        Assert.NotEqual(firstResult.Lineage, lastResult.Lineage);
+        Assert.Equal(ElementalAffinity.Fire, firstResult.ElementalAffinity);
+        Assert.Equal(firstResult.ElementalAffinity, lastResult.ElementalAffinity);
+    }
+
+    [Fact]
+    public void Session_ReplacingAnswerRecalculatesEverythingFromStableIds()
+    {
+        FounderNarrativeSession session = CompleteWithFirstChoices();
+        FounderOnboardingResult before = FounderNarrativeScorer.Calculate(session);
 
         session.Answer("world", "fire");
-        FounderNarrativeResult after = FounderNarrativeScorer.Calculate(session);
+        session.Answer("threshold", "mobility");
+        FounderOnboardingResult changed = FounderNarrativeScorer.Calculate(session);
 
-        Assert.Equal(ElementalAffinityId.Earth, before.Element);
-        Assert.Equal(ElementalAffinityId.Fire, after.Element);
-        Assert.Equal(12, session.Answers.Count);
+        FounderNarrativeSession rebuilt = CompleteWithFirstChoices();
+        rebuilt.Answer("world", "fire");
+        rebuilt.Answer("threshold", "mobility");
+        FounderOnboardingResult recalculated = FounderNarrativeScorer.Calculate(rebuilt);
+
+        Assert.NotEqual(before.ElementalAffinity, changed.ElementalAffinity);
+        Assert.NotEqual(before.CubeProfile, changed.CubeProfile);
+        Assert.Equal(recalculated, changed);
+        Assert.Equal(12, changed.NarrativeMemory.AnswerIds.Count);
     }
 
     [Fact]
-    public void Scoring_ProducesCompleteValidCitizenProfile()
+    public void ShadowCube_NeverChangesLegacyLineageSelection()
     {
-        FounderNarrativeResult result =
-            FounderNarrativeScorer.Calculate(CompleteWithLastChoices());
-
-        Assert.Equal(3, result.Aptitudes.Count);
-        Assert.Equal(3, result.ProfessionalAffinities.Count);
-        Assert.InRange(result.WeaponPreferences.Count, 1, 2);
-        Assert.Equal(3, result.Traits.Count);
-        Assert.Equal(12, result.Identity.PrologueFragments.Count);
-        Assert.Equal(result.Lineage, result.Profile.Lineage);
-        Assert.NotEmpty(result.Identity.RiskProfile);
-        Assert.NotEmpty(result.Identity.LeadershipStyle);
+        foreach (FounderNarrativeSession session in new[]
+        {
+            CompleteWithFirstChoices(),
+            CompleteWithLastChoices(),
+        })
+        {
+            FounderOnboardingResult result = FounderNarrativeScorer.Calculate(session);
+            Assert.Equal(result.Lineage, CubeScoring.ComputeNearestVertex(result.CubeProfile));
+        }
     }
 
     [Fact]
-    public void BodyPresentation_ChangesOnlyGender()
+    public void NarrativeMemory_PreservesStableQuestionAndAnswerIds()
     {
-        FounderNarrativeResult scored =
-            FounderNarrativeScorer.Calculate(CompleteWithFirstChoices());
-        FounderNarrativeResult masculine =
-            FounderNarrativeScorer.WithGender(scored, GenderId.Masculine);
+        FounderOnboardingResult result = FounderNarrativeScorer.Calculate(CompleteWithFirstChoices());
 
-        Assert.Equal(GenderId.Masculine, masculine.Profile.Gender);
-        Assert.Equal(scored.Lineage, masculine.Lineage);
-        Assert.Equal(scored.Aptitudes, masculine.Aptitudes);
-        Assert.Equal(scored.Traits, masculine.Traits);
-        Assert.Equal(scored.Element, masculine.Element);
+        Assert.Contains("word:find", result.NarrativeMemory.AnswerIds);
+        Assert.Contains("detail:name", result.NarrativeMemory.AnswerIds);
+        Assert.Equal("find", result.NarrativeMemory.BelievedFinalWordId);
+        Assert.Equal("name", result.NarrativeMemory.PreservedDetailId);
+        Assert.Equal(12, result.NarrativeMemory.EchoIds.Count);
+    }
+
+    [Fact]
+    public void FounderProfile_StoresOnlyCanonicalOnboardingOutputForNewFounder()
+    {
+        FounderOnboardingResult result = FounderNarrativeScorer.Calculate(CompleteWithFirstChoices());
+        CitizenProfile profile = CitizenProfile.CreateFounder(result, GenderId.Masculine);
+
+        Assert.Equal(result, profile.FounderOnboardingResult);
+        Assert.Empty(profile.Aptitudes);
+#pragma warning disable CS0618 // Intentional compatibility assertion for DEC-0013 fields.
+        Assert.Empty(profile.ProfessionalAffinities);
+        Assert.Empty(profile.WeaponPreferences);
+        Assert.Empty(profile.PersonalityTraits);
+        Assert.Equal(string.Empty, profile.CombatStyle.Value);
+        Assert.Equal(string.Empty, profile.PoliticalOrientation.Value);
+        Assert.Equal(string.Empty, profile.SpiritualPosture.Value);
+#pragma warning restore CS0618
+    }
+
+    [Fact]
+    public void BodyPresentation_DoesNotChangeCanonicalOnboardingResult()
+    {
+        FounderOnboardingResult result = FounderNarrativeScorer.Calculate(CompleteWithFirstChoices());
+
+        CitizenProfile feminine = CitizenProfile.CreateFounder(result, GenderId.Feminine);
+        CitizenProfile masculine = CitizenProfile.CreateFounder(result, GenderId.Masculine);
+
+        Assert.Equal(result, feminine.FounderOnboardingResult);
+        Assert.Equal(result, masculine.FounderOnboardingResult);
+        Assert.NotEqual(feminine.Gender, masculine.Gender);
     }
 
     [Theory]
@@ -86,33 +164,35 @@ public sealed class FounderNarrativeTests
         Assert.False(AstralOnboardingView.IsFounderNameValid(name));
 
     [Fact]
-    public void NarrativeFounderCreation_CreatesExactlyOneCitizen()
+    public void NarrativeFounderCreation_PersistsCanonicalResultOnSingleCitizen()
     {
-        FounderNarrativeResult result =
-            FounderNarrativeScorer.WithGender(
-                FounderNarrativeScorer.Calculate(CompleteWithFirstChoices()),
-                GenderId.Feminine);
+        FounderOnboardingResult onboarding =
+            FounderNarrativeScorer.Calculate(CompleteWithFirstChoices());
+        CitizenProfile profile = CitizenProfile.CreateFounder(onboarding, GenderId.Feminine);
         var world = new CityWorld();
         HeroCreationRequest request =
-            new("Aster", result.Profile, result.Profile.Gender);
+            new("Aster", profile, profile.Gender, onboarding);
 
-        Assert.True(world.TryCreateHero(request).IsSuccess);
+        HeroCreationResult creation = world.TryCreateHero(request);
+        Assert.True(creation.IsSuccess);
+        Assert.Equal(onboarding, creation.OnboardingResult);
         Assert.Equal(HeroCreationOutcome.AlreadyExists, world.TryCreateHero(request).Outcome);
         Assert.Single(world.Citizens);
-        Assert.True(world.Hero!.IsHero);
-        Assert.Equal(CitizenOrigin.AstralFounder, world.Hero.Origin);
+        Assert.Equal(onboarding, world.Hero!.Profile.FounderOnboardingResult);
+        HeroProfileSnapshot snapshot = Assert.IsType<HeroProfileSnapshot>(HeroProfileSnapshot.From(world));
+        Assert.Equal(onboarding.CubeProfile, snapshot.CubeProfile);
+        Assert.Equal("Earth", snapshot.ElementalAffinity);
 
         CityWorld restored = CityWorld.FromSave(
             WorldPersistence.DeserializeFromJson(
-                WorldPersistence.SerializeToJson(
-                    WorldPersistence.Capture(world))));
-        Assert.Equal(CitizenOrigin.AstralFounder, restored.Hero!.Origin);
+                WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
+        Assert.Equal(onboarding, restored.Hero!.Profile.FounderOnboardingResult);
     }
 
-    private static FounderNarrativeSession CompleteWithFirstChoices() =>
+    internal static FounderNarrativeSession CompleteWithFirstChoices() =>
         Complete(question => question.Choices[0].Id);
 
-    private static FounderNarrativeSession CompleteWithLastChoices() =>
+    internal static FounderNarrativeSession CompleteWithLastChoices() =>
         Complete(question => question.Choices[^1].Id);
 
     private static FounderNarrativeSession Complete(

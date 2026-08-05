@@ -746,15 +746,20 @@ public sealed class CityWorld
             return HeroCreationResult.Fail(HeroCreationOutcome.InvalidName);
         }
 
+        CitizenProfile founderProfile = request.OnboardingResult is { } onboarding
+            ? request.Profile.WithFounderOnboardingResult(onboarding)
+            : request.Profile.FounderOnboardingResult is not null
+                ? request.Profile
+                : request.Profile.WithFounderFallback();
         var hero = new Citizen(
             PrincipalHeroId,
             name,
-            appearanceSeed: StableAppearanceSeed(name, request.Profile.Lineage),
-            profile: request.Profile,
+            appearanceSeed: StableAppearanceSeed(name, founderProfile.Lineage),
+            profile: founderProfile,
             origin: CitizenOrigin.AstralFounder);
         hero.GrantRole(RoleId.Hero, _tick);
         RegisterCitizen(hero);
-        return HeroCreationResult.Success(hero.Id);
+        return HeroCreationResult.Success(hero.Id, founderProfile.FounderOnboardingResult);
     }
 
     /// <summary>
@@ -4172,11 +4177,28 @@ public sealed class CityWorld
             // new saves (StaminaMax present) restore the saved current.
             int? maxStamina = cs.StaminaMax;
             int? initialStamina = maxStamina.HasValue ? cs.StaminaCurrent : (int?)null;
+            CitizenProfile restoredProfile = WorldPersistence.RestoreProfile(cs.Profile!);
+            EquipmentLoadout restoredLoadout = WorldPersistence.RestoreEquipmentLoadout(cs.EquipmentLoadout);
+            CurrentHealthAndCondition? restoredHealth = cs.CurrentHealthAndCondition switch
+            {
+                null => null,
+                { CurrentHealth: null, ConditionFactor: null } => CurrentHealthAndCondition.Unresolved,
+                { CurrentHealth: double health, ConditionFactor: double factor } =>
+                    new CurrentHealthAndCondition(health, factor),
+                _ => throw new InvalidOperationException(
+                    $"Citizen {cs.Id}: health and condition must both be present or both be unresolved."),
+            };
+            IEnumerable<CompetencyProgress> restoredWeaponCompetencies =
+                (cs.WeaponCompetencies ?? new List<WeaponCompetencySave>()).Select(entry =>
+                    new CompetencyProgress(
+                        Enum.Parse<WeaponFamily>(entry.Family, ignoreCase: true),
+                        entry.Level,
+                        entry.Experience));
             var citizen = new Citizen(
                 new CitizenId(cs.Id),
                 cs.Name,
                 cs.AppearanceSeed,
-                profile: WorldPersistence.RestoreProfile(cs.Profile!),
+                profile: restoredProfile,
                 initialStamina: initialStamina,
                 maxStamina: maxStamina,
                 initialWellFedTicks: cs.WellFedRemainingTicks,
@@ -4190,7 +4212,10 @@ public sealed class CityWorld
                         ? origin
                         : cs.Roles.Any(role => role.Id == RoleId.Hero.Value)
                             ? CitizenOrigin.AstralFounder
-                            : CitizenOrigin.Mortal);
+                        : CitizenOrigin.Mortal,
+                equipmentLoadout: restoredLoadout,
+                currentHealthAndCondition: restoredHealth,
+                weaponCompetencies: restoredWeaponCompetencies);
             CitizenCommitment commitment = RestoreCitizenCommitment(save, cs);
             CitizenVitalStatus vitalStatus = Enum.TryParse(
                 cs.VitalStatus,

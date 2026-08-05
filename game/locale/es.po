@@ -2466,3 +2466,33 @@ msgstr "[X] Bloqueado por un corredor protegido."
 
 msgid "ui.construction.placement_blocked_territory"
 msgstr "[X] Fuera del territorio disponible."
+
+msgid "Afinidad"
+msgstr "Afinidad"
+
+msgid "Alcance"
+msgstr "Alcance"
+
+msgid "Cuerpo"
+msgstr "Cuerpo"
+
+msgid "Dominio"
+msgstr "Dominio"
+
+msgid "Estabilidad"
+msgstr "Estabilidad"
+
+msgid "Firma"
+msgstr "Firma"
+
+msgid "Impulso"
+msgstr "Impulso"
+
+msgid "Perfil de encarnación"
+msgstr "Perfil de encarnación"
+
+msgid "Silence"
+msgstr "Silencio"
+
+msgid "Vínculo"
+msgstr "Vínculo"

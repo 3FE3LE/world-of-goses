@@ -153,7 +153,7 @@ public static class FounderNarrativeCatalog
                     C(FounderScoreAxis.Element, nameof(ElementalAffinityId.Aether), 3),
                     C(FounderScoreAxis.Aptitude, nameof(AptitudeId.Memory), 1)),
                 O("none", Tr.Narrative.WorldOptionNoneLabel, Tr.Narrative.WorldOptionNoneConsequence,
-                    C(FounderScoreAxis.Element, nameof(ElementalAffinityId.None), 3),
+                    C(FounderScoreAxis.Element, nameof(ElementalAffinityId.Silence), 3),
                     C(FounderScoreAxis.Autonomy, "Unbound", 1))),
 
             Q("perception", Tr.Narrative.PerceptionTitle, Tr.Narrative.PerceptionBody, 0f,
@@ -269,8 +269,28 @@ public static class FounderNarrativeCatalog
         string title,
         string text,
         float reveal,
-        params FounderNarrativeChoice[] choices) =>
-        new(id, title, text, Array.AsReadOnly(choices), reveal);
+        params FounderNarrativeChoice[] choices)
+    {
+        var scoredChoices = new FounderNarrativeChoice[choices.Length];
+        for (int index = 0; index < choices.Length; index++)
+        {
+            FounderNarrativeChoice choice = choices[index];
+            ScoreContribution[] cube = CubeContributions(id, choice.Id);
+            if (cube.Length == 0)
+            {
+                scoredChoices[index] = choice;
+                continue;
+            }
+            var combined = new ScoreContribution[choice.Contributions.Count + cube.Length];
+            for (int score = 0; score < choice.Contributions.Count; score++)
+            {
+                combined[score] = choice.Contributions[score];
+            }
+            Array.Copy(cube, 0, combined, choice.Contributions.Count, cube.Length);
+            scoredChoices[index] = choice with { Contributions = Array.AsReadOnly(combined) };
+        }
+        return new FounderNarrativeQuestion(id, title, text, Array.AsReadOnly(scoredChoices), reveal);
+    }
 
     private static FounderNarrativeChoice O(
         string id,
@@ -292,4 +312,70 @@ public static class FounderNarrativeCatalog
         string value,
         int weight) =>
         new(axis, value, weight);
+
+    private static ScoreContribution[] CubeContributions(string questionId, string choiceId) =>
+        (questionId, choiceId) switch
+        {
+            ("hand", "hold") => Cube(CubeScoring.BodyValueId, CubeScoring.BondValueId),
+            ("hand", "observe") => Cube(CubeScoring.ReachValueId),
+            ("hand", "stabilise") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("hand", "call") => Cube(CubeScoring.BondValueId, CubeScoring.ReachValueId),
+            ("word", "find") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
+            ("word", "return") => Cube(CubeScoring.StabilityValueId, CubeScoring.BondValueId),
+            ("word", "remember") => Cube(CubeScoring.MasteryValueId),
+            ("word", "continue") => Cube(CubeScoring.ImpulseValueId),
+            ("detail", "name") => Cube(CubeScoring.BondValueId),
+            ("detail", "hands") => Cube(CubeScoring.BodyValueId, CubeScoring.MasteryValueId),
+            ("detail", "object") => Cube(CubeScoring.StabilityValueId),
+            ("detail", "journey") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
+            ("old-form", "exact") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("old-form", "sensation") => Cube(CubeScoring.BodyValueId, CubeScoring.BondValueId),
+            ("old-form", "separate") => Cube(CubeScoring.MasteryValueId),
+            ("old-form", "release") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
+            ("time", "cause") => Cube(CubeScoring.MasteryValueId),
+            ("time", "feeling") => Cube(CubeScoring.BondValueId),
+            ("time", "promises") => Cube(CubeScoring.StabilityValueId),
+            ("time", "places") => Cube(CubeScoring.ReachValueId),
+            ("mortality", "weight") => Cube(CubeScoring.BodyValueId, CubeScoring.StabilityValueId),
+            ("mortality", "understand") => Cube(CubeScoring.MasteryValueId),
+            ("mortality", "others") => Cube(CubeScoring.BondValueId),
+            ("mortality", "new") => Cube(CubeScoring.ImpulseValueId),
+            ("perception", "ardhen") => Vertex(true, true, true),
+            ("perception", "eirune") => Vertex(true, true, false),
+            ("perception", "kovari") => Vertex(true, false, true),
+            ("perception", "myrven") => Vertex(false, true, false),
+            ("orientation", "vaelun") => Vertex(true, false, false),
+            ("orientation", "orveth") => Vertex(false, true, true),
+            ("orientation", "caelith") => Vertex(false, false, false),
+            ("orientation", "theryn") => Vertex(false, false, true),
+            ("threshold", "support") => Cube(CubeScoring.BondValueId, CubeScoring.StabilityValueId),
+            ("threshold", "control") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("threshold", "mobility") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
+            ("threshold", "precision") => Cube(CubeScoring.MasteryValueId),
+            ("threshold", "assault") => Cube(CubeScoring.BodyValueId, CubeScoring.ImpulseValueId),
+            ("ground", "clarity") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("ground", "shared") => Cube(CubeScoring.BondValueId),
+            ("ground", "move") => Cube(CubeScoring.ImpulseValueId),
+            ("ground", "mark") => Cube(CubeScoring.ReachValueId),
+            ("unchanged", "protect") => Cube(CubeScoring.BondValueId, CubeScoring.StabilityValueId),
+            ("unchanged", "freedom") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
+            ("unchanged", "understand") => Cube(CubeScoring.BondValueId, CubeScoring.MasteryValueId),
+            ("unchanged", "paths") => Cube(CubeScoring.StabilityValueId, CubeScoring.ReachValueId),
+            _ => Array.Empty<ScoreContribution>(),
+        };
+
+    private static ScoreContribution[] Cube(params string[] valueIds)
+    {
+        var scores = new ScoreContribution[valueIds.Length];
+        for (int index = 0; index < valueIds.Length; index++)
+        {
+            scores[index] = C(FounderScoreAxis.Cube, valueIds[index], 1);
+        }
+        return scores;
+    }
+
+    private static ScoreContribution[] Vertex(bool body, bool stability, bool mastery) => Cube(
+        body ? CubeScoring.BodyValueId : CubeScoring.BondValueId,
+        stability ? CubeScoring.StabilityValueId : CubeScoring.ImpulseValueId,
+        mastery ? CubeScoring.MasteryValueId : CubeScoring.ReachValueId);
 }

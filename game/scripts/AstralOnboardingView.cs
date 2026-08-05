@@ -32,7 +32,7 @@ public partial class AstralOnboardingView : Control
     private Button _back = null!;
     private Button _next = null!;
     private int _step;
-    private FounderNarrativeResult? _result;
+    private FounderOnboardingResult? _result;
     private string _founderName = string.Empty;
     private GenderId? _gender;
     private LineEdit? _nameEdit;
@@ -332,7 +332,8 @@ public partial class AstralOnboardingView : Control
     private void OnConfirmIdentity()
     {
         if (_result is null || !_gender.HasValue || !IsFounderNameValid(_founderName)) return;
-        FounderNarrativeResult final = FounderNarrativeScorer.WithGender(_result, _gender.Value);
+        FounderOnboardingResult final = _result;
+        CitizenProfile profile = CitizenProfile.CreateFounder(final, _gender.Value);
         // Treat a repeated UI activation as idempotent. The first activation
         // may already have created and saved the founder before a queued
         // second button/input event arrives; never present that successful
@@ -345,7 +346,7 @@ public partial class AstralOnboardingView : Control
         }
         _next.Disabled = true;
         HeroCreationResult creation = _controller.TryCompleteOnboarding(
-            new HeroCreationRequest(_founderName.Trim(), final.Profile, _gender.Value));
+            new HeroCreationRequest(_founderName.Trim(), profile, _gender.Value, final));
         if (!creation.IsSuccess)
         {
             _error.Text = UiText.Format("ui.astral.creation_failed", creation.Outcome);
@@ -475,14 +476,14 @@ public partial class AstralOnboardingView : Control
         throw new InvalidOperationException($"Unknown choice '{id}'.");
     }
 
-    private static string DescribeResult(FounderNarrativeResult result) =>
-        $"{ProfileCatalog.Get(result.Lineage).DisplayName}\n" +
+    private static string DescribeResult(FounderOnboardingResult result) =>
+        $"{ProfileCatalog.Get(result.Lineage).DisplayName} · {UiText.Get(CubeScoring.Signature(result.Lineage))}\n" +
         $"{UiText.Get(ProfileCatalog.Get(result.Lineage).Summary)}\n\n" +
-        UiText.Format("ui.astral.result_aptitudes", JoinLocalized(result.Aptitudes, ProfileCatalog.DisplayName)) + "\n" +
-        UiText.Format("ui.astral.result_traits", JoinLocalized(result.Traits, ProfileCatalog.DisplayName)) + "\n" +
-        UiText.Format("ui.astral.result_affinities", JoinLocalized(result.ProfessionalAffinities, ProfileCatalog.DisplayName)) + "\n" +
-        UiText.Format("ui.astral.result_element", UiText.Get(ProfileCatalog.DisplayName(result.Element))) + "\n" +
-        UiText.Format("ui.astral.result_combat", UiText.Get(ProfileCatalog.DisplayName(result.CombatStyle)));
+        $"{UiText.Get("Afinidad")} · {UiText.Get(ProfileCatalog.DisplayName(result.ElementalAffinity))}\n\n" +
+        $"{UiText.Get("Perfil de encarnación").ToUpperInvariant()}\n" +
+        $"{UiText.Get("Cuerpo")} {result.CubeProfile.Body} / {result.CubeProfile.Bond} {UiText.Get("Vínculo")}\n" +
+        $"{UiText.Get("Estabilidad")} {result.CubeProfile.Stability} / {result.CubeProfile.Impulse} {UiText.Get("Impulso")}\n" +
+        $"{UiText.Get("Dominio")} {result.CubeProfile.Mastery} / {result.CubeProfile.Reach} {UiText.Get("Alcance")}";
 
     private static string JoinLocalized<T>(IReadOnlyList<T> values, Func<T, string> name)
     {

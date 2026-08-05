@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable CS0618 // Snapshot retains legacy fields for existing consumers through v29.
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
@@ -18,6 +19,9 @@ public sealed record HeroProfileSnapshot(
     IReadOnlyList<string> ProfessionalAffinities,
     IReadOnlyList<string> MarkedAffinities,
     string ElementalAffinity,
+    FounderCubeProfile CubeProfile,
+    string LineageSignature,
+    FounderNarrativeMemory NarrativeMemory,
     string CombatStyle,
     IReadOnlyList<string> WeaponPreferences,
     IReadOnlyList<string> PersonalityTraits,
@@ -56,12 +60,21 @@ public sealed record HeroProfileSnapshot(
             profile.Aptitudes.Select(ProfileCatalog.DisplayName).ToArray(),
             profile.ProfessionalAffinities.Select(ProfileCatalog.DisplayName).ToArray(),
             lineage.MarkedAffinities.Select(ProfileCatalog.DisplayName).ToArray(),
-            ProfileCatalog.DisplayName(profile.ElementalAffinity),
-            ProfileCatalog.DisplayName(profile.CombatStyle),
+            ProfileCatalog.DisplayName(profile.CanonicalElementalAffinity),
+            profile.CubeProfile,
+            CubeScoring.Signature(profile.Lineage),
+            profile.FounderOnboardingResult?.NarrativeMemory ?? FounderNarrativeMemory.Empty,
+            string.IsNullOrWhiteSpace(profile.CombatStyle.Value)
+                ? string.Empty
+                : ProfileCatalog.DisplayName(profile.CombatStyle),
             profile.WeaponPreferences.Select(ProfileCatalog.DisplayName).ToArray(),
             profile.PersonalityTraits.Select(ProfileCatalog.DisplayName).ToArray(),
-            ProfileCatalog.DisplayName(profile.PoliticalOrientation),
-            ProfileCatalog.DisplayName(profile.SpiritualPosture),
+            string.IsNullOrWhiteSpace(profile.PoliticalOrientation.Value)
+                ? string.Empty
+                : ProfileCatalog.DisplayName(profile.PoliticalOrientation),
+            string.IsNullOrWhiteSpace(profile.SpiritualPosture.Value)
+                ? string.Empty
+                : ProfileCatalog.DisplayName(profile.SpiritualPosture),
             hero.CurrentStamina,
             hero.MaxStamina,
             hero.EffectiveMaxStamina,

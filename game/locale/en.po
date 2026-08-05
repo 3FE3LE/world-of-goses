@@ -2314,3 +2314,33 @@ msgstr "[X] Blocked by a protected corridor."
 
 msgid "ui.construction.placement_blocked_territory"
 msgstr "[X] Outside available territory."
+
+msgid "Afinidad"
+msgstr "Affinity"
+
+msgid "Alcance"
+msgstr "Reach"
+
+msgid "Cuerpo"
+msgstr "Body"
+
+msgid "Dominio"
+msgstr "Mastery"
+
+msgid "Estabilidad"
+msgstr "Stability"
+
+msgid "Firma"
+msgstr "Signature"
+
+msgid "Impulso"
+msgstr "Impulse"
+
+msgid "Perfil de encarnación"
+msgstr "Embodiment profile"
+
+msgid "Silence"
+msgstr "Silence"
+
+msgid "Vínculo"
+msgstr "Bond"

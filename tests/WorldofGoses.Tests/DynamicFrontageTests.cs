@@ -262,9 +262,11 @@ public sealed class DynamicFrontageTests
             Assert.Equal(3, placement.FrontageColumns);
             Assert.Equal(3, placement.DepthRows);
         });
-        WorldPersistence.Validate(WorldPersistence.MigrateV27ToV28(
-            WorldPersistence.MigrateV26ToV27(
-                WorldPersistence.MigrateV25ToV26(migrated))));
+        WorldPersistence.Validate(WorldPersistence.MigrateV29ToV30(
+            WorldPersistence.MigrateV28ToV29(
+                WorldPersistence.MigrateV27ToV28(
+                    WorldPersistence.MigrateV26ToV27(
+                        WorldPersistence.MigrateV25ToV26(migrated))))));
     }
 
     [Fact]
@@ -280,9 +282,11 @@ public sealed class DynamicFrontageTests
             patch.UnitPositions.Clear();
         }
 
-        WorldSave migrated = WorldPersistence.MigrateV27ToV28(
-            WorldPersistence.MigrateV26ToV27(
-                WorldPersistence.MigrateV25ToV26(save)));
+        WorldSave migrated = WorldPersistence.MigrateV29ToV30(
+            WorldPersistence.MigrateV28ToV29(
+                WorldPersistence.MigrateV27ToV28(
+                    WorldPersistence.MigrateV26ToV27(
+                        WorldPersistence.MigrateV25ToV26(save)))));
 
         Assert.All(migrated.NaturalResourcePatches, patch =>
             Assert.Equal(patch.UnitReserves.Count, patch.UnitPositions.Count));

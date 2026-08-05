@@ -116,7 +116,7 @@ public static class ProfileCatalog
         new ProfileOption<ElementalAffinityId>(ElementalAffinityId.Earth, "Earth", "Affinity with stability, endurance and structure."),
         new ProfileOption<ElementalAffinityId>(ElementalAffinityId.Air, "Air", "Affinity with movement, distance and changing perspective."),
         new ProfileOption<ElementalAffinityId>(ElementalAffinityId.Aether, "Aether", "Affinity with connections that are not purely material."),
-        new ProfileOption<ElementalAffinityId>(ElementalAffinityId.None, "None", "No elemental affinity is central to this person."),
+        new ProfileOption<ElementalAffinityId>(ElementalAffinityId.Silence, "Silence", "Affinity with isolation, stabilisation and controlled neutralisation."),
     });
 
     public static IReadOnlyList<ProfileOption<CombatStyleId>> CombatStyles { get; } = Array.AsReadOnly(new[]
@@ -196,6 +196,7 @@ public static class ProfileCatalog
     public static string DisplayName(AptitudeId id) => GetOption(Aptitudes, id).DisplayName;
     public static string DisplayName(ProfessionFamilyId id) => GetOption(ProfessionFamilies, id).DisplayName;
     public static string DisplayName(ElementalAffinityId id) => GetOption(ElementalAffinities, id).DisplayName;
+    public static string DisplayName(ElementalAffinity affinity) => ElementalAffinityDisplay.DisplayName(affinity);
     public static string DisplayName(CombatStyleId id) => GetOption(CombatStyles, id).DisplayName;
     public static string DisplayName(WeaponPreferenceId id) => GetOption(WeaponPreferences, id).DisplayName;
     public static string DisplayName(PersonalityTraitId id) => GetOption(PersonalityTraits, id).DisplayName;

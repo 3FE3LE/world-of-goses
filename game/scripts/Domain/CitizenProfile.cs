@@ -1,4 +1,5 @@
 #nullable enable
+#pragma warning disable CS0618 // This type owns the one-version DEC-0013 compatibility fields.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,8 +23,11 @@ public sealed class CitizenProfile
         WeaponPreferenceId[] weaponPreferences,
         PersonalityTraitId[] personalityTraits,
         PoliticalOrientationId politicalOrientation,
-        SpiritualPostureId spiritualPosture)
+        SpiritualPostureId spiritualPosture,
+        FounderCubeProfile cubeProfile,
+        FounderOnboardingResult? founderOnboardingResult)
     {
+        ArgumentNullException.ThrowIfNull(cubeProfile);
         Lineage = lineage;
         Gender = gender;
         Aptitudes = Array.AsReadOnly(aptitudes);
@@ -34,18 +38,91 @@ public sealed class CitizenProfile
         PersonalityTraits = Array.AsReadOnly(personalityTraits);
         PoliticalOrientation = politicalOrientation;
         SpiritualPosture = spiritualPosture;
+        CubeProfile = cubeProfile;
+        FounderOnboardingResult = founderOnboardingResult;
+        CombatNature = new CombatNature(
+            founderOnboardingResult?.ElementalAffinity ?? ToCanonicalAffinity(elementalAffinity));
     }
 
     public LineageId Lineage { get; }
     public GenderId Gender { get; }
     public IReadOnlyList<AptitudeId> Aptitudes { get; }
+    [Obsolete("DEC-0013: professional affinities are learned during the citizen's life, not produced by onboarding.")]
     public IReadOnlyList<ProfessionFamilyId> ProfessionalAffinities { get; }
     public ElementalAffinityId ElementalAffinity { get; }
+    [Obsolete("DEC-0013: combat style is learned during the citizen's life, not produced by onboarding.")]
     public CombatStyleId CombatStyle { get; }
+    [Obsolete("DEC-0013: weapon preferences are learned during the citizen's life, not produced by onboarding.")]
     public IReadOnlyList<WeaponPreferenceId> WeaponPreferences { get; }
+    [Obsolete("DEC-0013: traits are acquired during the citizen's life, not produced by onboarding.")]
     public IReadOnlyList<PersonalityTraitId> PersonalityTraits { get; }
+    [Obsolete("DEC-0013: political orientation is not produced by onboarding.")]
     public PoliticalOrientationId PoliticalOrientation { get; }
+    [Obsolete("DEC-0013: spiritual posture is not produced by onboarding.")]
     public SpiritualPostureId SpiritualPosture { get; }
+    public FounderOnboardingResult? FounderOnboardingResult { get; }
+    public FounderCubeProfile CubeProfile { get; }
+    public CombatNature CombatNature { get; }
+    public global::WorldofGoses.Domain.ElementalAffinity CanonicalElementalAffinity =>
+        FounderOnboardingResult?.ElementalAffinity ?? ToCanonicalAffinity(ElementalAffinity);
+
+    public static CitizenProfile CreateFounder(
+        FounderOnboardingResult onboardingResult,
+        GenderId gender)
+    {
+        ArgumentNullException.ThrowIfNull(onboardingResult);
+        if (!ProfileCatalog.Contains(onboardingResult.Lineage))
+        {
+            throw new ArgumentOutOfRangeException(nameof(onboardingResult), "Founder lineage is unknown.");
+        }
+        if (!Enum.IsDefined(typeof(GenderId), gender))
+        {
+            throw new ArgumentOutOfRangeException(nameof(gender));
+        }
+
+        return new CitizenProfile(
+            onboardingResult.Lineage,
+            gender,
+            Array.Empty<AptitudeId>(),
+            Array.Empty<ProfessionFamilyId>(),
+            ToLegacyAffinity(onboardingResult.ElementalAffinity),
+            new CombatStyleId(string.Empty),
+            Array.Empty<WeaponPreferenceId>(),
+            Array.Empty<PersonalityTraitId>(),
+            new PoliticalOrientationId(string.Empty),
+            new SpiritualPostureId(string.Empty),
+            onboardingResult.CubeProfile,
+            onboardingResult);
+    }
+
+    internal CitizenProfile WithFounderOnboardingResult(FounderOnboardingResult onboardingResult)
+    {
+        ArgumentNullException.ThrowIfNull(onboardingResult);
+        if (onboardingResult.Lineage != Lineage)
+        {
+            throw new ArgumentException("Founder onboarding lineage must match the citizen profile.", nameof(onboardingResult));
+        }
+        return new CitizenProfile(
+            Lineage,
+            Gender,
+            Aptitudes.ToArray(),
+            ProfessionalAffinities.ToArray(),
+            ToLegacyAffinity(onboardingResult.ElementalAffinity),
+            CombatStyle,
+            WeaponPreferences.ToArray(),
+            PersonalityTraits.ToArray(),
+            PoliticalOrientation,
+            SpiritualPosture,
+            onboardingResult.CubeProfile,
+            onboardingResult);
+    }
+
+    internal CitizenProfile WithFounderFallback() =>
+        WithFounderOnboardingResult(new FounderOnboardingResult(
+            Lineage,
+            ToCanonicalAffinity(ElementalAffinity),
+            CubeScoring.ComputeCubeVertex(Lineage),
+            FounderNarrativeMemory.Empty));
 
     public static bool TryCreate(
         LineageId lineage,
@@ -113,9 +190,101 @@ public sealed class CitizenProfile
             weaponValues,
             traitValues,
             politicalOrientation,
-            spiritualPosture);
+            spiritualPosture,
+            CubeScoring.ComputeCubeVertex(lineage),
+            null);
         return true;
     }
+
+    internal static CitizenProfile Restore(
+        LineageId lineage,
+        GenderId gender,
+        IEnumerable<AptitudeId> aptitudes,
+        IEnumerable<ProfessionFamilyId> professionalAffinities,
+        ElementalAffinityId elementalAffinity,
+        CombatStyleId combatStyle,
+        IEnumerable<WeaponPreferenceId> weaponPreferences,
+        IEnumerable<PersonalityTraitId> personalityTraits,
+        PoliticalOrientationId politicalOrientation,
+        SpiritualPostureId spiritualPosture,
+        FounderCubeProfile cubeProfile,
+        FounderOnboardingResult? founderOnboardingResult)
+    {
+        ArgumentNullException.ThrowIfNull(cubeProfile);
+        if (founderOnboardingResult is not null)
+        {
+            return new CitizenProfile(
+                lineage,
+                gender,
+                aptitudes.ToArray(),
+                professionalAffinities.ToArray(),
+                NormalizeLegacyAffinity(elementalAffinity),
+                combatStyle,
+                weaponPreferences.ToArray(),
+                personalityTraits.ToArray(),
+                politicalOrientation,
+                spiritualPosture,
+                cubeProfile,
+                founderOnboardingResult);
+        }
+
+        if (!TryCreate(
+                lineage,
+                gender,
+                aptitudes,
+                professionalAffinities,
+                NormalizeLegacyAffinity(elementalAffinity),
+                combatStyle,
+                weaponPreferences,
+                personalityTraits,
+                politicalOrientation,
+                spiritualPosture,
+                out CitizenProfile? legacy,
+                out string error))
+        {
+            throw new InvalidOperationException($"Invalid citizen profile: {error}");
+        }
+
+        return new CitizenProfile(
+            legacy!.Lineage,
+            legacy.Gender,
+            legacy.Aptitudes.ToArray(),
+            legacy.ProfessionalAffinities.ToArray(),
+            legacy.ElementalAffinity,
+            legacy.CombatStyle,
+            legacy.WeaponPreferences.ToArray(),
+            legacy.PersonalityTraits.ToArray(),
+            legacy.PoliticalOrientation,
+            legacy.SpiritualPosture,
+            cubeProfile,
+            null);
+    }
+
+    internal static global::WorldofGoses.Domain.ElementalAffinity ToCanonicalAffinity(ElementalAffinityId affinity) =>
+        affinity.Value.ToLowerInvariant() switch
+        {
+            "earth" => global::WorldofGoses.Domain.ElementalAffinity.Earth,
+            "aether" => global::WorldofGoses.Domain.ElementalAffinity.Aether,
+            "water" => global::WorldofGoses.Domain.ElementalAffinity.Water,
+            "fire" => global::WorldofGoses.Domain.ElementalAffinity.Fire,
+            "air" => global::WorldofGoses.Domain.ElementalAffinity.Air,
+            "silence" or "neutral" or "none" or "" => global::WorldofGoses.Domain.ElementalAffinity.Silence,
+            _ => throw new ArgumentOutOfRangeException(nameof(affinity), affinity, "Unknown elemental affinity."),
+        };
+
+    internal static ElementalAffinityId ToLegacyAffinity(global::WorldofGoses.Domain.ElementalAffinity affinity) => affinity switch
+    {
+        global::WorldofGoses.Domain.ElementalAffinity.Earth => ElementalAffinityId.Earth,
+        global::WorldofGoses.Domain.ElementalAffinity.Aether => ElementalAffinityId.Aether,
+        global::WorldofGoses.Domain.ElementalAffinity.Water => ElementalAffinityId.Water,
+        global::WorldofGoses.Domain.ElementalAffinity.Fire => ElementalAffinityId.Fire,
+        global::WorldofGoses.Domain.ElementalAffinity.Silence => ElementalAffinityId.Silence,
+        global::WorldofGoses.Domain.ElementalAffinity.Air => ElementalAffinityId.Air,
+        _ => throw new ArgumentOutOfRangeException(nameof(affinity), affinity, null),
+    };
+
+    private static ElementalAffinityId NormalizeLegacyAffinity(ElementalAffinityId affinity) =>
+        ToLegacyAffinity(ToCanonicalAffinity(affinity));
 
     private static bool TryValidateSelection<TId>(
         IEnumerable<TId>? selected,
@@ -150,3 +319,4 @@ public sealed class CitizenProfile
         return true;
     }
 }
+#pragma warning restore CS0618

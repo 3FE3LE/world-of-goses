@@ -205,23 +205,15 @@ public partial class HeroProfileView : Control
         AddBody(UiText.Get(hero.LearningApproach));
         AddBody(UiText.Get("ui.hero_profile.lineage_disclaimer"));
 
-        AddHeading(UiText.Get("ui.hero_profile.aptitudes_heading"));
-        AddBody(JoinLocalized(hero.Aptitudes));
+        AddHeading(UiText.Get("Perfil de encarnación"));
+        AddBody($"{UiText.Get("Cuerpo")} {hero.CubeProfile.Body} / {hero.CubeProfile.Bond} {UiText.Get("Vínculo")}");
+        AddBody($"{UiText.Get("Estabilidad")} {hero.CubeProfile.Stability} / {hero.CubeProfile.Impulse} {UiText.Get("Impulso")}");
+        AddBody($"{UiText.Get("Dominio")} {hero.CubeProfile.Mastery} / {hero.CubeProfile.Reach} {UiText.Get("Alcance")}");
+        AddBody($"{UiText.Get("Firma")} · {UiText.Get(hero.LineageSignature)}");
 
-        AddHeading(UiText.Get("ui.hero_profile.affinities_heading"));
-        AddBody(JoinLocalized(hero.ProfessionalAffinities));
-        AddBody(UiText.Format("ui.hero_profile.common_paths", hero.LineageName, JoinLocalized(hero.MarkedAffinities)));
-
-        AddHeading(UiText.Get("ui.hero_profile.combat_heading"));
+        AddHeading(UiText.Get("Afinidad"));
         AddBody(UiText.Format("ui.hero_profile.elemental_affinity", UiText.Get(hero.ElementalAffinity)));
-        AddBody(UiText.Format("ui.hero_profile.combat_style", UiText.Get(hero.CombatStyle)));
-        AddBody(UiText.Format("ui.hero_profile.weapon_preferences", JoinLocalized(hero.WeaponPreferences)));
         AddBody(UiText.Format("ui.hero_profile.gender", UiText.Get(hero.Gender.ToString())));
-
-        AddHeading(UiText.Get("ui.hero_profile.personality_heading"));
-        AddBody(UiText.Format("ui.hero_profile.traits", JoinLocalized(hero.PersonalityTraits)));
-        AddBody(UiText.Format("ui.hero_profile.political_orientation", UiText.Get(hero.PoliticalOrientation)));
-        AddBody(UiText.Format("ui.hero_profile.spiritual_posture", UiText.Get(hero.SpiritualPosture)));
 
         AddHeading(UiText.Get("ui.hero_profile.condition_heading"));
         AddStaminaBar(hero.CurrentStamina, hero.EffectiveMaxStamina);

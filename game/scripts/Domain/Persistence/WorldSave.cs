@@ -53,9 +53,11 @@ public sealed class WorldSave
     ///   <item><description>v26 — persists compact per-unit natural-resource positions, allowing mixed resource rows without reserving whole building lots.</description></item>
     ///   <item><description>v27 — EG-4 persists finite Food/Wood opportunities and each resource expedition's reserved return capacity.</description></item>
     ///   <item><description>v28 — persists durable city tools; fresh terrain contracts to three horizontal founding parcels while legacy topology remains valid.</description></item>
+    ///   <item><description>v29 — persists the founder's canonical cube profile and narrative memory; None/Neutral elemental affinity migrates to Silence.</description></item>
+    ///   <item><description>v30 — every citizen persists a cube profile, equipment loadout, weapon-family competencies, and current health/condition; combat expression is derived immutably from affinity.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 28;
+    public const int CurrentVersion = 30;
 
     public int Version { get; set; } = CurrentVersion;
 

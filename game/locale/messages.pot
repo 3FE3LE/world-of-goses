@@ -49,6 +49,9 @@ msgstr ""
 msgid "Afecta la presentación del sprite, no el resultado narrativo."
 msgstr ""
 
+msgid "Afinidad"
+msgstr ""
+
 msgid "Agnostic"
 msgstr ""
 
@@ -59,6 +62,9 @@ msgid "Ah."
 msgstr ""
 
 msgid "Air"
+msgstr ""
+
+msgid "Alcance"
 msgstr ""
 
 msgid "Ambitious"
@@ -343,6 +349,9 @@ msgstr ""
 msgid "Creativity"
 msgstr ""
 
+msgid "Cuerpo"
+msgstr ""
+
 msgid "Cultivation Site"
 msgstr ""
 
@@ -376,6 +385,9 @@ msgstr ""
 msgid "Dispatch a reconnaissance."
 msgstr ""
 
+msgid "Dominio"
+msgstr ""
+
 msgid "Earth"
 msgstr ""
 
@@ -404,6 +416,9 @@ msgid "Engineers, maintainers and makers drawn to systems that can be understood
 msgstr ""
 
 msgid "Enter a name between 1 and 32 characters."
+msgstr ""
+
+msgid "Estabilidad"
 msgstr ""
 
 msgid "Establish Founding Site"
@@ -529,6 +544,9 @@ msgstr ""
 msgid "Fire"
 msgstr ""
 
+msgid "Firma"
+msgstr ""
+
 msgid "Food"
 msgstr ""
 
@@ -578,6 +596,9 @@ msgid "Hero profile"
 msgstr ""
 
 msgid "Identity"
+msgstr ""
+
+msgid "Impulso"
 msgstr ""
 
 msgid "In progress. Click the construction menu for details."
@@ -1165,6 +1186,9 @@ msgstr ""
 msgid "Paused. Resume from the construction menu."
 msgstr ""
 
+msgid "Perfil de encarnación"
+msgstr ""
+
 msgid "Personal paths"
 msgstr ""
 
@@ -1258,10 +1282,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1321,6 +1345,9 @@ msgstr ""
 msgid "Shield"
 msgstr ""
 
+msgid "Silence"
+msgstr ""
+
 msgid "Skeptical"
 msgstr ""
 
@@ -1342,10 +1369,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
 msgid "Strength"
@@ -2359,6 +2386,9 @@ msgstr ""
 msgid "View shelter"
 msgstr ""
 
+msgid "Vínculo"
+msgstr ""
+
 msgid "Waiting for contributors"
 msgstr ""
 
@@ -2374,10 +2404,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"

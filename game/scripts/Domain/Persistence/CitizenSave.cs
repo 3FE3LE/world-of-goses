@@ -40,6 +40,9 @@ public sealed class CitizenSave
     public int? WoundOriginatingEventId { get; set; }
     public int WoundRecoveryTicksRemaining { get; set; }
     public List<CompetencySave> Competencies { get; set; } = new();
+    public List<WeaponCompetencySave> WeaponCompetencies { get; set; } = new();
+    public EquipmentLoadoutSave? EquipmentLoadout { get; set; }
+    public CurrentHealthAndConditionSave? CurrentHealthAndCondition { get; set; }
     public List<RoleSave> Roles { get; set; } = new();
 
     /// <summary>

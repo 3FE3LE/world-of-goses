@@ -376,6 +376,8 @@ public sealed class UiSnapshotTests
         Assert.False(string.IsNullOrWhiteSpace(snapshot.LineageName));
         Assert.NotEmpty(snapshot.Aptitudes);
         Assert.NotEmpty(snapshot.ProfessionalAffinities);
+        Assert.Equal(100, snapshot.CubeProfile.Body + snapshot.CubeProfile.Bond);
+        Assert.False(string.IsNullOrWhiteSpace(snapshot.LineageSignature));
         Assert.True(snapshot.MaxStamina > 0);
     }
 

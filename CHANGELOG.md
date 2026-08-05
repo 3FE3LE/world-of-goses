@@ -22,6 +22,40 @@ their commits for the real content.
 
 ---
 
+## Cubo Kovari y primera derivación auditable de estadísticas
+
+**2026-08-04**
+
+El onboarding del fundador ahora conserva su linaje canónico, afinidad
+elemental, memoria narrativa y perfil del Cubo Kovari. Al terminar, el jugador
+ve los tres pares del Cubo como tendencias narrativas —sin porcentajes planos—
+junto con el linaje y la afinidad. El scoring histórico de linaje continúa
+decidiendo el resultado mientras el cubo se calcula en paralelo en modo sombra.
+
+Cada `Citizen` dispone además de naturaleza de combate inmutable, competencia
+por familia de arma, canales del arma, apoyos temporales de las cinco piezas de
+armadura y condición resuelta. La capa de dominio puede solicitar bajo demanda
+potencias física y elemental, vida, defensas, mitigaciones, regeneración,
+curación y stats de tempo con un desglose auditable; equipar o retirar objetos
+no muta el Cubo persistido. Afinidad y expresión física describen la
+manifestación, pero no multiplican los canales.
+
+El esquema cruza `v28 -> v29 -> v30`: primero incorpora el resultado canónico
+del onboarding y después las fuentes persistentes de estadísticas. Saves
+antiguos reconstruyen el Cubo desde el vértice 60/40 y conservan su afinidad;
+la ausencia se normaliza a Silencio sin repetir el onboarding. Un Citizen sano
+recibe condición neutral; uno herido queda explícitamente sin resolver para no
+inventar una regla futura entre heridas y condición.
+
+Baseline medido: build con 0 errores y 0 warnings; 794 pruebas aprobadas, 0
+fallidas, 1 omitida (795 total); arranque headless limpio; 814 IDs de
+localización y 329 claves runtime. La validación de contexto conserva 432
+checks aprobados y 9 fallidos por referencias/mirrors ya desincronizados. La
+captura se omitió tras reproducir un bloqueo del pipe de salida de Godot; el
+snapshot Full se completó con `-SkipCapture`.
+
+---
+
 ## Session state and changelog contract
 
 **2026-08-03**

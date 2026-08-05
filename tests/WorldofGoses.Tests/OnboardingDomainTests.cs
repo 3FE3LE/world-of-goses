@@ -1,3 +1,4 @@
+#pragma warning disable CS0618 // Explicit v29 round-trip coverage for retained legacy fields.
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;

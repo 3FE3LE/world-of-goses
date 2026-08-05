@@ -572,20 +572,17 @@ public partial class OnboardingView : Control
         }
         UpdateReviewSprite();
 
+        FounderCubeProfile cube = CubeScoring.ComputeCubeVertex(_lineage.Value);
+
         _reviewLabel.Text =
             UiText.Format("ui.hero.review_name", _heroName.Trim()) + "\n" +
             UiText.Format("ui.hero.review_lineage", ProfileCatalog.Get(_lineage.Value).DisplayName) + "\n" +
             UiText.Format("ui.hero.review_gender", UiText.Get(_gender.Value.ToString())) + "\n" +
-            UiText.Format("ui.hero.review_aptitudes", JoinLocalized(_aptitudes.Select(ProfileCatalog.DisplayName))) + "\n" +
-            UiText.Format("ui.hero.review_affinities", JoinLocalized(_professions.Select(ProfileCatalog.DisplayName))) + "\n" +
             UiText.Format("ui.hero.review_element", DisplayLocalized(_element, ProfileCatalog.DisplayName)) + "\n" +
-            UiText.Format(
-                "ui.hero.review_combat",
-                DisplayLocalized(_combatStyle, ProfileCatalog.DisplayName),
-                JoinLocalized(_weapons.Select(ProfileCatalog.DisplayName))) + "\n" +
-            UiText.Format("ui.hero.review_traits", JoinLocalized(_traits.Select(ProfileCatalog.DisplayName))) + "\n" +
-            UiText.Format("ui.hero.review_politics", DisplayLocalized(_politics, ProfileCatalog.DisplayName)) + "\n" +
-            UiText.Format("ui.hero.review_spirituality", DisplayLocalized(_spirituality, ProfileCatalog.DisplayName));
+            $"{UiText.Get("Cuerpo")} {cube.Body} / {cube.Bond} {UiText.Get("Vínculo")}\n" +
+            $"{UiText.Get("Estabilidad")} {cube.Stability} / {cube.Impulse} {UiText.Get("Impulso")}\n" +
+            $"{UiText.Get("Dominio")} {cube.Mastery} / {cube.Reach} {UiText.Get("Alcance")}\n" +
+            UiText.Get(ProfileCatalog.Get(_lineage.Value).Summary);
     }
 
     private static bool IsNameValid(string value)
