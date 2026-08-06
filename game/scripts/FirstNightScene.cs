@@ -34,7 +34,10 @@ namespace WorldofGoses;
 /// </summary>
 public partial class FirstNightScene : Node
 {
-    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
+    // FirstNightScene is a direct child of CityPrototype (created in
+    // CityPrototype._Ready). The controller and the macro view are
+    // siblings under CityPrototype, so the relative path is `../`.
+    [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
 
     /// <summary>
     /// Path to the macro street view, whose
@@ -43,7 +46,7 @@ public partial class FirstNightScene : Node
     /// absent (tests, editor-only fixtures) the scene falls back to a
     /// fixed viewport-centred placeholder.
     /// </summary>
-    [Export] public NodePath MacroViewPath { get; set; } = "../../../GameUiShell/ScreenContent/MacroStreetLiveView";
+    [Export] public NodePath MacroViewPath { get; set; } = "../GameUiShell/ScreenContent/MacroStreetLiveView";
 
     private CityWorldController? _controller;
     private CanvasLayer _layer = null!;
