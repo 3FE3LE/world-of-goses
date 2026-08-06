@@ -2458,3 +2458,175 @@ msgstr "Sword"
 
 msgid "Whip"
 msgstr "Whip"
+
+# First night (en) — authored guidance from the fire spirit
+# (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). Body text carries no
+# literal digits: quantities come from FoundingSiteRules.InputsFor at
+# runtime, so a recipe change cannot leave the night describing a
+# world that no longer exists. Each main-dialogue node has one body
+# variant per lineage; the route never branches.
+
+msgid "firstnight.strip.follow"
+msgstr "Continue"
+
+msgid "firstnight.strip.sleep"
+msgstr "Give in to sleep"
+
+msgid "firstnight.context.branches_for_fire"
+msgstr "Dry branches. They catch quickly."
+
+msgid "firstnight.context.small_stone_for_fire"
+msgstr "River-smoothed stones. They ring a fire in."
+
+msgid "firstnight.context.branches_for_shelter"
+msgstr "Boughs that bend. The cold will not pass through them woven."
+
+msgid "firstnight.context.plant_fiber_for_shelter"
+msgstr "Fibre from the meadow plants. It binds the branches together."
+
+msgid "ui.expedition.spirit_trail_locked"
+msgstr "The trail the spirit left cannot be read until the night is over."
+
+msgid "firstnight.manifested.body.ardhen"
+msgstr "The smith's mark is still warm on the ground. The spirit stops, surprised."
+
+msgid "firstnight.manifested.body.eirune"
+msgstr "The healer's mark pulses faintly. The spirit tilts its head."
+
+msgid "firstnight.manifested.body.kovari"
+msgstr "The keeper-of-flame's mark burns without fuel. The spirit grins."
+
+msgid "firstnight.manifested.body.myrven"
+msgstr "The wanderer's mark points nowhere. The spirit follows it anyway."
+
+msgid "firstnight.manifested.body.vaelun"
+msgstr "The pathfinder's mark traces a star. The spirit traces it back."
+
+msgid "firstnight.manifested.body.orveth"
+msgstr "The keeper-of-oaths' mark is a single word, half-burned. The spirit reads it."
+
+msgid "firstnight.manifested.body.caelith"
+msgstr "The rememberer's mark is dense with names. The spirit cannot read them yet."
+
+msgid "firstnight.manifested.body.theryn"
+msgstr "The binder's mark wraps the soil. The spirit recognises it."
+
+msgid "firstnight.spirit_arrived.body.ardhen"
+msgstr "Your body lets heat escape. The spirit shows you where it goes."
+
+msgid "firstnight.spirit_arrived.body.eirune"
+msgstr "Warmth leaks through the skin. The spirit shows you how to seal it."
+
+msgid "firstnight.spirit_arrived.body.kovari"
+msgstr "Flame answers flame. The spirit offers its own."
+
+msgid "firstnight.spirit_arrived.body.myrven"
+msgstr "The wind does not know you are cold. The spirit offers fire anyway."
+
+msgid "firstnight.spirit_arrived.body.vaelun"
+msgstr "Stars are far. The fire is closer. The spirit shows you how to keep it."
+
+msgid "firstnight.spirit_arrived.body.orveth"
+msgstr "An oath between you and the cold. The spirit offers to witness."
+
+msgid "firstnight.spirit_arrived.body.caelith"
+msgstr "The cold has no name you know yet. The spirit gives it one."
+
+msgid "firstnight.spirit_arrived.body.theryn"
+msgstr "A binding with the fire. The spirit teaches the words."
+
+msgid "firstnight.campfire_built.body.ardhen"
+msgstr "The ring holds. The spirit slips between the stones."
+
+msgid "firstnight.campfire_built.body.eirune"
+msgstr "The heat answers breath. The spirit inhabits the flame."
+
+msgid "firstnight.campfire_built.body.kovari"
+msgstr "Of course it lights. The spirit was already there."
+
+msgid "firstnight.campfire_built.body.myrven"
+msgstr "Even a wanderer can stop. The spirit nods from within the fire."
+
+msgid "firstnight.campfire_built.body.vaelun"
+msgstr "A second landmark. The spirit maps it against the stars."
+
+msgid "firstnight.campfire_built.body.orveth"
+msgstr "The fire remembers what you gave it. The spirit keeps the count."
+
+msgid "firstnight.campfire_built.body.caelith"
+msgstr "The flame is older than your name for it. The spirit names it for you."
+
+msgid "firstnight.campfire_built.body.theryn"
+msgstr "Now there is a centre. The spirit stays inside it."
+
+msgid "firstnight.shelter_built.body.ardhen"
+msgstr "Iron would be better. But this will do for the night."
+
+msgid "firstnight.shelter_built.body.eirune"
+msgstr "The shelter breathes. The spirit approves."
+
+msgid "firstnight.shelter_built.body.kovari"
+msgstr "Stone would hold longer. Branches will hold tonight."
+
+msgid "firstnight.shelter_built.body.myrven"
+msgstr "A place to return to. The spirit marks it for you."
+
+msgid "firstnight.shelter_built.body.vaelun"
+msgstr "A boundary. The spirit traces it with you."
+
+msgid "firstnight.shelter_built.body.orveth"
+msgstr "You have given your word to this ground. The spirit witnesses."
+
+msgid "firstnight.shelter_built.body.caelith"
+msgstr "Tomorrow you will know how to do better. For now, rest."
+
+msgid "firstnight.shelter_built.body.theryn"
+msgstr "You have bound a piece of the world to yourself. The spirit is pleased."
+
+msgid "firstnight.other_light_told.body.ardhen"
+msgstr "There was another descent. The spirit did not see it fall."
+
+msgid "firstnight.other_light_told.body.eirune"
+msgstr "Someone else breathed through. The spirit feels it still."
+
+msgid "firstnight.other_light_told.body.kovari"
+msgstr "A second flame, somewhere. The spirit cannot tell where."
+
+msgid "firstnight.other_light_told.body.myrven"
+msgstr "Two paths crossed. The spirit followed only one."
+
+msgid "firstnight.other_light_told.body.vaelun"
+msgstr "The second star is moving. The spirit can show you its trail."
+
+msgid "firstnight.other_light_told.body.orveth"
+msgstr "Two oaths were sworn at once. The spirit remembers both."
+
+msgid "firstnight.other_light_told.body.caelith"
+msgstr "The other name is not yet yours to read. The spirit will help."
+
+msgid "firstnight.other_light_told.body.theryn"
+msgstr "Another binding happened tonight. The spirit felt it close."
+
+msgid "firstnight.sleeping.body.ardhen"
+msgstr "The smith will wake. The spirit will not."
+
+msgid "firstnight.sleeping.body.eirune"
+msgstr "The healer sleeps. The spirit watches the embers."
+
+msgid "firstnight.sleeping.body.kovari"
+msgstr "The flame keeps itself. The spirit lets go."
+
+msgid "firstnight.sleeping.body.myrven"
+msgstr "The wanderer rests. The spirit goes back to wandering."
+
+msgid "firstnight.sleeping.body.vaelun"
+msgstr "The pathfinder dreams of paths. The spirit leaves a trail."
+
+msgid "firstnight.sleeping.body.orveth"
+msgstr "The oath is sealed. The spirit departs, witnessed."
+
+msgid "firstnight.sleeping.body.caelith"
+msgstr "The rememberer forgets for a night. The spirit will not."
+
+msgid "firstnight.sleeping.body.theryn"
+msgstr "The binder is bound to sleep. The spirit is unbound."

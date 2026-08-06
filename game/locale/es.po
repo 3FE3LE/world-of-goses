@@ -2610,3 +2610,176 @@ msgstr "Espada"
 
 msgid "Whip"
 msgstr "Látigo"
+
+# Primera noche (es) — guía autoral del espíritu de fuego
+# (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). El cuerpo no contiene
+# cifras literales: las cantidades se interpolan en runtime desde
+# FoundingSiteRules.InputsFor, de modo que un cambio de receta no
+# puede dejar a la noche describiendo un mundo que ya no existe.
+# Cada nodo principal del diálogo tiene una variante del cuerpo por
+# linaje; la ruta nunca se bifurca.
+
+msgid "firstnight.strip.follow"
+msgstr "Continuar"
+
+msgid "firstnight.strip.sleep"
+msgstr "Rendirse al sueño"
+
+msgid "firstnight.context.branches_for_fire"
+msgstr "Ramas secas. Arden rápido."
+
+msgid "firstnight.context.small_stone_for_fire"
+msgstr "Piedras pulidas por el río. Contienen el fuego en un anillo."
+
+msgid "firstnight.context.branches_for_shelter"
+msgstr "Ramas que se doblan. El frío no pasará entre ellas trenzadas."
+
+msgid "firstnight.context.plant_fiber_for_shelter"
+msgstr "Fibra de plantas del prado. Une las ramas entre sí."
+
+msgid "ui.expedition.spirit_trail_locked"
+msgstr "El rastro que dejó el espíritu no puede leerse hasta que termine la noche."
+
+msgid "firstnight.manifested.body.ardhen"
+msgstr "La marca del herrero aún está caliente en el suelo. El espíritu se detiene, sorprendido."
+
+msgid "firstnight.manifested.body.eirune"
+msgstr "La marca del sanador pulsa débilmente. El espíritu inclina la cabeza."
+
+msgid "firstnight.manifested.body.kovari"
+msgstr "La marca del guardián de la llama arde sin combustible. El espíritu sonríe."
+
+msgid "firstnight.manifested.body.myrven"
+msgstr "La marca del caminante no apunta a ningún sitio. El espíritu la sigue de todos modos."
+
+msgid "firstnight.manifested.body.vaelun"
+msgstr "La marca del trazador de caminos dibuja una estrella. El espíritu la traza de vuelta."
+
+msgid "firstnight.manifested.body.orveth"
+msgstr "La marca del guardián de juramentos es una sola palabra, medio quemada. El espíritu la lee."
+
+msgid "firstnight.manifested.body.caelith"
+msgstr "La marca del memorioso es densa con nombres. El espíritu no puede leerlos todavía."
+
+msgid "firstnight.manifested.body.theryn"
+msgstr "La marca del enlazador envuelve la tierra. El espíritu la reconoce."
+
+msgid "firstnight.spirit_arrived.body.ardhen"
+msgstr "Tu cuerpo deja escapar el calor. El espíritu te muestra adónde va."
+
+msgid "firstnight.spirit_arrived.body.eirune"
+msgstr "El calor se escapa por la piel. El espíritu te enseña a sellarlo."
+
+msgid "firstnight.spirit_arrived.body.kovari"
+msgstr "La llama responde a la llama. El espíritu te ofrece la suya."
+
+msgid "firstnight.spirit_arrived.body.myrven"
+msgstr "El viento no sabe que tienes frío. El espíritu ofrece fuego de todos modos."
+
+msgid "firstnight.spirit_arrived.body.vaelun"
+msgstr "Las estrellas están lejos. El fuego está más cerca. El espíritu te enseña a conservarlo."
+
+msgid "firstnight.spirit_arrived.body.orveth"
+msgstr "Un juramento entre tú y el frío. El espíritu ofrece ser testigo."
+
+msgid "firstnight.spirit_arrived.body.caelith"
+msgstr "El frío aún no tiene nombre que conozcas. El espíritu te da uno."
+
+msgid "firstnight.spirit_arrived.body.theryn"
+msgstr "Un enlace con el fuego. El espíritu enseña las palabras."
+
+msgid "firstnight.campfire_built.body.ardhen"
+msgstr "El anillo sostiene. El espíritu se desliza entre las piedras."
+
+msgid "firstnight.campfire_built.body.eirune"
+msgstr "El calor responde al aliento. El espíritu habita la llama."
+
+msgid "firstnight.campfire_built.body.kovari"
+msgstr "Por supuesto que enciende. El espíritu ya estaba allí."
+
+msgid "firstnight.campfire_built.body.myrven"
+msgstr "Incluso un caminante puede parar. El espíritu asiente desde dentro del fuego."
+
+msgid "firstnight.campfire_built.body.vaelun"
+msgstr "Un segundo punto de referencia. El espíritu lo contrasta con las estrellas."
+
+msgid "firstnight.campfire_built.body.orveth"
+msgstr "El fuego recuerda lo que le diste. El espíritu lleva la cuenta."
+
+msgid "firstnight.campfire_built.body.caelith"
+msgstr "La llama es más antigua que tu nombre para ella. El espíritu te la nombra."
+
+msgid "firstnight.campfire_built.body.theryn"
+msgstr "Ahora hay un centro. El espíritu permanece dentro."
+
+msgid "firstnight.shelter_built.body.ardhen"
+msgstr "El hierro sería mejor. Pero esto bastará para la noche."
+
+msgid "firstnight.shelter_built.body.eirune"
+msgstr "El refugio respira. El espíritu lo aprueba."
+
+msgid "firstnight.shelter_built.body.kovari"
+msgstr "La piedra aguantaría más. Las ramas aguantarán esta noche."
+
+msgid "firstnight.shelter_built.body.myrven"
+msgstr "Un lugar al que volver. El espíritu lo marca por ti."
+
+msgid "firstnight.shelter_built.body.vaelun"
+msgstr "Una frontera. El espíritu la traza contigo."
+
+msgid "firstnight.shelter_built.body.orveth"
+msgstr "Has dado tu palabra a este suelo. El espíritu es testigo."
+
+msgid "firstnight.shelter_built.body.caelith"
+msgstr "Mañana sabrás hacerlo mejor. Por ahora, descansa."
+
+msgid "firstnight.shelter_built.body.theryn"
+msgstr "Has ligado un pedazo del mundo a ti. El espíritu está complacido."
+
+msgid "firstnight.other_light_told.body.ardhen"
+msgstr "Hubo otro descenso. El espíritu no vio dónde cayó."
+
+msgid "firstnight.other_light_told.body.eirune"
+msgstr "Alguien más respiró al pasar. El espíritu aún lo siente."
+
+msgid "firstnight.other_light_told.body.kovari"
+msgstr "Una segunda llama, en algún lugar. El espíritu no puede decir dónde."
+
+msgid "firstnight.other_light_told.body.myrven"
+msgstr "Dos caminos se cruzaron. El espíritu sólo siguió uno."
+
+msgid "firstnight.other_light_told.body.vaelun"
+msgstr "La segunda estrella se mueve. El espíritu puede mostrarte su rastro."
+
+msgid "firstnight.other_light_told.body.orveth"
+msgstr "Dos juramentos se hicieron a la vez. El espíritu recuerda ambos."
+
+msgid "firstnight.other_light_told.body.caelith"
+msgstr "El otro nombre aún no es tuyo para leerlo. El espíritu te ayudará."
+
+msgid "firstnight.other_light_told.body.theryn"
+msgstr "Otro enlace ocurrió esta noche. El espíritu lo sintió cercano."
+
+msgid "firstnight.sleeping.body.ardhen"
+msgstr "El herrero despertará. El espíritu no."
+
+msgid "firstnight.sleeping.body.eirune"
+msgstr "El sanador duerme. El espíritu vigila las brasas."
+
+msgid "firstnight.sleeping.body.kovari"
+msgstr "La llama se cuida sola. El espíritu la suelta."
+
+msgid "firstnight.sleeping.body.myrven"
+msgstr "El caminante descansa. El espíritu vuelve a caminar."
+
+msgid "firstnight.sleeping.body.vaelun"
+msgstr "El trazador de caminos sueña con senderos. El espíritu deja un rastro."
+
+msgid "firstnight.sleeping.body.orveth"
+msgstr "El juramento está sellado. El espíritu parte, atestiguado."
+
+msgid "firstnight.sleeping.body.caelith"
+msgstr "El memorioso olvida por una noche. El espíritu no."
+
+msgid "firstnight.sleeping.body.theryn"
+msgstr "El enlazador está ligado al sueño. El espíritu está desligado."

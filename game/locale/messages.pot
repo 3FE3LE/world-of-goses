@@ -580,10 +580,172 @@ msgstr ""
 msgid "Firma"
 msgstr ""
 
-msgid "food"
+msgid "firstnight.campfire_built.body.ardhen"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.caelith"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.eirune"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.kovari"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.myrven"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.orveth"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.theryn"
+msgstr ""
+
+msgid "firstnight.campfire_built.body.vaelun"
+msgstr ""
+
+msgid "firstnight.context.branches_for_fire"
+msgstr ""
+
+msgid "firstnight.context.branches_for_shelter"
+msgstr ""
+
+msgid "firstnight.context.plant_fiber_for_shelter"
+msgstr ""
+
+msgid "firstnight.context.small_stone_for_fire"
+msgstr ""
+
+msgid "firstnight.manifested.body.ardhen"
+msgstr ""
+
+msgid "firstnight.manifested.body.caelith"
+msgstr ""
+
+msgid "firstnight.manifested.body.eirune"
+msgstr ""
+
+msgid "firstnight.manifested.body.kovari"
+msgstr ""
+
+msgid "firstnight.manifested.body.myrven"
+msgstr ""
+
+msgid "firstnight.manifested.body.orveth"
+msgstr ""
+
+msgid "firstnight.manifested.body.theryn"
+msgstr ""
+
+msgid "firstnight.manifested.body.vaelun"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.ardhen"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.caelith"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.eirune"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.kovari"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.myrven"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.orveth"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.theryn"
+msgstr ""
+
+msgid "firstnight.other_light_told.body.vaelun"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.ardhen"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.caelith"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.eirune"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.kovari"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.myrven"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.orveth"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.theryn"
+msgstr ""
+
+msgid "firstnight.shelter_built.body.vaelun"
+msgstr ""
+
+msgid "firstnight.sleeping.body.ardhen"
+msgstr ""
+
+msgid "firstnight.sleeping.body.caelith"
+msgstr ""
+
+msgid "firstnight.sleeping.body.eirune"
+msgstr ""
+
+msgid "firstnight.sleeping.body.kovari"
+msgstr ""
+
+msgid "firstnight.sleeping.body.myrven"
+msgstr ""
+
+msgid "firstnight.sleeping.body.orveth"
+msgstr ""
+
+msgid "firstnight.sleeping.body.theryn"
+msgstr ""
+
+msgid "firstnight.sleeping.body.vaelun"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.ardhen"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.caelith"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.eirune"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.kovari"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.myrven"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.orveth"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.theryn"
+msgstr ""
+
+msgid "firstnight.spirit_arrived.body.vaelun"
+msgstr ""
+
+msgid "firstnight.strip.follow"
+msgstr ""
+
+msgid "firstnight.strip.sleep"
 msgstr ""
 
 msgid "Food"
+msgstr ""
+
+msgid "food"
 msgstr ""
 
 msgid "Forest"
@@ -1939,6 +2101,9 @@ msgstr ""
 msgid "ui.expedition.seek_prospect_hint"
 msgstr ""
 
+msgid "ui.expedition.spirit_trail_locked"
+msgstr ""
+
 msgid "ui.expedition.team_hint"
 msgstr ""
 
@@ -2518,10 +2683,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
 msgid "Wood remains"
