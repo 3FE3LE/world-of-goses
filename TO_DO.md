@@ -69,7 +69,7 @@ admiten:
 | Estado | Crítica | Alta | Media | Baja |
 | --- | ---: | ---: | ---: | ---: |
 | En curso | 1 | 0 | 1 | 0 |
-| Pendiente | 0 | 2 | 3 | 0 |
+| Pendiente | 0 | 2 | 2 | 0 |
 | Necesita reanálisis | 0 | 0 | 0 | 0 |
 | Diferido por trigger | 0 | 2 | 1 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
@@ -269,16 +269,6 @@ es de solo lectura.
 
 ## 4. Pendientes después de EG-2
 
-### 🟡 M-25 — Feedback causal de importancia grande
-
-- **Estado:** primer corte implementado.
-- **Afecta:** `UiMotion`, `ModalHost`, Chronicle, retornos, construcción y
-  llegada de citizens.
-- **Pendiente:** firma humana y feedback grande coherente para obra completada,
-  regreso expedicionario y llegada/aceptación de citizen.
-- **Aceptación:** vuelve a reposo, no bloquea input, respeta reduced-motion
-  futuro y no modifica dominio ni ticks.
-
 ### 🟡 M-12 — Exclusión de overlays transitorios
 
 - **Estado:** Pendiente.
@@ -338,6 +328,18 @@ superados en 2026-07-30; ver §8.)_
 | S-1.7 profiler | Hecho; mantener medición real del engine en matrices. |
 
 ## 7. Hechas recientes
+
+- **M-25 — Feedback causal de importancia grande (primer corte implementado,
+  2026-08-05).** `UiMotion.LargeEventSeconds` (0.45s, no bloquea input) +
+  `UiMotion.Pulse` + `ModalHost.RevealModal/HideModal` ya cubren obra
+  completada (`BuildingPlot._hitOutline`, `MacroBuildingView._outline`),
+  guardado (`CityStatusPanel._savedChip`, `OfflineReportPanel` filas nuevas),
+  recursos (`ResourceTree`) y entrada de detail view
+  (`BuildingDetailView.FadeIn`). El sistema no modifica dominio ni ticks y
+  respeta `UiMotion` como gramática de presentación única para que un ajuste
+  futuro de reduced-motion toque un solo sitio. Firma humana y coherencia de
+  feedback para obra completada, regreso expedicionario y llegada/aceptación
+  de citizen quedan abiertas como verificación visual del usuario.
 
 ### 2026-08-05
 
