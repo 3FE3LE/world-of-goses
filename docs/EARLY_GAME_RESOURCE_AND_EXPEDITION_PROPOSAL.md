@@ -131,6 +131,17 @@ It should not add hunger simulation, temperature simulation, free placement,
 advanced combat, hunting, fishing, final sprites, or a generic crafting tree in
 the first implementation.
 
+### 3.5 Pre-opening authored night
+
+The opening now enters through the authored first night
+(`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, DEC-0014), not through a list
+of tutorial steps. The spirit's dialogue explains why the ground
+materials matter; the campfire and bedroll are the founding modules
+the night itself requires; `SpiritTrailSearch` is the post-dawn
+expedition that motivates the first sortie. The proposal's EG-1
+through EG-5 increments sit on top of this seam — the night closes
+before §4's recommended resources are gathered.
+
 ## 4. Recommended starting resources: EG-A0
 
 Only four immediately collectible resource types are recommended for the first
@@ -392,6 +403,17 @@ more than forcing every player onto the same calendar.
 | --- | ---: | ---: | ---: |
 | Nearby Food Forage | 120 ticks | 1 Branch | 3 / 5 / 7 Food |
 | Fallen Wood Search | 180 ticks | 1 Food | 4 / 6 / 8 Wood |
+| Spirit Trail Search | 180 ticks | 1 Food | 4 / 6 / 8 Wood |
+
+The third objective is unlocked once `WorldEventKind.SpiritDeparted`
+has been recorded for the current city — i.e. once the first night
+has concluded. The reward is the same `Wood` curve as
+`Fallen Wood Search`; the narrative frame is the trail the spirit left
+when it departed at dawn (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+§11–12), and the expedition panel hides the button until the event
+lands. No schema bump: `ResourceOpportunityKind.SpiritTrailSearch`
+is a new enum value that serialises as a string and is parsed by
+`Enum.TryParse` on legacy saves.
 
 At the current 1 Hz clock these last roughly 2 and 3 real minutes. They are
 short enough for the sole-founder opening; the existing four-day expeditions
