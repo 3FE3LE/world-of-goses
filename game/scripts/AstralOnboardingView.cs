@@ -22,11 +22,11 @@ public partial class AstralOnboardingView : Control
     private CityWorldController _controller = null!;
     private Prototypes.MacroStreetLiveView _cityView = null!;
     private ColorRect _astralVeil = null!;
+    private HBoxContainer _fragments = null!;
     private Label _progress = null!;
     private Label _title = null!;
     private Label _narrative = null!;
     private VBoxContainer _choices = null!;
-    private VBoxContainer _rightColumn = null!;
     private Label _consequence = null!;
     private Label _error = null!;
     private Button _back = null!;
@@ -71,7 +71,7 @@ public partial class AstralOnboardingView : Control
         glow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(glow);
 
-        var safe = new SafeAreaMarginContainer { MinimumInset = 24 };
+        var safe = new SafeAreaMarginContainer { MinimumInset = 32 };
         safe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(safe);
 
@@ -80,61 +80,42 @@ public partial class AstralOnboardingView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        shell.AddThemeConstantOverride("separation", 8);
+        shell.AddThemeConstantOverride("separation", 12);
         safe.AddChild(shell);
 
-        _progress = NewLabel("BodyText", HorizontalAlignment.Center);
-        _progress.AddThemeColorOverride("font_color", new Color("e3c35b"));
+        _progress = NewLabel("SectionTitle", HorizontalAlignment.Center);
         shell.AddChild(_progress);
-
-        // Body: horizontal split between the narrative text (left) and
-        // the step-specific widgets (right). Both columns expand to fit
-        // the safe area; the body row sizes to whichever column is
-        // taller so the empty space lives below the chrome rather than
-        // pushing the footer out of the viewport. No ScrollContainer.
-        var body = new HBoxContainer
+        _fragments = new HBoxContainer
         {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        body.AddThemeConstantOverride("separation", 16);
-        shell.AddChild(body);
-
-        var leftColumn = new VBoxContainer
-        {
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
-        };
-        leftColumn.AddThemeConstantOverride("separation", 8);
-        body.AddChild(leftColumn);
-        leftColumn.SizeFlagsStretchRatio = 5;
-
-        _title = NewLabel("ScreenTitle", HorizontalAlignment.Left);
-        leftColumn.AddChild(_title);
-        _narrative = NewLabel("BodyText", HorizontalAlignment.Left);
-        _narrative.CustomMinimumSize = new Vector2(0, 0);
-        _narrative.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        leftColumn.AddChild(_narrative);
-
-        _rightColumn = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-        };
-        _rightColumn.AddThemeConstantOverride("separation", 8);
-        body.AddChild(_rightColumn);
-        _rightColumn.SizeFlagsStretchRatio = 7;
-
-        _choices = new VBoxContainer
-        {
+            Alignment = BoxContainer.AlignmentMode.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _choices.AddThemeConstantOverride("separation", 6);
-        _rightColumn.AddChild(_choices);
+        _fragments.AddThemeConstantOverride("separation", 8);
+        shell.AddChild(_fragments);
 
-        _consequence = NewLabel("BodyText", HorizontalAlignment.Left);
+        _title = NewLabel("ScreenTitle", HorizontalAlignment.Center);
+        shell.AddChild(_title);
+        _narrative = NewLabel("BodyText", HorizontalAlignment.Center);
+        _narrative.CustomMinimumSize = new Vector2(0, 92);
+        shell.AddChild(_narrative);
+
+        // No scroll container. The choice buttons (4 × 66 px) and the
+        // identity widgets (sprite + name input + two gender buttons)
+        // both fit at the project's 1280×720 baseline without scrolling;
+        // a previous ScrollContainer existed for very small viewports
+        // and the final summary screen, but on the canonical resolution
+        // it never engaged. Removing it also takes the name input,
+        // gender selector, and resulting sprite out of the scrollable
+        // area — they were the only widgets actually clipping in the
+        // edge cases.
+        _choices = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _choices.AddThemeConstantOverride("separation", 8);
+        shell.AddChild(_choices);
+
+        _consequence = NewLabel("BodyText", HorizontalAlignment.Center);
+        _consequence.CustomMinimumSize = new Vector2(0, 52);
         shell.AddChild(_consequence);
-        _error = NewLabel("ErrorText", HorizontalAlignment.Left);
+        _error = NewLabel("ErrorText", HorizontalAlignment.Center);
         shell.AddChild(_error);
 
         var footer = new HBoxContainer
@@ -161,6 +142,7 @@ public partial class AstralOnboardingView : Control
             TrKey("ui.onboarding.progress"),
             _session.Answers.Count,
             FounderNarrativeCatalog.Questions.Count);
+        BuildFragments();
         _title.Text = TrKey(question.Title);
         _narrative.Text = TrKey(question.Text);
         _consequence.Text = string.Empty;
@@ -177,7 +159,7 @@ public partial class AstralOnboardingView : Control
             var button = new Button
             {
                 Text = TrKey(choice.Text),
-                CustomMinimumSize = new Vector2(0, 0),
+                CustomMinimumSize = new Vector2(0, 66),
                 Alignment = HorizontalAlignment.Left,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 ThemeTypeVariation = "ButtonText",
@@ -207,6 +189,7 @@ public partial class AstralOnboardingView : Control
     {
         _session.Answer(questionId, choiceId);
         ApplySelectedState(FounderNarrativeCatalog.GetQuestion(questionId), choiceId);
+        BuildFragments();
     }
 
     private void ApplySelectedState(FounderNarrativeQuestion question, string choiceId)
@@ -289,32 +272,36 @@ public partial class AstralOnboardingView : Control
         _next.Text = UiText.Get("Conservar este nombre");
 
         // Horizontal split keeps the name input, gender selector, and
-        // resulting sprite visible together, sized to the right column
-        // of the shell body. The frame stays at 112 px so it fits next
-        // to the inputs even at the smaller viewport baselines.
+        // resulting sprite visible at the same time. The previous
+        // vertical stack forced them into the scrollable area; the
+        // new layout is its own row, sized to the safe-area width.
         var identityRow = new HBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
             Alignment = BoxContainer.AlignmentMode.Center,
         };
-        identityRow.AddThemeConstantOverride("separation", 16);
+        identityRow.AddThemeConstantOverride("separation", 24);
         _choices.AddChild(identityRow);
 
+        // Left column: the sprite preview frame. AddResultSprite slots
+        // the rendered sprite into this frame so it sits next to the
+        // inputs, not below them.
         var spriteFrame = new Control
         {
-            CustomMinimumSize = new Vector2(112, 112),
+            CustomMinimumSize = new Vector2(160, 160),
             MouseFilter = MouseFilterEnum.Ignore,
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
         };
         identityRow.AddChild(spriteFrame);
 
+        // Right column: name input stacked above the gender row.
         var inputsColumn = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkCenter,
         };
-        inputsColumn.AddThemeConstantOverride("separation", 6);
+        inputsColumn.AddThemeConstantOverride("separation", 10);
         identityRow.AddChild(inputsColumn);
 
         _nameEdit = new LineEdit
@@ -322,7 +309,7 @@ public partial class AstralOnboardingView : Control
             PlaceholderText = UiText.Get("Nombre del fundador"),
             MaxLength = 32,
             Text = _founderName,
-            CustomMinimumSize = new Vector2(0, 0),
+            CustomMinimumSize = new Vector2(0, 44),
             ThemeTypeVariation = "LineEdit",
         };
         _nameEdit.TextChanged += value =>
@@ -337,7 +324,7 @@ public partial class AstralOnboardingView : Control
             Alignment = BoxContainer.AlignmentMode.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        genderRow.AddThemeConstantOverride("separation", 8);
+        genderRow.AddThemeConstantOverride("separation", 12);
         inputsColumn.AddChild(genderRow);
         foreach ((GenderId id, string text) in new[]
         {
@@ -471,18 +458,37 @@ public partial class AstralOnboardingView : Control
             CharacterVisualRegistry.LoadScene(_result.Lineage, body)
                 .Instantiate<LineageSpritePlayer>();
         frame.AddChild(sprite);
-        // Anchor the sprite to the bottom-centre of the frame so the
-        // feet land on the frame's floor and the body is centred
-        // horizontally; the Resized handler keeps this correct as the
-        // frame sizes from its minimum up to the column width.
-        PositionSprite(frame, sprite);
-        frame.Resized += () => PositionSprite(frame, sprite);
-        Callable.From(() => PositionSprite(frame, sprite)).CallDeferred();
+        // Centre the sprite in the frame; the frame has no children other
+        // than the sprite, so its size at deferred call is the layout
+        // we want to anchor to.
+        frame.Resized += () =>
+            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f);
+        Callable.From(() =>
+            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f)).CallDeferred();
     }
 
-    private static void PositionSprite(Control frame, LineageSpritePlayer sprite)
+    private void BuildFragments()
     {
-        sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y);
+        foreach (Node child in _fragments.GetChildren()) child.QueueFree();
+        int stabilised = _session.Answers.Count;
+        if (!_identityStage)
+        {
+            _progress.Text = string.Format(
+                TrKey("ui.onboarding.progress"),
+                stabilised,
+                FounderNarrativeCatalog.Questions.Count);
+        }
+        for (int index = 0; index < 12; index++)
+        {
+            _fragments.AddChild(new ColorRect
+            {
+                Color = index < stabilised
+                    ? new Color("e3c35b")
+                    : new Color(0.35f, 0.37f, 0.48f, 0.45f),
+                CustomMinimumSize = new Vector2(14, 6),
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+        }
     }
 
     private void ClearChoices()
