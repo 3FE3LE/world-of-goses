@@ -43,11 +43,11 @@ and this section gets corrected in the same change.
   Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
   `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
   the two is the main technical debt of this slice.
-- `dotnet test`: 816/817 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 879/880 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 30. V22→V23 rescales the obsolete 16×40 founding
+- `WorldSave.CurrentVersion`: 31. V22→V23 rescales the obsolete 16×40 founding
   forests to six finite mature trees with 8 Wood each while preserving their
   depletion ratio; V23→V24 adds the EG-3 Cultivation Site lifecycle without
   inventing a plot in migrated cities; V24→V25 converts fixed lots into
@@ -56,9 +56,12 @@ and this section gets corrected in the same change.
   whole building lots; V26→V27 seeds finite Food/Wood opportunities and
   persists their expedition reservation and bounded return capacity; V27→V28
   adds the validated durable-tool set without granting tools to migrated saves;
-  V28→V29 persists the canonical founder onboarding result and V29→V30 the
+  V28→V29 persists the canonical founder onboarding result; V29→V30 the
   sources derived citizen statistics read, rebuilding the Cube from the 60/40
-  vertex for older saves. A construction reservation over a *depleted* resource
+  vertex for older saves; and V30→V31 persists the authored first night's stage
+  and open dialogue node, marking every existing city's night **already
+  concluded** so a played opening is never asked to repeat milestones it has
+  passed. A construction reservation over a *depleted* resource
   cell now validates, matching what the domain and the player already see; the
   JSON shape is unchanged, so this widened only the validation and needed no
   migration.
@@ -297,7 +300,14 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 ## 7. Known debt that does not block EG-5
 
 - Obtain human signature for clearance-defined obstacle rows, gather visibility,
-  Primitive Axe UI and the three-parcel scattered opening.
+  Primitive Axe UI and the three-parcel scattered opening. The axe's real gap was
+  never the panel: the requirement had no explained path, which is what
+  `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` and `TO_DO.md` H-33/H-34 now answer.
+  Its domain state landed in v31; the fire spirit, its dialogue and the first
+  expedition's motive have not.
+- The authored first night holds the calendar while it runs, and only its
+  milestones end it. Nothing else may start deferring rations or the day
+  boundary without saying so here.
 - Reconcile domain footprints/corridor vocabulary with the live street/navmesh
   model before expanding territory navigation.
 - Add one operating input→output chain before generalizing the economy.
