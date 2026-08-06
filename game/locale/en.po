@@ -2487,6 +2487,9 @@ msgstr "Fibre from the meadow plants. It binds the branches together."
 msgid "ui.expedition.spirit_trail_locked"
 msgstr "The trail the spirit left cannot be read until the night is over."
 
+msgid "ui.expedition.objective.spirit"
+msgstr "Spirit Trail"
+
 msgid "firstnight.manifested.body.ardhen"
 msgstr "The smith's mark is still warm on the ground. The spirit stops, surprised."
 

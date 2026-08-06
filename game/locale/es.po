@@ -2640,6 +2640,9 @@ msgstr "Fibra de plantas del prado. Une las ramas entre sí."
 msgid "ui.expedition.spirit_trail_locked"
 msgstr "El rastro que dejó el espíritu no puede leerse hasta que termine la noche."
 
+msgid "ui.expedition.objective.spirit"
+msgstr "Rastro del espíritu"
+
 msgid "firstnight.manifested.body.ardhen"
 msgstr "La marca del herrero aún está caliente en el suelo. El espíritu se detiene, sorprendido."
 

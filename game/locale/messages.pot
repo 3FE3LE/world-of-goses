@@ -2041,6 +2041,9 @@ msgstr ""
 msgid "ui.expedition.objective.food"
 msgstr ""
 
+msgid "ui.expedition.objective.spirit"
+msgstr ""
+
 msgid "ui.expedition.objective.wood"
 msgstr ""
 

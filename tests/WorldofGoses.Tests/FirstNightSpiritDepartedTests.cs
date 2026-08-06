@@ -101,8 +101,8 @@ public sealed class FirstNightSpiritDepartedTests
             evt => evt.Kind == WorldEventKind.SpiritDeparted);
 
         CityWorld withoutNight = TestHelpers.WorldWithHome();
-        Assert.False(withoutNight.Log.Events.Any(
-            evt => evt.Kind == WorldEventKind.SpiritDeparted));
+        Assert.DoesNotContain(withoutNight.Log.Events,
+            evt => evt.Kind == WorldEventKind.SpiritDeparted);
     }
 
     private static int CountSpiritDeparted(CityWorld world) =>
