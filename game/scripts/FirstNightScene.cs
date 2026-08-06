@@ -1,4 +1,5 @@
 #nullable enable
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -39,6 +40,7 @@ public partial class FirstNightScene : Node
     private CanvasLayer _layer = null!;
     private FirstNightDialogueStrip _strip = null!;
     private FireSpiritVisual _spirit = null!;
+    private FirstNightEmbers _embers = null!;
 
     /// <summary>
     /// Approximate screen position of the founder at the start of the
@@ -70,6 +72,9 @@ public partial class FirstNightScene : Node
 
         _spirit = new FireSpiritVisual();
         _layer.AddChild(_spirit);
+
+        _embers = new FirstNightEmbers();
+        _layer.AddChild(_embers);
 
         _controller = GetNodeOrNull<CityWorldController>(ControllerPath);
         if (_controller is null)
@@ -135,8 +140,25 @@ public partial class FirstNightScene : Node
         {
             _strip.Vanish();
             _spirit.Vanish();
+
+            // The night may be over but the embers still sit on the
+            // campfire until the player tears down the camp — the
+            // chronicle marks the spirit's exit, the world shows its
+            // trace.
+            if (HasEmbersAfterDeparture())
+            {
+                _embers.PlaceAt(_campfireScreenPosition);
+            }
+            else
+            {
+                _embers.Vanish();
+            }
             return;
         }
+
+        // An active night never shows embers; the spirit is in the
+        // flame instead.
+        _embers.Vanish();
 
         // Resolve the body text from the catalogue; the catalogue
         // returns null for stages that wait on a module, which is
@@ -169,5 +191,13 @@ public partial class FirstNightScene : Node
         {
             _spirit.PlaceBesideFounder(_founderScreenPosition);
         }
+    }
+
+    private bool HasEmbersAfterDeparture()
+    {
+        if (_controller is null) return false;
+        CityWorld world = _controller.World;
+        if (!world.HasFoundingSiteModule(FoundingSiteModule.Campfire)) return false;
+        return world.Log.Events.Any(evt => evt.Kind == WorldEventKind.SpiritDeparted);
     }
 }

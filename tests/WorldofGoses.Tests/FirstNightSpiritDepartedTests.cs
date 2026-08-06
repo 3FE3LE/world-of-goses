@@ -82,6 +82,29 @@ public sealed class FirstNightSpiritDepartedTests
         Assert.NotNull(restored);
     }
 
+    [Fact]
+    public void CampfireAndSpiritDepartedImpliesEmbers()
+    {
+        // The post-departure embers primitive draws only when the
+        // campfire exists AND the dawn has carried the spirit away.
+        // Driving the night to Sleeping and closing it leaves the world
+        // in the "embers visible" state; a save that never ran the night
+        // leaves it in "no embers" state.
+        CityWorld withNight = TestHelpers.NewHeroWorld();
+        withNight.SeedStartingForests();
+        withNight.SeedStartingOpportunities();
+        DriveNightToSleep(withNight);
+        Assert.True(withNight.TryCloseFirstNightDialogue());
+        Assert.True(withNight.HasFoundingSiteModule(FoundingSiteModule.Campfire));
+        Assert.Contains(
+            withNight.Log.Events,
+            evt => evt.Kind == WorldEventKind.SpiritDeparted);
+
+        CityWorld withoutNight = TestHelpers.WorldWithHome();
+        Assert.False(withoutNight.Log.Events.Any(
+            evt => evt.Kind == WorldEventKind.SpiritDeparted));
+    }
+
     private static int CountSpiritDeparted(CityWorld world) =>
         world.Log.Events.Count(evt => evt.Kind == WorldEventKind.SpiritDeparted);
 
