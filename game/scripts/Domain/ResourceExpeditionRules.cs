@@ -26,6 +26,16 @@ public static class ResourceExpeditionRules
             PartialReturn: 6,
             FullReturn: 8,
             DisplayName: "Fallen Wood Search"),
+        ResourceOpportunityKind.SpiritTrailSearch => new ResourceExpeditionDefinition(
+            kind,
+            DurationTicks: 180,
+            SupplyResource: ResourceType.Food,
+            SupplyAmount: 1,
+            RewardResource: ResourceType.Wood,
+            SetbackReturn: 4,
+            PartialReturn: 6,
+            FullReturn: 8,
+            DisplayName: "Spirit Trail Search"),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
 }
