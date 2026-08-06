@@ -83,6 +83,75 @@ claves de runtime; 442 checks de agent context.
 
 ---
 
+## La primera noche del fundador se vuelve jugable y motiva la primera expedición
+
+**2026-08-06** · schema v31 (sin bump) · EG-5
+
+Tras la introducción del estado de dominio en schema v31, la apertura
+EG-A0 deja de ser una lista de pasos: la noche del fundador es ahora
+una secuencia autoral de 00:00 a 06:00, guiada por un espíritu de fuego
+que enseña por qué importan las ramas, las piedras y la fibra. El
+jugador ya no tiene que adivinar la cadena (fogata → refugio →
+primera salida); el espíritu explica la causa y la noche avanza
+módulo a módulo.
+
+### Connected
+
+- **Diálogo del espíritu** (`Domain/FireSpiritDialogueCatalog.cs`):
+  seis nodos principales (`Manifested`, `SpiritArrived`,
+  `CampfireBuilt`, `ShelterBuilt`, `OtherLightTold`, `Sleeping`) con
+  ocho variantes de cuerpo por linaje (48 claves `firstnight.*`).
+  Las cantidades del diálogo se interpolan en runtime desde
+  `FoundingSiteRules.InputsFor(module)`, de modo que un cambio de
+  receta no puede volver a desfasar la guía.
+- **Banda de diálogo no modal** (`FirstNightDialogueStrip.cs`) en
+  `OverlayLayers.Tutorial = 50`. El strip captura clicks sólo en su
+  rectángulo inferior; el resto del mundo sigue jugable mientras el
+  jugador lee.
+- **Espíritu como entidad visual** (`FireSpiritVisual.cs`): un anillo
+  de 16 puntos y un glyph triangular, posición derivada del stage,
+  nunca persistida. Antes de `CampfireBuilt` junto al fundador;
+  después, sobre la fogata.
+- **Brasas post-amanecer** (`FirstNightEmbers.cs`): un pequeño
+  cuadrilátero naranja translúcido queda sobre la fogata cuando
+  `Stage == Concluded` y `SpiritDeparted` está en el chronicle.
+- **Comentario contextual** (`FirstNightContextCommentary.cs`):
+  cuando el fundador recoge `Branches`/`SmallStone`/`PlantFiber`
+  cerca del fogón o refugio durante la noche, el espíritu comenta
+  efímeramente vía `Notifier`.
+- **Event causal al amanecer**: nuevo `WorldEventKind.SpiritDeparted`
+  se emite una sola vez en el cruce `Sleeping` → `Concluded`, y se
+  persiste como evento significativo.
+- **Motivación de la primera expedición**:
+  `ResourceOpportunityKind.SpiritTrailSearch` con la misma curva de
+  retorno que `FallenWoodSearch` (4 / 6 / 8 Wood) y duración 180
+  ticks. El botón se desbloquea sólo cuando `SpiritDeparted` está en
+  el log, vía `ExpeditionPlanningSnapshot.SpiritTrailUnlocked`.
+- **Documentación canónica**: `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+  pasa de "Propuesta canónica" a "Aceptada" (DEC-0014). El bloque
+  "First night" se añade a `CROSS_DOMAIN_INVARIANTS.md` y la ruta
+  "First night / fire spirit" se añade a `CONTEXT_MAP.md`. Cuatro
+  fixtures nuevos en la matriz visual.
+
+### Schema
+
+**No schema bump.** `SpiritTrailSearch` es un nuevo
+`ResourceOpportunityKind` que se serializa como string
+(`Enum.TryParse` ya es tolerante para valores nuevos en saves
+previos). `SpiritDeparted` aparece sólo en saves que ejecuten la
+secuencia completa de la noche; `WorldEventRetention.IsSignificant`
+lo acepta sin migración adicional. El estado de noche en sí
+(`FirstNightSave`) ya estaba en v31 desde el incremento anterior.
+
+### Verified
+
+- Build 0 / 0 (warnings 0).
+- Tests 911 / 912 (1 omitido conocido de `VerticalLoopPersistenceTests`).
+- Localization: 907 IDs plantilla, 295 claves de runtime, ningún
+  dígito literal bajo el prefijo `firstnight.*` en EN ni ES.
+- Agent context: 442 / 442 checks.
+- `messages.pot` regenerado limpio.
+
 ## Primer circuito vertical de combate automático y expediciones
 
 **2026-08-05**
