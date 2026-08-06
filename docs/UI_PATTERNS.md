@@ -76,8 +76,21 @@ Use `[GlobalClass]` when:
   a card container).
 
 Current registered controls: `ModalHost`, `PanelHeader`,
-`AssignmentRow`, and `SafeAreaMarginContainer`. Future targets include
-`StatChip` and `ExpeditionCard`.
+`AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
+`GenderToggle`, `CubeAxisBar`, and `FounderCardPanel`. Future targets
+include `StatChip` and `ExpeditionCard`.
+
+`OnboardingChoiceButton` is the selectable narrative option: it carries
+the selected state on three channels (the `ButtonPrimary` palette, the
+pressed state of a shared `ButtonGroup`, and a check glyph whose slot is
+always reserved so the label never jogs), which is how it satisfies the
+"never communicate a state by colour alone" invariant. `GenderToggle`
+pairs two of them at a fixed width. `CubeAxisBar` renders one
+Cuerpo/Vínculo-style pair as `NOMBRE 56 [====|===] 44 NOMBRE`; it is not
+a `ProgressBar`, because the theme registers `ProgressBar` on the
+built-in type and its green fill carries the success semantic, which
+misreads a neutral two-pole distribution. `FounderCardPanel` composes
+three of those into the closing card of the founder onboarding.
 
 ```csharp
 [GlobalClass]

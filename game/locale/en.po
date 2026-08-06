@@ -847,6 +847,36 @@ msgstr "The hero could not be created ({0})."
 msgid "ui.astral.identity.body"
 msgstr "Your form will be new. Your voice will belong to another world.\n\nThat person may find you again. They may never do so.\n\nIf it ever happens, by what name will they recognise you?"
 
+msgid "ui.astral.identity.progress"
+msgstr "FORM RECONSTRUCTED"
+
+msgid "ui.astral.identity.title"
+msgstr "The name that will cross with you"
+
+msgid "ui.astral.identity.name_placeholder"
+msgstr "Founder name"
+
+msgid "ui.astral.identity.name_invalid"
+msgstr "The name must contain 1 to 32 characters and no control characters."
+
+msgid "ui.astral.identity.body_feminine"
+msgstr "Feminine"
+
+msgid "ui.astral.identity.body_masculine"
+msgstr "Masculine"
+
+msgid "ui.astral.identity.body_hint"
+msgstr "Affects the sprite presentation, not the narrative result."
+
+msgid "ui.astral.identity.continue"
+msgstr "Continue"
+
+msgid "ui.astral.identity.confirm"
+msgstr "Keep this name"
+
+msgid "ui.astral.card.lineage"
+msgstr "Body lineage"
+
 msgid "ui.astral.creation_failed"
 msgstr "The new form could not be preserved ({0}). Try again."
 

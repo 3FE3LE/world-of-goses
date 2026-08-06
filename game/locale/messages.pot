@@ -742,10 +742,10 @@ msgstr ""
 msgid "firstnight.strip.sleep"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
 msgid "Forest"
@@ -1711,6 +1711,9 @@ msgstr ""
 msgid "ui.assignment.workers_title"
 msgstr ""
 
+msgid "ui.astral.card.lineage"
+msgstr ""
+
 msgid "ui.astral.creation_failed"
 msgstr ""
 
@@ -1718,6 +1721,33 @@ msgid "ui.astral.false_question.body"
 msgstr ""
 
 msgid "ui.astral.identity.body"
+msgstr ""
+
+msgid "ui.astral.identity.body_feminine"
+msgstr ""
+
+msgid "ui.astral.identity.body_hint"
+msgstr ""
+
+msgid "ui.astral.identity.body_masculine"
+msgstr ""
+
+msgid "ui.astral.identity.confirm"
+msgstr ""
+
+msgid "ui.astral.identity.continue"
+msgstr ""
+
+msgid "ui.astral.identity.name_invalid"
+msgstr ""
+
+msgid "ui.astral.identity.name_placeholder"
+msgstr ""
+
+msgid "ui.astral.identity.progress"
+msgstr ""
+
+msgid "ui.astral.identity.title"
 msgstr ""
 
 msgid "ui.astral.result_affinities"

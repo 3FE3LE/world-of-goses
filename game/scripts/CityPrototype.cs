@@ -150,6 +150,13 @@ public partial class CityPrototype : Node
                 GetNode<AstralOnboardingView>("OnboardingView")
                     .ShowForVisualRegression(12);
                 break;
+            // One past the naming beat. The founder card is only reachable by
+            // confirming a name, which would create a hero, so capture mode
+            // needs its own entry point into it.
+            case "astral-founder-card":
+                GetNode<AstralOnboardingView>("OnboardingView")
+                    .ShowForVisualRegression(13);
+                break;
             case "founder-arrival":
                 ShowFounderArrivalForVisualRegression();
                 break;

@@ -22,6 +22,53 @@ their commits for the real content.
 
 ---
 
+## El onboarding cabe en la pantalla y la forma reconstruida se presenta como ficha
+
+**2026-08-06** · schema v31 (sin cambio)
+
+La primera pantalla que ve un jugador nuevo estaba rota por abajo. El paso de
+identidad medía unos 775 px contra un presupuesto de 656, y como el contenedor
+no tenía ningún hijo que se expandiera verticalmente ni un `ScrollContainer`,
+Godot no recortaba ni desplazaba: el pie con `Atrás` y `Conservar este nombre`
+simplemente salía de la pantalla. El jugador podía nombrar a su fundador y no
+tener forma visible de confirmarlo.
+
+Alrededor de ese fallo había desperdicio: cuatro botones de opción forzados a
+66 px cuando su altura natural son 34, suelos de 92 px y 52 px en dos etiquetas
+que a menudo no mostraban nada, y un selector de presentación corporal heredado
+de un helper con `ExpandFill` que, anidado en una columna expansiva, daba dos
+botones de ~510 px — el 81 % del ancho para una elección binaria.
+
+Ahora el onboarding **cabe por construcción** en los tres pasos, medido contra
+las cadenas más largas de ambos catálogos: 506 px en las preguntas, 567 en el
+nombrado y 510 en la ficha. Dos espaciadores expansivos absorben la holgura, y
+las filas vacías se ocultan en vez de vaciarse, porque una etiqueta vacía sigue
+reclamando su altura mínima y su separación.
+
+Lo que el jugador gana además de poder terminar: la elección seleccionada se
+reconoce por un glifo de confirmación y no solo por el color, y las cuatro
+opciones comparten un `ButtonGroup`, así que teclado y mando las recorren como
+un único control. La presentación corporal es ahora un control compacto de
+304 px. Y la forma reconstruida se lee en **su propia pantalla**: el bloque de
+once líneas que se apretaba bajo el campo de nombre es una ficha con linaje,
+afinidad, expresión física y los tres ejes del Cubo como barras de dos polos,
+cada una con sus dos enteros impresos. Siguiendo la biblia (§Pantalla final del
+onboarding), la ficha deja de nombrar familias de arma: "arma preferida" está en
+su lista de *no mostrar* y el código llevaba tiempo desviado de ese contrato.
+
+Lo que el jugador todavía ve mal: la barra de estado y la fila de acciones de la
+ciudad siguen visibles a través del velo astral traslúcido en los dos últimos
+pasos. Es anterior a este cambio —`HeroAccessButton` ya se oculta durante el
+onboarding, `CityStatusPanel` y `MacroActions` nunca lo hicieron— y queda como
+el único defecto de composición sin firmar en la matriz visual.
+
+Baseline medido: build 0 errores / 0 advertencias; tests 913 pasando, 1 omitido;
+918 IDs de plantilla y 283 claves de runtime; capturas de `astral-start`,
+`astral-ground`, `astral-identity` y el nuevo `astral-founder-card` a 1280×720 y
+1920×1080.
+
+---
+
 ## La primera noche del fundador deja de ser un bloqueo sin explicación
 
 **2026-08-05** · schema v30 → v31

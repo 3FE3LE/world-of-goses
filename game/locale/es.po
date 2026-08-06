@@ -846,6 +846,36 @@ msgstr "No se pudo crear el héroe ({0})."
 msgid "ui.astral.identity.body"
 msgstr "Tu forma será nueva. Tu voz pertenecerá a otro mundo.\n\nPuede que esa persona vuelva a encontrarte. Puede que nunca lo haga.\n\nSi alguna vez ocurre, ¿con qué nombre podrá reconocerte?"
 
+msgid "ui.astral.identity.progress"
+msgstr "FORMA RECONSTRUIDA"
+
+msgid "ui.astral.identity.title"
+msgstr "El nombre que atravesará contigo"
+
+msgid "ui.astral.identity.name_placeholder"
+msgstr "Nombre del fundador"
+
+msgid "ui.astral.identity.name_invalid"
+msgstr "El nombre debe tener entre 1 y 32 caracteres y no contener controles."
+
+msgid "ui.astral.identity.body_feminine"
+msgstr "Femenino"
+
+msgid "ui.astral.identity.body_masculine"
+msgstr "Masculino"
+
+msgid "ui.astral.identity.body_hint"
+msgstr "Afecta la presentación del sprite, no el resultado narrativo."
+
+msgid "ui.astral.identity.continue"
+msgstr "Continuar"
+
+msgid "ui.astral.identity.confirm"
+msgstr "Conservar este nombre"
+
+msgid "ui.astral.card.lineage"
+msgstr "Linaje corporal"
+
 msgid "ui.astral.creation_failed"
 msgstr "No fue posible conservar la nueva forma ({0}). Reintenta."
 

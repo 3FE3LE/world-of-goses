@@ -13,12 +13,28 @@ namespace WorldofGoses;
 /// </summary>
 public partial class AstralOnboardingView : Control
 {
+    /// <summary>
+    /// The stages the view walks through. Replaces the former
+    /// <c>bool _identityStage</c>, which could not express the founder card
+    /// once naming and the result card became separate beats.
+    /// </summary>
+    private enum Stage
+    {
+        Question,
+        Identity,
+        FounderCard,
+        FalseQuestion,
+    }
+
+    /// <summary>Integer magnification of the founder portrait on the naming beat.</summary>
+    private const int SpritePortraitScale = 2;
+
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
     [Export] public NodePath CityViewPath { get; set; } =
         "../GameUiShell/ScreenContent/MacroStreetLiveView";
 
     private readonly FounderNarrativeSession _session = new();
-    private readonly Dictionary<string, Button> _choiceButtons = new();
+    private readonly Dictionary<string, OnboardingChoiceButton> _choiceButtons = new();
     private CityWorldController _controller = null!;
     private Prototypes.MacroStreetLiveView _cityView = null!;
     private ColorRect _astralVeil = null!;
@@ -26,17 +42,19 @@ public partial class AstralOnboardingView : Control
     private Label _progress = null!;
     private Label _title = null!;
     private Label _narrative = null!;
-    private VBoxContainer _choices = null!;
+    private VBoxContainer _stageSlot = null!;
     private Label _consequence = null!;
     private Label _error = null!;
+    private HBoxContainer _footer = null!;
     private Button _back = null!;
     private Button _next = null!;
     private int _step;
+    private Stage _currentStage = Stage.Question;
     private FounderOnboardingResult? _result;
     private string _founderName = string.Empty;
     private GenderId? _gender;
     private LineEdit? _nameEdit;
-    private bool _identityStage;
+    private Control? _spriteFrame;
     private LocaleManager? _localeManager;
 
     public override void _Ready()
@@ -93,60 +111,68 @@ public partial class AstralOnboardingView : Control
         _fragments.AddThemeConstantOverride("separation", 8);
         shell.AddChild(_fragments);
 
+        // The two spacers are the structural reason this view no longer
+        // overflows. Every other child sizes to its content, so without a
+        // vertically expanding sibling a VBoxContainer neither clips nor
+        // scrolls — it simply lays the surplus out past the bottom edge and
+        // walks the footer off-screen. These absorb the slack, optically
+        // centre the block between the fragment strip and the footer, and
+        // collapse to zero the moment the content genuinely needs the room.
+        // Equal ratios: the header already sits above them, so an even split
+        // is what puts the reading block on the optical centre.
+        shell.AddChild(NewSpacer(1f));
+
         _title = NewLabel("ScreenTitle", HorizontalAlignment.Center);
         shell.AddChild(_title);
         _narrative = NewLabel("BodyText", HorizontalAlignment.Center);
-        _narrative.CustomMinimumSize = new Vector2(0, 92);
         shell.AddChild(_narrative);
 
-        // No scroll container. The choice buttons (4 × 66 px) and the
-        // identity widgets (sprite + name input + two gender buttons)
-        // both fit at the project's 1280×720 baseline without scrolling;
-        // a previous ScrollContainer existed for very small viewports
-        // and the final summary screen, but on the canonical resolution
-        // it never engaged. Removing it also takes the name input,
-        // gender selector, and resulting sprite out of the scrollable
-        // area — they were the only widgets actually clipping in the
-        // edge cases.
-        _choices = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _choices.AddThemeConstantOverride("separation", 8);
-        shell.AddChild(_choices);
+        // Slot for the stage-specific content: the four narrative choices,
+        // the naming controls, or the founder card.
+        _stageSlot = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _stageSlot.AddThemeConstantOverride("separation", 6);
+        shell.AddChild(_stageSlot);
 
         _consequence = NewLabel("BodyText", HorizontalAlignment.Center);
-        _consequence.CustomMinimumSize = new Vector2(0, 52);
+        // One line of headroom only. The longest immediate consequence in
+        // either catalog is 77 characters, which wraps to a single line at
+        // this measure; the floor exists so the block does not jump when a
+        // choice is selected, not to reserve space for prose.
+        _consequence.CustomMinimumSize = new Vector2(0, 26);
         shell.AddChild(_consequence);
+
+        shell.AddChild(NewSpacer(1f));
+
         _error = NewLabel("ErrorText", HorizontalAlignment.Center);
         shell.AddChild(_error);
 
-        var footer = new HBoxContainer
+        _footer = new HBoxContainer
         {
             Alignment = BoxContainer.AlignmentMode.End,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        footer.AddThemeConstantOverride("separation", 10);
-        shell.AddChild(footer);
+        _footer.AddThemeConstantOverride("separation", 10);
+        shell.AddChild(_footer);
         _back = StandardButtons.NavigationButton(TrKey("ui.onboarding.back"));
         _next = StandardButtons.NavigationButton(TrKey("ui.onboarding.stabilise"));
         _next.ThemeTypeVariation = "ButtonPrimary";
         _back.Pressed += OnBack;
         _next.Pressed += OnNext;
-        footer.AddChild(_back);
-        footer.AddChild(_next);
+        _footer.AddChild(_back);
+        _footer.AddChild(_next);
     }
 
     private void RenderQuestion()
     {
+        _currentStage = Stage.Question;
         FounderNarrativeQuestion question = FounderNarrativeCatalog.Questions[_step];
-        ClearChoices();
-        _progress.Text = string.Format(
-            TrKey("ui.onboarding.progress"),
-            _session.Answers.Count,
-            FounderNarrativeCatalog.Questions.Count);
+        ClearStage();
         BuildFragments();
-        _title.Text = TrKey(question.Title);
-        _narrative.Text = TrKey(question.Text);
-        _consequence.Text = string.Empty;
-        _error.Text = string.Empty;
+        SetText(_title, TrKey(question.Title));
+        SetText(_narrative, TrKey(question.Text));
+        SetText(_consequence, string.Empty);
+        SetText(_error, string.Empty);
+        _footer.Show();
         _astralVeil.Color = new Color(0.015f, 0.02f, 0.055f, 1f - question.TerrainReveal);
         _back.Disabled = _step == 0;
         _next.Text = _step == FounderNarrativeCatalog.Questions.Count - 1
@@ -154,19 +180,19 @@ public partial class AstralOnboardingView : Control
             : TrKey("ui.onboarding.stabilise");
 
         _choiceButtons.Clear();
+        // One group for the four options, so the set announces as a radio
+        // choice and keyboard/gamepad traversal treats it as one control.
+        var group = new ButtonGroup();
         foreach (FounderNarrativeChoice choice in question.Choices)
         {
-            var button = new Button
+            var button = new OnboardingChoiceButton
             {
                 Text = TrKey(choice.Text),
-                CustomMinimumSize = new Vector2(0, 66),
-                Alignment = HorizontalAlignment.Left,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                ThemeTypeVariation = "ButtonText",
+                ButtonGroup = group,
             };
             string choiceId = choice.Id;
             button.Pressed += () => SelectChoice(question.Id, choiceId);
-            _choices.AddChild(button);
+            _stageSlot.AddChild(button);
             _choiceButtons[choice.Id] = button;
             FadeIn(button, 0.12 + _choiceButtons.Count * 0.05);
         }
@@ -194,26 +220,34 @@ public partial class AstralOnboardingView : Control
 
     private void ApplySelectedState(FounderNarrativeQuestion question, string choiceId)
     {
-        foreach ((string id, Button button) in _choiceButtons)
+        foreach ((string id, OnboardingChoiceButton button) in _choiceButtons)
         {
-            button.ThemeTypeVariation = id == choiceId ? "ButtonPrimary" : "ButtonText";
+            button.Selected = id == choiceId;
         }
         FounderNarrativeChoice choice = FindChoice(question, choiceId);
-        _consequence.Text = TrKey(choice.ImmediateConsequence);
+        SetText(_consequence, TrKey(choice.ImmediateConsequence));
         FadeIn(_consequence, 0.18);
         _next.Disabled = false;
     }
 
     private void OnBack()
     {
-        if (_identityStage)
+        switch (_currentStage)
         {
-            ReturnToLastQuestion();
-            return;
+            case Stage.Question:
+                if (_step <= 0) return;
+                _step--;
+                RenderQuestion();
+                return;
+            case Stage.Identity:
+                ReturnToLastQuestion();
+                return;
+            case Stage.FounderCard:
+                RenderIdentity();
+                return;
+            default:
+                return;
         }
-        if (_step <= 0) return;
-        _step--;
-        RenderQuestion();
     }
 
     /// <summary>
@@ -231,8 +265,28 @@ public partial class AstralOnboardingView : Control
     {
         _ = locale;
         _back.Text = TrKey("ui.onboarding.back");
-        if (_identityStage) RenderIdentity();
-        else RenderQuestion();
+        // A locale switch re-bakes text into every node, so the current stage
+        // has to be rebuilt. Carry the caret across so a player mid-way
+        // through typing a name does not lose their place.
+        int caret = _nameEdit?.CaretColumn ?? 0;
+        bool hadFocus = _nameEdit?.HasFocus() ?? false;
+        switch (_currentStage)
+        {
+            case Stage.Identity:
+                RenderIdentity();
+                break;
+            case Stage.FounderCard:
+                RenderFounderCard();
+                break;
+            case Stage.FalseQuestion:
+                break;
+            default:
+                RenderQuestion();
+                break;
+        }
+        if (!hadFocus || _nameEdit is null) return;
+        _nameEdit.GrabFocus();
+        _nameEdit.CaretColumn = Mathf.Min(caret, _nameEdit.Text.Length);
     }
 
     public override void _ExitTree()
@@ -242,11 +296,19 @@ public partial class AstralOnboardingView : Control
 
     private void OnNext()
     {
-        if (_identityStage)
+        switch (_currentStage)
         {
-            OnConfirmIdentity();
-            return;
+            case Stage.Identity:
+                if (!IsIdentityComplete()) return;
+                RenderFounderCard();
+                return;
+            case Stage.FounderCard:
+                OnConfirmIdentity();
+                return;
+            case Stage.FalseQuestion:
+                return;
         }
+
         FounderNarrativeQuestion current = FounderNarrativeCatalog.Questions[_step];
         if (!_session.TryGetAnswer(current.Id, out _)) return;
         if (_step < FounderNarrativeCatalog.Questions.Count - 1)
@@ -259,57 +321,62 @@ public partial class AstralOnboardingView : Control
         RenderIdentity();
     }
 
+    /// <summary>
+    /// Naming beat. The result of the twelve questions is already computed,
+    /// but the card that presents it is its own step: this screen asks for one
+    /// thing, so it shows the sprite the player is about to inhabit, the name
+    /// field, and the body presentation — nothing else.
+    /// </summary>
     private void RenderIdentity()
     {
-        _identityStage = true;
-        ClearChoices();
+        _currentStage = Stage.Identity;
+        ClearStage();
+        // First point in the flow where revealing the lineage is legitimate,
+        // so the accent that themes the sprite frame and the founder card can
+        // be pinned here.
+        if (_result is not null)
+        {
+            LineageThemeRegistry.SetActiveLineage(
+                LineageThemeRegistry.IdOf(_result.Lineage));
+        }
         _astralVeil.Color = new Color(0.015f, 0.02f, 0.055f, 0.25f);
-        _progress.Text = UiText.Get("FORMA RECONSTRUIDA");
-        _title.Text = UiText.Get("El nombre que atravesará contigo");
-        _narrative.Text = UiText.Get("ui.astral.identity.body");
-        _consequence.Text = DescribeResult(_result!);
+        BuildFragments();
+        SetText(_progress, TrKey("ui.astral.identity.progress"));
+        SetText(_title, TrKey("ui.astral.identity.title"));
+        SetText(_narrative, TrKey("ui.astral.identity.body"));
+        SetText(_consequence, string.Empty);
+        _footer.Show();
         _back.Disabled = false;
-        _next.Text = UiText.Get("Conservar este nombre");
+        _next.Text = TrKey("ui.astral.identity.continue");
 
-        // Horizontal split keeps the name input, gender selector, and
-        // resulting sprite visible at the same time. The previous
-        // vertical stack forced them into the scrollable area; the
-        // new layout is its own row, sized to the safe-area width.
-        var identityRow = new HBoxContainer
+        var column = new VBoxContainer
         {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            Alignment = BoxContainer.AlignmentMode.Center,
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
+            CustomMinimumSize = new Vector2(360, 0),
         };
-        identityRow.AddThemeConstantOverride("separation", 24);
-        _choices.AddChild(identityRow);
+        column.AddThemeConstantOverride("separation", 6);
+        _stageSlot.AddChild(column);
 
-        // Left column: the sprite preview frame. AddResultSprite slots
-        // the rendered sprite into this frame so it sits next to the
-        // inputs, not below them.
-        var spriteFrame = new Control
+        _spriteFrame = new Control
         {
-            CustomMinimumSize = new Vector2(160, 160),
+            CustomMinimumSize = new Vector2(
+                PresentationConstants.DetailedCitizenHeight,
+                PresentationConstants.DetailedCitizenHeight),
             MouseFilter = MouseFilterEnum.Ignore,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            SizeFlagsHorizontal = SizeFlags.ShrinkCenter,
         };
-        identityRow.AddChild(spriteFrame);
-
-        // Right column: name input stacked above the gender row.
-        var inputsColumn = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-        };
-        inputsColumn.AddThemeConstantOverride("separation", 10);
-        identityRow.AddChild(inputsColumn);
+        column.AddChild(_spriteFrame);
+        // Subscribed once per stage build. The old code re-entered this whole
+        // method on every gender press and stacked a new handler each time.
+        Control frame = _spriteFrame;
+        frame.Resized += () => PositionSprite(frame);
 
         _nameEdit = new LineEdit
         {
-            PlaceholderText = UiText.Get("Nombre del fundador"),
+            PlaceholderText = TrKey("ui.astral.identity.name_placeholder"),
             MaxLength = 32,
             Text = _founderName,
-            CustomMinimumSize = new Vector2(0, 44),
+            CustomMinimumSize = new Vector2(360, 40),
             ThemeTypeVariation = "LineEdit",
         };
         _nameEdit.TextChanged += value =>
@@ -317,51 +384,79 @@ public partial class AstralOnboardingView : Control
             _founderName = value;
             ValidateIdentity();
         };
-        inputsColumn.AddChild(_nameEdit);
+        column.AddChild(_nameEdit);
 
-        var genderRow = new HBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        genderRow.AddThemeConstantOverride("separation", 12);
-        inputsColumn.AddChild(genderRow);
-        foreach ((GenderId id, string text) in new[]
-        {
-            (GenderId.Feminine, UiText.Get("Feminine")),
-            (GenderId.Masculine, UiText.Get("Masculine")),
-        })
-        {
-            var button = StandardButtons.ChoiceButton(
-                text,
-                UiText.Get("Afecta la presentación del sprite, no el resultado narrativo."));
-            button.Pressed += () =>
-            {
-                _gender = id;
-                RenderIdentity();
-            };
-            button.ThemeTypeVariation = _gender == id ? "ButtonPrimary" : "ButtonText";
-            genderRow.AddChild(button);
-        }
-        AddResultSprite(spriteFrame);
+        var toggle = new GenderToggle();
+        column.AddChild(toggle);
+        toggle.Configure(
+            id => TrKey(id == GenderId.Feminine
+                ? "ui.astral.identity.body_feminine"
+                : "ui.astral.identity.body_masculine"),
+            TrKey("ui.astral.identity.body_hint"));
+        toggle.Selected = _gender;
+        toggle.GenderChanged += OnGenderChanged;
+
+        RefreshResultSprite();
         ValidateIdentity();
         FadeIn(_narrative, 0.25);
         _nameEdit.GrabFocus();
     }
 
+    /// <summary>
+    /// Swaps the previewed body without rebuilding the stage. Rebuilding is
+    /// what used to destroy the caret and steal focus back to the name field
+    /// on every press.
+    /// </summary>
+    private void OnGenderChanged(int gender)
+    {
+        _gender = (GenderId)gender;
+        RefreshResultSprite();
+        ValidateIdentity();
+    }
+
+    /// <summary>
+    /// The closing card: the reconstructed form as the bible specifies it,
+    /// on its own screen so it is read rather than skimmed past the name
+    /// field. Confirming here is what actually creates the founder.
+    /// </summary>
+    private void RenderFounderCard()
+    {
+        if (_result is null) return;
+        _currentStage = Stage.FounderCard;
+        ClearStage();
+        BuildFragments();
+        SetText(_progress, TrKey("ui.astral.identity.progress"));
+        SetText(_title, string.Empty);
+        SetText(_narrative, string.Empty);
+        SetText(_consequence, string.Empty);
+        SetText(_error, string.Empty);
+        _footer.Show();
+        _back.Disabled = false;
+        _next.Disabled = false;
+        _next.Text = TrKey("ui.astral.identity.confirm");
+
+        var card = new FounderCardPanel();
+        _stageSlot.AddChild(card);
+        card.Render(_founderName.Trim(), _result, TrKey);
+        FadeIn(card, 0.28);
+        _next.GrabFocus();
+    }
+
     private void ReturnToLastQuestion()
     {
-        _identityStage = false;
         _step = FounderNarrativeCatalog.Questions.Count - 1;
         RenderQuestion();
     }
 
+    private bool IsIdentityComplete() =>
+        IsFounderNameValid(_founderName) && _gender.HasValue;
+
     private void ValidateIdentity()
     {
-        _next.Disabled = !IsFounderNameValid(_founderName) || !_gender.HasValue;
-        _error.Text = _next.Disabled
-            ? UiText.Get("El nombre debe tener entre 1 y 32 caracteres y no contener controles.")
-            : string.Empty;
+        _next.Disabled = !IsIdentityComplete();
+        SetText(
+            _error,
+            _next.Disabled ? TrKey("ui.astral.identity.name_invalid") : string.Empty);
     }
 
     private void OnConfirmIdentity()
@@ -384,8 +479,8 @@ public partial class AstralOnboardingView : Control
             new HeroCreationRequest(_founderName.Trim(), profile, _gender.Value, final));
         if (!creation.IsSuccess)
         {
-            _error.Text = UiText.Format("ui.astral.creation_failed", creation.Outcome);
-            ValidateIdentity();
+            SetText(_error, UiText.Format("ui.astral.creation_failed", creation.Outcome));
+            _next.Disabled = false;
             return;
         }
         _result = final;
@@ -394,22 +489,28 @@ public partial class AstralOnboardingView : Control
 
     private void RenderFalseQuestion()
     {
-        ClearChoices();
-        _back.Hide();
-        _next.Hide();
-        _progress.Text = string.Empty;
-        _title.Text = UiText.Get("La forma está lista.");
-        _narrative.Text = UiText.Get("ui.astral.false_question.body");
-        _consequence.Text = string.Empty;
+        _currentStage = Stage.FalseQuestion;
+        ClearStage();
+        // Hiding the row rather than the two buttons collapses its separation
+        // as well, so the beat does not leave a gap where the actions were.
+        _footer.Hide();
+        SetText(_progress, string.Empty);
+        SetText(_title, TrKey("La forma está lista."));
+        SetText(_narrative, TrKey("ui.astral.false_question.body"));
+        SetText(_consequence, string.Empty);
+        SetText(_error, string.Empty);
         foreach (string beginning in new[]
         {
             "Conservaré…", "Buscaré…", "Intentaré comprender…", "Comenzaré de nuevo…",
         })
         {
-            var incomplete = StandardButtons.ChoiceButton(UiText.Get(beginning), string.Empty);
-            incomplete.Disabled = true;
-            _choices.AddChild(incomplete);
-            FadeIn(incomplete, 0.35 + _choices.GetChildCount() * 0.18);
+            var incomplete = new OnboardingChoiceButton
+            {
+                Text = TrKey(beginning),
+                Disabled = true,
+            };
+            _stageSlot.AddChild(incomplete);
+            FadeIn(incomplete, 0.35 + _stageSlot.GetChildCount() * 0.18);
         }
         Tween interruption = CreateTween();
         interruption.TweenInterval(1.15);
@@ -418,9 +519,9 @@ public partial class AstralOnboardingView : Control
 
     private void InterruptFalseQuestion()
     {
-        _title.Text = UiText.Get("Ah.");
-        _narrative.Text = UiText.Get("Ya llegamos.");
-        ClearChoices();
+        SetText(_title, TrKey("Ah."));
+        SetText(_narrative, TrKey("Ya llegamos."));
+        ClearStage();
         FadeIn(_title, 0.08);
         FadeIn(_narrative, 0.08);
         Tween cut = CreateTween();
@@ -450,33 +551,59 @@ public partial class AstralOnboardingView : Control
         _cityView.CompleteFounderArrival();
     }
 
-    private void AddResultSprite(Control frame)
+    /// <summary>
+    /// Mounts the sprite for the current lineage and body presentation into
+    /// the existing frame, replacing whatever was there. The frame itself
+    /// survives, so its <c>Resized</c> subscription is not duplicated.
+    /// </summary>
+    private void RefreshResultSprite()
     {
-        if (_result is null || !_gender.HasValue) return;
+        if (_spriteFrame is null || _result is null || !_gender.HasValue) return;
+        foreach (Node child in _spriteFrame.GetChildren()) child.QueueFree();
+
         CharacterBodyVariant body = CharacterVisualRegistry.ResolveBodyVariant(_gender.Value);
         LineageSpritePlayer sprite =
             CharacterVisualRegistry.LoadScene(_result.Lineage, body)
                 .Instantiate<LineageSpritePlayer>();
-        frame.AddChild(sprite);
-        // Centre the sprite in the frame; the frame has no children other
-        // than the sprite, so its size at deferred call is the layout
-        // we want to anchor to.
-        frame.Resized += () =>
-            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f);
-        Callable.From(() =>
-            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f)).CallDeferred();
+        // The founder is the subject of this screen, not an inhabitant seen
+        // in passing, so the portrait runs at twice the detail scale used
+        // elsewhere. Integer only — nearest-neighbour pixel art must never be
+        // resampled at a fractional factor.
+        sprite.Scale = new Vector2(SpritePortraitScale, SpritePortraitScale);
+        _spriteFrame.AddChild(sprite);
+        Control frame = _spriteFrame;
+        Callable.From(() => PositionSprite(frame)).CallDeferred();
+    }
+
+    /// <summary>
+    /// Stands the sprite on the floor of its frame, horizontally centred.
+    /// <c>LineageSpritePlayer</c> is an <c>AnimatedSprite2D</c>, so it takes
+    /// no part in the container layout and has to be placed by hand.
+    /// </summary>
+    private static void PositionSprite(Control frame)
+    {
+        if (!GodotObject.IsInstanceValid(frame)) return;
+        foreach (Node child in frame.GetChildren())
+        {
+            if (child is not Node2D sprite) continue;
+            sprite.Position = new Vector2(
+                Mathf.Round(frame.Size.X * 0.5f),
+                Mathf.Round(frame.Size.Y * 0.85f));
+        }
     }
 
     private void BuildFragments()
     {
         foreach (Node child in _fragments.GetChildren()) child.QueueFree();
         int stabilised = _session.Answers.Count;
-        if (!_identityStage)
+        if (_currentStage == Stage.Question)
         {
-            _progress.Text = string.Format(
-                TrKey("ui.onboarding.progress"),
-                stabilised,
-                FounderNarrativeCatalog.Questions.Count);
+            SetText(
+                _progress,
+                string.Format(
+                    TrKey("ui.onboarding.progress"),
+                    stabilised,
+                    FounderNarrativeCatalog.Questions.Count));
         }
         for (int index = 0; index < 12; index++)
         {
@@ -491,10 +618,12 @@ public partial class AstralOnboardingView : Control
         }
     }
 
-    private void ClearChoices()
+    private void ClearStage()
     {
-        foreach (Node child in _choices.GetChildren()) child.QueueFree();
+        foreach (Node child in _stageSlot.GetChildren()) child.QueueFree();
         _choiceButtons.Clear();
+        _nameEdit = null;
+        _spriteFrame = null;
     }
 
     private static FounderNarrativeChoice FindChoice(
@@ -508,42 +637,26 @@ public partial class AstralOnboardingView : Control
         throw new InvalidOperationException($"Unknown choice '{id}'.");
     }
 
-    private static string DescribeResult(FounderOnboardingResult result) =>
-        $"{ProfileCatalog.Get(result.Lineage).DisplayName} · {UiText.Get(CubeScoring.Signature(result.Lineage))}\n" +
-        $"{UiText.Get(ProfileCatalog.Get(result.Lineage).Summary)}\n\n" +
-        $"{UiText.Get("Afinidad")} · {UiText.Get(ProfileCatalog.DisplayName(result.ElementalAffinity))}\n" +
-        // Onboarding decides the physical expression too, so the closing card
-        // must name it rather than leaving the player to discover it later.
-        $"{DescribeCombatNature(result.ElementalAffinity)}\n\n" +
-        $"{UiText.Get("Perfil de encarnación").ToUpperInvariant()}\n" +
-        $"{UiText.Get("Cuerpo")} {result.CubeProfile.Body} / {result.CubeProfile.Bond} {UiText.Get("Vínculo")}\n" +
-        $"{UiText.Get("Estabilidad")} {result.CubeProfile.Stability} / {result.CubeProfile.Impulse} {UiText.Get("Impulso")}\n" +
-        $"{UiText.Get("Dominio")} {result.CubeProfile.Mastery} / {result.CubeProfile.Reach} {UiText.Get("Alcance")}";
-
     /// <summary>
-    /// The expression the affinity implies plus the two weapon families it makes
-    /// natural. Shared shape with the hero profile and the citizens panel.
+    /// Assigns a label's text and hides it when there is none. An empty
+    /// <see cref="Label"/> still claims its minimum height <em>and</em> its
+    /// separation inside a <see cref="BoxContainer"/>; an invisible child
+    /// claims neither. Every row of this screen is optional on some stage,
+    /// so blanking instead of hiding is what pushed the footer off-screen.
     /// </summary>
-    private static string DescribeCombatNature(ElementalAffinity affinity)
+    private static void SetText(Label label, string text)
     {
-        PhysicalExpression expression = CombatNature.PhysicalExpressionFor(affinity);
-        (WeaponFamily first, WeaponFamily second) = NaturalWeaponFamilies.For(expression);
-        return UiText.Format(
-                "ui.citizen.physical_expression",
-                UiText.Get(ProfileCatalog.DisplayName(expression)))
-            + "\n"
-            + UiText.Format(
-                "ui.citizen.natural_weapons",
-                UiText.Get(ProfileCatalog.DisplayName(first)),
-                UiText.Get(ProfileCatalog.DisplayName(second)));
+        label.Text = text;
+        label.Visible = !string.IsNullOrEmpty(text);
     }
 
-    private static string JoinLocalized<T>(IReadOnlyList<T> values, Func<T, string> name)
-    {
-        var names = new string[values.Count];
-        for (int index = 0; index < values.Count; index++) names[index] = UiText.Get(name(values[index]));
-        return string.Join(", ", names);
-    }
+    private static Control NewSpacer(float ratio) =>
+        new()
+        {
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SizeFlagsStretchRatio = ratio,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
 
     private static Label NewLabel(string variation, HorizontalAlignment alignment) =>
         new()
@@ -579,8 +692,10 @@ public partial class AstralOnboardingView : Control
         int questionStep = Math.Clamp(
             step,
             0,
-            FounderNarrativeCatalog.Questions.Count);
-        for (int index = 0; index < questionStep; index++)
+            FounderNarrativeCatalog.Questions.Count + 1);
+        for (int index = 0;
+             index < Math.Min(questionStep, FounderNarrativeCatalog.Questions.Count);
+             index++)
         {
             FounderNarrativeQuestion question = FounderNarrativeCatalog.Questions[index];
             _session.Answer(question.Id, question.Choices[0].Id);
@@ -596,5 +711,9 @@ public partial class AstralOnboardingView : Control
         _gender = GenderId.Feminine;
         _founderName = "Aster";
         RenderIdentity();
+        // One past the last question is the naming beat; two past it is the
+        // founder card, which cannot be reached from a save and therefore
+        // needs its own entry point.
+        if (questionStep > FounderNarrativeCatalog.Questions.Count) RenderFounderCard();
     }
 }
