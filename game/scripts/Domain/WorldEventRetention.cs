@@ -32,7 +32,8 @@ public static class WorldEventRetention
         or WorldEventKind.WoundRecoveryCompleted
         or WorldEventKind.TerritoryAdvanced
         or WorldEventKind.CropReady
-        or WorldEventKind.CropHarvested;
+        or WorldEventKind.CropHarvested
+        or WorldEventKind.SpiritDeparted;
 
     public static IReadOnlyList<WorldEvent> SelectForPersistence(
         IReadOnlyList<WorldEvent> events,

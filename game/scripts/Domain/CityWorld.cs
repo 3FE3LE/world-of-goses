@@ -3221,6 +3221,14 @@ public sealed class CityWorld
         if (!night.TryAdvance(_tick)) return false;
         if (night.Stage == FirstNightStage.Concluded)
         {
+            // The spirit departs once per night, at the Sleeping → Concluded
+            // boundary. Persisted as a significant event so the expedition
+            // panel can gate the SpiritTrailSearch opportunity on its
+            // presence and the chronicle can show the moment.
+            _log.Record(
+                _tick,
+                WorldEventKind.SpiritDeparted,
+                WorldEventSubject.World("FireSpirit"));
             _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
         }
         return night.Stage != previous;

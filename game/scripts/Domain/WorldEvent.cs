@@ -36,6 +36,19 @@ public enum WorldEventKind
     TerritoryAdvanced,
     CropReady,
     CropHarvested,
+
+    /// <summary>
+    /// The fire spirit leaves the founder's camp at dawn
+    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11). Marks the
+    /// transition from the authored first night to the regular
+    /// simulation; the spirit trail becomes readable in the chronicle
+    /// and unlocks the <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
+    /// expedition. Emitted once per night by
+    /// <c>CityWorld.AdvanceFirstNight</c> when the stage crosses from
+    /// <see cref="FirstNightStage.Sleeping"/> to
+    /// <see cref="FirstNightStage.Concluded"/>.
+    /// </summary>
+    SpiritDeparted,
 }
 
 /// <summary>
