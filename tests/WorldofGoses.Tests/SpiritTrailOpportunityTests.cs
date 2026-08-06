@@ -83,6 +83,31 @@ public sealed class SpiritTrailOpportunityTests
         Assert.True(snapshot.SpiritTrailUnlocked);
     }
 
+    [Fact]
+    public void OpportunityIsSeededOnTheSameTickAsTheDawn()
+    {
+        // Without this, the SpiritTrail button would be visible but the
+        // player could not dispatch — no ResourceOpportunity of that
+        // kind would exist in the world yet.
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.SeedStartingOpportunities();
+        DriveNightToSleep(world);
+
+        // Before the night concludes, the spirit-trail opportunity must
+        // not exist (the trail is unreadable while the spirit is in
+        // the flame).
+        Assert.DoesNotContain(
+            world.ResourceOpportunities.Values,
+            o => o.Kind == ResourceOpportunityKind.SpiritTrailSearch);
+
+        Assert.True(world.TryCloseFirstNightDialogue());
+
+        Assert.Contains(
+            world.ResourceOpportunities.Values,
+            o => o.Kind == ResourceOpportunityKind.SpiritTrailSearch);
+    }
+
     private static void DriveNightToSleep(CityWorld world)
     {
         FirstNightState night = world.FirstNight!;

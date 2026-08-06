@@ -1169,6 +1169,19 @@ public sealed class CityWorld
         _resourceOpportunities.TryAdd(
             woodId,
             new ResourceOpportunity(woodId, ResourceOpportunityKind.FallenWoodSearch));
+
+        // The spirit trail opportunity only exists after the dawn has
+        // carried the spirit away. `TryAdd` is idempotent: restoring a
+        // save that already has the opportunity is a no-op, and a save
+        // that already passed the night will pick it up here on the
+        // next call.
+        if (_log.Events.Any(evt => evt.Kind == WorldEventKind.SpiritDeparted))
+        {
+            var spiritId = new ResourceOpportunityId(3);
+            _resourceOpportunities.TryAdd(
+                spiritId,
+                new ResourceOpportunity(spiritId, ResourceOpportunityKind.SpiritTrailSearch));
+        }
     }
 
     private NaturalResourcePatch CreateProceduralResourcePatch(
@@ -3230,6 +3243,10 @@ public sealed class CityWorld
                 WorldEventKind.SpiritDeparted,
                 WorldEventSubject.World("FireSpirit"));
             _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+            // Surface the spirit-trail opportunity on the same tick so the
+            // player can dispatch it immediately after the dawn — without
+            // waiting for a subsequent Ensure call.
+            EnsureStartingResourceExpeditionOpportunities();
         }
         return night.Stage != previous;
     }

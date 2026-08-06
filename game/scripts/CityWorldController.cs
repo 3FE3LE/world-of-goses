@@ -758,7 +758,11 @@ public partial class CityWorldController : Node
     /// </summary>
     private void EmitFirstNightStageIfChanged()
     {
-        int currentStage = (int)(_world.FirstNight?.Stage ?? Domain.FirstNightStage.Concluded);
+        // Cities with no FirstNightState never had a night and never
+        // will — emitting a fake Concluded stage would mislead the
+        // presentation layer into thinking the spirit departed.
+        if (_world.FirstNight is null) return;
+        int currentStage = (int)_world.FirstNight.Stage;
         if (currentStage == _lastObservedFirstNightStage) return;
         _lastObservedFirstNightStage = currentStage;
         EmitSignal(SignalName.FirstNightStageChanged, currentStage);

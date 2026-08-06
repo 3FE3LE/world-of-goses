@@ -36,6 +36,15 @@ public partial class FirstNightScene : Node
 {
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
 
+    /// <summary>
+    /// Path to the macro street view, whose
+    /// <c>GetFoundingArrivalGlobalPosition()</c> resolves the founder's
+    /// projected screen position. Optional: when the macro view is
+    /// absent (tests, editor-only fixtures) the scene falls back to a
+    /// fixed viewport-centred placeholder.
+    /// </summary>
+    [Export] public NodePath MacroViewPath { get; set; } = "../../../GameUiShell/ScreenContent/MacroStreetLiveView";
+
     private CityWorldController? _controller;
     private CanvasLayer _layer = null!;
     private FirstNightDialogueStrip _strip = null!;
@@ -135,6 +144,7 @@ public partial class FirstNightScene : Node
     private void ProjectCurrentStage()
     {
         if (_controller is null) return;
+        RefreshPositionsFromWorld();
         FirstNightState? night = _controller.World.FirstNight;
         if (night is null || !night.IsActive)
         {
@@ -191,6 +201,42 @@ public partial class FirstNightScene : Node
         {
             _spirit.PlaceBesideFounder(_founderScreenPosition);
         }
+    }
+
+    /// <summary>
+    /// Pulls live founder and campfire screen positions from the macro
+    /// view. The founder's position is always available; the campfire
+    /// position only resolves once the founding module is complete.
+    /// Falls back to the cached placeholder when the macro view is
+    /// absent (tests, fixtures).
+    /// </summary>
+    private void RefreshPositionsFromWorld()
+    {
+        var macroView = GetNodeOrNull<Node>(MacroViewPath);
+        if (macroView is null) return;
+
+        Vector2 founderScreen = InvokePositionGetter(
+            macroView, "GetFoundingArrivalGlobalPosition");
+        if (founderScreen != Vector2.Zero)
+        {
+            _founderScreenPosition = founderScreen;
+        }
+
+        // The campfire lives at the same projected spot as the
+        // founder for now: the founding site is anchored to the
+        // founding parcel, and the campfire is its first module. A
+        // future iteration can refine this when the macro view
+        // publishes a separate campfire anchor.
+        _campfireScreenPosition = _founderScreenPosition + new Vector2(0f, -32f);
+    }
+
+    private static Vector2 InvokePositionGetter(Node node, string methodName)
+    {
+        if (!node.HasMethod(methodName)) return Vector2.Zero;
+        Variant result = node.Call(methodName);
+        return result.VariantType == Variant.Type.Vector2
+            ? (Vector2)result
+            : Vector2.Zero;
     }
 
     private bool HasEmbersAfterDeparture()
