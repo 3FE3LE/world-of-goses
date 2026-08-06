@@ -48,6 +48,12 @@ public partial class CityPrototype : Node
     public override void _Ready()
     {
         GD.Print("World of Goses prototype starting.");
+        var firstNightScene = new FirstNightScene
+        {
+            Name = "FirstNightScene",
+            ControllerPath = new NodePath("CityWorldController"),
+        };
+        AddChild(firstNightScene);
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1")
         {
             CallDeferred(MethodName.ApplyVisualRegressionFixture);

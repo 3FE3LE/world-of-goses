@@ -98,6 +98,17 @@ public partial class CityWorldController : Node
     [Signal]
     public delegate void SimulationSpeedChangedEventHandler(int speedChoice);
 
+    /// <summary>
+    /// Fires whenever the authored first night
+    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>) changes stage:
+    /// the spirit arriving, the campfire or shelter being finished, the
+    /// night concluding. The signal carries the new stage as an <c>int</c>
+    /// so the presentation layer can subscribe without taking a
+    /// dependency on <see cref="Domain.FirstNightStage"/>.
+    /// </summary>
+    [Signal]
+    public delegate void FirstNightStageChangedEventHandler(int stage);
+
     private readonly CityWorld _world = new();
 
     /// <summary>
@@ -111,6 +122,7 @@ public partial class CityWorldController : Node
     private bool _hasUnsavedChanges;
     private CitizenId? _observedCitizenId;
     private long _lastSimulationProcessedAtUnixMillis;
+    private int _lastObservedFirstNightStage = -1;
 
     public double SimulationTickIntervalSeconds { get; set; } = 1.0;
 
@@ -252,6 +264,7 @@ public partial class CityWorldController : Node
             _world.AdvanceWorldTick();
             EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
         }
+        EmitFirstNightStageIfChanged();
         _hasUnsavedChanges = true;
         _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
@@ -708,6 +721,49 @@ public partial class CityWorldController : Node
         return returned;
     }
 
+    /// <summary>
+    /// Opens the main-dialogue node the spirit speaks at the current
+    /// stage. Persists the node id on <see cref="Domain.FirstNightState"/>
+    /// so a save interrupted mid-line resumes on the same line. The
+    /// spirit only speaks at stages that wait on dialogue — see
+    /// <see cref="Domain.FirstNightRules.WaitsForDialogue"/> and the
+    /// stage map in <c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>.
+    /// </summary>
+    public bool TryOpenFirstNightDialogue(string nodeId)
+    {
+        bool opened = _world.TryOpenFirstNightDialogue(nodeId);
+        if (opened) EmitFirstNightStageIfChanged();
+        return opened;
+    }
+
+    /// <summary>
+    /// Closes the current main-dialogue node and advances the night.
+    /// The domain guards prevent advancing before its trigger fires
+    /// (a module completion, <see cref="Domain.FirstNightRules.WaitsForModule"/>),
+    /// so calling this at the wrong moment is a silent no-op.
+    /// </summary>
+    public bool TryCloseFirstNightDialogue()
+    {
+        bool advanced = _world.TryCloseFirstNightDialogue();
+        if (advanced) EmitFirstNightStageIfChanged();
+        return advanced;
+    }
+
+    /// <summary>
+    /// Emits <see cref="FirstNightStageChanged"/> when the night moved
+    /// between the previous observed stage and the current one.
+    /// Called after every tick and after every dialogue close so the
+    /// presentation layer never misses a transition even when the
+    /// stage advances multiple times in a single tick.
+    /// </summary>
+    private void EmitFirstNightStageIfChanged()
+    {
+        int currentStage = (int)(_world.FirstNight?.Stage ?? Domain.FirstNightStage.Concluded);
+        if (currentStage == _lastObservedFirstNightStage) return;
+        _lastObservedFirstNightStage = currentStage;
+        EmitSignal(SignalName.FirstNightStageChanged, currentStage);
+    }
+
     public IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
         _world.AvailableConstructionLots();
 
@@ -778,6 +834,10 @@ public partial class CityWorldController : Node
         _world.SeedStartingOpportunities();
         _world.EnsureFoundingShelterContributor();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
+        // Surface the loaded night on the very first frame, before any
+        // tick runs — a save restored mid-night must not wait one tick
+        // for its dialogue strip to appear.
+        EmitFirstNightStageIfChanged();
         if (migrated && PersistenceWritesEnabled)
         {
             SaveWorldToPrimarySlot(slotsDirectory);
