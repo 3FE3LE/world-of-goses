@@ -22,6 +22,54 @@ their commits for the real content.
 
 ---
 
+## README alineado con EG-5
+
+**2026-08-06** · schema v31 (sin cambio)
+
+El `README.md` llevaba tiempo describiendo una realidad que el repo
+ya no es: todavía hablaba de "complete hero-onboarding profile for
+one citizen and zero buildings, followed by an explicitly authorised
+Basic Shelter construction project" y citaba 232 / 345 tests como
+si fueran la línea base actual. La primera obra ya no es un Basic
+Shelter libre — el fundador entra con la noche autoral (espíritu de
+fuego, módulo a módulo, `00:00` → `06:00`) y el primer edificio
+crece dentro del Founding Site como Campfire → Bedroll/Cache →
+Canopy. El Cubo Kovari, el slice vertical de combate, las
+expediciones de recursos sobre la rejilla dinámica, el catálogo
+`firstnight.*` y la SpiritTrailSearch ya están conectados; un
+visitante que se quede en el `README` se queda con la versión vieja.
+
+Este increment no toca gameplay, schema ni catálogo. Solo reescribe
+las cuatro secciones que el repo había superado:
+
+- El **status header** ahora declara EG-5, la apertura EG-A0
+  (onboarding Kovari, primera noche, Founding Site, Cultivation
+  Site, SpiritTrail/FallenWood, combate determinista, reclutamiento
+  por Town Hall) y la baseline medida hoy (schema v31, **913
+  passing**, 1 omitido).
+- La sección **13 (First prototype scope)** ya no enumera el
+  Basic Shelter libre como primer proyecto, sino la cadena de la
+  noche autoral y el ciclo del Founding Site, junto con el Cubo
+  Kovari, las expediciones de recursos y el slice de combate.
+- La sección **14 (Short initial roadmap)** incorpora la secuencia
+  `EG-0 → EG-6` definida por el proposal §15 y separa lo cerrado
+  de lo activo (EG-5) y lo pendiente (EG-6).
+- La sección **15 (Founding hero and first night)** deja de
+  presentar al Basic Shelter como primera decisión de obra y
+  apunta a `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y al
+  acceptance test EG-A0 del proposal §17.
+
+Lo demás del archivo (game vision, pilares, stack, plataforma,
+flujo de arte, convenciones, licencia, contribución) sigue
+vigente.
+
+Baseline medido en este increment: `dotnet build` 0 errores /
+0 advertencias (reconfirmado por el snapshot Full del commit);
+tests 913 / 914 (1 omitido); agent context 448 / 448; 918 IDs de
+plantilla y 283 claves de runtime.
+
+---
+
 ## El onboarding cabe en la pantalla y la forma reconstruida se presenta como ficha
 
 **2026-08-06** · schema v31 (sin cambio)

@@ -1,10 +1,18 @@
 # World of Goses
 
-> **Status:** early playable prototype. The current slice begins with a
-> complete hero-onboarding profile for one citizen and zero buildings, followed
-> by an explicitly authorised Basic Shelter construction project. The prototype
-> includes lineage-driven UI skins, local persistence, offline progression, and
-> a 345-test domain/persistence suite.
+> **Status:** EG-5 — consolidation. The current slice is the EG-A0
+> opening: twelve-fragment astral onboarding that produces one
+> Kovari-Cube founder, an authored first night (00:00 → 06:00) where
+> a fire spirit teaches why ground materials matter, a Founding Site
+> lifecycle that grows from Campfire into Basic Shelter through three
+> authored modules, one Cultivation Site, the first resource
+> expeditions (SpiritTrail and FallenWood), the deterministic
+> combat/expedition vertical slice, and Town-Hall recruitment behind
+> a housing gate. Local persistence, offline progression, eight
+> lineage-driven panel skins, and the dynamic frontage grid from
+> EG-4 sit underneath. Schema `WorldSave.CurrentVersion` is **31**;
+> the xUnit suite measures **913 passing**, 1 skipped (known JSON
+> snapshot brittleness).
 >
 > **Before authoring any new screen or widget, read
 > [`docs/UI_PATTERNS.md`](docs/UI_PATTERNS.md).** It codifies the
@@ -293,28 +301,76 @@ The conceptual rule is:
 ## 13. First prototype scope
 
 The first prototype is **not** the complete city. It is a small vertical
-slice that may evolve into the full game.
+slice that may evolve into the full game. The canonical proposal that
+defines this slice lives at
+[`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`](docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md);
+its §17 is the acceptance test EG-5/EG-6 must pass before any broader
+product slice is approved.
 
 The current slice demonstrates:
 
-- A responsive hero-onboarding flow that creates exactly one principal citizen
-  and a read-only profile view for all identity choices.
-- A macro city view with real citizen activity and a clear empty state while
-  no buildings have been authorised yet.
-- An authorised Basic Shelter project with contributor assignment, pause/resume,
-  deterministic progress, persistence, and transition into the completed building.
-- A versioned local snapshot with bounded causal history and a location-aware
-  resource ledger whose typed reservations survive close/offline progression.
-- Eight runtime-selectable lineage panel skins backed directly by exported
-  `StyleBoxTexture` resources, with deterministic fallbacks and a showcase scene.
-- Individual citizen records shared between the views. A citizen is the only
-  person entity in the domain: roles, competencies, recognitions, lineage, and
-  profile choices are attached concepts, not subclasses. Each citizen carries
-  `CurrentStamina`, a `WellFedRemainingTicks` buff counter, and a
-  `CurrentLocation` (`AtWork` / `AtHome`).
-- The existing building-detail, assignment, stamina, production, day/night,
-  upkeep, and offline systems as reusable domain concepts and explicit test
-  scenarios rather than new-game seed data.
+- **Twelve-fragment astral onboarding** that produces exactly one
+  principal `Citizen` (hero role). The output is the canonical
+  onboarding result — lineage, elemental affinity, narrative memory
+  and the three Kovari-Cube axes (Cuerpo/Vínculo,
+  Estabilidad/Impulso, Dominio/Alcance) as two-pole bars — and nothing
+  else (DEC-0013).
+- **Authored first night** between `00:00` and `06:00`, where a fire
+  spirit teaches why ground materials matter. Nine stages advance
+  **only** on world facts (a completed module, a closed dialogue
+  node), never on the clock. The tick never freezes; the dawn is
+  the stage transition, the displayed hour stalls at `05:59` while
+  the night runs, and the whole calendar defers while the night is
+  live (no ration, no day boundary). A `Bedroll` finally has
+  mechanical meaning: without it the night refuses to sleep.
+  Existing saves enter with the night **already concluded**, so a
+  played opening is never asked to repeat milestones it has passed.
+- **Founding Site lifecycle**: Campfire → Bedroll/Cache → Canopy on
+  one persistent site identity and parcel, with deposit, contributor
+  assignment, pause/resume and offline progression. Adding the
+  Canopy consolidates the same site into the Basic Shelter without
+  spawning a new building.
+- **Basic Shelter, Farm, Quarry, Town Hall** as placeable construction
+  projects, plus a single **Cultivation Site** that becomes available
+  after the Shelter (1 Branch + 1 Small Stone, 180 preparation work,
+  1 Food seed, exact three-day growth, 5 Food harvest).
+- **Resource expeditions on a dynamic frontage grid**: SpiritTrail
+  (unlocked at dawn) and FallenWoodSearch share a finite opportunity
+  curve with bounded return capacity; dispatch reserves supply and
+  opportunity, completion depletes them, retreat releases them.
+- **Deterministic combat/expedition vertical slice**: a per-encounter
+  working copy (`CombatantState`) carries the real `CitizenId`,
+  channel coefficients obey a fixed-budget invariant so an evolution
+  redistributes instead of grants, and the encounter, route decision
+  and return resolve end-to-end inside the domain. The pre-EG-4
+  `Expedition` resource timer is still separate; consolidating the
+  two is the main technical debt of this slice.
+- **Recruitment through the Town Hall**: a prospect persists, is
+  bounded by housing capacity, and is accepted into the city only
+  when capacity is free. Recruited citizens use the same visual
+  travel system as the founder; mid-transit load reconstructs
+  elapsed progress.
+- **Individual citizen records** shared between the views. A citizen
+  is the only person entity in the domain: roles, competencies,
+  recognitions, lineage, combat nature and profile choices are
+  attached state, not subclasses. Each citizen carries
+  `CurrentStamina`, a `WellFedRemainingTicks` buff counter, an
+  authoritative `Commitment`, a durable `WorkOrder`, a
+  `CurrentLocation` and one persistent moderate wound with Basic
+  Shelter treatment (1 Food, 3600 ticks).
+- **Eight runtime-selectable lineage panel skins** backed directly by
+  exported `StyleBoxTexture` resources, with deterministic fallbacks
+  and a showcase scene.
+- **A versioned local snapshot** (`WorldSave.CurrentVersion = 31`)
+  with bounded causal history, atomic write with `.bak`, and a
+  location-aware resource ledger whose typed reservations survive
+  close/offline progression. Offline progression runs before visual
+  instantiation and uses the same domain transitions as live
+  advancement.
+- **The existing building-detail, assignment, stamina, production,
+  day/night, upkeep and offline systems** as reusable domain
+  concepts and explicit test scenarios rather than new-game seed
+  data.
 
 The architecture establishes three conceptual visual scales — macro,
 building-detail, and expedition-detail — although only the first two
@@ -330,25 +386,17 @@ re-architecting.
 
 ## 14. Short initial roadmap
 
-Items 1–6, 7 and 8 are **complete**, plus four follow-up slices that landed
-on top: stamina-gated production, day/night cycle + passive upkeep +
-WellFed buff, citizen mobilisation with a Home building, and a fix that
-initialises mobilisation from `Restore` so loaded saves render the right
-slots on the first frame. Hero onboarding, first construction, lineage theming,
-and UI validation now sit on top of those systems. The current xUnit suite is
-232 tests. The former Quarry/Farm/Home startup data is explicit test data only.
+The opening is sequenced as
+`EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6` and is defined by
+[`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`](docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md)
+§15. The xUnit suite measures **913 passing**, 1 skipped (known JSON
+snapshot brittleness); the schema is **v31**; the agent-context
+validator runs **448 checks**; the EN/ES gettext catalogs cover
+**918 template IDs** and **283 runtime keys**.
 
-**Slice 7 (First MVP pixel art).** Three placeholder PNGs
-(`home_idle.png`, `quarry_idle.png`, `farm_idle.png`) now live in
-`art/exports/buildings/` and `game/assets/buildings/`. The C#
-`BuildingArt` catalog is the single source of truth that maps each
-`BuildingKind` to its texture path and canvas size; replacing the
-PNGs with the real Pixelorama sources later does not change any
-scene. The old `building_placeholder.png` and `worker_placeholder.png`
-were removed.
-
-This list is not a contract. Items may be reordered, dropped, or expanded as
-the prototype teaches us what the project actually needs.
+The following increments have landed on top of the early persistence
+and offline-progression spine (items 1–8) and are now part of the
+connected baseline. Items 9 onward sit above that spine.
 
 1. ✅ **Repository** — Confirm structure, build, and documentation.
 2. ✅ **First prototype scene** — Building macro/detail navigation + worker slots.
@@ -402,27 +450,103 @@ the prototype teaches us what the project actually needs.
     represents a completed labour action or meal. Farm, Quarry, and assigned
     gathering resolve every 10 seconds; citizens eat at home when recovery or
     the night meal cadence requires it, and production UI reports amounts per
-    batch. Founding Farm/Quarry storage
-    is 60/80, including a one-time additive rebalance for older snapshots.
+    batch. Founding Farm/Quarry storage is 60/80, including a one-time
+    additive rebalance for older snapshots.
+15. ✅ **Ravatha / Cubo Kovari / onboarding consolidation** — the
+    three delivered packages fold into the design bible as chapters
+    13–21 (`bible/13_KOVARI_CUBE.md` plus one chapter per lineage).
+    The eight line signatures (Anclaje, Corola, Reconfiguración,
+    Rumbo, Custodia, Adaptación, Resonancia, Síntesis) are canonised;
+    `FounderOnboardingResult` is reduced to lineage, elemental
+    affinity, cube profile and narrative memory (DEC-0013). The old
+    `.zip` packages live under `docs/_archive/ravatha-source-2026-08-04/`.
+16. ✅ **Derived stats with auditable breakdown** — each `Citizen`
+    exposes derived physical/elemental power, life, defences,
+    mitigations, regeneration, healing and tempo stats from a single
+    domain query, with the contributing sources listed. Equipment
+    acts on channels (Weight, Demand, MaxIntegrity, CurrentCondition,
+    ElementalResonance, ElementalTolerance, WearProfile), never as a
+    power multiplier. Schema v30 carries the persistent cube sources;
+    v29 carries the canonical onboarding result.
+17. ✅ **EG-4 — resource expeditions on a dynamic frontage grid**
+    (v24 → v28). Fixed nine-lot parcels become continuous frontage
+    rows with persisted corridors; resource units occupy only their
+    own cell instead of claiming the surrounding 3×3 lot. Campfire
+    and Cache each expose one finite Food and one finite Wood
+    opportunity; dispatch reserves supply, opportunity and bounded
+    return capacity; the durable Primitive Axe is craftable at the
+    Shelter from 1 Branch + 1 Small Stone.
+18. ✅ **Combat / expedition vertical slice** — a per-encounter
+    working copy carries the real `CitizenId`; channel coefficients
+    obey a fixed-budget invariant so an evolution redistributes
+    instead of grants; the encounter, route decision and return
+    resolve end-to-end inside the domain, deterministic from a seed
+    and reachable in-engine via the `combat-debug` fixture.
+    Provisional balance is centralised in `CombatBalanceConfig`;
+    consolidating this slice with the pre-EG-4 resource expedition
+    is the next debt, not part of it.
+19. ✅ **Authored first night (state)** — `FirstNightSave` lands in
+    v31; the night stages and the open dialogue node persist so a
+    loaded save resumes on the same line. Existing cities enter
+    with the night **already concluded**.
+20. ✅ **Authored first night (playable)** — fire spirit dialogue
+    catalog (six main nodes, eight lineage variants per node, 48
+    `firstnight.*` keys), non-modal `FirstNightDialogueStrip` on
+    `OverlayLayers.Tutorial`, fire spirit visual whose position is
+    derived from the stage and never persisted, contextual
+    `FirstNightContextCommentary` while gathering, dawn emits
+    `WorldEventKind.SpiritDeparted` once, embers primitive over the
+    campfire after departure, and `SpiritTrailSearch` resource
+    opportunity unlocks for the first expedition. `docs/19_*` is
+    accepted as canonical (DEC-0014).
+21. 🔵 **EG-5 — consolidation (active)** — second/third Cultivation
+    Site and Farm consolidation; the first forestry capability is
+    the durable Primitive Axe, already wired through EG-4 and v31.
+    Once EG-5 → EG-6 are accepted, the persistent wound/treatment
+    loop (deferred from VS-3) is the next product objective.
+22. ⏭ **EG-6 — calibration/signature** — closes the EG-A0 acceptance
+    test defined by the proposal §17 (recruitment and Food pressure
+    player-facing calibration; founding-site signature). Required
+    before any broader product slice is approved.
 
-## 15. Founding hero and next proof
+This list is not a contract. Items may be reordered, dropped, or expanded as
+the prototype teaches us what the project actually needs.
 
-The canonical entry point is a complete onboarding profile for one hero. The
-profile stores lineage, personal aptitudes, professional affinities, elemental
-affinity, combat preferences, traits, political orientation, and spiritual
-posture. The eight lineages influence learning context qualitatively; they do
-not block professions or add automatic production bonuses. The full lineage
-contract, twelve-family vocabulary, five layers of competence, and data and
-balance rules live in the design bible at
-[`docs/world-of-goses-design-bible/06_LINEAGES.md`](docs/world-of-goses-design-bible/06_LINEAGES.md)
-and
-[`docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`](docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md).
+## 15. Founding hero and first night
 
-Schema v2 rejects the retired v1 startup data during onboarding. After the
-player confirms a hero, the slot is replaced atomically and the old snapshot is
-preserved as `.bak`. The first authorised building decision is now implemented
-as a Basic Shelter construction project; the next proof should deepen its real
-material and knowledge conditions rather than reintroduce starter seed data.
+The canonical entry point is a twelve-fragment astral onboarding that
+ends on a single onboarding card showing lineage, elemental affinity,
+the physical expression derived from that affinity and the three
+Kovari-Cube axes as two-pole bars. The persisted onboarding result is
+`FounderOnboardingResult { Lineage, ElementalAffinity, CubeProfile,
+NarrativeMemory }` — nothing else (DEC-0013). The eight lineages
+influence learning context qualitatively; they do not block
+professions or add automatic production bonuses. The full lineage
+contract, the cube geometry and the founder sequence live in the
+design bible at
+[`docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`](docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md),
+[`docs/world-of-goses-design-bible/06_LINEAGES.md`](docs/world-of-goses-design-bible/06_LINEAGES.md),
+[`docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`](docs/world-of-goses-design-bible/13_KOVARI_CUBE.md)
+and chapters `14_LINEAGES_*.md` through `21_LINEAGES_THERYN.md`.
+
+Schema v31 rejects retired startup data during onboarding and replaces
+the slot atomically with the canonical result, preserving the old
+snapshot as `.bak`. A new city begins at `Day 1 00:00`, which is
+already night — that is the first night. From the founder's
+manifestation to the dawn, a fire spirit teaches why the ground
+materials matter, and the night advances module by module rather
+than by the clock. The full contract lives at
+[`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`](docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md).
+
+After the dawn the founder carries `Citizen.Commitment` for the
+Founding Site lifecycle: Campfire, then Bedroll and Cache, then
+Canopy, on one persistent site identity. Adding the Canopy
+consolidates the same site into the Basic Shelter without spawning a
+new building — that is the first construction decision, no longer a
+free-standing Basic Shelter project. The next proof is the EG-A0
+acceptance test in
+[`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`](docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md)
+§17 (EG-5 → EG-6), not a re-introduction of starter seed data.
 
 ## 16. Provisional names
 
