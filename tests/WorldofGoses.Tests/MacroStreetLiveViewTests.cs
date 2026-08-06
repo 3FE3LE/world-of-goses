@@ -277,7 +277,7 @@ public class MacroStreetLiveViewTests
     [Fact]
     public void MaximumZoom_AllowsACloserViewThanThePreviousLimit()
     {
-        Assert.Equal(2.2f, MacroStreetLiveView.MaximumZoomForTests);
+        Assert.Equal(3.0f, MacroStreetLiveView.MaximumZoomForTests);
         Assert.True(MacroStreetLiveView.MaximumZoomForTests > 1.75f);
     }
 

@@ -80,7 +80,7 @@ public partial class MacroStreetLiveView : Node2D
     private const float ZoomStep = 0.15f;
     private const float MinZoom = 1.3f;
     private const float DefaultZoom = 1.45f;
-    private const float MaxZoom = 2.2f;
+    private const float MaxZoom = 3.0f;
 
     // Holding vertical pan repeats slowly at first, then gently accelerates.
     // The camera still advances only on the 12 Hz pixel-motion cadence and

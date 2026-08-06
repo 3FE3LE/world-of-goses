@@ -99,16 +99,18 @@ public partial class AstralOnboardingView : Control
         _narrative.CustomMinimumSize = new Vector2(0, 92);
         shell.AddChild(_narrative);
 
-        var scroll = new ScrollContainer
-        {
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        shell.AddChild(scroll);
+        // No scroll container. The choice buttons (4 × 66 px) and the
+        // identity widgets (sprite + name input + two gender buttons)
+        // both fit at the project's 1280×720 baseline without scrolling;
+        // a previous ScrollContainer existed for very small viewports
+        // and the final summary screen, but on the canonical resolution
+        // it never engaged. Removing it also takes the name input,
+        // gender selector, and resulting sprite out of the scrollable
+        // area — they were the only widgets actually clipping in the
+        // edge cases.
         _choices = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _choices.AddThemeConstantOverride("separation", 8);
-        scroll.AddChild(_choices);
+        shell.AddChild(_choices);
 
         _consequence = NewLabel("BodyText", HorizontalAlignment.Center);
         _consequence.CustomMinimumSize = new Vector2(0, 52);
@@ -269,6 +271,39 @@ public partial class AstralOnboardingView : Control
         _back.Disabled = false;
         _next.Text = UiText.Get("Conservar este nombre");
 
+        // Horizontal split keeps the name input, gender selector, and
+        // resulting sprite visible at the same time. The previous
+        // vertical stack forced them into the scrollable area; the
+        // new layout is its own row, sized to the safe-area width.
+        var identityRow = new HBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            Alignment = BoxContainer.AlignmentMode.Center,
+        };
+        identityRow.AddThemeConstantOverride("separation", 24);
+        _choices.AddChild(identityRow);
+
+        // Left column: the sprite preview frame. AddResultSprite slots
+        // the rendered sprite into this frame so it sits next to the
+        // inputs, not below them.
+        var spriteFrame = new Control
+        {
+            CustomMinimumSize = new Vector2(160, 160),
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        };
+        identityRow.AddChild(spriteFrame);
+
+        // Right column: name input stacked above the gender row.
+        var inputsColumn = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        };
+        inputsColumn.AddThemeConstantOverride("separation", 10);
+        identityRow.AddChild(inputsColumn);
+
         _nameEdit = new LineEdit
         {
             PlaceholderText = UiText.Get("Nombre del fundador"),
@@ -282,7 +317,7 @@ public partial class AstralOnboardingView : Control
             _founderName = value;
             ValidateIdentity();
         };
-        _choices.AddChild(_nameEdit);
+        inputsColumn.AddChild(_nameEdit);
 
         var genderRow = new HBoxContainer
         {
@@ -290,7 +325,7 @@ public partial class AstralOnboardingView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
         genderRow.AddThemeConstantOverride("separation", 12);
-        _choices.AddChild(genderRow);
+        inputsColumn.AddChild(genderRow);
         foreach ((GenderId id, string text) in new[]
         {
             (GenderId.Feminine, UiText.Get("Feminine")),
@@ -308,7 +343,7 @@ public partial class AstralOnboardingView : Control
             button.ThemeTypeVariation = _gender == id ? "ButtonPrimary" : "ButtonText";
             genderRow.AddChild(button);
         }
-        AddResultSprite();
+        AddResultSprite(spriteFrame);
         ValidateIdentity();
         FadeIn(_narrative, 0.25);
         _nameEdit.GrabFocus();
@@ -415,24 +450,21 @@ public partial class AstralOnboardingView : Control
         _cityView.CompleteFounderArrival();
     }
 
-    private void AddResultSprite()
+    private void AddResultSprite(Control frame)
     {
         if (_result is null || !_gender.HasValue) return;
         CharacterBodyVariant body = CharacterVisualRegistry.ResolveBodyVariant(_gender.Value);
         LineageSpritePlayer sprite =
             CharacterVisualRegistry.LoadScene(_result.Lineage, body)
                 .Instantiate<LineageSpritePlayer>();
-        var preview = new Control
-        {
-            CustomMinimumSize = new Vector2(0, 140),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        preview.AddChild(sprite);
-        preview.Resized += () =>
-            sprite.Position = new Vector2(preview.Size.X * 0.5f, 76);
-        _choices.AddChild(preview);
+        frame.AddChild(sprite);
+        // Centre the sprite in the frame; the frame has no children other
+        // than the sprite, so its size at deferred call is the layout
+        // we want to anchor to.
+        frame.Resized += () =>
+            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f);
         Callable.From(() =>
-            sprite.Position = new Vector2(preview.Size.X * 0.5f, 76)).CallDeferred();
+            sprite.Position = new Vector2(frame.Size.X * 0.5f, frame.Size.Y * 0.85f)).CallDeferred();
     }
 
     private void BuildFragments()

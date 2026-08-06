@@ -38,7 +38,7 @@ admiten:
 
 ### Baseline vigente
 
-- Fecha de alineación: **2026-08-03**.
+- Fecha de alineación: **2026-08-06**.
 - Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado;
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
@@ -47,15 +47,18 @@ admiten:
   6→12→24, mismo ID/parcela y finalización offline. El primer Cultivation Site
   requiere Shelter, 1 Branch + 1 Small Stone, 180 work y produce 5 Food tres
   días después de sembrar 1 Food, con la misma frontera live/offline.
+  Primera noche jugable (H-33 + H-34) entregada sin schema bump;
+  zoom-in máximo del macro view elevado a 3.0; identidad del fundador
+  ya no vive en un `ScrollContainer` (ver §7 2026-08-06).
 - Save: **schema v31** (primera noche autoral persistida; v30 estadísticas
   derivadas por citizen, v28 herramientas durables, v27 oportunidades finitas
   de Food/Wood y capacidad de retorno).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **879 / 880** (1 omitido por brittleness del snapshot JSON en
+- Tests: **913 / 914** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
-- Localización: **852 IDs de plantilla, 295 claves de runtime** válidas.
-- Agent context: **442 checks** sin fallos.
+- Localización: **908 IDs de plantilla, 296 claves de runtime** válidas.
+- Agent context: **448 checks** sin fallos.
 - Arranque Godot headless: correcto.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
   `docs/CURRENT_STATUS.md`.
@@ -68,14 +71,17 @@ admiten:
 
 | Estado | Crítica | Alta | Media | Baja |
 | --- | ---: | ---: | ---: | ---: |
-| En curso | 1 | 0 | 1 | 0 |
-| Pendiente | 0 | 2 | 2 | 0 |
+| En curso | 0 | 0 | 1 | 0 |
+| Pendiente | 0 | 0 | 1 | 0 |
 | Necesita reanálisis | 0 | 0 | 0 | 0 |
 | Diferido por trigger | 0 | 2 | 1 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
 
-Las dos Altas y una de las Medias pendientes son las fases 2, 3 y 4 de la
-primera noche (H-33, H-34, M-26 en §3).
+Las dos Altas y una de las Medias pendientes eran las fases 2, 3 y 4 de la
+primera noche (H-33, H-34, M-26 en §3) — todas entregadas en `main`
+los días 2026-08-06. La Media que queda en curso es M-26 propiamente,
+porque su aceptación exige playtest humano en slot limpio, y eso entra
+por el contrato transversal de M-14.
 
 ## 2. Increment activo — Apertura EG-A0 (proposal §15)
 
@@ -102,7 +108,7 @@ Onboarding astral → manifestación sobre la marca del linaje
 | EG-2 — founding site seam | Hecho | Schema v22; Founding Site estable con Campfire → Bedroll/Cache → Canopy, capacidad 6→12→24, origen persistente y equivalencia offline. |
 | EG-3 — Food horizon seam | Hecho | Schema v24; primer Cultivation Site completo, Food horizon visible y equivalencia live/offline cubierta por `Eg3CultivationSiteTests`. |
 | EG-4 — resource expedition seam | Hecho | Schema v27; oportunidades finitas de Food/Wood, cadena completa, supply/oportunidad/capacidad reservados y equivalencia live/offline. |
-| EG-5 — consolidación | En curso | Forestry gate conectado: Shelter + hacha primitiva durable (1 Branch + 1 Small Stone). Apertura acotada a tres parcelas horizontales, sin frontier desbloqueable, y recursos dispersos. Pendientes segundo/tercer plot y Farm consolidation. |
+| EG-5 — consolidación | En curso | Forestry gate conectado: Shelter + hacha primitiva durable (1 Branch + 1 Small Stone). **Primera noche jugable (H-33 + H-34) entregada en schema v31 sin bump**: banda de diálogo no modal en `OverlayLayers.Tutorial=50`, espíritu visual con anillo de 16 puntos, embers post-departure, `SpiritTrailSearch` con gate por `SpiritDeparted`. Apertura acotada a tres parcelas horizontales, sin frontier desbloqueable. Pendientes: firma humana del recorrido (M-14) y segundo/tercer plot + Farm consolidation. |
 | EG-6 — calibration/signature | Bloqueado | Espera EG-5. |
 
 ### 🟡 M-14 — Matriz de regresión visual
@@ -153,103 +159,69 @@ es de solo lectura.
 
 #### 🟠 H-33 — Fase 2: espíritu de fuego y diálogo
 
-- **Estado:** Pendiente. Es la fase donde el jugador ve algo por primera vez.
+- **Estado:** Hecho el 2026-08-06. Ver §7.
 - **Prioridad:** Alta.
 - **Afecta:** `Domain/Dialogue.cs` (contratos), nuevo
   `Domain/FireSpiritDialogueCatalog.cs`, `Domain/FirstNightState.cs`,
   `Prototypes/MacroStreetLiveView.cs`, `CityMacroSnapshot.cs`,
   `Ui/OverlayLayers.cs`, `game/locale/*`.
-- **Hecho:** el estado avanza ya por `TryOpenFirstNightDialogue` /
-  `TryCloseFirstNightDialogue` con el id de nodo persistido.
-- **Pendiente:**
-  1. Catálogo de nodos en código con claves de traducción, mismo patrón que
-     `FounderNarrativeCatalog`. **Reutiliza `IDialogueNode`/`IDialogueChoice`
-     pero no `DialogueRunner.RunAsync`**: es un `async` que guarda su posición
-     en un `await` y no es persistible a medias, lo que rompería la invariante
-     13 del doc 19. El runner queda intacto para H-31.
-  2. Cero dígitos escritos a mano. Las cantidades se interpolan en runtime
-     desde `FoundingSiteRules.InputsFor(module)`, como ya hace
-     `ConstructionPanel`. Test que verifique que ningún `msgid` de la noche
-     contiene un dígito literal, con el precedente de
-     `LineageSignatureLocalizationTests` (que ya lee los `.po` desde el test).
-  3. Dos superficies distintas: *diálogo principal* como banda inferior **no
-     modal** en la ranura `OverlayLayers.Tutorial = 50` que liberó el borrado
-     del overlay viejo, y *comentario contextual* efímero que no detiene la
-     simulación. Nunca `MouseFilter.Stop` a pantalla completa: el jugador debe
-     poder mirar el mundo mientras lee.
-  4. El espíritu como entidad visual. **Su posición se deriva de la etapa**, no
-     se persiste: la ciudad no guarda coordenadas visuales autoritativas.
-     Precedente de posicionamiento: `ProjectDepth`/`AnchorDepth` +
-     `IsProjectedDepthVisible`. `CitizenSpriteBank` está indexado por
-     `CitizenId`, así que necesita presentación propia.
-  5. Sin arte: `game/assets/effects/` está vacío y no hay sprite de fogata.
-     Presentación programática con el precedente del anillo de 16 puntos de
-     `FounderArrivalSequence`. Promover `art/Pixelarticons/svg/fire.svg` a
-     `IconPaths` cumple el trigger de M-22.
-  6. Variaciones por `PrimaryAffinity`/linaje **solo** como reacciones y líneas
-     alternativas; no ramifican la ruta ni exponen etiquetas internas
-     (doc 19 §13–14).
-- **Aceptación:** el espíritu explica por qué sirven los recursos, el jugador
-  actúa más de lo que lee, y ninguna cifra del diálogo puede contradecir la
-  receta real.
+- **Hecho:** catálogo `FireSpiritDialogueCatalog` con 6 IDs estables y 8
+  variantes de cuerpo por linaje (48 claves, todas bajo el prefijo
+  `firstnight.*`); banda de diálogo no modal `FirstNightDialogueStrip` en
+  `OverlayLayers.Tutorial = 50` con `MouseFilter.Stop` sólo en el strip
+  inferior; `FireSpiritVisual` con anillo de 16 puntos y glyph triangular,
+  posición derivada de la etapa vía `ProjectDepth`; `FirstNightContextCommentary`
+  como `Notifier`-based ephemeral; `IconPaths.Fire` + `game/assets/ui/icons/24/fire.svg`
+  promueve el asset (cierra trigger M-22); `[Signal] FirstNightStageChanged`
+  en `CityWorldController` + `FirstNightScene` como host del strip + visual;
+  `TryOpenFirstNightDialogue` / `TryCloseFirstNightDialogue` expuestos. Sin
+  `using Godot` bajo `Domain/`. `DialogueRunner.RunAsync` queda intacto.
+- **Aceptación:** cubierta — tests `FirstNightDialogueCatalogTests` (10
+  casos), `FirstNightDialogueNoLiteralDigitsTests` (3 casos), build 0/0,
+  tests 901/902 antes del bloque M-26.
 
 #### 🟠 H-34 — Fase 3: amanecer y motivo de la primera expedición
 
-- **Estado:** Pendiente. Depende de H-33.
+- **Estado:** Hecho el 2026-08-06. Ver §7.
 - **Prioridad:** Alta.
 - **Afecta:** `Domain/ResourceOpportunityKind.cs`,
   `Domain/ResourceExpeditionRules.cs`, `ExpeditionPanel.cs` y su `.tscn`,
   `Domain/Persistence/WorldPersistence.cs`, Chronicle.
-- **Choque real que hay que respetar:** las salidas de recurso exigen
-  **Campfire + Cache** (`CityWorld.cs:234-241`, espejado en
-  `ExpeditionPlanningSnapshot.cs:32-33`), y la noche construye Campfire +
-  Bedroll. Por eso el amanecer entrega el **motivo**, no el despacho inmediato
-  — que es exactamente lo que dice el doc 19 §12 y §11 ("queda disponible **o
-  se introduce**"). El siguiente paso honesto es el Cache, que es literalmente
-  "dónde recibir lo que traigas". Cadena resultante:
-  `rastro → Cache → primera salida → Canopy → Shelter → hacha → talar`.
-  Con eso el hacha deja de ser un requisito huérfano.
-- **Pendiente:** partida del espíritu; tizones en la fogata como variante
-  visual del Campfire; evento causal en el Chronicle; `SpiritTrailSearch` como
-  `ResourceOpportunityKind` nuevo con recompensa `Wood` (el rastro lleva a
-  madera quemada, así encaja en la forma existente de
-  `ResourceExpeditionDefinition` sin inventar un campo narrativo).
-- **Fricción conocida:** `ExpeditionPanel` cablea **exactamente dos** botones
-  de objetivo por `NodePath` (`:28-31`, `:394-403`); la lista no es
-  data-driven. `ResourceExpeditionRules.Definition` lanza en el `default`, así
-  que un kind sin arma revienta.
-- **Aceptación:** la primera expedición tiene causa narrativa y sistémica; no
-  se añade una misión genérica sin causa ni una lista permanente.
+- **Hecho:** `WorldEventKind.SpiritDeparted` emitido por
+  `CityWorld.AdvanceFirstNight` al cruzar `Sleeping → Concluded` y marcado
+  significativo en `WorldEventRetention.IsSignificant`. Nuevo
+  `ResourceOpportunityKind.SpiritTrailSearch = 2` con cuerpo en
+  `ResourceExpeditionRules.Definition` (180 ticks, 1 Food, recompensa
+  Wood 4/6/8). Tercer botón `SpiritButton` en `ExpeditionPanel.tscn`,
+  cableado en `ExpeditionPanel.cs` y gateado por
+  `ExpeditionPlanningSnapshot.SpiritTrailUnlocked` derivado del log.
+  Embers primitive (`FirstNightEmbers.cs`) sobre la fogata cuando
+  `SpiritDeparted` ya está en el chronicle y la fogata sigue construida.
+  Seeding de la oportunidad `SpiritTrailSearch` en el mismo tick del
+  amanecer. Sin schema bump — `Enum.TryParse` tolera el nuevo valor y la
+  serialización string del kind sigue igual.
+- **Fricción resuelta:** `ExpeditionPanel` ahora cablea tres botones por
+  `NodePath` (`SpiritTrailObjectiveButtonPath`); el switch del switch
+  del `Definition` gana el brazo `SpiritTrailSearch`.
+- **Aceptación:** cubierta — tests `FirstNightSpiritDepartedTests` (5 casos)
+  + `SpiritTrailOpportunityTests` (7 casos), build 0/0.
 
 #### 🟡 M-26 — Fase 4: documentación canónica y firma visual de la noche
 
-- **Estado:** Pendiente. Se cierra con H-33 y H-34 en pie.
+- **Estado:** Cerrado el 2026-08-06. **Firma humana pendiente** vía M-14.
 - **Prioridad:** Media.
-- **Pendiente:**
-  - Versionar `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y pasarlo de "Propuesta
-    canónica" a aceptada.
-  - **DEC-0014** en `docs/ai/DECISION_LOG.md` (el id más alto en uso es
-    DEC-0013), citando el doc 19 y registrando la separación de los tres
-    niveles de guía.
-  - `docs/ai/CROSS_DOMAIN_INVARIANTS.md`: las invariantes de la primera noche y
-    el nuevo significado del Bedroll como ancla de descanso.
-  - `docs/ai/CONTEXT_MAP.md`: ruta nueva para "primera noche / espíritu", más
-    la ruta **ausente** de herramientas/inventario que la regla de `:19` obliga
-    a añadir cuando ninguna coincide.
-  - `docs/CURRENT_STATUS.md` y `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`:
-    la apertura EG-A0 entra ahora por la primera noche.
-  - `docs/VISUAL_REGRESSION.md`: fixtures nuevos (banda de diálogo, espíritu,
-    fogata, tizones) en 1280×720 y 1920×1080. Los de `tutorial`/`tutorial-long`
-    ya se retiraron y su fila histórica quedó anotada como superada.
-- **Aceptación:** playtest humano en slot limpio. `verify-clicks-with-real-clicks`
+- **Hecho:** doc 19 → Aceptada, **DEC-0014** registrado, invariantes de la
+  primera noche añadidas a `CROSS_DOMAIN_INVARIANTS.md`, ruta "First night /
+  fire spirit" y placeholder "Tools and inventory" en `CONTEXT_MAP.md`,
+  apertura EG-A0 reescrita en `CURRENT_STATUS.md` y
+  `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`, cuatro fixtures nuevos en
+  `VISUAL_REGRESSION.md` (`firstnight-strip`, `firstnight-spirit`,
+  `firstnight-embers`, `firstnight-spirit-trail-button`).
+- **Pendiente (sólo firma humana):** playtest en slot limpio con el recorrido
+  descrito en M-14 → Pendiente para EG-5 / M-26. `verify-clicks-with-real-clicks`
   aplica de lleno: la banda de diálogo y el hit-rect del espíritu son
   superficies nuevas de input, y un ancestro con `MouseFilter.Stop` puede
-  tragárselas sin que el código lo delate. Recorrido a firmar: manifestación →
-  control inmediato → llegada del espíritu → reconocer nodos → recoger →
-  Campfire → **verificar que se puede volver a recolectar** → Bedroll →
-  conversación de la otra luz → sueño → amanecer sin espíritu con tizones →
-  motivo de expedición visible → guardar/cargar a mitad → reiniciar y
-  comprobar que la ciudad sigue siendo completable.
+  tragárselas sin que el código lo delate.
 
 ### 🟡 M-14 — Matriz de regresión visual
 
@@ -328,6 +300,53 @@ superados en 2026-07-30; ver §8.)_
 | S-1.7 profiler | Hecho; mantener medición real del engine en matrices. |
 
 ## 7. Hechas recientes
+
+### 2026-08-06
+
+- **H-33 + H-34 + M-26 — Primera noche del fundador jugable.** Tres ítems
+  cerrados en una sola tanda de 17 commits en `main`. Lo nuevo, en
+  dominio: `FireSpiritDialogueCatalog` con 6 IDs y 8 variantes de cuerpo
+  por linaje (48 claves bajo `firstnight.*`), `FirstNightState` / `FirstNightRules`
+  / `FirstNightState` sellado y persistido, `Tr.FirstNight` con 55
+  claves, `WorldEventKind.SpiritDeparted` significativo, nuevo
+  `ResourceOpportunityKind.SpiritTrailSearch` con recompensa Wood.
+  Presentación: `FirstNightDialogueStrip` (Control no modal en
+  `OverlayLayers.Tutorial=50`), `FireSpiritVisual` (anillo 16 puntos +
+  glyph triangular, posición derivada), `FirstNightEmbers` (cuadrilátero
+  naranja post-departure), `FirstNightContextCommentary` (helper efímero
+  vía Notifier), `FirstNightScene` (host que conecta strip + visual con
+  el `[Signal] FirstNightStageChanged`), `IconPaths.Fire` + promoción
+  del `fire.svg` (cierra trigger M-22). Expedición: tercer botón
+  `SpiritButton` en `ExpeditionPanel.tscn`, gate por
+  `ExpeditionPlanningSnapshot.SpiritTrailUnlocked`. Sin schema bump
+  (string serialisation + `Enum.TryParse` tolerante). Docs:
+  `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` Propuesta → Aceptada,
+  **DEC-0014** en `docs/ai/DECISION_LOG.md`, invariantes en
+  `docs/ai/CROSS_DOMAIN_INVARIANTS.md`, ruta "First night / fire spirit" +
+  placeholder "Tools and inventory" en `docs/ai/CONTEXT_MAP.md`, 4 fixtures
+  nuevos en `docs/VISUAL_REGRESSION.md`, entrada en `CHANGELOG.md`.
+  Tests añadidos: `FirstNightDialogueCatalogTests` (10),
+  `FirstNightDialogueNoLiteralDigitsTests` (3), `FirstNightSpiritDepartedTests`
+  (5), `SpiritTrailOpportunityTests` (7). Build 0/0, tests 913/914.
+  **Firma humana pendiente** vía M-14.
+
+### 2026-08-06 — correcciones post-entrega
+
+- **Zoom-in máximo elevado de 2.2 a 3.0** en
+  `MacroStreetLiveView.cs:83`. Sin tocar `StreetDepthProjection` (el zoom
+  es un `Scale`/`Position` post-proyección alrededor del pivote fijo).
+  Test `MaximumZoom_AllowsACloserViewThanThePreviousLimit` actualizado
+  en lockstep para no quedar pinned al valor anterior.
+- **`AstralOnboardingView` sin `ScrollContainer` para la identidad.**
+  El `LineEdit` de nombre, la fila de género y el `LineageSpritePlayer`
+  de previsualización ya no viven dentro del scroll; pasan a una fila
+  horizontal fija (`HBoxContainer` con sprite a la izquierda y
+  nombre+género a la derecha) que cabe en 1280×720 sin scroll. La
+  información se reorganiza para que toda la vista —progreso, 12
+  fragmentos, título, narrativa, opciones, consecuencia, footer—
+  quepa sin necesidad de `ScrollContainer`. Sin impacto en el dominio.
+
+### 2026-08-05
 
 - **M-25 — Feedback causal de importancia grande (primer corte implementado,
   2026-08-05).** `UiMotion.LargeEventSeconds` (0.45s, no bloquea input) +
