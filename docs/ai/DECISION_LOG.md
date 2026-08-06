@@ -385,6 +385,128 @@ y fallback*.
 
 ---
 
+## DEC-0014: First night authored — fire spirit dialogue, expedition motive, post-dawn separation
+
+**Status:** Accepted
+**Date:** 2026-08-06
+
+**Decision:**
+The post-manifestation period (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
+is a bounded, authored sequence running from the founder's arrival at
+tick 0 (`00:00`) to dawn. Concretely:
+
+1. **Six main-dialogue nodes carry the spirit's voice.** Each node has
+   one body variant per `LineageId` (eight × six = 48 keys), so the
+   spirit reacts without branching the route or exposing internal
+   labels. The route itself is strictly linear: `Choices` is empty
+   and `Next` is `null` on every node, and the only advance is
+   `CityWorld.TryCloseFirstNightDialogue`.
+
+2. **`DialogueRunner.RunAsync` stays untouched.** The first NPC slice
+   (backlog H-31) will add `JsonDialogueRunner`. The first night
+   persists `FirstNightState.CurrentDialogueNodeId` instead, because a
+   coroutine holding its position across `await` cannot survive a
+   save/restore without breaking invariant 13 of the doc.
+
+3. **`OverlayLayers.Tutorial = 50` is the night's surface.** The
+   slot was reserved by deleting `TutorialOverlay` on 2026-08-05 and
+   is documented as the authored-guidance layer. The non-modal strip
+   `FirstNightDialogueStrip` lives there with `MouseFilter.Stop` only
+   on the bottom strip — clicks outside the strip fall through to
+   the world.
+
+4. **Quantities are never baked into body keys.** Every visible
+   number (the campfire's branches and stone, the shelter's branches
+   and fibre) is interpolated at runtime from
+   `FoundingSiteRules.InputsFor(module)`, so a recipe change cannot
+   leave the night describing a world that no longer exists. The
+   `FirstNightDialogueNoLiteralDigitsTests` guard enforces this.
+
+5. **The Bedroll gains its first mechanical meaning.** A founder with
+   no Bedroll (or `Home`) cannot fall asleep at `OtherLightTold` —
+   `HasRestingPlace()` is the gate. The Bedroll stops being only
+   cost/work and starts being "where sleep is possible".
+
+6. **`SpiritTrailSearch` is the post-dawn expedition motive.** A
+   new `ResourceOpportunityKind` value carries the same return curve
+   as `FallenWoodSearch` but rewards `Wood` (fire-blackened remnants).
+   The button surfaces in the expedition panel only after the
+   `WorldEventKind.SpiritDeparted` event lands in the log. No schema
+   bump — the kind serialises as a string and `Enum.TryParse`
+   tolerates the new value in legacy saves.
+
+7. **The three levels of post-dawn guidance stay separated.** The
+   first night is authored and finite. After dawn:
+   (a) **Derived directives** explain needs, causes and impediments
+       from the real city state — never from a static list that can
+       drift out of step.
+   (b) **The Camino** is a read-only conceptual map of the
+       settlement's progression; it grants no rewards and creates no
+       arbitrary unlocks.
+   (c) **The first night itself is not repeated** and never appears
+       in the Camino or the directives. Concretely: no "follow-up
+       mission", no modal "tutorial replay", no list of steps the
+       player can check off.
+
+**Reason:**
+A playtest of the opening (`TO_DO.md` §3 2026-08-05 entry) showed the
+previous three-card modal tutorial lying about recipe costs and
+requiring an axe the player could not yet obtain. The proposal
+section §6 forbids a permanent mission list and §442 (see
+`EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`) forbids a chain of
+modal tutorials. The first-night sequence is the only shape that
+explains the cause (why these resources matter) without breaking
+either ban. The `SpiritTrailSearch` is the same shape: a real
+expedition with a real reward, gated on a real event, that exists
+because the night produced it.
+
+**Affected domains:** narrative, presentation, citizens, city, expeditions,
+persistence.
+
+**Consequences:**
+
+- `Domain/FirstNightState.cs`, `FirstNightStage.cs`, `FirstNightRules.cs`
+  already exist as the persistent seam; this decision adds the
+  authored content on top, not a parallel state machine.
+- `Domain/FireSpiritDialogueCatalog.cs` becomes the only source of
+  body keys for the night; `FounderNarrativeCatalog` patterns are
+  reused, `DialogueRunner.RunAsync` is not.
+- The Expedition panel exposes a third objective button
+  (`SpiritButton`) which is hidden by default and only appears when
+  `ExpeditionPlanningSnapshot.SpiritTrailUnlocked == true`.
+- `WorldEventKind.SpiritDeparted` is a new enum value, added to
+  `WorldEventRetention.IsSignificant` so it survives save/load and
+  drives the embers primitive in `FirstNightScene`.
+- `docs/CURRENT_STATUS.md` and
+  `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` now describe
+  the opening as entering through the first night, not as a
+  separate recipe-and-resources tutorial.
+
+**Documents affected:**
+`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` (Propuesta → Aceptada),
+`docs/CURRENT_STATUS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`,
+`docs/ai/CROSS_DOMAIN_INVARIANTS.md` (first-night invariants block),
+`docs/ai/CONTEXT_MAP.md` (first-night route + tools placeholder),
+`docs/VISUAL_REGRESSION.md` (four new fixtures).
+
+**Code affected:**
+`game/scripts/Domain/FireSpiritDialogueCatalog.cs`,
+`game/scripts/FirstNightDialogueStrip.cs`, `game/scripts/FireSpiritVisual.cs`,
+`game/scripts/FirstNightEmbers.cs`, `game/scripts/FirstNightScene.cs`,
+`game/scripts/FirstNightContextCommentary.cs`,
+`game/scripts/CityWorldController.cs` (`FirstNightStageChanged` signal +
+`TryOpenFirstNightDialogue` / `TryCloseFirstNightDialogue` wrappers),
+`game/scripts/IconPaths.cs` (`Fire`),
+`game/scripts/ExpeditionPanel.cs` (`SpiritTrailObjectiveButtonPath`,
+third `ConfigureObjectiveButton`),
+`game/scripts/ExpeditionPlanningSnapshot.cs` (`SpiritTrailUnlocked`),
+`game/scenes/Components/ExpeditionPanel.tscn` (`SpiritButton`),
+`game/locale/en.po` + `game/locale/es.po` (48 body + 4 context + 2
+button + 1 tooltip keys), `game/assets/ui/icons/24/fire.svg` (asset
+promotion).
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

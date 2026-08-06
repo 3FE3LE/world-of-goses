@@ -1,7 +1,9 @@
 # Primera noche del Fundador y espíritu de fuego
 
-**Estado:** Propuesta canónica  
+**Estado:** Aceptada
+**Aceptado:** 2026-08-06
 **Ámbito:** Lore, onboarding post-manifestación, early game, recursos, tiempo y transición a expediciones
+**Decisión:** DEC-0014 cubre la separación de los tres niveles de guía posteriores al amanecer (noche autoral / directivas derivadas / Camino consultable).
 
 ## 1. Propósito
 
