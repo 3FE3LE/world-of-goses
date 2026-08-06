@@ -188,4 +188,105 @@ public static class Tr
         /// <summary>Label of the language switcher when the current locale is Spanish.</summary>
         public const string LanguageButtonLabelSpanish = "ui.common.language.spanish";
     }
+
+    /// <summary>
+    /// Translation keys for the authored first night
+    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Body keys are
+    /// emitted by node × lineage: every main-dialogue node carries one
+    /// variant per <see cref="LineageId"/>, so the spirit reacts
+    /// without ever branching the route or exposing internal labels
+    /// (doc 19 §13–14).
+    ///
+    /// <para>
+    /// Quantities are never baked into a body: the line for the
+    /// Campfire module is composed at runtime from
+    /// <see cref="FoundingSiteRules.InputsFor"/>, so a recipe change
+    /// cannot leave the night describing a world that no longer exists.
+    /// </para>
+    /// </summary>
+    public static class FirstNight
+    {
+        /// <summary>Label of the main-dialogue "follow" button.</summary>
+        public const string FollowButton = "firstnight.strip.follow";
+
+        /// <summary>Label of the main-dialogue "sleep" button at the <c>Sleeping</c> stage.</summary>
+        public const string SleepButton = "firstnight.strip.sleep";
+
+        /// <summary>Contextual commentary when gathering Branches near the campfire.</summary>
+        public const string ContextBranchesForFire = "firstnight.context.branches_for_fire";
+
+        /// <summary>Contextual commentary when gathering Small Stone near the campfire.</summary>
+        public const string ContextSmallStoneForFire = "firstnight.context.small_stone_for_fire";
+
+        /// <summary>Contextual commentary when gathering Branches near the unfinished shelter.</summary>
+        public const string ContextBranchesForShelter = "firstnight.context.branches_for_shelter";
+
+        /// <summary>Contextual commentary when gathering Plant Fiber near the unfinished shelter.</summary>
+        public const string ContextPlantFiberForShelter = "firstnight.context.plant_fiber_for_shelter";
+
+        // Manifested greeting (Stage = Manifested) — the founder sees the mark of the lineage
+        // before the spirit arrives. One body per lineage so the mark is named, not labelled.
+        public const string ManifestedBodyArdhen = "firstnight.manifested.body.ardhen";
+        public const string ManifestedBodyEirune = "firstnight.manifested.body.eirune";
+        public const string ManifestedBodyKovari = "firstnight.manifested.body.kovari";
+        public const string ManifestedBodyMyrven = "firstnight.manifested.body.myrven";
+        public const string ManifestedBodyVaelun = "firstnight.manifested.body.vaelun";
+        public const string ManifestedBodyOrveth = "firstnight.manifested.body.orveth";
+        public const string ManifestedBodyCaelith = "firstnight.manifested.body.caelith";
+        public const string ManifestedBodyTheryn = "firstnight.manifested.body.theryn";
+
+        // Spirit arrived (Stage = SpiritArrived) — the spirit greets the mortal and explains
+        // why a form loses heat through the night. Quantity-free; the recipe shows itself later.
+        public const string SpiritArrivedBodyArdhen = "firstnight.spirit_arrived.body.ardhen";
+        public const string SpiritArrivedBodyEirune = "firstnight.spirit_arrived.body.eirune";
+        public const string SpiritArrivedBodyKovari = "firstnight.spirit_arrived.body.kovari";
+        public const string SpiritArrivedBodyMyrven = "firstnight.spirit_arrived.body.myrven";
+        public const string SpiritArrivedBodyVaelun = "firstnight.spirit_arrived.body.vaelun";
+        public const string SpiritArrivedBodyOrveth = "firstnight.spirit_arrived.body.orveth";
+        public const string SpiritArrivedBodyCaelith = "firstnight.spirit_arrived.body.caelith";
+        public const string SpiritArrivedBodyTheryn = "firstnight.spirit_arrived.body.theryn";
+
+        // Campfire built (Stage = CampfireBuilt) — the spirit moves into the flame.
+        public const string CampfireBuiltBodyArdhen = "firstnight.campfire_built.body.ardhen";
+        public const string CampfireBuiltBodyEirune = "firstnight.campfire_built.body.eirune";
+        public const string CampfireBuiltBodyKovari = "firstnight.campfire_built.body.kovari";
+        public const string CampfireBuiltBodyMyrven = "firstnight.campfire_built.body.myrven";
+        public const string CampfireBuiltBodyVaelun = "firstnight.campfire_built.body.vaelun";
+        public const string CampfireBuiltBodyOrveth = "firstnight.campfire_built.body.orveth";
+        public const string CampfireBuiltBodyCaelith = "firstnight.campfire_built.body.caelith";
+        public const string CampfireBuiltBodyTheryn = "firstnight.campfire_built.body.theryn";
+
+        // Shelter built (Stage = ShelterBuilt) — the spirit confirms the minimum cover.
+        public const string ShelterBuiltBodyArdhen = "firstnight.shelter_built.body.ardhen";
+        public const string ShelterBuiltBodyEirune = "firstnight.shelter_built.body.eirune";
+        public const string ShelterBuiltBodyKovari = "firstnight.shelter_built.body.kovari";
+        public const string ShelterBuiltBodyMyrven = "firstnight.shelter_built.body.myrven";
+        public const string ShelterBuiltBodyVaelun = "firstnight.shelter_built.body.vaelun";
+        public const string ShelterBuiltBodyOrveth = "firstnight.shelter_built.body.orveth";
+        public const string ShelterBuiltBodyCaelith = "firstnight.shelter_built.body.caelith";
+        public const string ShelterBuiltBodyTheryn = "firstnight.shelter_built.body.theryn";
+
+        // Other light told (Stage = OtherLightTold) — the second light and the expedition motive.
+        public const string OtherLightToldBodyArdhen = "firstnight.other_light_told.body.ardhen";
+        public const string OtherLightToldBodyEirune = "firstnight.other_light_told.body.eirune";
+        public const string OtherLightToldBodyKovari = "firstnight.other_light_told.body.kovari";
+        public const string OtherLightToldBodyMyrven = "firstnight.other_light_told.body.myrven";
+        public const string OtherLightToldBodyVaelun = "firstnight.other_light_told.body.vaelun";
+        public const string OtherLightToldBodyOrveth = "firstnight.other_light_told.body.orveth";
+        public const string OtherLightToldBodyCaelith = "firstnight.other_light_told.body.caelith";
+        public const string OtherLightToldBodyTheryn = "firstnight.other_light_told.body.theryn";
+
+        // Sleeping (Stage = Sleeping) — the founder gives in. Final body before the spirit departs.
+        public const string SleepingBodyArdhen = "firstnight.sleeping.body.ardhen";
+        public const string SleepingBodyEirune = "firstnight.sleeping.body.eirune";
+        public const string SleepingBodyKovari = "firstnight.sleeping.body.kovari";
+        public const string SleepingBodyMyrven = "firstnight.sleeping.body.myrven";
+        public const string SleepingBodyVaelun = "firstnight.sleeping.body.vaelun";
+        public const string SleepingBodyOrveth = "firstnight.sleeping.body.orveth";
+        public const string SleepingBodyCaelith = "firstnight.sleeping.body.caelith";
+        public const string SleepingBodyTheryn = "firstnight.sleeping.body.theryn";
+
+        /// <summary>Tooltip explaining why the spirit trail button is locked before dawn.</summary>
+        public const string SpiritTrailLockedTooltip = "ui.expedition.spirit_trail_locked";
+    }
 }
