@@ -64,7 +64,6 @@ pwsh ./tools/Capture-TypographySpecimen.ps1 `
 ```
 
 States that cannot be reached reliably from an existing slot may use
-`-VisualFixture tutorial`, `-VisualFixture tutorial-long`, or
 `-VisualFixture offline-report`. Wound treatment uses
 `-VisualFixture wound-recovery`; its action can be exercised at every
 resolution with `-NormalizedClicks '0.5,0.48'`.
@@ -116,7 +115,6 @@ review artifacts still stay out of the repository.
 | Building detail | Selected Shelter/Farm/Quarry | After opening detail | Back path, worker slots, production controls, no clipping |
 | Forest detail | Gatherable and depleted fixtures | After opening detail | Reserve/stock distinction and missing-input state |
 | Hero profile | Existing founder | After opening profile | Long profile values wrap/scroll; Back to city remains visible |
-| Tutorial overlay | Tutorial visible above macro/modal | After triggering overlay | Scrim/overlay order, readable copy, keyboard/gamepad focus |
 | Offline report | Catch-up with maximum representative rows | After loading fixture | Bottom-right anchoring, compact rows, internal scrolling |
 | ESC menu | `pause-menu` fixture | Yes | Scrim, title, Resume, disabled Settings placeholder, reset action, focus, and close paths |
 | Reset confirmation | `pause-menu-reset` fixture | Yes | Consequence copy, destructive hierarchy, safe cancel path, and no clipping |
@@ -170,7 +168,7 @@ introduced.
 | 2026-07-23 | `farm-detail`, `quarry-detail` | 1024×576, 1280×720, 1600×900 | Pass for layout. Production, stock, policy controls, assignment sidebar, available citizen action, and `Back to city` remain inside the viewport. Review also found that the runtime still exposes `Reactive policy` although `CURRENT_STATUS.md` describes the future simplified panel; that product/code mismatch is not treated as a visual pass criterion. |
 | 2026-07-23 | `forest-detail` | 1024×576, 1280×720, 1600×900 | Pass for a gatherable Forest. Stock/reserve, foraging rate, production controls, assignment sidebar, and back path remain visible. A deterministic depleted-detail fixture is still required because depleted macro plots intentionally disable entry. |
 | 2026-07-23 | `hero-profile-fixed` | 1024×576, 1280×720, 1600×900 | Pass after fixing the profile scroll surface. The first capture exposed white copy on the global yellow `ScrollContainer` style and right-edge clipping at 1024×576. The profile now uses its dark reading surface, keeps a scrollbar gutter, wraps long copy, and preserves the fixed `Back to city` header. |
-| 2026-07-23 | `tutorial`, `tutorial-long` | 1024×576, 1280×720, 1600×900 | Pass after fixing the collapsed body. The initial fixture showed only a yellow strip because the body scroll had no vertical budget. The normal and longest steps now render on a dark 96 px reading surface; title, wrapped copy, Skip, focused Next/Got it, and scrim remain contained. |
+| 2026-07-23 | `tutorial`, `tutorial-long` | 1024×576, 1280×720, 1600×900 | Historical pass, **superseded on 2026-08-05**. The layout was sound but the copy was not: its three hand-written steps asked for `1 wood` from the Forest plots and described status chips that no longer exist, while the real first construction is the Campfire (3 Branches + 2 Small Stone). `TutorialOverlay` and both fixtures were removed rather than rewritten, because a hand-written step list drifts again on the next increment. The authored guidance layer is reserved for the first-night dialogue surface, which needs a fresh signature. |
 | 2026-07-23 | `offline-report` | 1024×576, 1280×720, 1600×900 | Pass with a deterministic 80-event fixture. The first capture was overwritten by the live Chronicle refresh and was rejected. Capture mode now freezes the representative offline report; summary, decision rows, event list, scrollbar, header, and bottom-right anchoring remain inside the viewport. |
 | 2026-07-23 | `pause-menu`, `pause-menu-reset` | 1024×576, 1280×720, 1600×900 | Pass after rejecting the first capture, which exposed blank packed-scene `IconButton` content. The corrected menu shows its icon/label hierarchy, pauses the simulation, provides ESC/X/scrim close paths, and separates permanent reset behind an explicit confirmation. Capture mode suppresses persistence writes; no live slot was reset. |
 | 2026-07-23 | `orthogonal-terrain` | 1024×576, 1280×720, 1600×900 | Initial green capture rejected for excessive saturation and two atlas coordinates that rendered water tiles instead of trees. Brown-floor iteration was also rejected as too architectural. Final olive-ground capture uses only verified green/orange tree tiles; eight parcel boundaries, buildings, hero activity, macro actions, and Chronicle remain readable. |

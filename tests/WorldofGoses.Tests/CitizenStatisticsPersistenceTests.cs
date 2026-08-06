@@ -34,7 +34,10 @@ public sealed class CitizenStatisticsPersistenceTests
         Assert.NotNull(citizen.CurrentHealthAndCondition);
         Assert.Equal(1, citizen.CurrentHealthAndCondition!.ConditionFactor!.Value);
 
-        CityWorld restored = CityWorld.FromSave(migrated);
+        // MigrateToCurrent for the tail rather than another hand-chained call:
+        // FromSave validates against CurrentVersion, and a fixed chain has to be
+        // edited on every new schema version.
+        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
         Citizen restoredCitizen = Assert.Single(restored.Citizens.Values);
         Assert.Equal(PhysicalExpression.Stunning, restoredCitizen.CombatNature.PhysicalExpression);
         Assert.Equal(EquipmentLoadout.Empty, restoredCitizen.EquipmentLoadout);
@@ -91,7 +94,7 @@ public sealed class CitizenStatisticsPersistenceTests
         citizen.EquipmentLoadout = null;
 
         WorldSave migrated = WorldPersistence.MigrateV29ToV30(save);
-        CityWorld restored = CityWorld.FromSave(migrated);
+        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
 
         Assert.Equal(answerIds, restored.Hero!.Profile.FounderOnboardingResult!.NarrativeMemory.AnswerIds);
         DefensiveStatistics defense = new DefensiveStatisticsCalculator(StatisticsBalanceConfig.Default)
@@ -116,7 +119,7 @@ public sealed class CitizenStatisticsPersistenceTests
         citizen.CurrentHealthAndCondition = null;
 
         WorldSave migrated = WorldPersistence.MigrateV29ToV30(save);
-        CityWorld restored = CityWorld.FromSave(migrated);
+        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
 
         Assert.False(restored.Hero!.CurrentHealthAndCondition.IsResolved);
         Assert.NotNull(restored.Hero.Wound);

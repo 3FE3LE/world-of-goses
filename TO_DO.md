@@ -39,7 +39,7 @@ admiten:
 ### Baseline vigente
 
 - Fecha de alineación: **2026-08-03**.
-- Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado; schema actual v28,
+- Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado;
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
   genérico y cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`.
@@ -47,12 +47,15 @@ admiten:
   6→12→24, mismo ID/parcela y finalización offline. El primer Cultivation Site
   requiere Shelter, 1 Branch + 1 Small Stone, 180 work y produce 5 Food tres
   días después de sembrar 1 Food, con la misma frontera live/offline.
-- Save: **schema v28** (herramientas durables; oportunidades finitas de
-  Food/Wood y capacidad de retorno siguen en v27).
+- Save: **schema v31** (primera noche autoral persistida; v30 estadísticas
+  derivadas por citizen, v28 herramientas durables, v27 oportunidades finitas
+  de Food/Wood y capacidad de retorno).
 - Build: **0 errores / 0 advertencias**.
-- Tests: **721 / 722** (1 omitido por brittleness del snapshot JSON en
+- Tests: **879 / 880** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
+- Localización: **852 IDs de plantilla, 295 claves de runtime** válidas.
+- Agent context: **442 checks** sin fallos.
 - Arranque Godot headless: correcto.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
   `docs/CURRENT_STATUS.md`.
@@ -66,18 +69,24 @@ admiten:
 | Estado | Crítica | Alta | Media | Baja |
 | --- | ---: | ---: | ---: | ---: |
 | En curso | 1 | 0 | 1 | 0 |
-| Pendiente | 0 | 0 | 2 | 0 |
+| Pendiente | 0 | 2 | 3 | 0 |
 | Necesita reanálisis | 0 | 0 | 0 | 0 |
 | Diferido por trigger | 0 | 2 | 1 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
+
+Las dos Altas y una de las Medias pendientes son las fases 2, 3 y 4 de la
+primera noche (H-33, H-34, M-26 en §3).
 
 ## 2. Increment activo — Apertura EG-A0 (proposal §15)
 
 Flujo objetivo de la apertura temprana:
 
 ```text
-Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
-→ Founding Site (Campfire → Bedroll/Cache → Canopy)
+Onboarding astral → manifestación sobre la marca del linaje
+→ primera noche 00:00–06:00 con el espíritu de fuego (§3, doc 19):
+   Campfire → Bedroll → sueño → amanecer sin espíritu
+→ Branches/Plant Fiber/Small Stone/Wild Food en el suelo
+→ Founding Site se completa (Cache → Canopy)
 → Cultivation Site: preparar → sembrar → crecer 3 días → cosechar
 → primeras expeditions de Food y Wood (2–3 min reales cada una)
 → consolidación: 3 plots + forestry gate + Farm
@@ -128,6 +137,120 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
 
 ## 3. En curso
 
+### Primera noche del fundador (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
+
+Un playtest expuso que talar un árbol pide un hacha primitiva sin decir cómo
+obtenerla, y que el tutorial de tres tarjetas mentía sobre las recetas reales.
+La respuesta canónica no es una cadena de tutoriales modales —el proposal §442
+la prohíbe y `18_LINEAGES_VAELUN.md:218` refuerza "no simple selector de
+misión"— sino una **primera noche jugable** de `00:00` a `06:00` donde un
+espíritu de fuego enseña las causas. Fases 0 y 1 cerradas (ver §7); quedan tres.
+
+Los tres niveles de guía permanecen **separados** y no se fusionan en una lista
+de misiones: la primera noche es autoral y finita; las directivas derivadas del
+proposal §9 son sistémicas y operan después del amanecer; el Camino consultable
+es de solo lectura.
+
+#### 🟠 H-33 — Fase 2: espíritu de fuego y diálogo
+
+- **Estado:** Pendiente. Es la fase donde el jugador ve algo por primera vez.
+- **Prioridad:** Alta.
+- **Afecta:** `Domain/Dialogue.cs` (contratos), nuevo
+  `Domain/FireSpiritDialogueCatalog.cs`, `Domain/FirstNightState.cs`,
+  `Prototypes/MacroStreetLiveView.cs`, `CityMacroSnapshot.cs`,
+  `Ui/OverlayLayers.cs`, `game/locale/*`.
+- **Hecho:** el estado avanza ya por `TryOpenFirstNightDialogue` /
+  `TryCloseFirstNightDialogue` con el id de nodo persistido.
+- **Pendiente:**
+  1. Catálogo de nodos en código con claves de traducción, mismo patrón que
+     `FounderNarrativeCatalog`. **Reutiliza `IDialogueNode`/`IDialogueChoice`
+     pero no `DialogueRunner.RunAsync`**: es un `async` que guarda su posición
+     en un `await` y no es persistible a medias, lo que rompería la invariante
+     13 del doc 19. El runner queda intacto para H-31.
+  2. Cero dígitos escritos a mano. Las cantidades se interpolan en runtime
+     desde `FoundingSiteRules.InputsFor(module)`, como ya hace
+     `ConstructionPanel`. Test que verifique que ningún `msgid` de la noche
+     contiene un dígito literal, con el precedente de
+     `LineageSignatureLocalizationTests` (que ya lee los `.po` desde el test).
+  3. Dos superficies distintas: *diálogo principal* como banda inferior **no
+     modal** en la ranura `OverlayLayers.Tutorial = 50` que liberó el borrado
+     del overlay viejo, y *comentario contextual* efímero que no detiene la
+     simulación. Nunca `MouseFilter.Stop` a pantalla completa: el jugador debe
+     poder mirar el mundo mientras lee.
+  4. El espíritu como entidad visual. **Su posición se deriva de la etapa**, no
+     se persiste: la ciudad no guarda coordenadas visuales autoritativas.
+     Precedente de posicionamiento: `ProjectDepth`/`AnchorDepth` +
+     `IsProjectedDepthVisible`. `CitizenSpriteBank` está indexado por
+     `CitizenId`, así que necesita presentación propia.
+  5. Sin arte: `game/assets/effects/` está vacío y no hay sprite de fogata.
+     Presentación programática con el precedente del anillo de 16 puntos de
+     `FounderArrivalSequence`. Promover `art/Pixelarticons/svg/fire.svg` a
+     `IconPaths` cumple el trigger de M-22.
+  6. Variaciones por `PrimaryAffinity`/linaje **solo** como reacciones y líneas
+     alternativas; no ramifican la ruta ni exponen etiquetas internas
+     (doc 19 §13–14).
+- **Aceptación:** el espíritu explica por qué sirven los recursos, el jugador
+  actúa más de lo que lee, y ninguna cifra del diálogo puede contradecir la
+  receta real.
+
+#### 🟠 H-34 — Fase 3: amanecer y motivo de la primera expedición
+
+- **Estado:** Pendiente. Depende de H-33.
+- **Prioridad:** Alta.
+- **Afecta:** `Domain/ResourceOpportunityKind.cs`,
+  `Domain/ResourceExpeditionRules.cs`, `ExpeditionPanel.cs` y su `.tscn`,
+  `Domain/Persistence/WorldPersistence.cs`, Chronicle.
+- **Choque real que hay que respetar:** las salidas de recurso exigen
+  **Campfire + Cache** (`CityWorld.cs:234-241`, espejado en
+  `ExpeditionPlanningSnapshot.cs:32-33`), y la noche construye Campfire +
+  Bedroll. Por eso el amanecer entrega el **motivo**, no el despacho inmediato
+  — que es exactamente lo que dice el doc 19 §12 y §11 ("queda disponible **o
+  se introduce**"). El siguiente paso honesto es el Cache, que es literalmente
+  "dónde recibir lo que traigas". Cadena resultante:
+  `rastro → Cache → primera salida → Canopy → Shelter → hacha → talar`.
+  Con eso el hacha deja de ser un requisito huérfano.
+- **Pendiente:** partida del espíritu; tizones en la fogata como variante
+  visual del Campfire; evento causal en el Chronicle; `SpiritTrailSearch` como
+  `ResourceOpportunityKind` nuevo con recompensa `Wood` (el rastro lleva a
+  madera quemada, así encaja en la forma existente de
+  `ResourceExpeditionDefinition` sin inventar un campo narrativo).
+- **Fricción conocida:** `ExpeditionPanel` cablea **exactamente dos** botones
+  de objetivo por `NodePath` (`:28-31`, `:394-403`); la lista no es
+  data-driven. `ResourceExpeditionRules.Definition` lanza en el `default`, así
+  que un kind sin arma revienta.
+- **Aceptación:** la primera expedición tiene causa narrativa y sistémica; no
+  se añade una misión genérica sin causa ni una lista permanente.
+
+#### 🟡 M-26 — Fase 4: documentación canónica y firma visual de la noche
+
+- **Estado:** Pendiente. Se cierra con H-33 y H-34 en pie.
+- **Prioridad:** Media.
+- **Pendiente:**
+  - Versionar `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y pasarlo de "Propuesta
+    canónica" a aceptada.
+  - **DEC-0014** en `docs/ai/DECISION_LOG.md` (el id más alto en uso es
+    DEC-0013), citando el doc 19 y registrando la separación de los tres
+    niveles de guía.
+  - `docs/ai/CROSS_DOMAIN_INVARIANTS.md`: las invariantes de la primera noche y
+    el nuevo significado del Bedroll como ancla de descanso.
+  - `docs/ai/CONTEXT_MAP.md`: ruta nueva para "primera noche / espíritu", más
+    la ruta **ausente** de herramientas/inventario que la regla de `:19` obliga
+    a añadir cuando ninguna coincide.
+  - `docs/CURRENT_STATUS.md` y `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`:
+    la apertura EG-A0 entra ahora por la primera noche.
+  - `docs/VISUAL_REGRESSION.md`: fixtures nuevos (banda de diálogo, espíritu,
+    fogata, tizones) en 1280×720 y 1920×1080. Los de `tutorial`/`tutorial-long`
+    ya se retiraron y su fila histórica quedó anotada como superada.
+- **Aceptación:** playtest humano en slot limpio. `verify-clicks-with-real-clicks`
+  aplica de lleno: la banda de diálogo y el hit-rect del espíritu son
+  superficies nuevas de input, y un ancestro con `MouseFilter.Stop` puede
+  tragárselas sin que el código lo delate. Recorrido a firmar: manifestación →
+  control inmediato → llegada del espíritu → reconocer nodos → recoger →
+  Campfire → **verificar que se puede volver a recolectar** → Bedroll →
+  conversación de la otra luz → sueño → amanecer sin espíritu con tizones →
+  motivo de expedición visible → guardar/cargar a mitad → reiniciar y
+  comprobar que la ciudad sigue siendo completable.
+
 ### 🟡 M-14 — Matriz de regresión visual
 
 - **Estado:** En curso como contrato transversal.
@@ -159,14 +282,17 @@ Onboarding → Branches/Plant Fiber/Small Stone/Wild Food en el suelo
 ### 🟡 M-12 — Exclusión de overlays transitorios
 
 - **Estado:** Pendiente.
-- **Afecta:** `Notifier.cs`, `TutorialOverlay.cs`, `OfflineReportPanel.cs`.
-- **Problema:** toast, error, tutorial y Chronicle poseen posiciones de forma
+- **Afecta:** `Notifier.cs`, `OfflineReportPanel.cs`, y la banda de diálogo de
+  la primera noche cuando H-33 la construya.
+- **Problema:** toast, error, guía y Chronicle poseen posiciones de forma
   independiente; pueden coincidir en pantalla.
 - **Dirección:** un host con slots/prioridad solo si un playtest de la apertura
   EG-A0 reproduce el solape, o si el siguiente increment requiere overlays
-  simultáneos.
-- **Aceptación:** save toast + error + tutorial no se solapan ni capturan input
-  incorrectamente.
+  simultáneos. `TutorialOverlay.cs` ya no existe (borrado el 2026-08-05), así
+  que el tercer participante histórico desapareció; H-33 reintroduce uno con la
+  misma ranura `OverlayLayers.Tutorial = 50` y vuelve a hacer el solape posible.
+- **Aceptación:** save toast + error + banda de diálogo no se solapan ni
+  capturan input incorrectamente.
 
 ## 5. Necesita reanálisis
 
@@ -212,6 +338,78 @@ superados en 2026-07-30; ver §8.)_
 | S-1.7 profiler | Hecho; mantener medición real del engine en matrices. |
 
 ## 7. Hechas recientes
+
+### 2026-08-05
+
+- **Primera noche — Fase 0: cinco defectos confirmados por el playtest.**
+  1. **El contribuidor no se liberaba al terminar un módulo intermedio.**
+     `CompleteFinishedProjects` solo liberaba en el Canopy; para Campfire,
+     Bedroll y Cache hacía `RaiseProjectChanged` y nada más. El fundador quedaba
+     con `Commitment.Kind = Construction` sobre una obra sin trabajo activo,
+     luego `IsAvailable` falso, luego `NaturalResourceGatherAvailability`
+     respondía `HeroUnavailable` y el botón de recolectar quedaba deshabilitado
+     — justo cuando toca recoger los materiales del módulo siguiente. El jugador
+     tenía que adivinar que debía desasignarse a sí mismo desde el panel.
+     `TryAuthorizeFoundingSiteModule` ahora re-moviliza al autorizar: la cadena
+     antes se sostenía por el propio bug.
+  2. **El chip de "fuera de horario" mentía.** Leía `GameClock.IsDaytime` crudo
+     en vez de `IsLaborTime()`, así que anunciaba trabajo detenido durante toda
+     la apertura mientras el fundador construía. La señal viaja ahora por
+     `CityStatusSnapshot.IsLaborTime`, no por un cálculo de presentación.
+  3. **`TryAdvanceQuiescentTicks` ignoraba el bypass.** Mismo lector crudo, y
+     además reetiquetaba `AwaitingModule` como `NoWorkers`. Nuevo
+     `ResolveQuiescentProjectStopCause` conserva la precedencia de
+     `ConstructionSimulation.SimulateTick`, así que el lote no puede reportar
+     una causa que el camino por tick nunca produciría.
+  4. **`GatherWood` drenaba Wood sin comprobar el hacha.** Sin llamadores de
+     gameplay, pero expuesta en `CityWorldController`: cualquier panel con
+     referencia al controller podía saltarse el forestry gate. Los dos
+     envoltorios se eliminaron y el método de dominio es `internal` (los ~60
+     usos son fixtures de test). `ToolGatheringTests` escanea la fuente para que
+     nadie lo reexponga.
+  5. **`CreateRestartedCityKeepingHero` era asimétrico:** sembraba bosques pero
+     no oportunidades. No era un softlock vivo —`TryLoadFromPrimarySlot`
+     resiembra tras recargar escena— pero el JSON escrito en disco quedaba sin
+     recursos de suelo ni oportunidades, y su Campfire (3 Branches + 2 Small
+     Stone pagados por completo al autorizar) era impagable.
+  Además: **`TutorialOverlay.cs` borrado** con su nodo, su gancho de captura,
+  sus claves y sus fixtures. Sus tres pasos escritos a mano pedían "1 wood de
+  los Forest plots" y describían chips de la barra de estado ya eliminados; se
+  retiró en vez de reescribirse porque una lista de pasos a mano vuelve a
+  desfasarse en el increment siguiente. **`OnboardingView.cs` borrado** (608
+  líneas de onboarding legacy sin ningún instanciador). `OnboardingView.tscn`
+  **se conserva**: es la escena que lleva el script `AstralOnboardingView`.
+- **Primera noche — Fase 1: el estado de dominio (schema v31).**
+  `FirstNightStage` con nueve etapas, `FirstNightState` sellado y persistido, y
+  `FirstNightRules` con todo lo cuantitativo derivado de `FoundingSiteRules`, de
+  modo que un cambio de receta no puede volver a desfasar la guía. Cada avance
+  lo dispara un hecho del mundo —módulo completado o nodo de diálogo cerrado—
+  nunca un temporizador. Tres decisiones que sostienen el diseño:
+  1. **`_tick` nunca se congela.** Congelarlo pararía la construcción, que
+     depende de `_tick % ConstructionRules.WorkIntervalTicks`, y crearía la
+     circularidad de "no puedes cumplir el hito porque el reloj que lo mide está
+     detenido". El amanecer es la transición de etapa; la hora mostrada se
+     estanca en `05:59` (`FirstNightState.DisplayedTick`) en vez de saltar al
+     concluir; y la noche **difiere el calendario**: ni ración de Food ni cruce
+     de frontera día/noche mientras `Stage != Concluded`.
+  2. **No se persiste la posición del espíritu.** Se deriva de la etapa, como
+     los anclajes de edificios derivan de la placement. La ciudad no guarda
+     coordenadas visuales autoritativas y una aparición temporal no es motivo
+     para empezar.
+  3. **El Bedroll gana su primer significado mecánico:** `HasRestingPlace()`.
+     Hasta ahora era solo coste, trabajo y prerrequisito del Canopy, y
+     `CitizenLocation.AtHome` es el valor por defecto de un citizen, no prueba
+     de que exista refugio. Sin Bedroll la noche se niega a dormir.
+  `MigrateV30ToV31` marca **concluida** la noche de todo save existente: esas
+  ciudades ya pasaron su apertura y meterlas en la secuencia las atraparía tras
+  hitos que no pueden volver a cumplir. Consecuencia descubierta al correr los
+  tests: `TestHelpers.NewHeroWorld()` está genuinamente en su primera noche, así
+  que tres tests de ración fallaron con razón; se añadió
+  `TestHelpers.ConcludeFirstNight` y se aplicó a los constructores que describen
+  ciudades ya pasadas su apertura. Las cadenas de migración escritas a mano en
+  `ToolGatheringTests`, `DynamicFrontageTests` y `CitizenStatisticsPersistenceTests`
+  pasaron a `MigrateToCurrent`, que las hace inmunes al próximo bump.
+  16 casos nuevos en `FirstNightTests`. Build 0/0; tests 879/880.
 
 ### 2026-07-31
 

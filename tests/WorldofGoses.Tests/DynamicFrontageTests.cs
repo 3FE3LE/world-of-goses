@@ -262,11 +262,9 @@ public sealed class DynamicFrontageTests
             Assert.Equal(3, placement.FrontageColumns);
             Assert.Equal(3, placement.DepthRows);
         });
-        WorldPersistence.Validate(WorldPersistence.MigrateV29ToV30(
-            WorldPersistence.MigrateV28ToV29(
-                WorldPersistence.MigrateV27ToV28(
-                    WorldPersistence.MigrateV26ToV27(
-                        WorldPersistence.MigrateV25ToV26(migrated))))));
+        // MigrateToCurrent for the tail: a hand-chained one needs editing on
+        // every schema bump, and this test's subject is the v24 step above.
+        WorldPersistence.Validate(WorldPersistence.MigrateToCurrent(migrated));
     }
 
     [Fact]
@@ -282,11 +280,7 @@ public sealed class DynamicFrontageTests
             patch.UnitPositions.Clear();
         }
 
-        WorldSave migrated = WorldPersistence.MigrateV29ToV30(
-            WorldPersistence.MigrateV28ToV29(
-                WorldPersistence.MigrateV27ToV28(
-                    WorldPersistence.MigrateV26ToV27(
-                        WorldPersistence.MigrateV25ToV26(save)))));
+        WorldSave migrated = WorldPersistence.MigrateToCurrent(save);
 
         Assert.All(migrated.NaturalResourcePatches, patch =>
             Assert.Equal(patch.UnitReserves.Count, patch.UnitPositions.Count));

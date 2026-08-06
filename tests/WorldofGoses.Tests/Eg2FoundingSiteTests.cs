@@ -62,7 +62,6 @@ public sealed class Eg2FoundingSiteTests
             project.Id, second).IsSuccess);
         CompleteActiveModule(world, project);
         Assert.Equal(FoundingSiteRules.CacheCapacity, world.GroundResourceCapacity());
-        Assert.True(world.TryUnassignFromProject(project.Id, world.Hero!.Id).IsSuccess);
         int gatheredAfterCache = GatherGroundUnits(world, 7);
         Assert.Equal(7, gatheredAfterCache);
         Assert.Equal(7, world.CarriedGroundResourceCount());
@@ -229,7 +228,6 @@ public sealed class Eg2FoundingSiteTests
         CityWorld world = AuthorizeFoundingSite();
         ConstructionProject project = world.Projects.Values.Single();
         CompleteActiveModule(world, project);
-        Assert.True(world.TryUnassignFromProject(project.Id, world.Hero!.Id).IsSuccess);
 
         int foodBefore = TotalPatchReserve(world, ResourceType.WildFood);
         Assert.Equal(6, GatherType(world, ResourceType.WildFood, 6));
@@ -251,6 +249,47 @@ public sealed class Eg2FoundingSiteTests
         DepositCost(world, FoundingSiteModule.Canopy);
         Assert.True(world.TryAuthorizeFoundingSiteModule(
             project.Id, FoundingSiteModule.Canopy).IsSuccess);
+    }
+
+    /// <summary>
+    /// A finished intermediate module must hand the founder back. Only the
+    /// Canopy used to release contributors, so completing the Campfire left
+    /// the lone founder committed to a worksite with no active work: available
+    /// became false and the gather action answered HeroUnavailable, with the
+    /// next module's materials still on the ground and no obvious way to reach
+    /// them.
+    /// </summary>
+    [Theory]
+    [InlineData(FoundingSiteModule.Bedroll)]
+    [InlineData(FoundingSiteModule.Cache)]
+    public void CompletedIntermediateModule_ReleasesFounderSoGatheringStaysPossible(
+        FoundingSiteModule nextModule)
+    {
+        CityWorld world = AuthorizeFoundingSite();
+        ConstructionProject project = world.Projects.Values.Single();
+        Citizen founder = world.Hero!;
+        Assert.Equal(CitizenCommitmentKind.Construction, founder.Commitment.Kind);
+
+        CompleteActiveModule(world, project);
+
+        Assert.Equal(ConstructionStopCause.AwaitingModule, project.StopCause);
+        Assert.Equal(CitizenCommitmentKind.None, founder.Commitment.Kind);
+        Assert.Null(founder.WorkOrder);
+        Assert.True(founder.IsAvailable);
+        Assert.Equal(CitizenLocation.AtHome, founder.CurrentLocation);
+        Assert.Equal(0, project.AssignedCount);
+
+        NaturalResourcePatch patch = world.NaturalResourcePatches.Values
+            .First(candidate => candidate.ResourceType == ResourceType.Branches);
+        Assert.Equal(
+            NaturalResourceGatherOutcome.Available,
+            world.NaturalResourceGatherAvailability(patch.Id, unitId: 0).Outcome);
+
+        // The released founder is re-assigned by the next authorisation, so the
+        // module chain still advances without the player touching assignments.
+        DepositCost(world, nextModule);
+        Assert.True(world.TryAuthorizeFoundingSiteModule(project.Id, nextModule).IsSuccess);
+        Assert.Equal(CitizenCommitmentKind.Construction, founder.Commitment.Kind);
     }
 
     private static CityWorld NewFoundingWorld()

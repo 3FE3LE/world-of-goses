@@ -328,9 +328,13 @@ public partial class ConstructionPanel : PanelContainer
         _bodyContent.AddChild(_requirementsLabel);
 
         // Before the Shelter exists, resources are the founder's six-unit
-        // load and then the Founding Site Cache. Keep that ownership visible
-        // beside the module requirements that consume it.
-        _foundingResourcesPanel = new ResourceInventoryPanel(expandedByDefault: true);
+        // load and then the Founding Site Cache. Collapsed by default: expanded,
+        // this list filled the short scroll body and pushed the phase, the status
+        // and the module costs out of view — exactly the information the player
+        // needs while the site waits for the next module. The collapsed header
+        // still reports how many resource types are carried, and one click opens
+        // the detail.
+        _foundingResourcesPanel = new ResourceInventoryPanel(expandedByDefault: false);
         _bodyContent.AddChild(_foundingResourcesPanel);
 
         var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -770,10 +774,21 @@ public partial class ConstructionPanel : PanelContainer
         {
             _constructionPreview.Visible = false;
         }
-        _requirementsLabel.Visible = project.RemainingInputs.Count > 0;
-        _requirementsLabel.Text = project.RemainingInputs.Count > 0
-            ? UiText.Format("ui.construction.still_needed", DescribeInputs(project.RemainingInputs))
+        // While choosing a module this label is the only place the player can
+        // read what each option costs without hovering a disabled button. A
+        // Founding Site has no RemainingInputs, so the slot was previously hidden
+        // in exactly the state where the cost matters most.
+        string moduleChoices = choosingFoundingModule
+            ? DescribeModuleChoices(snapshot)
             : string.Empty;
+        _requirementsLabel.Visible = choosingFoundingModule
+            ? moduleChoices.Length > 0
+            : project.RemainingInputs.Count > 0;
+        _requirementsLabel.Text = choosingFoundingModule
+            ? moduleChoices
+            : project.RemainingInputs.Count > 0
+                ? UiText.Format("ui.construction.still_needed", DescribeInputs(project.RemainingInputs))
+                : string.Empty;
         _assignList.Visible = true;
         _availableList.Visible = true;
         _unavailableList.Visible = true;
@@ -854,8 +869,69 @@ public partial class ConstructionPanel : PanelContainer
                 : !option.PrerequisitesMet
                     ? UiText.Get("Complete the prerequisite modules first.")
                     : option.CanAuthorize
-                        ? UiText.Get("Authorize this module.")
-                        : UiText.Get("Gather the full module cost first.");
+                        ? UiText.Format(
+                            "ui.construction.module_cost",
+                            DescribeModuleMaterials(option.Materials))
+                        : UiText.Format(
+                            "ui.construction.module_missing",
+                            DescribeMissingModuleMaterials(option.Materials));
+    }
+
+    /// <summary>
+    /// One line per authorisable module with its cost, so the player can see why
+    /// a module button is disabled without hovering it.
+    /// </summary>
+    private static string DescribeModuleChoices(ConstructionSnapshot snapshot)
+    {
+        var lines = new List<string>();
+        foreach (ConstructionSnapshot.FoundingModuleOptionItem option in
+            snapshot.FoundingModuleOptions)
+        {
+            if (option.Completed || !option.PrerequisitesMet) continue;
+            lines.Add(UiText.Format(
+                "ui.construction.module_choice",
+                UiText.Get(FoundingSiteRules.DisplayNameFor(option.Module)),
+                DescribeModuleMaterials(option.Materials)));
+        }
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>
+    /// The full cost of a Founding Site module, always with what the city
+    /// actually holds. A disabled module button used to say only "gather the full
+    /// module cost first", which never told the player what or how much.
+    /// </summary>
+    private static string DescribeModuleMaterials(
+        IReadOnlyList<ConstructionSnapshot.MaterialItem> materials)
+    {
+        var parts = new List<string>();
+        foreach (ConstructionSnapshot.MaterialItem material in materials)
+        {
+            parts.Add(UiText.Format(
+                "ui.construction.material_full",
+                material.Required,
+                UiText.Get(material.Resource.ToString().ToLowerInvariant()),
+                material.Available));
+        }
+        return parts.Count == 0 ? UiText.Get("no material cost") : string.Join(" + ", parts);
+    }
+
+    private static string DescribeMissingModuleMaterials(
+        IReadOnlyList<ConstructionSnapshot.MaterialItem> materials)
+    {
+        var parts = new List<string>();
+        foreach (ConstructionSnapshot.MaterialItem material in materials)
+        {
+            if (material.Available >= material.Required) continue;
+            parts.Add(UiText.Format(
+                "ui.construction.material_full",
+                material.Required,
+                UiText.Get(material.Resource.ToString().ToLowerInvariant()),
+                material.Available));
+        }
+        return parts.Count == 0
+            ? DescribeModuleMaterials(materials)
+            : string.Join(" + ", parts);
     }
 
     private void RenderCompleted(ConstructionSnapshot snapshot)

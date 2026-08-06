@@ -22,6 +22,201 @@ their commits for the real content.
 
 ---
 
+## La primera noche del fundador deja de ser un bloqueo sin explicación
+
+**2026-08-05** · schema v30 → v31
+
+Un playtest se detuvo al minuto uno: talar un árbol pedía un hacha primitiva y
+nada decía cómo obtenerla. El hacha existía —receta, gate, incluso botón— pero
+enterrada en el panel de detalle de un refugio que todavía no existía, al final
+de una cadena que nadie había explicado. El único tutorial del juego, tres
+tarjetas modales, pedía "1 wood de los Forest plots" cuando la primera obra
+cuesta tres ramas y dos piedras, y describía chips de la barra de estado
+eliminados hacía semanas.
+
+Lo que faltaba no era un sistema: era una causa aprendida. Este increment pone
+en pie el estado de dominio de una **primera noche jugable** entre las `00:00` y
+las `06:00`, donde un espíritu de fuego enseñará por qué la materia del suelo
+importa. Un mundo nuevo ya nacía en el tick 0, que es Día 1 `00:00` y es noche,
+así que la secuencia no necesita mover el reloj ni una segunda escena de
+despertar. Nueve etapas avanzan **solo** por hechos del mundo —un módulo
+terminado, un nodo de diálogo cerrado— nunca por un temporizador: nadie puede
+perder el tutorial por leer despacio.
+
+Tres decisiones sostienen eso. El tick **nunca se congela**, porque congelarlo
+pararía la construcción y crearía la circularidad de no poder cumplir el hito
+que el reloj detenido mide; en su lugar el amanecer es la transición de etapa, la
+hora mostrada se estanca en `05:59` en vez de saltar al concluir, y la noche
+difiere el calendario entero — ni ración ni frontera de día mientras corre, lo
+que protege al jugador lento que cruce el tick 1200. La posición del espíritu
+**no se persiste**: se deriva de la etapa, como los anclajes de edificios
+derivan de su placement, porque la ciudad no guarda coordenadas visuales
+autoritativas. Y el Bedroll gana por fin significado mecánico: sin él la noche
+se niega a dormir, cuando hasta ahora era solo coste, trabajo y prerrequisito del
+Canopy.
+
+El camino se abrió retirando cinco defectos que la noche habría exhibido de
+inmediato. El peor: al terminar el Campfire el fundador quedaba comprometido con
+una obra sin trabajo activo, así que dejaba de estar disponible y el botón de
+recolectar se apagaba con "fundador no disponible" — exactamente cuando toca
+recoger la fibra del refugio. Solo el Canopy liberaba contribuidores; ahora lo
+hace cualquier módulo, y autorizar el siguiente re-moviliza al fundador, que es
+lo que la cadena venía sosteniendo por accidente. Dos superficies mentían al leer
+el reloj crudo en vez de la regla de jornada, y durante toda la apertura la
+interfaz anunciaba trabajo detenido mientras el fundador construía. Una API
+pública drenaba madera sin comprobar el hacha. Y el reinicio suave escribía en
+disco una ciudad sin recursos de suelo, cuyo Campfire era impagable.
+
+Los saves existentes entran con la noche **ya concluida**: esas ciudades pasaron
+su apertura y meterlas en la secuencia las atraparía tras hitos que no pueden
+volver a cumplir. No hay regalos ni retro-tutorial.
+
+Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la
+primera expedición. Quedan como fases 2 a 4 en `TO_DO.md` §3. El contrato que
+las gobierna está en `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, y mantiene
+separados los tres niveles de guía — noche autoral, directivas derivadas del
+estado real, y Camino de solo lectura — sin fusionarlos en una lista de misiones.
+
+Baseline medido: build 0 errores / 0 advertencias; tests 879 pasando, 1 omitido
+(el snapshot JSON conocido); boot headless correcto; 852 IDs de plantilla y 295
+claves de runtime; 442 checks de agent context.
+
+---
+
+## Primer circuito vertical de combate automático y expediciones
+
+**2026-08-05**
+
+Tres ciudadanos persistentes ya pueden equiparse, salir, pelear dos veces
+automáticamente, elegir una ruta y volver con consecuencias escritas sobre las
+mismas personas. El circuito completo del roadmap —`Citizen` → preparación →
+estadísticas derivadas → técnicas con coeficiente físico y elemental → combate →
+decisión de ruta → segundo encuentro → destino → regreso → persistencia— se
+resuelve entero dentro del dominio, sin escena, sin `_Process` y de forma
+reproducible desde una semilla.
+
+Una técnica convierte potencia de canal en acción mediante dos coeficientes cuya
+suma es un presupuesto fijo. Esa única invariante es la que obliga a que una
+evolución **redistribuya** en lugar de regalar poder: subir el lado físico cuesta
+exactamente lo que baja el elemental, y se revalida al aplicarla. El contenido son
+tres grupos de módulos que se combinan —cuatro familias de arma, dos expresiones
+físicas, las seis afinidades—, nunca una habilidad por combinación: doce
+definiciones, no cuarenta y ocho. Stunning y Knockdown son funcionales; Knockdown
+altera exposición y disponibilidad, no posición, porque este combate no tiene
+dónde moverse.
+
+La competencia gana por fin su curva de experiencia, centralizada y configurable,
+con nivel derivado de la experiencia acumulada, techo de aprendizaje y la
+penalización de familia extranjera al 10 % aplicada **al aprendizaje**, nunca al
+resultado de la técnica. `Survival` entra como competencia profesional, exenta de
+esa penalización. El `ConditionFactor` se deriva de causas persistentes —vida,
+fatiga, heridas— y expone esas causas para la telemetría en lugar de asignarse a
+mano.
+
+La potencia de canal sigue llamándose potencia. Ningún campo de la telemetría la
+llama daño, y ninguna estadística persistente nueva de daño físico o elemental
+existe.
+
+Deuda reconocida: el `Expedition` de EG-4 sigue siendo un temporizador de recursos
+independiente; unificarlo con esta corrida de combate es el siguiente paso, no
+parte de este slice. La presentación es un panel de depuración, no una pantalla de
+preparación, y no hay economía de equipamiento todavía.
+
+Baseline medido: build con 0 errores y 0 warnings; 858 pruebas aprobadas, 0
+fallidas, 1 omitida (859 total); arranque headless limpio; 442 checks de contexto
+aprobados y 0 fallidos; 856 IDs de localización y 337 claves runtime.
+
+---
+
+## La fogata se puede autorizar, construir y guardar; el Cubo llega al panel de ciudadanos
+
+**2026-08-05**
+
+Tres defectos de EG-5 quedaban entre el jugador y su primera fogata.
+
+Autorizar la fogata fuera del horario laboral asignaba al fundador y no
+construía nada. El campamento fundacional debe ignorar la jornada 08:00–16:00
+—no hay refugio al que volver y así lo declaraba `CURRENT_STATUS.md`—, pero la
+excepción sólo estaba aplicada en la simulación por tick. La movilización al
+asignar, la confirmación de llegada, la frontera día/noche y la reanudación de
+órdenes permanentes seguían consultando el reloj crudo. El resultado: el
+fundador quedaba **en casa**, la obra se quedaba en `WorkersInTransit` y ningún
+error se registraba en ninguna parte. La regla pasa a tener un único dueño,
+`CityWorld.IsLaborTime()`, y las cinco compuertas la leen; ahora el fundador
+sale hacia la obra a cualquier hora, la llegada no se revierte y cruzar las
+16:00 no lo retira del sitio. Que la jornada deba empezar con el Ayuntamiento en
+lugar del refugio queda como pregunta de producto, sin decidir aquí.
+
+Y una obra detenida ya dice por qué. La tira de estado mostraba `Obra 0/180` sin
+más: el motivo existía en el dominio (`ConstructionStopCause`) y el panel de
+construcción lo describía, pero la única superficie siempre visible no lo leía
+—los edificios sí exponían el suyo, las obras no—. Ahora el chip añade el motivo
+y su tooltip lo explica: falta elegir módulo, contribuyente agotado, en camino,
+faltan materiales, nadie contribuye. Con eso a la vista se diagnostica el caso
+que parecía una obra muerta: la fogata **estaba construida** y el sitio esperaba
+que el jugador eligiera el módulo siguiente, imposible de pagar con una rama en
+el inventario. El juego no estaba roto; estaba mudo.
+
+Y elegir ese módulo ya es posible de verdad. La interfaz existía —los botones de
+petate, depósito y copa— pero desactivada y sin decir por qué: el coste vivía en
+el snapshot y ninguna etiqueta lo mostraba. Ahora cada opción se lista con lo que
+pide y lo que hay (`Petate: 2 ramas (disponible: 1) + 3 fibra vegetal
+(disponible: 0)`), y el tooltip del botón detalla lo que falta. La carga del
+fundador pasa a estar plegada por defecto: desplegada llenaba el cuerpo del panel
+y empujaba fuera de vista la fase, el estado y justamente esos costes. Sigue a un
+clic y su cabecera ya indica cuántos tipos se transportan.
+
+La expresión física deja de ser invisible. El onboarding la decide junto con la
+afinidad elemental, pero sólo la afinidad se mostraba: ni el perfil del héroe, ni
+la carta de llegada del fundador, ni la carta final del onboarding la nombraban.
+Ahora las tres la muestran, con las dos familias de arma que implica y una nota
+de que las naturales entrenan a ritmo completo y el resto a una décima parte. La
+carta de llegada además cumple por fin lo que DEC-0013 le exige —afinidad y los
+tres ejes del Cubo— en una versión compacta de dos líneas, acorde a los dos
+segundos que dura en pantalla. No hay pantalla de equipamiento porque no hay
+equipamiento: `SetEquipmentLoadout` sólo se invoca desde pruebas y no existe
+catálogo de armas. Lo que se muestra son afinidades de aprendizaje, no un
+inventario, y el texto lo dice.
+
+Talar un nodo y construir sobre el suelo que dejaba rompía el guardado. El
+dominio ya trataba una unidad agotada como suelo libre —oculta su sprite y
+`FrontageState` devuelve `Available`—, pero el validador de guardado contaba
+toda posición autorizada como bloqueada para siempre. Las cuatro compuertas de
+emplazamiento aceptaban la obra y el guardado posterior lanzaba; `TrySaveNow`
+convertía la excepción en un aviso, así que la ciudad seguía viva **sin
+guardar** hasta que el jugador cerraba y perdía el emplazamiento. Ahora el
+validador filtra las unidades sin reserva y coincide con el dominio: el jugador
+puede construir donde despejó, y la partida persiste. El esquema no cambia
+—sigue en `v30`— porque la forma del JSON es la misma y la regla sólo **amplía**
+lo que valida; los saves que hoy se rechazan vuelven a cargar. Como consecuencia,
+devolver carga al suelo ya no puede resucitar un recurso bajo un edificio: el
+parche elige la unidad elegible menos abastecida y lo que rechaza regresa al
+inventario, de modo que ninguna carga se destruye.
+
+Seleccionar al fundador en el panel de ciudadanos lanzaba
+`ArgumentOutOfRangeException`. DEC-0013 dejó al fundador sin afinidades
+profesionales y el panel seguía indexándolas por posición. En lugar de tapar el
+hueco, el panel ahora muestra la identidad que el ciudadano sí tiene: naturaleza
+de combate —afinidad, **expresión física** y las dos familias de arma naturales
+que implica— y los tres pares del Cubo con su firma de linaje. La expresión
+física no se veía en ninguna pantalla hasta ahora. El detalle de prospectos del
+Ayuntamiento comparte el mismo bloque, lo que además retira una llamada que
+lanzaba con un estilo de combate vacío. Las estadísticas derivadas siguen fuera:
+exigen arma equipada y condición resuelta, y ninguna tiene origen todavía.
+
+La firma de linaje viajaba como clave dinámica y no existía en ningún catálogo,
+así que la build inglesa la mostraba en español. Ya está traducida, y una prueba
+fija las ocho firmas en ambos catálogos porque el validador no puede ver una
+clave que se construye en tiempo de ejecución.
+
+Baseline medido: build con 0 errores y 0 warnings; 816 pruebas aprobadas, 0
+fallidas, 1 omitida (817 total); arranque headless limpio; 442 checks de
+contexto aprobados y 0 fallidos; 856 IDs de localización y 337 claves runtime.
+La referencia rota a los capítulos de linaje en `CONTEXT_MAP.md`, heredada del
+incremento anterior, quedó corregida para que la validación vuelva a 0 fallos.
+
+---
+
 ## Cubo Kovari y primera derivación auditable de estadísticas
 
 **2026-08-04**

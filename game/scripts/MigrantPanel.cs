@@ -1,8 +1,8 @@
 #nullable enable
-#pragma warning disable CS0618 // Migrant legacy affinities remain readable during the v29 compatibility window.
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -15,7 +15,10 @@ namespace WorldofGoses;
 [GlobalClass]
 public partial class MigrantPanel : Control
 {
-    private static readonly Vector2 PreferredSize = new(600, 460);
+    // Tall enough for the citizen detail block, which since DEC-0013 carries the
+    // cube axes and combat nature. ResizeToViewport clamps this down on small
+    // viewports, so a taller preference never overflows the screen.
+    private static readonly Vector2 PreferredSize = new(600, 620);
     private const float ViewportInset = 32f;
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../../CityWorldController";
@@ -88,6 +91,10 @@ public partial class MigrantPanel : Control
             _controller.TryAcceptPendingProspect();
         }
         Open();
+        // Select the founder so the capture covers the detail block. Without a
+        // selection the panel only renders its empty-roster hint, which is what
+        // let the DEC-0013 crash in DescribeCitizen ship unseen.
+        if (_controller.World.Hero is Citizen hero) SelectCitizen(hero.Id);
     }
 
     public void Close()
@@ -223,7 +230,10 @@ public partial class MigrantPanel : Control
             DescribeStatus(citizen),
             assignment,
             UiText.Get(ProfileCatalog.Get(citizen.Profile.Lineage).DisplayName),
-            DescribeAffinities(citizen.Profile),
+            CitizenNatureText.FormatLocalized(
+                citizen.CubeProfile,
+                citizen.Profile.Lineage,
+                citizen.CombatNature),
             citizen.CurrentStamina,
             citizen.MaxStamina);
         if (!OS.IsDebugBuild()) return description;
@@ -248,12 +258,6 @@ public partial class MigrantPanel : Control
     private static string FormatOptionalWorldTime(int? tick) => tick is int value
         ? SimulationTimeText.FormatLocalized(value)
         : "—";
-
-    private static string DescribeAffinities(CitizenProfile profile) =>
-        string.Join(", ",
-            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[0])),
-            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[1])),
-            UiText.Get(ProfileCatalog.DisplayName(profile.ProfessionalAffinities[2])));
 
     private string DescribeStatus(Citizen citizen)
     {

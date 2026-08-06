@@ -302,10 +302,15 @@ public partial class CityStatusPanel : PanelContainer
     /// rotates the icon for the full daily cycle, but the chip is
     /// the explicit "work paused" cue the player asked for during
     /// the 2026-07-30 playtest).
+    ///
+    /// It reads the snapshot's labour flag rather than the raw clock: the
+    /// founding-camp bypass keeps work running at any hour until the first
+    /// Basic Shelter exists, so a clock-only test announced "work paused"
+    /// for the entire opening while the founder was in fact building.
     /// </summary>
     private void BuildOffHoursChip(CityStatusSnapshot snapshot)
     {
-        if (GameClock.IsDaytime(snapshot.CurrentTick)) return;
+        if (snapshot.IsLaborTime) return;
         var chip = new IconChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
         chip.TooltipText = UiText.Get("ui.status.off_hours_hint");
         _row.AddChild(chip);
@@ -324,12 +329,51 @@ public partial class CityStatusPanel : PanelContainer
                 UiText.Get(ConstructionRules.Describe(phase)),
                 project.AssignedCount,
                 project.WorkerCapacity);
-        if (!project.Enabled) label += UiText.Get(" · paused");
+        // A worksite that is not advancing must say so here. The strip is the
+        // one surface always on screen, and "Obra 0/180" with no reason reads as
+        // a broken game rather than a blocked one.
+        label += StopCauseSuffix(project);
         var chip = new IconChip(IconPaths.Building, label);
-        chip.TooltipText = project.Enabled
-            ? UiText.Get("In progress. Click the construction menu for details.")
-            : UiText.Get("Paused. Resume from the construction menu.");
+        chip.TooltipText = StopCauseHint(project);
         _row.AddChild(chip);
+    }
+
+    private static string StopCauseSuffix(CityStatusSnapshot.ProjectItem project)
+    {
+        if (!project.Enabled) return UiText.Get(" · paused");
+        return project.StopCause switch
+        {
+            ConstructionStopCause.Paused => UiText.Get(" · paused"),
+            ConstructionStopCause.NoWorkers => UiText.Get(" · no workers"),
+            ConstructionStopCause.WorkersExhausted => UiText.Get(" · exhausted"),
+            ConstructionStopCause.WorkersInTransit => UiText.Get(" · travelling"),
+            ConstructionStopCause.MissingMaterials => UiText.Get(" · missing inputs"),
+            ConstructionStopCause.Night => UiText.Get(" · night"),
+            ConstructionStopCause.AwaitingModule => UiText.Get(" · awaiting module"),
+            ConstructionStopCause.NoHero => UiText.Get(" · no hero"),
+            _ => string.Empty,
+        };
+    }
+
+    private static string StopCauseHint(CityStatusSnapshot.ProjectItem project)
+    {
+        if (!project.Enabled) return UiText.Get("Paused. Resume from the construction menu.");
+        return project.StopCause switch
+        {
+            ConstructionStopCause.NoWorkers =>
+                UiText.Get("ui.status.build_hint_no_workers"),
+            ConstructionStopCause.WorkersExhausted =>
+                UiText.Get("ui.status.build_hint_exhausted"),
+            ConstructionStopCause.WorkersInTransit =>
+                UiText.Get("ui.status.build_hint_travelling"),
+            ConstructionStopCause.MissingMaterials =>
+                UiText.Get("ui.status.build_hint_materials"),
+            ConstructionStopCause.Night =>
+                UiText.Get("ui.status.build_hint_night"),
+            ConstructionStopCause.AwaitingModule =>
+                UiText.Get("ui.status.build_hint_module"),
+            _ => UiText.Get("In progress. Click the construction menu for details."),
+        };
     }
 
     private static string StopCauseSuffix(CityStatusSnapshot.BuildingItem building) => building.StopCause switch

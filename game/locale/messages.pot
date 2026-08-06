@@ -4,6 +4,9 @@ msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 
+msgid " · awaiting module"
+msgstr ""
+
 msgid " · exhausted"
 msgstr ""
 
@@ -17,6 +20,9 @@ msgid " · night"
 msgstr ""
 
 msgid " · no food"
+msgstr ""
+
+msgid " · no hero"
 msgstr ""
 
 msgid " · no workers"
@@ -41,6 +47,9 @@ msgid "A Basic Shelter is ready."
 msgstr ""
 
 msgid "Adaptability"
+msgstr ""
+
+msgid "Adaptación"
 msgstr ""
 
 msgid "Aether"
@@ -68,6 +77,9 @@ msgid "Alcance"
 msgstr ""
 
 msgid "Ambitious"
+msgstr ""
+
+msgid "Anclaje"
 msgstr ""
 
 msgid "Arts & culture"
@@ -112,6 +124,9 @@ msgstr ""
 msgid "Awaiting next Founding Site module"
 msgstr ""
 
+msgid "Axe"
+msgstr ""
+
 msgid "Back"
 msgstr ""
 
@@ -130,6 +145,9 @@ msgstr ""
 msgid "Blades"
 msgstr ""
 
+msgid "Bleeding"
+msgstr ""
+
 msgid "Body variant used by the imported sprite."
 msgstr ""
 
@@ -137,6 +155,9 @@ msgid "Body-aware builders, extractors, rescuers and operational coordinators."
 msgstr ""
 
 msgid "Bold"
+msgstr ""
+
+msgid "Bow"
 msgstr ""
 
 msgid "branches"
@@ -331,6 +352,9 @@ msgstr ""
 msgid "Cooperative"
 msgstr ""
 
+msgid "Corola"
+msgstr ""
+
 msgid "Could not cancel the project."
 msgstr ""
 
@@ -356,6 +380,15 @@ msgid "Cultivation Site"
 msgstr ""
 
 msgid "Curious"
+msgstr ""
+
+msgid "Custodia"
+msgstr ""
+
+msgid "Daggers"
+msgstr ""
+
+msgid "Darts"
 msgstr ""
 
 msgid "Defensive support"
@@ -547,10 +580,10 @@ msgstr ""
 msgid "Firma"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
 msgid "Forest"
@@ -565,6 +598,9 @@ msgstr ""
 msgid "Founding Site"
 msgstr ""
 
+msgid "Fracture"
+msgstr ""
+
 msgid "Gather"
 msgstr ""
 
@@ -577,10 +613,13 @@ msgstr ""
 msgid "Gather the full module cost first."
 msgstr ""
 
+msgid "Gauntlets"
+msgstr ""
+
 msgid "Gender — choose one"
 msgstr ""
 
-msgid "Got it"
+msgid "Hammer"
 msgstr ""
 
 msgid "Heavy weapons"
@@ -625,6 +664,9 @@ msgstr ""
 msgid "iron"
 msgstr ""
 
+msgid "Knockdown"
+msgstr ""
+
 msgid "La forma está lista."
 msgstr ""
 
@@ -638,6 +680,9 @@ msgid "Lineage theme: ardhen"
 msgstr ""
 
 msgid "Logistics"
+msgstr ""
+
+msgid "Mace"
 msgstr ""
 
 msgid "Manual precision"
@@ -1069,9 +1114,6 @@ msgstr ""
 msgid "Newest entry at the bottom"
 msgstr ""
 
-msgid "Next"
-msgstr ""
-
 msgid "No buildings yet. Your hero is ready for the first decision."
 msgstr ""
 
@@ -1162,7 +1204,13 @@ msgstr ""
 msgid "Open the hero profile"
 msgstr ""
 
+msgid "Orb"
+msgstr ""
+
 msgid "Orientation"
+msgstr ""
+
+msgid "Paralysis"
 msgstr ""
 
 msgid "Patch growth at next dawn"
@@ -1196,6 +1244,9 @@ msgid "Personality"
 msgstr ""
 
 msgid "plantfiber"
+msgstr ""
+
+msgid "Poisoning"
 msgstr ""
 
 msgid "Polearm"
@@ -1252,6 +1303,9 @@ msgstr ""
 msgid "Recon"
 msgstr ""
 
+msgid "Reconfiguración"
+msgstr ""
+
 msgid "Reconnaissance"
 msgstr ""
 
@@ -1279,13 +1333,16 @@ msgstr ""
 msgid "Reserved"
 msgstr ""
 
+msgid "Resonancia"
+msgstr ""
+
 msgid "Resources"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1321,6 +1378,9 @@ msgstr ""
 msgid "Risk tolerance"
 msgstr ""
 
+msgid "Rumbo"
+msgstr ""
+
 msgid "Secular"
 msgstr ""
 
@@ -1348,10 +1408,10 @@ msgstr ""
 msgid "Silence"
 msgstr ""
 
-msgid "Skeptical"
+msgid "Síntesis"
 msgstr ""
 
-msgid "Skip"
+msgid "Skeptical"
 msgstr ""
 
 msgid "smallstone"
@@ -1363,7 +1423,13 @@ msgstr ""
 msgid "Something blocks the way — walk along the street to a gap first."
 msgstr ""
 
+msgid "Spear"
+msgstr ""
+
 msgid "Spiritual posture — choose one"
+msgstr ""
+
+msgid "Staff"
 msgstr ""
 
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
@@ -1378,7 +1444,13 @@ msgstr ""
 msgid "Strength"
 msgstr ""
 
+msgid "Stunning"
+msgstr ""
+
 msgid "Switch between the eight lineages. Every bundle currently provides panel; the other surfaces intentionally demonstrate the deterministic same-lineage panel fallback."
+msgstr ""
+
+msgid "Sword"
 msgstr ""
 
 msgid "Syncretic"
@@ -1564,6 +1636,18 @@ msgstr ""
 msgid "ui.chronicle.welcome_stock"
 msgstr ""
 
+msgid "ui.citizen.affinity"
+msgstr ""
+
+msgid "ui.citizen.combat_nature_heading"
+msgstr ""
+
+msgid "ui.citizen.natural_weapons"
+msgstr ""
+
+msgid "ui.citizen.physical_expression"
+msgstr ""
+
 msgid "ui.citizens.construction_assignment"
 msgstr ""
 
@@ -1631,6 +1715,15 @@ msgid "ui.construction.material"
 msgstr ""
 
 msgid "ui.construction.material_full"
+msgstr ""
+
+msgid "ui.construction.module_choice"
+msgstr ""
+
+msgid "ui.construction.module_cost"
+msgstr ""
+
+msgid "ui.construction.module_missing"
 msgstr ""
 
 msgid "ui.construction.module_progress"
@@ -1954,6 +2047,9 @@ msgstr ""
 msgid "ui.hero_profile.lineage_disclaimer"
 msgstr ""
 
+msgid "ui.hero_profile.natural_weapons_hint"
+msgstr ""
+
 msgid "ui.hero_profile.no_hero"
 msgstr ""
 
@@ -2218,6 +2314,24 @@ msgstr ""
 msgid "ui.status.build"
 msgstr ""
 
+msgid "ui.status.build_hint_exhausted"
+msgstr ""
+
+msgid "ui.status.build_hint_materials"
+msgstr ""
+
+msgid "ui.status.build_hint_module"
+msgstr ""
+
+msgid "ui.status.build_hint_night"
+msgstr ""
+
+msgid "ui.status.build_hint_no_workers"
+msgstr ""
+
+msgid "ui.status.build_hint_travelling"
+msgstr ""
+
 msgid "ui.status.first_harvest"
 msgstr ""
 
@@ -2317,9 +2431,6 @@ msgstr ""
 msgid "ui.tree.regrows_at"
 msgstr ""
 
-msgid "ui.tutorial.title"
-msgstr ""
-
 msgid "ui.world_status.expedition"
 msgstr ""
 
@@ -2399,6 +2510,9 @@ msgid "Waiting: contributors exhausted"
 msgstr ""
 
 msgid "Water"
+msgstr ""
+
+msgid "Whip"
 msgstr ""
 
 msgid "wildfood"

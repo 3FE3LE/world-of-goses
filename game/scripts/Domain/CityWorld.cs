@@ -41,6 +41,7 @@ public sealed class CityWorld
     private readonly Dictionary<ResourceOpportunityId, ResourceOpportunity>
         _resourceOpportunities = new();
     private readonly HashSet<ToolKind> _tools = new();
+    private FirstNightState? _firstNight;
     private int _tick;
     private int _nextProjectId = 1;
     private int _nextExpeditionId = 1;
@@ -59,7 +60,8 @@ public sealed class CityWorld
             _buildings,
             _projects,
             RaiseBuildingChanged,
-            RaiseProjectChanged);
+            RaiseProjectChanged,
+            IsLaborTime);
         _production = new BuildingProductionSimulation(
             _citizens,
             _log,
@@ -94,6 +96,18 @@ public sealed class CityWorld
     public IReadOnlyDictionary<ResourceOpportunityId, ResourceOpportunity> ResourceOpportunities =>
         _resourceOpportunities;
     public IReadOnlySet<ToolKind> Tools => _tools;
+
+    /// <summary>
+    /// The authored first night, or <c>null</c> before a founder exists. Cities
+    /// restored from a pre-v31 save carry a concluded night.
+    /// </summary>
+    public FirstNightState? FirstNight => _firstNight;
+
+    /// <summary>
+    /// Whether the authored first night is still running. Every gate that has to
+    /// hold the calendar or keep the spirit present reads this one predicate.
+    /// </summary>
+    public bool IsFirstNightActive => _firstNight?.IsActive == true;
     // Territory expansion is intentionally suspended while the finite visual
     // boundary is redesigned. Persisted frontier parcels remain valid save
     // data, but no expedition may target or expose them in this increment.
@@ -714,6 +728,15 @@ public sealed class CityWorld
                 $"Could not preserve the founder during soft reset: {result.Outcome}.");
         }
         restarted.SeedStartingForests();
+        // Both seeders, exactly as a fresh city gets after onboarding. Seeding
+        // only the forests left the restarted world — and the JSON written from
+        // it — with no Branches, Plant Fiber, Small Stone or Wild Food and no
+        // resource opportunities, so its Campfire (3 Branches + 2 Small Stone,
+        // paid in full up front) was unpayable and no expedition existed. The
+        // live path happened to recover because TryLoadFromPrimarySlot re-seeds
+        // after the scene reload, but the saved city was unwinnable for anyone
+        // loading it any other way.
+        restarted.SeedStartingOpportunities();
         return restarted;
     }
 
@@ -759,6 +782,10 @@ public sealed class CityWorld
             origin: CitizenOrigin.AstralFounder);
         hero.GrantRole(RoleId.Hero, _tick);
         RegisterCitizen(hero);
+        // The authored first night begins where the manifestation ends, with no
+        // extra scene and no clock change: a fresh world is already at Day 1
+        // 00:00, which is night.
+        _firstNight = new FirstNightState(startedAtTick: _tick);
         return HeroCreationResult.Success(hero.Id, founderProfile.FounderOnboardingResult);
     }
 
@@ -981,12 +1008,27 @@ public sealed class CityWorld
                 }
             }
             if (returnPatch is null) continue;
+            if (!_parcels.TryGetValue(returnPatch.ParcelId, out CityParcel? returnParcel)) continue;
+            NaturalResourcePatch targetPatch = returnPatch;
+            bool CanReturnToUnit(int unitId)
+            {
+                NaturalResourceUnitPosition position = targetPatch.UnitPositions[unitId];
+                return FrontageState(
+                    position.GlobalRow(returnParcel),
+                    position.GlobalFrontageColumn(returnParcel))
+                    is not (FrontageCellState.ReservedByBuilding
+                        or FrontageCellState.ReservedAsCorridor);
+            }
+            if (!returnPatch.CanAcceptReturn(CanReturnToUnit)) continue;
             int carried = _inventory.AmountOf(type);
             if (carried > 0 && _inventory.TryConsume(type, carried))
             {
-                returnPatch.Return(carried);
-                returned += carried;
-                RaisePatchChanged(returnPatch.Id);
+                int accepted = returnPatch.Return(carried, CanReturnToUnit);
+                // The patch is the authority on what it can hold. Anything it
+                // refuses goes straight back to the city so cargo is never lost.
+                if (accepted < carried) _inventory.Deposit(type, carried - accepted);
+                returned += accepted;
+                if (accepted > 0) RaisePatchChanged(returnPatch.Id);
             }
         }
         return returned;
@@ -1637,6 +1679,23 @@ public sealed class CityWorld
         return false;
     }
 
+    /// <summary>
+    /// Founding camp bypass: while no Basic Shelter exists, every tick is a
+    /// labour tick regardless of <see cref="GameClock.IsDaytime"/>. The
+    /// configured workday (08:00–16:00) only governs the city phase that begins
+    /// once the founder has built the first Home.
+    ///
+    /// <para>
+    /// Every labour gate must read this, not <see cref="GameClock.IsDaytime"/>
+    /// directly. The rule used to live only in the per-tick simulation while
+    /// mobilisation and arrival kept their own daytime checks, so authorising the
+    /// founding site after 16:00 assigned the founder and then parked them at
+    /// home: the project sat on <see cref="ConstructionStopCause.WorkersInTransit"/>
+    /// and never progressed.
+    /// </para>
+    /// </summary>
+    internal bool IsLaborTime() => GameClock.IsDaytime(_tick) || !HasCompletedFirstShelter();
+
     private static bool ContainsControlCharacter(string value)
     {
         foreach (char character in value)
@@ -1888,13 +1947,24 @@ public sealed class CityWorld
     /// or the storage capacity is full. Records a
     /// <see cref="WorldEventKind.StockProduced"/> event so the offline
     /// report can surface the gathering activity.
+    ///
+    /// <para><b>Fixture seam, not a gameplay path.</b> This predates the
+    /// forestry gate and does <em>not</em> check
+    /// <see cref="ToolKind.PrimitiveAxe"/>, so it can drain mature-tree Wood
+    /// that <see cref="TryGatherFromPatch"/> would refuse — contradicting the
+    /// cross-domain invariant that mature-tree Wood requires a persisted
+    /// forestry capability. It is deliberately <c>internal</c> so no scene,
+    /// panel or controller can reach it; the assembly exposes internals to the
+    /// test project, which uses this as the cheap way to stock a fixture world.
+    /// Gameplay must go through <see cref="TryGatherFromPatch"/>.</para>
     /// </summary>
-    public int GatherWood(BuildingId forestId, int amount)
+    internal int GatherWood(BuildingId forestId, int amount)
     {
         return GatherWood(forestId, unitId: null, amount: amount);
     }
 
-    public int GatherWood(BuildingId forestId, int? unitId, int amount)
+    /// <inheritdoc cref="GatherWood(BuildingId, int)"/>
+    internal int GatherWood(BuildingId forestId, int? unitId, int amount)
     {
         if (amount <= 0) return 0;
         Citizen? hero = Hero;
@@ -2380,6 +2450,12 @@ public sealed class CityWorld
             return ConstructionAuthorizationResult.Fail(
                 ConstructionAuthorizationOutcome.InvalidModule);
         }
+        // The previous module released its contributors on completion, so the
+        // founder has to be re-mobilised here exactly as
+        // TryAuthorizeConstruction does for the Campfire. Without this the
+        // authorised module would sit on NoWorkers and the player would have to
+        // assign themselves through the panel between every module.
+        EnsureFoundingShelterContributor();
         RaiseProjectChanged(projectId);
         return ConstructionAuthorizationResult.Success(projectId);
     }
@@ -2536,7 +2612,13 @@ public sealed class CityWorld
         int previousTick = _tick;
         _tick++;
         bool dayChanged = DetectAndApplyMobilisation(previousTick, _tick);
-        if (dayChanged)
+        // The authored first night holds the calendar. Its milestones, not the
+        // clock, decide when dawn happens, so a player who reads slowly can
+        // still be at the campfire when the tick crosses 08:00. Charging a Food
+        // ration and announcing daybreak underneath the narration would
+        // contradict what the game is showing them, and the ration is the only
+        // consequence that can fire inside the night's window at all.
+        if (dayChanged && !IsFirstNightActive)
         {
             if (GameClock.IsDaytime(_tick))
             {
@@ -2547,13 +2629,7 @@ public sealed class CityWorld
         }
         ProcessCitizenNeedsAndStandingOrders(completeAbstractTravel);
         AdvanceWoundRecoveries();
-        // Founding camp bypass: while no Basic Shelter exists yet, every
-        // tick is a labour tick regardless of GameClock.IsDaytime. The
-        // configured workday (08:00-16:00) only governs the city phase
-        // that begins once the founder has built the first Home. See
-        // HasCompletedFirstShelter() for the full rationale.
-        bool isLaborTime = GameClock.IsDaytime(_tick)
-            || !HasCompletedFirstShelter();
+        bool isLaborTime = IsLaborTime();
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
@@ -3054,6 +3130,8 @@ public sealed class CityWorld
                 }
                 else if (completedModule.HasValue)
                 {
+                    ReleaseFoundingModuleContributors(projectId, project);
+                    NotifyFirstNightModuleCompleted(completedModule.Value);
                     RaiseProjectChanged(projectId);
                 }
                 continue;
@@ -3065,6 +3143,163 @@ public sealed class CityWorld
                 continue;
             }
             CompleteProject(projectId);
+        }
+    }
+
+    /// <summary>
+    /// Opens the main-dialogue node the spirit is currently speaking. The id is
+    /// persisted, so a save taken mid-conversation resumes on the same line.
+    /// </summary>
+    public bool TryOpenFirstNightDialogue(string nodeId)
+    {
+        if (_firstNight is not { IsActive: true } night) return false;
+        night.OpenDialogueNode(nodeId);
+        return true;
+    }
+
+    /// <summary>
+    /// Closes the current main-dialogue node and moves the night on. Only the
+    /// stages the spirit drives advance this way; the build stages wait on a
+    /// finished module instead, which is why this refuses them.
+    /// </summary>
+    public bool TryCloseFirstNightDialogue()
+    {
+        if (_firstNight is not { IsActive: true } night) return false;
+        if (!FirstNightRules.WaitsForDialogue(night.Stage)
+            && night.Stage is not (FirstNightStage.Manifested
+                or FirstNightStage.OtherLightTold
+                or FirstNightStage.Sleeping))
+        {
+            return false;
+        }
+        // The founder cannot fall asleep without somewhere to sleep. This is the
+        // Bedroll's first mechanical meaning: until now it was only a cost, a
+        // work total and a Canopy prerequisite, and CitizenLocation.AtHome is a
+        // citizen's default value rather than proof that a shelter exists.
+        if (night.Stage == FirstNightStage.OtherLightTold && !HasRestingPlace())
+        {
+            return false;
+        }
+        return AdvanceFirstNight();
+    }
+
+    /// <summary>
+    /// Ends the authored first night without walking its stages.
+    ///
+    /// <b>Fixture seam.</b> Production reaches <see cref="FirstNightStage.Concluded"/>
+    /// only through the sequence itself, or by restoring a pre-v31 save that the
+    /// migration already marked concluded. Tests, however, mostly describe a
+    /// city past its opening — rations at dawn, production cycles, expeditions —
+    /// and those rules are not about the first night. Without this they would all
+    /// run with the calendar held and quietly assert the wrong thing.
+    /// It is <c>internal</c> so no scene or panel can skip the sequence.
+    /// </summary>
+    internal void ConcludeFirstNightForFixtures()
+    {
+        if (_firstNight is not { IsActive: true } night) return;
+        while (night.IsActive) night.TryAdvance(_tick);
+    }
+
+    /// <summary>
+    /// Whether the city offers anywhere to sleep. A finished Home does, and so
+    /// does a Bedroll inside an unfinished Founding Site — the deliberately
+    /// rudimentary shelter of the first night, which exists long before the
+    /// Canopy consolidates the site into a building.
+    /// </summary>
+    public bool HasRestingPlace() =>
+        HasCompletedFirstShelter() || HasFoundingSiteModule(FoundingSiteModule.Bedroll);
+
+    /// <summary>
+    /// Advances the night one stage and records the fact. Kept private so the
+    /// only ways forward are a closed dialogue node or a completed module —
+    /// never a timer, which is what invariant 8 of the design doc protects.
+    /// </summary>
+    private bool AdvanceFirstNight()
+    {
+        if (_firstNight is not { } night) return false;
+        FirstNightStage previous = night.Stage;
+        if (!night.TryAdvance(_tick)) return false;
+        if (night.Stage == FirstNightStage.Concluded)
+        {
+            _log.Record(_tick, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        }
+        return night.Stage != previous;
+    }
+
+    /// <summary>
+    /// Lets a finished Founding Site module carry the night forward. Called
+    /// after module completion so the sequence tracks the real worksite rather
+    /// than a parallel counter that could disagree with it.
+    /// </summary>
+    private void NotifyFirstNightModuleCompleted(FoundingSiteModule module)
+    {
+        if (_firstNight is not { IsActive: true } night) return;
+        if (!FirstNightRules.WaitsForModule(night.Stage)) return;
+        if (FirstNightRules.ModuleFor(night.Stage) != module) return;
+        AdvanceFirstNight();
+    }
+
+    /// <summary>
+    /// Stop cause for a project the batched quiescent path skipped over. It
+    /// keeps <see cref="ConstructionSimulation.SimulateTick"/>'s precedence so
+    /// the batch cannot report a cause the per-tick path would never produce:
+    /// a Founding Site waiting between modules stays
+    /// <see cref="ConstructionStopCause.AwaitingModule"/> instead of being
+    /// relabelled <see cref="ConstructionStopCause.NoWorkers"/> just because no
+    /// one is assigned while it waits.
+    /// </summary>
+    private static ConstructionStopCause ResolveQuiescentProjectStopCause(
+        ConstructionProject project,
+        bool isLaborTime)
+    {
+        if (!project.Enabled) return ConstructionStopCause.Paused;
+        if (!project.HasActiveWork) return ConstructionStopCause.AwaitingModule;
+        if (project.Progress >= project.RequiredWork) return ConstructionStopCause.Completed;
+        return isLaborTime
+            ? ConstructionStopCause.NoWorkers
+            : ConstructionStopCause.Night;
+    }
+
+    /// <summary>
+    /// Frees the contributors of a Founding Site module that just finished
+    /// while the site itself is still under way.
+    ///
+    /// Only the Canopy turns the site into a building, so only the Canopy used
+    /// to run <see cref="CompleteProject"/>'s release loop. Campfire, Bedroll
+    /// and Cache left every contributor committed to a worksite that had no
+    /// active work, which made <see cref="Citizen.IsAvailable"/> false and
+    /// therefore made <see cref="NaturalResourceGatherAvailability"/> answer
+    /// <see cref="NaturalResourceGatherOutcome.HeroUnavailable"/>. A lone
+    /// founder could finish the Campfire and then find the gather action
+    /// disabled with no way to reach the next module's materials short of
+    /// unassigning themselves through the construction panel.
+    ///
+    /// The founder is placed at home rather than sent travelling: until the
+    /// Canopy there is no Home building to walk to, and
+    /// <see cref="CitizenLocation.AtHome"/> is exactly the location gathering
+    /// already runs from.
+    /// </summary>
+    private void ReleaseFoundingModuleContributors(
+        BuildingId projectId,
+        ConstructionProject project)
+    {
+        var contributorIds = new List<CitizenId>(project.AssignedCitizenIds);
+        foreach (CitizenId citizenId in contributorIds)
+        {
+            project.TryUnassign(citizenId);
+            if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)) continue;
+            bool released = citizen.ReleaseCommitment(
+                CitizenCommitmentKind.Construction,
+                projectId.Value);
+            if (!released || citizen.CurrentLocation == CitizenLocation.AtHome) continue;
+            if (HasCompletedFirstShelter())
+            {
+                citizen.BeginTravelHome(_tick);
+            }
+            else
+            {
+                citizen.SetLocation(CitizenLocation.AtHome);
+            }
         }
     }
 
@@ -3176,17 +3411,15 @@ public sealed class CityWorld
     {
         bool wasDay = GameClock.IsDaytime(previousTick);
         bool isDay = GameClock.IsDaytime(currentTick);
-        if (wasDay && !isDay)
-        {
-            MobiliseForNight();
-            return true;
-        }
-        else if (!wasDay && isDay)
-        {
-            MobiliseForDay();
-            return true;
-        }
-        return false;
+        if (wasDay == isDay) return false;
+        // Founding camp: there is no Home to return to and IsLaborTime() holds
+        // at every hour, so neither boundary may pull the founder off the
+        // worksite. The crossing is still reported so the sunrise/sunset event
+        // fires and the clock reads correctly.
+        if (!HasCompletedFirstShelter()) return true;
+        if (wasDay) MobiliseForNight();
+        else MobiliseForDay();
+        return true;
     }
 
     /// <summary>
@@ -3275,7 +3508,11 @@ public sealed class CityWorld
                 }
             }
 
-            if (!isDaytime
+            // IsLaborTime, not isDaytime: the meal and rest rules above stay on
+            // the clock, but re-dispatching a standing order must honour the
+            // founding-camp bypass. Otherwise a founder who ends up at home
+            // after 16:00 is never sent back to the worksite.
+            if (!IsLaborTime()
                 || citizen.VitalStatus != CitizenVitalStatus.Stable
                 || citizen.IsWounded
                 || citizen.Commitment.Kind is CitizenCommitmentKind.Expedition
@@ -3380,7 +3617,7 @@ public sealed class CityWorld
         {
             return false;
         }
-        if (!GameClock.IsDaytime(_tick))
+        if (!IsLaborTime())
         {
             // A visible route can finish just after the workday boundary.
             // Do not leave the citizen indefinitely idle at the threshold:
@@ -3789,8 +4026,12 @@ public sealed class CityWorld
         {
             citizen.AdvanceWellFedTicks(tickCount);
         }
-        if (GameClock.IsDaytime(_tick)) MobiliseForDay();
-        else MobiliseForNight();
+        // Same founding-camp exemption as the stepped boundary above.
+        if (HasCompletedFirstShelter())
+        {
+            if (GameClock.IsDaytime(_tick)) MobiliseForDay();
+            else MobiliseForNight();
+        }
     }
 
     /// <summary>
@@ -3870,21 +4111,23 @@ public sealed class CityWorld
 
         ApplyUpkeepBatch(tickCount);
         bool isDaytime = GameClock.IsDaytime(_tick);
+        // Stop causes are labour facts, so they read IsLaborTime() exactly like
+        // the per-tick loop does. Reading GameClock.IsDaytime directly here used
+        // to report `night` for a founding camp that the bypass keeps working at
+        // any hour. The citizen meal/rest branch below deliberately stays on the
+        // raw clock, mirroring ProcessCitizenNeedsAndStandingOrders.
+        bool isLaborTime = IsLaborTime();
         foreach (var building in _buildings.Values)
         {
             building.LastTickProduction = 0;
-            building.StopCause = isDaytime
+            building.StopCause = isLaborTime
                 ? BuildingProductionSimulation.ResolveStopCauseWhenNotProducing(building)
                 : ProductionStopCause.Night;
         }
         foreach (var project in _projects.Values)
         {
             project.LastTickProgressAdded = 0;
-            project.StopCause = isDaytime
-                ? project.Enabled
-                    ? ConstructionStopCause.NoWorkers
-                    : ConstructionStopCause.Paused
-                : ConstructionStopCause.Night;
+            project.StopCause = ResolveQuiescentProjectStopCause(project, isLaborTime);
         }
         foreach (var citizen in _citizens.Values)
         {
@@ -4503,6 +4746,17 @@ public sealed class CityWorld
         {
             if (Enum.TryParse(savedTool, true, out ToolKind tool)) _tools.Add(tool);
         }
+
+        // Validate() has already rejected an unparseable stage or an
+        // inconsistent concluding tick, so this only has to reconstruct.
+        _firstNight = save.FirstNight is { } savedNight
+            && Enum.TryParse(savedNight.Stage, true, out FirstNightStage savedStage)
+            ? new FirstNightState(
+                savedStage,
+                savedNight.CurrentDialogueNodeId,
+                savedNight.StartedAtTick,
+                savedNight.ConcludedAtTick)
+            : null;
 
         foreach (ResourceOpportunitySave opportunity in save.ResourceOpportunities)
         {

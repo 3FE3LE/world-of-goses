@@ -591,11 +591,11 @@ public partial class CityWorldController : Node
 
     public int CurrentProductionRate(BuildingId buildingId) => _world.CurrentProductionRate(buildingId);
 
-    public int GatherWood(BuildingId forestId, int amount) =>
-        _world.GatherWood(forestId, amount);
-
-    public int GatherWood(BuildingId forestId, int unitId, int amount) =>
-        _world.GatherWood(forestId, unitId, amount);
+    // The two GatherWood wrappers are gone. They forwarded to a domain method
+    // that never checked ToolKind.PrimitiveAxe, so any scene holding a
+    // controller reference could drain mature-tree Wood straight past the
+    // forestry gate. Nothing in the game called them — the macro view gathers
+    // through TryGatherFromPatch — so they were reachable API with no purpose.
 
     public int GatherFromPatch(int patchId, int unitId, int amount) =>
         _world.GatherFromPatch(patchId, unitId, amount);

@@ -67,12 +67,6 @@ public partial class CityPrototype : Node
 
         switch (fixture)
         {
-            case "tutorial":
-                GetNode<TutorialOverlay>("TutorialOverlay").ShowForVisualRegression();
-                break;
-            case "tutorial-long":
-                GetNode<TutorialOverlay>("TutorialOverlay").ShowForVisualRegression(2);
-                break;
             case "offline-report":
                 GetNode<OfflineReportPanel>(
                     "GameUiShell/ScreenContent/OfflineReportPanel")
@@ -194,11 +188,38 @@ public partial class CityPrototype : Node
             case "policies":
                 GetNode<PoliciesPanel>("GameUiShell/ScreenContent/PoliciesPanel").Open();
                 break;
+            case "combat-debug":
+                ShowCombatDebugForVisualRegression();
+                break;
             case "migrant":
                 GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
                     .ShowForVisualRegression();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Adds the combat debug panel at runtime and resolves one expedition, so the
+    /// slice is reachable in the engine without editing CityPrototype.tscn. The
+    /// panel is developer scaffolding; the player-facing preparation screen belongs
+    /// to a later slice.
+    /// </summary>
+    private void ShowCombatDebugForVisualRegression()
+    {
+        // Parent to the UI layer so the panel gets a real rect and draws above the
+        // HUD. The scene root is not a Control, so anchoring against it yields the
+        // panel's minimum size instead of the screen.
+        Node host = GetNodeOrNull<Control>("GameUiShell/ScreenContent") ?? (Node)this;
+        var panel = new CombatDebugPanel
+        {
+            Name = "CombatDebugPanel",
+            ControllerPath = host == this
+                ? "../CityWorldController"
+                : "../../../CityWorldController",
+        };
+        host.AddChild(panel);
+        panel.Open();
+        panel.RunForVisualRegression();
     }
 
     private void ShowLongTerrariumForVisualRegression(int additionalRows)

@@ -32,7 +32,9 @@ public class ResidentFoodRationTests
     [Fact]
     public void Dawn_WithNoFood_LeavesStockUntouchedAndLogsShortfall()
     {
-        var world = TestHelpers.NewHeroWorld();
+        // The ration is a post-opening rule: the authored first night holds the
+        // calendar so a slow player is not charged behind the narration.
+        var world = TestHelpers.ConcludeFirstNight(TestHelpers.NewHeroWorld());
         Assert.Equal(0, world.TotalStockOf(ResourceType.Food));
 
         TestHelpers.AdvanceToNextDawn(world);

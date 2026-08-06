@@ -21,17 +21,25 @@ public sealed record CityStatusSnapshot(
     IReadOnlyList<string> FreeCitizenNames,
     string? HeroName,
     bool HasController,
-    int CurrentSpeed)
+    int CurrentSpeed,
+    bool IsLaborTime)
 {
     public bool IsEmpty => Buildings.Count == 0 && Projects.Count == 0;
 
+    /// <summary>
+    /// A worksite in the status strip. <paramref name="StopCause"/> is what keeps
+    /// the strip honest: a project can sit at 0/180 indefinitely because its
+    /// contributor is exhausted, still walking, or waiting on a module, and
+    /// without it the chip reported progress without ever saying why.
+    /// </summary>
     public sealed record ProjectItem(
         string DisplayName,
         int Progress,
         int RequiredWork,
         int AssignedCount,
         int WorkerCapacity,
-        bool Enabled);
+        bool Enabled,
+        ConstructionStopCause StopCause);
 
     public sealed record BuildingItem(
         BuildingKind Kind,
@@ -51,7 +59,7 @@ public sealed record CityStatusSnapshot(
         foreach (var project in world.Projects.Values)
         {
             projects.Add(new ProjectItem(project.DisplayName, project.Progress, project.RequiredWork,
-                project.AssignedCount, project.WorkerCapacity, project.Enabled));
+                project.AssignedCount, project.WorkerCapacity, project.Enabled, project.StopCause));
         }
 
         var buildings = new List<BuildingItem>();
@@ -82,6 +90,6 @@ public sealed record CityStatusSnapshot(
             world.ProtectedFoodTarget, world.TicksUntilFirstHarvest,
             world.TotalWood, world.TotalWoodReserve,
             atWork, atHome, projects, buildings, freeNames, world.Hero?.Name,
-            hasController, currentSpeed);
+            hasController, currentSpeed, world.IsLaborTime());
     }
 }

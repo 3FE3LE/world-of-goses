@@ -2659,7 +2659,8 @@ public partial class MacroStreetLiveView : Node2D
     /// is involved), so every subsequent <see cref="EnsureHeroCarrier"/>
     /// refresh would otherwise see "AtHome, no route, no pending return"
     /// and hide the citizen again — mid-walk, or worse, right as
-    /// <see cref="CompleteRoute"/>'s gather branch calls <c>GatherWood</c>
+    /// <see cref="CompleteRoute"/>'s gather branch calls
+    /// <c>TryGatherFromPatch</c>
     /// (itself a synchronous <c>BuildingStateChanged</c>) the instant after
     /// <see cref="_route"/> is cleared, undoing the arrival Slash animation
     /// before the player ever sees it.</description></item>

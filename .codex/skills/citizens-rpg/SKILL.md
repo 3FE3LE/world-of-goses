@@ -51,6 +51,10 @@ visible. Make consequences persist.
   this skill closes.
 - `docs/world-of-goses-design-bible/06_LINEAGES.md` — when lineage affects
   the change. Read `lineages-and-cultures` for cross-cutting rules.
+- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — when the
+  founder profile, the cube profile, the elemental affinity, the
+  equipment model or combat-derived stats are touched. Read
+  `lineages-and-cultures` for the cube-as-cultural-system angle.
 
 ## Core invariants
 

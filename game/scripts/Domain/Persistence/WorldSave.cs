@@ -55,9 +55,10 @@ public sealed class WorldSave
     ///   <item><description>v28 — persists durable city tools; fresh terrain contracts to three horizontal founding parcels while legacy topology remains valid.</description></item>
     ///   <item><description>v29 — persists the founder's canonical cube profile and narrative memory; None/Neutral elemental affinity migrates to Silence.</description></item>
     ///   <item><description>v30 — every citizen persists a cube profile, equipment loadout, weapon-family competencies, and current health/condition; combat expression is derived immutably from affinity.</description></item>
+    ///   <item><description>v31 — persists the authored first night's stage and open dialogue node so the sequence resumes exactly; existing cities migrate as already concluded.</description></item>
     /// </list>
     /// </summary>
-    public const int CurrentVersion = 30;
+    public const int CurrentVersion = 31;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -100,4 +101,12 @@ public sealed class WorldSave
     public List<ResourceOpportunitySave> ResourceOpportunities { get; set; } = new();
     public int? PendingProspectSeed { get; set; }
     public string? PendingProspectName { get; set; }
+
+    /// <summary>
+    /// The authored first night (schema v31). Nullable because a world without a
+    /// founder has no night yet, and because a pre-v31 save legitimately has
+    /// none — the migration writes a concluded night rather than leaving this
+    /// null, so the sequence cannot re-open on a city that is long past it.
+    /// </summary>
+    public FirstNightSave? FirstNight { get; set; }
 }

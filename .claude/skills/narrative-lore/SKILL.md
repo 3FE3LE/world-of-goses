@@ -34,10 +34,14 @@ proposes implications; mechanics decide.
 
 - `docs/world-of-goses-design-bible/01_GAME_VISION.md` — fantasy and naming
   discipline.
-- `docs/world-of-goses-design-bible/06_LINEAGES.md` — per-lineage cultural
-  identity.
+- `docs/world-of-goses-design-bible/06_LINEAGES.md` — lineage index.
+- `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md` — per-lineage
+  cultural identity (detail).
 - `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md` —
   founder, astral arrival, profile composition.
+- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — canonical cube
+  mechanics; relevant when writing founder-related copy or dialogue
+  that touches the cube profile, elemental affinity or line signature.
 
 ## Conditional documentation
 
@@ -87,9 +91,14 @@ proposes implications; mechanics decide.
   `FounderNarrativeScorer.cs`, `FounderNarrativeSession.cs`, `Tr.cs`,
   `WorldEvent.cs`.
 - Presentation: `game/scripts/AstralOnboardingView.cs`,
-  `OnboardingView.cs`, `FounderArrivalSequence.cs`,
-  `game/scripts/Ui/WorldEventTextFormatter.cs`, `Notifier.cs`,
-  `TutorialOverlay.cs`.
+  `FounderArrivalSequence.cs`,
+  `game/scripts/Ui/WorldEventTextFormatter.cs`, `Notifier.cs`.
+  The legacy `OnboardingView.cs` and the three-step `TutorialOverlay.cs` were
+  deleted on 2026-08-05: the former had no instantiator, the latter carried
+  hand-written copy that contradicted the real recipes. Authored guidance now
+  belongs to the first-night surface
+  (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`); never reintroduce a static step
+  list, and derive every quantity from the real recipe.
 - Localization: `game/locale/{messages.pot,en.po,es.po}`.
 - Tests: `tests/WorldofGoses.Tests/FounderNarrativeTests.cs`,
   `OnboardingDomainTests.cs`, `ProfileAndOnboardingTests.cs`,

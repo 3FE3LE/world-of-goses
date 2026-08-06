@@ -17,7 +17,7 @@ namespace WorldofGoses.Ui;
 /// here. <see cref="IconButton"/> does so for all inheritors; the
 /// manual <see cref="Button"/>s created by <see cref="BuildingPlot"/>,
 /// <see cref="VisibleWorkerSlot"/>, <see cref="AssignmentPanel"/>,
-/// <see cref="OnboardingView"/>, and <see cref="LineageShowcase"/> apply
+/// <see cref="AstralOnboardingView"/>, and <see cref="LineageShowcase"/> apply
 /// the same override via <see cref="TooltipButton"/> /
 /// <see cref="TooltipPanelContainer"/>.
 ///

@@ -1,4 +1,7 @@
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Persistence;
 using Xunit;
@@ -60,8 +63,7 @@ public sealed class ToolGatheringTests
 
         Assert.Equal(28, migrated.Version);
         Assert.Empty(migrated.Tools);
-        WorldPersistence.Validate(WorldPersistence.MigrateV29ToV30(
-            WorldPersistence.MigrateV28ToV29(migrated)));
+        WorldPersistence.Validate(WorldPersistence.MigrateToCurrent(migrated));
         Assert.False(CityWorld.FromSave(migrated).HasTool(ToolKind.PrimitiveAxe));
     }
 
@@ -90,6 +92,50 @@ public sealed class ToolGatheringTests
         Assert.Equal(2, world.Resources.Available(ResourceType.PlantFiber));
     }
 
+    /// <summary>
+    /// Mature-tree Wood must require the axe on every path a scene can reach.
+    /// CityWorld.GatherWood drains the same reserve without consulting the tool
+    /// set, and CityWorldController used to forward to it, so any panel holding
+    /// a controller reference could walk straight past the forestry gate. The
+    /// wrappers are gone and the domain method is internal; this pins both so a
+    /// future convenience wrapper cannot quietly reopen the hole.
+    /// </summary>
+    [Fact]
+    public void NoPublicPathGathersMatureTreeWoodWithoutTheAxe()
+    {
+        // Source scan rather than reflection, matching DomainBoundaryTests:
+        // CityWorldController is a Godot Node and the controller lives in the
+        // same assembly, so it could still expose the internal domain method.
+        string controllerSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityWorldController.cs"));
+        Assert.False(
+            Regex.IsMatch(
+                StripComments(controllerSource),
+                @"public\s+int\s+GatherWood\b",
+                RegexOptions.CultureInvariant),
+            "CityWorldController exposes GatherWood again, which skips the axe gate.");
+
+        Assert.DoesNotContain(
+            typeof(CityWorld)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Select(method => method.Name),
+            name => name == nameof(CityWorld.GatherWood));
+
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        NaturalResourcePatch tree = world.NaturalResourcePatches.Values
+            .First(patch => patch.ResourceType == ResourceType.Wood);
+        int reserveBefore = tree.TotalReserve;
+
+        NaturalResourceGatherResult blocked =
+            world.TryGatherFromPatch(tree.Id, unitId: 0, amount: 2);
+
+        Assert.Equal(NaturalResourceGatherOutcome.MissingRequiredTool, blocked.Outcome);
+        Assert.Equal(ToolKind.PrimitiveAxe, blocked.RequiredTool);
+        Assert.Equal(reserveBefore, tree.TotalReserve);
+        Assert.Equal(0, world.Resources.Available(ResourceType.Wood));
+    }
+
     [Fact]
     public void FullFoundingStorage_BlocksGatherBeforeDrainingNode()
     {
@@ -111,4 +157,15 @@ public sealed class ToolGatheringTests
         Assert.Equal(2, fiber.UnitReserves[0]);
         Assert.Equal(0, world.Resources.Available(ResourceType.PlantFiber));
     }
+
+    /// <summary>
+    /// Drops comments so a signature mentioned in prose cannot fail the scan —
+    /// the removal of the wrappers is itself documented in a comment naming
+    /// GatherWood.
+    /// </summary>
+    private static string StripComments(string source) => Regex.Replace(
+        source,
+        @"//.*?$|/\*.*?\*/",
+        string.Empty,
+        RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.CultureInvariant);
 }

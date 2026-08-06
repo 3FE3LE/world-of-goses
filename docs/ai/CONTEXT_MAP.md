@@ -213,7 +213,7 @@ which domain owns the feature.
 - **Primary agent:** depends on what changes. Lineages have **no owning agent**.
 - **Required skills:** `lineages-and-cultures`, plus the skill of the domain being changed
 - **Conditional skills:** `narrative-lore`, `citizens-rpg`, `presentation-experience`, `city-simulation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/06_LINEAGES.md` (index), `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`, `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md`, `docs/LINEAGE_DESIGN_MATRIX.md`
+- **Canonical docs:** `docs/world-of-goses-design-bible/06_LINEAGES.md` (index), `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`, the per-lineage chapters `docs/world-of-goses-design-bible/14_LINEAGES_ARDHEN.md` through `docs/world-of-goses-design-bible/21_LINEAGES_THERYN.md`, `docs/LINEAGE_DESIGN_MATRIX.md`
 - **Code:** `game/scripts/Domain/LineageDefinition.cs`, `LineageId.cs`, `game/scripts/visual/CharacterVisualRegistry.cs`
 - **Hard rule:** lineages are not classes, do not block professions, and must not become automatic multipliers.
 

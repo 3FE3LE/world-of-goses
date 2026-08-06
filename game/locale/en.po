@@ -587,7 +587,7 @@ msgid "ui.citizens.roster_row"
 msgstr "{0} · {1} · {2}"
 
 msgid "ui.citizens.detail"
-msgstr "{0}\nStatus: {1}\nAssignment: {2}\nLineage: {3}\nAffinities: {4}\nStamina: {5}/{6}\n\nOpen a Farm, Quarry, or construction site to assign an available citizen."
+msgstr "{0}\nStatus: {1}\nAssignment: {2}\nLineage: {3}\nStamina: {5}/{6}\n\n{4}\n\nOpen a Farm, Quarry, or construction site to assign an available citizen."
 
 msgid "ui.citizens.construction_assignment"
 msgstr "{0} (construction)"
@@ -834,9 +834,6 @@ msgstr "Citizens return to the Shelter to rest; standing work orders remain assi
 
 msgid "ui.policies.construction_value"
 msgstr "Authorized projects advance automatically. Authorizing new construction remains a player decision."
-
-msgid "ui.tutorial.title"
-msgstr "Tip {0} of {1} — {2}"
 
 msgid "ui.hero.step"
 msgstr "Step {0} of {1}"
@@ -1586,9 +1583,6 @@ msgstr "Min"
 msgid "Missing materials. Check the requirements above."
 msgstr "Missing materials. Check the requirements above."
 
-msgid "Next"
-msgstr "Next"
-
 msgid "No contributors yet."
 msgstr "No contributors yet."
 
@@ -1642,9 +1636,6 @@ msgstr "Resting site — no production"
 
 msgid "Resume"
 msgstr "Resume"
-
-msgid "Skip"
-msgstr "Skip"
 
 msgid "Something blocks the way — walk along the street to a gap first."
 msgstr "Something blocks the way — walk along the street to a gap first."
@@ -1809,7 +1800,7 @@ msgid "ui.town_hall.no_prospect"
 msgstr "No prospect is staying here. An expedition may encounter one."
 
 msgid "ui.town_hall.prospect_detail"
-msgstr "{0}\nLineage: {1}\nAptitudes: {2}\nProfessional affinities: {3}\nPreferred weapons: {4}\nCombat style: {5}"
+msgstr "{0}\nLineage: {1}\n\n{2}"
 
 msgid "ui.town_hall.accept"
 msgstr "Welcome as citizen"
@@ -1927,9 +1918,6 @@ msgstr "Project at capacity."
 
 msgid "No free citizens."
 msgstr "No free citizens."
-
-msgid "Got it"
-msgstr "Got it"
 
 msgid "Conservaré…"
 msgstr "I will keep…"
@@ -2344,3 +2332,129 @@ msgstr "Silence"
 
 msgid "Vínculo"
 msgstr "Bond"
+
+msgid " · awaiting module"
+msgstr " · awaiting module"
+
+msgid "ui.hero_profile.natural_weapons_hint"
+msgstr "Natural families train at full rate; any other weapon trains at a tenth. Equipment is not yet available."
+
+msgid "ui.construction.module_choice"
+msgstr "{0}: {1}"
+
+msgid "ui.construction.module_cost"
+msgstr "Authorize this module. Cost: {0}"
+
+msgid "ui.construction.module_missing"
+msgstr "Still missing: {0}"
+
+msgid " · no hero"
+msgstr " · no hero"
+
+msgid "ui.status.build_hint_no_workers"
+msgstr "Nobody is contributing yet. Assign a citizen from the construction menu."
+
+msgid "ui.status.build_hint_exhausted"
+msgstr "The contributor is too tired to work. They need food and rest before the site advances."
+
+msgid "ui.status.build_hint_travelling"
+msgstr "The contributor is still walking to the site. Work starts when they arrive."
+
+msgid "ui.status.build_hint_materials"
+msgstr "The site is waiting for materials. Gather what the recipe still needs."
+
+msgid "ui.status.build_hint_night"
+msgstr "Work is paused for the night and resumes at the start of the workday."
+
+msgid "ui.status.build_hint_module"
+msgstr "Choose the next Founding Site module to continue."
+
+msgid "ui.citizen.combat_nature_heading"
+msgstr "Combat nature"
+
+msgid "ui.citizen.affinity"
+msgstr "Affinity: {0}"
+
+msgid "ui.citizen.physical_expression"
+msgstr "Physical expression: {0}"
+
+msgid "ui.citizen.natural_weapons"
+msgstr "Natural weapons: {0}, {1}"
+
+msgid "Adaptación"
+msgstr "Adaptation"
+
+msgid "Anclaje"
+msgstr "Anchoring"
+
+msgid "Corola"
+msgstr "Corolla"
+
+msgid "Custodia"
+msgstr "Custody"
+
+msgid "Reconfiguración"
+msgstr "Reconfiguration"
+
+msgid "Resonancia"
+msgstr "Resonance"
+
+msgid "Rumbo"
+msgstr "Bearing"
+
+msgid "Síntesis"
+msgstr "Synthesis"
+
+msgid "Bleeding"
+msgstr "Bleeding"
+
+msgid "Fracture"
+msgstr "Fracture"
+
+msgid "Knockdown"
+msgstr "Knockdown"
+
+msgid "Paralysis"
+msgstr "Paralysis"
+
+msgid "Poisoning"
+msgstr "Poisoning"
+
+msgid "Stunning"
+msgstr "Stunning"
+
+msgid "Axe"
+msgstr "Axe"
+
+msgid "Bow"
+msgstr "Bow"
+
+msgid "Daggers"
+msgstr "Daggers"
+
+msgid "Darts"
+msgstr "Darts"
+
+msgid "Gauntlets"
+msgstr "Gauntlets"
+
+msgid "Hammer"
+msgstr "Hammer"
+
+msgid "Mace"
+msgstr "Mace"
+
+msgid "Orb"
+msgstr "Orb"
+
+msgid "Spear"
+msgstr "Spear"
+
+msgid "Staff"
+msgstr "Staff"
+
+msgid "Sword"
+msgstr "Sword"
+
+msgid "Whip"
+msgstr "Whip"

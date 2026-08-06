@@ -2,6 +2,7 @@
 using System;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -142,6 +143,15 @@ public partial class FounderArrivalSequence : Control
         content.AddChild(LabelFor(
             "Primera caída. Técnicamente exitosa.",
             "BodyText"));
+        // DEC-0013 requires this card to state what onboarding actually produced:
+        // affinity, the physical expression derived from it, and the cube axes.
+        // It previously showed only the name and lineage.
+        content.AddChild(LabelFor(
+            CitizenNatureText.FormatCompactLocalized(
+                founder.CubeProfile,
+                founder.Profile.Lineage,
+                founder.CombatNature),
+            "BodySmall"));
 
         Tween reveal = CreateTween().SetParallel(true);
         reveal.TweenProperty(_card, "modulate:a", 1f, 0.18);

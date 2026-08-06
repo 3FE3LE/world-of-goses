@@ -40,9 +40,49 @@ public sealed record CompetencyProgress
         if (!double.IsFinite(generatedExperience) || generatedExperience < 0)
             throw new ArgumentOutOfRangeException(nameof(generatedExperience));
         StatisticsBalanceConfig config = balance ?? StatisticsBalanceConfig.Default;
-        double factor = NaturalWeaponFamilies.Contains(nature.PhysicalExpression, Family)
+        return new CompetencyProgress(
+            Family,
+            Level,
+            Experience + generatedExperience * LearningEfficiency(nature, config),
+            config);
+    }
+
+    /// <summary>
+    /// Fraction of generated experience this family actually absorbs: full rate
+    /// for a family the citizen's physical expression makes natural, a tenth for a
+    /// foreign one. The penalty is on learning, never on the technique's result.
+    /// </summary>
+    public double LearningEfficiency(
+        CombatNature nature,
+        StatisticsBalanceConfig? balance = null)
+    {
+        ArgumentNullException.ThrowIfNull(nature);
+        StatisticsBalanceConfig config = balance ?? StatisticsBalanceConfig.Default;
+        return NaturalWeaponFamilies.Contains(nature.PhysicalExpression, Family)
             ? config.NaturalWeaponExperienceFactor
             : config.ForeignWeaponExperienceFactor;
-        return new CompetencyProgress(Family, Level, Experience + generatedExperience * factor, config);
+    }
+
+    /// <summary>
+    /// Grants experience and re-derives the level from the curve, which is the
+    /// piece this record previously left pending. The persisted shape is
+    /// unchanged — level stays stored — so no save migration is required; the
+    /// curve is simply now the authority that produces it.
+    /// </summary>
+    public CompetencyProgress GrantAndLevel(
+        double generatedExperience,
+        CombatNature nature,
+        Combat.CompetencyLevelCurve curve,
+        int? learningCeiling = null,
+        StatisticsBalanceConfig? balance = null)
+    {
+        ArgumentNullException.ThrowIfNull(curve);
+        CompetencyProgress granted = GrantGeneratedExperience(generatedExperience, nature, balance);
+        int level = curve.LevelFor(granted.Experience, learningCeiling);
+        return new CompetencyProgress(
+            granted.Family,
+            level,
+            granted.Experience,
+            balance ?? StatisticsBalanceConfig.Default);
     }
 }

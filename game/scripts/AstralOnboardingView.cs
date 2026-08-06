@@ -479,11 +479,32 @@ public partial class AstralOnboardingView : Control
     private static string DescribeResult(FounderOnboardingResult result) =>
         $"{ProfileCatalog.Get(result.Lineage).DisplayName} · {UiText.Get(CubeScoring.Signature(result.Lineage))}\n" +
         $"{UiText.Get(ProfileCatalog.Get(result.Lineage).Summary)}\n\n" +
-        $"{UiText.Get("Afinidad")} · {UiText.Get(ProfileCatalog.DisplayName(result.ElementalAffinity))}\n\n" +
+        $"{UiText.Get("Afinidad")} · {UiText.Get(ProfileCatalog.DisplayName(result.ElementalAffinity))}\n" +
+        // Onboarding decides the physical expression too, so the closing card
+        // must name it rather than leaving the player to discover it later.
+        $"{DescribeCombatNature(result.ElementalAffinity)}\n\n" +
         $"{UiText.Get("Perfil de encarnación").ToUpperInvariant()}\n" +
         $"{UiText.Get("Cuerpo")} {result.CubeProfile.Body} / {result.CubeProfile.Bond} {UiText.Get("Vínculo")}\n" +
         $"{UiText.Get("Estabilidad")} {result.CubeProfile.Stability} / {result.CubeProfile.Impulse} {UiText.Get("Impulso")}\n" +
         $"{UiText.Get("Dominio")} {result.CubeProfile.Mastery} / {result.CubeProfile.Reach} {UiText.Get("Alcance")}";
+
+    /// <summary>
+    /// The expression the affinity implies plus the two weapon families it makes
+    /// natural. Shared shape with the hero profile and the citizens panel.
+    /// </summary>
+    private static string DescribeCombatNature(ElementalAffinity affinity)
+    {
+        PhysicalExpression expression = CombatNature.PhysicalExpressionFor(affinity);
+        (WeaponFamily first, WeaponFamily second) = NaturalWeaponFamilies.For(expression);
+        return UiText.Format(
+                "ui.citizen.physical_expression",
+                UiText.Get(ProfileCatalog.DisplayName(expression)))
+            + "\n"
+            + UiText.Format(
+                "ui.citizen.natural_weapons",
+                UiText.Get(ProfileCatalog.DisplayName(first)),
+                UiText.Get(ProfileCatalog.DisplayName(second)));
+    }
 
     private static string JoinLocalized<T>(IReadOnlyList<T> values, Func<T, string> name)
     {

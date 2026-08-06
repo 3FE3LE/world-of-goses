@@ -60,7 +60,13 @@ public static class OverlayLayers
     /// while the construction modal is still open underneath.</summary>
     public const int PlacementOverlay = 40;
 
-    /// <summary>Tutorial overlay above macro + modals, below pause.</summary>
+    /// <summary>Authored guidance above macro + modals, below pause.
+    /// Reserved and currently unclaimed: the three-step modal
+    /// <c>TutorialOverlay</c> that used to own it was deleted because its
+    /// hand-written copy had drifted out of step with the real recipes and
+    /// status strip. The slot is kept for the first-night dialogue surface,
+    /// which must occlude the construction and expedition modals without
+    /// hiding the pause menu or Notifier toasts.</summary>
     public const int Tutorial = 50;
 
     /// <summary>Founding-hero astral onboarding (12-step narrative).</summary>

@@ -68,6 +68,17 @@ public static class WorldPersistence
 
         save.EarlyGameMetrics = CaptureEarlyGameMetrics(world.Metrics);
 
+        if (world.FirstNight is { } firstNight)
+        {
+            save.FirstNight = new FirstNightSave
+            {
+                Stage = firstNight.Stage.ToString(),
+                CurrentDialogueNodeId = firstNight.CurrentDialogueNodeId,
+                StartedAtTick = firstNight.StartedAtTick,
+                ConcludedAtTick = firstNight.ConcludedAtTick,
+            };
+        }
+
         foreach (var building in world.Buildings.Values)
         {
             var bs = new BuildingSave
@@ -621,6 +632,36 @@ public static class WorldPersistence
         {
             throw new InvalidOperationException("Save.Tools is invalid.");
         }
+        if (save.FirstNight is { } firstNight)
+        {
+            if (!Enum.TryParse(firstNight.Stage, true, out FirstNightStage stage)
+                || !Enum.IsDefined(stage))
+            {
+                throw new InvalidOperationException(
+                    $"Save.FirstNight has unknown stage '{firstNight.Stage}'.");
+            }
+            if (firstNight.StartedAtTick < 0)
+            {
+                throw new InvalidOperationException("Save.FirstNight starts before tick 0.");
+            }
+            // A concluding tick and the Concluded stage imply each other. Without
+            // this, a hand-edited save could describe a night that ended without
+            // ever reaching its last stage, and FirstNightState's constructor
+            // would throw during restore instead of here where the message says
+            // which section is wrong.
+            if ((firstNight.ConcludedAtTick is not null)
+                != (stage == FirstNightStage.Concluded))
+            {
+                throw new InvalidOperationException(
+                    "Save.FirstNight must carry a concluding tick exactly when it is Concluded.");
+            }
+            if (firstNight.ConcludedAtTick is int concluded
+                && concluded < firstNight.StartedAtTick)
+            {
+                throw new InvalidOperationException(
+                    "Save.FirstNight concludes before it started.");
+            }
+        }
         if (save.Parcels is null)
         {
             throw new InvalidOperationException("Save.Parcels is null.");
@@ -697,8 +738,9 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     "Save contains an invalid natural-resource patch.");
             }
-            foreach (NaturalResourceUnitPositionSave position in patch.UnitPositions)
+            for (int unitId = 0; unitId < patch.UnitPositions.Count; unitId++)
             {
+                NaturalResourceUnitPositionSave position = patch.UnitPositions[unitId];
                 if (position is null
                     || position.RowWithinParcel < 0
                     || position.RowWithinParcel >= ParcelGrid.ConstructionRowsPerParcel
@@ -713,6 +755,11 @@ public static class WorldPersistence
                     throw new InvalidOperationException(
                         "Save contains overlapping or invalid natural-resource positions.");
                 }
+                // A depleted unit is free ground: its sprite is hidden and
+                // CityWorld.NaturalResourceOccupiesFrontageCell already treats the cell
+                // as available, so a placement over it must validate. The uniqueness
+                // check above stays unfiltered — it guards the authored layout itself.
+                if (patch.UnitReserves[unitId] <= 0) continue;
                 ParcelSave resourceParcel = parcelsById[patch.ParcelId];
                 globalResourceCells.Add((
                     resourceParcel.LogicalRow * ParcelGrid.ConstructionRowsPerParcel
@@ -1892,6 +1939,7 @@ public static class WorldPersistence
                 27 => MigrateV27ToV28(save),
                 28 => MigrateV28ToV29(save),
                 29 => MigrateV29ToV30(save),
+                30 => MigrateV30ToV31(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2674,6 +2722,41 @@ public static class WorldPersistence
         }
 
         save.Version = 29;
+        return save;
+    }
+
+    /// <summary>
+    /// Adds the authored first night, already concluded.
+    ///
+    /// A migrated city has been played: it may already have a Shelter, a Farm
+    /// and a Town Hall. Starting the sequence there would ask it to complete
+    /// Campfire and Bedroll milestones it passed long ago — or, on a city whose
+    /// Founding Site is gone, milestones it can never satisfy again — and would
+    /// hold the calendar for a night that never ends. A save with no founder yet
+    /// legitimately keeps no night at all: <see cref="CityWorld.TryCreateHero"/>
+    /// opens one when the founder manifests.
+    /// </summary>
+    public static WorldSave MigrateV30ToV31(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 30)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV30ToV31 expects version 30 but found {save.Version}.");
+        }
+
+        if (save.Citizens.Count > 0)
+        {
+            save.FirstNight ??= new FirstNightSave
+            {
+                Stage = FirstNightStage.Concluded.ToString(),
+                CurrentDialogueNodeId = null,
+                StartedAtTick = 0,
+                ConcludedAtTick = Math.Max(0, save.CurrentTick),
+            };
+        }
+
+        save.Version = 31;
         return save;
     }
 

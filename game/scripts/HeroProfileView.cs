@@ -213,6 +213,16 @@ public partial class HeroProfileView : Control
 
         AddHeading(UiText.Get("Afinidad"));
         AddBody(UiText.Format("ui.hero_profile.elemental_affinity", UiText.Get(hero.ElementalAffinity)));
+        // The physical expression is derived from the affinity, so it belongs on
+        // the same card. Onboarding produces both and only the affinity was shown.
+        AddBody(UiText.Format(
+            "ui.citizen.physical_expression",
+            UiText.Get(hero.PhysicalExpression)));
+        AddBody(UiText.Format(
+            "ui.citizen.natural_weapons",
+            UiText.Get(hero.NaturalWeaponFamilies[0]),
+            UiText.Get(hero.NaturalWeaponFamilies[1])));
+        AddBody(UiText.Get("ui.hero_profile.natural_weapons_hint"));
         AddBody(UiText.Format("ui.hero_profile.gender", UiText.Get(hero.Gender.ToString())));
 
         AddHeading(UiText.Get("ui.hero_profile.condition_heading"));

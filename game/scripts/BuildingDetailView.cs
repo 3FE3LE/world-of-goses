@@ -1,8 +1,8 @@
 #nullable enable
-#pragma warning disable CS0618 // Legacy citizen detail remains readable during the v29 compatibility window.
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -242,10 +242,10 @@ public partial class BuildingDetailView : Control
 			"ui.town_hall.prospect_detail",
 			prospect.Name,
 			UiText.Get(ProfileCatalog.Get(profile.Lineage).DisplayName),
-			JoinNames(profile.Aptitudes, ProfileCatalog.DisplayName),
-			JoinNames(profile.ProfessionalAffinities, ProfileCatalog.DisplayName),
-			JoinNames(profile.WeaponPreferences, ProfileCatalog.DisplayName),
-			UiText.Get(ProfileCatalog.DisplayName(profile.CombatStyle)));
+			CitizenNatureText.FormatLocalized(
+				profile.CubeProfile,
+				profile.Lineage,
+				profile.CombatNature));
 		_acceptProspectButton!.Visible = true;
 		_acceptProspectButton.Disabled = _controller.World.AvailableHousing == 0;
 		_acceptProspectButton.TooltipText = UiText.Get(
@@ -254,9 +254,6 @@ public partial class BuildingDetailView : Control
 				: "ui.town_hall.accept_hint");
 		_townHallPanel!.Visible = true;
 	}
-
-	private static string JoinNames<T>(IEnumerable<T> values, System.Func<T, string> displayName) =>
-		string.Join(", ", System.Linq.Enumerable.Select(values, value => UiText.Get(displayName(value))));
 
 	private void EnsureTownHallPanel()
 	{

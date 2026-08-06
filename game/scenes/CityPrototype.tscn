@@ -17,7 +17,6 @@
 [ext_resource type="Script" uid="uid://b6vfsbr4sw38f" path="res://scripts/Ui/ModalHost.cs" id="18_modalhost"]
 [ext_resource type="PackedScene" path="res://scenes/Components/BackToCityButton.tscn" id="19_backbutton"]
 [ext_resource type="Script" uid="uid://crg4evm3yqil0" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="20_safearea"]
-[ext_resource type="Script" uid="uid://ddl7rbis6mpnf" path="res://scripts/TutorialOverlay.cs" id="22_tutorial"]
 [ext_resource type="Script" uid="uid://chwc1uluiw6sb" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
@@ -312,16 +311,6 @@ ButtonText = "Free camera"
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
 layout_mode = 1
-
-[node name="TutorialOverlay" type="Control" parent="." unique_id=1018743098]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("22_tutorial")
-
 
 [node name="TimeOfDayFilter" type="Control" parent="GameUiShell/ScreenContent" unique_id=1900000002]
 script = ExtResource("33_timeoffilter")

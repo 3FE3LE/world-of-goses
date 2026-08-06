@@ -91,9 +91,14 @@ proposes implications; mechanics decide.
   `FounderNarrativeScorer.cs`, `FounderNarrativeSession.cs`, `Tr.cs`,
   `WorldEvent.cs`.
 - Presentation: `game/scripts/AstralOnboardingView.cs`,
-  `OnboardingView.cs`, `FounderArrivalSequence.cs`,
-  `game/scripts/Ui/WorldEventTextFormatter.cs`, `Notifier.cs`,
-  `TutorialOverlay.cs`.
+  `FounderArrivalSequence.cs`,
+  `game/scripts/Ui/WorldEventTextFormatter.cs`, `Notifier.cs`.
+  The legacy `OnboardingView.cs` and the three-step `TutorialOverlay.cs` were
+  deleted on 2026-08-05: the former had no instantiator, the latter carried
+  hand-written copy that contradicted the real recipes. Authored guidance now
+  belongs to the first-night surface
+  (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`); never reintroduce a static step
+  list, and derive every quantity from the real recipe.
 - Localization: `game/locale/{messages.pot,en.po,es.po}`.
 - Tests: `tests/WorldofGoses.Tests/FounderNarrativeTests.cs`,
   `OnboardingDomainTests.cs`, `ProfileAndOnboardingTests.cs`,

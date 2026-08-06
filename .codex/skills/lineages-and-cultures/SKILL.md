@@ -32,7 +32,12 @@ never an automatic bonus.
 ## Required documentation
 
 - `docs/world-of-goses-design-bible/06_LINEAGES.md` — canonical lineage
-  chapter.
+  index (one chapter per lineage follows in bible/14–21).
+- `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md` — detailed
+  culture + system guideline + signature + cube vertex per lineage.
+- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — canonical cube
+  mechanics (axes, vertices, elemental affinities, stats, equipment,
+  shadow mode, migration).
 - `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
   — lineage rules in the citizen chapter.
 - `docs/LINEAGE_DESIGN_MATRIX.md` — visual translation table.

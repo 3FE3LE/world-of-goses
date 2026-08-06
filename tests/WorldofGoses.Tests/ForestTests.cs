@@ -136,6 +136,39 @@ public class ForestTests
         Assert.Equal(2, CountForests(restarted));
     }
 
+    /// <summary>
+    /// A restarted city must still be completable. The soft reset seeded only
+    /// the forests, so the ground had no Branches, Plant Fiber, Small Stone or
+    /// Wild Food and there were no resource opportunities: the Campfire, whose
+    /// cost is paid in full up front and cannot be paid in Wood, was
+    /// unauthorisable and the expedition chain did not exist.
+    /// </summary>
+    [Fact]
+    public void SoftReset_SeedsTheGroundResourcesTheFirstConstructionNeeds()
+    {
+        CityWorld restarted = TestHelpers.NewConstructionWorld()
+            .CreateRestartedCityKeepingHero();
+
+        foreach (RecipeInput input in FoundingSiteRules.InputsFor(FoundingSiteModule.Campfire))
+        {
+            int reserve = restarted.NaturalResourcePatches.Values
+                .Where(patch => patch.ResourceType == input.Resource)
+                .Sum(patch => patch.TotalReserve);
+            Assert.True(
+                reserve >= input.Amount,
+                $"Restarted city has {reserve} {input.Resource}; the Campfire needs {input.Amount}.");
+        }
+
+        Assert.Equal(2, restarted.ResourceOpportunities.Count);
+
+        foreach (RecipeInput input in FoundingSiteRules.InputsFor(FoundingSiteModule.Campfire))
+        {
+            restarted.Resources.DepositToCityInventory(input.Resource, input.Amount);
+        }
+        Assert.True(
+            restarted.TryAuthorizeConstruction(ConstructionKind.FoundingSite).IsSuccess);
+    }
+
     [Fact]
     public void GatherWood_MovesFromReserveIntoCityInventory()
     {

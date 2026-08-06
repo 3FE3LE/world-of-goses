@@ -22,6 +22,18 @@ public sealed record HeroProfileSnapshot(
     FounderCubeProfile CubeProfile,
     string LineageSignature,
     FounderNarrativeMemory NarrativeMemory,
+    /// <summary>
+    /// The consequence this citizen expresses when a technique permits it,
+    /// derived canonically from the elemental affinity. Onboarding produces it,
+    /// so it belongs beside the affinity everywhere the affinity is shown.
+    /// </summary>
+    string PhysicalExpression,
+    /// <summary>
+    /// The two weapon families the physical expression makes natural. These are
+    /// learning affinities, not equipment: a natural family accrues competency at
+    /// full rate and a foreign one at a tenth. Nothing equips a weapon yet.
+    /// </summary>
+    IReadOnlyList<string> NaturalWeaponFamilies,
     string CombatStyle,
     IReadOnlyList<string> WeaponPreferences,
     IReadOnlyList<string> PersonalityTraits,
@@ -42,6 +54,10 @@ public sealed record HeroProfileSnapshot(
 
         CitizenProfile profile = hero.Profile;
         LineageDefinition lineage = ProfileCatalog.Get(profile.Lineage);
+        // Qualified: the record's own NaturalWeaponFamilies property shadows the
+        // domain helper of the same name inside this method.
+        (WeaponFamily first, WeaponFamily second) =
+            Domain.NaturalWeaponFamilies.For(hero.CombatNature.PhysicalExpression);
         // Raw English catalog text on purpose — this record is exercised
         // directly by Godot-free xUnit tests (UiSnapshotTests), so it must
         // not depend on WorldofGoses.Ui.UiText (which calls into Godot's
@@ -64,6 +80,12 @@ public sealed record HeroProfileSnapshot(
             profile.CubeProfile,
             CubeScoring.Signature(profile.Lineage),
             profile.FounderOnboardingResult?.NarrativeMemory ?? FounderNarrativeMemory.Empty,
+            ProfileCatalog.DisplayName(hero.CombatNature.PhysicalExpression),
+            new[]
+            {
+                ProfileCatalog.DisplayName(first),
+                ProfileCatalog.DisplayName(second),
+            },
             string.IsNullOrWhiteSpace(profile.CombatStyle.Value)
                 ? string.Empty
                 : ProfileCatalog.DisplayName(profile.CombatStyle),

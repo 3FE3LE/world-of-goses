@@ -95,25 +95,51 @@ public sealed class NaturalResourcePatch
     }
 
     /// <summary>
-    /// Returns explicitly dropped cargo to this opportunity without creating a
-    /// new patch. The least-stocked unit receives it so the same authored set
-    /// of ground nodes remains stable and no guaranteed opening material is
-    /// destroyed.
+    /// True when at least one unit can still receive returned cargo. Callers
+    /// check this before removing anything from the city inventory.
     /// </summary>
-    internal int Return(int amount)
+    internal bool CanAcceptReturn(Func<int, bool> canReturnToUnit)
     {
-        if (amount <= 0 || _unitReserves.Count == 0) return 0;
-        for (int returned = 0; returned < amount; returned++)
+        ArgumentNullException.ThrowIfNull(canReturnToUnit);
+        for (int unitId = 0; unitId < _unitReserves.Count; unitId++)
         {
-            int targetUnit = 0;
-            for (int unitId = 1; unitId < _unitReserves.Count; unitId++)
+            if (canReturnToUnit(unitId)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns explicitly dropped cargo to this opportunity without creating a
+    /// new patch. The least-stocked eligible unit receives it so the same
+    /// authored set of ground nodes remains stable and no guaranteed opening
+    /// material is destroyed. A depleted unit can have been built over in the
+    /// meantime, so restocking it would resurrect an obstacle underneath a
+    /// building; <paramref name="canReturnToUnit"/> is how CityWorld excludes
+    /// those cells. Returns the amount actually accepted, which the caller must
+    /// reconcile against what it consumed.
+    /// </summary>
+    internal int Return(int amount, Func<int, bool> canReturnToUnit)
+    {
+        ArgumentNullException.ThrowIfNull(canReturnToUnit);
+        if (amount <= 0 || _unitReserves.Count == 0) return 0;
+        int returned = 0;
+        while (returned < amount)
+        {
+            int targetUnit = -1;
+            for (int unitId = 0; unitId < _unitReserves.Count; unitId++)
             {
-                if (_unitReserves[unitId] < _unitReserves[targetUnit]) targetUnit = unitId;
+                if (!canReturnToUnit(unitId)) continue;
+                if (targetUnit < 0 || _unitReserves[unitId] < _unitReserves[targetUnit])
+                {
+                    targetUnit = unitId;
+                }
             }
+            if (targetUnit < 0) break;
             _unitReserves[targetUnit] = checked(_unitReserves[targetUnit] + 1);
             TotalReserve = checked(TotalReserve + 1);
+            returned++;
         }
-        return amount;
+        return returned;
     }
 
     /// <summary>

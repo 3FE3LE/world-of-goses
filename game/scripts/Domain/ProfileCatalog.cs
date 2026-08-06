@@ -197,6 +197,8 @@ public static class ProfileCatalog
     public static string DisplayName(ProfessionFamilyId id) => GetOption(ProfessionFamilies, id).DisplayName;
     public static string DisplayName(ElementalAffinityId id) => GetOption(ElementalAffinities, id).DisplayName;
     public static string DisplayName(ElementalAffinity affinity) => ElementalAffinityDisplay.DisplayName(affinity);
+    public static string DisplayName(PhysicalExpression expression) => PhysicalExpressionDisplay.DisplayName(expression);
+    public static string DisplayName(WeaponFamily family) => WeaponFamilyDisplay.DisplayName(family);
     public static string DisplayName(CombatStyleId id) => GetOption(CombatStyles, id).DisplayName;
     public static string DisplayName(WeaponPreferenceId id) => GetOption(WeaponPreferences, id).DisplayName;
     public static string DisplayName(PersonalityTraitId id) => GetOption(PersonalityTraits, id).DisplayName;

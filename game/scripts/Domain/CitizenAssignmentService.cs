@@ -17,18 +17,28 @@ internal sealed class CitizenAssignmentService
     private readonly Action<BuildingId> _buildingChanged;
     private readonly Action<BuildingId> _projectChanged;
 
+    /// <summary>
+    /// Whether work may happen right now. This is CityWorld.IsLaborTime, not a
+    /// bare clock check: during the founding camp every hour is a labour hour,
+    /// and mobilising against the raw workday would park the founder at home
+    /// with the worksite stuck on WorkersInTransit.
+    /// </summary>
+    private readonly Func<bool> _isLaborTime;
+
     public CitizenAssignmentService(
         IDictionary<CitizenId, Citizen> citizens,
         IDictionary<BuildingId, Building> buildings,
         IDictionary<BuildingId, ConstructionProject> projects,
         Action<BuildingId> buildingChanged,
-        Action<BuildingId> projectChanged)
+        Action<BuildingId> projectChanged,
+        Func<bool> isLaborTime)
     {
         _citizens = citizens;
         _buildings = buildings;
         _projects = projects;
         _buildingChanged = buildingChanged;
         _projectChanged = projectChanged;
+        _isLaborTime = isLaborTime;
     }
 
     public AssignmentResult AssignToBuilding(
@@ -173,16 +183,16 @@ internal sealed class CitizenAssignmentService
         }
     }
 
-    private static void MobiliseCitizen(Citizen citizen, int currentTick)
+    private void MobiliseCitizen(Citizen citizen, int currentTick)
     {
-        if (GameClock.IsDaytime(currentTick)) citizen.BeginTravelToAssignment(currentTick);
+        if (_isLaborTime()) citizen.BeginTravelToAssignment(currentTick);
         else citizen.SetLocation(CitizenLocation.AtHome);
     }
 
-    private static void MobiliseCitizen(Citizen citizen, Building building, int currentTick)
+    private void MobiliseCitizen(Citizen citizen, Building building, int currentTick)
     {
         bool workIsNeeded = building.ProductionEnabled && building.Stock < building.MaxStock;
-        if (GameClock.IsDaytime(currentTick) && workIsNeeded)
+        if (_isLaborTime() && workIsNeeded)
         {
             citizen.BeginTravelToAssignment(currentTick);
         }

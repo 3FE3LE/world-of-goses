@@ -1,0 +1,450 @@
+#nullable enable
+using System;
+using System.Collections.Generic;
+
+namespace WorldofGoses.Domain.Combat;
+
+public enum CombatOutcome
+{
+    InProgress,
+    PartyVictory,
+    PartyDefeated,
+    PartyRetreated,
+    Exhausted,
+}
+
+public enum CombatLogKind
+{
+    EncounterBegan,
+    TechniqueResolved,
+    StatusApplied,
+    ActionPrevented,
+    CombatantDefeated,
+    Retreated,
+    EncounterEnded,
+}
+
+/// <summary>One auditable line of an encounter. Presentation reacts to these.</summary>
+public sealed record CombatLogEntry(
+    int Step,
+    CombatLogKind Kind,
+    string ActorId,
+    string? TargetId,
+    string Detail,
+    TechniqueResolution? Resolution = null);
+
+/// <summary>Per-member automatic configuration. The player configures intent only.</summary>
+public sealed record CombatantPlan(
+    int Position,
+    IReadOnlyList<string> TechniquePriority,
+    string? PreferredTargetId,
+    bool RetreatWhenBelowThreshold)
+{
+    public static CombatantPlan Default { get; } =
+        new(0, Array.Empty<string>(), null, RetreatWhenBelowThreshold: false);
+}
+
+/// <summary>
+/// Chooses which enemy a technique resolves against, honouring the technique's
+/// target rule and the player's preferred target.
+/// </summary>
+public sealed class TargetResolver
+{
+    public CombatantState? Resolve(
+        TechniqueDefinition technique,
+        CombatantState actor,
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> allies,
+        IReadOnlyList<CombatantState> enemies,
+        IRandomSource random)
+    {
+        ArgumentNullException.ThrowIfNull(technique);
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(allies);
+        ArgumentNullException.ThrowIfNull(enemies);
+        ArgumentNullException.ThrowIfNull(random);
+
+        return technique.TargetRule switch
+        {
+            TechniqueTargetRule.Self => actor,
+            TechniqueTargetRule.LowestHealthAlly => LowestHealth(allies),
+            TechniqueTargetRule.LowestHealthEnemy => LowestHealth(enemies),
+            // AllEnemies still reports a representative target for the log; the
+            // encounter applies the result to every living enemy.
+            //
+            // With no preferred target the choice is a seeded draw among the living
+            // rather than "whoever is first". Always taking the first opponent made
+            // every attack pile onto one member, which is both unconvincing and hid
+            // whether health really carried between encounters.
+            _ => Preferred(plan, enemies) ?? RandomAlive(enemies, random),
+        };
+    }
+
+    private static CombatantState? RandomAlive(
+        IReadOnlyList<CombatantState> candidates,
+        IRandomSource random)
+    {
+        var alive = new List<CombatantState>(candidates.Count);
+        foreach (CombatantState candidate in candidates)
+        {
+            if (candidate.IsAlive) alive.Add(candidate);
+        }
+        if (alive.Count == 0) return null;
+        return alive[random.NextInt(alive.Count)];
+    }
+
+    private static CombatantState? Preferred(
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> enemies)
+    {
+        if (plan.PreferredTargetId is null) return null;
+        foreach (CombatantState enemy in enemies)
+        {
+            if (enemy.IsAlive && enemy.Id == plan.PreferredTargetId) return enemy;
+        }
+        return null;
+    }
+
+    private static CombatantState? FirstAlive(IReadOnlyList<CombatantState> candidates)
+    {
+        foreach (CombatantState candidate in candidates)
+        {
+            if (candidate.IsAlive) return candidate;
+        }
+        return null;
+    }
+
+    private static CombatantState? LowestHealth(IReadOnlyList<CombatantState> candidates)
+    {
+        CombatantState? best = null;
+        foreach (CombatantState candidate in candidates)
+        {
+            if (!candidate.IsAlive) continue;
+            if (best is null || candidate.HealthRatio < best.HealthRatio) best = candidate;
+        }
+        return best;
+    }
+}
+
+/// <summary>
+/// Picks which ready technique a combatant uses this step. Order is: the player's
+/// explicit priority list first, then the technique's own priority rule. A
+/// technique whose use condition is not satisfied is skipped rather than delayed.
+/// </summary>
+public sealed class AutoCastController
+{
+    public TechniqueDefinition? Choose(
+        CombatantState actor,
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> allies,
+        IReadOnlyList<CombatantState> enemies)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        var candidates = new List<TechniqueDefinition>();
+        foreach (TechniqueDefinition technique in actor.ActiveTechniques)
+        {
+            if (!actor.IsReady(technique.Id)) continue;
+            if (!ConditionSatisfied(technique, actor, plan, allies, enemies)) continue;
+            candidates.Add(technique);
+        }
+        if (candidates.Count == 0) return null;
+
+        candidates.Sort((left, right) =>
+        {
+            int byPlan = PlanRank(plan, left).CompareTo(PlanRank(plan, right));
+            if (byPlan != 0) return byPlan;
+            int byRule = RuleRank(left).CompareTo(RuleRank(right));
+            if (byRule != 0) return byRule;
+            // Stable final tiebreak so a replay from a seed is reproducible.
+            return string.CompareOrdinal(left.Id, right.Id);
+        });
+        return candidates[0];
+    }
+
+    private static bool ConditionSatisfied(
+        TechniqueDefinition technique,
+        CombatantState actor,
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> allies,
+        IReadOnlyList<CombatantState> enemies) => technique.UseCondition switch
+        {
+            TechniqueUseCondition.UseWhenReady => true,
+            TechniqueUseCondition.UseAgainstTwoOrMoreEnemies => CountAlive(enemies) >= 2,
+            TechniqueUseCondition.UseWhenAllyBelowHalfHealth => AnyBelowHalf(allies),
+            // Reserved for interrupting: only worth spending while an enemy still
+            // has an action to lose.
+            TechniqueUseCondition.UseToInterrupt => CountAlive(enemies) >= 1,
+            TechniqueUseCondition.ReserveForPrimaryTarget =>
+                plan.PreferredTargetId is not null && AliveWithId(enemies, plan.PreferredTargetId),
+            _ => true,
+        };
+
+    private static int PlanRank(CombatantPlan plan, TechniqueDefinition technique)
+    {
+        for (int index = 0; index < plan.TechniquePriority.Count; index++)
+        {
+            if (plan.TechniquePriority[index] == technique.Id) return index;
+        }
+        return plan.TechniquePriority.Count;
+    }
+
+    private static int RuleRank(TechniqueDefinition technique) => technique.PriorityRule switch
+    {
+        TechniquePriorityRule.Opening => 0,
+        TechniquePriorityRule.Finisher => 1,
+        _ => 2,
+    };
+
+    private static int CountAlive(IReadOnlyList<CombatantState> candidates)
+    {
+        int alive = 0;
+        foreach (CombatantState candidate in candidates)
+        {
+            if (candidate.IsAlive) alive++;
+        }
+        return alive;
+    }
+
+    private static bool AnyBelowHalf(IReadOnlyList<CombatantState> candidates)
+    {
+        foreach (CombatantState candidate in candidates)
+        {
+            if (candidate.IsAlive && candidate.HealthRatio < 0.5) return true;
+        }
+        return false;
+    }
+
+    private static bool AliveWithId(IReadOnlyList<CombatantState> candidates, string id)
+    {
+        foreach (CombatantState candidate in candidates)
+        {
+            if (candidate.IsAlive && candidate.Id == id) return true;
+        }
+        return false;
+    }
+}
+
+/// <summary>
+/// Resolves one encounter in discrete logical steps. No Node, no _Process, no
+/// animation: the encounter runs to completion inside a test, and presentation
+/// consumes the resulting <see cref="CombatLogEntry"/> stream afterwards.
+///
+/// <para>
+/// Determinism: given the same combatants, plans, balance and seed, the produced
+/// log is identical. Ordering is by attack speed then id, never by dictionary
+/// enumeration.
+/// </para>
+/// </summary>
+public sealed class CombatEncounter
+{
+    private readonly List<CombatantState> _party;
+    private readonly List<CombatantState> _enemies;
+    private readonly Dictionary<string, CombatantPlan> _plans;
+    private readonly TechniqueResolver _techniques;
+    private readonly StatusResolver _statuses;
+    private readonly TargetResolver _targets;
+    private readonly AutoCastController _autoCast;
+    private readonly IRandomSource _random;
+    private readonly CombatBalanceConfig _balance;
+    private readonly List<CombatLogEntry> _log = new();
+
+    public CombatEncounter(
+        string encounterId,
+        IReadOnlyList<CombatantState> party,
+        IReadOnlyList<CombatantState> enemies,
+        IReadOnlyDictionary<string, CombatantPlan> plans,
+        TechniqueResolver techniques,
+        StatusResolver statuses,
+        IRandomSource random,
+        CombatBalanceConfig? balance = null)
+    {
+        if (string.IsNullOrWhiteSpace(encounterId))
+            throw new ArgumentException("Encounter id is required.", nameof(encounterId));
+        ArgumentNullException.ThrowIfNull(party);
+        ArgumentNullException.ThrowIfNull(enemies);
+        ArgumentNullException.ThrowIfNull(plans);
+
+        EncounterId = encounterId;
+        _party = new List<CombatantState>(party);
+        _enemies = new List<CombatantState>(enemies);
+        _plans = new Dictionary<string, CombatantPlan>(plans);
+        _techniques = techniques ?? throw new ArgumentNullException(nameof(techniques));
+        _statuses = statuses ?? throw new ArgumentNullException(nameof(statuses));
+        _random = random ?? throw new ArgumentNullException(nameof(random));
+        _balance = balance ?? CombatBalanceConfig.Default;
+        _balance.Validate();
+        _targets = new TargetResolver();
+        _autoCast = new AutoCastController();
+    }
+
+    public string EncounterId { get; }
+    public int Step { get; private set; }
+    public CombatOutcome Outcome { get; private set; } = CombatOutcome.InProgress;
+    public IReadOnlyList<CombatLogEntry> Log => _log;
+    public IReadOnlyList<CombatantState> Party => _party;
+    public IReadOnlyList<CombatantState> Enemies => _enemies;
+
+    /// <summary>Runs the encounter to a terminal outcome and returns it.</summary>
+    public CombatOutcome Resolve()
+    {
+        Record(CombatLogKind.EncounterBegan, EncounterId, null,
+            $"{CountAlive(_party)} vs {CountAlive(_enemies)}");
+
+        while (Outcome == CombatOutcome.InProgress)
+        {
+            if (Step >= _balance.MaximumEncounterSteps)
+            {
+                Outcome = CombatOutcome.Exhausted;
+                break;
+            }
+            Step++;
+            AdvanceOneStep();
+            EvaluateOutcome();
+        }
+
+        Record(CombatLogKind.EncounterEnded, EncounterId, null, Outcome.ToString());
+        return Outcome;
+    }
+
+    private void AdvanceOneStep()
+    {
+        foreach (CombatantState actor in TurnOrder())
+        {
+            if (Outcome != CombatOutcome.InProgress) return;
+            if (actor.IsDefeated) continue;
+
+            if (_statuses.PreventsAction(actor.Statuses))
+            {
+                Record(CombatLogKind.ActionPrevented, actor.Id, null,
+                    _statuses.IsActive(actor.Statuses, StatusEffectId.Stunning)
+                        ? "Stunning interrupted the action"
+                        : "Knockdown cost the action");
+                continue;
+            }
+
+            CombatantPlan plan = PlanFor(actor);
+            if (ShouldRetreat(actor, plan))
+            {
+                Outcome = CombatOutcome.PartyRetreated;
+                Record(CombatLogKind.Retreated, actor.Id, null,
+                    $"Health {actor.HealthRatio:P0} at or below the retreat rule");
+                return;
+            }
+
+            (IReadOnlyList<CombatantState> allies, IReadOnlyList<CombatantState> foes) = Sides(actor);
+            TechniqueDefinition? technique = _autoCast.Choose(actor, plan, allies, foes);
+            if (technique is null) continue;
+
+            CombatantState? target =
+                _targets.Resolve(technique, actor, plan, allies, foes, _random);
+            if (target is null) continue;
+
+            actor.StartCooldown(technique);
+            actor.AddFatigue(_balance.FatiguePerAction);
+
+            if (technique.TargetRule == TechniqueTargetRule.AllEnemies)
+            {
+                foreach (CombatantState enemy in new List<CombatantState>(foes))
+                {
+                    if (enemy.IsAlive) ApplyTechnique(technique, actor, enemy);
+                }
+            }
+            else
+            {
+                ApplyTechnique(technique, actor, target);
+            }
+        }
+
+        foreach (CombatantState combatant in AllCombatants())
+        {
+            combatant.TickCooldowns();
+            combatant.ReplaceStatuses(_statuses.Tick(combatant.Statuses));
+        }
+    }
+
+    private void ApplyTechnique(
+        TechniqueDefinition technique,
+        CombatantState actor,
+        CombatantState target)
+    {
+        TechniqueResolution resolution =
+            _techniques.Resolve(Step, technique, actor, target, _random);
+        target.ApplyResult(resolution.FinalResult);
+        _log.Add(new CombatLogEntry(
+            Step,
+            CombatLogKind.TechniqueResolved,
+            actor.Id,
+            target.Id,
+            technique.Id,
+            resolution));
+
+        foreach (StatusEffectId status in resolution.AppliedStatuses)
+        {
+            StatusEffect effect = _statuses.Create(status, actor.Id, target.Id, Step);
+            target.ReplaceStatuses(_statuses.Apply(target.Statuses, effect));
+            Record(CombatLogKind.StatusApplied, actor.Id, target.Id, status.ToString());
+        }
+
+        if (target.IsDefeated)
+        {
+            Record(CombatLogKind.CombatantDefeated, target.Id, null,
+                target.Side == CombatSide.Party ? "Incapacitated" : "Defeated");
+        }
+    }
+
+    /// <summary>
+    /// Faster combatants act first; ties break on id so enumeration order can never
+    /// influence the result.
+    /// </summary>
+    private IEnumerable<CombatantState> TurnOrder()
+    {
+        var ordered = new List<CombatantState>(AllCombatants());
+        ordered.Sort((left, right) =>
+        {
+            int bySpeed = right.AttackSpeed.CompareTo(left.AttackSpeed);
+            return bySpeed != 0 ? bySpeed : string.CompareOrdinal(left.Id, right.Id);
+        });
+        return ordered;
+    }
+
+    private IEnumerable<CombatantState> AllCombatants()
+    {
+        foreach (CombatantState member in _party) yield return member;
+        foreach (CombatantState enemy in _enemies) yield return enemy;
+    }
+
+    private (IReadOnlyList<CombatantState> Allies, IReadOnlyList<CombatantState> Foes) Sides(
+        CombatantState actor) =>
+        actor.Side == CombatSide.Party ? (_party, _enemies) : (_enemies, _party);
+
+    private CombatantPlan PlanFor(CombatantState actor) =>
+        _plans.TryGetValue(actor.Id, out CombatantPlan? plan) ? plan : CombatantPlan.Default;
+
+    private bool ShouldRetreat(CombatantState actor, CombatantPlan plan) =>
+        actor.Side == CombatSide.Party
+        && plan.RetreatWhenBelowThreshold
+        && actor.HealthRatio <= _balance.RetreatHealthRatio;
+
+    private void EvaluateOutcome()
+    {
+        if (Outcome != CombatOutcome.InProgress) return;
+        if (CountAlive(_enemies) == 0) Outcome = CombatOutcome.PartyVictory;
+        else if (CountAlive(_party) == 0) Outcome = CombatOutcome.PartyDefeated;
+    }
+
+    private void Record(CombatLogKind kind, string actorId, string? targetId, string detail) =>
+        _log.Add(new CombatLogEntry(Step, kind, actorId, targetId, detail));
+
+    private static int CountAlive(IReadOnlyList<CombatantState> combatants)
+    {
+        int alive = 0;
+        foreach (CombatantState combatant in combatants)
+        {
+            if (combatant.IsAlive) alive++;
+        }
+        return alive;
+    }
+}

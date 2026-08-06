@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using WorldofGoses.Domain;
 
@@ -10,6 +12,27 @@ namespace WorldofGoses.Tests;
 /// </summary>
 internal static class TestHelpers
 {
+    /// <summary>
+    /// Walks up from the test output directory to the repository root. Tests
+    /// that assert against real source or catalog files need it; two of them
+    /// already carried private copies of this walk.
+    /// </summary>
+    public static string FindRepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "AGENTS.md"))
+                && Directory.Exists(Path.Combine(directory.FullName, "game", "scripts", "Domain")))
+            {
+                return directory.FullName;
+            }
+            directory = directory.Parent;
+        }
+        throw new DirectoryNotFoundException(
+            "Could not locate the repository root from the test output directory.");
+    }
+
     public static void AdvanceToNextProductionCycle(CityWorld world)
     {
         do
@@ -121,12 +144,29 @@ internal static class TestHelpers
         return profile!;
     }
 
+    /// <summary>
+    /// A fresh founder world. It deliberately keeps the authored first night
+    /// <em>active</em>, because that is what a real new city looks like: the
+    /// calendar stays held until the night's milestones are met. Tests that are
+    /// about post-opening rules should call <see cref="ConcludeFirstNight"/>.
+    /// </summary>
     public static CityWorld NewHeroWorld()
     {
         var world = new CityWorld();
         var result = world.TryCreateHero(new HeroCreationRequest("Aster", NewProfile(), GenderId.Masculine));
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
         AdvanceToWorkday(world);
+        return world;
+    }
+
+    /// <summary>
+    /// Ends the authored first night so the ordinary calendar runs again. Use it
+    /// in any test whose subject is a post-opening rule — dawn rations,
+    /// production cycles, expeditions — rather than the night itself.
+    /// </summary>
+    public static CityWorld ConcludeFirstNight(CityWorld world)
+    {
+        world.ConcludeFirstNightForFixtures();
         return world;
     }
 
@@ -154,6 +194,10 @@ internal static class TestHelpers
             world.RegisterCitizen(NewCitizen(100 + i));
         }
         AdvanceToWorkday(world);
+        // Explicit test data, not the game's initial state: a city already
+        // running a construction economy is past its first night, and holding
+        // the calendar here would silently disable dawn for most of the suite.
+        ConcludeFirstNight(world);
         return world;
     }
 
@@ -192,7 +236,7 @@ internal static class TestHelpers
 
     public static CityWorld NewProductionWorld()
     {
-        var world = NewHeroWorld();
+        var world = ConcludeFirstNight(NewHeroWorld());
         var hero = world.Hero!;
         hero.AddExperience(CompetencyId.Mining, 3);
 

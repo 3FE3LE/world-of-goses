@@ -34,11 +34,20 @@ and this section gets corrected in the same change.
 
 - Godot .NET 4.7.1, C#/.NET 8.
 - `dotnet build`: 0 errors, 0 warnings.
-- `dotnet test`: 730/731 passing (1 omitido por brittleness del JSON snapshot en
+- Combat/expedition vertical slice (roadmap `13_…_ROADMAP.md` fases 0–7) lives in
+  `game/scripts/Domain/Combat/`. Domain-pure: no `Node`, no `_Process`, no scene,
+  fully runnable in tests, deterministic from a seed. `Citizen` remains the only
+  persistent person — `CombatantState` is a per-encounter working copy carrying the
+  real `CitizenId`, and `CombatExpeditionService` is the only writer of
+  consequences. Provisional balance is centralised in `CombatBalanceConfig`.
+  Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
+  `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
+  the two is the main technical debt of this slice.
+- `dotnet test`: 816/817 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 28. V22→V23 rescales the obsolete 16×40 founding
+- `WorldSave.CurrentVersion`: 30. V22→V23 rescales the obsolete 16×40 founding
   forests to six finite mature trees with 8 Wood each while preserving their
   depletion ratio; V23→V24 adds the EG-3 Cultivation Site lifecycle without
   inventing a plot in migrated cities; V24→V25 converts fixed lots into
@@ -46,10 +55,30 @@ and this section gets corrected in the same change.
   V25→V26 reflows and persists compact resource-unit positions without claiming
   whole building lots; V26→V27 seeds finite Food/Wood opportunities and
   persists their expedition reservation and bounded return capacity; V27→V28
-  adds the validated durable-tool set without granting tools to migrated saves.
+  adds the validated durable-tool set without granting tools to migrated saves;
+  V28→V29 persists the canonical founder onboarding result and V29→V30 the
+  sources derived citizen statistics read, rebuilding the Cube from the 60/40
+  vertex for older saves. A construction reservation over a *depleted* resource
+  cell now validates, matching what the domain and the player already see; the
+  JSON shape is unchanged, so this widened only the validation and needed no
+  migration.
 - Godot headless boot loads the current scene/slot without C# or scene errors.
-- EN/ES catalogs: 804 template IDs and 340 runtime keys validated.
-- Agent-context validation: 437 checks passing.
+- EN/ES catalogs: 856 template IDs and 337 runtime keys validated.
+- The physical expression derived from the elemental affinity, and the two weapon
+  families it makes natural, are shown on the hero profile, the founder arrival
+  card (compact, per DEC-0013) and the onboarding result card. There is no
+  equipment UI because there is no equipment: `SetEquipmentLoadout` has no
+  production caller and no weapon catalog exists, so these read as learning
+  affinities and the copy says so.
+- The status strip reports a worksite's `ConstructionStopCause` beside its
+  progress, with an explanatory tooltip. Buildings already exposed their
+  production stop cause; worksites did not, so a founding site waiting between
+  modules read as `Obra 0/180` forever with no reason given.
+- While a Founding Site waits between modules, the construction panel lists each
+  authorisable module with its cost and the amount held, and the module button's
+  tooltip names what is still missing. The founder-cargo inventory starts
+  collapsed so those lines are not pushed out of the panel's scroll body.
+- Agent-context validation: 442 checks passing.
 - Official visual review sizes: 1280×720 and 1920×1080.
 
 ## 2. Active proof
@@ -171,7 +200,15 @@ and §17 acceptance test are complete.
 - Policies exposes provisional 08:00–16:00 workday, production, off-duty and
   construction rules; the configured workday is suspended before the first
   Basic Shelter exists so the founder can build the founding camp at any
-  time of day (founding-camp bypass).
+  time of day (founding-camp bypass). The rule has a single owner,
+  `CityWorld.IsLaborTime()`; every labour gate reads it instead of
+  `GameClock.IsDaytime`. It used to be applied only in the per-tick simulation
+  while mobilisation, arrival, the day/night boundary and standing-order
+  resumption kept their own clock checks, so authorising the founding site after
+  16:00 assigned the founder, parked them at home and left the worksite on
+  `WorkersInTransit` with no error. Whether the workday should instead begin with
+  the Town Hall — the point at which new citizens arrive and coexistence norms
+  start to matter — is an open product question, not settled here.
 - ESC closes overlays iteratively: ModalHost (topmost modal first), then
   PauseMenu (close only — open path is the dedicated button), then the
   hero profile / building detail view via

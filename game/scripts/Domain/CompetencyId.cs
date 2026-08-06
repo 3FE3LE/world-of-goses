@@ -18,5 +18,12 @@ public readonly record struct CompetencyId(string Value)
     /// </summary>
     public static CompetencyId Foraging { get; } = new("foraging");
 
+    /// <summary>
+    /// Professional competency exercised by travelling and enduring an
+    /// expedition. Being a profession, it is exempt from the natural/foreign
+    /// weapon-family learning penalty, which applies only to weapon families.
+    /// </summary>
+    public static CompetencyId Survival { get; } = new("survival");
+
     public override string ToString() => Value;
 }

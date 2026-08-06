@@ -142,12 +142,14 @@ public sealed class OverlayExclusionTests
     }
 
     [Fact]
-    public void TutorialOverlay_SitsAboveModalsButBelowPauseAndNotifier()
+    public void AuthoredGuidanceLayer_SitsAboveModalsButBelowPauseAndNotifier()
     {
-        // The Tutorial must occlude ConstructionPanel/ExpeditionPanel/
-        // MigrantPanel (Modal = 21) so the player cannot act behind a
-        // tutorial, but the pause menu and Notifier toasts must remain
-        // visible above it.
+        // The guidance slot must occlude ConstructionPanel/ExpeditionPanel/
+        // MigrantPanel (Modal = 21) so the player cannot act behind authored
+        // guidance, but the pause menu and Notifier toasts must remain
+        // visible above it. The slot is currently unclaimed — the drifted
+        // three-step TutorialOverlay was removed — and is reserved for the
+        // first-night dialogue surface.
         Assert.True(OverlayLayers.Tutorial > OverlayLayers.Modal);
         Assert.True(OverlayLayers.Tutorial < OverlayLayers.PauseAndNotifier);
     }
