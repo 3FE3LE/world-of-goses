@@ -1,11 +1,25 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using WorldofGoses.Domain;
 
 namespace WorldofGoses;
 
 public sealed record ExpeditionPlanningSnapshot(
     bool ResourceSortiesUnlocked,
+
+    /// <summary>
+    /// True when the fire spirit has departed
+    /// (<c>WorldEventKind.SpiritDeparted</c> in the log) so the
+    /// <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
+    /// objective is meaningful — the trail cannot be read while the
+    /// spirit is still present
+    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). The
+    /// underlying gate is the same as the other resource sorties
+    /// (Campfire + Cache), but the spirit gate is independent and
+    /// must be false until the night concludes.
+    /// </summary>
+    bool SpiritTrailUnlocked,
     int AvailableReturnCapacity,
     IReadOnlyList<ExpeditionPlanningSnapshot.OpportunityItem> Opportunities)
 {
@@ -51,6 +65,8 @@ public sealed record ExpeditionPlanningSnapshot(
                 unlocked ? System.Math.Min(definition.FullReturn, capacity) : 0,
                 definition.DisplayName));
         }
-        return new ExpeditionPlanningSnapshot(unlocked, capacity, opportunities);
+        bool spiritTrailUnlocked = world.Log.Events.Any(
+            evt => evt.Kind == WorldEventKind.SpiritDeparted);
+        return new ExpeditionPlanningSnapshot(unlocked, spiritTrailUnlocked, capacity, opportunities);
     }
 }

@@ -76,6 +76,15 @@ theme_type_variation = "ButtonText"
 toggle_mode = true
 text = "[ ] Wood"
 
+[node name="SpiritButton" type="Button" parent="Surface/Margin/Layout/ObjectiveButtons"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = "ButtonText"
+toggle_mode = true
+text = "[ ] Spirit Trail"
+visible = false
+
 [node name="ObjectiveSummary" type="Label" parent="Surface/Margin/Layout"]
 layout_mode = 2
 theme_type_variation = "BodySmall"

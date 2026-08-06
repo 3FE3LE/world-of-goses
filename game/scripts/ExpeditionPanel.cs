@@ -29,6 +29,8 @@ public partial class ExpeditionPanel : Control
         "Surface/Margin/Layout/ObjectiveButtons/FoodButton";
     [Export] public NodePath WoodObjectiveButtonPath { get; set; } =
         "Surface/Margin/Layout/ObjectiveButtons/WoodButton";
+    [Export] public NodePath SpiritTrailObjectiveButtonPath { get; set; } =
+        "Surface/Margin/Layout/ObjectiveButtons/SpiritButton";
     [Export] public NodePath ObjectiveSummaryPath { get; set; } =
         "Surface/Margin/Layout/ObjectiveSummary";
     [Export] public NodePath TeamHeaderPath { get; set; } = "Surface/Margin/Layout/TeamHeader";
@@ -51,6 +53,7 @@ public partial class ExpeditionPanel : Control
     private Label _objectiveHeader = null!;
     private Button _foodObjectiveButton = null!;
     private Button _woodObjectiveButton = null!;
+    private Button _spiritTrailObjectiveButton = null!;
     private Label _objectiveSummary = null!;
     private Label _teamHeader = null!;
     private Control _teamScroll = null!;
@@ -85,6 +88,7 @@ public partial class ExpeditionPanel : Control
         _objectiveHeader = GetNode<Label>(ObjectiveHeaderPath);
         _foodObjectiveButton = GetNode<Button>(FoodObjectiveButtonPath);
         _woodObjectiveButton = GetNode<Button>(WoodObjectiveButtonPath);
+        _spiritTrailObjectiveButton = GetNode<Button>(SpiritTrailObjectiveButtonPath);
         _objectiveSummary = GetNode<Label>(ObjectiveSummaryPath);
         _teamHeader = GetNode<Label>(TeamHeaderPath);
         _teamScroll = GetNode<Control>(TeamScrollPath);
@@ -110,6 +114,8 @@ public partial class ExpeditionPanel : Control
             ResourceOpportunityKind.NearbyFoodForage);
         _woodObjectiveButton.Pressed += () => SelectResourceOpportunity(
             ResourceOpportunityKind.FallenWoodSearch);
+        _spiritTrailObjectiveButton.Pressed += () => SelectResourceOpportunity(
+            ResourceOpportunityKind.SpiritTrailSearch);
         _continuePostureButton.Pressed += () => SelectRetreatPosture(
             ExpeditionRetreatPosture.ContinueAfterSetback);
         _retreatPostureButton.Pressed += () => SelectRetreatPosture(
@@ -401,6 +407,21 @@ public partial class ExpeditionPanel : Control
             snapshot,
             ResourceOpportunityKind.FallenWoodSearch,
             UiText.Get("ui.expedition.objective.wood"));
+
+        // The spirit trail button starts hidden — the trail is not
+        // readable until the dawn has carried the spirit away. Once
+        // SpiritDeparted lands in the log, the button surfaces and
+        // behaves like any other resource objective.
+        bool spiritTrailVisible = snapshot.SpiritTrailUnlocked;
+        _spiritTrailObjectiveButton.Visible = spiritTrailVisible;
+        if (spiritTrailVisible)
+        {
+            ConfigureObjectiveButton(
+                _spiritTrailObjectiveButton,
+                snapshot,
+                ResourceOpportunityKind.SpiritTrailSearch,
+                UiText.Get("ui.expedition.objective.spirit"));
+        }
 
         ExpeditionPlanningSnapshot.OpportunityItem? selected = snapshot.Opportunities
             .FirstOrDefault(item => item.Id == _selectedOpportunityId);
