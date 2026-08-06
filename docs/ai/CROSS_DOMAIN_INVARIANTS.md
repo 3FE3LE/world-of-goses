@@ -125,6 +125,40 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 - No mutable global state, no premature event bus, no pathfinding for invisible
   population. *(bible/10)*
 
+## First night (DEC-0014)
+
+- The post-manifestation period runs from the founder's arrival at tick 0 to
+  `FirstNightStage.Concluded` and is absorbing thereafter. Cities that already
+  passed their opening (legacy saves or post-soft-reset) enter the period
+  already concluded. *(docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md §17,
+  `Domain/FirstNightState.cs`, `Domain/Persistence/WorldPersistence.cs`)*
+- The night advances only on a closed dialogue node or a completed module
+  (`FirstNightRules.WaitsForDialogue` / `WaitsForModule`). The clock never
+  moves the night — a slow reader cannot lose the sequence.
+- The Bedroll (or a consolidated `Home`) is the first mechanical meaning of
+  "somewhere to sleep": `CityWorld.HasRestingPlace()` gates
+  `TryCloseFirstNightDialogue` at the `OtherLightTold` → `Sleeping` boundary.
+  Until then the founder cannot fall asleep.
+- The fire spirit's visual position is derived from `FirstNightStage`, never
+  persisted. The spirit's body of facts (its presence, its trail) lives in
+  the chronicle; its location never does.
+- Quantities in the spirit's dialogue come from `FoundingSiteRules.InputsFor`
+  at runtime. No digit may appear in any `firstnight.*` msgid or msgstr —
+  `FirstNightDialogueNoLiteralDigitsTests` enforces the invariant.
+- Saving, loading, reloading or restarting cannot leave the sequence in an
+  impossible state. `FirstNightState.CurrentDialogueNodeId` is the seam
+  (not `DialogueRunner`'s async cursor): a save interrupted mid-line
+  resumes on the same line. *(doc 19 invariant 13)*
+- The route is strictly linear. Every node has empty `Choices` and `null`
+  `Next`; the only advance path is `CityWorld.TryCloseFirstNightDialogue`.
+- Variations per `LineageId` are textual reactions only. They never branch
+  the route and never expose internal labels (no "primary affinity"
+  surfaced to the player). *(doc 19 §13–14)*
+- The three levels of post-dawn guidance stay separated: the first night is
+  authored and finite; after dawn, derived directives are systemic and the
+  Camino is read-only. No list of mission steps is built from the night,
+  and no modal "tutorial replay" ships from it.
+
 ## Presentation
 
 - Pure 2D pixel art. Not 2.5D as the primary direction. *(bible/08)*
