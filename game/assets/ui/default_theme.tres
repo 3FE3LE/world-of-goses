@@ -13,6 +13,8 @@
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/red_outlined.tres" id="22_red_outlined"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/red_pressed.tres" id="23_red_pressed"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/green.tres" id="24_green"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/panel_card.tres" id="25_panel_card"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/panel_elevated.tres" id="26_panel_elevated"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -25,32 +27,6 @@ expand_margin_left = 2.0
 expand_margin_top = 2.0
 expand_margin_right = 2.0
 expand_margin_bottom = 2.0
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel_elevated"]
-content_margin_left = 18.0
-content_margin_top = 16.0
-content_margin_right = 18.0
-content_margin_bottom = 16.0
-bg_color = Color(0.035, 0.043, 0.064, 0.985)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.83, 0.66, 0.3, 1)
-shadow_color = Color(0, 0, 0, 0.55)
-shadow_size = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-content_margin_left = 14.0
-content_margin_top = 12.0
-content_margin_right = 14.0
-content_margin_bottom = 12.0
-bg_color = Color(0.055, 0.067, 0.09, 0.965)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.43, 0.37, 0.25, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll"]
 bg_color = Color(0.02, 0.027, 0.042, 0.72)
@@ -153,10 +129,10 @@ NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 NumericText/font_sizes/font_size = 18
 NumericText/fonts/font = ExtResource("3_pixelify")
 OverlayPanel/base_type = &"PanelContainer"
-OverlayPanel/styles/panel = SubResource("StyleBoxFlat_panel_elevated")
-Panel/styles/panel = SubResource("StyleBoxFlat_panel")
+OverlayPanel/styles/panel = ExtResource("26_panel_elevated")
+Panel/styles/panel = ExtResource("25_panel_card")
 PanelCard/base_type = &"PanelContainer"
-PanelCard/styles/panel = SubResource("StyleBoxFlat_panel")
+PanelCard/styles/panel = ExtResource("25_panel_card")
 PanelTitle/base_type = &"Label"
 PanelTitle/colors/font_color = Color(0.96, 0.93, 0.86, 1)
 PanelTitle/font_sizes/font_size = 26

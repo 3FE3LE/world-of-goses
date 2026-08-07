@@ -98,6 +98,64 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## Los paneles ganan marco autoral sin ceder la paleta
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+La entrada anterior midió que el pack no tiene ningún tile oscuro y dejó los
+paneles en `StyleBoxFlat` con esa justificación. Queda una salida que la medición
+no cerraba: el pack **sí** trae tiles cuyo centro es completamente transparente
+(`tile_0008`, `tile_0009`, `tile_0019`, `tile_0032` en el set Large). Si el
+relleno del proyecto se hornea dentro de ese marco, el resultado conserva el
+marco de píxel autoral *y* la paleta — algo que ni el tile crudo ni un
+`modulate_color` podían dar.
+
+Lo que un jugador ve: el borde de los paneles pasa de una línea plana a un bisel
+de 3–4 tonos con el ornamento de esquina del pack, y el interior sigue siendo el
+mismo casi-negro de antes.
+
+### Connected
+
+- **`tools/New-CompositeStylebox.ps1`.** Toma un tile de marco hueco, inunda el
+  interior *encerrado* con un color de relleno y remapea los tonos del marco sobre
+  una rampa del proyecto. Dos reglas hacen que el resultado sea exacto y no
+  aproximado: el relleno parte del centro y se detiene en el marco, así que los
+  píxeles transparentes de fuera de una esquina redondeada siguen transparentes y
+  el tile conserva su silueta; y el remapeo es uno a uno por luminancia, de modo
+  que la rampa debe traer exactamente tantos colores como tonos tenga el tile —
+  un desajuste es un error, no un ajuste silencioso al más cercano.
+- **`panel_card` y `panel_elevated`.** `Panel`/`PanelCard` toman `tile_0008` con
+  relleno `14,17,23,246` y rampa tostada; `OverlayPanel` toma `tile_0009` con
+  relleno `9,11,16,251` y rampa dorada. Ambos rellenos y ambos tonos de borde son
+  los valores que ya llevaba el `StyleBoxFlat` anterior, así que **la paleta no se
+  movió**, y el dorado sigue reservado al panel elevado como decidió el pase del
+  2026-08-06. `content_margin` sigue en 14/12 y 18/16: tampoco se movió ninguna
+  métrica.
+- **Cada PNG generado lleva su `.recipe.json`** con el tile de origen, el relleno,
+  el mapeo de tonos y el recuento de píxeles interiores, así que el asset es
+  reproducible desde el repositorio. Es el mismo patrón que ya siguen los paneles
+  de linaje generados bajo `game/assets/ui/lineages/<linaje>/panel/`.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Contexto de agentes 448/448. Localización 922/283, sin
+claves nuevas. Capturas reales a 1280×720 y 1920×1080 de `expedition-idle`,
+`construction-scroll` y `shelter-resources`, más un recorte a 6× de la esquina
+del modal para leer el bisel.
+
+**Dos consecuencias que no son ganancia neta y quedan anotadas:**
+`OverlayPanel` **pierde su sombra** — `StyleBoxTexture` no tiene `shadow_size` y
+la caja plana llevaba una difusa de 8 px; para un proyecto cuyos invariantes
+piden píxel puro sin antialiasing la sombra difusa ya era discutible, pero es un
+cambio real. Y **el composite no llega a los paneles que sobrescriben el tema**:
+17 de las 24 llamadas a `AddThemeStyleboxOverride` del repositorio aplican
+`LineageThemeRegistry.GetStyleBox("panel")` directamente sobre el
+`PanelContainer`, y un override local gana al tema —
+`ResourceInventoryPanel` en la vista del refugio es el caso visible. Unificar el
+tematizado por linaje con el tema, en vez de sobrescribirlo, es el trabajo
+arquitectónico que queda.
+
 ## La cara Dominio del cubo deja de llamarse Mastery y los migrantes dejan de ser gemelos
 
 **2026-08-07** · schema v31 → v32 · EG-5

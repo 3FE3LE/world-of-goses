@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "generator": "tools/New-CompositeStylebox.ps1",
+  "frame_tile": "art/exports/ui/kenney_ui-pack-pixel-adventure/Tiles/Large tiles/Thick outline/tile_0009.png",
+  "size": {
+    "width": 32,
+    "height": 32
+  },
+  "fill_rgba": [
+    9,
+    11,
+    16,
+    251
+  ],
+  "frame_ramp": [
+    {
+      "source_tone": "81,95,107",
+      "mapped_to": "94,74,34"
+    },
+    {
+      "source_tone": "100,118,133",
+      "mapped_to": "150,119,54"
+    },
+    {
+      "source_tone": "119,141,159",
+      "mapped_to": "212,168,77"
+    },
+    {
+      "source_tone": "148,175,198",
+      "mapped_to": "244,206,124"
+    }
+  ],
+  "interior_px": 324,
+  "note": "Interior is flood-filled from the centre; pixels outside the frame silhouette stay transparent."
+}

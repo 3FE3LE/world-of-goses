@@ -126,7 +126,51 @@ are **multi-tile composites**, not single 9-slices. Using them needs a scripted
 `art/source` → `art/exports` compositing step, since §10 of `ART_PIPELINE.md`
 forbids hand-edited exported PNGs.
 
-No complete ZIP was extracted into `game/assets/`. 7 of 504 tiles are imported.
+### Composited panel chrome
+
+Finding 2 above says the pack cannot supply a dark panel. The way around it is
+that the pack *also* ships frame tiles whose centre is fully transparent
+(`tile_0008`, `tile_0009`, `tile_0019`, `tile_0032` in the Large set).
+`tools/New-CompositeStylebox.ps1` takes one of those, floods the enclosed
+interior with a project fill colour, and remaps the frame's own tones onto a
+project border ramp — so the output keeps the authored pixel frame *and* the
+project palette, which neither the raw tile nor a `modulate_color` could do.
+
+| Output | Frame tile | Fill | Border ramp | Consumers |
+| --- | --- | --- | --- | --- |
+| `game/assets/ui/composites/panel_card.png` | `tile_0008` (3 tones) | `14,17,23,246` | tan, around the old `Color(0.43,0.37,0.25)` | `Panel`, `PanelCard` |
+| `game/assets/ui/composites/panel_elevated.png` | `tile_0009` (4 tones) | `9,11,16,251` | gold, around the old `Color(0.83,0.66,0.3)` | `OverlayPanel` |
+
+Both fills and both border hues are the values the previous `StyleBoxFlat`
+carried, so **the palette did not move** — only the border gained depth (a 3–4
+tone bevel instead of one flat line) and the corners gained the pack's ornament.
+`content_margin` is unchanged at 14/12 and 18/16, so no layout metric moved
+either.
+
+Two consequences worth knowing before extending this:
+
+- **`OverlayPanel` lost its drop shadow.** `StyleBoxTexture` has no `shadow_size`,
+  and the old flat box had an 8 px soft one. For a project whose invariants
+  require pure pixel art with no antialiasing, a blurred shadow was arguably off
+  style already, but it is a real change and not a pure gain.
+- **The composite does not reach panels that override the theme.** 17 of the
+  repository's 24 `AddThemeStyleboxOverride` calls apply
+  `LineageThemeRegistry.GetStyleBox("panel")` directly to a `PanelContainer`, which
+  wins over the theme variation. `ResourceInventoryPanel` in the shelter view is
+  the visible example. Unifying lineage theming with the theme instead of
+  overriding it is the architectural work; this pass only fixes the asset.
+
+Each generated PNG ships a `.recipe.json` beside it recording the frame tile,
+fill, tone mapping and interior pixel count, so the asset is reproducible from
+the repository alone. That mirrors the existing generated lineage panels under
+`game/assets/ui/lineages/<lineage>/panel/`, which also keep a recipe next to the
+PNG it produced. The margins are `8` for `panel_card` (6 px frame plus slack) and
+`10` for `panel_elevated`, which samples the pack's clean recessed edge rather
+than repeating its corner nub along the whole side. Both are even multiples that
+land on whole pixels at the 1.5× that 1920×1080 implies.
+
+No complete ZIP was extracted into `game/assets/`. 7 of 504 tiles are imported
+directly, plus 2 composited from hollow frames.
 
 ## Integration plan
 
