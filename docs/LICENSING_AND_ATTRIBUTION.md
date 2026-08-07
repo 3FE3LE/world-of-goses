@@ -10,8 +10,8 @@ el propio pack la co-acredita.
 
 | Pack | Origen | En el juego |
 | --- | --- | --- |
-| Pixel UI pack | `art/Kenney/` | `game/assets/ui/kenney/9-slice/` — verde, gris y rojo (estados restantes) y los fondos `ancient_*` |
-| UI Pack – Pixel Adventure 2.0 | `art/exports/ui/kenney_ui-pack-pixel-adventure/` | `game/assets/ui/kenney-pixel-adventure/9-slice/` — la superficie pizarra que gobierna el tema |
+| Pixel UI pack | `art/Kenney/` | **Ya no está en el juego.** El 2026-08-07 se borró `game/assets/ui/kenney/` completo: sus últimos consumidores (`ButtonWarning` y el relleno de `ProgressBar`) pasaron al pack Pixel Adventure, y el resto (`ancient_*`, `grey*`, `green_pressed`) ya no lo referenciaba nadie. El kit sigue disponible en `art/` como fuente. |
+| UI Pack – Pixel Adventure 2.0 | `art/exports/ui/kenney_ui-pack-pixel-adventure/` | `game/assets/ui/kenney-pixel-adventure/9-slice/` — la superficie pizarra que gobierna el tema, más el rojo destructivo y el verde de progreso. 7 de 504 tiles. Es el único pack de UI en el juego, así que ya no se mezclan dos geometrías en la misma familia de botones. |
 | Roguelike pack (con Lynn Evers) | `art/exports/ui/kenney_roguelike-rpg-pack/` | `game/assets/terrain/kenney/roguelike-rpg/` — terreno y árboles del macro |
 | Cursor Pixel Pack 1.0 | `art/exports/ui/kenney_cursor-pixel-pack/` | `game/assets/ui/cursors/kenney-pixel/` — cursor de recolección |
 

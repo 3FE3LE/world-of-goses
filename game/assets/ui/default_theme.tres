@@ -9,9 +9,10 @@
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_raised.tres" id="11_slate_light"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_hover.tres" id="12_slate_hover"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_inset.tres" id="15_slate_light_inset"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red.tres" id="13_red"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red_pressed.tres" id="14_red_pressed"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green.tres" id="16_green"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/red.tres" id="21_red"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/red_outlined.tres" id="22_red_outlined"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/red_pressed.tres" id="23_red_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/green.tres" id="24_green"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -118,9 +119,9 @@ ButtonWarning/font_sizes/font_size = 18
 ButtonWarning/fonts/font = ExtResource("2_jersey")
 ButtonWarning/styles/disabled = ExtResource("9_slate_disabled")
 ButtonWarning/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonWarning/styles/hover = ExtResource("14_red_pressed")
-ButtonWarning/styles/normal = ExtResource("13_red")
-ButtonWarning/styles/pressed = ExtResource("14_red_pressed")
+ButtonWarning/styles/hover = ExtResource("22_red_outlined")
+ButtonWarning/styles/normal = ExtResource("21_red")
+ButtonWarning/styles/pressed = ExtResource("23_red_pressed")
 DialogText/base_type = &"Label"
 DialogText/colors/font_color = Color(0.94, 0.9, 0.78, 1)
 DialogText/font_sizes/font_size = 18
@@ -154,23 +155,17 @@ NumericText/fonts/font = ExtResource("3_pixelify")
 OverlayPanel/base_type = &"PanelContainer"
 OverlayPanel/styles/panel = SubResource("StyleBoxFlat_panel_elevated")
 Panel/styles/panel = SubResource("StyleBoxFlat_panel")
-PanelAction/base_type = &"PanelContainer"
-PanelAction/styles/panel = SubResource("StyleBoxFlat_panel")
 PanelCard/base_type = &"PanelContainer"
 PanelCard/styles/panel = SubResource("StyleBoxFlat_panel")
-PanelIdle/base_type = &"PanelContainer"
-PanelIdle/styles/panel = SubResource("StyleBoxFlat_panel")
 PanelTitle/base_type = &"Label"
 PanelTitle/colors/font_color = Color(0.96, 0.93, 0.86, 1)
 PanelTitle/font_sizes/font_size = 26
 PanelTitle/fonts/font = ExtResource("2_jersey")
-PanelWarning/base_type = &"PanelContainer"
-PanelWarning/styles/panel = SubResource("StyleBoxFlat_panel")
 ProgressBar/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 ProgressBar/font_sizes/font_size = 16
 ProgressBar/fonts/font = ExtResource("2_jersey")
 ProgressBar/styles/background = ExtResource("8_slate_inset")
-ProgressBar/styles/fill = ExtResource("16_green")
+ProgressBar/styles/fill = ExtResource("24_green")
 ScreenTitle/base_type = &"Label"
 ScreenTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
 ScreenTitle/font_sizes/font_size = 36

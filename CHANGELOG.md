@@ -22,6 +22,82 @@ their commits for the real content.
 
 ---
 
+## Un solo pack de UI en el juego, y la medida real de lo que ese pack puede dar
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+`ButtonWarning` venía del kit viejo `art/Kenney/`: un tile de 16×16 escalado 3×
+a 48×48, con un borde tres veces más gordo que la pizarra nativa de 32×32 que
+usan `ButtonText` y `ButtonPrimary` justo al lado. La guía de iconografía prohíbe
+explícitamente *"mezclar componentes de varios paquetes de UI sin ajustar
+previamente su estilo"*, y esa mezcla vivía dentro de una misma familia de
+botones. El rojo destructivo y el verde de progreso pasan al pack Pixel
+Adventure, nativos, y con eso **`game/assets/ui/kenney/` deja de tener un solo
+consumidor y se borra entero** — los cinco archivos muertos que arrastraba
+(`ancient_brown`, `ancient_grey`, `grey`, `grey_pressed`, `green_pressed`) se van
+con él en vez de podarse uno a uno.
+
+Lo que un jugador ve: el botón destructivo ya no desentona junto a los demás. Lo
+que el repositorio gana es más grande que eso, y es una medición.
+
+### Connected
+
+- **7 de 504 tiles importados.** `Tiles/Small tiles/Thick outline/tile_0071` →
+  `red`, `tile_0070` → `red_outlined` (el contorno blanco que el pack ya trae
+  como estado resaltado, ahora el `hover`), `tile_0075` → `green`.
+  `red_pressed` reutiliza `red.png` con `modulate_color`, así que no se promovió
+  ningún asset para un cambio de brillo. `content_margin` sigue siendo 16/4: no
+  se movió ninguna métrica de layout.
+- **`tools/New-KenneyContactSheet.ps1`.** El pack no trae nombres semánticos —
+  todo es `tile_NNNN.png`, sin XML— así que un tile sólo se puede identificar
+  mirándolo. El script compone los tiles con vecino más cercano y rotula cada
+  uno con su índice sobre la propia rejilla del pack, de modo que
+  `índice = fila * columnas + columna` se sostiene y una promoción puede citar un
+  índice real en lugar de una suposición.
+- **Los tiles Large son 9-slice; los Small no.** `slate_raised_dark.png` es
+  1020/1024 opaco y llena su lienzo, luego `texture_margin = 8` es correcto. Los
+  Small son sprites de ~10×10 centrados en un lienzo de 16×16 con 3 px de
+  relleno transparente: con `texture_margin = 4` el corte parte el borde y deja
+  el anillo de luz interior dentro del centro que se tilea, y eso se ve como una
+  rejilla de puntos repetida. El valor correcto es **6**, que apoya el centro
+  sobre el interior uniforme de 4×4. Verificado a 1280×720 y 1920×1080.
+- **El pack no tiene ningún tile oscuro.** El centro opaco más oscuro de los 91
+  tiles Large es luminancia **114**; `StyleBoxFlat_panel` es 17 y
+  `StyleBoxFlat_panel_elevated` es 11. Las piezas de pizarra tienen 4–6 tonos
+  distintos, así que oscurecer una con `modulate_color` hasta el valor del
+  proyecto comprime su rango tonal a ~7/255 — indistinguible de un relleno
+  plano. **Este pack puede dar botones, chips, casillas y widgets pequeños;
+  no puede dar las superficies oscuras de panel de este juego.** Por eso
+  `OverlayPanel`, `Panel`, `PanelCard`, `ScrollContainer` y `StatusStrip` siguen
+  siendo `StyleBoxFlat`, ahora con la justificación concreta escrita en
+  `ASSET_INVENTORY.md` en lugar de por omisión.
+- **`PanelAction`, `PanelIdle` y `PanelWarning` fuera del tema.** Las tres
+  resolvían al *mismo* stylebox que `PanelCard` y ninguna escena ni script las
+  referenciaba: prometían una distinción que el tema no entregaba, de forma que
+  un panel `PanelWarning` se veía exactamente igual que una tarjeta neutra.
+- **`UI_PATTERNS.md` §5 decía algo falso.** Afirmaba que el tema registra un tipo
+  base `Button` con valores por defecto; no existe, y un `Button` sin variación
+  cae a la fuente y los styleboxes grises del motor. Queda corregido y anotado:
+  registrarlo es una red de seguridad real, pero también da márgenes de
+  contenido nuevos a cualquier botón sin anotar —un cambio de tamaño— así que
+  pertenece a un pase que pueda revisar las superficies afectadas.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido del
+snapshot JSON de `VerticalLoopPersistenceTests`, previo a este cambio). Arranque
+headless limpio. Contexto de agentes 448/448. Localización válida: 922
+identificadores de plantilla y 283 claves de runtime, sin claves nuevas.
+Importaciones de fuentes pixel válidas. Capturas reales a **1280×720 y
+1920×1080** de `pause-menu-reset` (el rojo nuevo junto al botón pizarra, con el
+anillo de foco dorado), `expedition-idle` y `construction-scroll`.
+
+**No verificado:** el relleno verde de `ProgressBar` no se vio en vivo — ningún
+fixture del estado inicial muestra una barra con progreso. Su geometría es la
+misma que la del rojo, ya comprobada, pero queda como comprobación manual, junto
+con el aplastamiento de los cortes cuando la razón de llenado es menor que los
+márgenes.
+
 ## La cara Dominio del cubo deja de llamarse Mastery y los migrantes dejan de ser gemelos
 
 **2026-08-07** · schema v31 → v32 · EG-5

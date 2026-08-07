@@ -83,7 +83,50 @@ The roguelike atlas needed no new promotion — its ground, bush, sprout, rubble
 and berry-bush tiles were already in the imported sheet and simply were not
 being used. Their coordinates now live in `game/scripts/Ui/TerrainAtlas.cs`.
 
-No complete ZIP was extracted into `game/assets/`.
+On 2026-08-07 three more CC0 tiles were promoted from the same pack into
+`game/assets/ui/kenney-pixel-adventure/9-slice/`, and the whole of
+`game/assets/ui/kenney/` was deleted: `Tiles/Small tiles/Thick outline/tile_0071`
+→ `red`, `tile_0070` → `red_outlined`, `tile_0075` → `green`. They replace
+`kenney/9-slice/{red,red_pressed,green}`, which came from the older
+`art/Kenney/` kit at 16×16 upscaled 3× to 48×48 — so `ButtonWarning` carried a
+3× thicker border than the `ButtonText`/`ButtonPrimary` slate beside it. Both
+button families are now native, at the same absolute border weight. `red_pressed`
+reuses `red.png` through `modulate_color`, per the reuse rule above. Once the
+theme stopped pointing at the old folder nothing referenced it at all, so
+`ancient_brown`, `ancient_grey`, `grey`, `grey_pressed` and `green_pressed` went
+with it rather than being pruned one by one.
+
+Two structural facts about this pack, established by measuring every tile with
+`tools/New-KenneyContactSheet.ps1` (which upscales tiles nearest-neighbour and
+labels each with its index — the pack ships no semantic filenames, only
+`tile_NNNN.png`, so a tile can only be identified by looking at it):
+
+1. **The Large tiles are 9-slice material; the Small tiles are not.**
+   `slate_raised_dark.png` is 1020/1024 opaque and fills its canvas, so
+   `texture_margin = 8` is correct. The Small tiles are ~10×10 sprites centred in
+   a 16×16 canvas with 3 px of transparent padding, so `texture_margin = 4`
+   slices through the border and leaves the inner highlight ring inside the
+   tiled centre — which renders as a repeating dot grid. The correct value is
+   `texture_margin = 6`, which lands the centre on the uniform 4×4 interior.
+   Verified at 1280×720 and 1920×1080.
+2. **The pack has no dark tile.** Its darkest opaque tile centre is luminance
+   114; `StyleBoxFlat_panel` is 17 and `StyleBoxFlat_panel_elevated` is 11. The
+   slate tiles carry only 4–6 distinct tones, so darkening one by `modulate_color`
+   to reach the project's panel value compresses its tonal range to ~7/255 —
+   indistinguishable from a flat fill. **This pack can supply buttons, chips,
+   slots and small widgets, but it cannot supply this game's dark panel
+   surfaces** without either changing the palette or baking a composite asset.
+   That is why `OverlayPanel`, `Panel`, `PanelCard`, `ScrollContainer` and
+   `StatusStrip` remain `StyleBoxFlat`.
+
+Also deferred for a structural reason rather than a taste one: the vertical
+scrollbar track and grabber (`tile_0117`+`tile_0140`, `tile_0118`+`tile_0141`),
+the banner ribbon (`tile_0043-0045`+`tile_0056-0058`) and the framed progress bar
+are **multi-tile composites**, not single 9-slices. Using them needs a scripted
+`art/source` → `art/exports` compositing step, since §10 of `ART_PIPELINE.md`
+forbids hand-edited exported PNGs.
+
+No complete ZIP was extracted into `game/assets/`. 7 of 504 tiles are imported.
 
 ## Integration plan
 

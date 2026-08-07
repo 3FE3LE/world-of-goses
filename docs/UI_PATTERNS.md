@@ -230,10 +230,31 @@ rules:
    `TableText`, `NumericText`.
 
 Every Label and every Button MUST set one of these variations
-explicitly — never rely on the engine's default font. The base
-`Label` and `Button` themes in `default_theme.tres` carry Pixelify
-defaults so an unannotated control still looks like the project, but
-new code must declare the variation it wants.
+explicitly — never rely on the engine's default font. The base `Label`
+type in `default_theme.tres` carries Pixelify defaults so an
+unannotated label still looks like the project.
+
+**There is no base `Button` registration** (verified 2026-08-07; this
+paragraph previously claimed there was). An unannotated `Button`
+therefore falls back to the engine's own font and grey styleboxes, and
+the rule above is the only thing preventing it. Registering the base
+type would be a real safety net, but it also gives every unannotated
+button new content margins — a size change — so it belongs with a pass
+that can re-check the affected surfaces, not with a chrome swap.
+
+### 5.1 Surface variations
+
+Alongside the text variations the theme registers the surfaces
+`OverlayPanel` (elevated/modal), `PanelCard` (card inside a panel) and
+`StatusStrip` (HUD bars), plus the base `Panel`, `LineEdit`,
+`ProgressBar` and `ScrollContainer` types.
+
+`PanelAction`, `PanelIdle` and `PanelWarning` were removed on
+2026-08-07: all three resolved to the *same* stylebox as `PanelCard`
+and no scene or script referenced any of them, so they promised a
+distinction the theme did not deliver — a `PanelWarning` panel looked
+exactly like a neutral card. If a warning surface is needed, add it
+back with a genuinely distinct style and a use case.
 
 Adding a new variation requires:
 
@@ -332,7 +353,7 @@ without collision. Keep `FocusMode = All` on every action control.
 | Two `.tscn` files instantiating the same kind of button with different `icon_path`/`label`/size. | Same drift, plus it survives code review by hiding in scene files. | Consolidate via the factory or via `Components/<Name>.tscn`. |
 | Reading a domain field from a UI `_Process` tick. | Couples the UI to internal layout and runs work the simulation doesn't need. | Subscribe to the relevant signal. |
 | Setting `position` on a child of a `Container`. | The container overrides it; the value silently does nothing. | Drop the child into the container and use size flags / separation. |
-| Adding a new theme variation per call site. | 14 explicit variations already; wildcards defeat centralised theming. | Reuse an existing variation or add the variation to `default_theme.tres` with a typed justification. |
+| Adding a new theme variation per call site. | 17 text variations plus 3 surface variations already (§5, §5.1); wildcards defeat centralised theming. | Reuse an existing variation or add the variation to `default_theme.tres` with a typed justification. |
 | Building modal that cannot be closed without selecting an option. | Player with no materials is stuck. | Always X / ESC / click-on-scrim, plus the options, in that order. |
 | Custom tooltip overlay that resizes a Panel with `PanelContainer.MinimumSize` set to (200, 1). | Creates elongated tooltips that don't match the engine popup shape. | Use the engine popup with the project's `Label/font` base. |
 
