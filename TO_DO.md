@@ -287,6 +287,38 @@ superados en 2026-07-30; ver §8.)_
 - **Regla:** no importar paquetes completos ni habilitar Settings/minimap sin
   un slice aprobado.
 
+### 🟡 M-27 — Convenciones técnicas heredadas del capítulo 10
+
+- **Origen:** eran «preguntas abiertas» en
+  `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`. No lo eran:
+  tienen dueño y respuesta comprobable, así que bajan aquí el 2026-08-07.
+- **Trigger:** que se retome elevación de terreno (`H-26` / `S-1.2`) o la
+  expansión lateral bloqueada en `S-1.3`.
+- **Pendiente:**
+  1. Convención de tileset con elevación: cuántos niveles, alto en píxeles por
+     nivel, y tiles de rampa/escalera/puente.
+  2. Convención de proyección pseudo-3D por calle: factores de achicamiento
+     vertical/horizontal por profundidad, cuántas calles visibles a la vez, y
+     el número final de calles de la ciudad. Hoy la ventana es de 13 y el
+     sobre objetivo 8×9, pero ninguno de los dos está fijado como convención.
+  3. Colisión de nombres: «calle» como fila de profundidad de la perspectiva
+     macro vs. «calle» de `H-26` como corredor de 2 tiles para navmesh.
+     Reconciliar o renombrar; hoy el mismo término significa dos cosas en
+     documentos que un agente lee juntos.
+
+### 🟡 M-28 — `ARCHITECTURE.md` §8 se quedó en v28
+
+- **Trigger:** ninguno; es corrección de documentación y puede tomarse cuando
+  el slice activo lo permita.
+- **Estado actual:** la cadena de migraciones narrada en
+  `docs/ARCHITECTURE.md` §8 termina en v28 mientras
+  `WorldSave.CurrentVersion` es 31. Los tres pasos que faltan (v28→v29
+  onboarding canónico, v29→v30 fuentes de estadísticas derivadas, v30→v31
+  primera noche) están descritos en `docs/CURRENT_STATUS.md` §1 pero nunca
+  volvieron a la prosa de arquitectura.
+- **Aceptación:** §8 narra hasta la versión vigente, o deja de narrar la
+  cadena y remite a un único lugar que sí la mantenga.
+
 ### Seguimiento S-1
 
 | Subítem | Estado/trigger |
@@ -706,8 +738,12 @@ superados en 2026-07-30; ver §8.)_
 ## 10. Referencias
 
 - Estado canónico: `docs/CURRENT_STATUS.md`.
-- Criterios del loop: `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+- Criterios del loop: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`
+  §15 (orden) y §17 (test de aceptación). Sustituyen a
+  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, descartado el 2026-07-31.
 - Validación contra visión: `docs/VALIDATION.md`.
-- Persistencia/rutinas: `docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md`.
-- Matriz visual: `docs/VISUAL_REGRESSION.md`.
+- Persistencia/rutinas: `docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md` (histórico,
+  esquema v19).
+- Matriz visual y checklist de firma humana: `docs/VISUAL_REGRESSION.md`.
+  Lo que ya se firmó: `docs/UI_AUDIT.md`.
 - Decisiones: `docs/ai/DECISION_LOG.md`.

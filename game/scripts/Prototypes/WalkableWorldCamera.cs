@@ -11,7 +11,7 @@ namespace WorldofGoses.Prototypes;
 /// the future walkable world: free pan/zoom always available, and an
 /// explicit follow-selected-target toggle independent from selection
 /// itself. See
-/// docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md
+/// docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md
 /// ("Cámara y mundo caminable") and
 /// docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md
 /// ("Cámara-sigue").

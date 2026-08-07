@@ -46,7 +46,9 @@ caused by expeditions, not an arbitrary unlock list.
 - `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
   — for expedition eligibility and personal consequences.
 - `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 2.
-- `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` gaps G3, G4, G6, G7.
+- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3, §8.4 and §13. The
+  old G3/G4/G6/G7 gap IDs pointed at `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`,
+  discarded 2026-07-31.
 
 ## Core invariants
 

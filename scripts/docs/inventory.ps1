@@ -71,14 +71,18 @@ function Get-DocRecord {
     for ($i = 0; $i -lt $lines.Count; $i++) {
         $line = $lines[$i]
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        # Whole words only. Substring matching counted "deferred disposal" as
+        # backlog, "future attachments" as a plan, and found "owed" inside
+        # "allowed" and "reflowed" — which is how docs/ARCHITECTURE.md was
+        # accused of being half roadmap when it is a description throughout.
         foreach ($marker in $backlogMarkers) {
-            if ($line -match [regex]::Escape($marker)) {
+            if ($line -match ('\b' + [regex]::Escape($marker) + '\b')) {
                 $backlogHits += [pscustomobject]@{ line = $i + 1; marker = $marker; text = $line.Trim() }
                 break
             }
         }
         foreach ($marker in $questionMarkers) {
-            if ($line -match [regex]::Escape($marker)) {
+            if ($line -match ('\b' + [regex]::Escape($marker) + '\b')) {
                 $questionHits += [pscustomobject]@{ line = $i + 1; marker = $marker; text = $line.Trim() }
                 break
             }

@@ -20,7 +20,7 @@
   [`docs/world-of-goses-design-bible/06_LINEAGES.md`](world-of-goses-design-bible/06_LINEAGES.md).
 - Open design questions (cosmology, time scale, combat elements,
   etc.):
-  [`docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md)
+  [`docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md)
   § *Preguntas abiertas*.
 
 This file does not restate those. It defines **how** a slice is

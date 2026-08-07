@@ -1,4 +1,18 @@
-# Arquitectura técnica y roadmap
+# Arquitectura técnica
+
+> **Canon técnico, no plan de trabajo.** Este capítulo fija el stack, las
+> separaciones y los guardarraíles que ninguna implementación puede violar. No
+> dice en qué orden se construye: esa secuencia es
+> `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15, y la cola
+> accionable es `TO_DO.md`.
+>
+> El mapa de escenas propuesto y la secuencia original de quince pasos se
+> archivaron el 2026-08-07 en
+> [`docs/_archive/design-bible-10-prototype-roadmap-2026-08-07.md`](../_archive/design-bible-10-prototype-roadmap-2026-08-07.md):
+> describían una estructura de carpetas que la implementación nunca adoptó, y
+> presentarla como canon la convertía en una instrucción equivocada.
+>
+> Cómo está organizado el código **hoy** lo responde `docs/ARCHITECTURE.md`.
 
 ## Stack
 
@@ -58,36 +72,6 @@ Evitar:
 
 Favorecer eventos discretos, cálculos por lote, datos compactos y estado bajo demanda.
 
-## Escenas sugeridas
-
-```text
-scenes/
-├── city/
-│   ├── MacroStreetLiveView.tscn
-│   ├── PlotView.tscn
-│   └── MacroCitizenDot.tscn
-├── buildings/
-│   ├── BuildingDetailView.tscn
-│   ├── MineDetailView.tscn
-│   ├── FarmDetailView.tscn
-│   └── HospitalDetailView.tscn
-├── gardens/
-│   └── GardenDetailView.tscn
-├── gathering/
-│   └── GatheringDetailView.tscn
-├── citizens/
-│   ├── CitizenDetailedView.tscn
-│   └── CitizenPortraitView.tscn
-├── expeditions/
-│   ├── ExpeditionView.tscn
-│   ├── ExpeditionMemberView.tscn
-│   └── ExpeditionSegmentView.tscn
-└── ui/
-```
-
-`MacroStreetLiveView.tscn` represents the walkable camera world described in
-"Cámara y mundo caminable" below, rather than a static view.
-
 ## Pixel perfect
 
 - Resolución lógica: 1280 × 720.
@@ -130,68 +114,16 @@ reintroduced as a fallback or second construction/movement path.
 
 ## Guardado
 
-Todavía no está fijado.
+Guardado local estructurado, con versionado de esquema, migraciones,
+snapshots y registro de eventos importantes. La dirección quedó fijada y el
+código la sostiene: escritura atómica con `.bak`, validación estructural
+antes de restaurar, y una cadena de migraciones secuenciales sobre el JSON
+crudo.
 
-Primera opción: guardado local estructurado, versionado de esquema, migraciones, snapshots y registro de eventos importantes.
-
-Postgres no se justifica para el primer prototipo.
-
-## Primer slice
-
-```text
-Ciudad macro
-→ mina seleccionable
-→ escena detallada
-→ ciudadanos asignados
-→ producción
-→ UI temática
-→ audio básico
-```
-
-### Contenido
-
-- Asentamiento central.
-- Mina.
-- Granja.
-- Actividad macro.
-- Panel superior.
-- Menú lateral.
-- Tema de un linaje.
-- Dos trabajadores iniciales.
-- Asignación y remoción.
-- Producción y almacenamiento.
-- Bloqueos visibles.
-
-## Segundo slice
-
-```text
-salida
-→ caminar
-→ enemigo
-→ combate automático
-→ destino
-→ regreso
-```
-
-Usar un ciudadano existente convertido en héroe.
-
-## Orden sugerido
-
-1. Ciudad macro y selección.
-2. Escena de mina.
-3. Asignación.
-4. Producción.
-5. Afinidad y experiencia.
-6. Almacenamiento y bloqueos.
-7. Tema visual.
-8. Audio básico.
-9. Parcela bloqueada.
-10. Expedición.
-11. Desbloqueo.
-12. Retorno herido.
-13. Tratamiento.
-14. Guardado.
-15. Progreso offline.
+Ningún backend externo mientras no exista una necesidad validada; Postgres no
+se justifica para el prototipo. El número de esquema vigente y el detalle de
+cada migración viven en `docs/ARCHITECTURE.md` §8 y en
+`docs/session-state/STATE.txt`, no aquí: son medición, no diseño.
 
 ## Guardarraíles
 
@@ -220,12 +152,9 @@ Usar un ciudadano existente convertido en héroe.
 - Música.
 - Primer bioma.
 - Primer conflicto sistémico.
-- Convención de tileset con elevación: cuántos niveles, alto en píxeles por
-  nivel, y tiles de rampa/escalera/puente — pendiente de definir en la fase
-  de integración técnica de "Cámara y mundo caminable".
-- Convención de proyección pseudo-3D por calle (ciudad macro): factores de
-  achicamiento vertical/horizontal por profundidad, cuántas calles visibles
-  simultáneamente, número final de calles de la ciudad.
-- Colisión de nombres: "calle" (fila de profundidad de la perspectiva macro)
-  vs. "calle" de `H-26` (corredor de 2 tiles para navmesh) — reconciliar o
-  renombrar cuando se retome `H-26`/`S-1.2`.
+
+Estas son preguntas de diseño: nadie ha decidido la respuesta todavía. Las tres
+convenciones técnicas que vivían aquí — niveles de elevación del tileset,
+factores de la proyección pseudo-3D por calle, y la colisión del término
+"calle" entre la perspectiva macro y el corredor de `H-26` — no eran preguntas
+abiertas sino trabajo pendiente con dueño, y se movieron a `TO_DO.md`.

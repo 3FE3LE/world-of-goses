@@ -24,11 +24,19 @@ slice without a documented decision.
 
 ## When to use
 
-- A task is filed against a named vertical slice (VS-N).
+- A task is filed against a named increment (EG-N) or an older vertical
+  slice (VS-N).
 - A task risks turning the slice into a generic city builder.
-- A task closes one or more gaps from
-  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+- A task closes one of the gaps the proposal diagnoses.
 - A reviewer (`quality-guardian`) needs to check slice acceptance.
+
+> **`docs/FIRST_PLAYABLE_LOOP_AUDIT.md` no longer exists.** It was discarded on
+> 2026-07-31 together with the VS-5 audit and its seventeen criteria, and its
+> G0–G7 gap table went with it. The acceptance criteria now live in
+> `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` — §15 for the order of
+> increments, §17 for the acceptance test. The VS-2, VS-3, VS-4 and VS-0 test
+> suites still pass and are kept as safety regressions, but they are no longer
+> acceptance criteria.
 
 ## Required documentation
 
@@ -36,7 +44,7 @@ slice without a documented decision.
 - `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`.
 - `docs/PRODUCT_DIRECTION.md`.
 - `docs/CURRENT_STATUS.md`.
-- `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15 and §17.
 - `docs/VALIDATION.md`.
 - `docs/ai/CURRENT_DEVELOPMENT_STATE.md`.
 
@@ -70,11 +78,12 @@ they are the lens through which any slice change is judged.
 
 ## Expected workflow
 
-1. Read the active slice in `docs/CURRENT_STATUS.md` and
-   `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+1. Read the active increment in `docs/CURRENT_STATUS.md` and its place in
+   `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15.
 2. Classify the task against the slice: is it advancing, stabilizing, or
    out of scope?
-3. If advancing, name the gap from the audit it closes (G0..G7).
+3. If advancing, name the increment it serves and the gap from the
+   proposal's §3 diagnosis it closes.
 4. If stabilizing, name the regression or bug it prevents.
 5. If out of scope, record the deferral in the handoff and link to the
    `OUT OF SCOPE` list in `docs/CURRENT_STATUS.md`.
@@ -86,7 +95,7 @@ they are the lens through which any slice change is judged.
 ## Files commonly involved
 
 - `docs/CURRENT_STATUS.md`.
-- `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`.
+- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`.
 - `docs/VALIDATION.md`.
 - `docs/ai/CURRENT_DEVELOPMENT_STATE.md`.
 - `tests/WorldofGoses.Tests/FirstRunRegressionTests.cs`.

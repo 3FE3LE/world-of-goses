@@ -1,6 +1,6 @@
 {
   "about": "Hand-authored classification ledger. Phase 2 of the documentation migration. scripts/docs/classify.ps1 merges it into the inventory produced by scripts/docs/inventory.ps1 and fails when a document is missing an entry, when an entry names a document that no longer exists, or when a live document under docs/ is absent from docs/README.md. Deciding what a document IS remains a judgement: it is written here so a reviewer can disagree with a line, not buried in a regex.",
-  "updated": "2026-08-07",
+  "updated": "2026-08-07 (phase 3: the split and merge proposals resolved)",
   "vocabulary": {
     "proposed_type": {
       "canon": "Design truth. Lives in the design bible exactly once.",
@@ -142,10 +142,10 @@
       "proposed_type": "spec",
       "authority": "canonical",
       "domains": ["technical"],
-      "action": "split",
+      "action": "keep",
       "related_code": ["game/scripts/Domain/", "game/scripts/"],
-      "duplicates_or_overlaps": ["docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md", "TO_DO.md"],
-      "note": "Carries 17 backlog markers: it describes the layout AND plans future work. The roadmap half belongs in TO_DO.md or a roadmap document; the description half is canonical for how the code is organised today. Split is proposed, not scheduled."
+      "duplicates_or_overlaps": ["docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md"],
+      "note": "Proposed for a split on the strength of 17 backlog markers; the evidence did not survive. Every one of them was a substring false positive — 'future attachments', 'deferred disposal', 'owed' found inside 'allowed' and 'reflowed'. With whole-word matching 14 remain and all are the adjective 'future' inside descriptive prose. This document describes the code that exists, start to finish, and is not split. Its real defect is staleness, not structure: §8 narrates migrations to v28 while the code is at v31. Tracked as M-28 in TO_DO.md."
     },
     "docs/CURRENT_STATUS.md": {
       "proposed_type": "spec",
@@ -167,9 +167,8 @@
       "proposed_type": "record",
       "authority": "derived",
       "domains": ["presentation"],
-      "action": "split",
-      "duplicates_or_overlaps": ["TO_DO.md"],
-      "note": "27 backlog markers. Mixes a reusable manual checklist with a dated history of signatures. The checklist is a guideline; the history is a record; the outstanding items are backlog and belong in TO_DO.md."
+      "action": "keep",
+      "note": "Split executed 2026-08-07. The reusable checklist and the sign-off rule moved to VISUAL_REGRESSION.md, which already owned the human sign-off contract; this file keeps the record — current state, visual evidence, presentation debt, signature history. Its 26 markers were unchecked boxes, a real signal unlike ARCHITECTURE's: a checklist living inside a record reads as a backlog nobody owns. The dangling reference to the deleted FIRST_PLAYABLE_LOOP_AUDIT.md went with it."
     },
     "docs/VALIDATION.md": {
       "proposed_type": "record",
@@ -297,6 +296,13 @@
       "note": "IP boundary and naming discipline moved to bible chapter 01; the retired MVP shorthand stays here as a historical note."
     },
 
+    "docs/_archive/design-bible-10-prototype-roadmap-2026-08-07.md": {
+      "proposed_type": "archive",
+      "authority": "historical",
+      "domains": ["technical"],
+      "action": "keep",
+      "note": "The roadmap half of bible chapter 10, extracted 2026-08-07. Archived rather than relocated to a live roadmap: the governing sequence is the proposal's EG-0 to EG-6, and a second canonical sequence competing with it is worse than one stale plan. Do not edit."
+    },
     "docs/session-state/README.md": {
       "proposed_type": "guideline",
       "authority": "canonical",
@@ -359,9 +365,9 @@
       "proposed_type": "spec",
       "authority": "derived",
       "domains": ["meta"],
-      "action": "merge",
-      "duplicates_or_overlaps": ["docs/CURRENT_STATUS.md", "docs/session-state/STATE.txt"],
-      "note": "Third document answering 'what is built'. CURRENT_STATUS holds the prose and STATE.txt holds the measurement; this one drifts between them. Merge is proposed, not scheduled."
+      "action": "keep",
+      "duplicates_or_overlaps": ["docs/CURRENT_STATUS.md"],
+      "note": "Partial merge executed 2026-08-07. Only the duplication was folded away: the 'At a glance' table restated the measured baseline (claiming 730 tests and v28 against a measured 914 and v31) and the active increment, which STATE.txt and CURRENT_STATUS own. What remains is the do-not-regress inventory — functional, partial, placeholder, out of scope — which no other document holds and which is not a duplicate. Its remaining overlap with CURRENT_STATUS §3 'Connected functionality' is real but unresolved: merging two hand-written functional lists needs each claim verified against code, not a text move."
     },
     "docs/ai/FEATURE_HANDOFF_TEMPLATE.md": {
       "proposed_type": "process",
@@ -414,10 +420,9 @@
       "proposed_type": "canon", "authority": "canonical", "domains": ["presentation"], "action": "keep",
       "note": "Synthetic retro direction and bus layout. No buses are wired yet; the chapter is ahead of the code."
     },
-    "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["technical"], "action": "split",
-      "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
-      "note": "Its title admits the mix: canon for the stack and guard-rails, roadmap for the rest. Same split as docs/ARCHITECTURE.md and should be decided together with it."
+    "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md": {
+      "proposed_type": "canon", "authority": "canonical", "domains": ["technical"], "action": "keep",
+      "note": "Split executed 2026-08-07, and the only one of the four the marker count did not drive — its old title said 'y roadmap' outright. The stack, layer separation, simulation rules, pixel-perfect rules, walkable-camera direction and guard-rails stayed. The suggested scene map and the fifteen-step order were archived: the scene map described a folder structure the implementation never adopted, so presenting it as canon made it a wrong instruction. Three 'open questions' that were really owned work went to TO_DO.md as M-27. The file lost AND_ROADMAP from its name; the chapter number did not change."
     },
     "docs/world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md": {
       "proposed_type": "canon", "authority": "canonical", "domains": ["vision", "citizens", "city", "expeditions"], "action": "keep",

@@ -46,7 +46,9 @@ buildings are timers and people are multipliers.
   — when production requires workers.
 - `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — when an expedition
   changes the city's state.
-- `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` gaps G1, G2, G6 — current city gaps.
+- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3 — the current city
+  diagnosis. The old G1/G2/G6 gap IDs pointed at
+  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, discarded 2026-07-31.
 
 ## Core invariants
 

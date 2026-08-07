@@ -168,6 +168,72 @@ Godot headless boot. Automated capture proves reproducibility; a person still
 signs composition and interaction until image-diff baselines are intentionally
 introduced.
 
+## Human sign-off checklist
+
+Moved here from `UI_AUDIT.md` on 2026-08-07. It was written as the VS-5
+checklist, and VS-5 was discarded on 2026-07-31 — but the criteria never
+depended on that slice, only on the game having a UI. They are the standing
+list a person walks before signing a UI run; the audit that used to hold them
+now records *results*, which is a different job.
+
+A checked box here means nothing on its own. A box is signed in
+`UI_AUDIT.md` § *Human signature history*, against a dated run at both
+official resolutions.
+
+### Containment and reading order
+
+- 1280×720: no clipped panel, footer, close button, HUD chip or Chronicle.
+- 1920×1080: no excessive expansion, overlap or unreadable empty space.
+- Panels with long bodies keep their actions visible while the body scrolls.
+- Expedition phase/outcome, wound/treatment and territory copy remain legible
+  without exposing raw ticks.
+
+### Input and focus
+
+- Every modal closes through its visible close path and ESC.
+- Keyboard/gamepad focus reaches every critical action in the run.
+- Disabled actions expose a text reason, not colour alone.
+- Scrolling any panel never zooms the city behind it, including at the first
+  and last scroll row.
+- Selecting a citizen never starts follow; explicit follow tracks the selected
+  citizen; manual camera input releases follow coherently.
+- WASD/arrows never move the founder directly.
+
+### Citizen and city representation
+
+- Founder and recruited citizens travel visibly through the same route system
+  and do not teleport into a workplace.
+- Citizens disappear only after logical building entry and reconstruct at a
+  context-appropriate anchor after load.
+- Storage/food/schedule blockers produce a coherent wait/rest/leisure state,
+  not a frozen citizen at an entrance.
+- Multiple citizens never duplicate a carrier when switching macro/detail.
+- Routes remain visible and pass through every valid clearance-defined gap,
+  whether the adjacent obstacles are resources or constructions.
+
+### Complete-loop feedback
+
+- Prospect arrival and housing restriction are understandable.
+- Daily Food pressure is visible before it becomes a soft lock.
+- Expedition team, finite Food/Wood objectives, supplies and retreat posture
+  are discoverable.
+- Shelter detail makes recipes, missing inputs and durable stored state
+  legible; gathering explains a missing-tool blocker before movement.
+- Resource feedback follows the physical owner — founder before Cache, the
+  site afterwards — without adding a Chronicle row or restoring counters to
+  the status bar.
+- Construction placement shows both axes of the frontage/depth grid, previews
+  `[OK]`/`[X]` before click, and never erases explanatory lines.
+- Encounter, return, wound and territory changes identify subject and cause.
+- Treatment communicates Food cost, duration and completion.
+- Save confirmation appears briefly and disappears.
+
+### Sign-off rule
+
+A UI flow is not complete because it compiles or appears in a headless scene.
+Closure requires the relevant matrix **plus** a real pointer/keyboard/gamepad
+path to its domain effect. Record any failed state in `TO_DO.md`.
+
 ## Executed reviews
 
 | Date | State | Resolutions | Result |

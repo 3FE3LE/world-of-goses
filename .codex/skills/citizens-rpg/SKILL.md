@@ -47,8 +47,9 @@ visible. Make consequences persist.
   depart on an expedition.
 - `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 6
   — when designing injury and recovery.
-- `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` gaps G0, G2, G5 — current gaps that
-  this skill closes.
+- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3 and §13 — the
+  current diagnosis this skill closes against. The old G0/G2/G5 gap IDs
+  pointed at `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, discarded 2026-07-31.
 - `docs/world-of-goses-design-bible/06_LINEAGES.md` — when lineage affects
   the change. Read `lineages-and-cultures` for cross-cutting rules.
 - `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — when the

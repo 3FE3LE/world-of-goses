@@ -1,27 +1,19 @@
 # Current development state
 
-> **This file describes the state of the code at the listed update date. It
-> does not replace design documents or code. Update it when a phase
-> completes, a vertical slice advances, or the build/test baseline shifts.**
+> **The do-not-regress inventory.** What is wired end to end, what is partial,
+> and what is still a placeholder. Update it when a phase completes, a slice
+> advances, or something on this list stops being true.
 
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-07
 
----
-
-## At a glance
-
-| Dimension | Value |
-| --- | --- |
-| Active increment | EG-5 — consolidation (proposal §15) |
-| Next approved work | Segundo/tercer plot y Farm consolidation; firma humana del hacha y apertura acotada. |
-| VS-5 audit | Descartado 2026-07-31; `docs/FIRST_PLAYABLE_LOOP_AUDIT.md` borrado. |
-| Build | `dotnet build` clean (verified 2026-08-03) |
-| Tests | 730 / 731 passing (1 omitido por brittleness del snapshot JSON en `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`) |
-| Save schema version (code) | `WorldSave.CurrentVersion = 28` |
-| Save schema version (docs) | v28 (durable Shelter tool set; Primitive Axe forestry gate) |
-| Headless boot | OK with `godot --headless --path game --quit-after 3` |
-| Audio | No wired buses yet; `game/assets/audio/` is empty |
-| Walkable macro-camera | Detailed walkable-world prototype postponed; street-perspective macro camera is active |
+This file deliberately holds **no numbers**. Build, tests, schema version,
+headless boot, catalogs and agent-context checks are measured into
+[`docs/session-state/STATE.txt`](../session-state/STATE.txt) at every session
+start; the active increment and the next approved work belong to
+[`docs/CURRENT_STATUS.md`](../CURRENT_STATUS.md). Both used to be restated
+here, and both had drifted: on 2026-08-07 this file still claimed 730 tests
+and schema v28 against a measured 914 and v31. A hand-copied number is a
+number that will be wrong, so the copy is gone rather than corrected.
 
 ---
 
@@ -208,19 +200,23 @@ EG-4 ya sustituyó la salida genérica de recursos por oportunidades finitas.
 
 ## Drift to fix in the docs
 
-- No known save-schema drift after the VS-3 v19 update. Historical sections may
-  still describe the version that introduced a specific subsystem.
-- The audit's "post-onboarding focused fix" describes the G0 commitment work;
-  this file aligns with that reading.
+- `docs/ARCHITECTURE.md` §8 narrates the migration chain up to v28 while
+  `WorldSave.CurrentVersion` is 31. The v28→v29, v29→v30 and v30→v31 steps are
+  described in `docs/CURRENT_STATUS.md` §1 but were never folded back into the
+  architecture prose.
+- Sections written when a subsystem shipped still name the schema version of
+  that moment. That is correct as history and misleading as present tense;
+  read them as "introduced in", never as "current".
 
 ## Provenance of facts in this document
 
-- Code facts: derived from the agent's code map (citizen/world/persistence
-  paths, test counts, schema version).
+- Code facts: read from the code itself — citizen, world and persistence paths.
 - Gap list: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3
   (diagnóstico de implementación) y §15 (orden de increments).
-- Build / test baselines: `docs/CURRENT_STATUS.md` and the audit.
-- Visual matrix: `docs/VISUAL_REGRESSION.md`.
+- Build, test and schema baselines: **not here.**
+  `docs/session-state/STATE.txt` measures them.
+- Visual matrix: `docs/VISUAL_REGRESSION.md`; what a person has actually
+  signed: `docs/UI_AUDIT.md`.
 
 The detailed design, process, and architectural prose live in
 `docs/world-of-goses-design-bible/`, `docs/PRODUCT_DIRECTION.md`,

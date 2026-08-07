@@ -33,7 +33,7 @@ deterministic, and every invariant covered by a test.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`.
+- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
 - `docs/ARCHITECTURE.md`.
 - `docs/REPOSITORY_CONVENTIONS.md` (C# and Godot conventions).
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → "Architecture".

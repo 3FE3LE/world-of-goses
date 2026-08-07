@@ -45,7 +45,7 @@ La selección de parcelas y edificios por clic se mantiene igual; ahora ocurre
 dentro de un mundo con cámara en vez de sobre una vista estática. Ver
 "Profundidad y desniveles" en `08_VISUAL_UI_AND_ASSET_GUIDELINES.md` para la
 mecánica visual, y "Cámara y mundo caminable" en
-`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` para la arquitectura técnica. Esta
+`10_TECHNICAL_ARCHITECTURE.md` para la arquitectura técnica. Esta
 es una dirección documentada para una fase de integración posterior; el
 prototipo actual permanece vigente hasta entonces.
 

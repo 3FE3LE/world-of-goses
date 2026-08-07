@@ -34,7 +34,7 @@ and this section gets corrected in the same change.
 
 - Godot .NET 4.7.1, C#/.NET 8.
 - `dotnet build`: 0 errors, 0 warnings.
-- Combat/expedition vertical slice (roadmap `13_…_ROADMAP.md` fases 0–7) lives in
+- Combat/expedition vertical slice (`EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md` fases 0–7) lives in
   `game/scripts/Domain/Combat/`. Domain-pure: no `Node`, no `_Process`, no scene,
   fully runnable in tests, deterministic from a seed. `Citizen` remains the only
   persistent person — `CombatantState` is a per-encounter working copy carrying the

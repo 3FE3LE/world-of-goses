@@ -67,7 +67,7 @@ instanciadas, junto a minas, granjas, hospitales y talleres.
 
 Esta es una dirección documentada para una fase de integración técnica
 posterior; no implica cambios inmediatos al prototipo actual salvo lo ya
-prototipado (ver `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`).
+prototipado (ver `10_TECHNICAL_ARCHITECTURE.md`).
 
 ### Interiores (elevación plana)
 
@@ -132,7 +132,7 @@ aparte (ver `04_CITIZENS_PROFESSIONS_AND_HEROES.md`, "Cámara-sigue"). En la
 ciudad macro, el "paneo libre" es él mismo cuantizado/escalonado por calle
 (no un arrastre continuo 1:1) — ver "Pixel-motion grammar". Todos los modos
 respetan posiciones y escala entera ("Pixel perfect" en
-`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`).
+`10_TECHNICAL_ARCHITECTURE.md`).
 
 ## Unidad base
 

@@ -234,6 +234,18 @@
     "exists": true
   },
   {
+    "from": "docs/ai/CURRENT_DEVELOPMENT_STATE.md",
+    "to_raw": "../CURRENT_STATUS.md",
+    "to": "docs/CURRENT_STATUS.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CURRENT_DEVELOPMENT_STATE.md",
+    "to_raw": "../session-state/STATE.txt",
+    "to": "docs/session-state/STATE.txt",
+    "exists": true
+  },
+  {
     "from": "docs/ai/README.md",
     "to_raw": "AGENT_COLLABORATION_PROTOCOL.md",
     "to": "docs/ai/AGENT_COLLABORATION_PROTOCOL.md",
@@ -271,8 +283,8 @@
   },
   {
     "from": "docs/ARCHITECTURE.md",
-    "to_raw": "world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md",
-    "to": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md",
+    "to_raw": "world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
+    "to": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
     "exists": true
   },
   {
@@ -427,8 +439,8 @@
   },
   {
     "from": "docs/PRODUCT_DIRECTION.md",
-    "to_raw": "world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md",
-    "to": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md",
+    "to_raw": "world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
+    "to": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
     "exists": true
   },
   {
@@ -441,6 +453,18 @@
     "from": "docs/README.md",
     "to_raw": "world-of-goses-design-bible/README.md",
     "to": "docs/world-of-goses-design-bible/README.md",
+    "exists": true
+  },
+  {
+    "from": "docs/UI_AUDIT.md",
+    "to_raw": "session-state/STATE.txt",
+    "to": "docs/session-state/STATE.txt",
+    "exists": true
+  },
+  {
+    "from": "docs/UI_AUDIT.md",
+    "to_raw": "VISUAL_REGRESSION.md",
+    "to": "docs/VISUAL_REGRESSION.md",
     "exists": true
   },
   {
@@ -549,6 +573,12 @@
     "from": "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md",
     "to_raw": "13_KOVARI_CUBE.md",
     "to": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
+    "to_raw": "../_archive/design-bible-10-prototype-roadmap-2026-08-07.md",
+    "to": "docs/_archive/design-bible-10-prototype-roadmap-2026-08-07.md",
     "exists": true
   },
   {

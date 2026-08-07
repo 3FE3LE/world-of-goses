@@ -63,7 +63,7 @@ namespace WorldofGoses.Prototypes;
 /// nearest-to-viewer row; no <c>BuildingDetailView</c> assignment surface
 /// exists purpose-built for this view yet (it reuses the shared,
 /// view-agnostic one via <see cref="CityWorldController.SelectBuilding"/>).
-/// See docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md,
+/// See docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md,
 /// "Cámara y mundo caminable".
 /// </summary>
 public partial class MacroStreetLiveView : Node2D

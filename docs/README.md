@@ -22,7 +22,7 @@
 | `world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md` | Onboarding tone, ambiguous situations, profile schema, founder influence on the city. |
 | `world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md` | Pixel art direction, three visual scales, typography hierarchy, Sixteen Pixel Perfect, per-lineage visual identity. |
 | `world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` | Synthetic retro audio, bus layout, per-lineage sonic identity, first audio pack. |
-| `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |
+| `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md` | Stack, layer separation, simulation rules, pixel-perfect rules, walkable-camera direction, persistence direction, guard-rails, open design questions. **No sequencing** — the order of work is the proposal §15 and `TO_DO.md`. |
 | `world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md` | Tierra, Agua, Fuego, Aire, Éter y Silencio como contrato común entre onboarding, caras del Cubo, equipamiento, ambiente, ciudad, salud, expediciones y combate. |
 | `world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md` | Dynamic frontage rows, construction reservations, structural footprints, corridors, expansion, and their persistence contract. |
 | `world-of-goses-design-bible/13_KOVARI_CUBE.md` | Cubo Kovari: geometría, ejes mecánicos, vértices, afinidades elementales, stats derivados, equipamiento, modo sombra. |
@@ -72,6 +72,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | `GAME_VISION.md` | **Pointer.** The vision, principles, and pillars live in the bible; this file maps old sections to their new homes. |
 | `LINEAGES_AND_PROFESSIONAL_AFFINITIES.md` | **Pointer.** The eight lineages, twelve-family vocabulary, five layers, and balance rules live in the bible; this file maps old sections to their new homes. |
 | `DESIGN_INFLUENCES.md` | **Pointer + audit trail.** The IP boundary and naming discipline live in the bible; the retired MVP shorthand stays here as a historical note. |
+| `_archive/design-bible-10-prototype-roadmap-2026-08-07.md` | **Historical plan.** The scene map and fifteen-step order extracted from bible chapter 10 when it was split. Superseded by the proposal's EG sequence; kept to compare what was planned against what was built. Do not edit. |
 | `_archive/ravatha-source-2026-08-04/` | **Historical source.** Original Ravatha lore package, RAVATHA_LINEAGE_SYSTEM guidelines and Kovari Cube onboarding doc, archived after being consolidated into the bible. Do not edit; consult only as a reference for the consolidation. |
 
 The optional lineage splash workflow is documented beside the tool at

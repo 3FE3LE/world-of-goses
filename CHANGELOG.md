@@ -61,7 +61,51 @@ es el tercer documento que responde qué está construido.
 De paso, los cinco enlaces rotos que el inventario de la fase 1 había
 reportado resultaron ser fantasmas: el extractor leía `MIGRATIONS[v](data)`
 dentro de un bloque de código como si fuera un enlace Markdown. El inventario
-ahora ignora el código antes de buscar enlaces: 124 enlaces, **0 rotos**.
+ahora ignora el código antes de buscar enlaces: 129 enlaces, **0 rotos**.
+
+### Las cuatro propuestas, resueltas — y dos de ellas no eran ciertas
+
+El detector de marcadores buscaba subcadenas. Contaba «deferred disposal» como
+trabajo diferido, «future attachments» como plan, y encontraba `owed` dentro de
+`allowed` y de `reflowed`. Sobre esos conteos se acusó a `docs/ARCHITECTURE.md`
+de mezclar arquitectura con roadmap. Con coincidencia por palabra completa el
+repositorio pasa de 124 documentos con backlog a 84, y los 14 que le quedan a
+`ARCHITECTURE.md` son todos el adjetivo «future» dentro de prosa descriptiva.
+**No se divide**: describe el código que existe, de principio a fin. Su defecto
+real es otro y ahora tiene ficha propia (`M-28`): el §8 narra migraciones hasta
+la v28 mientras el código va por la v31.
+
+El capítulo 10 sí lo era, y su propio título lo admitía. Se quedó el canon
+—stack, separación de capas, reglas de simulación, pixel perfect, cámara
+caminable, guardarraíles— y se archivó el plan. El mapa de escenas que
+proponía describía `scenes/city/`, `scenes/buildings/MineDetailView.tscn`,
+`scenes/gardens/`: hoy el proyecto tiene diecisiete `.tscn` y ninguno se llama
+así. Presentarlo como canon lo convertía en una instrucción equivocada. La
+secuencia de quince pasos se archivó en vez de reubicarse en un roadmap vivo,
+porque el orden vigente es EG-0→EG-6 y dos secuencias canónicas compitiendo son
+peores que un plan viejo. Tres «preguntas abiertas» que en realidad eran trabajo
+con dueño bajaron a `TO_DO.md` como `M-27`. El archivo perdió `AND_ROADMAP` del
+nombre; el número de capítulo no cambió.
+
+`UI_AUDIT.md` mezclaba un checklist reutilizable con el registro de lo firmado.
+El checklist y la regla de cierre se fueron a `VISUAL_REGRESSION.md`, que ya
+era dueño del contrato de firma humana; el audit se queda con estado, evidencia,
+deuda de presentación e historial. Sus veintiséis marcadores sí eran señal real
+—casillas sin marcar— y leían como un backlog sin dueño. De paso desaparece el
+encuadre en VS-5, descartado el 2026-07-31.
+
+`CURRENT_DEVELOPMENT_STATE.md` no se fusionó entero: sólo se le quitó lo que
+duplicaba. Su tabla de cabecera afirmaba 730 pruebas y esquema v28 contra 914 y
+v31 medidos. Un número copiado a mano es un número que va a estar mal, así que
+se borró en vez de corregirse; ahora el archivo no contiene ninguno y remite a
+`STATE.txt`. Lo que queda —el inventario de no-regresión— no lo tiene ningún
+otro documento.
+
+Y una cosa que el corte destapó y era peor que todo lo anterior: cuatro skills
+canónicos mandaban a leer `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, borrado hace una
+semana, y a usar su tabla de huecos `G0`–`G7` como criterios de aceptación. Un
+agente que cargara `vertical-slice-validation` recibía cuatro punteros a la
+nada. Ahora apuntan al proposal §3, §15 y §17, que es donde viven los criterios.
 
 Baseline medido: build 0 errores / 0 avisos, **914 pruebas pasan** (1 omitida),
 arranque headless limpio, 448 verificaciones de contexto de agentes, 922

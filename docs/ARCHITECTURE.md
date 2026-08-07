@@ -7,7 +7,7 @@
 
 The conceptual design bible lives at
 [`docs/world-of-goses-design-bible/`](world-of-goses-design-bible/README.md);
-[`world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md)
+[`world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md)
 holds the engine-neutral stack, scene map, and roadmap questions that
 this implementation-aware file answers for the Godot + C# stack. When
 the two disagree on a folder or a boundary, this file wins for the

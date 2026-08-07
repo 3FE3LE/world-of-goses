@@ -13,7 +13,7 @@ docs/world-of-goses-design-bible/01_GAME_VISION.md
 docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md
 docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md
 docs/world-of-goses-design-bible/05_EXPEDITIONS.md
-docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md
+docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md
 docs/world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md
 docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md
 ```
