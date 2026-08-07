@@ -1,0 +1,4377 @@
+[
+  {
+    "source_document": ".agents/agents/gameplay-integrator/AGENT.md",
+    "title": "Gameplay integrator",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 21,
+        "marker": "vertical slice",
+        "text": "- The task changes progression, the vertical slice, or a foundational"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/agents/narrative-lore/AGENT.md",
+    "title": "Narrative and lore agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 80,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/agents/presentation-experience/AGENT.md",
+    "title": "Presentation experience agent",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 5,
+        "marker": "future",
+        "text": "> owns visual art and audio together; future work may split them."
+      },
+      {
+        "line": 81,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/agents/quality-guardian/AGENT.md",
+    "title": "Quality guardian agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 16,
+        "marker": "vertical slice",
+        "text": "- Any change that touches the active vertical slice."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/agents/technical-foundation/AGENT.md",
+    "title": "Technical foundation agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 36,
+        "marker": "roadmap",
+        "text": "1. Read `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/core-game-vision/SKILL.md",
+    "title": "Core game vision",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 68,
+        "marker": "future",
+        "text": "- The 14 design principles in bible/01 are **restrictions on future"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/game-ai/references/pathfinding.md",
+    "title": "Pathfinding: A* in full",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 65,
+        "marker": "owed",
+        "text": "| Allowed moves | Heuristic | Formula (`dx=|ax-bx|`, `dy=|ay-by|`) |"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/game-ai/SKILL.md",
+    "title": "Game AI: decisions, steering, and pathfinding",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 158,
+        "marker": "owed",
+        "text": "that matches your allowed moves."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/game-feel/SKILL.md",
+    "title": "Game feel (juice)",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 32,
+        "marker": "to decide",
+        "text": "- Use to decide *how much* juice is enough and where it crosses into noise."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/godot-gdscript/references/annotations-and-typing.md",
+    "title": "GDScript annotations & typing reference (Godot 4.3+)",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 74,
+        "marker": "deferred",
+        "text": "- Use `queue_free()` (deferred) over `free()` to delete a node safely during a frame."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/godot-nodes-scenes/references/tree-and-instancing.md",
+    "title": "Scene tree & instancing reference (Godot 4.3+)",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "deferred",
+        "text": "## Deferred calls"
+      },
+      {
+        "line": 77,
+        "marker": "deferred",
+        "text": "add_child.call_deferred(instance)"
+      },
+      {
+        "line": 78,
+        "marker": "deferred",
+        "text": "node.queue_free()                 # already deferred"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/godot-signals-groups/references/signal-patterns.md",
+    "title": "Signal & group patterns reference (Godot 4.3+)",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 10,
+        "marker": "deferred",
+        "text": "- `CONNECT_DEFERRED` — invoke the callback at idle time (end of frame) instead of"
+      },
+      {
+        "line": 17,
+        "marker": "deferred",
+        "text": "sig.connect(cb, CONNECT_ONE_SHOT | CONNECT_DEFERRED)"
+      },
+      {
+        "line": 78,
+        "marker": "deferred",
+        "text": "`call_group` has flag variants (`call_group_flags`) for deferred/unique-only calls."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/godot-signals-groups/SKILL.md",
+    "title": "Godot Signals & Groups (4.x)",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 130,
+        "marker": "deferred",
+        "text": "- For connection flags, deferred connections, custom signal arguments, awaiting with"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/lineages-and-cultures/SKILL.md",
+    "title": "Lineages and cultures",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 77,
+        "marker": "owed",
+        "text": "4. For UI or audio changes, restrict the variation to the allowed surface"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/narrative-lore/SKILL.md",
+    "title": "Narrative and lore",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 147,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/performance-optimization/SKILL.md",
+    "title": "Performance optimization",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide *what* to optimize: profile, read the frame budget, and identify whether the CPU"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/physics-tuning/references/timestep-and-ccd.md",
+    "title": "Fixed timestep, interpolation, CCD, and stability",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 85,
+        "marker": "owed",
+        "text": "- **Jittery resting contacts**: enable a small contact offset / allowed"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/physics-tuning/SKILL.md",
+    "title": "Physics tuning",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide what goes in the fixed (physics) step vs the render frame, and"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/presentation-experience/SKILL.md",
+    "title": "Presentation experience",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 7,
+        "marker": "future",
+        "text": "feedback. This skill currently owns visual art and audio together; future"
+      },
+      {
+        "line": 71,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      },
+      {
+        "line": 142,
+        "marker": "future",
+        "text": "documented future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/router/references/routing-table.md",
+    "title": "Full routing table — every authored skill",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 112,
+        "marker": "vertical slice",
+        "text": "| `prototype-fast` | prototype fast, vertical slice, MVP game, greybox |"
+      },
+      {
+        "line": 118,
+        "marker": "not yet",
+        "text": "The collection does not yet have a skill for every engine × concept. Several cross-cutting"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/router/SKILL.md",
+    "title": "Master Router — Game-Development Skill Dispatcher",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 82,
+        "marker": "vertical slice",
+        "text": "`itch-publish`. Triggered by process words (\"publish on Steam\", \"vertical slice\")."
+      },
+      {
+        "line": 141,
+        "marker": "vertical slice",
+        "text": "`game-jam` (jam, 48-hour, Ludum Dare/GMTK) · `prototype-fast` (vertical slice, MVP, greybox) ·"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 6,
+        "marker": "to decide",
+        "text": "reads the chosen skill before acting. Use to make a game or to decide which skill applies — for"
+      },
+      {
+        "line": 30,
+        "marker": "to decide",
+        "text": "content — to decide which skill(s) to load."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/technical-foundation/SKILL.md",
+    "title": "Technical foundation",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 36,
+        "marker": "roadmap",
+        "text": "- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".agents/skills/vertical-slice-validation/SKILL.md",
+    "title": "Vertical slice validation",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 4,
+        "marker": "vertical slice",
+        "text": "Cross-cutting validation skill for the current vertical slice. Use to"
+      },
+      {
+        "line": 7,
+        "marker": "vertical slice",
+        "text": "generic city builder. Required for any task that names a vertical slice"
+      },
+      {
+        "line": 17,
+        "marker": "vertical slice",
+        "text": "# Vertical slice validation"
+      },
+      {
+        "line": 21,
+        "marker": "vertical slice",
+        "text": "Keep the active vertical slice honest. Make sure each task either advances"
+      },
+      {
+        "line": 22,
+        "marker": "deferred",
+        "text": "the slice, stabilizes it, or is explicitly deferred — and never widens the"
+      },
+      {
+        "line": 27,
+        "marker": "vertical slice",
+        "text": "- A task is filed against a named vertical slice (VS-N)."
+      },
+      {
+        "line": 115,
+        "marker": "deferred",
+        "text": "- Do not introduce systems that the audit already lists as deferred."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/agents/gameplay-integrator.md",
+    "title": "Gameplay integrator",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 30,
+        "marker": "vertical slice",
+        "text": "- The task changes progression, the vertical slice, or a foundational"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/agents/narrative-lore.md",
+    "title": "Narrative and lore agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 96,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/agents/presentation-experience.md",
+    "title": "Presentation experience agent",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 21,
+        "marker": "future",
+        "text": "> owns visual art and audio together; future work may split them."
+      },
+      {
+        "line": 97,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/agents/quality-guardian.md",
+    "title": "Quality guardian agent",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 6,
+        "marker": "owed",
+        "text": "disallowedTools: Bash, Edit, Write"
+      },
+      {
+        "line": 28,
+        "marker": "vertical slice",
+        "text": "- Any change that touches the active vertical slice."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/agents/technical-foundation.md",
+    "title": "Technical foundation agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 51,
+        "marker": "roadmap",
+        "text": "1. Read `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/core-game-vision/SKILL.md",
+    "title": "Core game vision",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 68,
+        "marker": "future",
+        "text": "- The 14 design principles in bible/01 are **restrictions on future"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/game-ai/references/pathfinding.md",
+    "title": "Pathfinding: A* in full",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 65,
+        "marker": "owed",
+        "text": "| Allowed moves | Heuristic | Formula (`dx=|ax-bx|`, `dy=|ay-by|`) |"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/game-ai/SKILL.md",
+    "title": "Game AI: decisions, steering, and pathfinding",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 158,
+        "marker": "owed",
+        "text": "that matches your allowed moves."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/game-feel/SKILL.md",
+    "title": "Game feel (juice)",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 32,
+        "marker": "to decide",
+        "text": "- Use to decide *how much* juice is enough and where it crosses into noise."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/godot-gdscript/references/annotations-and-typing.md",
+    "title": "GDScript annotations & typing reference (Godot 4.3+)",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 74,
+        "marker": "deferred",
+        "text": "- Use `queue_free()` (deferred) over `free()` to delete a node safely during a frame."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/godot-nodes-scenes/references/tree-and-instancing.md",
+    "title": "Scene tree & instancing reference (Godot 4.3+)",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "deferred",
+        "text": "## Deferred calls"
+      },
+      {
+        "line": 77,
+        "marker": "deferred",
+        "text": "add_child.call_deferred(instance)"
+      },
+      {
+        "line": 78,
+        "marker": "deferred",
+        "text": "node.queue_free()                 # already deferred"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/godot-signals-groups/references/signal-patterns.md",
+    "title": "Signal & group patterns reference (Godot 4.3+)",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 10,
+        "marker": "deferred",
+        "text": "- `CONNECT_DEFERRED` — invoke the callback at idle time (end of frame) instead of"
+      },
+      {
+        "line": 17,
+        "marker": "deferred",
+        "text": "sig.connect(cb, CONNECT_ONE_SHOT | CONNECT_DEFERRED)"
+      },
+      {
+        "line": 78,
+        "marker": "deferred",
+        "text": "`call_group` has flag variants (`call_group_flags`) for deferred/unique-only calls."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/godot-signals-groups/SKILL.md",
+    "title": "Godot Signals & Groups (4.x)",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 130,
+        "marker": "deferred",
+        "text": "- For connection flags, deferred connections, custom signal arguments, awaiting with"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/lineages-and-cultures/SKILL.md",
+    "title": "Lineages and cultures",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 77,
+        "marker": "owed",
+        "text": "4. For UI or audio changes, restrict the variation to the allowed surface"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/narrative-lore/SKILL.md",
+    "title": "Narrative and lore",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 147,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/performance-optimization/SKILL.md",
+    "title": "Performance optimization",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide *what* to optimize: profile, read the frame budget, and identify whether the CPU"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/physics-tuning/references/timestep-and-ccd.md",
+    "title": "Fixed timestep, interpolation, CCD, and stability",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 85,
+        "marker": "owed",
+        "text": "- **Jittery resting contacts**: enable a small contact offset / allowed"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/physics-tuning/SKILL.md",
+    "title": "Physics tuning",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide what goes in the fixed (physics) step vs the render frame, and"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/presentation-experience/SKILL.md",
+    "title": "Presentation experience",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 7,
+        "marker": "future",
+        "text": "feedback. This skill currently owns visual art and audio together; future"
+      },
+      {
+        "line": 71,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      },
+      {
+        "line": 142,
+        "marker": "future",
+        "text": "documented future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/router/references/routing-table.md",
+    "title": "Full routing table — every authored skill",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 112,
+        "marker": "vertical slice",
+        "text": "| `prototype-fast` | prototype fast, vertical slice, MVP game, greybox |"
+      },
+      {
+        "line": 118,
+        "marker": "not yet",
+        "text": "The collection does not yet have a skill for every engine × concept. Several cross-cutting"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/router/SKILL.md",
+    "title": "Master Router — Game-Development Skill Dispatcher",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 82,
+        "marker": "vertical slice",
+        "text": "`itch-publish`. Triggered by process words (\"publish on Steam\", \"vertical slice\")."
+      },
+      {
+        "line": 141,
+        "marker": "vertical slice",
+        "text": "`game-jam` (jam, 48-hour, Ludum Dare/GMTK) · `prototype-fast` (vertical slice, MVP, greybox) ·"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 6,
+        "marker": "to decide",
+        "text": "reads the chosen skill before acting. Use to make a game or to decide which skill applies — for"
+      },
+      {
+        "line": 30,
+        "marker": "to decide",
+        "text": "content — to decide which skill(s) to load."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/technical-foundation/SKILL.md",
+    "title": "Technical foundation",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 36,
+        "marker": "roadmap",
+        "text": "- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".claude/skills/vertical-slice-validation/SKILL.md",
+    "title": "Vertical slice validation",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 4,
+        "marker": "vertical slice",
+        "text": "Cross-cutting validation skill for the current vertical slice. Use to"
+      },
+      {
+        "line": 7,
+        "marker": "vertical slice",
+        "text": "generic city builder. Required for any task that names a vertical slice"
+      },
+      {
+        "line": 17,
+        "marker": "vertical slice",
+        "text": "# Vertical slice validation"
+      },
+      {
+        "line": 21,
+        "marker": "vertical slice",
+        "text": "Keep the active vertical slice honest. Make sure each task either advances"
+      },
+      {
+        "line": 22,
+        "marker": "deferred",
+        "text": "the slice, stabilizes it, or is explicitly deferred — and never widens the"
+      },
+      {
+        "line": 27,
+        "marker": "vertical slice",
+        "text": "- A task is filed against a named vertical slice (VS-N)."
+      },
+      {
+        "line": 115,
+        "marker": "deferred",
+        "text": "- Do not introduce systems that the audit already lists as deferred."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/agent-gameplay-integrator/SKILL.md",
+    "title": "Gameplay integrator",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 35,
+        "marker": "vertical slice",
+        "text": "- The task changes progression, the vertical slice, or a foundational"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/agent-narrative-lore/SKILL.md",
+    "title": "Narrative and lore agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 94,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "title": "Presentation experience agent",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 19,
+        "marker": "future",
+        "text": "> owns visual art and audio together; future work may split them."
+      },
+      {
+        "line": 95,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/agent-quality-guardian/SKILL.md",
+    "title": "Quality guardian agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 30,
+        "marker": "vertical slice",
+        "text": "- Any change that touches the active vertical slice."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/agent-technical-foundation/SKILL.md",
+    "title": "Technical foundation agent",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 50,
+        "marker": "roadmap",
+        "text": "1. Read `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/core-game-vision/SKILL.md",
+    "title": "Core game vision",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 68,
+        "marker": "future",
+        "text": "- The 14 design principles in bible/01 are **restrictions on future"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/game-ai/SKILL.md",
+    "title": "Game AI: decisions, steering, and pathfinding",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 158,
+        "marker": "owed",
+        "text": "that matches your allowed moves."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/game-feel/SKILL.md",
+    "title": "Game feel (juice)",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 32,
+        "marker": "to decide",
+        "text": "- Use to decide *how much* juice is enough and where it crosses into noise."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/godot-signals-groups/SKILL.md",
+    "title": "Godot Signals & Groups (4.x)",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 130,
+        "marker": "deferred",
+        "text": "- For connection flags, deferred connections, custom signal arguments, awaiting with"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/lineages-and-cultures/SKILL.md",
+    "title": "Lineages and cultures",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 77,
+        "marker": "owed",
+        "text": "4. For UI or audio changes, restrict the variation to the allowed surface"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/narrative-lore/SKILL.md",
+    "title": "Narrative and lore",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 147,
+        "marker": "pending",
+        "text": "appending."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/performance-optimization/SKILL.md",
+    "title": "Performance optimization",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide *what* to optimize: profile, read the frame budget, and identify whether the CPU"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/physics-tuning/SKILL.md",
+    "title": "Physics tuning",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 29,
+        "marker": "to decide",
+        "text": "- Use to decide what goes in the fixed (physics) step vs the render frame, and"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/presentation-experience/SKILL.md",
+    "title": "Presentation experience",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 7,
+        "marker": "future",
+        "text": "feedback. This skill currently owns visual art and audio together; future"
+      },
+      {
+        "line": 71,
+        "marker": "future",
+        "text": "- Visual art and audio are owned by this skill until the future split."
+      },
+      {
+        "line": 142,
+        "marker": "future",
+        "text": "documented future split."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/router/SKILL.md",
+    "title": "Master Router — Game-Development Skill Dispatcher",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 82,
+        "marker": "vertical slice",
+        "text": "`itch-publish`. Triggered by process words (\"publish on Steam\", \"vertical slice\")."
+      },
+      {
+        "line": 141,
+        "marker": "vertical slice",
+        "text": "`game-jam` (jam, 48-hour, Ludum Dare/GMTK) · `prototype-fast` (vertical slice, MVP, greybox) ·"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 6,
+        "marker": "to decide",
+        "text": "reads the chosen skill before acting. Use to make a game or to decide which skill applies — for"
+      },
+      {
+        "line": 30,
+        "marker": "to decide",
+        "text": "content — to decide which skill(s) to load."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/technical-foundation/SKILL.md",
+    "title": "Technical foundation",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 36,
+        "marker": "roadmap",
+        "text": "- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": ".codex/skills/vertical-slice-validation/SKILL.md",
+    "title": "Vertical slice validation",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 4,
+        "marker": "vertical slice",
+        "text": "Cross-cutting validation skill for the current vertical slice. Use to"
+      },
+      {
+        "line": 7,
+        "marker": "vertical slice",
+        "text": "generic city builder. Required for any task that names a vertical slice"
+      },
+      {
+        "line": 17,
+        "marker": "vertical slice",
+        "text": "# Vertical slice validation"
+      },
+      {
+        "line": 21,
+        "marker": "vertical slice",
+        "text": "Keep the active vertical slice honest. Make sure each task either advances"
+      },
+      {
+        "line": 22,
+        "marker": "deferred",
+        "text": "the slice, stabilizes it, or is explicitly deferred — and never widens the"
+      },
+      {
+        "line": 27,
+        "marker": "vertical slice",
+        "text": "- A task is filed against a named vertical slice (VS-N)."
+      },
+      {
+        "line": 115,
+        "marker": "deferred",
+        "text": "- Do not introduce systems that the audit already lists as deferred."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "AGENTS.md",
+    "title": "AGENTS.md",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 204,
+        "marker": "unresolved",
+        "text": "- An unresolved product decision that changes the design."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "CHANGELOG.md",
+    "title": "Changelog",
+    "backlog_hit_count": 16,
+    "backlog_hits": [
+      {
+        "line": 29,
+        "marker": "TODO",
+        "text": "Un ciudadano se dibujaba **siempre** por delante de todo el mundo, incluso de un"
+      },
+      {
+        "line": 47,
+        "marker": "TODO",
+        "text": "firmas y no los cuerpos, y **todos los árboles desaparecieron** aunque compilaba;"
+      },
+      {
+        "line": 119,
+        "marker": "TODO",
+        "text": "Casi todos los botones del juego eran amarillos, y nadie lo había decidido. Era"
+      },
+      {
+        "line": 124,
+        "marker": "TODO",
+        "text": "linajes**. Todo panel construido antes de que exista un héroe caía por ahí; y"
+      },
+      {
+        "line": 154,
+        "marker": "TODO",
+        "text": "a distancia de macro leían todos como el mismo cuadrado. Ahora son sprites del"
+      },
+      {
+        "line": 208,
+        "marker": "TODO",
+        "text": "porque todos los recursos usaban el mismo rect cuadrado. El árbol pasa a su"
+      },
+      {
+        "line": 214,
+        "marker": "todavía no",
+        "text": "apuntando al suelo vacío, porque en `Manifested` el espíritu todavía no está"
+      },
+      {
+        "line": 230,
+        "marker": "pendiente",
+        "text": "Lo que sigue pendiente: el espíritu es una llama autoral, no un sprite — no hay"
+      },
+      {
+        "line": 253,
+        "marker": "owed",
+        "text": "one citizen and zero buildings, followed by an explicitly authorised"
+      },
+      {
+        "line": 276,
+        "marker": "roadmap",
+        "text": "- La sección **14 (Short initial roadmap)** incorpora la secuencia"
+      },
+      {
+        "line": 278,
+        "marker": "pendiente",
+        "text": "de lo activo (EG-5) y lo pendiente (EG-6)."
+      },
+      {
+        "line": 357,
+        "marker": "todavía no",
+        "text": "enterrada en el panel de detalle de un refugio que todavía no existía, al final"
+      },
+      {
+        "line": 400,
+        "marker": "todavía no",
+        "text": "Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la"
+      },
+      {
+        "line": 487,
+        "marker": "roadmap",
+        "text": "mismas personas. El circuito completo del roadmap —`Citizen` → preparación →"
+      },
+      {
+        "line": 516,
+        "marker": "pendiente",
+        "text": "independiente; unificarlo con esta corrida de combate es el siguiente paso, no"
+      },
+      {
+        "line": 855,
+        "marker": "vertical slice",
+        "text": "| 2026-07-28 | `13525c96` | Advance VS-1/VS-2 vertical slice and fix macro-view/pathfinding bugs |"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 637,
+        "marker": "sin resolver",
+        "text": "recibe condición neutral; uno herido queda explícitamente sin resolver para no"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "CLAUDE.md",
+    "title": "CLAUDE.md",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 211,
+        "marker": "unresolved",
+        "text": "- An unresolved product decision that changes the design."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/KOVARI_CUBE_ONBOARDING_INTEGRATION_GUIDELINE.md",
+    "title": "Integración del Cubo Kovari en el onboarding",
+    "backlog_hit_count": 12,
+    "backlog_hits": [
+      {
+        "line": 91,
+        "marker": "pendiente",
+        "text": "No son barras independientes. Cada pareja debe representar una misma distribución."
+      },
+      {
+        "line": 271,
+        "marker": "pendiente",
+        "text": "Las afinidades permanecen independientes del linaje."
+      },
+      {
+        "line": 330,
+        "marker": "futuro",
+        "text": "Las respuestas originales deben guardarse mediante IDs estables para que futuros sistemas puedan reinterpretarlas sin repetir el onboarding."
+      },
+      {
+        "line": 441,
+        "marker": "todavía no",
+        "text": "El fundador todavía no ha usado armas mortales y no puede tener una preferencia formada por experiencia."
+      },
+      {
+        "line": 613,
+        "marker": "pendiente",
+        "text": "Mantener sistemas independientes para:"
+      },
+      {
+        "line": 726,
+        "marker": "TODO",
+        "text": "El resultado conserva el vértice Ardhen sin convertir a todos los Ardhen en copias estadísticas."
+      },
+      {
+        "line": 728,
+        "marker": "futuro",
+        "text": "## Reemplazo futuro opcional"
+      },
+      {
+        "line": 1026,
+        "marker": "TODO",
+        "text": "8. Volver y cambiar respuestas recalcula todo desde cero."
+      },
+      {
+        "line": 1034,
+        "marker": "futuro",
+        "text": "13. El resumen no prescribe gameplay futuro."
+      },
+      {
+        "line": 1049,
+        "marker": "pendiente",
+        "text": "22. La afinidad elemental permanece independiente del linaje."
+      },
+      {
+        "line": 1062,
+        "marker": "pendiente",
+        "text": "- No permitir que el equipamiento otorgue poder base independiente del ciudadano."
+      },
+      {
+        "line": 1102,
+        "marker": "TODO",
+        "text": "La vida posterior construye todo lo demás."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/00_README.md",
+    "title": "Tradiciones sistémicas de los ocho linajes",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 58,
+        "marker": "futuro",
+        "text": "10. puntos de extensión para contenido futuro."
+      },
+      {
+        "line": 60,
+        "marker": "TODO",
+        "text": "No todos los sistemas necesitan ocupar el mismo número de paneles o producir la misma cantidad de estadísticas. La equivalencia buscada es de importancia y presencia, no de simetría artificial."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/03_CAELITH_CYCLE_KNOWLEDGE_GUIDELINE.md",
+    "title": "Caelith — El Ciclo aplicado al conocimiento, diagnóstico e investigación",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 142,
+        "marker": "TODO",
+        "text": "Método"
+      },
+      {
+        "line": 258,
+        "marker": "TODO",
+        "text": "Descubrir algo no significa que todos sepan utilizarlo."
+      },
+      {
+        "line": 353,
+        "marker": "pendiente",
+        "text": "- revisiones pendientes."
+      },
+      {
+        "line": 423,
+        "marker": "TODO",
+        "text": "10. el Ciclo conecta todos los demás sistemas sin reemplazarlos."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/04_MYRVEN_MASKS_IDENTITY_AND_DIPLOMACY_GUIDELINE.md",
+    "title": "Myrven — Las Máscaras aplicadas a identidad, ciudadanía y diplomacia",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 29,
+        "marker": "TODO",
+        "text": "> Una persona no es una sola máscara. Tampoco es inocente de todo lo que hace detrás de ellas."
+      },
+      {
+        "line": 151,
+        "marker": "TODO",
+        "text": "Ortodoxos Ardhen: ilegítimo"
+      },
+      {
+        "line": 177,
+        "marker": "pendiente",
+        "text": "Una relación puede ser estable sin confianza, cercana con conflicto o dependiente sin amistad."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/05_ORVETH_RELIQUARY_TRADE_AND_RESOURCES_GUIDELINE.md",
+    "title": "Orveth — El Relicario aplicado a comercio, reservas y custodia",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 23,
+        "marker": "TODO",
+        "text": "El Relicario no significa que los Orveth sean los únicos comerciantes ni que todo deba privatizarse. Su tradición ofrece herramientas de custodia, registro, reserva, intercambio y responsabilidad."
+      },
+      {
+        "line": 83,
+        "marker": "TODO",
+        "text": "No todo recurso debe estar instantáneamente disponible para toda la ciudad."
+      },
+      {
+        "line": 192,
+        "marker": "futuro",
+        "text": "- contrato futuro;"
+      },
+      {
+        "line": 217,
+        "marker": "TODO",
+        "text": "No todos los acuerdos necesitan un documento formal. El Relicario permite profundizar y registrar aquellos que sí lo requieren."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/06_THERYN_OCTAGRAM_MUSIC_AND_RHYTHM_GUIDELINE.md",
+    "title": "Theryn — El Octagrama aplicado a música, ambiente y ritmo de combate",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 24,
+        "marker": "TODO",
+        "text": "Los Theryn no deben recibir un panel administrativo artificial únicamente para igualar a los demás linajes. Su manifestación principal atraviesa prácticamente todo el juego: la banda sonora y la capacidad de escuchar el estado del mundo."
+      },
+      {
+        "line": 32,
+        "marker": "TODO",
+        "text": "No todo Theryn es juglar."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/07_ARDHEN_ANCHORS_ARCHITECTURE_GUIDELINE.md",
+    "title": "Ardhen — Los Anclajes aplicados a arquitectura, integridad y mantenimiento",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 133,
+        "marker": "pendiente",
+        "text": "- pendiente;"
+      },
+      {
+        "line": 397,
+        "marker": "pendiente",
+        "text": "- mantenimiento pendiente."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/RAVATHA_LINEAGE_SYSTEM_GUIDELINES/08_KOVARI_CUBE_STATS_AND_BUILDS_GUIDELINE.md",
+    "title": "Kovari — El Cubo aplicado a atributos, estadísticas y builds",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 374,
+        "marker": "pendiente",
+        "text": "- desgaste independiente;"
+      },
+      {
+        "line": 401,
+        "marker": "pendiente",
+        "text": "- dos piezas independientes;"
+      },
+      {
+        "line": 441,
+        "marker": "pendiente",
+        "text": "El equipo no contiene el poder elemental como una batería independiente."
+      },
+      {
+        "line": 606,
+        "marker": "TODO",
+        "text": "- seis estadísticas vagas que oculten todo;"
+      },
+      {
+        "line": 610,
+        "marker": "pendiente",
+        "text": "- equipo con ataque mágico independiente del usuario;"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/00_README.md",
+    "title": "Mitología raváthica y civilizaciones de los ocho linajes",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 7,
+        "marker": "todavía no",
+        "text": "Este paquete fija una base narrativa y sistémica. No pretende cerrar todavía nombres de ciudades, cronologías exactas, religión organizada, familias de armas ni la causa definitiva de la separación astral."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/01_PROLOGUE_THE_FALL.md",
+    "title": "Prólogo — La Caída",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 13,
+        "marker": "TODO",
+        "text": "Todo el significado político y mitológico se descubre después mediante expediciones, habitantes, ruinas y relaciones con las civilizaciones."
+      },
+      {
+        "line": 179,
+        "marker": "todavía no",
+        "text": "Todavía no debe fijarse cuál es la respuesta definitiva."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/02_VAELUN_THE_COMPASS.md",
+    "title": "Vaelun — La Brújula del Retorno",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/03_EIRUNE_THE_COROLLA.md",
+    "title": "Eirune — La Corola Viva",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/04_CAELITH_THE_CYCLE.md",
+    "title": "Caelith — El Ciclo de las Fases",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/05_MYRVEN_THE_MASKS.md",
+    "title": "Myrven — Las Máscaras",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/06_ORVETH_THE_RELIQUARY.md",
+    "title": "Orveth — El Relicario",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 78,
+        "marker": "TODO",
+        "text": "La ausencia de dueño demuestra que ciertas cosas deben pertenecer a todos o a nadie."
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/07_THERYN_THE_OCTAGRAM.md",
+    "title": "Theryn — El Octagrama Resonante",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 17,
+        "marker": "TODO",
+        "text": "> **No todo corazón que late contigo camina hacia el mismo bien.**"
+      },
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/08_ARDHEN_THE_ANCHORS.md",
+    "title": "Ardhen — Los Anclajes",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 17,
+        "marker": "todavía no",
+        "text": "> **Lo que no admite peso todavía no merece llamarse promesa.**"
+      },
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/09_KOVARI_THE_CUBE.md",
+    "title": "Kovari — El Cubo",
+    "backlog_hit_count": 8,
+    "backlog_hits": [
+      {
+        "line": 29,
+        "marker": "TODO",
+        "text": "**Todo sistema puede desmontarse, repararse o recombinarse.**"
+      },
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 95,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 96,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 174,
+        "marker": "TODO",
+        "text": "- Un artefacto reconoce al fundador como una configuración válida y a todos los demás como errores."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/10_KOVARI_CUBE_STATS_SYSTEM.md",
+    "title": "Sistema de estadísticas — El Cubo Kovari",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 317,
+        "marker": "TODO",
+        "text": "| Vaelun | Rumbo | rutas exploradas mejoran retirada, transporte y descubrimiento para todo el grupo |"
+      },
+      {
+        "line": 518,
+        "marker": "pendiente",
+        "text": "La ruta de inmortalidad debe ser un sistema independiente."
+      },
+      {
+        "line": 547,
+        "marker": "pendiente",
+        "text": "# Decisiones pendientes"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/_archive/ravatha-source-2026-08-04/ravatha_lore_package/ravatha_lore_package/11_RAVATHA_LORE_COMPENDIUM.md",
+    "title": "Compendio de Ravatha",
+    "backlog_hit_count": 59,
+    "backlog_hits": [
+      {
+        "line": 15,
+        "marker": "todavía no",
+        "text": "Este paquete fija una base narrativa y sistémica. No pretende cerrar todavía nombres de ciudades, cronologías exactas, religión organizada, familias de armas ni la causa definitiva de la separación astral."
+      },
+      {
+        "line": 172,
+        "marker": "TODO",
+        "text": "Todo el significado político y mitológico se descubre después mediante expediciones, habitantes, ruinas y relaciones con las civilizaciones."
+      },
+      {
+        "line": 338,
+        "marker": "todavía no",
+        "text": "Todavía no debe fijarse cuál es la respuesta definitiva."
+      },
+      {
+        "line": 538,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 560,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 561,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 562,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 563,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 650,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      },
+      {
+        "line": 730,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 752,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 753,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 754,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 755,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 842,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      },
+      {
+        "line": 922,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 944,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 945,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 946,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 947,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 1034,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      },
+      {
+        "line": 1114,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 1136,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 1137,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 1138,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 1139,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 1226,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      },
+      {
+        "line": 1306,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 1312,
+        "marker": "TODO",
+        "text": "La ausencia de dueño demuestra que ciertas cosas deben pertenecer a todos o a nadie."
+      },
+      {
+        "line": 1328,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 1329,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 1330,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 1331,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      },
+      {
+        "line": 1418,
+        "marker": "TODO",
+        "text": "- ¿Qué facción controla actualmente la interpretación ortodoxa?"
+      },
+      {
+        "line": 1443,
+        "marker": "TODO",
+        "text": "> **No todo corazón que late contigo camina hacia el mismo bien.**"
+      },
+      {
+        "line": 1498,
+        "marker": "TODO",
+        "text": "### Lectura ortodoxa"
+      },
+      {
+        "line": 1520,
+        "marker": "TODO",
+        "text": "- “todos son fuertes”;"
+      },
+      {
+        "line": 1521,
+        "marker": "TODO",
+        "text": "- “todos son inteligentes”;"
+      },
+      {
+        "line": 1522,
+        "marker": "TODO",
+        "text": "- “todos usan la misma ropa”;"
+      },
+      {
+        "line": 1523,
+        "marker": "TODO",
+        "text": "- “todos poseen una profesión predeterminada”."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md",
+    "title": "Afinidades elementales e interacciones con el mundo",
+    "backlog_hit_count": 10,
+    "backlog_hits": [
+      {
+        "line": 61,
+        "marker": "pendiente",
+        "text": "El equipamiento no contiene el poder elemental como una batería independiente."
+      },
+      {
+        "line": 101,
+        "marker": "pendiente",
+        "text": "## 2.3 Afinidad y linaje son independientes"
+      },
+      {
+        "line": 400,
+        "marker": "pendiente",
+        "text": "- estabilizar pendientes;"
+      },
+      {
+        "line": 745,
+        "marker": "pendiente",
+        "text": "- apertura de semillas dependientes del calor;"
+      },
+      {
+        "line": 1192,
+        "marker": "TODO",
+        "text": "No debe ser el elemento que hace todo mejor."
+      },
+      {
+        "line": 1386,
+        "marker": "pendiente",
+        "text": "- degradación de componentes dependientes de flujo;"
+      },
+      {
+        "line": 2284,
+        "marker": "pendiente",
+        "text": "4. El linaje continúa independiente."
+      },
+      {
+        "line": 2305,
+        "marker": "TODO",
+        "text": "16. Silencio no cancela todo sin coste."
+      },
+      {
+        "line": 2335,
+        "marker": "pendiente",
+        "text": "3. las afinidades se mantienen independientes del linaje;"
+      },
+      {
+        "line": 2365,
+        "marker": "TODO",
+        "text": "- Éter como elemento todopoderoso;"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 1335,
+        "marker": "sin resolver",
+        "text": "- prolongar estados sin resolverlos;"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/12_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md",
+    "title": "Sistema de estadísticas, progresión y fórmulas de combate",
+    "backlog_hit_count": 9,
+    "backlog_hits": [
+      {
+        "line": 32,
+        "marker": "TODO",
+        "text": "10. Todos los stats de combate y utilidad se calculan bajo demanda; no se guardan como fuentes independientes de poder."
+      },
+      {
+        "line": 282,
+        "marker": "pendiente",
+        "text": "La forma de derivar este factor desde heridas, enfermedades, fatiga y hambre queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
+      },
+      {
+        "line": 296,
+        "marker": "pendiente",
+        "text": "La forma de derivarlo desde edificios, políticas, salud pública, alimentación o vivienda queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
+      },
+      {
+        "line": 342,
+        "marker": "todavía no",
+        "text": "Los coeficientes de técnica todavía no están definidos."
+      },
+      {
+        "line": 522,
+        "marker": "TODO",
+        "text": "Todos los casos usan:"
+      },
+      {
+        "line": 691,
+        "marker": "TODO",
+        "text": "Todo stat mostrado debe poder explicar su procedencia."
+      },
+      {
+        "line": 719,
+        "marker": "pendiente",
+        "text": "- No crear `PhysicalDamage` como competencia independiente."
+      },
+      {
+        "line": 725,
+        "marker": "TODO",
+        "text": "- No utilizar `_Process` para recalcular todos los Citizens continuamente."
+      },
+      {
+        "line": 730,
+        "marker": "pendiente",
+        "text": "## 14. Pendientes"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/13_EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md",
+    "title": "Roadmap de integración de combate y expediciones",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 1,
+        "marker": "roadmap",
+        "text": "# Roadmap de integración de combate y expediciones"
+      },
+      {
+        "line": 16,
+        "marker": "roadmap",
+        "text": "10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md"
+      },
+      {
+        "line": 510,
+        "marker": "vertical slice",
+        "text": "## 3. Fases posteriores al vertical slice"
+      },
+      {
+        "line": 512,
+        "marker": "roadmap",
+        "text": "Estas fases forman parte del roadmap general, pero no bloquean la primera expedición jugable."
+      },
+      {
+        "line": 599,
+        "marker": "pendiente",
+        "text": "2. No implementar 72 árboles de habilidades independientes."
+      },
+      {
+        "line": 613,
+        "marker": "vertical slice",
+        "text": "## 6. Definición de terminado del primer vertical slice"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
+    "title": "Primera noche del Fundador y espíritu de fuego",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 16,
+        "marker": "todavía no",
+        "text": "- Por qué el Founder interactúa con recursos que todavía no conoce."
+      },
+      {
+        "line": 36,
+        "marker": "todavía no",
+        "text": "La conciencia ya puede dirigir su cuerpo, pero todavía no comprende las propiedades prácticas de la materia ni las costumbres de supervivencia mortal."
+      },
+      {
+        "line": 142,
+        "marker": "futuro",
+        "text": "- Primer punto del futuro asentamiento."
+      },
+      {
+        "line": 165,
+        "marker": "TODO",
+        "text": "Todos sus recursos deben estar disponibles sin herramientas avanzadas."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/AGENT_COLLABORATION_PROTOCOL.md",
+    "title": "Agent collaboration protocol",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 76,
+        "marker": "owed",
+        "text": "Parallel work is allowed when:"
+      },
+      {
+        "line": 158,
+        "marker": "future",
+        "text": "Future agents (politics-institutions, economy-trade, relationships-society,"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 98,
+        "marker": "unresolved",
+        "text": "Unresolved questions:"
+      },
+      {
+        "line": 150,
+        "marker": "unresolved",
+        "text": "- An unresolved product decision that changes the design."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/CONTEXT_MAP.md",
+    "title": "Context map",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 73,
+        "marker": "backlog",
+        "text": "- **Note:** inserted per the route-must-not-be-invented rule (see `docs/README.md` → \"Authority hierarchy\"). The current EG-5 backlog does not touch this surface; if a future agent acts here, it should populate the primary / required / conditional sections before opening work. Backlog items that imply tools or inventory (M-22 asset promotion, a future inventory UI) should land in this route, not as ad-hoc presentation code."
+      },
+      {
+        "line": 262,
+        "marker": "roadmap",
+        "text": "- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`"
+      },
+      {
+        "line": 277,
+        "marker": "roadmap",
+        "text": "- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`, `docs/REPOSITORY_CONVENTIONS.md`"
+      },
+      {
+        "line": 328,
+        "marker": "future",
+        "text": "- **Future:** audio may split into a dedicated `audio-direction` agent. See `README.md` → \"Adding a new agent\"."
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 119,
+        "marker": "open question",
+        "text": "- **Open question:** the relationship between persistent wounds and the existing stamina model is **not settled**. See `DECISION_LOG.md` → DEC-0011 (Proposed). Do not assume a wound subsystem exists; read the gap statement first."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/CROSS_DOMAIN_INVARIANTS.md",
+    "title": "Cross-domain invariants",
+    "backlog_hit_count": 0,
+    "backlog_hits": [],
+    "open_question_hits": [
+      {
+        "line": 185,
+        "marker": "unresolved",
+        "text": "- An unresolved product decision that changes the design."
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/CURRENT_DEVELOPMENT_STATE.md",
+    "title": "Current development state",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 5,
+        "marker": "vertical slice",
+        "text": "> completes, a vertical slice advances, or the build/test baseline shifts.**"
+      },
+      {
+        "line": 147,
+        "marker": "future",
+        "text": "- Production policy priority remains a stored future scheduling hint; the"
+      },
+      {
+        "line": 185,
+        "marker": "diferido",
+        "text": "| Wound/recovery alcanzable (antiguo G5) | Fórmula de encuentro actual sesgada a FullSuccess para citizens con competency alta. | Diferido hasta **EG-5**; wound como feature sin demo verificable se descarta. |"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/DECISION_LOG.md",
+    "title": "Decision log",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 3,
+        "marker": "future",
+        "text": "> Versioned record of decisions that constrain future work."
+      },
+      {
+        "line": 406,
+        "marker": "backlog",
+        "text": "(backlog H-31) will add `JsonDialogueRunner`. The first night"
+      },
+      {
+        "line": 452,
+        "marker": "owed",
+        "text": "A playtest of the opening (`TO_DO.md` §3 2026-08-05 entry) showed the"
+      },
+      {
+        "line": 454,
+        "marker": "not yet",
+        "text": "requiring an axe the player could not yet obtain. The proposal"
+      },
+      {
+        "line": 544,
+        "marker": "future",
+        "text": "future re-skin stays one edit to the theme rather than an audit of every"
+      },
+      {
+        "line": 568,
+        "marker": "owed",
+        "text": "never observed running. When it finally rendered it showed three problems the"
+      },
+      {
+        "line": 587,
+        "marker": "owed",
+        "text": "which `docs/ART_PIPELINE.md` §10 forbids. Real spirit art is still owed."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/FEATURE_HANDOFF_TEMPLATE.md",
+    "title": "Feature or issue handoff",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 86,
+        "marker": "unchecked-task",
+        "text": "- [ ] `dotnet build` clean from `game/`."
+      },
+      {
+        "line": 87,
+        "marker": "unchecked-task",
+        "text": "- [ ] `dotnet test` from `tests/WorldofGoses.Tests/` passes."
+      },
+      {
+        "line": 88,
+        "marker": "unchecked-task",
+        "text": "- [ ] No `using Godot` introduced under `game/scripts/Domain/`."
+      },
+      {
+        "line": 89,
+        "marker": "unchecked-task",
+        "text": "- [ ] Invariants from `docs/ai/CROSS_DOMAIN_INVARIANTS.md` still hold."
+      },
+      {
+        "line": 90,
+        "marker": "unchecked-task",
+        "text": "- [ ] Documentation updated if a rule, decision, or state changed."
+      },
+      {
+        "line": 91,
+        "marker": "unchecked-task",
+        "text": "- [ ] `quality-guardian` review verdict filed."
+      },
+      {
+        "line": 92,
+        "marker": "unchecked-task",
+        "text": "- [ ] If a save version change: a real saved file was loaded successfully or"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ai/README.md",
+    "title": "AI collaboration layer",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "owed",
+        "text": "- Changes to a context map route must be followed by `Sync-AgentContext.ps1`"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ARCHITECTURE.md",
+    "title": "Architecture",
+    "backlog_hit_count": 17,
+    "backlog_hits": [
+      {
+        "line": 6,
+        "marker": "not yet",
+        "text": "> are not yet validated by a prototype."
+      },
+      {
+        "line": 10,
+        "marker": "roadmap",
+        "text": "[`world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md)"
+      },
+      {
+        "line": 11,
+        "marker": "roadmap",
+        "text": "holds the engine-neutral stack, scene map, and roadmap questions that"
+      },
+      {
+        "line": 248,
+        "marker": "future",
+        "text": "free or currently assigned to a workplace. Future slices may extend"
+      },
+      {
+        "line": 252,
+        "marker": "vertical slice",
+        "text": "The vertical slice in `game/scripts/Domain/` exposes the minimum"
+      },
+      {
+        "line": 256,
+        "marker": "future",
+        "text": "relationships, and expedition history remain future attachments."
+      },
+      {
+        "line": 272,
+        "marker": "future",
+        "text": "| Expedition-detail  | Fully detailed side-facing sprites, frame-by-frame animation.           | Future                  |"
+      },
+      {
+        "line": 284,
+        "marker": "future",
+        "text": "- **Expedition-detail.** Not implemented yet. Future expedition scenes"
+      },
+      {
+        "line": 300,
+        "marker": "future",
+        "text": "`game/scripts/PresentationConstants.cs` so future art can rely on the"
+      },
+      {
+        "line": 323,
+        "marker": "owed",
+        "text": "deterministically reflowed around construction, corridors and the protected"
+      },
+      {
+        "line": 400,
+        "marker": "future",
+        "text": "future hero profile detail, the future expedition cast) **do not create"
+      },
+      {
+        "line": 412,
+        "marker": "deferred",
+        "text": "internal to the assembly and stale visuals are hidden before deferred"
+      },
+      {
+        "line": 520,
+        "marker": "future",
+        "text": "- `IronStock` remains persisted for schema compatibility and future tools/fuel"
+      },
+      {
+        "line": 617,
+        "marker": "future",
+        "text": "record, so the future `RosterView` will render without re-querying"
+      },
+      {
+        "line": 695,
+        "marker": "future",
+        "text": "future slice and must be introduced incrementally."
+      },
+      {
+        "line": 703,
+        "marker": "future",
+        "text": "- A mobile application, even as a future stub."
+      },
+      {
+        "line": 716,
+        "marker": "owed",
+        "text": "The architecture is allowed to evolve. The rules for evolving it are:"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 188,
+        "marker": "unresolved",
+        "text": "and rejected or unresolved arrivals emit `[CitizenTravel]` diagnostics instead"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ART_PIPELINE.md",
+    "title": "Art Pipeline",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 195,
+        "marker": "future",
+        "text": "- A future document will define the audio naming convention in detail."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/ASSET_INVENTORY.md",
+    "title": "Asset inventory and integration plan",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 28,
+        "marker": "future",
+        "text": "| `kenney_input-prompts-pixel.zip` | 819 PNG | CC0 | High-value for keyboard/gamepad prompts and future rebinding UI. |"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md",
+    "title": "Citizen offline routine and reconstruction audit",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 133,
+        "marker": "pending",
+        "text": "pause/close saves skip when no simulation change is pending; explicit"
+      },
+      {
+        "line": 136,
+        "marker": "future",
+        "text": "are small; asynchronous I/O remains measured future work if profiling shows a"
+      },
+      {
+        "line": 177,
+        "marker": "deferred",
+        "text": "exposed clipped content; the panel now uses a bounded scroll body and deferred"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/CURRENT_STATUS.md",
+    "title": "Current Project Status",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 37,
+        "marker": "roadmap",
+        "text": "- Combat/expedition vertical slice (roadmap `13_…_ROADMAP.md` fases 0–7) lives in"
+      },
+      {
+        "line": 63,
+        "marker": "milestone",
+        "text": "concluded** so a played opening is never asked to repeat milestones it has"
+      },
+      {
+        "line": 263,
+        "marker": "future",
+        "text": "- Production priority is persisted but remains a future scheduling hint."
+      },
+      {
+        "line": 321,
+        "marker": "milestone",
+        "text": "milestones end it. Nothing else may start deferring rations or the day"
+      },
+      {
+        "line": 388,
+        "marker": "backlog",
+        "text": "- Active backlog: `TO_DO.md`"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/DESIGN_INFLUENCES.md",
+    "title": "Design Influences — pointer",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 33,
+        "marker": "future",
+        "text": "Any future implementation must use the original names, cultures,"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md",
+    "title": "Early-game resources, founding camp, and first expeditions",
+    "backlog_hit_count": 10,
+    "backlog_hits": [
+      {
+        "line": 74,
+        "marker": "not yet",
+        "text": "This is useful infrastructure for phased work, but it does not yet represent"
+      },
+      {
+        "line": 105,
+        "marker": "not yet",
+        "text": "objectives do not yet exist."
+      },
+      {
+        "line": 302,
+        "marker": "pending",
+        "text": "playtests are still pending. Because the opening has one founder and each"
+      },
+      {
+        "line": 381,
+        "marker": "future",
+        "text": "| Day 3 | Use external Wood on cultivation or save it for shelter/future infrastructure; manage the last pre-harvest Food. |"
+      },
+      {
+        "line": 382,
+        "marker": "pending",
+        "text": "| Day 4-5 | Receive the first harvest depending on sowing time, finish the Canopy/Shelter, and decide between more plots, another sortie, or local forestry preparation. |"
+      },
+      {
+        "line": 496,
+        "marker": "pending",
+        "text": "8. the UI warns before sowing or spending below the calculated Food horizon;"
+      },
+      {
+        "line": 498,
+        "marker": "owed",
+        "text": "10. old saves with an active legacy shelter are allowed to finish it rather than"
+      },
+      {
+        "line": 530,
+        "marker": "not yet",
+        "text": "- harvest result not yet collected, when applicable."
+      },
+      {
+        "line": 579,
+        "marker": "deferred",
+        "text": "### Explicitly deferred"
+      },
+      {
+        "line": 674,
+        "marker": "not yet",
+        "text": "Each increment must preserve a completable city. If the branch cannot yet offer"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/licenses/GENERATOR_GPL-3.0.txt",
+    "title": "GENERATOR_GPL-3.0",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 6,
+        "marker": "owed",
+        "text": "of this license document, but changing it is not allowed."
+      },
+      {
+        "line": 58,
+        "marker": "future",
+        "text": "stand ready to extend this provision to those domains in future versions"
+      },
+      {
+        "line": 127,
+        "marker": "to implement",
+        "text": "Major Component, or to implement a Standard Interface for which an"
+      },
+      {
+        "line": 176,
+        "marker": "owed",
+        "text": "the conditions stated below.  Sublicensing is not allowed; section 10"
+      },
+      {
+        "line": 271,
+        "marker": "owed",
+        "text": "alternative is allowed only occasionally and noncommercially, and"
+      },
+      {
+        "line": 579,
+        "marker": "future",
+        "text": "If the Program specifies that a proxy can decide which future"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/PERFORMANCE_BUDGETS.md",
+    "title": "Performance Budgets",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 80,
+        "marker": "owed",
+        "text": "Three windowed runs on 2026-08-03 ranged from `6.117` to `40.115 ms` process"
+      },
+      {
+        "line": 90,
+        "marker": "owed",
+        "text": "The final 8×9 windowed capture measured `15.201 ms` while rendering thirteen"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/PRODUCT_DIRECTION.md",
+    "title": "Product Direction and Alignment Guide",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 23,
+        "marker": "roadmap",
+        "text": "[`docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`](world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md)"
+      },
+      {
+        "line": 60,
+        "marker": "not yet",
+        "text": "A feature that cannot yet support the whole loop may still be useful,"
+      },
+      {
+        "line": 183,
+        "marker": "vertical slice",
+        "text": "- Add abstractions only when a current vertical slice needs them."
+      },
+      {
+        "line": 208,
+        "marker": "future",
+        "text": "- Builds a large future-facing skeleton instead of a small complete"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/README.md",
+    "title": "World of Goses — Documentation index",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 25,
+        "marker": "roadmap",
+        "text": "| `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 25,
+        "marker": "open question",
+        "text": "| `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/REPOSITORY_CONVENTIONS.md",
+    "title": "Repository conventions",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 215,
+        "marker": "future",
+        "text": "- Mobile applications, even if mentioned in the README as a future"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/technical/sprite-generator-feasibility.md",
+    "title": "Modular Character Generator Feasibility",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 208,
+        "marker": "future",
+        "text": "- future carry, victory, teleport, or other poses."
+      },
+      {
+        "line": 263,
+        "marker": "future",
+        "text": "**Recommendation.** Do not use animation-specific sizes in the first modular architecture. If future optimization requires it, retain a uniform logical 128×128 canvas and allow physical trimming/packing that preserves origin and pivot metadata."
+      },
+      {
+        "line": 459,
+        "marker": "pending",
+        "text": "| sword | slash/halfslash/backslash depending on attack |"
+      },
+      {
+        "line": 477,
+        "marker": "pending",
+        "text": "| weapons/shields | depending on layout | original world-specific tools and weapons |"
+      },
+      {
+        "line": 568,
+        "marker": "roadmap",
+        "text": "## 12. Incremental roadmap"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/UI_AUDIT.md",
+    "title": "UI Audit — Current state",
+    "backlog_hit_count": 27,
+    "backlog_hits": [
+      {
+        "line": 34,
+        "marker": "owed",
+        "text": "windowed captures."
+      },
+      {
+        "line": 45,
+        "marker": "unchecked-task",
+        "text": "- [ ] 1280×720: no clipped panel, footer, close button, HUD chip or Chronicle."
+      },
+      {
+        "line": 46,
+        "marker": "unchecked-task",
+        "text": "- [ ] 1920×1080: no excessive expansion, overlap or unreadable empty space."
+      },
+      {
+        "line": 47,
+        "marker": "unchecked-task",
+        "text": "- [ ] Policies and Citizens keep actions visible while long bodies scroll."
+      },
+      {
+        "line": 48,
+        "marker": "unchecked-task",
+        "text": "- [ ] Expedition phase/outcome, wound/treatment and territory copy remain"
+      },
+      {
+        "line": 53,
+        "marker": "unchecked-task",
+        "text": "- [ ] Every modal closes through its visible close path and ESC."
+      },
+      {
+        "line": 54,
+        "marker": "unchecked-task",
+        "text": "- [ ] Keyboard/gamepad focus reaches every critical action in the VS-5 run."
+      },
+      {
+        "line": 55,
+        "marker": "unchecked-task",
+        "text": "- [ ] Disabled actions expose a text reason, not color alone."
+      },
+      {
+        "line": 56,
+        "marker": "unchecked-task",
+        "text": "- [ ] Scrolling any panel never zooms the city behind it, including at the"
+      },
+      {
+        "line": 58,
+        "marker": "unchecked-task",
+        "text": "- [ ] Selecting a citizen never starts follow; explicit follow tracks the"
+      },
+      {
+        "line": 60,
+        "marker": "unchecked-task",
+        "text": "- [ ] WASD/arrows never move the founder directly."
+      },
+      {
+        "line": 64,
+        "marker": "unchecked-task",
+        "text": "- [ ] Founder and recruited citizens travel visibly through the same route"
+      },
+      {
+        "line": 66,
+        "marker": "unchecked-task",
+        "text": "- [ ] Citizens disappear only after logical building entry and reconstruct at a"
+      },
+      {
+        "line": 68,
+        "marker": "unchecked-task",
+        "text": "- [ ] Storage/food/schedule blockers produce a coherent wait/rest/leisure state,"
+      },
+      {
+        "line": 70,
+        "marker": "unchecked-task",
+        "text": "- [ ] Multiple citizens never duplicate a carrier when switching macro/detail."
+      },
+      {
+        "line": 71,
+        "marker": "unchecked-task",
+        "text": "- [ ] Routes remain visible and pass through every valid clearance-defined gap,"
+      },
+      {
+        "line": 76,
+        "marker": "unchecked-task",
+        "text": "- [ ] Prospect arrival and housing restriction are understandable."
+      },
+      {
+        "line": 77,
+        "marker": "unchecked-task",
+        "text": "- [ ] Daily Food pressure is visible before it becomes a soft lock."
+      },
+      {
+        "line": 81,
+        "marker": "unchecked-task",
+        "text": "- [ ] Shelter detail makes the Primitive Axe recipe, missing input and durable"
+      },
+      {
+        "line": 84,
+        "marker": "unchecked-task",
+        "text": "- [ ] Shelter resource inventory opens and closes through its real chevron;"
+      },
+      {
+        "line": 88,
+        "marker": "unchecked-task",
+        "text": "- [ ] Before Cache, Construction exposes the founder's carried load and gain"
+      },
+      {
+        "line": 91,
+        "marker": "unchecked-task",
+        "text": "- [ ] Construction placement shows both axes of the full frontage/depth grid;"
+      },
+      {
+        "line": 94,
+        "marker": "unchecked-task",
+        "text": "- [ ] Encounter, return, wound and territory changes identify subject and cause."
+      },
+      {
+        "line": 95,
+        "marker": "unchecked-task",
+        "text": "- [ ] Treatment communicates Food cost, duration and completion."
+      },
+      {
+        "line": 96,
+        "marker": "unchecked-task",
+        "text": "- [ ] Save confirmation appears briefly and disappears."
+      },
+      {
+        "line": 101,
+        "marker": "not yet",
+        "text": "- Some resource/system icons do not yet communicate their meaning strongly."
+      },
+      {
+        "line": 119,
+        "marker": "pending",
+        "text": "| Pending | Complete VS-5 normal-UI run and relaunch boundaries | Not signed. |"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/UI_PATTERNS.md",
+    "title": "UI Patterns and Reusability Guide",
+    "backlog_hit_count": 9,
+    "backlog_hits": [
+      {
+        "line": 12,
+        "marker": "future",
+        "text": "The game is a single-city idle manager with RPG lineages and future"
+      },
+      {
+        "line": 22,
+        "marker": "future",
+        "text": "| **Expeditions** *(future)* | Planning modal, dispatch view, return summary | `ExpeditionController` (TBD) |"
+      },
+      {
+        "line": 28,
+        "marker": "future",
+        "text": "they apply by extension to the future expeditions and citizens roster"
+      },
+      {
+        "line": 82,
+        "marker": "future",
+        "text": "`DangerActionButton`. Future targets include `StatChip` and"
+      },
+      {
+        "line": 155,
+        "marker": "future",
+        "text": "Every raw `new Button { Text = … }` is a future maintenance liability."
+      },
+      {
+        "line": 248,
+        "marker": "owed",
+        "text": "is allowed only for **single-screen, throwaway** debug UI."
+      },
+      {
+        "line": 278,
+        "marker": "future",
+        "text": "`Citizen`, `ConstructionProject`, future `Expedition`, future"
+      },
+      {
+        "line": 283,
+        "marker": "future",
+        "text": "When the future slice introduces **UI-driven settings** that should"
+      },
+      {
+        "line": 356,
+        "marker": "future",
+        "text": "future `Expedition.Policy`, etc.)."
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 22,
+        "marker": "TBD",
+        "text": "| **Expeditions** *(future)* | Planning modal, dispatch view, return summary | `ExpeditionController` (TBD) |"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/VALIDATION.md",
+    "title": "Validation against the design bible",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 14,
+        "marker": "deferred",
+        "text": "Markers: ✅ implemented · ⚠️ partial/first cut · ❌ absent/deferred."
+      },
+      {
+        "line": 83,
+        "marker": "deferred",
+        "text": "are deferred."
+      },
+      {
+        "line": 101,
+        "marker": "deferred",
+        "text": "exposes a real lot. A broader route/biome/resource network is deferred."
+      },
+      {
+        "line": 107,
+        "marker": "deferred",
+        "text": "multiple conditions remain deferred."
+      },
+      {
+        "line": 112,
+        "marker": "future",
+        "text": "pillars remain future work. They must arrive as bounded decisions, not batches"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/VISUAL_REGRESSION.md",
+    "title": "Visual regression matrix",
+    "backlog_hit_count": 11,
+    "backlog_hits": [
+      {
+        "line": 92,
+        "marker": "owed",
+        "text": "opens the current 8×9 windowed terrarium in a normal Godot window without"
+      },
+      {
+        "line": 164,
+        "marker": "backlog",
+        "text": "- any deliberately deferred state with its backlog ID."
+      },
+      {
+        "line": 181,
+        "marker": "future",
+        "text": "| 2026-07-23 | `farm-detail`, `quarry-detail` | 1024×576, 1280×720, 1600×900 | Pass for layout. Production, stock, policy controls, assignment sidebar, available citizen action, and `Back to city` remain inside the viewport. Review also found that the runtime still exposes `Reactive policy` although `CURRENT_STATUS.md` describes the future simplified panel; that product/code mismatch is not treated as a visual pass criterion. |"
+      },
+      {
+        "line": 194,
+        "marker": "pending",
+        "text": "| 2026-07-31 | `eg2-founding-blueprint`, `eg2-founding-module-choice`, `eg2-founding-blocked-cargo` | 1280×720, 1920×1080 | Pass with deterministic fresh-city fixtures. The localized Campfire cost and enabled Founding Site CTA fit; after Campfire, Bedroll and Cache remain simultaneously visible without Canopy being chosen automatically; a worst-case 6/6 Wild Food load in `AwaitingModule` exposes the localized cargo-return recovery action beside those module choices. Header, scroll body and fixed footer remain contained at both official resolutions. Authored module sprites remain pending art integration; the current Home placeholder is intentional. |"
+      },
+      {
+        "line": 195,
+        "marker": "pending",
+        "text": "| 2026-07-31 | `early-game-resources`, `early-game-resource-menu`, `early-game-resource-gather-signal` | 1280×720, 1920×1080 | Pass. Fresh fixture shows six mature trees and all 17 EG-A0 ground nodes. A real right-click on a Branches bundle opens the localized contextual action; confirming it routes the founder, removes that exact node and records `Branches +2` without changing Wood. Ground markers are intentional code-drawn placeholders pending authored sprites. |"
+      },
+      {
+        "line": 199,
+        "marker": "owed",
+        "text": "| 2026-07-25 | `forest-depleted` (headless) | n/a (fixture mode suppresses persistence) | The new `DrainAllForestsForVisualRegression` API in `CityWorldController` empties every natural resource patch through `WOG_VISUAL_CAPTURE` capture mode. The headless boot completes without C# or Godot errors. Windowed composition of the resulting empty macro view awaits an interactive desktop (50×50 client limitation). |"
+      },
+      {
+        "line": 204,
+        "marker": "owed",
+        "text": "| 2026-07-30 | `citizen-click-summary` input-boundary fix | n/a (scene-tree fix) | `GameUiShell` and `ScreenContent` now declare `mouse_filter = 2` (Ignore) in `CityPrototype.tscn`. Without that, the fullscreen layout container swallowed every pointer event over the macro world — `GuiGetHoveredControl()` returned `GameUiShell`, `_UnhandledInput` never fired, the citizen bubble blinked open then was hidden one frame later by `ClearWorldStatusHover`, and left-clicks on citizens never reached `TryClick`. Building/tree clicks looked like they worked because the visual-regression fixtures call `TryClick` directly. `MacroInputBoundaryTests` now guards the property on both nodes. The `citizen-click-summary` row still needs a real left-click capture before it can be signed off — code review alone is insufficient (see `verify-clicks-with-real-clicks`). |"
+      },
+      {
+        "line": 209,
+        "marker": "owed",
+        "text": "| 2026-08-06 | `astral-start`, `astral-ground`, `astral-identity`, `astral-founder-card` | 1280×720, 1920×1080 | Pass for containment after the onboarding layout rework. The identity step previously overflowed its 656 px budget by roughly 120 px and walked the footer off-screen; it now measures ~567 px with the footer inside the safe area at both resolutions. Choice buttons dropped from a forced 66 px to their natural 40 px, the `_narrative`/`_consequence` 92 px and 52 px floors are gone, empty rows hide instead of blanking, and two `ExpandFill` spacers absorb the slack so no row can push the footer out. The body-presentation pair is one 304 px control instead of two ~510 px expanded buttons, and its selected option carries a check glyph as well as the palette. The new `astral-founder-card` step renders the bible's seven fields with three `CubeAxisBar` rows and no weapon families. Manifests under `%TEMP%\\wog-onboarding`. **Not signed:** the city status strip and macro action row remain visible through the deliberately translucent veil on the identity and card steps. That is pre-existing — `HeroAccessButton` already gates itself on `NeedsOnboarding()` but `CityStatusPanel` and `MacroActions` never did — and is out of this change's scope; it is the one composition defect still visible in these captures. |"
+      },
+      {
+        "line": 216,
+        "marker": "future",
+        "text": "| 2026-08-06 | `macro-current` (daylight, live slot) | 1280×720 | Pass after removing a bonfire that rendered on top of the founder. `FirstNightScene` had always placed the campfire at `founderScreenPosition + (0,-32)` — a documented placeholder (\"a future iteration can refine this\") that put the fire on the citizen. It was invisible while `FirstNightEmbers` was a faint wireframe and became an obvious bonfire the moment the embers were given the atlas campfire sprite. `MacroStreetLiveView.GetBuildingGlobalPosition` now resolves a real anchor from `_clickableRects`, and `CityWorld.FoundingSiteBuildingId` supplies the id. **While the founding site is still a construction project there is no Building and the macro view exposes no anchor for a project, so the embers now draw nothing rather than guessing** — a fire in an invented place reads as world state and is worse than no fire. The fire spirit was also halved and lifted to `(34,-44)`: at the previous size it stood as tall as the founder on his own ground line, which is why two separate playtest reports called it \"a campfire on the floor\". **Open:** the embers are therefore unverifiable and effectively unreachable until the macro view publishes a project anchor; that plumbing is still owed. |"
+      },
+      {
+        "line": 220,
+        "marker": "owed",
+        "text": "| 2026-08-06 | `time-noon`, `early-game-resources` | 1280×720 | **Partial.** The macro view now sorts obstacles and citizens on one axis: buildings and resources moved out of the view's own `_Draw()` into one `StreetBandLayer` per street, whose `ZIndex` comes from the same `DepthToZ(depth)` the citizen carriers now use. Before this they were incomparable — a `CanvasItem` emits its own commands before its children, so every citizen drew after the entire world regardless of depth. Ground stays in the view's own `_Draw()`, which is correct: terrain is always behind. Two regressions were found and fixed during the pass, both only visible in capture: helpers kept drawing onto `this` after gaining a canvas parameter, which silently blanked every tree (\"Drawing is only allowed inside this node's `_draw()`\"); and the new positive child z-indices outranked the HUD, so a tree on the nearest street drew over the Chronicle — the view now sits at `OverlayLayers.WorldDepthBase` so its whole child range stays under the ambient tint and the panels. **Not signed:** the decisive case — a founder occluded by a nearer tree and occluding a farther one in the same frame — has not been captured. No current fixture places the founder behind a nearer tree, so the ordering is implemented and the world renders correctly, but the acceptance row at \"tree canopy > founder\" is still unproven. A fixture that parks the founder mid-band is owed. |"
+      },
+      {
+        "line": 224,
+        "marker": "owed",
+        "text": "| 2026-08-06 | `biome-kovari` | 1280×720 | Fix. The Kovari ground showed a curved bite out of every tile: `1026` is not a fill but an **inner-corner** piece of an autotile patch. The sheet has two things that look like fills — the solid swatch block (cols 5-9, rows 0-1), which really is flat, and the coloured *patch* blocks, which are 5×3 autotiles whose columns 0-1 are the four inner corners (each carrying a notch of the material underneath) and whose columns 2-4 are a 3×3 rounded blob. **Only the blob's centre tile is seam-free**: orange is `1086`, not `1026`. This is the same trap that made the earlier magenta and teal grounds unusable, and it is why the flower-strewn grass cannot be tiled either — every one of those is an autotile member. When taking a new ground id, render its whole 5×3 block, not the tile alone: a notch on one corner is invisible at single-tile zoom and obvious once repeated across a band. |"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 210,
+        "marker": "open question",
+        "text": "| 2026-08-06 | `firstnight-manifested` | 1280×720, 1920×1080 | **Root-cause fix verified, composition NOT signed.** `CityPrototype` was constructing `FirstNightScene` with `ControllerPath = \"CityWorldController\"`, but the node is added as a *child* of `CityPrototype`, so the path resolved to `FirstNightScene/CityWorldController` and never matched. `FirstNightScene._Ready` logged a warning and returned before subscribing, so the authored night never rendered and never advanced: no spirit, no dialogue, and `IsFirstNightActive` stayed permanently true, which also suppressed `DayBegan`/`NightBegan` and `ApplyResidentFoodRation` for the life of the save. Confirmed at runtime by the boot warning, which is gone after the fix. With the new fixture, the strip shows its first authored line and a real click on `Continuar` advances the stage and manifests the spirit ring at both resolutions. **Not signed:** this is the first time the strip has ever rendered, and it exposes its own defects — light body text on the yellow 9-slice is close to unreadable, the band's bottom border sits on the viewport edge, and the status strip picks up the same yellow fallback stylebox. Those need their own pass. The displayed-clock stall (`FirstNightState.DisplayedTick`) is still unwired; see the open question in `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` §9. |"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/01_GAME_VISION.md",
+    "title": "Visión principal",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 87,
+        "marker": "TODO",
+        "text": "14. **Originalidad.** Todos los nombres actuales —incluido el nombre del proyecto— son provisionales. Las inspiraciones informan el diseño. Los productos son originales."
+      },
+      {
+        "line": 132,
+        "marker": "pendiente",
+        "text": "Los documentos internos pueden referenciar las inspiraciones originales para comunicar intención de diseño. Los nombres, arte, lore e implementaciones públicos deben ser creados independientemente."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md",
+    "title": "Pilares de gameplay",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 138,
+        "marker": "pendiente",
+        "text": "La alineación ambiental es **independiente** de la identidad de los ocho linajes. Una ciudad Ardhen puede ser regenerativa o extractiva; una ciudad Eirune puede ser cualquiera de las dos. Las dos dimensiones se componen, no se contradicen."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md",
+    "title": "Ciudad, territorio y crecimiento",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 30,
+        "marker": "pendiente",
+        "text": "**Seleccionar un ciudadano** (con `CitizenId` real) es independiente de la"
+      },
+      {
+        "line": 32,
+        "marker": "TODO",
+        "text": "la cámara por sí solo. La **cámara libre** (pan/zoom) sigue disponible en todo"
+      },
+      {
+        "line": 48,
+        "marker": "roadmap",
+        "text": "`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` para la arquitectura técnica. Esta"
+      },
+      {
+        "line": 107,
+        "marker": "futuro",
+        "text": "La dirección visual candidata para el borde futuro es un límite físico"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md",
+    "title": "Habitantes, profesiones y héroes",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 57,
+        "marker": "TODO",
+        "text": "Todos pueden desarrollar todas las competencias. La interfaz puede mostrar las tres más destacadas, pero el dominio no limita a tres."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/06_LINEAGES.md",
+    "title": "Linajes fundacionales — índice",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 62,
+        "marker": "futuro",
+        "text": "reconocible y puntos de extensión para contenido futuro. La"
+      },
+      {
+        "line": 122,
+        "marker": "TODO",
+        "text": "documenta las tres lecturas (ortodoxa, reformista, renegada) que"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md",
+    "title": "Onboarding y héroe fundador",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 89,
+        "marker": "pendiente",
+        "text": "Éter, Agua, Fuego, Neutra/Silencio, Aire. Independiente del linaje."
+      },
+      {
+        "line": 210,
+        "marker": "future",
+        "text": "names, colours, emblems, sprites, professions, physical weapons, future"
+      },
+      {
+        "line": 211,
+        "marker": "future",
+        "text": "citizens, future cities, politics, and numeric results remain hidden"
+      },
+      {
+        "line": 224,
+        "marker": "future",
+        "text": "Answers determine the person who arrives, never the settlement's future."
+      },
+      {
+        "line": 233,
+        "marker": "owed",
+        "text": "before the player can answer, followed by the fall into the existing"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md",
+    "title": "Lineamientos visuales, UI y assets",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 70,
+        "marker": "roadmap",
+        "text": "prototipado (ver `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`)."
+      },
+      {
+        "line": 124,
+        "marker": "pendiente",
+        "text": "ventana cerca del borde superior, sin alterar la pendiente del trapecio."
+      },
+      {
+        "line": 133,
+        "marker": "TODO",
+        "text": "(no un arrastre continuo 1:1) — ver \"Pixel-motion grammar\". Todos los modos"
+      },
+      {
+        "line": 135,
+        "marker": "roadmap",
+        "text": "`10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`)."
+      },
+      {
+        "line": 183,
+        "marker": "future",
+        "text": "stays visually consistent with how a future combat/ability system would"
+      },
+      {
+        "line": 195,
+        "marker": "TODO",
+        "text": "todos los recursos compartan un único contenedor físico."
+      },
+      {
+        "line": 208,
+        "marker": "TODO",
+        "text": "el aviso sigue su posición durante todo su recorrido; no queda fijado al"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md",
+    "title": "Dirección de audio",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 5,
+        "marker": "TODO",
+        "text": "Construir una identidad sonora coherente con el pixel art sin reducir todo a pitidos genéricos."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md",
+    "title": "Arquitectura técnica y roadmap",
+    "backlog_hit_count": 5,
+    "backlog_hits": [
+      {
+        "line": 1,
+        "marker": "roadmap",
+        "text": "# Arquitectura técnica y roadmap"
+      },
+      {
+        "line": 103,
+        "marker": "pendiente",
+        "text": "el HUD permanece en un `CanvasLayer` independiente que la cámara nunca afecta."
+      },
+      {
+        "line": 108,
+        "marker": "pendiente",
+        "text": "Dos modos de cámara, independientes de la selección de ciudadano — ver detalle"
+      },
+      {
+        "line": 133,
+        "marker": "todavía no",
+        "text": "Todavía no está fijado."
+      },
+      {
+        "line": 224,
+        "marker": "pendiente",
+        "text": "nivel, y tiles de rampa/escalera/puente — pendiente de definir en la fase"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md",
+    "title": "Estándar de frente urbano dinámico, reservas de construcción y corredores",
+    "backlog_hit_count": 9,
+    "backlog_hits": [
+      {
+        "line": 12,
+        "marker": "TODO",
+        "text": "frente explícita y no reclama el solar `3×3` que la rodea. Todo elemento que"
+      },
+      {
+        "line": 473,
+        "marker": "TODO",
+        "text": "- No se crea automáticamente entre todos los solares."
+      },
+      {
+        "line": 484,
+        "marker": "pendiente",
+        "text": "Debe existir como infraestructura lógica independiente."
+      },
+      {
+        "line": 1137,
+        "marker": "pendiente",
+        "text": "Cada planta puede resolverse como una escena o capa navegable independiente:"
+      },
+      {
+        "line": 1508,
+        "marker": "TODO",
+        "text": "- Dónde se asume que todos los edificios ocupan `3×3`."
+      },
+      {
+        "line": 1516,
+        "marker": "TODO",
+        "text": "No adivines. Cita rutas, clases, métodos y líneas relevantes."
+      },
+      {
+        "line": 1587,
+        "marker": "TODO",
+        "text": "- Cómo evitar reconstrucciones costosas de todo el mapa."
+      },
+      {
+        "line": 1689,
+        "marker": "TODO",
+        "text": "- Autotiling artístico definitivo de todos los caminos."
+      },
+      {
+        "line": 1691,
+        "marker": "TODO",
+        "text": "- Interiores finales de todos los edificios."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
+    "title": "El Cubo Kovari — sistema de predisposiciones y stats",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 172,
+        "marker": "pendiente",
+        "text": "Las afinidades elementales son **independientes del linaje** y"
+      },
+      {
+        "line": 325,
+        "marker": "pendiente",
+        "text": "independiente."
+      },
+      {
+        "line": 456,
+        "marker": "TODO",
+        "text": "El resultado conserva el vértice Ardhen sin convertir a todos los Ardhen"
+      },
+      {
+        "line": 461,
+        "marker": "pendiente",
+        "text": "Mantener sistemas independientes para:"
+      },
+      {
+        "line": 539,
+        "marker": "pendiente",
+        "text": "- **No** permitir que el equipamiento otorgue poder base independiente"
+      },
+      {
+        "line": 561,
+        "marker": "pendiente",
+        "text": "independientemente del ciudadano."
+      },
+      {
+        "line": 585,
+        "marker": "TODO",
+        "text": "**La vida posterior construye todo lo demás.**"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/14_LINEAGES_ARDHEN.md",
+    "title": "Ardhen — Los Anclajes",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 17,
+        "marker": "todavía no",
+        "text": "> **Lo que no admite peso todavía no merece llamarse promesa.**"
+      },
+      {
+        "line": 63,
+        "marker": "TODO",
+        "text": "\"todos son fuertes\", \"todos son prácticos\" o \"todos usan la misma"
+      },
+      {
+        "line": 94,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** una anomalía no puede convertirse en cimiento. La"
+      },
+      {
+        "line": 213,
+        "marker": "pendiente",
+        "text": "La parcela debe importar. Variables posibles: tipo de suelo, pendiente,"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/15_LINEAGES_EIRUNE.md",
+    "title": "Eirune — La Corola",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 69,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** la vida arraigó en una región estéril. La"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/16_LINEAGES_KOVARI.md",
+    "title": "Kovari — El Cubo",
+    "backlog_hit_count": 8,
+    "backlog_hits": [
+      {
+        "line": 23,
+        "marker": "TODO",
+        "text": "**Todo sistema puede desmontarse, repararse o recombinarse.**"
+      },
+      {
+        "line": 50,
+        "marker": "TODO",
+        "text": "componentes o herramientas. No son atajos visuales (\"todos son"
+      },
+      {
+        "line": 51,
+        "marker": "TODO",
+        "text": "fuertes\", \"todos son ingeniosos\")."
+      },
+      {
+        "line": 72,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** la llegada es la pieza que no figuraba en el"
+      },
+      {
+        "line": 110,
+        "marker": "TODO",
+        "text": "todos los demás como errores."
+      },
+      {
+        "line": 145,
+        "marker": "pendiente",
+        "text": "independiente, fatiga sostenida."
+      },
+      {
+        "line": 184,
+        "marker": "TODO",
+        "text": "- **No** seis estadísticas vagas que oculten todo."
+      },
+      {
+        "line": 188,
+        "marker": "pendiente",
+        "text": "- **No** equipo con ataque mágico independiente del usuario."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/17_LINEAGES_MYRVEN.md",
+    "title": "Myrven — Las Máscaras",
+    "backlog_hit_count": 2,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** un ser con cuerpo reconocible pero sin historia"
+      },
+      {
+        "line": 191,
+        "marker": "pendiente",
+        "text": "confianza, cercana con conflicto o dependiente sin amistad."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/18_LINEAGES_VAELUN.md",
+    "title": "Vaelun — La Brújula",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** la llegada demuestra que una ruta verdadera"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/19_LINEAGES_ORVETH.md",
+    "title": "Orveth — El Relicario",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** una figura de valor incalculable apareció sin"
+      },
+      {
+        "line": 75,
+        "marker": "TODO",
+        "text": "cosas deben pertenecer a todos o a nadie."
+      },
+      {
+        "line": 132,
+        "marker": "TODO",
+        "text": "comerciantes ni que todo deba privatizarse. Su tradición ofrece"
+      },
+      {
+        "line": 172,
+        "marker": "futuro",
+        "text": "intercambio institucional, contrato futuro, derecho de acceso."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/20_LINEAGES_CAELITH.md",
+    "title": "Caelith — El Ciclo",
+    "backlog_hit_count": 3,
+    "backlog_hits": [
+      {
+        "line": 71,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** la llegada completa un modelo incompleto y debe"
+      },
+      {
+        "line": 162,
+        "marker": "TODO",
+        "text": "Evidencia disponible, Método, Riesgo, Duración estimada, Campos"
+      },
+      {
+        "line": 227,
+        "marker": "TODO",
+        "text": "10. El Ciclo conecta todos los demás sistemas sin reemplazarlos."
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/21_LINEAGES_THERYN.md",
+    "title": "Theryn — El Octagrama",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 17,
+        "marker": "TODO",
+        "text": "> **No todo corazón que late contigo camina hacia el mismo bien.**"
+      },
+      {
+        "line": 69,
+        "marker": "TODO",
+        "text": "- **Lectura ortodoxa:** el Pulso Extraño puede romper la resonancia"
+      },
+      {
+        "line": 134,
+        "marker": "TODO",
+        "text": "atraviesa prácticamente todo el juego: la banda sonora y la capacidad de"
+      },
+      {
+        "line": 142,
+        "marker": "TODO",
+        "text": "No todo Theryn es juglar. La cultura concede especial prestigio a:"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/README.md",
+    "title": "World of Goses",
+    "backlog_hit_count": 1,
+    "backlog_hits": [
+      {
+        "line": 24,
+        "marker": "roadmap",
+        "text": "10. `10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md`"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "README.md",
+    "title": "World of Goses",
+    "backlog_hit_count": 7,
+    "backlog_hits": [
+      {
+        "line": 10,
+        "marker": "vertical slice",
+        "text": "> combat/expedition vertical slice, and Town-Hall recruitment behind"
+      },
+      {
+        "line": 327,
+        "marker": "milestone",
+        "text": "played opening is never asked to repeat milestones it has passed."
+      },
+      {
+        "line": 341,
+        "marker": "vertical slice",
+        "text": "- **Deterministic combat/expedition vertical slice**: a per-encounter"
+      },
+      {
+        "line": 377,
+        "marker": "future",
+        "text": "are implemented now. Future expedition scenes will use fully detailed"
+      },
+      {
+        "line": 387,
+        "marker": "roadmap",
+        "text": "## 14. Short initial roadmap"
+      },
+      {
+        "line": 479,
+        "marker": "vertical slice",
+        "text": "18. ✅ **Combat / expedition vertical slice** — a per-encounter"
+      },
+      {
+        "line": 506,
+        "marker": "deferred",
+        "text": "loop (deferred from VS-3) is the next product objective."
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 561,
+        "marker": "undecided",
+        "text": "The source-code license for this project is **still undecided**. The code,"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "TO_DO.md",
+    "title": "TO DO — Cola operativa",
+    "backlog_hit_count": 32,
+    "backlog_hits": [
+      {
+        "line": 3,
+        "marker": "backlog",
+        "text": "> Backlog vivo del proyecto. Git conserva el historial; este archivo conserva"
+      },
+      {
+        "line": 5,
+        "marker": "diferido",
+        "text": "> diferido. Antes de tomar un ítem se debe releer el código y los documentos que"
+      },
+      {
+        "line": 14,
+        "marker": "pendiente",
+        "text": "| Pendiente | Puede tomarse cuando el slice activo lo permita. |"
+      },
+      {
+        "line": 18,
+        "marker": "diferido",
+        "text": "| Diferido | Tiene un trigger explícito que todavía no se cumple. |"
+      },
+      {
+        "line": 29,
+        "marker": "diferido",
+        "text": "> quedan diferidos hasta EG-2 + EG-3 + EG-5 estables."
+      },
+      {
+        "line": 75,
+        "marker": "pendiente",
+        "text": "| Pendiente | 0 | 0 | 1 | 0 |"
+      },
+      {
+        "line": 77,
+        "marker": "diferido",
+        "text": "| Diferido por trigger | 0 | 2 | 1 | 0 |"
+      },
+      {
+        "line": 80,
+        "marker": "pendiente",
+        "text": "Las dos Altas y una de las Medias pendientes eran las fases 2, 3 y 4 de la"
+      },
+      {
+        "line": 111,
+        "marker": "pendiente",
+        "text": "| EG-5 — consolidación | En curso | Forestry gate conectado: Shelter + hacha primitiva durable (1 Branch + 1 Small Stone). **Primera noche jugable (H-33 + H-34) entregada en schema v31 sin bump**: banda de diálogo no modal en `OverlayLayers.Tutorial=50`, espíritu visual con anillo de 16 puntos, embers post-departure, `SpiritTrailSearch` con gate por `SpiritDeparted`. Apertura acotada a tres parcelas horizontales, sin frontier desbloqueable. Pendientes: firma humana del recorrido (M-14) y segundo/tercer plot + Farm consolidation. |"
+      },
+      {
+        "line": 122,
+        "marker": "pendiente",
+        "text": "- **Pendiente para EG-1:** contención visual de los nodos Branches/Plant"
+      },
+      {
+        "line": 140,
+        "marker": "pendiente",
+        "text": "| 15 | Decisión post-regreso | Implementado; firma humana pendiente |"
+      },
+      {
+        "line": 141,
+        "marker": "pendiente",
+        "text": "| 16 | Save/offline exacto por límites | Automatizado; relanzamientos humanos pendientes |"
+      },
+      {
+        "line": 142,
+        "marker": "pendiente",
+        "text": "| 17 | Repetición sin reset/debug | Automatizado; firma humana pendiente |"
+      },
+      {
+        "line": 211,
+        "marker": "pendiente",
+        "text": "- **Estado:** Cerrado el 2026-08-06. **Firma humana pendiente** vía M-14."
+      },
+      {
+        "line": 220,
+        "marker": "pendiente",
+        "text": "- **Pendiente (sólo firma humana):** playtest en slot limpio con el recorrido"
+      },
+      {
+        "line": 221,
+        "marker": "pendiente",
+        "text": "descrito en M-14 → Pendiente para EG-5 / M-26. `verify-clicks-with-real-clicks`"
+      },
+      {
+        "line": 234,
+        "marker": "pendiente",
+        "text": "- **Pendiente para EG-5:** firma humana de recolección idempotente, bloqueo por"
+      },
+      {
+        "line": 242,
+        "marker": "pendiente",
+        "text": "## 4. Pendientes después de EG-2"
+      },
+      {
+        "line": 246,
+        "marker": "pendiente",
+        "text": "- **Estado:** Pendiente."
+      },
+      {
+        "line": 250,
+        "marker": "pendiente",
+        "text": "independiente; pueden coincidir en pantalla."
+      },
+      {
+        "line": 261,
+        "marker": "pendiente",
+        "text": "_(Vacío: los reanálisis pendientes se resolvieron o se cerraron como"
+      },
+      {
+        "line": 264,
+        "marker": "diferido",
+        "text": "## 6. Diferido por trigger"
+      },
+      {
+        "line": 297,
+        "marker": "diferido",
+        "text": "| S-1.4 MultiMesh | Diferido al trigger de H-30. |"
+      },
+      {
+        "line": 331,
+        "marker": "pendiente",
+        "text": "**Firma humana pendiente** vía M-14."
+      },
+      {
+        "line": 359,
+        "marker": "futuro",
+        "text": "futuro de reduced-motion toque un solo sitio. Firma humana y coherencia de"
+      },
+      {
+        "line": 388,
+        "marker": "TODO",
+        "text": "envoltorios se eliminaron y el método de dominio es `internal` (los ~60"
+      },
+      {
+        "line": 405,
+        "marker": "TODO",
+        "text": "`FirstNightRules` con todo lo cuantitativo derivado de `FoundingSiteRules`, de"
+      },
+      {
+        "line": 424,
+        "marker": "TODO",
+        "text": "`MigrateV30ToV31` marca **concluida** la noche de todo save existente: esas"
+      },
+      {
+        "line": 490,
+        "marker": "TODO",
+        "text": "2. Nuevo método `DrawParcelTerritoryTints` que pinta una banda"
+      },
+      {
+        "line": 565,
+        "marker": "TODO",
+        "text": "ociosos que esto mide. Todo se registra en eventos de dominio o en la"
+      },
+      {
+        "line": 581,
+        "marker": "TODO",
+        "text": "en 05:00–06:00 y 18:00–19:00, tramos largos con deriva lenta, todo"
+      },
+      {
+        "line": 632,
+        "marker": "TODO",
+        "text": "2. El mismo método restaba `dayTick` (relativo al día) de"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 596,
+        "marker": "sin resolver",
+        "text": "aún sin resolver en la primera pasada de layout, y el arte cargaba pero nunca"
+      }
+    ],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  }
+]
