@@ -57,7 +57,7 @@ which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`, `presentation-experience`
 - **Conditional skills:** `city-simulation` (Founding Site modules and recipes), `lineages-and-cultures` (per-lineage reactions), `technical-foundation` (persistence seam, schema version)
-- **Canonical docs:** `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, `docs/ai/DECISION_LOG.md` → DEC-0014, `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → First night
+- **Canonical docs:** `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, `docs/ai/DECISION_LOG.md` → DEC-0014, `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → First night
 - **Code:** `game/scripts/Domain/FirstNightState.cs`, `FirstNightStage.cs`, `FirstNightRules.cs`, `FoundingSiteRules.cs`, `FireSpiritDialogueCatalog.cs`, `game/scripts/FirstNightSpeechBubble.cs`, `FirstNightScene.cs`, `FireSpiritVisual.cs`, `FirstNightEmbers.cs`, `FirstNightContextCommentary.cs`, `CityWorldController.cs` (`FirstNightStageChanged` signal), `ExpeditionPanel.cs` (`SpiritTrailObjectiveButtonPath`), `ExpeditionPlanningSnapshot.cs` (`SpiritTrailUnlocked`), `game/locale/en.po` + `es.po` (`firstnight.*` keys)
 - **Hard rule:** the route is strictly linear; variations per `LineageId` are textual reactions only, never route branches. `DialogueRunner.RunAsync` is **not** used here — `FirstNightState.CurrentDialogueNodeId` is the persistence seam. Quantities come from `FoundingSiteRules.InputsFor`, never from a hardcoded msgid. The night advances on a closed dialogue node or a completed module, never on the clock.
 - **Consult `city-simulation` when:** the campfire, bedroll, cache, or canopy recipes change — the night's quantities must follow.

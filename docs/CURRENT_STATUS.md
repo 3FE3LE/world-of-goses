@@ -119,7 +119,7 @@ and §17 acceptance test are complete.
 
 - Twelve-fragment astral onboarding, hidden scoring, explicit name/body choice,
   lineage reveal, founder arrival and profile.
-- **Authored first night** (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`,
+- **Authored first night** (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`,
   DEC-0014): from manifestation to dawn, the fire spirit teaches the
   founder why the ground materials matter. Non-modal dialogue strip on
   `OverlayLayers.Tutorial=50`, eight lineage variants per main node, no
@@ -314,7 +314,7 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 - Obtain human signature for clearance-defined obstacle rows, gather visibility,
   Primitive Axe UI and the three-parcel scattered opening. The axe's real gap was
   never the panel: the requirement had no explained path, which is what
-  `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` and `TO_DO.md` H-33/H-34 now answer.
+  `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` and `TO_DO.md` H-33/H-34 now answer.
   Its domain state landed in v31; the fire spirit, its dialogue and the first
   expedition's motive have not.
 - The authored first night holds the calendar while it runs, and only its

@@ -5,7 +5,7 @@ namespace WorldofGoses.Domain;
 
 /// <summary>
 /// The authored first night's persistent state
-/// (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`).
+/// (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`).
 ///
 /// It carries semantic context only. The fire spirit has no persisted street or
 /// lateral offset: presentation derives where it stands from

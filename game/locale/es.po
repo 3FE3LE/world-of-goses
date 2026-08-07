@@ -2642,7 +2642,7 @@ msgid "Whip"
 msgstr "Látigo"
 
 # Primera noche (es) — guía autoral del espíritu de fuego
-# (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). El cuerpo no contiene
+# (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). El cuerpo no contiene
 # cifras literales: las cantidades se interpolan en runtime desde
 # FoundingSiteRules.InputsFor, de modo que un cambio de receta no
 # puede dejar a la noche describiendo un mundo que ya no existe.

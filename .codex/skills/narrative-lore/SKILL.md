@@ -97,7 +97,7 @@ proposes implications; mechanics decide.
   deleted on 2026-08-05: the former had no instantiator, the latter carried
   hand-written copy that contradicted the real recipes. Authored guidance now
   belongs to the first-night surface
-  (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`); never reintroduce a static step
+  (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`); never reintroduce a static step
   list, and derive every quantity from the real recipe.
 - Localization: `game/locale/{messages.pot,en.po,es.po}`.
 - Tests: `tests/WorldofGoses.Tests/FounderNarrativeTests.cs`,

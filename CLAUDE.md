@@ -154,6 +154,12 @@ dotnet test
 cd ../..
 pwsh ./scripts/Sync-AgentContext.ps1 -Apply
 pwsh ./scripts/Validate-AgentContext.ps1
+
+# Only when a document was added, moved, or renamed. The second script
+# fails when a document is unclassified, when the ledger names a file
+# that no longer exists, or when docs/README.md does not index it.
+pwsh ./scripts/docs/inventory.ps1
+pwsh ./scripts/docs/classify.ps1
 ```
 
 There is no linter or CI configured yet. Do not invent commands. Do not

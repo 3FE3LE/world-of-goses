@@ -1,35 +1,5 @@
 [
   {
-    "from": ".agents/skills/save-systems/references/versioning-and-migration.md",
-    "to_raw": "data",
-    "to": ".agents/skills/save-systems/references/data",
-    "exists": false
-  },
-  {
-    "from": ".agents/skills/save-systems/SKILL.md",
-    "to_raw": "data",
-    "to": ".agents/skills/save-systems/data",
-    "exists": false
-  },
-  {
-    "from": ".claude/skills/save-systems/references/versioning-and-migration.md",
-    "to_raw": "data",
-    "to": ".claude/skills/save-systems/references/data",
-    "exists": false
-  },
-  {
-    "from": ".claude/skills/save-systems/SKILL.md",
-    "to_raw": "data",
-    "to": ".claude/skills/save-systems/data",
-    "exists": false
-  },
-  {
-    "from": ".codex/skills/save-systems/SKILL.md",
-    "to_raw": "data",
-    "to": ".codex/skills/save-systems/data",
-    "exists": false
-  },
-  {
     "from": "AGENTS.md",
     "to_raw": "CLAUDE.md",
     "to": "CLAUDE.md",
@@ -685,12 +655,6 @@
   },
   {
     "from": "README.md",
-    "to_raw": "docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
-    "to": "docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
     "to_raw": "docs/ARCHITECTURE.md",
     "to": "docs/ARCHITECTURE.md",
     "exists": true
@@ -765,6 +729,12 @@
     "from": "README.md",
     "to_raw": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
     "to": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
+    "exists": true
+  },
+  {
+    "from": "README.md",
+    "to_raw": "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
+    "to": "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
     "exists": true
   },
   {

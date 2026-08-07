@@ -100,7 +100,7 @@ public partial class CityWorldController : Node
 
     /// <summary>
     /// Fires whenever the authored first night
-    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>) changes stage:
+    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>) changes stage:
     /// the spirit arriving, the campfire or shelter being finished, the
     /// night concluding. The signal carries the new stage as an <c>int</c>
     /// so the presentation layer can subscribe without taking a
@@ -724,7 +724,7 @@ public partial class CityWorldController : Node
     /// so a save interrupted mid-line resumes on the same line. The
     /// spirit only speaks at stages that wait on dialogue — see
     /// <see cref="Domain.FirstNightRules.WaitsForDialogue"/> and the
-    /// stage map in <c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>.
+    /// stage map in <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>.
     /// </summary>
     public bool TryOpenFirstNightDialogue(string nodeId)
     {

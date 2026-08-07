@@ -497,7 +497,7 @@ connected baseline. Items 9 onward sit above that spine.
     `FirstNightContextCommentary` while gathering, dawn emits
     `WorldEventKind.SpiritDeparted` once, embers primitive over the
     campfire after departure, and `SpiritTrailSearch` resource
-    opportunity unlocks for the first expedition. `docs/19_*` is
+    opportunity unlocks for the first expedition. Bible chapter 23 is
     accepted as canonical (DEC-0014).
 21. 🔵 **EG-5 — consolidation (active)** — second/third Cultivation
     Site and Farm consolidation; the first forestry capability is
@@ -536,7 +536,7 @@ already night — that is the first night. From the founder's
 manifestation to the dawn, a fire spirit teaches why the ground
 materials matter, and the night advances module by module rather
 than by the clock. The full contract lives at
-[`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`](docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md).
+[`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`](docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md).
 
 After the dawn the founder carries `Citizen.Commitment` for the
 Founding Site lifecycle: Campfire, then Bedroll and Cache, then

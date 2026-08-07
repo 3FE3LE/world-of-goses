@@ -23,6 +23,7 @@
 | `world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md` | Pixel art direction, three visual scales, typography hierarchy, Sixteen Pixel Perfect, per-lineage visual identity. |
 | `world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` | Synthetic retro audio, bus layout, per-lineage sonic identity, first audio pack. |
 | `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |
+| `world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md` | Tierra, Agua, Fuego, Aire, Éter y Silencio como contrato común entre onboarding, caras del Cubo, equipamiento, ambiente, ciudad, salud, expediciones y combate. |
 | `world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md` | Dynamic frontage rows, construction reservations, structural footprints, corridors, expansion, and their persistence contract. |
 | `world-of-goses-design-bible/13_KOVARI_CUBE.md` | Cubo Kovari: geometría, ejes mecánicos, vértices, afinidades elementales, stats derivados, equipamiento, modo sombra. |
 | `world-of-goses-design-bible/14_LINEAGES_ARDHEN.md` | Ardhen — cultura + sistema de Anclajes (estructura, integridad, mantenimiento) + vértice del Cubo. |
@@ -33,6 +34,13 @@
 | `world-of-goses-design-bible/19_LINEAGES_ORVETH.md` | Orveth — cultura + sistema de Relicario (comercio, reservas, custodia) + vértice del Cubo. |
 | `world-of-goses-design-bible/20_LINEAGES_CAELITH.md` | Caelith — cultura + sistema de Ciclo (conocimiento, diagnóstico, investigación) + vértice del Cubo. |
 | `world-of-goses-design-bible/21_LINEAGES_THERYN.md` | Theryn — cultura + sistema de Octagrama (música, ambiente, ritmo de combate) + vértice del Cubo. |
+| `world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md` | Naturaleza de combate del `Citizen`, competencias y progresión, armas y equipamiento, cuatro familias de estadísticas derivadas, curvas y límites. Coeficientes `v0.1` de balance. |
+| `world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` | El periodo jugable entre el onboarding astral y el primer amanecer: ruta lineal, espíritu de fuego, módulos del Sitio Fundacional, transición a expediciones. Aceptada 2026-08-06, DEC-0014. |
+
+The chapter number is the chapter's stable identity, not its position: it is
+never reused and never reordered. Chapters 11, 22 and 23 lived at the root of
+`docs/` until 2026-08-07; 22 and 23 kept their titles but changed number
+because 12 and 19 were already taken.
 
 ## Implementation-aware docs
 
@@ -47,6 +55,11 @@ These files describe what the code does today, the recommended slice sequence, a
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
 | `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |
 | `VALIDATION.md` | Honest cross-check of the current slice against the bible's vision and pillars, ranked gaps. |
+| `PERFORMANCE_BUDGETS.md` | Frame-time targets per scenario, how they are measured, and what the capture harness does when one is exceeded. |
+| `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` | **Approved direction.** The three resource horizons, the founding camp, and the first expeditions. EG-A0 numbers remain provisional. Cited by several `CONTEXT_MAP.md` routes. |
+| `EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md` | **Sequencing, not design.** Dependency order for landing automatic combat and expeditions. The design it sequences lives in bible chapters 05, 11 and 22. |
+| `CITIZEN_OFFLINE_ROUTINE_AUDIT.md` | **Historical record.** Stabilization audit of semantic persistence, work routines, and visual reconstruction, 2026-07-29. |
+| `technical/sprite-generator-feasibility.md` | **Technical report.** Feasibility of a modular equipment compositor, separating verified facts from inferences and recommendations. Not an approved plan. |
 | `ART_PIPELINE.md` | Pixelorama → PNG → Godot file flow, naming conventions, SpriteFrames / TileMapLayer wiring, anti-patterns. |
 | `ASSET_INVENTORY.md` | Inventory and licensing triage of downloaded art packs, selected promotions into runtime assets, and the staged integration plan. |
 | `LINEAGE_DESIGN_MATRIX.md` | Visual translation matrix shipped with the Universal LPC lineage character pack. |
@@ -54,6 +67,8 @@ These files describe what the code does today, the recommended slice sequence, a
 | `LICENSING_AND_ATTRIBUTION.md` | Universal LPC provenance, transformations, distribution obligations, and attribution pointers. |
 | `licenses/` | Full and selected LPC credits plus the generator's GPL-3.0 license text. |
 | `PRODUCT_DIRECTION.md` | **Process guide.** Core loop, validation sequence, UI/UX rules, drift checklist, alignment questions. Points to the bible for design answers. |
+| `REPOSITORY_CONVENTIONS.md` | **Process guide.** The full prose behind the rules routed from `AGENTS.md` / `CLAUDE.md`. If it contradicts the root file, the root file wins. |
+| `ai/` | **Routing layer.** `CONTEXT_MAP.md` (which agent and which skills per request), `CROSS_DOMAIN_INVARIANTS.md`, `DECISION_LOG.md`, `AGENT_COLLABORATION_PROTOCOL.md`, `CURRENT_DEVELOPMENT_STATE.md`, `FEATURE_HANDOFF_TEMPLATE.md`. It routes work; it is not a design source. |
 | `GAME_VISION.md` | **Pointer.** The vision, principles, and pillars live in the bible; this file maps old sections to their new homes. |
 | `LINEAGES_AND_PROFESSIONAL_AFFINITIES.md` | **Pointer.** The eight lineages, twelve-family vocabulary, five layers, and balance rules live in the bible; this file maps old sections to their new homes. |
 | `DESIGN_INFLUENCES.md` | **Pointer + audit trail.** The IP boundary and naming discipline live in the bible; the retired MVP shorthand stays here as a historical note. |
@@ -77,7 +92,13 @@ automatic addition to `game/assets/`.
    appears here, it is either (a) implementation-aware (status, code
    structure, validation snapshot, process guide) or (b) a pointer to
    the bible chapter that owns the content.
-7. **New UI flows through `UI_PATTERNS.md`.** Before opening a screen
+7. **This index is complete or it is broken.** Every document under
+   `docs/` appears in one of the tables above, `_archive/` included. A
+   document that exists but is not indexed is invisible to the next
+   session, which is how the four numbered orphans survived until
+   2026-08-07. `pwsh ./scripts/docs/classify.ps1` fails when a live
+   document is missing from this file.
+8. **New UI flows through `UI_PATTERNS.md`.** Before opening a screen
    or widget, read `UI_PATTERNS.md`. The three reusable patterns
    (PackedScene, `[GlobalClass]`, static factory) plus the per-PR
    audit checklist there are the guardrail against the divergent

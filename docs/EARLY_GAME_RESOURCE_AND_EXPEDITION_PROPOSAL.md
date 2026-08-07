@@ -134,7 +134,7 @@ the first implementation.
 ### 3.5 Pre-opening authored night
 
 The opening now enters through the authored first night
-(`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, DEC-0014), not through a list
+(`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, DEC-0014), not through a list
 of tutorial steps. The spirit's dialogue explains why the ground
 materials matter; the campfire and bedroll are the founding modules
 the night itself requires; `SpiritTrailSearch` is the post-dawn
@@ -409,7 +409,7 @@ The third objective is unlocked once `WorldEventKind.SpiritDeparted`
 has been recorded for the current city — i.e. once the first night
 has concluded. The reward is the same `Wood` curve as
 `Fallen Wood Search`; the narrative frame is the trail the spirit left
-when it departed at dawn (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+when it departed at dawn (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
 §11–12), and the expedition panel hides the button until the event
 lands. No schema bump: `ResourceOpportunityKind.SpiritTrailSearch`
 is a new enum value that serialises as a string and is parsed by

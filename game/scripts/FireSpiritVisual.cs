@@ -6,7 +6,7 @@ namespace WorldofGoses;
 
 /// <summary>
 /// The fire spirit of the authored first night
-/// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>): a small manifestation of
+/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>): a small manifestation of
 /// flame that hovers beside the founder before the campfire is built and
 /// settles into the fire afterwards.
 ///

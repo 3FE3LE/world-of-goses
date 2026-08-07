@@ -7,7 +7,7 @@ namespace WorldofGoses.Tests;
 /// <summary>
 /// The <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
 /// opportunity is the post-dawn motivation that
-/// <c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §12 promises: the
+/// <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §12 promises: the
 /// trail the spirit left leads to fire-blackened wood. These tests
 /// assert the definition fits the existing
 /// <see cref="ResourceExpeditionDefinition"/> shape without

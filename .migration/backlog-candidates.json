@@ -1315,7 +1315,7 @@
     "backlog_hits": [],
     "open_question_hits": [
       {
-        "line": 204,
+        "line": 210,
         "marker": "unresolved",
         "text": "- An unresolved product decision that changes the design."
       }
@@ -1328,92 +1328,107 @@
   {
     "source_document": "CHANGELOG.md",
     "title": "Changelog",
-    "backlog_hit_count": 16,
+    "backlog_hit_count": 19,
     "backlog_hits": [
       {
-        "line": 29,
+        "line": 42,
+        "marker": "roadmap",
+        "text": "`13_EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP`, **no** entró en la biblia:"
+      },
+      {
+        "line": 54,
+        "marker": "backlog",
+        "text": "bloque es canon, especificación, roadmap o backlog es un juicio que se revisa"
+      },
+      {
+        "line": 57,
+        "marker": "roadmap",
+        "text": "`ARCHITECTURE.md` y el capítulo 10 mezclan descripción con roadmap,"
+      },
+      {
+        "line": 74,
         "marker": "TODO",
         "text": "Un ciudadano se dibujaba **siempre** por delante de todo el mundo, incluso de un"
       },
       {
-        "line": 47,
+        "line": 92,
         "marker": "TODO",
         "text": "firmas y no los cuerpos, y **todos los árboles desaparecieron** aunque compilaba;"
       },
       {
-        "line": 119,
+        "line": 164,
         "marker": "TODO",
         "text": "Casi todos los botones del juego eran amarillos, y nadie lo había decidido. Era"
       },
       {
-        "line": 124,
+        "line": 169,
         "marker": "TODO",
         "text": "linajes**. Todo panel construido antes de que exista un héroe caía por ahí; y"
       },
       {
-        "line": 154,
+        "line": 199,
         "marker": "TODO",
         "text": "a distancia de macro leían todos como el mismo cuadrado. Ahora son sprites del"
       },
       {
-        "line": 208,
+        "line": 253,
         "marker": "TODO",
         "text": "porque todos los recursos usaban el mismo rect cuadrado. El árbol pasa a su"
       },
       {
-        "line": 214,
+        "line": 259,
         "marker": "todavía no",
         "text": "apuntando al suelo vacío, porque en `Manifested` el espíritu todavía no está"
       },
       {
-        "line": 230,
+        "line": 275,
         "marker": "pendiente",
         "text": "Lo que sigue pendiente: el espíritu es una llama autoral, no un sprite — no hay"
       },
       {
-        "line": 253,
+        "line": 298,
         "marker": "owed",
         "text": "one citizen and zero buildings, followed by an explicitly authorised"
       },
       {
-        "line": 276,
+        "line": 321,
         "marker": "roadmap",
         "text": "- La sección **14 (Short initial roadmap)** incorpora la secuencia"
       },
       {
-        "line": 278,
+        "line": 323,
         "marker": "pendiente",
         "text": "de lo activo (EG-5) y lo pendiente (EG-6)."
       },
       {
-        "line": 357,
+        "line": 402,
         "marker": "todavía no",
         "text": "enterrada en el panel de detalle de un refugio que todavía no existía, al final"
       },
       {
-        "line": 400,
+        "line": 445,
         "marker": "todavía no",
         "text": "Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la"
       },
       {
-        "line": 487,
+        "line": 532,
         "marker": "roadmap",
         "text": "mismas personas. El circuito completo del roadmap —`Citizen` → preparación →"
       },
       {
-        "line": 516,
+        "line": 561,
         "marker": "pendiente",
         "text": "independiente; unificarlo con esta corrida de combate es el siguiente paso, no"
       },
       {
-        "line": 855,
+        "line": 900,
         "marker": "vertical slice",
         "text": "| 2026-07-28 | `13525c96` | Advance VS-1/VS-2 vertical slice and fix macro-view/pathfinding bugs |"
       }
     ],
     "open_question_hits": [
       {
-        "line": 637,
+        "line": 682,
         "marker": "sin resolver",
         "text": "recibe condición neutral; uno herido queda explícitamente sin resolver para no"
       }
@@ -1430,7 +1445,7 @@
     "backlog_hits": [],
     "open_question_hits": [
       {
-        "line": 211,
+        "line": 217,
         "marker": "unresolved",
         "text": "- An unresolved product decision that changes the design."
       }
@@ -2346,205 +2361,6 @@
     "action": "undecided"
   },
   {
-    "source_document": "docs/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md",
-    "title": "Afinidades elementales e interacciones con el mundo",
-    "backlog_hit_count": 10,
-    "backlog_hits": [
-      {
-        "line": 61,
-        "marker": "pendiente",
-        "text": "El equipamiento no contiene el poder elemental como una batería independiente."
-      },
-      {
-        "line": 101,
-        "marker": "pendiente",
-        "text": "## 2.3 Afinidad y linaje son independientes"
-      },
-      {
-        "line": 400,
-        "marker": "pendiente",
-        "text": "- estabilizar pendientes;"
-      },
-      {
-        "line": 745,
-        "marker": "pendiente",
-        "text": "- apertura de semillas dependientes del calor;"
-      },
-      {
-        "line": 1192,
-        "marker": "TODO",
-        "text": "No debe ser el elemento que hace todo mejor."
-      },
-      {
-        "line": 1386,
-        "marker": "pendiente",
-        "text": "- degradación de componentes dependientes de flujo;"
-      },
-      {
-        "line": 2284,
-        "marker": "pendiente",
-        "text": "4. El linaje continúa independiente."
-      },
-      {
-        "line": 2305,
-        "marker": "TODO",
-        "text": "16. Silencio no cancela todo sin coste."
-      },
-      {
-        "line": 2335,
-        "marker": "pendiente",
-        "text": "3. las afinidades se mantienen independientes del linaje;"
-      },
-      {
-        "line": 2365,
-        "marker": "TODO",
-        "text": "- Éter como elemento todopoderoso;"
-      }
-    ],
-    "open_question_hits": [
-      {
-        "line": 1335,
-        "marker": "sin resolver",
-        "text": "- prolongar estados sin resolverlos;"
-      }
-    ],
-    "proposed_issue_title": null,
-    "type": null,
-    "area": null,
-    "action": "undecided"
-  },
-  {
-    "source_document": "docs/12_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md",
-    "title": "Sistema de estadísticas, progresión y fórmulas de combate",
-    "backlog_hit_count": 9,
-    "backlog_hits": [
-      {
-        "line": 32,
-        "marker": "TODO",
-        "text": "10. Todos los stats de combate y utilidad se calculan bajo demanda; no se guardan como fuentes independientes de poder."
-      },
-      {
-        "line": 282,
-        "marker": "pendiente",
-        "text": "La forma de derivar este factor desde heridas, enfermedades, fatiga y hambre queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
-      },
-      {
-        "line": 296,
-        "marker": "pendiente",
-        "text": "La forma de derivarlo desde edificios, políticas, salud pública, alimentación o vivienda queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
-      },
-      {
-        "line": 342,
-        "marker": "todavía no",
-        "text": "Los coeficientes de técnica todavía no están definidos."
-      },
-      {
-        "line": 522,
-        "marker": "TODO",
-        "text": "Todos los casos usan:"
-      },
-      {
-        "line": 691,
-        "marker": "TODO",
-        "text": "Todo stat mostrado debe poder explicar su procedencia."
-      },
-      {
-        "line": 719,
-        "marker": "pendiente",
-        "text": "- No crear `PhysicalDamage` como competencia independiente."
-      },
-      {
-        "line": 725,
-        "marker": "TODO",
-        "text": "- No utilizar `_Process` para recalcular todos los Citizens continuamente."
-      },
-      {
-        "line": 730,
-        "marker": "pendiente",
-        "text": "## 14. Pendientes"
-      }
-    ],
-    "open_question_hits": [],
-    "proposed_issue_title": null,
-    "type": null,
-    "area": null,
-    "action": "undecided"
-  },
-  {
-    "source_document": "docs/13_EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md",
-    "title": "Roadmap de integración de combate y expediciones",
-    "backlog_hit_count": 6,
-    "backlog_hits": [
-      {
-        "line": 1,
-        "marker": "roadmap",
-        "text": "# Roadmap de integración de combate y expediciones"
-      },
-      {
-        "line": 16,
-        "marker": "roadmap",
-        "text": "10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md"
-      },
-      {
-        "line": 510,
-        "marker": "vertical slice",
-        "text": "## 3. Fases posteriores al vertical slice"
-      },
-      {
-        "line": 512,
-        "marker": "roadmap",
-        "text": "Estas fases forman parte del roadmap general, pero no bloquean la primera expedición jugable."
-      },
-      {
-        "line": 599,
-        "marker": "pendiente",
-        "text": "2. No implementar 72 árboles de habilidades independientes."
-      },
-      {
-        "line": 613,
-        "marker": "vertical slice",
-        "text": "## 6. Definición de terminado del primer vertical slice"
-      }
-    ],
-    "open_question_hits": [],
-    "proposed_issue_title": null,
-    "type": null,
-    "area": null,
-    "action": "undecided"
-  },
-  {
-    "source_document": "docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
-    "title": "Primera noche del Fundador y espíritu de fuego",
-    "backlog_hit_count": 4,
-    "backlog_hits": [
-      {
-        "line": 16,
-        "marker": "todavía no",
-        "text": "- Por qué el Founder interactúa con recursos que todavía no conoce."
-      },
-      {
-        "line": 36,
-        "marker": "todavía no",
-        "text": "La conciencia ya puede dirigir su cuerpo, pero todavía no comprende las propiedades prácticas de la materia ni las costumbres de supervivencia mortal."
-      },
-      {
-        "line": 142,
-        "marker": "futuro",
-        "text": "- Primer punto del futuro asentamiento."
-      },
-      {
-        "line": 165,
-        "marker": "TODO",
-        "text": "Todos sus recursos deben estar disponibles sin herramientas avanzadas."
-      }
-    ],
-    "open_question_hits": [],
-    "proposed_issue_title": null,
-    "type": null,
-    "area": null,
-    "action": "undecided"
-  },
-  {
     "source_document": "docs/ai/AGENT_COLLABORATION_PROTOCOL.md",
     "title": "Agent collaboration protocol",
     "backlog_hit_count": 2,
@@ -3051,6 +2867,48 @@
     "action": "undecided"
   },
   {
+    "source_document": "docs/EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md",
+    "title": "Roadmap de integración de combate y expediciones",
+    "backlog_hit_count": 6,
+    "backlog_hits": [
+      {
+        "line": 1,
+        "marker": "roadmap",
+        "text": "# Roadmap de integración de combate y expediciones"
+      },
+      {
+        "line": 16,
+        "marker": "roadmap",
+        "text": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md"
+      },
+      {
+        "line": 510,
+        "marker": "vertical slice",
+        "text": "## 3. Fases posteriores al vertical slice"
+      },
+      {
+        "line": 512,
+        "marker": "roadmap",
+        "text": "Estas fases forman parte del roadmap general, pero no bloquean la primera expedición jugable."
+      },
+      {
+        "line": 599,
+        "marker": "pendiente",
+        "text": "2. No implementar 72 árboles de habilidades independientes."
+      },
+      {
+        "line": 613,
+        "marker": "vertical slice",
+        "text": "## 6. Definición de terminado del primer vertical slice"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
     "source_document": "docs/licenses/GENERATOR_GPL-3.0.txt",
     "title": "GENERATOR_GPL-3.0",
     "backlog_hit_count": 6,
@@ -3149,12 +3007,17 @@
   {
     "source_document": "docs/README.md",
     "title": "World of Goses — Documentation index",
-    "backlog_hit_count": 1,
+    "backlog_hit_count": 2,
     "backlog_hits": [
       {
         "line": 25,
         "marker": "roadmap",
         "text": "| `world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md` | Stack, simulation rules, scene map, pixel-perfect rules, persistence direction, guard-rails, open questions. |"
+      },
+      {
+        "line": 60,
+        "marker": "roadmap",
+        "text": "| `EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md` | **Sequencing, not design.** Dependency order for landing automatic combat and expeditions. The design it sequences lives in bible chapters 05, 11 and 22. |"
       }
     ],
     "open_question_hits": [
@@ -3535,7 +3398,7 @@
       {
         "line": 210,
         "marker": "open question",
-        "text": "| 2026-08-06 | `firstnight-manifested` | 1280×720, 1920×1080 | **Root-cause fix verified, composition NOT signed.** `CityPrototype` was constructing `FirstNightScene` with `ControllerPath = \"CityWorldController\"`, but the node is added as a *child* of `CityPrototype`, so the path resolved to `FirstNightScene/CityWorldController` and never matched. `FirstNightScene._Ready` logged a warning and returned before subscribing, so the authored night never rendered and never advanced: no spirit, no dialogue, and `IsFirstNightActive` stayed permanently true, which also suppressed `DayBegan`/`NightBegan` and `ApplyResidentFoodRation` for the life of the save. Confirmed at runtime by the boot warning, which is gone after the fix. With the new fixture, the strip shows its first authored line and a real click on `Continuar` advances the stage and manifests the spirit ring at both resolutions. **Not signed:** this is the first time the strip has ever rendered, and it exposes its own defects — light body text on the yellow 9-slice is close to unreadable, the band's bottom border sits on the viewport edge, and the status strip picks up the same yellow fallback stylebox. Those need their own pass. The displayed-clock stall (`FirstNightState.DisplayedTick`) is still unwired; see the open question in `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` §9. |"
+        "text": "| 2026-08-06 | `firstnight-manifested` | 1280×720, 1920×1080 | **Root-cause fix verified, composition NOT signed.** `CityPrototype` was constructing `FirstNightScene` with `ControllerPath = \"CityWorldController\"`, but the node is added as a *child* of `CityPrototype`, so the path resolved to `FirstNightScene/CityWorldController` and never matched. `FirstNightScene._Ready` logged a warning and returned before subscribing, so the authored night never rendered and never advanced: no spirit, no dialogue, and `IsFirstNightActive` stayed permanently true, which also suppressed `DayBegan`/`NightBegan` and `ApplyResidentFoodRation` for the life of the save. Confirmed at runtime by the boot warning, which is gone after the fix. With the new fixture, the strip shows its first authored line and a real click on `Continuar` advances the stage and manifests the spirit ring at both resolutions. **Not signed:** this is the first time the strip has ever rendered, and it exposes its own defects — light body text on the yellow 9-slice is close to unreadable, the band's bottom border sits on the viewport edge, and the status strip picks up the same yellow fallback stylebox. Those need their own pass. The displayed-clock stall (`FirstNightState.DisplayedTick`) is still unwired; see the open question in `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` §9. |"
       }
     ],
     "proposed_issue_title": null,
@@ -3786,6 +3649,74 @@
       }
     ],
     "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md",
+    "title": "Afinidades elementales e interacciones con el mundo",
+    "backlog_hit_count": 10,
+    "backlog_hits": [
+      {
+        "line": 61,
+        "marker": "pendiente",
+        "text": "El equipamiento no contiene el poder elemental como una batería independiente."
+      },
+      {
+        "line": 101,
+        "marker": "pendiente",
+        "text": "## 2.3 Afinidad y linaje son independientes"
+      },
+      {
+        "line": 400,
+        "marker": "pendiente",
+        "text": "- estabilizar pendientes;"
+      },
+      {
+        "line": 745,
+        "marker": "pendiente",
+        "text": "- apertura de semillas dependientes del calor;"
+      },
+      {
+        "line": 1192,
+        "marker": "TODO",
+        "text": "No debe ser el elemento que hace todo mejor."
+      },
+      {
+        "line": 1386,
+        "marker": "pendiente",
+        "text": "- degradación de componentes dependientes de flujo;"
+      },
+      {
+        "line": 2284,
+        "marker": "pendiente",
+        "text": "4. El linaje continúa independiente."
+      },
+      {
+        "line": 2305,
+        "marker": "TODO",
+        "text": "16. Silencio no cancela todo sin coste."
+      },
+      {
+        "line": 2335,
+        "marker": "pendiente",
+        "text": "3. las afinidades se mantienen independientes del linaje;"
+      },
+      {
+        "line": 2365,
+        "marker": "TODO",
+        "text": "- Éter como elemento todopoderoso;"
+      }
+    ],
+    "open_question_hits": [
+      {
+        "line": 1335,
+        "marker": "sin resolver",
+        "text": "- prolongar estados sin resolverlos;"
+      }
+    ],
     "proposed_issue_title": null,
     "type": null,
     "area": null,
@@ -4118,6 +4049,95 @@
         "line": 142,
         "marker": "TODO",
         "text": "No todo Theryn es juglar. La cultura concede especial prestigio a:"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md",
+    "title": "Sistema de estadísticas, progresión y fórmulas de combate",
+    "backlog_hit_count": 9,
+    "backlog_hits": [
+      {
+        "line": 32,
+        "marker": "TODO",
+        "text": "10. Todos los stats de combate y utilidad se calculan bajo demanda; no se guardan como fuentes independientes de poder."
+      },
+      {
+        "line": 282,
+        "marker": "pendiente",
+        "text": "La forma de derivar este factor desde heridas, enfermedades, fatiga y hambre queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
+      },
+      {
+        "line": 296,
+        "marker": "pendiente",
+        "text": "La forma de derivarlo desde edificios, políticas, salud pública, alimentación o vivienda queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
+      },
+      {
+        "line": 342,
+        "marker": "todavía no",
+        "text": "Los coeficientes de técnica todavía no están definidos."
+      },
+      {
+        "line": 522,
+        "marker": "TODO",
+        "text": "Todos los casos usan:"
+      },
+      {
+        "line": 691,
+        "marker": "TODO",
+        "text": "Todo stat mostrado debe poder explicar su procedencia."
+      },
+      {
+        "line": 719,
+        "marker": "pendiente",
+        "text": "- No crear `PhysicalDamage` como competencia independiente."
+      },
+      {
+        "line": 725,
+        "marker": "TODO",
+        "text": "- No utilizar `_Process` para recalcular todos los Citizens continuamente."
+      },
+      {
+        "line": 730,
+        "marker": "pendiente",
+        "text": "## 14. Pendientes"
+      }
+    ],
+    "open_question_hits": [],
+    "proposed_issue_title": null,
+    "type": null,
+    "area": null,
+    "action": "undecided"
+  },
+  {
+    "source_document": "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
+    "title": "Primera noche del Fundador y espíritu de fuego",
+    "backlog_hit_count": 4,
+    "backlog_hits": [
+      {
+        "line": 16,
+        "marker": "todavía no",
+        "text": "- Por qué el Founder interactúa con recursos que todavía no conoce."
+      },
+      {
+        "line": 36,
+        "marker": "todavía no",
+        "text": "La conciencia ya puede dirigir su cuerpo, pero todavía no comprende las propiedades prácticas de la materia ni las costumbres de supervivencia mortal."
+      },
+      {
+        "line": 142,
+        "marker": "futuro",
+        "text": "- Primer punto del futuro asentamiento."
+      },
+      {
+        "line": 165,
+        "marker": "TODO",
+        "text": "Todos sus recursos deben estar disponibles sin herramientas avanzadas."
       }
     ],
     "open_question_hits": [],

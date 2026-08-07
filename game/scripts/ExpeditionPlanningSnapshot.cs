@@ -14,7 +14,7 @@ public sealed record ExpeditionPlanningSnapshot(
     /// <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
     /// objective is meaningful — the trail cannot be read while the
     /// spirit is still present
-    /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). The
+    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). The
     /// underlying gate is the same as the other resource sorties
     /// (Campfire + Cache), but the spirit gate is independent and
     /// must be false until the night concludes.

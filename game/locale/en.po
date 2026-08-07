@@ -2490,7 +2490,7 @@ msgid "Whip"
 msgstr "Whip"
 
 # First night (en) — authored guidance from the fire spirit
-# (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). Body text carries no
+# (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). Body text carries no
 # literal digits: quantities come from FoundingSiteRules.InputsFor at
 # runtime, so a recipe change cannot leave the night describing a
 # world that no longer exists. Each main-dialogue node has one body

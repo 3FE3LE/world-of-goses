@@ -9,13 +9,13 @@ Este documento ordena por dependencias la integración del sistema de combate au
 Parte de las decisiones consolidadas en:
 
 ```text
-01_GAME_VISION.md
-02_CORE_GAMEPLAY_PILLARS.md
-04_CITIZENS_PROFESSIONS_AND_HEROES.md
-05_EXPEDITIONS.md
-10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md
-11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md
-12_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md
+docs/world-of-goses-design-bible/01_GAME_VISION.md
+docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md
+docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md
+docs/world-of-goses-design-bible/05_EXPEDITIONS.md
+docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE_AND_ROADMAP.md
+docs/world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md
+docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md
 ```
 
 El objetivo inmediato no es construir el sistema definitivo, sino demostrar un circuito vertical completo:
@@ -56,7 +56,7 @@ Citizen persistente
 
 #### Objetivo
 
-Confirmar que la implementación actual de estadísticas coincide con `12_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md`.
+Confirmar que la implementación actual de estadísticas coincide con `docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md`.
 
 #### Entregables
 

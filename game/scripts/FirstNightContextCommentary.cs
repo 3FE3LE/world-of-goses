@@ -9,7 +9,7 @@ namespace WorldofGoses;
 /// Ephemeral commentary the fire spirit offers when the founder
 /// gathers a recognised resource near the unfinished campfire or
 /// shelter during the first night
-/// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §6–8). The
+/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §6–8). The
 /// commentary reuses the <see cref="Notifier"/> toast: it is short,
 /// auto-dismissing, and never captures input.
 ///

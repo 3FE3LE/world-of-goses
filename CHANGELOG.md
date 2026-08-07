@@ -22,6 +22,51 @@ their commits for the real content.
 
 ---
 
+## La biblia recupera sus capítulos huérfanos
+
+**2026-08-07** · schema v31 (sin cambio)
+
+**Un jugador no nota nada.** Esta entrada existe porque el contrato la pide, no
+porque el juego haya cambiado: no se tocó dominio, escena ni guardado. Lo que
+cambió es dónde vive el canon, que es lo que decide si la próxima sesión lo
+encuentra.
+
+Cuatro documentos estaban numerados como capítulos de la biblia pero vivían en
+la raíz de `docs/`, y tres de esos números ya estaban ocupados dentro de la
+biblia. La colisión más cara: `19_FIRST_NIGHT_AND_FIRE_SPIRIT` — aceptado como
+canónico el día anterior bajo DEC-0014 — competía con `19_LINEAGES_ORVETH`.
+Ahora las afinidades elementales ocupan el **11**, el hueco que la biblia había
+dejado; las estadísticas y fórmulas de combate pasan a **22**; la primera noche
+pasa a **23**, y es el único capítulo que el código cita por nombre, así que el
+renombrado arrastró catorce archivos de `game/` y `tests/`. El cuarto,
+`13_EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP`, **no** entró en la biblia:
+ordena trabajo por dependencias, dice cuándo y no qué, y pierde el número. El
+número de capítulo queda declarado como identidad estable: nunca se reutiliza
+ni se reordena.
+
+La causa de que los cuatro sobrevivieran años en la raíz era que `docs/README.md`
+no los mencionaba, junto con otros seis documentos. El índice ahora está
+completo y la regla de autoridad 7 lo declara: un documento que existe y no está
+indexado es invisible. `scripts/docs/classify.ps1` la hace cumplir, y falla
+también cuando un documento no está clasificado o cuando el registro nombra un
+archivo que ya no existe. Ese registro, `scripts/docs/classification.json`, es
+la fase 2 de la migración y está escrito a mano a propósito: decidir si un
+bloque es canon, especificación, roadmap o backlog es un juicio que se revisa
+línea por línea, no un patrón que se infiere. 265 documentos clasificados, y
+cuatro quedan marcados `split` o `merge` como propuestas sin programar —
+`ARCHITECTURE.md` y el capítulo 10 mezclan descripción con roadmap,
+`UI_AUDIT.md` mezcla checklist con historial, y `CURRENT_DEVELOPMENT_STATE.md`
+es el tercer documento que responde qué está construido.
+
+De paso, los cinco enlaces rotos que el inventario de la fase 1 había
+reportado resultaron ser fantasmas: el extractor leía `MIGRATIONS[v](data)`
+dentro de un bloque de código como si fuera un enlace Markdown. El inventario
+ahora ignora el código antes de buscar enlaces: 124 enlaces, **0 rotos**.
+
+Baseline medido: build 0 errores / 0 avisos, **914 pruebas pasan** (1 omitida),
+arranque headless limpio, 448 verificaciones de contexto de agentes, 922
+identificadores de plantilla y 283 claves en runtime.
+
 ## Profundidad real en el macro y suelo por bioma
 
 **2026-08-06** · schema v31 (sin cambio)
@@ -278,7 +323,7 @@ las cuatro secciones que el repo había superado:
   de lo activo (EG-5) y lo pendiente (EG-6).
 - La sección **15 (Founding hero and first night)** deja de
   presentar al Basic Shelter como primera decisión de obra y
-  apunta a `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y al
+  apunta a `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y al
   acceptance test EG-A0 del proposal §17.
 
 Lo demás del archivo (game vision, pilares, stack, plataforma,
@@ -399,7 +444,7 @@ volver a cumplir. No hay regalos ni retro-tutorial.
 
 Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la
 primera expedición. Quedan como fases 2 a 4 en `TO_DO.md` §3. El contrato que
-las gobierna está en `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, y mantiene
+las gobierna está en `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, y mantiene
 separados los tres niveles de guía — noche autoral, directivas derivadas del
 estado real, y Camino de solo lectura — sin fusionarlos en una lista de misiones.
 
@@ -453,7 +498,7 @@ módulo a módulo.
   retorno que `FallenWoodSearch` (4 / 6 / 8 Wood) y duración 180
   ticks. El botón se desbloquea sólo cuando `SpiritDeparted` está en
   el log, vía `ExpeditionPlanningSnapshot.SpiritTrailUnlocked`.
-- **Documentación canónica**: `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+- **Documentación canónica**: `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
   pasa de "Propuesta canónica" a "Aceptada" (DEC-0014). El bloque
   "First night" se añade a `CROSS_DOMAIN_INVARIANTS.md` y la ruta
   "First night / fire spirit" se añade a `CONTEXT_MAP.md`. Cuatro

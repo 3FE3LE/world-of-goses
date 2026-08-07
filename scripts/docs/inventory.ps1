@@ -89,8 +89,14 @@ function Get-DocRecord {
         }
     }
 
+    # Code first, links second. `MIGRATIONS[v](data)` inside a fenced block is
+    # valid Python and not a markdown link; counting it produced five phantom
+    # broken links in the first inventory, all pointing at a file named `data`.
+    $prose = [regex]::Replace($text, '(?ms)^\s*```.*?^\s*```', '')
+    $prose = [regex]::Replace($prose, '`[^`\r\n]*`', '')
+
     $links = @()
-    foreach ($m in [regex]::Matches($text, '\[[^\]]*\]\(([^)\s]+)')) {
+    foreach ($m in [regex]::Matches($prose, '\[[^\]]*\]\(([^)\s]+)')) {
         $target = $m.Groups[1].Value
         if ($target -match '^(https?:|mailto:|#)') { continue }
         $links += $target

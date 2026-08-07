@@ -45,7 +45,7 @@ public static class IconPaths
     /// <summary>Fire spirit / campfire icon. Promoted from
     /// <c>art/Pixelarticons/svg/fire.svg</c> on 2026-08-06 to close the
     /// M-22 trigger for the first-night spirit placeholder
-    /// (see <c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>).</summary>
+    /// (see <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>).</summary>
     public const string Fire = Root + "fire.svg";
     public const string Cog = Root + "cog.svg";
     public const string Coin = Root + "coin.svg";

@@ -8,7 +8,7 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Presentation host for the authored first night
-/// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Owns the
+/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Owns the
 /// non-modal <see cref="FirstNightSpeechBubble"/> and the
 /// <see cref="FireSpiritVisual"/>, both rendered at
 /// <see cref="OverlayLayers.Tutorial"/> so they occlude the

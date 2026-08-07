@@ -391,7 +391,7 @@ y fallback*.
 **Date:** 2026-08-06
 
 **Decision:**
-The post-manifestation period (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
+The post-manifestation period (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
 is a bounded, authored sequence running from the founder's arrival at
 tick 0 (`00:00`) to dawn. Concretely:
 
@@ -483,7 +483,7 @@ persistence.
   separate recipe-and-resources tutorial.
 
 **Documents affected:**
-`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` (Propuesta → Aceptada),
+`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` (Propuesta → Aceptada),
 `docs/CURRENT_STATUS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`,
 `docs/ai/CROSS_DOMAIN_INVARIANTS.md` (first-night invariants block),
 `docs/ai/CONTEXT_MAP.md` (first-night route + tools placeholder),

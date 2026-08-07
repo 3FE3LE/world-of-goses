@@ -130,7 +130,7 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 - The post-manifestation period runs from the founder's arrival at tick 0 to
   `FirstNightStage.Concluded` and is absorbing thereafter. Cities that already
   passed their opening (legacy saves or post-soft-reset) enter the period
-  already concluded. *(docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md §17,
+  already concluded. *(docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md §17,
   `Domain/FirstNightState.cs`, `Domain/Persistence/WorldPersistence.cs`)*
 - The night advances only on a closed dialogue node or a completed module
   (`FirstNightRules.WaitsForDialogue` / `WaitsForModule`). The clock never

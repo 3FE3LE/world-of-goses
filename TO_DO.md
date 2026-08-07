@@ -143,7 +143,7 @@ Onboarding astral → manifestación sobre la marca del linaje
 
 ## 3. En curso
 
-### Primera noche del fundador (`docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
+### Primera noche del fundador (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
 
 Un playtest expuso que talar un árbol pide un hacha primitiva sin decir cómo
 obtenerla, y que el tutorial de tres tarjetas mentía sobre las recetas reales.
@@ -320,7 +320,7 @@ superados en 2026-07-30; ver §8.)_
   `SpiritButton` en `ExpeditionPanel.tscn`, gate por
   `ExpeditionPlanningSnapshot.SpiritTrailUnlocked`. Sin schema bump
   (string serialisation + `Enum.TryParse` tolerante). Docs:
-  `docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md` Propuesta → Aceptada,
+  `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` Propuesta → Aceptada,
   **DEC-0014** en `docs/ai/DECISION_LOG.md`, invariantes en
   `docs/ai/CROSS_DOMAIN_INVARIANTS.md`, ruta "First night / fire spirit" +
   placeholder "Tools and inventory" en `docs/ai/CONTEXT_MAP.md`, 4 fixtures
