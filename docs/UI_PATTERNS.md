@@ -77,10 +77,18 @@ Use `[GlobalClass]` when:
 
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
-`GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, and the three
-`ActionButton` roles — `PrimaryActionButton`, `SecondaryActionButton`,
-`DangerActionButton`. Future targets include `StatChip` and
+`GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`, and the
+three `ActionButton` roles — `PrimaryActionButton`,
+`SecondaryActionButton`, `DangerActionButton`. Future targets include
 `ExpeditionCard`.
+
+`StatChip` landed here rather than as the `StatChip.tscn` §2.1 sketches:
+chips are only ever built procedurally, never placed in the editor, so
+the editor reuse a PackedScene buys does not apply, and §2.4 routes a
+widget with its own construction logic to `[GlobalClass]`. It began as a
+`private partial class IconChip` at the bottom of `CityStatusPanel.cs`
+— a second public type in a file named after another one, and a shared
+widget no other surface could reach.
 
 **Name the role, not the look.** A view picks `PrimaryActionButton` (the one
 action the screen is for), `SecondaryActionButton` (everything else
@@ -169,6 +177,17 @@ is only acceptable for **single-use, throwaway** debug widgets.
 | ExtResource ID in `.tscn` | Lowercase tag, optional numeric suffix. | `18_modalhost`, `19_tooltip`. |
 | `.tscn` factory paths | `res://scenes/Components/<PascalCase>.tscn`. | `res://scenes/Components/StatChip.tscn`. |
 | Theme variation names | Match the `default_theme.tres` registry; never coin a new variation inline. | `GameTitle`, `PanelTitle`, `TooltipText`, `BodyText`, `NumericText`, `ButtonText`. |
+| Spacing and control sizes | Name them in `Ui/Tokens.cs`; do not re-decide a number at the callsite. | `Tokens.SpacingBase`, `Tokens.ChipHeight`, `Tokens.ControlHeight`. |
+
+**Spacing has a scale now.** Typography is fully centralised — every
+Label and Button names a variation, and there are zero
+`AddThemeFontOverride` / `AddThemeFontSizeOverride` calls in the
+repository. Spacing was the opposite: 84 `AddThemeConstantOverride`
+calls across 24 files, nearly all `separation` or `margin_*`, each
+choosing its own number. `Ui/Tokens.cs` is the missing half. It holds
+the values already in the code, named — renumbering spacing moves layout
+metrics and needs a visual pass, whereas naming it does not. Add a token
+when a constant gains a second consumer, not in advance.
 
 ## 4. State binding — signals, not polling
 

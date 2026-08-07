@@ -11,7 +11,7 @@ namespace WorldofGoses;
 /// a horizontal row of icon-plus-label pairs (day/night, mobilisation,
 /// per-building summary, free citizens) separated by thin gaps.
 ///
-/// Each pair is built with <see cref="IconChip"/>, a tiny helper that
+/// Each pair is built with <see cref="StatChip"/>, a tiny helper that
 /// keeps the icon-on-the-left layout consistent across the strip and
 /// guarantees integer pixel positions for the pixel-art pipeline.
 /// Text styling comes from the project's default theme (BodySmall);
@@ -19,7 +19,7 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CityStatusPanel : PanelContainer
 {
-    private const int ChipGap = 18;
+    private const int ChipGap = Tokens.SpacingLoose;
     private const float StatusHorizontalPadding = 8f;
     // Vertical breathing room comes from the global 8 px safe-area rule.
     // Keep the ornamental resource itself at zero so the two layers do not
@@ -32,7 +32,7 @@ public partial class CityStatusPanel : PanelContainer
 
     private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;
-    private IconChip? _savedChip;
+    private StatChip? _savedChip;
     private ulong _saveIndicatorGeneration;
     private ulong _emphasizedSaveGeneration;
     private bool _saveIndicatorVisible;
@@ -134,7 +134,7 @@ public partial class CityStatusPanel : PanelContainer
         string text = UiText.Get("ui.status.saved_short");
         if (_savedChip is null)
         {
-            _savedChip = new IconChip(IconPaths.Check, text);
+            _savedChip = new StatChip(IconPaths.Check, text);
             _row.AddChild(_savedChip);
         }
         else
@@ -223,7 +223,7 @@ public partial class CityStatusPanel : PanelContainer
         // advertise it is gone.
         float windowWidth = DisplayServer.WindowGetSize().X;
         bool compact = ShouldUseCompactLayout(windowWidth, snapshot.Projects.Count > 0);
-        _row.AddThemeConstantOverride("separation", compact ? 8 : ChipGap);
+        _row.AddThemeConstantOverride("separation", compact ? Tokens.SpacingBase : ChipGap);
         foreach (var child in _row.GetChildren())
         {
             _row.RemoveChild(child);
@@ -257,7 +257,7 @@ public partial class CityStatusPanel : PanelContainer
         // shifts the chip width when the digit count changes. Wrap the
         // chip in a fixed-width Control with clip_contents so the row
         // never reflows as the simulation advances.
-        var chip = new IconChip(iconPath, SimulationTimeText.FormatLocalized(tick), "BuildingName");
+        var chip = new StatChip(iconPath, SimulationTimeText.FormatLocalized(tick), "BuildingName");
         chip.TooltipText = SimulationTimeText.FormatLocalized(tick);
         var wrap = new Control
         {
@@ -307,7 +307,7 @@ public partial class CityStatusPanel : PanelContainer
     private void BuildOffHoursChip(CityStatusSnapshot snapshot)
     {
         if (snapshot.IsLaborTime) return;
-        var chip = new IconChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
+        var chip = new StatChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
         chip.TooltipText = UiText.Get("ui.status.off_hours_hint");
         _row.AddChild(chip);
     }
@@ -329,7 +329,7 @@ public partial class CityStatusPanel : PanelContainer
         // one surface always on screen, and "Obra 0/180" with no reason reads as
         // a broken game rather than a blocked one.
         label += StopCauseSuffix(project);
-        var chip = new IconChip(IconPaths.Building, label);
+        var chip = new StatChip(IconPaths.Building, label);
         chip.TooltipText = StopCauseHint(project);
         _row.AddChild(chip);
     }
@@ -387,73 +387,3 @@ public partial class CityStatusPanel : PanelContainer
     };
 }
 
-/// <summary>
-/// One icon-plus-text pair used in <see cref="CityStatusPanel"/>.
-/// Compact helper that keeps the icon-on-the-left layout consistent
-/// across the strip; intentionally not a Control so it inlines
-/// without its own panel chrome. Icons ship with a white SVG fill
-/// and are tinted at construction time with the active linaje's
-/// accent; the parent <see cref="CityStatusPanel"/> re-tints every
-/// chip when the linaje changes so the entire strip stays coherent.
-/// </summary>
-public partial class IconChip : HBoxContainer
-{
-    private const int IconTextGap = 8;
-    private const int IconSize = 12;
-    private const int ChipHeight = 20;
-
-    private Label _label = null!;
-
-    public IconChip(string iconPath, string text, string labelVariation = "BodySmall")
-    {
-        MouseFilter = MouseFilterEnum.Pass;
-        SizeFlagsVertical = SizeFlags.ShrinkCenter;
-        CustomMinimumSize = new Vector2(0, ChipHeight);
-        AddThemeConstantOverride("separation", IconTextGap);
-        TooltipText = string.Empty;
-
-        var iconCell = new MarginContainer
-        {
-            CustomMinimumSize = new Vector2(IconSize, ChipHeight),
-            MouseFilter = MouseFilterEnum.Ignore,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        iconCell.AddThemeConstantOverride("margin_top", 1);
-        AddChild(iconCell);
-
-        var icon = new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(iconPath),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            CustomMinimumSize = new Vector2(IconSize, IconSize),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-        };
-        iconCell.AddChild(icon);
-
-        _label = new Label
-        {
-            Text = text,
-            // Pass any non-empty variation to override the default
-            // BodySmall (Pixelify Sans). The clock uses a Jersey 10
-            // variation so the digit widths stay constant across ticks.
-            ThemeTypeVariation = string.IsNullOrEmpty(labelVariation) ? "BodySmall" : labelVariation,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            MouseFilter = MouseFilterEnum.Ignore,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        AddChild(_label);
-    }
-
-    /// <summary>
-    /// Replaces the chip text without rebuilding the icon. Used by the
-    /// "Saved" chip so the timestamp can refresh in place.
-    /// </summary>
-    public void UpdateText(string text)
-    {
-        if (_label is not null) _label.Text = text;
-    }
-}

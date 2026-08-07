@@ -28,9 +28,11 @@ public abstract partial class ActionButton : Button
     /// Shared control height. Matches <see cref="OnboardingChoiceButton"/> so
     /// a row of actions lines up with a column of choices, and stays clear of
     /// the ~34 px intrinsic height of a single <c>Jersey 10</c> line inside the
-    /// 9-slice's 4 px vertical content margins.
+    /// 9-slice's 4 px vertical content margins. Defined by
+    /// <see cref="Tokens.ControlHeight"/> so the button standard and the spacing
+    /// scale cannot disagree about what an action's height is.
     /// </summary>
-    public const int DefaultHeight = 40;
+    public const int DefaultHeight = Tokens.ControlHeight;
 
     protected ActionButton(string variation, int minimumWidth)
     {

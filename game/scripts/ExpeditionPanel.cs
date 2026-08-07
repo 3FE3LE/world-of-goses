@@ -701,18 +701,4 @@ public partial class ExpeditionPanel : Control
         target.GrabFocus();
     }
 
-    private static StyleBoxFlat CreateReadingSurface() =>
-        new()
-        {
-            BgColor = new Color(0.09f, 0.13f, 0.16f, 0.98f),
-            BorderColor = new Color(0.78f, 0.64f, 0.32f, 1f),
-            BorderWidthLeft = 2,
-            BorderWidthTop = 2,
-            BorderWidthRight = 2,
-            BorderWidthBottom = 2,
-            CornerRadiusTopLeft = 4,
-            CornerRadiusTopRight = 4,
-            CornerRadiusBottomLeft = 4,
-            CornerRadiusBottomRight = 4,
-        };
 }
