@@ -193,8 +193,9 @@ and §17 acceptance test are complete.
 - Integration tests reload every expedition boundary and halfway through
   treatment; resolution/debits/events occur exactly once.
 - A second expedition after recovery and save/reload is covered without reset.
-- Dirty-aware autosave runs every three real minutes and on close/pause when
-  needed; explicit saves remain possible through existing actions.
+- Dirty-aware autosave runs every three real minutes and on close when
+  needed; explicit saves remain possible through existing actions. There is no
+  pause trigger any more: no surface can freeze the simulation.
 
 ### Presentation and input
 
@@ -337,7 +338,7 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 - Full combat, equipment, formations, mortality and generations.
 - Deep politics, culture, environment, trade, economy and demographics.
 - Full profession/education/institution/relationship systems.
-- Multiple biomes/large route graph and final art/audio.
+- Large route graph and final art/audio. (Per-lineage ground biomes landed 2026-08-06 as presentation only — see DEC-0017.)
 - Massive-population optimization without profiler evidence.
 
 ## 9. Verification commands

@@ -928,6 +928,21 @@ public sealed class CityWorld
     }
 
     /// <summary>Queries persisted Founding Site capabilities without exposing storage details.</summary>
+    /// <summary>
+    /// Id of the building that grew out of the founding site, or <c>null</c>
+    /// while it is still a project. Presentation uses it to anchor the
+    /// campfire's embers on the real structure instead of guessing.
+    /// </summary>
+    public int? FoundingSiteBuildingId()
+    {
+        foreach (Building building in _buildings.Values)
+        {
+            if (building.Kind == BuildingKind.Home
+                && building.FoundingSiteOriginModules.Count > 0) return building.Id.Value;
+        }
+        return null;
+    }
+
     public bool HasFoundingSiteModule(FoundingSiteModule module)
     {
         foreach (ConstructionProject project in _projects.Values)

@@ -214,11 +214,40 @@ public static class FireSpiritDialogueCatalog
 
     private sealed record FireSpiritNode(string Id, string BodyKey) : IDialogueNode
     {
-        public string SpeakerId => FireSpiritSpeakerId;
+        public string SpeakerId => SpeakerFor(Id);
         public IReadOnlyList<IDialogueChoice> Choices => Array.Empty<IDialogueChoice>();
         public IDialogueNode? Next => null;
     }
 
     /// <summary>Speaker id of the fire spirit. Resolved by the UI to a sprite and a name.</summary>
     public const string FireSpiritSpeakerId = "fire_spirit";
+
+    /// <summary>
+    /// The night's narrating voice — the world, not a character. Nodes carrying
+    /// this speaker describe what happens; nobody in the scene utters them.
+    /// </summary>
+    public const string NarratorSpeakerId = "narrator";
+
+    /// <summary>
+    /// The nodes the fire spirit actually says out loud. Everything else in the
+    /// authored night is narration written in the third person <em>about</em>
+    /// the spirit — "El espíritu se detiene, sorprendido", "El espíritu se
+    /// desliza entre las piedras" — and every node used to claim the spirit as
+    /// its speaker regardless. Presented in a speech balloon that made the
+    /// spirit narrate itself.
+    ///
+    /// <para>
+    /// The criterion is mechanical and checkable against the copy: a body that
+    /// refers to <em>el espíritu</em> in the third person is narration. Which
+    /// beats should be rewritten <em>as</em> speech is a separate narrative
+    /// call over 48 keys; this only stops the game from misattributing what is
+    /// already written.
+    /// </para>
+    /// </summary>
+    private static readonly System.Collections.Generic.HashSet<string> SpokenAloudIds =
+        new(StringComparer.Ordinal) { ShelterBuiltId };
+
+    /// <summary>Speaker for <paramref name="nodeId"/>: the spirit, or the narrator.</summary>
+    public static string SpeakerFor(string nodeId) =>
+        SpokenAloudIds.Contains(nodeId) ? FireSpiritSpeakerId : NarratorSpeakerId;
 }

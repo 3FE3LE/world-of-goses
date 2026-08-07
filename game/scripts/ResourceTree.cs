@@ -7,15 +7,9 @@ namespace WorldofGoses;
 /// <summary>Interactive visual unit for a Forest reserve.</summary>
 public partial class ResourceTree : TextureButton
 {
-    internal const string TerrainAtlasPath =
-        "res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png";
+    internal const string TerrainAtlasPath = TerrainAtlas.AtlasPath;
     public const string AxeCursorPath =
         "res://assets/ui/cursors/kenney-pixel/axe.png";
-    internal const int TreeAtlasColumnA = 13;
-    internal const int TreeAtlasColumnB = 14;
-    internal const int TreeAtlasRow = 9;
-    private const int SourceTileSize = 16;
-    private const int SourceStride = 17;
 
     [Signal]
     public delegate void ResourcePressedEventHandler(
@@ -32,7 +26,7 @@ public partial class ResourceTree : TextureButton
         ForestId = forestId;
         UnitId = unitId;
         Texture2D atlas = GD.Load<Texture2D>(TerrainAtlasPath);
-        TextureNormal = CreateRegion(atlas, visualVariant % 2 == 0 ? 13 : 14, 9);
+        TextureNormal = CreateRegion(atlas, TerrainAtlas.TreeRegion(visualVariant, 0));
         TextureHover = TextureNormal;
         TooltipText = UiText.Get("Wood resource — click for actions");
     }
@@ -82,7 +76,8 @@ public partial class ResourceTree : TextureButton
 
     private void OnMouseEntered()
     {
-        _cursorController.UseGatherCursor();
+        // ResourceTree is the tree widget specifically, so the tool is the axe.
+        _cursorController.UseGatherCursor(WorldofGoses.Domain.ResourceType.Wood);
         UiMotion.Pulse(this, LineageThemeRegistry.IconAccent);
     }
 
@@ -92,17 +87,13 @@ public partial class ResourceTree : TextureButton
         UiMotion.Pulse(this, LineageThemeRegistry.IconAccent);
 
     internal static AtlasTexture CreateRegion(Texture2D atlas, int column, int row) =>
+        CreateRegion(atlas, TerrainAtlas.Region(column, row));
+
+    /// <summary>Wraps an already-resolved atlas region as a texture.</summary>
+    internal static AtlasTexture CreateRegion(Texture2D atlas, Rect2 region) =>
         new()
         {
             Atlas = atlas,
-            Region = AtlasRegionRect(column, row),
+            Region = region,
         };
-
-    /// <summary>Source rect of one 16×16 tile in the shared Kenney atlas.</summary>
-    internal static Rect2 AtlasRegionRect(int column, int row) =>
-        new(
-            column * SourceStride,
-            row * SourceStride,
-            SourceTileSize,
-            SourceTileSize);
 }

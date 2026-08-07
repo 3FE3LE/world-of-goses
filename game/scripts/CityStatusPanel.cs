@@ -214,7 +214,7 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-		// The status bar is intentionally bounded: clock, speed controls,
+		// The status bar is intentionally bounded: clock, speed control,
 		// and — only when a project exists — a concise project
         // chip. The mobilisation, hero, and empty-state chips moved to
         // their natural surface (BuildingDetailView, EmptyPanel); a
@@ -269,14 +269,10 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(wrap);
         if (snapshot.HasController)
         {
-            // Two independent buttons: PlayPause owns the pause state,
-            // SpeedButton owns the speed multiplier. The row separation
-            // gives them a visible gap without a wrapping container.
-            _row.AddChild(new PlayPauseButton
-            {
-                ThemeTypeVariation = "ButtonText",
-                FocusMode = Control.FocusModeEnum.All,
-            });
+            // Speed only. The play/pause control is gone: the world advances
+            // while the game is closed, so a button that freezes it was
+            // arguing with the premise. A player who wants the city to settle
+            // slows it down instead of stopping it.
             _row.AddChild(new SpeedButton
             {
                 ThemeTypeVariation = "ButtonText",

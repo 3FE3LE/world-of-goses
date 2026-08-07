@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
@@ -12,36 +13,44 @@ namespace WorldofGoses;
 /// "spirit-departed" without any geometry shift.
 ///
 /// <para>
-/// The shape is a closed quadrilateral of four points in an orange
-/// gradient — small enough to read as tizones (the Spanish term the
-/// docs use) rather than a campfire. When art lands, the
-/// <see cref="Line2D"/> can be replaced by a sprite without
-/// touching the consumer.
+/// This was a wireframe quadrilateral, which read as an abstract marker
+/// stamped on a terrain tile rather than as a spent fire — a playtester
+/// asked whether it was a lineage sigil. It is now the atlas's campfire
+/// sprite, darkened and desaturated so it reads as a fire that has gone
+/// out on the spot where the spirit lived.
 /// </para>
 /// </summary>
 public partial class FirstNightEmbers : Node2D
 {
-    private const float EmbersSize = 10f;
-    private static readonly Color EmbersColor = new(1.0f, 0.55f, 0.18f, 0.78f);
+    /// <summary>Campfire tile in the shared roguelike atlas.</summary>
+    private const int CampfireColumn = 14;
+    private const int CampfireRow = 8;
 
-    private Line2D _ring = null!;
+    /// <summary>Integer magnification, matching the world's other 16 px sprites.</summary>
+    private const int Scale2X = 2;
+
+    /// <summary>Cooled down: the fire's own colours, pushed toward ash.</summary>
+    private static readonly Color SpentTint = new(0.62f, 0.44f, 0.34f, 0.92f);
+
+    private Sprite2D _sprite = null!;
 
     public override void _Ready()
     {
-        _ring = new Line2D
+        var atlas = ResourceLoader.Load<Texture2D>(TerrainAtlas.AtlasPath);
+        _sprite = new Sprite2D
         {
-            Width = 2f,
-            DefaultColor = EmbersColor,
-            Closed = true,
+            Texture = atlas is null
+                ? null
+                : new AtlasTexture
+                {
+                    Atlas = atlas,
+                    Region = TerrainAtlas.Region(CampfireColumn, CampfireRow),
+                },
+            Scale = new Vector2(Scale2X, Scale2X),
+            Modulate = SpentTint,
+            TextureFilter = TextureFilterEnum.Nearest,
         };
-        // Square of four points, sized to read as tizones rather than a
-        // full campfire. The shape is decorative — a future sprite will
-        // replace this primitive without changing the host.
-        _ring.AddPoint(new Vector2(-EmbersSize, -EmbersSize * 0.6f));
-        _ring.AddPoint(new Vector2(EmbersSize, -EmbersSize * 0.6f));
-        _ring.AddPoint(new Vector2(EmbersSize * 0.7f, EmbersSize * 0.5f));
-        _ring.AddPoint(new Vector2(-EmbersSize * 0.7f, EmbersSize * 0.5f));
-        AddChild(_ring);
+        AddChild(_sprite);
 
         Visible = false;
     }

@@ -28,7 +28,6 @@ public partial class PauseMenu : Control
     private IconButton _languageButton = null!;
     private IconButton _openButton = null!;
     private LocaleManager? _localeManager;
-    private CityWorldController.SpeedChoice _speedBeforeOpen;
     private bool _scrimPressStarted;
     private bool _softResetRequested;
 
@@ -139,8 +138,10 @@ public partial class PauseMenu : Control
     /// switcher without going through the open button.</summary>
     public void Open()
     {
-        _speedBeforeOpen = _controller.CurrentSpeed;
-        _controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Paused);
+        // Opening the menu no longer freezes the simulation. The city runs
+        // while the game is closed; stopping it because a menu is on screen
+        // contradicted that, and it made the menu a way to buy time. The
+        // world keeps ticking behind the scrim.
         HideResetConfirmation();
         Show();
         _resumeButton.GrabFocus();
@@ -157,10 +158,6 @@ public partial class PauseMenu : Control
     {
         if (!Visible) return;
         Hide();
-        if (_speedBeforeOpen != CityWorldController.SpeedChoice.Paused)
-        {
-            _controller.SetSimulationSpeed(_speedBeforeOpen);
-        }
     }
 
     private void ShowResetConfirmation()

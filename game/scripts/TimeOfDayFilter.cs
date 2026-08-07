@@ -109,8 +109,13 @@ public partial class TimeOfDayFilter : Control
         }
 
         if (_pinnedFraction is null && _controller?.World is null) return;
+        // Same held clock as the status strip: while the first night runs the
+        // ambient tint must stay at night, or the world brightens into day
+        // around a player the spirit is still guiding through the dark.
+        CityWorld world = _controller.World;
+        int displayedTick = world.FirstNight?.DisplayedTick(world.CurrentTick) ?? world.CurrentTick;
         Color next = TimeOfDayColor.ForFraction(
-            _pinnedFraction ?? GameClock.DayFraction(_controller.World.CurrentTick));
+            _pinnedFraction ?? GameClock.DayFraction(displayedTick));
         if (next == _color) return;
         _color = next;
         _rect.Color = next;

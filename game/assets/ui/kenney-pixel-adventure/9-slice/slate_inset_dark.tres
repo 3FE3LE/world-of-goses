@@ -1,6 +1,6 @@
 [gd_resource type="StyleBoxTexture" load_steps=2 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/ui/kenney/9-slice/yellow_pressed.png" id="1_tex"]
+[ext_resource type="Texture2D" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_inset_dark.png" id="1_tex"]
 
 [resource]
 texture = ExtResource("1_tex")
@@ -8,10 +8,10 @@ content_margin_left = 16.0
 content_margin_top = 4.0
 content_margin_right = 16.0
 content_margin_bottom = 4.0
-texture_margin_left = 4
-texture_margin_right = 4
-texture_margin_top = 4
-texture_margin_bottom = 4
+texture_margin_left = 8
+texture_margin_right = 8
+texture_margin_top = 8
+texture_margin_bottom = 8
 axis_stretch_horizontal = 1
 axis_stretch_vertical = 1
 modulate_color = Color(1, 1, 1, 1)

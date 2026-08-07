@@ -26,6 +26,16 @@ public static class OverlayLayers
     /// colour it. HUD chrome must NOT sit here — see <see cref="Hud"/>.</summary>
     public const int World = 0;
 
+    /// <summary>
+    /// Base z for the macro view itself. The view sorts its own contents by
+    /// depth — one child layer per street band, plus the citizen carriers —
+    /// and needs a whole range of positive child indices to do it. Children
+    /// are relative to their parent, so parking the view here keeps that
+    /// entire range below <see cref="World"/> and therefore below the ambient
+    /// tint, the HUD and every overlay above them.
+    /// </summary>
+    public const int WorldDepthBase = -256;
+
     /// <summary>Ambient day/night tint over the world. Sits above
     /// <see cref="World"/> and below <see cref="Hud"/>: it is an
     /// immersion effect for the map, never a wash over the interface.

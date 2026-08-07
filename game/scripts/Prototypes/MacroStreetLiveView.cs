@@ -92,14 +92,14 @@ public partial class MacroStreetLiveView : Node2D
 
     // Same cadence discipline as the earlier prototypes (design bible §08,
     // "Pixel-motion grammar"): no continuous tweening.
-    private const int TransitionSteps = 5;
+    private const int TransitionSteps = 10;
     private const float DepthStepSize = 1f / TransitionSteps;
 
     // Building-entry camera push: a handful of DISCRETE zoom steps toward
     // the clicked building (same stepped cadence as citizen/camera motion —
     // never a continuous Tween), applied to THIS node's own Scale/Position
     // (the map), not to BuildingDetailView. See BeginBuildingEntry.
-    private const int BuildingEntryZoomSteps = 5;
+    private const int BuildingEntryZoomSteps = 10;
     private const float BuildingEntryZoomLevel = 1.75f;
 
     // One resource unit owns one frontage cell. Its visual canvas therefore
@@ -129,10 +129,17 @@ public partial class MacroStreetLiveView : Node2D
     // distinct ground per calle.
     private const float TileUnitPx = LotUnitPx / 3f; // ParcelGrid.TilesPerStandardLot
     // Chunky pixel-grid step for the floor's staircase edges — see
-    // DrawPixelStaircaseTrapezoid. Half of PixelMotion.StepPixels (8px):
+    // DrawPixelStaircaseTrapezoid. Independent of PixelMotion.StepPixels:
     // coarse enough to read as deliberate pixel art, fine enough that the
     // trapezoid shape stays legible instead of looking blocky/broken.
-    private const float PixelStepPx = 4f;
+    // 2, down from 4: the trapezoid edges still climb in whole-pixel treads —
+    // a true diagonal would betray the pixel art — but a 4 px tread read as a
+    // sawtooth on the long shallow edges of the near streets. This is a grain
+    // adjustment, not a move toward antialiasing: edges stay snapped to a
+    // whole-pixel grid and nothing is interpolated. Two is the floor worth
+    // taking; at 1 px the treads stop reading as deliberate and the edge
+    // becomes the diagonal this quantisation exists to avoid.
+    private const float PixelStepPx = 2f;
     // Ground biome atlas coordinates in the shared Kenney roguelike sheet
     // (see ResourceTree.TerrainAtlasPath/AtlasRegionRect for the 16px+1
     // stride convention). Rows 0/1 hold two near-identical variants of each
@@ -365,6 +372,7 @@ public partial class MacroStreetLiveView : Node2D
     private BuildingId? _lastKnownAssignment;
     private CitizenLocation? _lastKnownHeroLocation;
     private bool _treeHovered;
+    private ResourceType _hoveredResource = ResourceType.Wood;
 
     private readonly record struct PlotBox(
         int Street,
@@ -394,6 +402,12 @@ public partial class MacroStreetLiveView : Node2D
 
     public override void _Ready()
     {
+        // The view sorts its own contents by depth using child z-indices, and
+        // children are relative to their parent. Parking the view low keeps
+        // that whole range under the ambient tint, the HUD and the Chronicle
+        // — without it, a tree on the nearest street outranked them and drew
+        // over the panels.
+        ZIndex = OverlayLayers.WorldDepthBase;
         CameraInputActions.EnsureRegistered();
         _controller = GetNode<CityWorldController>(ControllerPath);
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
@@ -608,6 +622,27 @@ public partial class MacroStreetLiveView : Node2D
         Show();
         RefreshPlots();
         _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
+    }
+
+    /// <summary>
+    /// Projected position of a building's base, or <c>Vector2.Zero</c> when it
+    /// is not currently drawn (off-window, or the city has no such building).
+    ///
+    /// <para>
+    /// The first night needs this for the campfire. It used to assume the
+    /// campfire sat at the founder's own projected spot minus 32 px, which put
+    /// it literally on top of the citizen — invisible while the embers were a
+    /// faint wireframe, obvious the moment they became a sprite.
+    /// </para>
+    /// </summary>
+    public Vector2 GetBuildingGlobalPosition(int buildingId)
+    {
+        foreach ((Rect2 rect, int id) in _clickableRects)
+        {
+            if (id != buildingId) continue;
+            return ToGlobal(new Vector2(rect.Position.X + rect.Size.X * 0.5f, rect.End.Y));
+        }
+        return Vector2.Zero;
     }
 
     public Vector2 GetFoundingArrivalGlobalPosition()
@@ -1840,14 +1875,17 @@ public partial class MacroStreetLiveView : Node2D
     {
         _selectedTree = tree;
         _selectedBuildingId = null;
-        Texture2D icon = tree.ResourceType == ResourceType.Wood
-            ? ResourceTree.CreateRegion(
-                _terrainAtlas,
-                (tree.ForestId + tree.UnitId) % 2 == 0
-                    ? ResourceTree.TreeAtlasColumnA
-                    : ResourceTree.TreeAtlasColumnB,
-                ResourceTree.TreeAtlasRow)
-            : GD.Load<Texture2D>(IconPaths.Leaf);
+        // The selection icon is the same sprite the world draws, so the panel
+        // and the plot agree. Non-wood resources used to fall back to a
+        // generic leaf glyph regardless of what they actually were.
+        Texture2D icon = ResourceTree.CreateRegion(
+            _terrainAtlas,
+            tree.ResourceType == ResourceType.Wood
+                // The trunk tile of the very tree that was clicked, so the
+                // panel shows a cactus when a cactus was selected.
+                ? TerrainAtlas.RegionOfId(
+                    TerrainAtlas.TreeFor(_groundBiome, tree.ForestId, tree.UnitId).TrunkId)
+                : TerrainAtlas.ResourceRegion(tree.ResourceType, tree.ForestId, tree.UnitId));
         string resourceName = UiText.Get(tree.ResourceType.ToString().ToLowerInvariant());
         string detail = UiText.Format("ui.resource.units_remain", tree.Reserve, resourceName);
         _selectionInfoPanel.ShowSelection(icon, resourceName, detail);
@@ -2046,15 +2084,21 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         bool hovering = false;
-        foreach ((Rect2 rect, TreeBox _) in _clickableTreeRects)
+        ResourceType hoveredResource = ResourceType.Wood;
+        foreach ((Rect2 rect, TreeBox unit) in _clickableTreeRects)
         {
             if (!rect.HasPoint(mousePosition)) continue;
             hovering = true;
+            hoveredResource = unit.ResourceType;
             break;
         }
-        if (hovering == _treeHovered) return;
+        // Track the resource too, not just "something is hovered": moving
+        // between a tree and a stone without leaving the resource band has to
+        // swap the tool, and it used to raise the axe for every one of them.
+        if (hovering == _treeHovered && hoveredResource == _hoveredResource) return;
         _treeHovered = hovering;
-        if (hovering) _cursorController?.UseGatherCursor();
+        _hoveredResource = hoveredResource;
+        if (hovering) _cursorController?.UseGatherCursor(hoveredResource);
         else _cursorController?.RestoreSurfaceCursor();
     }
 
@@ -2809,6 +2853,10 @@ public partial class MacroStreetLiveView : Node2D
         _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
             hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
         CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
+        // The city sits on the site the founder's fall reached. Resolved here
+        // because this is where the founder first becomes known to the view;
+        // it changes nothing mechanical, only which ground tiles are drawn.
+        _groundBiome = TerrainAtlas.BiomeFor(hero.Lineage);
         if (!_heroPositionInitialized)
         {
             _heroStreet = FoundingLayout.InitialParcelRow
@@ -3415,6 +3463,7 @@ public partial class MacroStreetLiveView : Node2D
             (Vector2 position, Vector2 scale) = ProjectDepth(depth, relativeOffset);
             journey.Carrier.Scale =
                 CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
+            journey.Carrier.ZIndex = CitizenZ(depth);
             journey.Carrier.Position = PixelMotion.Snap(new Vector2(
                 position.X,
                 position.Y - HeroFootOffsetMacroPx * scale.Y));
@@ -3751,6 +3800,7 @@ public partial class MacroStreetLiveView : Node2D
         (Vector2 position, Vector2 scale) = ProjectDepth(depth, lateralOffset);
         _heroCarrier.Scale =
             CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
+        _heroCarrier.ZIndex = CitizenZ(depth);
         _heroCarrier.Position = PixelMotion.Snap(new Vector2(
             position.X,
             position.Y - HeroFootOffsetMacroPx * scale.Y));
@@ -3766,11 +3816,86 @@ public partial class MacroStreetLiveView : Node2D
         for (int street = _streetCount - 1; street >= 0; street--)
         {
             if (!IsProjectedDepthVisible(street - CameraDepthAnchor)) continue;
-            DrawStreetRow(street);
+            DrawStreetGround(street);
         }
+        SyncStreetBandLayers();
         UpdateHeroVisual();
         UpdateCitizenJourneyVisuals();
         UpdateCitizenHitRects();
+    }
+
+    /// <summary>
+    /// Vertical spacing between consecutive street bands in z. Leaves room for
+    /// a citizen to land between two bands rather than tying with one.
+    /// </summary>
+    private const int BandZStep = 4;
+
+    private readonly List<StreetBandLayer> _bandLayers = new();
+
+    /// <summary>
+    /// Turns a projected depth into a draw order. Nearer to camera means a
+    /// larger z, and it is the <em>same</em> function for street bands and for
+    /// citizen carriers — which is the whole point: before this they were
+    /// ordered on two incomparable axes, so a citizen always won.
+    /// </summary>
+    private int DepthToZ(float depth) => Mathf.Clamp(
+        Mathf.RoundToInt((_streetCount - (depth + CameraDepthAnchor)) * BandZStep),
+        -4000,
+        4000);
+
+    /// <summary>
+    /// Draw order for a citizen. A citizen stands on the walkable front band
+    /// of its lot, in front of whatever that lot holds, so it takes its own
+    /// band's order plus one step. Anything on a nearer band still wins,
+    /// which is the case that was broken.
+    /// </summary>
+    private int CitizenZ(float depth) => DepthToZ(depth) + 1;
+
+    /// <summary>
+    /// Creates one obstacle layer per street and keeps their z in step with
+    /// the camera. Layers are reused across redraws; only their count follows
+    /// <c>_streetCount</c>.
+    /// </summary>
+    private void SyncStreetBandLayers()
+    {
+        // The scene tree cannot be edited while drawing, so a count change
+        // schedules the rebuild for after the frame and this pass only
+        // refreshes the layers that already exist.
+        if (_bandLayers.Count != _streetCount)
+        {
+            Callable.From(RebuildStreetBandLayers).CallDeferred();
+        }
+
+        for (int street = 0; street < _bandLayers.Count; street++)
+        {
+            StreetBandLayer layer = _bandLayers[street];
+            layer.Street = street;
+            layer.Visible = IsProjectedDepthVisible(street - CameraDepthAnchor);
+            layer.ZIndex = DepthToZ(street - CameraDepthAnchor);
+            if (layer.Visible) layer.QueueRedraw();
+        }
+    }
+
+    /// <summary>Brings the layer count in line with the street count, off-frame.</summary>
+    private void RebuildStreetBandLayers()
+    {
+        while (_bandLayers.Count < _streetCount)
+        {
+            var layer = new StreetBandLayer
+            {
+                Name = $"StreetBand{_bandLayers.Count}",
+                Painter = DrawStreetObstacles,
+            };
+            AddChild(layer);
+            _bandLayers.Add(layer);
+        }
+        while (_bandLayers.Count > _streetCount)
+        {
+            StreetBandLayer extra = _bandLayers[^1];
+            _bandLayers.RemoveAt(_bandLayers.Count - 1);
+            extra.QueueFree();
+        }
+        QueueRedraw();
     }
 
     /// <summary>
@@ -3792,7 +3917,13 @@ public partial class MacroStreetLiveView : Node2D
     /// <see cref="_heroLateral"/>, which is why it only became obvious once
     /// walking sideways.
     /// </summary>
-    private void DrawStreetRow(int street)
+    /// <summary>
+    /// The ground of one street: floor, territory tint and placement lots.
+    /// Stays on the view's own canvas because terrain is always behind
+    /// everything; the obstacles that need depth-ordering against citizens
+    /// live in <see cref="DrawStreetObstacles"/> instead.
+    /// </summary>
+    private void DrawStreetGround(int street)
     {
         float depth = street - CameraDepthAnchor;
         DrawTiledFloor(street, depth);
@@ -3803,12 +3934,23 @@ public partial class MacroStreetLiveView : Node2D
         // sit on top of the band; drawn after the floor so the tint
         // reads as overlay, not as the ground itself.
         DrawParcelTerritoryTints(street, depth);
-        float anchorDepth = AnchorDepth(depth);
 
         if (_placementActive)
         {
             DrawPlacementLots(street, depth);
         }
+    }
+
+    /// <summary>
+    /// Buildings and natural resources of one street, painted onto
+    /// <paramref name="canvas"/> — a <see cref="StreetBandLayer"/> whose
+    /// <c>ZIndex</c> encodes the band's depth, so citizens can be ordered
+    /// against them.
+    /// </summary>
+    private void DrawStreetObstacles(CanvasItem canvas, int street)
+    {
+        float depth = street - CameraDepthAnchor;
+        float anchorDepth = AnchorDepth(depth);
 
         foreach (PlotBox plot in _plots)
         {
@@ -3821,14 +3963,14 @@ public partial class MacroStreetLiveView : Node2D
                 size);
             if (plot.CultivationState is CultivationPlotState cultivationState)
             {
-                DrawCultivationSite(rect, cultivationState);
+                DrawCultivationSite(canvas, rect, cultivationState);
                 if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
                 continue;
             }
             Texture2D? texture = GetBuildingTexture(plot.Kind);
             if (texture is not null)
             {
-                DrawTextureRect(
+                canvas.DrawTextureRect(
                     texture,
                     rect,
                     tile: false,
@@ -3836,12 +3978,12 @@ public partial class MacroStreetLiveView : Node2D
             }
             else
             {
-                DrawRect(rect, BuildingColor);
+                canvas.DrawRect(rect, BuildingColor);
             }
             if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
             if (plot.IsStorageFull)
             {
-                DrawStorageFullBadge(rect, plot);
+                DrawStorageFullBadge(canvas, rect, plot);
             }
         }
 
@@ -3857,22 +3999,22 @@ public partial class MacroStreetLiveView : Node2D
             var treeRect = new Rect2(
                 new Vector2(treePosition.X - treeSize.X * 0.5f, treePosition.Y - treeSize.Y),
                 treeSize);
-            DrawNaturalResourceUnit(tree, treeRect);
+            DrawNaturalResourceUnit(canvas, tree, treeRect);
             _clickableTreeRects.Add((treeRect, tree));
         }
     }
 
-    private void DrawCultivationSite(Rect2 rect, CultivationPlotState state)
+    private void DrawCultivationSite(CanvasItem canvas, Rect2 rect, CultivationPlotState state)
     {
         Color soil = state == CultivationPlotState.Prepared
             ? new Color("#71513a")
             : new Color("#59412f");
-        DrawRect(rect, soil);
+        canvas.DrawRect(rect, soil);
         float lineWidth = Mathf.Max(2f, rect.Size.X * 0.035f);
         for (int row = 1; row <= 3; row++)
         {
             float y = Mathf.Round(rect.Position.Y + rect.Size.Y * row / 4f);
-            DrawLine(
+            canvas.DrawLine(
                 new Vector2(rect.Position.X + rect.Size.X * 0.12f, y),
                 new Vector2(rect.End.X - rect.Size.X * 0.12f, y),
                 new Color("#3d2b22"),
@@ -3902,7 +4044,7 @@ public partial class MacroStreetLiveView : Node2D
                 CultivationPlotState.Ready => markerSize * 3f,
                 _ => markerSize * 1.4f,
             };
-            DrawRect(
+            canvas.DrawRect(
                 new Rect2(
                     new Vector2(
                         Mathf.Round(x - markerSize * 0.5f),
@@ -3913,7 +4055,7 @@ public partial class MacroStreetLiveView : Node2D
         if (state == CultivationPlotState.Ready)
         {
             float badge = Mathf.Max(5f, rect.Size.X * 0.12f);
-            DrawCircle(
+            canvas.DrawCircle(
                 new Vector2(rect.End.X - badge, rect.Position.Y + badge),
                 badge * 0.55f,
                 new Color("#f2d35f"),
@@ -3923,47 +4065,51 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
-    private void DrawNaturalResourceUnit(TreeBox unit, Rect2 rect)
+    /// <summary>
+    /// Draws one gatherable ground unit from the shared terrain atlas.
+    ///
+    /// <para>
+    /// Every resource is a real sprite now. Branches, fibre, stone and wild
+    /// food used to be flat <c>DrawRect</c> markers in four hard-coded
+    /// colours, which at macro distance all read as the same coloured square
+    /// and told the player nothing about what they were about to gather.
+    /// </para>
+    /// </summary>
+    private void DrawNaturalResourceUnit(CanvasItem canvas, TreeBox unit, Rect2 rect)
     {
-        if (unit.ResourceType == ResourceType.Wood)
+        if (unit.ResourceType != ResourceType.Wood)
         {
-            int column = (unit.ForestId + unit.UnitId) % 2 == 0
-                ? ResourceTree.TreeAtlasColumnA
-                : ResourceTree.TreeAtlasColumnB;
-            DrawTextureRectRegion(
+            canvas.DrawTextureRectRegion(
                 _terrainAtlas,
                 rect,
-                ResourceTree.AtlasRegionRect(column, ResourceTree.TreeAtlasRow));
+                TerrainAtlas.ResourceRegion(unit.ResourceType, unit.ForestId, unit.UnitId));
             return;
         }
 
-        Rect2 marker = rect.Grow(-rect.Size.X * 0.22f);
-        Color baseColor = unit.ResourceType switch
+        // A tree is two tiles tall. Drawn at the shared one-tile footprint it
+        // came out the same size as a berry bush, so the canopy grows upward
+        // out of the rect while the trunk keeps the rect's own ground line —
+        // the plot footprint, and therefore the click target, is unchanged.
+        // Which tree grows here comes from the biome, so a cactus stands in the
+        // sand and a fruiting broadleaf does not. A cactus is a single tile and
+        // simply has no canopy above the rect.
+        TerrainAtlas.TreeVariant variant =
+            TerrainAtlas.TreeFor(_groundBiome, unit.ForestId, unit.UnitId);
+        if (variant.IsTall)
         {
-            ResourceType.Branches => new Color("#8f5b32"),
-            ResourceType.PlantFiber => new Color("#73a942"),
-            ResourceType.SmallStone => new Color("#8a8f93"),
-            ResourceType.WildFood => new Color("#477a3b"),
-            _ => Colors.White,
-        };
-        DrawRect(marker, baseColor);
-        if (unit.ResourceType == ResourceType.WildFood)
-        {
-            float berrySize = Mathf.Max(2f, marker.Size.X * 0.18f);
-            DrawRect(new Rect2(marker.Position + marker.Size * 0.18f, new Vector2(berrySize, berrySize)), new Color("#c4514f"));
-            DrawRect(new Rect2(marker.Position + marker.Size * 0.58f, new Vector2(berrySize, berrySize)), new Color("#d9a441"));
+            var canopy = new Rect2(
+                new Vector2(rect.Position.X, rect.Position.Y - rect.Size.Y),
+                rect.Size);
+            canvas.DrawTextureRectRegion(
+                _terrainAtlas, canopy, TerrainAtlas.RegionOfId(variant.CanopyId));
         }
-        else if (unit.ResourceType == ResourceType.Branches)
-        {
-            DrawLine(marker.Position, marker.End, new Color("#4f321f"), Mathf.Max(2f, marker.Size.X * 0.12f), antialiased: false);
-        }
-        else if (unit.ResourceType == ResourceType.SmallStone)
-        {
-            DrawRect(new Rect2(marker.Position + marker.Size * 0.45f, marker.Size * 0.5f), new Color("#b5b8b8"));
-        }
+        canvas.DrawTextureRectRegion(
+            _terrainAtlas,
+            new Rect2(rect.Position, rect.Size),
+            TerrainAtlas.RegionOfId(variant.TrunkId));
     }
 
-    private void DrawStorageFullBadge(Rect2 buildingRect, PlotBox plot)
+    private void DrawStorageFullBadge(CanvasItem canvas, Rect2 buildingRect, PlotBox plot)
     {
         var badgeRect = new Rect2(
             new Vector2(
@@ -3971,9 +4117,9 @@ public partial class MacroStreetLiveView : Node2D
                 buildingRect.Position.Y - StatusBadgeSize * 0.5f),
             new Vector2(StatusBadgeSize, StatusBadgeSize));
         var borderRect = badgeRect.Grow(StatusBadgeBorder);
-        DrawRect(borderRect, LineageThemeRegistry.IconAccent);
-        DrawRect(badgeRect, new Color(0.06f, 0.05f, 0.04f, 0.94f));
-        DrawTextureRect(_storageFullIcon, badgeRect, tile: false);
+        canvas.DrawRect(borderRect, LineageThemeRegistry.IconAccent);
+        canvas.DrawRect(badgeRect, new Color(0.06f, 0.05f, 0.04f, 0.94f));
+        canvas.DrawTextureRect(_storageFullIcon, badgeRect, tile: false);
         _storageFullBadgeRects.Add((borderRect, plot));
     }
 
@@ -3998,7 +4144,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void DrawTiledFloor(int street, float depth)
     {
-        int baseAtlasColumn = StreetGroundAtlasColumn(street);
+        TerrainAtlas.GroundBiome biome = _groundBiome;
         int totalTiles = Mathf.RoundToInt(2f * _lateralHalfWidthPx / TileUnitPx);
         int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         for (int tileRow = 0; tileRow < ParcelGrid.TilesPerStandardLot; tileRow++)
@@ -4018,11 +4164,19 @@ public partial class MacroStreetLiveView : Node2D
                 float tileCenterGlobal = (tileIndex + 0.5f) * TileUnitPx - _lateralHalfWidthPx;
                 float leftGlobal = tileCenterGlobal - TileUnitPx * 0.5f - CameraLateral;
                 float rightGlobal = tileCenterGlobal + TileUnitPx * 0.5f - CameraLateral;
-                // Deterministic terrain hash parameterized by tile index and
-                // global tile row, picking between the
-                // biome's two atlas variants instead of two flat colors.
-                bool alternate = (tileIndex * 3 + globalTileRow * 5) % 11 == 0;
-                int atlasRow = alternate ? GroundAtlasRowB : GroundAtlasRowA;
+                // Deterministic terrain hash over tile index and global tile
+                // row. It used to be thrown away by `% 11 == 0`, a boolean
+                // that flipped ~1 tile in 11 between two near-identical
+                // variants of the same swatch — which is why the ground read
+                // as three flat bands. The whole hash now indexes the biome's
+                // fill list, and the material comes from the city's site
+                // rather than from `street % 3`.
+                // A spatial hash, not the old `tileIndex * 3 + row * 5`: with
+                // three fill variants that expression degenerates, because
+                // `tileIndex * 3 % 3` is always zero and the choice collapses
+                // to the row — the ground came out in flat horizontal stripes.
+                int variant = TerrainAtlas.GroundVariantIndex(
+                    tileIndex, globalTileRow, biome.Fill.Length);
                 // Only tileRow 0 (the calle's own walkable front band) can
                 // wear into a path — the lot depth behind it (tileRow 1/2)
                 // is never trodden, it's where buildings/trees sit.
@@ -4030,7 +4184,7 @@ public partial class MacroStreetLiveView : Node2D
                     yNear, yFar,
                     CenterX + leftGlobal * scaleNear, CenterX + rightGlobal * scaleNear,
                     CenterX + leftGlobal * scaleFar, CenterX + rightGlobal * scaleFar,
-                    _terrainAtlas, ResourceTree.AtlasRegionRect(baseAtlasColumn, atlasRow));
+                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Fill[variant]));
 
                 float wear = tileRow == 0 ? _terrainWear.WearAt(street, tileIndex) : 0f;
                 if (wear <= 0f) continue;
@@ -4045,7 +4199,7 @@ public partial class MacroStreetLiveView : Node2D
                     yNear, yFar,
                     CenterX + dirtLeft * scaleNear, CenterX + dirtRight * scaleNear,
                     CenterX + dirtLeft * scaleFar, CenterX + dirtRight * scaleFar,
-                    _terrainAtlas, ResourceTree.AtlasRegionRect(DirtAtlasColumn, atlasRow));
+                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Path));
             }
         }
     }
@@ -4058,12 +4212,7 @@ public partial class MacroStreetLiveView : Node2D
     /// (phase 2) overrides this per-tile in <see cref="DrawTiledFloor"/> for
     /// trampled tiles, without touching this method.
     /// </summary>
-    private static int StreetGroundAtlasColumn(int street) => (((street % 3) + 3) % 3) switch
-    {
-        0 => GrassAtlasColumn,
-        1 => DirtAtlasColumn,
-        _ => StoneAtlasColumn,
-    };
+    private TerrainAtlas.GroundBiome _groundBiome = TerrainAtlas.BiomeFor(LineageId.Ardhen);
 
     /// <summary>
     /// Which lateral tile index (the same granularity <see cref="DrawTiledFloor"/>

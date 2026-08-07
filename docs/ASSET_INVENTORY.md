@@ -58,6 +58,31 @@ supplies provisional ground tiles and scattered trees to the macro parcel scene.
 The CC0 `tile_0111.png` tool/axe cursor and its license were selectively promoted
 from `kenney_cursor-pixel-pack.zip` into `game/assets/ui/cursors/kenney-pixel/`
 for the tree-resource hover state.
+On 2026-08-06 four CC0 tiles were selectively promoted from
+`kenney_ui-pack-pixel-adventure` into
+`game/assets/ui/kenney-pixel-adventure/9-slice/`, with the pack's `LICENSE.txt`
+alongside them: `Tiles/Large tiles/Thick outline/tile_0002` → `slate_raised`,
+`tile_0003` → `slate_raised_dark`, `tile_0015` → `slate_inset`, `tile_0016` →
+`slate_inset_dark` (all 32×32, `texture_margin = 8`). They fill the real
+missing state this file asked to identify before promoting anything: the theme
+had **no non-yellow surface**, so `ButtonText` and the lineage fallback both
+resolved to `kenney/9-slice/yellow.tres`. Hover and disabled reuse those same
+PNGs through `modulate_color`, so no asset was promoted for a brightness
+change. `yellow.png`, `yellow_pressed.png`, their `.tres`/`.import`, and the
+already-dead `ancient_tan.png` were deleted once nothing referenced them.
+
+Two more cursor glyphs were promoted the same day from
+`kenney_cursor-pixel-pack` into `game/assets/ui/cursors/kenney-pixel/`:
+`tile_0026` → `pointer.png` and `tile_0154` → `hand_point.png`. That closes
+this file's standing "later cursor-state pass" item without replacing the
+cursor wholesale: the arrow and the pointing hand are now distinct glyphs
+rather than one SVG re-tinted twice, and `CursorController` still bakes the
+lineage accent per pixel. 3 of 220 tiles are imported.
+
+The roguelike atlas needed no new promotion — its ground, bush, sprout, rubble
+and berry-bush tiles were already in the imported sheet and simply were not
+being used. Their coordinates now live in `game/scripts/Ui/TerrainAtlas.cs`.
+
 No complete ZIP was extracted into `game/assets/`.
 
 ## Integration plan

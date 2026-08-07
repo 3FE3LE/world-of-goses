@@ -507,6 +507,127 @@ promotion).
 
 ---
 
+## DEC-0015: Slate is the neutral UI surface; the warm accent is for state only
+
+**Status:** Accepted
+**Date:** 2026-08-06
+
+**Decision:**
+The project's neutral chrome — buttons, panels, input fields, the status strip
+— is the **dark slate** 9-slice promoted from Kenney's CC0 *UI Pack – Pixel
+Adventure*. Gold and warm tones are reserved for **state**: the focus ring,
+the elevated-panel border, the stabilised fragment pips. Green keeps only its
+success semantic (`ProgressBar/fill`) and red only its destructive one
+(`ButtonWarning`).
+
+**Why this needed a decision at all:**
+The yellow surface that governed almost every button was never chosen. It was
+the sum of two defaults: `ButtonText` — the variation ~80 % of buttons use —
+was mapped to `kenney/9-slice/yellow.tres`, and
+`LineageThemeRegistry.DefaultPanelStyleboxPath` pointed at the same file while
+the active lineage started as `"default"`, an id that was **not a key** of the
+lineage dictionary. Every panel built before a hero existed therefore resolved
+through that fallback, and since most consumers apply the stylebox once in
+`_Ready` and never refresh, they stayed yellow for the whole session. No
+`DEC-` had ever recorded it, so nothing flagged it as a choice.
+
+**Consequences:**
+- `"default"` resolves explicitly to the neutral surface and is deliberately
+  **not** an entry in `StyleboxByLineage`: it is not a lineage, and
+  `AvailableLineages` must keep returning exactly eight.
+- Button text is cream on the dark surface and near-black on the light one.
+  Layout metrics are untouched — `content_margin` stays 16/4 — because the
+  bible allows a re-skin to change palette, borders and fills but **not**
+  minimum sizes, hierarchy or semantics.
+- Actions are chosen by role through `Ui/ActionButton.cs`
+  (`PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`), so a
+  future re-skin stays one edit to the theme rather than an audit of every
+  call site.
+- Per-lineage skins still re-palette on top of this; the neutral surface is
+  what shows when no lineage applies, not a replacement for them.
+
+---
+
+## DEC-0016: The fire spirit speaks from a balloon in the world
+
+**Status:** Accepted
+**Date:** 2026-08-06
+**Supersedes:** `DEC-0014` §3 (the non-modal bottom strip)
+
+**Decision:**
+The first night's dialogue is a **speech balloon anchored over the spirit**,
+not a band at the bottom of the screen. The whole balloon is the confirm
+affordance — clicking it advances — so there is no separate button.
+`FirstNightDialogueStrip` is removed. `OverlayLayers.Tutorial = 50` remains the
+night's layer, and clicks outside the balloon still fall through to the world.
+
+**Why the earlier decision did not survive contact:**
+The strip was specified before anything rendered it. The whole sequence was
+inert behind a mis-resolved `NodePath` (`CityPrototype` passed
+`"CityWorldController"` for a node that is a *sibling*), so `DEC-0014` §3 was
+never observed running. When it finally rendered it showed three problems the
+spec could not have anticipated: it inherited the yellow panel fallback and
+printed cream text on yellow, its band sat on the viewport's bottom edge, and
+the words had no visible speaker — the player read a caption bar while the
+character who was teaching them stood elsewhere on screen.
+
+**Consequences:**
+- The balloon follows the spirit every frame. `MacroStreetLiveView` projects
+  its streets by hand rather than through a camera transform, so the anchor is
+  re-derived in `_Process`; re-parenting would not help.
+- The night's surfaces hide whenever the player is not on the macro view. They
+  sit above the HUD layer, so without that gate they draw over building detail
+  panels.
+- The confirm hint (`Continue` / `Give in to sleep`) is a quiet label inside
+  the balloon, keeping the existing `firstnight.*` catalogue keys.
+- The fire spirit itself is still a placeholder, now shaped as a flame rather
+  than a ring and glyph. **None of the three Kenney packs ships a
+  free-standing flame** — the nearest art is a hearth or brazier carrying its
+  own stonework — and cropping one would mean hand-editing an exported PNG,
+  which `docs/ART_PIPELINE.md` §10 forbids. Real spirit art is still owed.
+
+---
+
+## DEC-0017: The city's ground is the site the founder fell on
+
+**Status:** Accepted
+**Date:** 2026-08-06
+
+**Decision:**
+Each city draws its ground from a **biome**, and which biome is keyed to the
+founder's lineage. Eight biomes, one per lineage, defined in
+`Ui/TerrainAtlas.GroundBiome` as a short list of seam-free fill tiles plus the
+tile a trodden path wears down to.
+
+**This is presentation only.** No resource, yield, recipe, rate or rule differs
+by biome. A lineage still confers no advantage, so `DEC-0002` — lineages are not
+classes and not destiny — holds. The framing matters: the biome is not a trait
+of the lineage, it is **the place the astral fall deposited the founder**. The
+land does not change because of who founded it; the founder arrived somewhere.
+The standing rule in the macro view still applies verbatim: *terrain art must
+never become simulation state*, and nothing here is persisted.
+
+**Why it needed a decision:**
+`docs/CURRENT_STATUS.md` §8 and `docs/VALIDATION.md` both listed *"multiple
+biomes"* as explicitly outside the current slice. Eight of them is exactly that,
+so the deferral is lifted deliberately rather than by drift. It also reopens a
+signed visual decision: `docs/VISUAL_REGRESSION.md` records that two ground
+palettes were rejected — one for excessive saturation, one as "too
+architectural" — before the current olive-ground was accepted.
+
+**Consequences:**
+- The ground stopped cycling `street % 3` across Grass/Dirt/Stone, which is what
+  made it read as arbitrary bands.
+- Per-tile variation is a spatial hash over the biome's fill list. The previous
+  expression degenerated for three variants and produced flat horizontal
+  stripes; variant selection now lives in `TerrainAtlas.VariantIndex`.
+- **Flower-strewn ground was investigated and rejected for now.** The pack's
+  flower tiles belong to autotile sets and each carries a corner of the
+  neighbouring material, so repeating one across a band shows the cut. Scatter
+  needs transparent-background props, not fills.
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

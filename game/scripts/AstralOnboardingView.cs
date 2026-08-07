@@ -134,16 +134,20 @@ public partial class AstralOnboardingView : Control
         shell.AddChild(_stageSlot);
 
         _consequence = NewLabel("BodyText", HorizontalAlignment.Center);
-        // One line of headroom only. The longest immediate consequence in
-        // either catalog is 77 characters, which wraps to a single line at
-        // this measure; the floor exists so the block does not jump when a
-        // choice is selected, not to reserve space for prose.
+        // One line of headroom, held open for the whole question stage even
+        // while empty. The longest immediate consequence in either catalog is
+        // 77 characters, which renders on one line at this measure, so the
+        // row never changes height once reserved and selecting a choice
+        // cannot reflow the block above it.
         _consequence.CustomMinimumSize = new Vector2(0, 26);
         shell.AddChild(_consequence);
 
         shell.AddChild(NewSpacer(1f));
 
         _error = NewLabel("ErrorText", HorizontalAlignment.Center);
+        // Explicit floor so the reserved row has a deterministic height rather
+        // than whatever an empty Label happens to report for the font.
+        _error.CustomMinimumSize = new Vector2(0, 21);
         shell.AddChild(_error);
 
         _footer = new HBoxContainer
@@ -170,7 +174,8 @@ public partial class AstralOnboardingView : Control
         BuildFragments();
         SetText(_title, TrKey(question.Title));
         SetText(_narrative, TrKey(question.Text));
-        SetText(_consequence, string.Empty);
+        // Reserved, not hidden: answering must not move the question.
+        SetReservedText(_consequence, string.Empty);
         SetText(_error, string.Empty);
         _footer.Show();
         _astralVeil.Color = new Color(0.015f, 0.02f, 0.055f, 1f - question.TerrainReveal);
@@ -225,7 +230,7 @@ public partial class AstralOnboardingView : Control
             button.Selected = id == choiceId;
         }
         FounderNarrativeChoice choice = FindChoice(question, choiceId);
-        SetText(_consequence, TrKey(choice.ImmediateConsequence));
+        SetReservedText(_consequence, TrKey(choice.ImmediateConsequence));
         FadeIn(_consequence, 0.18);
         _next.Disabled = false;
     }
@@ -454,7 +459,9 @@ public partial class AstralOnboardingView : Control
     private void ValidateIdentity()
     {
         _next.Disabled = !IsIdentityComplete();
-        SetText(
+        // Reserved: this message clears the instant the name becomes valid,
+        // and the player is typing directly above it.
+        SetReservedText(
             _error,
             _next.Disabled ? TrKey("ui.astral.identity.name_invalid") : string.Empty);
     }
@@ -648,6 +655,22 @@ public partial class AstralOnboardingView : Control
     {
         label.Text = text;
         label.Visible = !string.IsNullOrEmpty(text);
+    }
+
+    /// <summary>
+    /// Assigns a label's text while holding its row open. Used for the two
+    /// rows that appear and disappear <em>in response to the player acting on
+    /// the same screen</em> — the immediate consequence of a choice, and the
+    /// name validation message. Hiding those would be correct for space but
+    /// wrong for feel: the row's arrival would resize the column and shift
+    /// everything the player is currently reading or aiming at. The stage that
+    /// owns the row pays for it up front; other stages still hide it outright
+    /// through <see cref="SetText"/>.
+    /// </summary>
+    private static void SetReservedText(Label label, string text)
+    {
+        label.Text = text;
+        label.Visible = true;
     }
 
     private static Control NewSpacer(float ratio) =>

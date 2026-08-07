@@ -21,7 +21,7 @@ to one of these axes:
 | **Citizens roster** | List with assign / unassign actions | `CityWorldController.AvailableCitizensByPriority()` |
 | **Expeditions** *(future)* | Planning modal, dispatch view, return summary | `ExpeditionController` (TBD) |
 | **Chronicle / log** | Offline report, decision-needed feed | `WorldEventLog` |
-| **Game time** | Pause / resume, day-night ribbon | `CityWorld.AdvanceWorldTick` cadence |
+| **Game time** | Speed multiplier, day-night ribbon (no pause: the world runs while the game is closed) | `CityWorld.AdvanceWorldTick` cadence |
 
 Every screen above must obey the rules in §3-§7. They apply today to
 the city, hero, chronicle, and modal surfaces already shipping, and
@@ -77,8 +77,20 @@ Use `[GlobalClass]` when:
 
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
-`GenderToggle`, `CubeAxisBar`, and `FounderCardPanel`. Future targets
-include `StatChip` and `ExpeditionCard`.
+`GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, and the three
+`ActionButton` roles — `PrimaryActionButton`, `SecondaryActionButton`,
+`DangerActionButton`. Future targets include `StatChip` and
+`ExpeditionCard`.
+
+**Name the role, not the look.** A view picks `PrimaryActionButton` (the one
+action the screen is for), `SecondaryActionButton` (everything else
+affirmative — the default), or `DangerActionButton` (irreversible). The
+standard supplies the variation, the 40 px height and the focus policy;
+`ActionButton.DefaultHeight` is shared with `OnboardingChoiceButton` so a row
+of actions lines up with a column of choices. This is what makes a re-skin one
+edit to `default_theme.tres` instead of an audit of every call site — the
+lesson of the 2026-08-06 slate pass, where the surface changed across the whole
+game without any view being reconfigured.
 
 `OnboardingChoiceButton` is the selectable narrative option: it carries
 the selected state on three channels (the `ButtonPrimary` palette, the

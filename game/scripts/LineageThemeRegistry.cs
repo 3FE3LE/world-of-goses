@@ -43,7 +43,21 @@ public static class LineageThemeRegistry
     public const string ComponentSelectionFrame = "selection_frame";
     public const string ComponentDivider = "divider";
 
-    public const string DefaultPanelStyleboxPath = "res://assets/ui/kenney/9-slice/yellow.tres";
+    /// <summary>
+    /// Neutral chrome used whenever no lineage skin applies. This used to be
+    /// the yellow Kenney 9-slice, which made it the single most visible
+    /// surface in the game for entirely accidental reasons: the active lineage
+    /// starts as <see cref="SystemDefaultLineage"/>, that id was never a key of
+    /// <see cref="StyleboxByLineage"/>, so every panel resolved through this
+    /// path until a hero existed — the whole onboarding, the first night and
+    /// the pre-hero macro view. Worse, most consumers apply the stylebox once
+    /// in <c>_Ready</c> and never refresh, so they stayed yellow for the rest
+    /// of the session. The neutral surface is now slate, and
+    /// <see cref="SystemDefaultLineage"/> is an explicit entry below rather
+    /// than an accidental miss.
+    /// </summary>
+    public const string DefaultPanelStyleboxPath =
+        "res://assets/ui/kenney-pixel-adventure/9-slice/slate_raised_dark.tres";
 
     private static readonly Dictionary<string, string> StyleboxByLineage = new(StringComparer.Ordinal)
     {
@@ -169,6 +183,18 @@ public static class LineageThemeRegistry
     {
         string requestedLineage = (lineage ?? string.Empty).ToLowerInvariant();
         string component = string.IsNullOrEmpty(componentId) ? ComponentDefault : componentId.ToLowerInvariant();
+
+        // The system default is not a lineage — it must never appear in
+        // AvailableLineages — but it is a legitimate, very common request:
+        // every surface built before a hero exists asks for it. Resolve it
+        // explicitly to the neutral chrome instead of letting it miss the
+        // dictionary and fall through to LoadDefault by accident.
+        if (requestedLineage == SystemDefaultLineage)
+        {
+            return TryLoad(requestedLineage, DefaultPanelStyleboxPath, out StyleBoxTexture? neutral)
+                ? neutral
+                : null;
+        }
 
         if (StyleboxByLineage.TryGetValue(requestedLineage, out string? exactPath) && component == ComponentPanel)
         {

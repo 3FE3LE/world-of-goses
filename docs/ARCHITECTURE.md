@@ -486,8 +486,8 @@ Local persistence is implemented through plain DTOs and
   A resource visit persists exactly one semantic owner — a
   building id or a natural-patch id — together with its unit and logical
   terrain slot, so ground-resource gathering remains valid across save/load.
-- The real-time autosave cadence is centralized at three minutes. Periodic,
-  pause, and close checks skip unchanged worlds; explicit consequential commands
+- The real-time autosave cadence is centralized at three minutes. Periodic and
+  close checks skip unchanged worlds; explicit consequential commands
   may still force an immediate atomic save. Save feedback is temporary UI, not a
   persistent HUD status.
 - Offline elapsed time is capped and applied as deterministic batched ticks;

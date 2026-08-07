@@ -73,10 +73,42 @@ public sealed class FirstNightDialogueCatalogTests
             {
                 IDialogueNode? node = FireSpiritDialogueCatalog.NodeFor(stage, lineage);
                 Assert.NotNull(node);
-                Assert.Equal(FireSpiritDialogueCatalog.FireSpiritSpeakerId, node!.SpeakerId);
+                // Every node used to claim the fire spirit as its speaker,
+                // including the five bodies written as third-person narration
+                // about it. A node is now attributed to whoever actually says
+                // it, so the UI can present narration as narration.
+                Assert.Equal(
+                    FireSpiritDialogueCatalog.SpeakerFor(node!.Id),
+                    node.SpeakerId);
+                Assert.Contains(
+                    node.SpeakerId,
+                    new[]
+                    {
+                        FireSpiritDialogueCatalog.FireSpiritSpeakerId,
+                        FireSpiritDialogueCatalog.NarratorSpeakerId,
+                    });
                 Assert.False(string.IsNullOrWhiteSpace(node.BodyKey));
             }
         }
+    }
+
+    /// <summary>
+    /// Guards the split itself. If every node drifted back to one speaker the
+    /// assertions above would still pass while the night lost the distinction
+    /// between the world describing a scene and the spirit talking to you.
+    /// </summary>
+    [Fact]
+    public void NightCarriesBothNarrationAndSpokenNodes()
+    {
+        var speakers = new HashSet<string>(StringComparer.Ordinal);
+        foreach (FirstNightStage stage in DialogueStages())
+        {
+            IDialogueNode? node = FireSpiritDialogueCatalog.NodeFor(stage, LineageId.Ardhen);
+            if (node is not null) speakers.Add(node.SpeakerId);
+        }
+
+        Assert.Contains(FireSpiritDialogueCatalog.NarratorSpeakerId, speakers);
+        Assert.Contains(FireSpiritDialogueCatalog.FireSpiritSpeakerId, speakers);
     }
 
     [Theory]

@@ -2520,6 +2520,18 @@ msgstr "The trail the spirit left cannot be read until the night is over."
 msgid "ui.expedition.objective.spirit"
 msgstr "Spirit Trail"
 
+msgid "firstnight.directive.campfire"
+msgstr "The spirit points at the ground. You need {0} to raise a fire."
+
+msgid "firstnight.directive.bedroll"
+msgstr "The spirit points at the ground beside the fire. You need {0} to lie down and sleep."
+
+msgid "firstnight.directive.join"
+msgstr "{0} and {1}"
+
+msgid "firstnight.directive.amount"
+msgstr "{0} {1}"
+
 msgid "firstnight.manifested.body.ardhen"
 msgstr "The smith's mark is still warm on the ground. The spirit stops, surprised."
 

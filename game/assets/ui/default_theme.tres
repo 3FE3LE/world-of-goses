@@ -3,13 +3,15 @@
 [ext_resource type="FontFile" uid="uid://b41wjd1ekopsn" path="res://assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf" id="1_geist"]
 [ext_resource type="FontFile" uid="uid://b583hx8jknsq4" path="res://assets/ui/fonts/Jersey10-Regular.ttf" id="2_jersey"]
 [ext_resource type="FontFile" uid="uid://xruh8pqqqhsq" path="res://assets/ui/fonts/PixelifySans-Regular.ttf" id="3_pixelify"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/yellow.tres" id="7_yellow"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/yellow_pressed.tres" id="8_yellow_pressed"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/grey.tres" id="9_grey"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green.tres" id="11_green"]
-[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green_pressed.tres" id="12_green_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_raised_dark.tres" id="7_slate"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_inset_dark.tres" id="8_slate_inset"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_disabled.tres" id="9_slate_disabled"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_raised.tres" id="11_slate_light"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_hover.tres" id="12_slate_hover"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/slate_inset.tres" id="15_slate_light_inset"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red.tres" id="13_red"]
 [ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/red_pressed.tres" id="14_red_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/kenney/9-slice/green.tres" id="16_green"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -88,33 +90,33 @@ ButtonPrimary/constants/h_separation = 12
 ButtonPrimary/constants/v_separation = 6
 ButtonPrimary/font_sizes/font_size = 22
 ButtonPrimary/fonts/font = ExtResource("2_jersey")
-ButtonPrimary/styles/disabled = ExtResource("9_grey")
+ButtonPrimary/styles/disabled = ExtResource("9_slate_disabled")
 ButtonPrimary/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonPrimary/styles/hover = ExtResource("12_green_pressed")
-ButtonPrimary/styles/normal = ExtResource("11_green")
-ButtonPrimary/styles/pressed = ExtResource("12_green_pressed")
+ButtonPrimary/styles/hover = ExtResource("12_slate_hover")
+ButtonPrimary/styles/normal = ExtResource("11_slate_light")
+ButtonPrimary/styles/pressed = ExtResource("15_slate_light_inset")
 ButtonText/base_type = &"Button"
-ButtonText/colors/font_color = Color(0.07, 0.05, 0.03, 1)
-ButtonText/colors/font_disabled_color = Color(0.4, 0.36, 0.3, 1)
-ButtonText/colors/font_focus_color = Color(0.07, 0.05, 0.03, 1)
-ButtonText/colors/font_hover_color = Color(0.05, 0.035, 0.02, 1)
-ButtonText/colors/font_pressed_color = Color(0.03, 0.02, 0.01, 1)
+ButtonText/colors/font_color = Color(0.949, 0.921, 0.847, 1)
+ButtonText/colors/font_disabled_color = Color(0.58, 0.6, 0.64, 1)
+ButtonText/colors/font_focus_color = Color(1, 0.968, 0.878, 1)
+ButtonText/colors/font_hover_color = Color(0.08, 0.09, 0.11, 1)
+ButtonText/colors/font_pressed_color = Color(1, 0.968, 0.878, 1)
 ButtonText/constants/h_separation = 8
 ButtonText/constants/v_separation = 4
 ButtonText/font_sizes/font_size = 20
 ButtonText/fonts/font = ExtResource("2_jersey")
-ButtonText/styles/disabled = ExtResource("9_grey")
+ButtonText/styles/disabled = ExtResource("9_slate_disabled")
 ButtonText/styles/focus = SubResource("StyleBoxFlat_focus")
-ButtonText/styles/hover = ExtResource("8_yellow_pressed")
-ButtonText/styles/normal = ExtResource("7_yellow")
-ButtonText/styles/pressed = ExtResource("8_yellow_pressed")
+ButtonText/styles/hover = ExtResource("12_slate_hover")
+ButtonText/styles/normal = ExtResource("7_slate")
+ButtonText/styles/pressed = ExtResource("8_slate_inset")
 ButtonWarning/base_type = &"Button"
 ButtonWarning/colors/font_color = Color(0.95, 0.92, 0.86, 1)
 ButtonWarning/constants/h_separation = 8
 ButtonWarning/constants/v_separation = 4
 ButtonWarning/font_sizes/font_size = 18
 ButtonWarning/fonts/font = ExtResource("2_jersey")
-ButtonWarning/styles/disabled = ExtResource("9_grey")
+ButtonWarning/styles/disabled = ExtResource("9_slate_disabled")
 ButtonWarning/styles/focus = SubResource("StyleBoxFlat_focus")
 ButtonWarning/styles/hover = ExtResource("14_red_pressed")
 ButtonWarning/styles/normal = ExtResource("13_red")
@@ -143,8 +145,8 @@ LineEdit/colors/caret_color = Color(1, 0.937, 0.776, 1)
 LineEdit/colors/font_color = Color(0.93, 0.9, 0.82, 1)
 LineEdit/font_sizes/font_size = 18
 LineEdit/fonts/font = ExtResource("3_pixelify")
-LineEdit/styles/focus = ExtResource("7_yellow")
-LineEdit/styles/normal = ExtResource("9_grey")
+LineEdit/styles/focus = ExtResource("15_slate_light_inset")
+LineEdit/styles/normal = ExtResource("8_slate_inset")
 NumericText/base_type = &"Label"
 NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 NumericText/font_sizes/font_size = 18
@@ -167,8 +169,8 @@ PanelWarning/styles/panel = SubResource("StyleBoxFlat_panel")
 ProgressBar/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 ProgressBar/font_sizes/font_size = 16
 ProgressBar/fonts/font = ExtResource("2_jersey")
-ProgressBar/styles/background = ExtResource("9_grey")
-ProgressBar/styles/fill = ExtResource("11_green")
+ProgressBar/styles/background = ExtResource("8_slate_inset")
+ProgressBar/styles/fill = ExtResource("16_green")
 ScreenTitle/base_type = &"Label"
 ScreenTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
 ScreenTitle/font_sizes/font_size = 36

@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Domain;
 
 namespace WorldofGoses;
 
@@ -15,11 +16,25 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CursorController : Node
 {
-    private const string CursorPath = "res://assets/ui/icons/24/cursor.svg";
+    // Pixel-art cursors from Kenney's CC0 Cursor Pixel Pack, promoted one file
+    // at a time. The arrow used to be a 24 px UI icon SVG, which read soft
+    // against the game's nearest-neighbour pixel art, and the "interactive"
+    // cursor was that same arrow re-coloured — so hovering a button produced a
+    // paler arrow rather than a hand, and the affordance was lost.
+    private const string CursorPath = "res://assets/ui/cursors/kenney-pixel/pointer.png";
+    private const string InteractiveCursorPath =
+        "res://assets/ui/cursors/kenney-pixel/hand_point.png";
     private const string GatherCursorPath =
         "res://assets/ui/cursors/kenney-pixel/axe.png";
-    private static readonly Vector2 CursorHotspot = new(2, 2);
+    private const string PickaxeCursorPath =
+        "res://assets/ui/cursors/kenney-pixel/pickaxe.png";
+    private const string GrabCursorPath =
+        "res://assets/ui/cursors/kenney-pixel/hand_grab.png";
+    private static readonly Vector2 CursorHotspot = new(1, 1);
+    private static readonly Vector2 InteractiveHotspot = new(5, 1);
     private static readonly Vector2 GatherHotspot = new(3, 13);
+    private static readonly Vector2 PickaxeHotspot = new(3, 13);
+    private static readonly Vector2 GrabHotspot = new(7, 4);
 
     private Texture2D? _arrowCursor;
     private Texture2D? _interactiveCursor;
@@ -41,69 +56,70 @@ public partial class CursorController : Node
 
     private void ApplyCursor()
     {
-        var source = ResourceLoader.Load<Texture2D>(CursorPath);
-        if (source is null)
-        {
-            GD.PushWarning($"CursorController: cursor image missing at '{CursorPath}'.");
-            return;
-        }
-
-        var tintedImage = source.GetImage();
-        if (tintedImage is null)
-        {
-            GD.PushWarning($"CursorController: could not read image data from '{CursorPath}'.");
-            return;
-        }
-
-        var accent = LineageThemeRegistry.IconAccent;
-        // The SVG ships with a white fill; multiplying each pixel by
-        // the linaje accent bakes the linaje colour into the cursor
-        // without modifying the source asset on disk.
-        tintedImage.Convert(Image.Format.Rgba8);
-        for (int y = 0; y < tintedImage.GetHeight(); y++)
-        {
-            for (int x = 0; x < tintedImage.GetWidth(); x++)
-            {
-                Color px = tintedImage.GetPixel(x, y);
-                if (px.A <= 0f) continue;
-                tintedImage.SetPixel(x, y, new Color(
-                    px.R * accent.R,
-                    px.G * accent.G,
-                    px.B * accent.B,
-                    px.A));
-            }
-        }
-
-        _arrowCursor = ImageTexture.CreateFromImage(tintedImage);
-
-        Image interactiveImage = tintedImage.Duplicate() as Image ?? tintedImage;
-        Color interactiveAccent = accent.Lightened(0.38f);
-        for (int y = 0; y < interactiveImage.GetHeight(); y++)
-        {
-            for (int x = 0; x < interactiveImage.GetWidth(); x++)
-            {
-                Color px = interactiveImage.GetPixel(x, y);
-                if (px.A <= 0f) continue;
-                interactiveImage.SetPixel(
-                    x,
-                    y,
-                    new Color(
-                        interactiveAccent.R,
-                        interactiveAccent.G,
-                        interactiveAccent.B,
-                        px.A));
-            }
-        }
-        _interactiveCursor = ImageTexture.CreateFromImage(interactiveImage);
+        Color accent = LineageThemeRegistry.IconAccent;
+        _arrowCursor = LoadTinted(CursorPath, accent);
+        _interactiveCursor = LoadTinted(InteractiveCursorPath, accent.Lightened(0.38f));
         RestoreSurfaceCursor();
     }
 
-    public void UseGatherCursor()
+    /// <summary>
+    /// Loads a cursor and multiplies every opaque pixel by the lineage accent.
+    /// The pack glyphs ship white with a dark outline, so multiplying recolours
+    /// the fill and leaves the outline readable — which is exactly the
+    /// "recolour by tokens, never deform geometry" rule the design bible sets
+    /// for provisional icon art. The source PNG on disk is never modified.
+    /// </summary>
+    private static Texture2D? LoadTinted(string path, Color tint)
     {
-        Texture2D? gather = ResourceLoader.Load<Texture2D>(GatherCursorPath);
+        var source = ResourceLoader.Load<Texture2D>(path);
+        if (source is null)
+        {
+            GD.PushWarning($"CursorController: cursor image missing at '{path}'.");
+            return null;
+        }
+
+        Image? image = source.GetImage();
+        if (image is null)
+        {
+            GD.PushWarning($"CursorController: could not read image data from '{path}'.");
+            return null;
+        }
+
+        image.Convert(Image.Format.Rgba8);
+        for (int y = 0; y < image.GetHeight(); y++)
+        {
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                Color px = image.GetPixel(x, y);
+                if (px.A <= 0f) continue;
+                image.SetPixel(x, y, new Color(px.R * tint.R, px.G * tint.G, px.B * tint.B, px.A));
+            }
+        }
+        return ImageTexture.CreateFromImage(image);
+    }
+
+    /// <summary>
+    /// Shows the tool the founder would actually reach for. Every gatherable
+    /// used to raise the axe, including stones and plant fibre, which told the
+    /// player the wrong thing about what they were about to do.
+    /// </summary>
+    public void UseGatherCursor(ResourceType resource)
+    {
+        (string path, Vector2 hotspot) = resource switch
+        {
+            // Felling.
+            ResourceType.Wood => (GatherCursorPath, GatherHotspot),
+            // Breaking stone.
+            ResourceType.SmallStone => (PickaxeCursorPath, PickaxeHotspot),
+            // Everything else on the ground is picked up by hand: branches,
+            // plant fibre, wild food.
+            _ => (GrabCursorPath, GrabHotspot),
+        };
+
+        Texture2D? gather = ResourceLoader.Load<Texture2D>(path);
         if (gather is null) return;
-        Input.SetCustomMouseCursor(gather, Input.CursorShape.Arrow, GatherHotspot);
-        Input.SetCustomMouseCursor(gather, Input.CursorShape.PointingHand, GatherHotspot);
+        Input.SetCustomMouseCursor(gather, Input.CursorShape.Arrow, hotspot);
+        Input.SetCustomMouseCursor(gather, Input.CursorShape.PointingHand, hotspot);
     }
 
     public void RestoreSurfaceCursor()
@@ -120,7 +136,7 @@ public partial class CursorController : Node
             Input.SetCustomMouseCursor(
                 _interactiveCursor,
                 Input.CursorShape.PointingHand,
-                CursorHotspot);
+                InteractiveHotspot);
         }
     }
 

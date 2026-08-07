@@ -22,6 +22,228 @@ their commits for the real content.
 
 ---
 
+## Profundidad real en el macro y suelo por bioma
+
+**2026-08-06** · schema v31 (sin cambio)
+
+Un ciudadano se dibujaba **siempre** por delante de todo el mundo, incluso de un
+árbol más cercano a cámara. No era un fallo de ordenación sino dos ejes
+distintos: la vista pintaba terreno, edificios y árboles con comandos inmediatos
+en su propio `_Draw()`, mientras los ciudadanos son nodos hijos — y en Godot un
+`CanvasItem` emite lo suyo antes de dibujar a sus hijos. Nunca se comparaban.
+
+Ahora los obstáculos viven en una capa por calle cuyo `ZIndex` sale de la
+**misma función** que usan los ciudadanos. El suelo se queda en el padre, que es
+lo correcto: el terreno siempre va detrás. La vista entera baja a
+`OverlayLayers.WorldDepthBase` para que ese rango de índices no adelante al HUD.
+
+Y el suelo deja de rotar `street % 3` entre hierba, tierra y piedra — el motivo
+de que leyera como bandas arbitrarias. Cada ciudad dibuja el **bioma del sitio
+donde cayó su fundador** (`DEC-0017`), ocho paletas, una por linaje, y solo
+paleta: ninguna receta, tasa ni recurso cambia, así que el linaje sigue sin
+conferir ventaja.
+
+Tres cosas que solo se vieron capturando: al dar lienzo a los helpers cambié las
+firmas y no los cuerpos, y **todos los árboles desaparecieron** aunque compilaba;
+los nuevos z de banda adelantaron a la Crónica; y el primer hash de variante
+producía **rayas horizontales**, porque `tileIndex * 3` se anula con tres
+variantes y la elección colapsaba sobre la fila.
+
+Lo que no entra: la dispersión de flores. Los tiles con flores del pack son
+piezas de autotile y cada una arrastra una esquina del material vecino, así que
+al repetirlas se ve el corte. Hace falta arte de props con fondo transparente.
+
+Sobre eso, la lección que costó tres intentos: la hoja tiene **dos cosas que
+parecen relleno**. El bloque de muestras sólidas (cols 5-9, filas 0-1) sí es
+plano. Los bloques de *parche* de color son autotiles de 5×3 cuyas columnas 0-1
+son las cuatro esquinas interiores —cada una con la muesca del material de
+debajo— y cuyas columnas 2-4 son un blob redondeado de 3×3. **Solo el centro
+del blob es apto para repetir.** Al tomar un id nuevo hay que renderizar su
+bloque entero, no el tile suelto: la muesca es invisible a un solo tile y
+evidente en cuanto se repite en una banda.
+
+**El grano del movimiento se afina sin dejar de ser escalonado.** La locomoción
+pasa de 8 px a 12 Hz a **4 px a 24 Hz**: misma velocidad efectiva (96 px/s, y se
+deriva de las dos constantes, así que no puede desincronizarse) con la mitad de
+salto visual. Hubo que duplicar los contadores de paso del paneo en profundidad
+y del zoom de entrada a edificio, que avanzan una fracción fija por tick y si no
+se habrían acelerado al doble — "suavizar el desplazamiento" habría vuelto la
+cámara más brusca. Y el peldaño de las escaleras trapezoidales del terreno baja
+de 4 px a **2 px**. En ningún caso se introduce interpolación: el movimiento
+sigue siendo discreto y los bordes siguen encajados en rejilla de píxel entero.
+
+Los ocho biomas se pueden revisar sin rejugar el onboarding, con el fixture
+`biome-<linaje>`. Hacía falta porque el linaje del fundador lo *infiere* el
+scorer, no se elige. Y de paso los fixtures dejan de construir su fundador con
+`CitizenProfile.TryCreate` y una lista inventada de aptitudes, profesiones y
+rasgos: un fundador no empieza con nada de eso —`CreateFounder` pasa arrays
+vacíos— así que una ciudad de prueba ya no nace pre-cualificada.
+
+Baseline medido: build 0 errores / 0 advertencias; tests 914 pasando, 1 omitido;
+boot headless correcto; 922 IDs de plantilla y 283 claves de runtime; agent
+context 448/448.
+
+---
+
+## El tiempo deja de poder detenerse
+
+**2026-08-06** · schema v31 (sin cambio)
+
+La ciudad avanza con el juego cerrado. Un botón que congelaba el reloj discutía
+con esa premisa, y abrir el menú ESC era además una forma de comprar tiempo
+gratis. Fuera los dos: el control de play/pausa desaparece de la barra de estado
+y el menú de la ciudad ya no congela la simulación al abrirse — el mundo sigue
+corriendo detrás del scrim.
+
+Queda el **multiplicador de velocidad**, que es el control que sí tiene sentido:
+quien quiera que la ciudad se asiente la baja de ritmo en vez de detenerla. La
+biblia reserva sitio en la barra para "tiempo, velocidad, alertas y acciones
+globales", así que la velocidad sigue cumpliendo ese contrato.
+
+Consecuencia que hay que saber: **desaparece el autoguardado al pausar.** Se
+disparaba en la transición corriendo→pausado, y sin pausa esa rama no se alcanza.
+El autoguardado periódico de tres minutos y el de cierre siguen intactos;
+`ARCHITECTURE.md` y `CURRENT_STATUS.md` lo prometían "on close/pause" y ya no.
+
+El ejemplo canónico de `-NormalizedClicks` en la matriz visual apuntaba
+justamente al botón borrado. Se sustituyó, y se dejó anotada la lección: unas
+coordenadas solo son tan duraderas como el control al que apuntan — al quitar el
+botón, ese clic habría caído en panel vacío y la captura habría "pasado" igual.
+
+---
+
+## Identidad visual: fuera el amarillo, sprites en el mundo y el espíritu con voz propia
+
+**2026-08-06** · schema v31 (sin cambio)
+
+Casi todos los botones del juego eran amarillos, y nadie lo había decidido. Era
+la suma de dos valores por defecto: `ButtonText` —la variación que usa el 80 %
+de los botones— apuntaba a `kenney/9-slice/yellow.tres`, y el fallback de
+`LineageThemeRegistry` apuntaba al mismo archivo mientras el linaje activo
+arrancaba como `"default"`, **un id que no era clave del diccionario de
+linajes**. Todo panel construido antes de que exista un héroe caía por ahí; y
+como la mayoría de consumidores aplican el stylebox una sola vez en `_Ready`,
+se quedaban amarillos el resto de la sesión.
+
+Ahora la superficie neutra es **pizarra oscura**, promocionada del pack CC0
+*UI Pack – Pixel Adventure* de Kenney: cuatro tiles de 32×32, con hover y
+disabled resueltos por `modulate` sobre los mismos PNG para no promocionar
+assets que no aportan forma nueva. El dorado queda solo para estado —foco,
+borde de panel elevado, fragmentos estabilizados—; el verde conserva su
+semántico de éxito y el rojo el destructivo. El texto de botón pasa a crema
+sobre la superficie oscura. **Ninguna métrica de layout se movió**: los
+`content_margin` siguen siendo 16/4, y las capturas del onboarding antes y
+después lo confirman. La biblia permite que un reskin cambie paleta, bordes y
+rellenos, pero no tamaños mínimos ni jerarquía.
+
+Las acciones se eligen ahora **por rol** y no por apariencia:
+`PrimaryActionButton`, `SecondaryActionButton` y `DangerActionButton`. Ese es
+el motivo de que este cambio de piel haya sido una edición del tema y no una
+auditoría de treinta puntos de construcción.
+
+De paso cae un defecto de capas que este trabajo destapó: `FirstNightScene`
+alojaba la noche en un `CanvasLayer = 50`, pero `OverlayLayers` es un catálogo
+de `ZIndex` y un `CanvasLayer` gana a cualquier `ZIndex`. El espíritu y su
+banda se dibujaban por encima del onboarding (80), del menú de pausa (100) y
+del Notifier. Ahora son raíces de canvas normales en
+`OverlayLayers.Tutorial`, y la captura de pausa lo demuestra: el espíritu
+queda bajo el scrim.
+
+**El mundo deja de ser rectángulos de color.** Ramas, fibra vegetal, piedra
+pequeña y comida silvestre eran cuatro `DrawRect` planos con colores a pelo, que
+a distancia de macro leían todos como el mismo cuadrado. Ahora son sprites del
+atlas roguelike: matorral seco, brote verde, escombro gris y arbusto con bayas.
+Las coordenadas del atlas vivían triplicadas —con la fila y la columna
+re-escritas como literales justo debajo de las constantes que ya las
+contenían— y ahora están en un único `TerrainAtlas`. La verificación importó:
+el primer tile que elegí para la piedra resultó ser una pila de lingotes de
+plata que renderizaba azul, exactamente la clase de error que el repo ya tenía
+registrada con los tiles de agua en vez de árboles.
+
+**Los cursores son de verdad contextuales.** El puntero era un SVG de 24 px que
+leía blando contra el pixel art, y el cursor "interactivo" era esa misma flecha
+reteñida: al pasar por un botón salía una flecha más clara, no una mano. Ahora
+son dos glifos distintos del pack de cursores, teñidos por linaje como manda la
+biblia (recolorear por tokens, sin deformar geometría).
+
+**El espíritu de fuego habla desde el mundo.** Era un anillo de dieciséis
+puntos con un triángulo, clavado a la pantalla porque su posición solo se
+recalculaba al cambiar de etapa. Ahora es una llama que parpadea en la cadencia
+de 12 Hz del proyecto y se re-proyecta cada frame, y su voz es una **burbuja
+anclada sobre él** en lugar de una banda al pie: la banda nunca se había visto
+en ejecución hasta ayer, y al verse resultó ser una barra de subtítulos con el
+personaje que enseña en otra parte de la pantalla. `DEC-0016` supersede a
+`DEC-0014` §3 y explica por qué. La burbuja entera es el confirmar; no hay
+botón compitiendo. Y las superficies de la noche se ocultan fuera del macro,
+porque estaban dibujándose sobre el panel de una vista de edificio.
+
+**Las vistas de detalle tienen suelo.** Eran una textura de panel repetida y
+teñida por el acento del linaje; ahora son tiles de terreno reales dibujados
+ortogonalmente a escala entera ×4 (16 → 64, el `BaseUnit` del proyecto), sin el
+`Modulate` que enturbiaba el color.
+
+**Y el espíritu por fin enseña.** Se callaba tras dos frases: las dos etapas en
+las que la noche espera a que construyas devuelven `null` del catálogo a
+propósito, y nada llenaba ese hueco, así que el "tutorial orgánico" no llegaba
+a enseñar nada. Ahora la burbuja muestra una directiva —"Necesitas 3 ramas y 2
+piedras pequeñas para levantar una hoguera"— con las cantidades **interpoladas
+de `FoundingSiteRules.InputsFor`**, nunca escritas a mano, como exige
+`DEC-0014` §4: si cambia la receta, el tutorial no puede mentir.
+
+Tres correcciones más de la misma sesión de prueba: la burbuja se anclaba al
+borde superior cuando no cabía arriba y caía **encima** del hablante, tapando
+al espíritu — ahora vuelca debajo y la cola gira para seguir apuntándole; la
+burbuja seguía visible al abrir Construcción, porque ningún modal cambia
+`Selection` y vigilar solo la selección no bastaba (ahora también escucha al
+`ModalHost`); y el cursor mostraba un hacha para cualquier recurso, cuando el
+pack tiene herramientas distintas — ahora hacha para madera, pico para piedra y
+mano para lo que se recoge del suelo.
+
+**Y el mundo recupera su escala.** El sprite del habitante en el macro estaba
+al 25 %, una decisión tomada cuando el terreno era provisional y bastaba con
+que una persona "se notara"; contra el terreno acabado leía como un enano.
+Ahora está al 50 %, una fracción limpia para que el muestreo nearest siga
+cayendo en píxeles enteros. Y los árboles medían lo mismo que un arbusto de
+bayas — no por venir de packs distintos, que ya vienen del mismo atlas, sino
+porque todos los recursos usaban el mismo rect cuadrado. El árbol pasa a su
+forma de dos tiles: la copa crece hacia arriba fuera del rect y el tronco
+conserva la línea de suelo, así que la huella de la parcela y el área de clic
+no cambian.
+
+Dos arreglos más del segundo playtest: la burbuja de apertura dibujaba una cola
+apuntando al suelo vacío, porque en `Manifested` el espíritu todavía no está
+presente — la narración ahora va sin cola, y solo las etapas con espíritu tienen
+hablante. Y las brasas dejaron de ser un cuadrilátero de alambre que un
+playtester confundió con un sigilo de linaje: ahora son el sprite de hoguera del
+atlas, teñido hacia ceniza.
+
+**El espíritu deja de narrarse a sí mismo.** Los seis nodos del catálogo
+declaraban `SpeakerId = "fire_spirit"`, incluidos los cinco escritos como
+narración en tercera persona *sobre* él; el globo se los atribuía, así que el
+espíritu decía cosas como "El espíritu se detiene, sorprendido". Ahora existe un
+hablante `narrator` y solo `shelter_built` se pronuncia en voz alta. La
+narración se pinta centrada, sin cola y un tono más apagada; el habla conserva
+el nivel `DialogText` y la cola sobre el espíritu. El test que existía afirmaba
+la atribución errónea y se corrigió; otro nuevo vigila que la noche conserve
+**las dos** voces, para que la separación no se colapse en silencio.
+
+Lo que sigue pendiente: el espíritu es una llama autoral, no un sprite — no hay
+ninguna llama exenta en los tres packs y recortarla de un brasero sería editar
+a mano un PNG exportado, que el pipeline prohíbe. Y cinco de los seis diálogos
+autorales están escritos como **narración en tercera persona sobre** el espíritu
+("El espíritu se detiene, sorprendido"), no como habla suya: la banda inferior
+original los presentaba bien, pero un globo de diálogo los atribuye a alguien
+que no los dice. Clasificar la voz nodo a nodo son 48 claves y es decisión de
+`narrative-lore`, no de presentación.
+
+Baseline medido: build 0 errores / 0 advertencias; tests 913 pasando, 1
+omitido; 918 IDs de plantilla y 283 claves de runtime; specimen tipográfico con
+`TitleCropColorCount = 2` (sin franja gris); capturas de `astral-start`,
+`firstnight-manifested`, `pause-menu`, `migrant`, `policies`, `offline-report`
+y `macro-current` a 1280×720 y 1920×1080.
+
+---
+
 ## README alineado con EG-5
 
 **2026-08-06** · schema v31 (sin cambio)
@@ -103,6 +325,15 @@ afinidad, expresión física y los tres ejes del Cubo como barras de dos polos,
 cada una con sus dos enteros impresos. Siguiendo la biblia (§Pantalla final del
 onboarding), la ficha deja de nombrar familias de arma: "arma preferida" está en
 su lista de *no mostrar* y el código llevaba tiempo desviado de ese contrato.
+
+Dos filas se reservan en vez de ocultarse: la consecuencia inmediata durante las
+preguntas y el aviso de validación durante el nombrado. Son las dos que aparecen
+y desaparecen *como respuesta a que el jugador actúe en esa misma pantalla*, así
+que ocultarlas era correcto para el espacio y erróneo para la sensación —
+elegir una opción reajustaba la columna y movía el texto que se estaba leyendo.
+Comprobado con dos capturas idénticas salvo el clic: solo difieren el contador,
+el fragmento encendido, el foco, el botón elegido, la línea de consecuencia y el
+pie; título y narrativa son idénticos píxel a píxel a 1280×720 y a 1920×1080.
 
 Lo que el jugador todavía ve mal: la barra de estado y la fila de acciones de la
 ciudad siguen visibles a través del velo astral traslúcido en los dos últimos

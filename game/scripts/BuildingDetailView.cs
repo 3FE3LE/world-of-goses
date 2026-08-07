@@ -265,10 +265,9 @@ public partial class BuildingDetailView : Control
 			ThemeTypeVariation = "BodyText",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
-		_acceptProspectButton = new Button
+		_acceptProspectButton = new Ui.PrimaryActionButton
 		{
 			Text = UiText.Get("ui.town_hall.accept"),
-			ThemeTypeVariation = "ButtonPrimary",
 		};
 		_acceptProspectButton.Pressed += OnAcceptProspect;
 		layout.AddChild(_prospectLabel);

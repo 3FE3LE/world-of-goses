@@ -48,11 +48,14 @@ public partial class CityPrototype : Node
     public override void _Ready()
     {
         GD.Print("World of Goses prototype starting.");
-        var firstNightScene = new FirstNightScene
-        {
-            Name = "FirstNightScene",
-            ControllerPath = new NodePath("CityWorldController"),
-        };
+        // The path is relative to the FirstNightScene node itself, and
+        // AddChild makes it a *child* of CityPrototype — so the controller,
+        // a sibling, is one level up. Passing "CityWorldController" resolved
+        // to FirstNightScene/CityWorldController, which never exists: the
+        // scene then failed to subscribe and the whole authored night stayed
+        // inert. The export default on FirstNightScene is already correct, so
+        // there is nothing to override here.
+        var firstNightScene = new FirstNightScene { Name = "FirstNightScene" };
         AddChild(firstNightScene);
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1")
         {
@@ -69,6 +72,17 @@ public partial class CityPrototype : Node
             if (!argument.StartsWith(fixturePrefix, StringComparison.Ordinal)) continue;
             fixture = argument[fixturePrefix.Length..];
             break;
+        }
+
+        // `biome-<lineage>` builds a fresh city founded by that lineage, so
+        // every ground palette can be reviewed without replaying onboarding
+        // once per lineage. Handled before the switch because the lineage is
+        // part of the name.
+        const string biomePrefix = "biome-";
+        if (fixture is not null && fixture.StartsWith(biomePrefix, StringComparison.Ordinal))
+        {
+            ShowBiomeForVisualRegression(fixture[biomePrefix.Length..]);
+            return;
         }
 
         switch (fixture)
@@ -159,6 +173,9 @@ public partial class CityPrototype : Node
                 break;
             case "founder-arrival":
                 ShowFounderArrivalForVisualRegression();
+                break;
+            case "firstnight-manifested":
+                ShowFirstNightForVisualRegression();
                 break;
             // The four moments the ambient day/night curve is built
             // around. Reviewing the tint needs a pinned hour: otherwise
@@ -457,6 +474,104 @@ public partial class CityPrototype : Node
         controller.World.Restore(WorldPersistence.Capture(fixture));
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowConstructionForVisualRegression(placement: false);
+    }
+
+    /// <summary>
+    /// A brand-new city one instant after the founder manifests: the authored
+    /// night is at <see cref="FirstNightStage.Manifested"/> and nothing has
+    /// advanced it yet. This is exactly the state a real first run reaches,
+    /// and it had no fixture — which is how the whole night shipped inert
+    /// behind a mis-resolved NodePath while every domain test passed. The row
+    /// this fixture backs asserts that the dialogue strip is actually on
+    /// screen, not merely that the domain says the night is active.
+    /// </summary>
+    private void ShowFirstNightForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CitizenProfile nightProfile = NewFounderProfile(LineageId.Ardhen);
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            nightProfile,
+            nightProfile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"First-night fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+    }
+
+    /// <summary>
+    /// A founder for a fixture, built the way the game builds one.
+    ///
+    /// <para>
+    /// A founder is born with a lineage, a body, an elemental affinity and a
+    /// Cube — and nothing else. Aptitudes, professional affinities, personality
+    /// traits, combat style and weapon preferences are <b>earned through a
+    /// citizen's history</b>, which is why <see cref="CitizenProfile.CreateFounder"/>
+    /// passes empty arrays for every one of them. Fixtures used to reach for
+    /// <c>CitizenProfile.TryCreate</c> and hand-pick that list, which injected
+    /// into a dummy founder exactly the things a founder is not supposed to
+    /// start with — and quietly made test cities unrepresentative of a real
+    /// first run.
+    /// </para>
+    /// </summary>
+    private static CitizenProfile NewFounderProfile(
+        LineageId lineage,
+        GenderId gender = GenderId.Feminine) =>
+        CitizenProfile.CreateFounder(
+            new FounderOnboardingResult(
+                lineage,
+                ElementalAffinity.Earth,
+                CubeScoring.ComputeCubeVertex(lineage),
+                FounderNarrativeMemory.Empty),
+            gender);
+
+    /// <summary>
+    /// A fresh city founded by <paramref name="lineageName"/>, so the ground
+    /// biome that lineage's site uses (DEC-0017) can be reviewed directly.
+    /// Reaching the eight palettes otherwise means replaying the twelve-step
+    /// onboarding once per lineage and hoping the scorer lands on the one you
+    /// want — the founder's lineage is inferred, never chosen.
+    /// </summary>
+    private void ShowBiomeForVisualRegression(string lineageName)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        LineageId? lineage = lineageName.ToLowerInvariant() switch
+        {
+            "ardhen" => LineageId.Ardhen,
+            "eirune" => LineageId.Eirune,
+            "kovari" => LineageId.Kovari,
+            "myrven" => LineageId.Myrven,
+            "vaelun" => LineageId.Vaelun,
+            "orveth" => LineageId.Orveth,
+            "caelith" => LineageId.Caelith,
+            "theryn" => LineageId.Theryn,
+            _ => null,
+        };
+        if (lineage is null)
+        {
+            GD.PushError($"Biome fixture: unknown lineage '{lineageName}'.");
+            return;
+        }
+
+        CitizenProfile profile = NewFounderProfile(lineage.Value);
+        var fixture = new CityWorld();
+        HeroCreationResult hero = fixture.TryCreateHero(
+            new HeroCreationRequest("Aster", profile, profile.Gender));
+        if (!hero.IsSuccess)
+        {
+            GD.PushError($"Biome fixture: could not create founder: {hero.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
     }
 
     private void ShowEarlyGameResourcesForVisualRegression()

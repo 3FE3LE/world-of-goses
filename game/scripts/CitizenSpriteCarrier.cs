@@ -30,7 +30,21 @@ public partial class CitizenSpriteCarrier : Node2D
     /// </summary>
     public const float WalkSpeedPxPerSec =
         PixelMotion.StepPixels / PixelMotion.CadenceSeconds;
-    private static readonly Vector2 MacroScale = new(0.25f, 0.25f);
+    /// <summary>
+    /// Macro-view magnification of the LPC character frame.
+    ///
+    /// <para>
+    /// This was <c>0.25</c>, chosen when the macro view had placeholder art
+    /// and an inhabitant only had to read as a presence. Against the finished
+    /// terrain — 16 px tiles at ×4, two-tile trees — a quarter-scale founder
+    /// reads as a dwarf standing in a normal-sized world. Half scale puts a
+    /// person at roughly the height of a bush and below the tree canopy,
+    /// which is the relationship the terrain art assumes. Kept a clean
+    /// fraction so the nearest-neighbour sampling stays on whole source
+    /// pixels.
+    /// </para>
+    /// </summary>
+    private static readonly Vector2 MacroScale = new(0.5f, 0.5f);
 
     public CitizenId Id { get; private set; }
     public LineageId Lineage { get; private set; }

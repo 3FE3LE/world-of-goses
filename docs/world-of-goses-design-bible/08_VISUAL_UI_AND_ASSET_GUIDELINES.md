@@ -161,9 +161,21 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
 
 - Simulation time remains continuous; character presentation is quantized.
 - Macro and building-detail locomotion uses integer positions at a deliberate
-  12 Hz visual cadence, advancing by 8 pixels per step.
+  24 Hz visual cadence, advancing by 4 pixels per step. It was 12 Hz at 8 px
+  until 2026-08-06; the effective speed is identical (96 px/s), but the coarser
+  step read as a jerk rather than as a gait. The grammar is unchanged — motion
+  is still discrete, never interpolated — only the grain is finer. Anything
+  that advances a fixed fraction per cadence tick (the camera's depth pan, the
+  building-entry zoom) carries twice the step count so its duration holds.
 - Macro travel follows cardinal routes and must not cross occupied building
   footprints.
+- The macro view's perspective trapezoids climb in whole-pixel treads rather
+  than as true diagonals, which would betray the pixel art. The tread is 2 px
+  (4 px until 2026-08-06, which read as a sawtooth on the long shallow edges of
+  the near streets). This is a grain adjustment, not a step toward
+  antialiasing: edges stay snapped to a whole-pixel grid. Two is the floor
+  worth taking — at 1 px the treads stop reading as deliberate and the edge
+  becomes the diagonal this quantisation exists to avoid.
 - **World-camera pan/observation follows the same discrete cadence as
   character locomotion — it is not a continuous 1:1 mouse-drag.** Fluid,
   continuously-interpolated motion is the explicit exception, not the

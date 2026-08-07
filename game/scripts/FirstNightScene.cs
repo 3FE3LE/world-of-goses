@@ -9,12 +9,11 @@ namespace WorldofGoses;
 /// <summary>
 /// Presentation host for the authored first night
 /// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Owns the
-/// non-modal <see cref="FirstNightDialogueStrip"/> and the
-/// <see cref="FireSpiritVisual"/>, both rendered on a private
-/// <see cref="CanvasLayer"/> at <c>Layer=50</c> so they occlude
-/// the construction and expedition modals without hiding the
-/// pause menu or <see cref="Notifier"/> toasts (mirroring the
-/// comment on <see cref="OverlayLayers.Tutorial"/>).
+/// non-modal <see cref="FirstNightSpeechBubble"/> and the
+/// <see cref="FireSpiritVisual"/>, both rendered at
+/// <see cref="OverlayLayers.Tutorial"/> so they occlude the
+/// construction and expedition modals without hiding the onboarding,
+/// the pause menu or <see cref="Notifier"/> toasts.
 ///
 /// <para>
 /// Subscribes to <see cref="CityWorldController.FirstNightStageChanged"/>
@@ -27,8 +26,8 @@ namespace WorldofGoses;
 /// <para>
 /// The scene resolves body text via <see cref="UiText.Get"/> so the
 /// player reads the night in their active locale. The localisation
-/// happens here — not in <see cref="FirstNightDialogueStrip"/>
-/// itself — so the strip stays a pure layout primitive and tests
+/// happens here — not in <see cref="FirstNightSpeechBubble"/>
+/// itself — so the balloon stays a pure layout primitive and tests
 /// for it stay Godot-free.
 /// </para>
 /// </summary>
@@ -48,9 +47,16 @@ public partial class FirstNightScene : Node
     /// </summary>
     [Export] public NodePath MacroViewPath { get; set; } = "../GameUiShell/ScreenContent/MacroStreetLiveView";
 
+    /// <summary>
+    /// The shared modal host. Construction, expeditions, policies and the
+    /// citizens roster all open through it, and none of them changes
+    /// <c>CityWorldController.Selection</c> — so watching the selection alone
+    /// left the balloon floating over an open panel.
+    /// </summary>
+    [Export] public NodePath ModalHostPath { get; set; } = "../GameUiShell/ScreenContent/ModalHost";
+
     private CityWorldController? _controller;
-    private CanvasLayer _layer = null!;
-    private FirstNightDialogueStrip _strip = null!;
+    private FirstNightSpeechBubble _bubble = null!;
     private FireSpiritVisual _spirit = null!;
     private FirstNightEmbers _embers = null!;
 
@@ -70,23 +76,35 @@ public partial class FirstNightScene : Node
     /// </summary>
     private Vector2 _campfireScreenPosition = new(640, 380);
 
+    /// <summary>
+    /// Whether <see cref="_campfireScreenPosition"/> came from a real
+    /// structure this frame. False while the founding site is still a project.
+    /// </summary>
+    private bool _hasCampfireAnchor;
+
+    private CityWorldController.Selection _selection = CityWorldController.Selection.MacroView;
+    private ModalHost? _modalHost;
+
     public override void _Ready()
     {
-        _layer = new CanvasLayer { Layer = OverlayLayers.Tutorial };
-        AddChild(_layer);
+        // No CanvasLayer. OverlayLayers is a ZIndex catalogue, and a
+        // CanvasLayer sits on a different axis that outranks every ZIndex in
+        // the project: hosting the night on `CanvasLayer.Layer = 50` drew the
+        // strip and the spirit over the onboarding (ZIndex 80), the pause menu
+        // (100) and the Notifier, which is the opposite of what
+        // `OverlayLayers.Tutorial` promises. The surfaces are canvas roots
+        // here — FirstNightScene is a plain Node — so their ZIndex is
+        // comparable with every other overlay, exactly like
+        // AstralOnboardingView.
+        _spirit = new FireSpiritVisual { ZIndex = OverlayLayers.Tutorial };
+        AddChild(_spirit);
 
-        _strip = new FirstNightDialogueStrip();
-        _strip.SetActionLabels(
-            UiText.Get(WorldofGoses.Domain.Tr.FirstNight.FollowButton),
-            UiText.Get(WorldofGoses.Domain.Tr.FirstNight.SleepButton));
-        _layer.AddChild(_strip);
-        _strip.FollowPressed += OnStripFollowPressed;
+        _bubble = new FirstNightSpeechBubble();
+        AddChild(_bubble);
+        _bubble.Confirmed += OnStripFollowPressed;
 
-        _spirit = new FireSpiritVisual();
-        _layer.AddChild(_spirit);
-
-        _embers = new FirstNightEmbers();
-        _layer.AddChild(_embers);
+        _embers = new FirstNightEmbers { ZIndex = OverlayLayers.Tutorial };
+        AddChild(_embers);
 
         _controller = GetNodeOrNull<CityWorldController>(ControllerPath);
         if (_controller is null)
@@ -97,10 +115,97 @@ public partial class FirstNightScene : Node
             return;
         }
         _controller.FirstNightStageChanged += OnFirstNightStageChanged;
+        _controller.SelectionChanged += OnSelectionChanged;
+
+        _modalHost = GetNodeOrNull<ModalHost>(ModalHostPath);
+        if (_modalHost is not null)
+        {
+            _modalHost.Opened += ProjectCurrentStage;
+            _modalHost.Closed += ProjectCurrentStage;
+        }
         // Project the loaded stage on first frame so a save restored
         // mid-night shows its dialogue immediately, without waiting for
         // the next tick.
         ProjectCurrentStage();
+    }
+
+    /// <summary>
+    /// Keeps the spirit, its bubble and the embers sitting on the world.
+    ///
+    /// <para>
+    /// <c>MacroStreetLiveView</c> has no camera transform to inherit — it
+    /// projects each street by hand from <c>CameraDepthAnchor</c> and
+    /// <c>CameraLateral</c> — so moving the camera changes the *projection*,
+    /// not a parent transform. Re-parenting would therefore not help; the
+    /// position genuinely has to be re-derived. It used to be sampled only on
+    /// a stage change, which is why the spirit looked nailed to the viewport:
+    /// it stayed wherever it was the last time the night advanced.
+    /// </para>
+    /// </summary>
+    public override void _Process(double delta)
+    {
+        _ = delta;
+        if (_controller is null) return;
+        if (!_spirit.Visible && !_embers.Visible && !_bubble.Visible) return;
+
+        RefreshPositionsFromWorld();
+        if (_spirit.Visible) _spirit.MoveTo(SpiritAnchor());
+        if (_embers.Visible) _embers.PlaceAt(_campfireScreenPosition);
+        if (_bubble.Visible) _bubble.FollowSpeaker(SpiritAnchor());
+    }
+
+    /// <summary>
+    /// Where the spirit currently belongs: beside the founder until the
+    /// campfire exists, over the flame afterwards.
+    /// </summary>
+    /// <summary>
+    /// What the spirit is asking for at a build stage, with the quantities
+    /// read from <see cref="FoundingSiteRules.InputsFor"/> at display time so
+    /// a recipe change can never leave the tutorial lying to the player.
+    /// </summary>
+    private static string DescribeModuleDirective(FirstNightStage stage)
+    {
+        FoundingSiteModule module = FirstNightRules.ModuleFor(stage);
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (RecipeInput input in FoundingSiteRules.InputsFor(module))
+        {
+            parts.Add(UiText.Format(
+                "firstnight.directive.amount",
+                input.Amount,
+                UiText.Get(input.Resource.ToString().ToLowerInvariant())));
+        }
+
+        string needed = parts.Count switch
+        {
+            0 => string.Empty,
+            1 => parts[0],
+            _ => UiText.Format(
+                "firstnight.directive.join",
+                string.Join(", ", parts.GetRange(0, parts.Count - 1)),
+                parts[^1]),
+        };
+
+        return UiText.Format(
+            module == FoundingSiteModule.Campfire
+                ? "firstnight.directive.campfire"
+                : "firstnight.directive.bedroll",
+            needed);
+    }
+
+    private Vector2 SpiritAnchor()
+    {
+        FirstNightState? night = _controller?.World.FirstNight;
+        // Only move into the fire once there is a fire to move into. Without
+        // the anchor check the spirit read `_campfireScreenPosition`, which
+        // stays at its constructor default while the founding site is still a
+        // project — the middle of the screen. From `CampfireBuilt` onward the
+        // spirit teleported there and hovered over nothing.
+        bool inTheFlame = night is not null
+            && night.Stage >= FirstNightStage.CampfireBuilt
+            && _hasCampfireAnchor;
+        return inTheFlame
+            ? _campfireScreenPosition
+            : _founderScreenPosition + FireSpiritVisual.SpiritHoverOffset;
     }
 
     public override void _ExitTree()
@@ -108,8 +213,31 @@ public partial class FirstNightScene : Node
         if (_controller is not null)
         {
             _controller.FirstNightStageChanged -= OnFirstNightStageChanged;
+            _controller.SelectionChanged -= OnSelectionChanged;
+        }
+        if (_modalHost is not null)
+        {
+            _modalHost.Opened -= ProjectCurrentStage;
+            _modalHost.Closed -= ProjectCurrentStage;
         }
     }
+
+    /// <summary>
+    /// The night speaks about the world, so it only speaks while the player is
+    /// looking at it. Inside a building detail view or the hero profile the
+    /// balloon and the spirit would float over a surface they have nothing to
+    /// do with — they sit at <see cref="OverlayLayers.Tutorial"/>, above the
+    /// HUD-layer views, so without this they draw straight over the panels.
+    /// </summary>
+    private void OnSelectionChanged(int selection)
+    {
+        _selection = (CityWorldController.Selection)selection;
+        ProjectCurrentStage();
+    }
+
+    private bool IsWorldVisible =>
+        _selection == CityWorldController.Selection.MacroView
+        && _modalHost?.IsOpen != true;
 
     /// <summary>
     /// Updates the cached founder screen position. The macro view
@@ -147,11 +275,18 @@ public partial class FirstNightScene : Node
     private void ProjectCurrentStage()
     {
         if (_controller is null) return;
+        if (!IsWorldVisible)
+        {
+            _bubble.Vanish();
+            _spirit.Vanish();
+            _embers.Vanish();
+            return;
+        }
         RefreshPositionsFromWorld();
         FirstNightState? night = _controller.World.FirstNight;
         if (night is null || !night.IsActive)
         {
-            _strip.Vanish();
+            _bubble.Vanish();
             _spirit.Vanish();
 
             // The night may be over but the embers still sit on the
@@ -160,7 +295,8 @@ public partial class FirstNightScene : Node
             // trace.
             if (HasEmbersAfterDeparture())
             {
-                _embers.PlaceAt(_campfireScreenPosition);
+                if (_hasCampfireAnchor) _embers.PlaceAt(_campfireScreenPosition);
+                else _embers.Vanish();
             }
             else
             {
@@ -175,17 +311,40 @@ public partial class FirstNightScene : Node
 
         // Resolve the body text from the catalogue; the catalogue
         // returns null for stages that wait on a module, which is
-        // exactly when the strip should hide.
+        // exactly when the balloon should hide — the player is being
+        // asked to build something, not to read.
         LineageId lineage = _controller.World.Hero?.Profile.Lineage ?? LineageId.Ardhen;
         IDialogueNode? node = FireSpiritDialogueCatalog.NodeFor(night.Stage, lineage);
-        if (node is null)
+        if (node is null && FirstNightRules.WaitsForModule(night.Stage))
         {
-            _strip.Vanish();
+            // The two build stages have no authored line on purpose: they wait
+            // for the player to make something. Left at that, the spirit fell
+            // silent after two sentences and the "organic tutorial" never
+            // taught anything. The balloon now carries a directive instead —
+            // derived from the real recipe, never a hand-written quantity,
+            // per DEC-0014 §4.
+            _bubble.Speak(DescribeModuleDirective(night.Stage), string.Empty);
+            _bubble.FollowSpeaker(SpiritAnchor());
+        }
+        else if (node is null)
+        {
+            _bubble.Vanish();
         }
         else
         {
             bool isSleeping = night.Stage == FirstNightStage.Sleeping;
-            _strip.ShowNode(UiText.Get(node.BodyKey), isSleeping);
+            _bubble.Speak(
+                UiText.Get(node.BodyKey),
+                UiText.Get(isSleeping
+                    ? WorldofGoses.Domain.Tr.FirstNight.SleepButton
+                    : WorldofGoses.Domain.Tr.FirstNight.FollowButton),
+                // Attribution comes from the node, not from whether the spirit
+                // happens to be on screen: five of the six authored bodies are
+                // narration about the spirit, and a balloon with a tail
+                // presented them as the spirit narrating itself.
+                hasSpeaker: node.SpeakerId == FireSpiritDialogueCatalog.FireSpiritSpeakerId
+                    && FirstNightRules.SpiritIsPresent(night.Stage));
+            _bubble.FollowSpeaker(SpiritAnchor());
         }
 
         // Spirit visual: present only between Manifested and Sleeping
@@ -225,18 +384,28 @@ public partial class FirstNightScene : Node
             _founderScreenPosition = founderScreen;
         }
 
-        // The campfire lives at the same projected spot as the
-        // founder for now: the founding site is anchored to the
-        // founding parcel, and the campfire is its first module. A
-        // future iteration can refine this when the macro view
-        // publishes a separate campfire anchor.
-        _campfireScreenPosition = _founderScreenPosition + new Vector2(0f, -32f);
+        // Anchor the campfire on the structure that actually holds it. This
+        // used to be the founder's own projected spot minus 32 px, which drew
+        // the fire on top of the citizen — invisible while the embers were a
+        // faint wireframe, an obvious bonfire standing in front of him once
+        // they became a sprite.
+        //
+        // When the founding site is still a construction project there is no
+        // Building to point at, and the macro view exposes no anchor for a
+        // project. In that case we draw nothing: a fire in an invented place
+        // is worse than no fire, because the player reads it as world state.
+        int? siteId = _controller?.World.FoundingSiteBuildingId();
+        Vector2 siteScreen = siteId is null
+            ? Vector2.Zero
+            : InvokePositionGetter(macroView, "GetBuildingGlobalPosition", siteId.Value);
+        _hasCampfireAnchor = siteScreen != Vector2.Zero;
+        if (_hasCampfireAnchor) _campfireScreenPosition = siteScreen;
     }
 
-    private static Vector2 InvokePositionGetter(Node node, string methodName)
+    private static Vector2 InvokePositionGetter(Node node, string methodName, params Variant[] args)
     {
         if (!node.HasMethod(methodName)) return Vector2.Zero;
-        Variant result = node.Call(methodName);
+        Variant result = node.Call(methodName, args);
         return result.VariantType == Variant.Type.Vector2
             ? (Vector2)result
             : Vector2.Zero;

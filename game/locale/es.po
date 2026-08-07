@@ -2673,6 +2673,18 @@ msgstr "El rastro que dejó el espíritu no puede leerse hasta que termine la no
 msgid "ui.expedition.objective.spirit"
 msgstr "Rastro del espíritu"
 
+msgid "firstnight.directive.campfire"
+msgstr "El espíritu señala el suelo. Necesitas {0} para levantar una hoguera."
+
+msgid "firstnight.directive.bedroll"
+msgstr "El espíritu señala el suelo junto al fuego. Necesitas {0} para tenderte a dormir."
+
+msgid "firstnight.directive.join"
+msgstr "{0} y {1}"
+
+msgid "firstnight.directive.amount"
+msgstr "{0} {1}"
+
 msgid "firstnight.manifested.body.ardhen"
 msgstr "La marca del herrero aún está caliente en el suelo. El espíritu se detiene, sorprendido."
 

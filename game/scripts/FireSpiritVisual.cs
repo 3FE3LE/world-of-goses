@@ -1,116 +1,146 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
 /// <summary>
-/// Presentation-only placeholder for the fire spirit of the
-/// authored first night (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>).
-/// The visual is a small ring with a triangular glyph that floats
-/// beside the founder before the campfire is built and hovers over
-/// the campfire afterwards.
+/// The fire spirit of the authored first night
+/// (<c>docs/19_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>): a small manifestation of
+/// flame that hovers beside the founder before the campfire is built and
+/// settles into the fire afterwards.
 ///
 /// <para>
-/// Position is derived from the calling code: this node stores no
-/// authoritative coordinates and never persists them. The pattern
-/// mirrors <see cref="FounderArrivalSequence.BuildImpactRing"/>: the
-/// ring is a closed <see cref="Line2D"/> of sixteen points placed
-/// with <see cref="Vector2.FromAngle"/>, and the glyph is a
-/// <see cref="Polygon2D"/> triangle until a dedicated sprite lands.
-/// When that happens, the triangle can be swapped for a
-/// <see cref="Sprite2D"/> without touching the consumer — the public
-/// surface is position-only.
+/// <b>Still a placeholder, but no longer an abstract one.</b> It used to be a
+/// sixteen-point ring with a triangle inside, which read as a geometric HUD
+/// marker rather than a living thing. None of the three Kenney packs in
+/// <c>art/exports/ui/</c> ships a free-standing flame: the closest art is a
+/// hearth or brazier, which carries its own stonework and reads as furniture.
+/// Cropping a flame out of one of those would mean hand-editing an exported
+/// PNG, which <c>docs/ART_PIPELINE.md</c> §10 forbids. So the shape is
+/// authored here — layered flame polygons in the fire palette — until real
+/// art exists.
+/// </para>
+///
+/// <para>
+/// The flicker follows the project's motion grammar: two discrete states
+/// swapped on the shared 12 Hz cadence, never a continuous tween. Position is
+/// supplied by the caller and never stored authoritatively.
 /// </para>
 /// </summary>
 public partial class FireSpiritVisual : Node2D
 {
-    private const int RingPoints = 16;
-    private const float RingRadius = 14f;
-    private const float RingWidth = 2.5f;
-    private const float TriangleSize = 6f;
+    /// <summary>Two frames at the project's 12 Hz presentation cadence.</summary>
+    private const double FlickerSeconds = 1.0 / 12.0;
 
-    private static readonly Color RingColor = new(0.95f, 0.78f, 0.35f, 0.85f);
-    private static readonly Color TriangleColor = new(1.0f, 0.82f, 0.42f, 0.95f);
+    /// <summary>
+    /// Where the spirit sits relative to the founder's feet: clear of his
+    /// silhouette horizontally and lifted well off the ground line, so it
+    /// reads as hovering beside him instead of burning at his feet.
+    /// </summary>
+    public static readonly Vector2 SpiritHoverOffset = new(34f, -44f);
 
-    private Line2D _ring = null!;
-    private Polygon2D _glyph = null!;
+    private static readonly Color OuterCalm = new(0.96f, 0.55f, 0.18f, 0.80f);
+    private static readonly Color InnerCalm = new(1.0f, 0.82f, 0.42f, 0.95f);
+    private static readonly Color OuterLit = new(1.0f, 0.66f, 0.24f, 0.92f);
+    private static readonly Color InnerLit = new(1.0f, 0.93f, 0.62f, 1.0f);
+
+    private Polygon2D _outer = null!;
+    private Polygon2D _inner = null!;
+    private Polygon2D _core = null!;
+    private double _flickerAccumulator;
+    private bool _lit;
 
     public override void _Ready()
     {
-        _ring = BuildRing();
-        AddChild(_ring);
+        // Doc 19 calls it "una pequeña manifestación de fuego". At the earlier
+        // size it stood as tall as the founder and sat on his ground line, so
+        // it read as a campfire burning in front of the citizen rather than as
+        // a spirit hovering next to him.
+        _outer = BuildFlame(6f, 10f);
+        AddChild(_outer);
 
-        _glyph = BuildTriangle();
-        AddChild(_glyph);
+        _inner = BuildFlame(3.5f, 6.5f);
+        AddChild(_inner);
 
-        // Hidden by default. The controller reveals the visual only while
+        _core = BuildFlame(1.5f, 3.5f);
+        AddChild(_core);
+
+        ApplyFlicker();
+
+        // Hidden by default. FirstNightScene reveals the spirit only while
         // FirstNightRules.SpiritIsPresent(stage) is true.
         Visible = false;
     }
 
+    public override void _Process(double delta)
+    {
+        if (!Visible) return;
+        _flickerAccumulator += delta;
+        if (_flickerAccumulator < FlickerSeconds) return;
+        _flickerAccumulator = 0.0;
+        _lit = !_lit;
+        ApplyFlicker();
+    }
+
     /// <summary>
-    /// Positions the spirit next to the founder before the campfire is built.
-    /// The caller passes the founder's projected screen position; the spirit
-    /// is offset to the right and slightly above so it never overlaps the
-    /// founder's sprite.
+    /// Moves the flame to a world anchor. Called every frame while visible,
+    /// because the macro view projects its streets by hand and there is no
+    /// parent transform to inherit.
     /// </summary>
+    public void MoveTo(Vector2 anchor)
+    {
+        Position = new Vector2(Mathf.Round(anchor.X), Mathf.Round(anchor.Y));
+    }
+
+    /// <summary>Hovers beside the founder, before any fire exists.</summary>
     public void PlaceBesideFounder(Vector2 founderPosition)
     {
-        Position = founderPosition + new Vector2(28f, -22f);
+        MoveTo(founderPosition + SpiritHoverOffset);
         Visible = true;
-        _ring.DefaultColor = RingColor;
-        _glyph.Color = TriangleColor;
     }
 
-    /// <summary>
-    /// Positions the spirit over the campfire once it is built. The ring
-    /// widens (a separate visual signal that the spirit has moved into the
-    /// flame) and the glyph brightens.
-    /// </summary>
+    /// <summary>Settles into the campfire once it is built.</summary>
     public void PlaceOnCampfire(Vector2 campfirePosition)
     {
-        Position = campfirePosition + new Vector2(0f, -10f);
+        MoveTo(campfirePosition + new Vector2(0f, -10f));
         Visible = true;
-        _ring.Width = RingWidth + 1.5f;
-        _ring.DefaultColor = new Color(1.0f, 0.62f, 0.28f, 0.95f);
-        _glyph.Color = new Color(1.0f, 0.72f, 0.32f, 1.0f);
     }
 
-    /// <summary>Hides the visual without releasing it; the controller can re-show it later.</summary>
+    /// <summary>Hides the visual without releasing it; the scene can re-show it later.</summary>
     public void Vanish()
     {
         Visible = false;
     }
 
-    private static Line2D BuildRing()
+    private void ApplyFlicker()
     {
-        var ring = new Line2D
-        {
-            Width = RingWidth,
-            DefaultColor = RingColor,
-            Closed = true,
-        };
-        for (int index = 0; index < RingPoints; index++)
-        {
-            float angle = Mathf.Tau * index / RingPoints;
-            ring.AddPoint(Vector2.FromAngle(angle) * RingRadius);
-        }
-        return ring;
+        _outer.Color = _lit ? OuterLit : OuterCalm;
+        _inner.Color = _lit ? InnerLit : InnerCalm;
+        _core.Color = _lit ? InnerLit : InnerCalm;
+        // The tip stretches on the lit frame. One pixel, snapped — the step is
+        // the point, a sub-pixel breath would read as a continuous tween.
+        _outer.Scale = new Vector2(1f, _lit ? 1.12f : 1f);
     }
 
-    private static Polygon2D BuildTriangle()
+    /// <summary>
+    /// A teardrop flame: wide round base, waist, and an off-centre tip, built
+    /// on integer-friendly proportions so it stays crisp at the project's
+    /// nearest-neighbour filtering.
+    /// </summary>
+    private static Polygon2D BuildFlame(float halfWidth, float height)
     {
-        // Pointing up: tip at top, base centred at the bottom.
         Vector2[] points =
         {
-            new(0f, -TriangleSize),
-            new(-TriangleSize * 0.866f, TriangleSize * 0.5f),
-            new(TriangleSize * 0.866f, TriangleSize * 0.5f),
+            new(0f, -height),
+            new(halfWidth * 0.55f, -height * 0.55f),
+            new(halfWidth, -height * 0.10f),
+            new(halfWidth * 0.72f, height * 0.28f),
+            new(0f, height * 0.42f),
+            new(-halfWidth * 0.72f, height * 0.28f),
+            new(-halfWidth, -height * 0.10f),
+            new(-halfWidth * 0.55f, -height * 0.55f),
         };
-        return new Polygon2D
-        {
-            Polygon = points,
-            Color = TriangleColor,
-        };
+        return new Polygon2D { Polygon = points };
     }
 }

@@ -121,7 +121,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("6_detail")
 
-[node name="DetailBackground" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1645245703]
+[node name="DetailBackground" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1645245703]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -130,7 +130,6 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("16_kenbg")
-TexturePath = "res://assets/ui/kenney/9-slice/ancient_brown.png"
 
 [node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1087183704]
 layout_mode = 1

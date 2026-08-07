@@ -84,7 +84,15 @@ public sealed record CityStatusSnapshot(
         // "{UpkeepPerTick} stone/tick (upkeep)" from this snapshot;
         // the chip and the call site are gone, and the snapshot no
         // longer carries the field.
-        return new CityStatusSnapshot(world.CurrentTick,
+        // The authored first night holds the displayed clock at 05:59 while it
+        // runs. The tick itself is never frozen — freezing it would stop
+        // construction and make the very milestone the night waits on
+        // unreachable — but the player must not watch the sun come up while
+        // the spirit is still teaching them to survive the dark.
+        // FirstNightState.DisplayedTick has existed and been unit-tested since
+        // the night landed; nothing had ever called it.
+        return new CityStatusSnapshot(
+            world.FirstNight?.DisplayedTick(world.CurrentTick) ?? world.CurrentTick,
             world.FoodStock, world.MaxFoodStock,
             world.DailyFoodRation, world.FoodHorizonDays,
             world.ProtectedFoodTarget, world.TicksUntilFirstHarvest,

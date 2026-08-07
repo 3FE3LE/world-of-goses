@@ -183,9 +183,6 @@ public partial class CityWorldController : Node
         }
     }
 
-    public void ToggleSimulationPause() =>
-        SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused);
-
     public enum Selection
     {
         MacroView = 0,

@@ -616,6 +616,18 @@ msgstr ""
 msgid "firstnight.context.small_stone_for_fire"
 msgstr ""
 
+msgid "firstnight.directive.amount"
+msgstr ""
+
+msgid "firstnight.directive.bedroll"
+msgstr ""
+
+msgid "firstnight.directive.campfire"
+msgstr ""
+
+msgid "firstnight.directive.join"
+msgstr ""
+
 msgid "firstnight.manifested.body.ardhen"
 msgstr ""
 
@@ -742,10 +754,10 @@ msgstr ""
 msgid "firstnight.strip.sleep"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
 msgid "Forest"
@@ -1597,10 +1609,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
 msgid "Strength"
@@ -2716,10 +2728,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"

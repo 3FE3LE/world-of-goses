@@ -168,7 +168,7 @@ After VS-5, choose one bounded depth slice. Current candidates, not approvals:
 - Deep healthcare, mortality and generations.
 - Profession trees, education and institutions.
 - Relationship, political, cultural and trade simulations.
-- Multiple biomes and large territory graphs.
+- Large territory graphs. (Per-lineage ground biomes landed 2026-08-06 as presentation only — see DEC-0017.)
 - Mass-population rendering without profiler evidence.
 - Final art/audio pack.
 - Backend, networking, telemetry, launcher, settings UI, modding or a second
