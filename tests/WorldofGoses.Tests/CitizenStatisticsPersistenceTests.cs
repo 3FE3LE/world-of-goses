@@ -39,7 +39,14 @@ public sealed class CitizenStatisticsPersistenceTests
         // edited on every new schema version.
         CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
         Citizen restoredCitizen = Assert.Single(restored.Citizens.Values);
-        Assert.Equal(PhysicalExpression.Stunning, restoredCitizen.CombatNature.PhysicalExpression);
+        // The migration rebuilds the bare Kovari vertex, and Body wins its
+        // three-way tie. The affinity stays Fire and no longer decides this:
+        // before the correction, "fire" alone would have produced Stunning.
+        Assert.Equal(ElementalAffinity.Fire, restoredCitizen.CombatNature.ElementalAffinity);
+        Assert.Equal(PhysicalExpression.Fracture, restoredCitizen.CombatNature.PhysicalExpression);
+        Assert.Equal(
+            CubeExpression.Derive(restoredCitizen.CubeProfile),
+            restoredCitizen.CombatNature.PhysicalExpression);
         Assert.Equal(EquipmentLoadout.Empty, restoredCitizen.EquipmentLoadout);
     }
 

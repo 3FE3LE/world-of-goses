@@ -38,7 +38,7 @@ admiten:
 
 ### Baseline vigente
 
-- Fecha de alineación: **2026-08-06**.
+- Fecha de alineación: **2026-08-07**.
 - Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado;
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
@@ -50,14 +50,16 @@ admiten:
   Primera noche jugable (H-33 + H-34) entregada sin schema bump;
   zoom-in máximo del macro view elevado a 3.0; identidad del fundador
   ya no vive en un `ScrollContainer` (ver §7 2026-08-06).
-- Save: **schema v31** (primera noche autoral persistida; v30 estadísticas
-  derivadas por citizen, v28 herramientas durables, v27 oportunidades finitas
-  de Food/Wood y capacidad de retorno).
+- Save: **schema v32** (`DEC-0019`): cara del cubo `Mastery` renombrada a
+  `Domain` en disco, con puente nullable para que un save v31 no pierda el
+  cubo del fundador. v31 primera noche autoral; v30 estadísticas derivadas
+  por citizen; v29 onboarding canónico; v28 herramientas durables;
+  v27 oportunidades finitas de Food y Wood y capacidad de retorno.
 - Build: **0 errores / 0 advertencias**.
-- Tests: **913 / 914** (1 omitido por brittleness del snapshot JSON en
+- Tests: **973 / 974** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
-- Localización: **908 IDs de plantilla, 296 claves de runtime** válidas.
+- Localización: **922 IDs de plantilla, 283 claves de runtime** válidas.
 - Agent context: **448 checks** sin fallos.
 - Arranque Godot headless: correcto.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
@@ -74,14 +76,15 @@ admiten:
 | En curso | 0 | 0 | 1 | 0 |
 | Pendiente | 0 | 0 | 1 | 0 |
 | Necesita reanálisis | 0 | 0 | 0 | 0 |
-| Diferido por trigger | 0 | 2 | 1 | 0 |
+| Diferido por trigger | 0 | 2 | 0 | 0 |
 | Bloqueado | 0 | 0 | 0 | 0 |
 
-Las dos Altas y una de las Medias pendientes eran las fases 2, 3 y 4 de la
-primera noche (H-33, H-34, M-26 en §3) — todas entregadas en `main`
-los días 2026-08-06. La Media que queda en curso es M-26 propiamente,
-porque su aceptación exige playtest humano en slot limpio, y eso entra
-por el contrato transversal de M-14.
+Las dos Altas y la Media en curso eran las fases 2, 3 y 4 de la primera
+noche (H-33, H-34, M-26 en §3) — todas entregadas en `main` los días
+2026-08-06. La Media que queda en curso es M-26 propiamente, porque su
+aceptación exige playtest humano en slot limpio, y eso entra por el
+contrato transversal de M-14. M-29 (ciudadano corriente con sólo dos
+expresiones) cerró el 2026-08-07 vía `DEC-0019`.
 
 ## 2. Increment activo — Apertura EG-A0 (proposal §15)
 
@@ -286,6 +289,24 @@ superados en 2026-07-30; ver §8.)_
   necesarios ya promovidos.
 - **Regla:** no importar paquetes completos ni habilitar Settings/minimap sin
   un slice aprobado.
+
+### 🟡 M-29 — El ciudadano corriente sólo puede tener dos expresiones físicas
+
+- **Estado:** Cerrado el 2026-08-07 vía `DEC-0019`.
+- **Cierre:** `CubeScoring.GenerateOrdinaryProfile(lineage, seed)` desplaza
+  el vértice `±8` por eje con FNV-1a; el sobre y el invariante de pareja
+  siguen siendo los del onboarding. Todo ciudadano no fundador tiene ahora
+  un cubo propio y reproducible a partir de `(linaje, id)`, y las seis
+  expresiones físicas son alcanzables en una población mixta. La
+  generación queda restringida a `CitizenProfile.TryCreate(lineage, …,
+  cube, …)` con un cubo explícito: `CreateMigrantProfile` es el único
+  llamador en producción y `TestHelpers.NewProfile()` sigue usando el
+  vértice puro, así que ningún test heredado cambió su cubo sin pedirlo.
+- **Migraciones existentes no se reescriben:** `MigrateV29ToV30` sólo
+  rellena el vértice cuando el cubo es nulo, y las ciudades guardadas
+  antes de esta fecha conservan su población uniforme; la variación
+  aparece sólo en los migrantes que lleguen a partir de ahora. La
+  consecuencia ya estaba anunciada en la propia nota de `M-29`.
 
 ### 🟡 M-27 — Convenciones técnicas heredadas del capítulo 10
 

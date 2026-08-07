@@ -69,7 +69,7 @@ public sealed record FounderCubeProfile(
     int Bond,
     int Stability,
     int Impulse,
-    int Mastery,
+    int Domain,
     int Reach
 );
 

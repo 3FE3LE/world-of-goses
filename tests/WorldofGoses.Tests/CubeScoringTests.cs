@@ -26,13 +26,13 @@ public sealed class CubeScoringTests
         LineageId lineage,
         int body,
         int stability,
-        int mastery)
+        int domain)
     {
         FounderCubeProfile profile = CubeScoring.ComputeCubeVertex(lineage);
 
         Assert.Equal(body, profile.Body);
         Assert.Equal(stability, profile.Stability);
-        Assert.Equal(mastery, profile.Mastery);
+        Assert.Equal(domain, profile.Domain);
         AssertPairs(profile);
         Assert.Equal(lineage, CubeScoring.ComputeNearestVertex(profile));
     }
@@ -127,6 +127,6 @@ public sealed class CubeScoringTests
     {
         Assert.Equal(100, profile.Body + profile.Bond);
         Assert.Equal(100, profile.Stability + profile.Impulse);
-        Assert.Equal(100, profile.Mastery + profile.Reach);
+        Assert.Equal(100, profile.Domain + profile.Reach);
     }
 }

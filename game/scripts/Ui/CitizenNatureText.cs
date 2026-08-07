@@ -44,7 +44,7 @@ public static class CitizenNatureText
             $"Embodiment profile · Signature {CubeScoring.Signature(lineage)}",
             Pair("Body", cube.Body, cube.Bond, "Bond"),
             Pair("Stability", cube.Stability, cube.Impulse, "Impulse"),
-            Pair("Mastery", cube.Mastery, cube.Reach, "Reach"),
+            Pair("Domain", cube.Domain, cube.Reach, "Reach"),
         });
     }
 
@@ -74,7 +74,7 @@ public static class CitizenNatureText
                 + $" {UiText.Get(CubeScoring.Signature(lineage))}",
             Pair(UiText.Get("Cuerpo"), cube.Body, cube.Bond, UiText.Get("Vínculo")),
             Pair(UiText.Get("Estabilidad"), cube.Stability, cube.Impulse, UiText.Get("Impulso")),
-            Pair(UiText.Get("Dominio"), cube.Mastery, cube.Reach, UiText.Get("Alcance")),
+            Pair(UiText.Get("Dominio"), cube.Domain, cube.Reach, UiText.Get("Alcance")),
         });
     }
 
@@ -100,7 +100,7 @@ public static class CitizenNatureText
             + "\n"
             + $"{UiText.Get("Cuerpo")} {cube.Body}/{cube.Bond} · "
             + $"{UiText.Get("Estabilidad")} {cube.Stability}/{cube.Impulse} · "
-            + $"{UiText.Get("Dominio")} {cube.Mastery}/{cube.Reach}";
+            + $"{UiText.Get("Dominio")} {cube.Domain}/{cube.Reach}";
     }
 
     private static string Pair(

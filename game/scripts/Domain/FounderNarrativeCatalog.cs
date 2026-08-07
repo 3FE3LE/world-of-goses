@@ -318,26 +318,26 @@ public static class FounderNarrativeCatalog
         {
             ("hand", "hold") => Cube(CubeScoring.BodyValueId, CubeScoring.BondValueId),
             ("hand", "observe") => Cube(CubeScoring.ReachValueId),
-            ("hand", "stabilise") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("hand", "stabilise") => Cube(CubeScoring.StabilityValueId, CubeScoring.DomainValueId),
             ("hand", "call") => Cube(CubeScoring.BondValueId, CubeScoring.ReachValueId),
             ("word", "find") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
             ("word", "return") => Cube(CubeScoring.StabilityValueId, CubeScoring.BondValueId),
-            ("word", "remember") => Cube(CubeScoring.MasteryValueId),
+            ("word", "remember") => Cube(CubeScoring.DomainValueId),
             ("word", "continue") => Cube(CubeScoring.ImpulseValueId),
             ("detail", "name") => Cube(CubeScoring.BondValueId),
-            ("detail", "hands") => Cube(CubeScoring.BodyValueId, CubeScoring.MasteryValueId),
+            ("detail", "hands") => Cube(CubeScoring.BodyValueId, CubeScoring.DomainValueId),
             ("detail", "object") => Cube(CubeScoring.StabilityValueId),
             ("detail", "journey") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
-            ("old-form", "exact") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("old-form", "exact") => Cube(CubeScoring.StabilityValueId, CubeScoring.DomainValueId),
             ("old-form", "sensation") => Cube(CubeScoring.BodyValueId, CubeScoring.BondValueId),
-            ("old-form", "separate") => Cube(CubeScoring.MasteryValueId),
+            ("old-form", "separate") => Cube(CubeScoring.DomainValueId),
             ("old-form", "release") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
-            ("time", "cause") => Cube(CubeScoring.MasteryValueId),
+            ("time", "cause") => Cube(CubeScoring.DomainValueId),
             ("time", "feeling") => Cube(CubeScoring.BondValueId),
             ("time", "promises") => Cube(CubeScoring.StabilityValueId),
             ("time", "places") => Cube(CubeScoring.ReachValueId),
             ("mortality", "weight") => Cube(CubeScoring.BodyValueId, CubeScoring.StabilityValueId),
-            ("mortality", "understand") => Cube(CubeScoring.MasteryValueId),
+            ("mortality", "understand") => Cube(CubeScoring.DomainValueId),
             ("mortality", "others") => Cube(CubeScoring.BondValueId),
             ("mortality", "new") => Cube(CubeScoring.ImpulseValueId),
             ("perception", "ardhen") => Vertex(true, true, true),
@@ -349,17 +349,17 @@ public static class FounderNarrativeCatalog
             ("orientation", "caelith") => Vertex(false, false, false),
             ("orientation", "theryn") => Vertex(false, false, true),
             ("threshold", "support") => Cube(CubeScoring.BondValueId, CubeScoring.StabilityValueId),
-            ("threshold", "control") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("threshold", "control") => Cube(CubeScoring.StabilityValueId, CubeScoring.DomainValueId),
             ("threshold", "mobility") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
-            ("threshold", "precision") => Cube(CubeScoring.MasteryValueId),
+            ("threshold", "precision") => Cube(CubeScoring.DomainValueId),
             ("threshold", "assault") => Cube(CubeScoring.BodyValueId, CubeScoring.ImpulseValueId),
-            ("ground", "clarity") => Cube(CubeScoring.StabilityValueId, CubeScoring.MasteryValueId),
+            ("ground", "clarity") => Cube(CubeScoring.StabilityValueId, CubeScoring.DomainValueId),
             ("ground", "shared") => Cube(CubeScoring.BondValueId),
             ("ground", "move") => Cube(CubeScoring.ImpulseValueId),
             ("ground", "mark") => Cube(CubeScoring.ReachValueId),
             ("unchanged", "protect") => Cube(CubeScoring.BondValueId, CubeScoring.StabilityValueId),
             ("unchanged", "freedom") => Cube(CubeScoring.ImpulseValueId, CubeScoring.ReachValueId),
-            ("unchanged", "understand") => Cube(CubeScoring.BondValueId, CubeScoring.MasteryValueId),
+            ("unchanged", "understand") => Cube(CubeScoring.BondValueId, CubeScoring.DomainValueId),
             ("unchanged", "paths") => Cube(CubeScoring.StabilityValueId, CubeScoring.ReachValueId),
             _ => Array.Empty<ScoreContribution>(),
         };
@@ -374,8 +374,8 @@ public static class FounderNarrativeCatalog
         return scores;
     }
 
-    private static ScoreContribution[] Vertex(bool body, bool stability, bool mastery) => Cube(
+    private static ScoreContribution[] Vertex(bool body, bool stability, bool domain) => Cube(
         body ? CubeScoring.BodyValueId : CubeScoring.BondValueId,
         stability ? CubeScoring.StabilityValueId : CubeScoring.ImpulseValueId,
-        mastery ? CubeScoring.MasteryValueId : CubeScoring.ReachValueId);
+        domain ? CubeScoring.DomainValueId : CubeScoring.ReachValueId);
 }

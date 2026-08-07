@@ -208,7 +208,7 @@ public partial class HeroProfileView : Control
         AddHeading(UiText.Get("Perfil de encarnación"));
         AddBody($"{UiText.Get("Cuerpo")} {hero.CubeProfile.Body} / {hero.CubeProfile.Bond} {UiText.Get("Vínculo")}");
         AddBody($"{UiText.Get("Estabilidad")} {hero.CubeProfile.Stability} / {hero.CubeProfile.Impulse} {UiText.Get("Impulso")}");
-        AddBody($"{UiText.Get("Dominio")} {hero.CubeProfile.Mastery} / {hero.CubeProfile.Reach} {UiText.Get("Alcance")}");
+        AddBody($"{UiText.Get("Dominio")} {hero.CubeProfile.Domain} / {hero.CubeProfile.Reach} {UiText.Get("Alcance")}");
         AddBody($"{UiText.Get("Firma")} · {UiText.Get(hero.LineageSignature)}");
 
         AddHeading(UiText.Get("Afinidad"));

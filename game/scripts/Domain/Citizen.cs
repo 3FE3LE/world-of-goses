@@ -531,7 +531,8 @@ public sealed class Citizen
         CompetencyProgress current = _weaponCompetencies.TryGetValue(family, out CompetencyProgress? progress)
             ? progress
             : new CompetencyProgress(family, config.MinimumSkillLevel, 0, config);
-        CompetencyProgress updated = current.GrantGeneratedExperience(generatedExperience, CombatNature, config);
+        CompetencyProgress updated = current.GrantGeneratedExperience(
+            generatedExperience, Profile.Lineage, CombatNature, config);
         _weaponCompetencies[family] = updated;
         return updated.Experience - current.Experience;
     }

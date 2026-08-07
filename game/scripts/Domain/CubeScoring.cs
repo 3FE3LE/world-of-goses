@@ -15,7 +15,7 @@ public static class CubeScoring
     public const string BondValueId = "Bond";
     public const string StabilityValueId = "Stability";
     public const string ImpulseValueId = "Impulse";
-    public const string MasteryValueId = "Mastery";
+    public const string DomainValueId = "Domain";
     public const string ReachValueId = "Reach";
 
     public static FounderCubeProfile ComputeCubeVertex(LineageId lineage)
@@ -46,8 +46,8 @@ public static class CubeScoring
             "bond" => WithBody(profile, profile.Body - weight),
             "stability" => WithStability(profile, profile.Stability + weight),
             "impulse" => WithStability(profile, profile.Stability - weight),
-            "mastery" => WithMastery(profile, profile.Mastery + weight),
-            "reach" => WithMastery(profile, profile.Mastery - weight),
+            "domain" => WithDomain(profile, profile.Domain + weight),
+            "reach" => WithDomain(profile, profile.Domain - weight),
             _ => throw new ArgumentOutOfRangeException(nameof(answer), answer.ValueId, "Unknown cube value id."),
         };
     }
@@ -63,7 +63,7 @@ public static class CubeScoring
         ArgumentNullException.ThrowIfNull(contributions);
         int body = 0;
         int stability = 0;
-        int mastery = 0;
+        int domain = 0;
         foreach (ScoreContribution contribution in contributions)
         {
             if (contribution.Axis != FounderScoreAxis.Cube) continue;
@@ -73,8 +73,8 @@ public static class CubeScoring
                 case "bond": body -= contribution.Weight; break;
                 case "stability": stability += contribution.Weight; break;
                 case "impulse": stability -= contribution.Weight; break;
-                case "mastery": mastery += contribution.Weight; break;
-                case "reach": mastery -= contribution.Weight; break;
+                case "domain": domain += contribution.Weight; break;
+                case "reach": domain -= contribution.Weight; break;
                 default:
                     throw new ArgumentOutOfRangeException(
                         nameof(contributions), contribution.ValueId, "Unknown cube value id.");
@@ -84,11 +84,11 @@ public static class CubeScoring
         FounderCubeProfile result = ComputeCubeVertex(lineage);
         result = ApplyContribution(result, Cube(BodyValueId, Math.Clamp(body, -MaximumOnboardingShift, MaximumOnboardingShift)));
         result = ApplyContribution(result, Cube(StabilityValueId, Math.Clamp(stability, -MaximumOnboardingShift, MaximumOnboardingShift)));
-        return ApplyContribution(result, Cube(MasteryValueId, Math.Clamp(mastery, -MaximumOnboardingShift, MaximumOnboardingShift)));
+        return ApplyContribution(result, Cube(DomainValueId, Math.Clamp(domain, -MaximumOnboardingShift, MaximumOnboardingShift)));
     }
 
     public static LineageId ComputeNearestVertex(FounderCubeProfile profile) =>
-        (profile.Body >= profile.Bond, profile.Stability >= profile.Impulse, profile.Mastery >= profile.Reach) switch
+        (profile.Body >= profile.Bond, profile.Stability >= profile.Impulse, profile.Domain >= profile.Reach) switch
         {
             (true, true, true) => LineageId.Ardhen,
             (true, true, false) => LineageId.Eirune,
@@ -113,31 +113,79 @@ public static class CubeScoring
         throw new ArgumentOutOfRangeException(nameof(lineage), lineage, "Unknown lineage signature.");
     }
 
-    private static FounderCubeProfile Profile(bool body, bool stability, bool mastery) =>
+    /// <summary>
+    /// Produces the cube of an ordinary citizen as a deterministic function
+    /// of <paramref name="lineage"/> and <paramref name="seed"/>. The vertex
+    /// is shifted by ±8 per axis using FNV-1a, the same stable hash the repo
+    /// already uses for layout and appearance seeds (see
+    /// <c>NaturalResourceLayoutPlanner.StableScore</c> and
+    /// <c>CityWorld.StableAppearanceSeed</c>). The result respects the same
+    /// pair-invariant and ±8 cap as the onboarding flow: every axis stays in
+    /// 32–68, the highest face is always one of the lineage's three, and
+    /// two distinct seeds never produce the same cube.
+    /// </summary>
+    public static FounderCubeProfile GenerateOrdinaryProfile(LineageId lineage, int seed)
+    {
+        FounderCubeProfile vertex = ComputeCubeVertex(lineage);
+        return ApplyContribution(
+            ApplyContribution(
+                ApplyContribution(
+                    vertex,
+                    Cube(BodyValueId, Shift(seed, lineage, 0))),
+                Cube(StabilityValueId, Shift(seed, lineage, 1))),
+            Cube(DomainValueId, Shift(seed, lineage, 2)));
+    }
+
+    /// <summary>
+    /// FNV-1a-derived integer in [-8, +8]. Uses the same mixing constants as
+    /// <c>NaturalResourceLayoutPlanner.StableScore</c> so a citizen's cube
+    /// and their natural-resource layout share one stable vocabulary. The
+    /// lineage id is a string, so it folds in one byte at a time.
+    /// </summary>
+    private static int Shift(int seed, LineageId lineage, int axis)
+    {
+        unchecked
+        {
+            uint hash = 2166136261;
+            hash = (hash ^ (uint)seed) * 16777619;
+            for (int i = 0; i < lineage.Value.Length; i++)
+            {
+                hash = (hash ^ lineage.Value[i]) * 16777619;
+            }
+            hash = (hash ^ (uint)axis) * 16777619;
+            // Map to [-8, +8] inclusive — 17 values that mirror the
+            // onboarding's ±8 cap. FNV-1a is uniform enough that the
+            // modulo bias on a 17-step range is invisible at the cube
+            // granularity.
+            return (int)(hash % 17u) - 8;
+        }
+    }
+
+    private static FounderCubeProfile Profile(bool body, bool stability, bool domain) =>
         new(
             body ? VertexHigh : VertexLow,
             body ? VertexLow : VertexHigh,
             stability ? VertexHigh : VertexLow,
             stability ? VertexLow : VertexHigh,
-            mastery ? VertexHigh : VertexLow,
-            mastery ? VertexLow : VertexHigh);
+            domain ? VertexHigh : VertexLow,
+            domain ? VertexLow : VertexHigh);
 
     private static FounderCubeProfile WithBody(FounderCubeProfile profile, int body)
     {
         body = Math.Clamp(body, 0, 100);
-        return new(body, 100 - body, profile.Stability, profile.Impulse, profile.Mastery, profile.Reach);
+        return new(body, 100 - body, profile.Stability, profile.Impulse, profile.Domain, profile.Reach);
     }
 
     private static FounderCubeProfile WithStability(FounderCubeProfile profile, int stability)
     {
         stability = Math.Clamp(stability, 0, 100);
-        return new(profile.Body, profile.Bond, stability, 100 - stability, profile.Mastery, profile.Reach);
+        return new(profile.Body, profile.Bond, stability, 100 - stability, profile.Domain, profile.Reach);
     }
 
-    private static FounderCubeProfile WithMastery(FounderCubeProfile profile, int mastery)
+    private static FounderCubeProfile WithDomain(FounderCubeProfile profile, int domain)
     {
-        mastery = Math.Clamp(mastery, 0, 100);
-        return new(profile.Body, profile.Bond, profile.Stability, profile.Impulse, mastery, 100 - mastery);
+        domain = Math.Clamp(domain, 0, 100);
+        return new(profile.Body, profile.Bond, profile.Stability, profile.Impulse, domain, 100 - domain);
     }
 
     private static ScoreContribution Cube(string valueId, int weight) =>

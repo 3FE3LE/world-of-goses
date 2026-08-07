@@ -225,6 +225,9 @@ public partial class CityPrototype : Node
                 GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
                     .ShowForVisualRegression();
                 break;
+            case "migrant-cube":
+                ShowMigrantCubeForVisualRegression();
+                break;
         }
     }
 
@@ -612,6 +615,99 @@ public partial class CityPrototype : Node
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowEarlyGameResourcesForVisualRegression();
+    }
+
+    /// <summary>
+    /// Builds a city that actually holds a migrant, so the capture can show the
+    /// per-citizen cube variation of <c>DEC-0019</c>.
+    ///
+    /// Hosting a prospect needs a Town Hall and accepting one needs free
+    /// housing, and the default fixture world has neither: the first version of
+    /// this fixture silently fell back to selecting the founder, whose cube sits
+    /// on the bare vertex, and so photographed the exact thing the change was
+    /// meant to move. Every precondition below therefore fails loudly instead.
+    /// </summary>
+    private void ShowMigrantCubeForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        if (controller.World.Hero is not Citizen loadedFounder)
+        {
+            GD.PushError("Migrant cube fixture requires a loaded founder profile.");
+            return;
+        }
+
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            loadedFounder.Profile,
+            loadedFounder.Profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Migrant cube fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+
+        if (!TryCompleteForFixture(fixture, ConstructionKind.BasicShelter, out string shelterError))
+        {
+            GD.PushError($"Migrant cube fixture could not raise the shelter: {shelterError}.");
+            return;
+        }
+        if (!TryCompleteForFixture(fixture, ConstructionKind.TownHall, out string townHallError))
+        {
+            GD.PushError($"Migrant cube fixture could not raise the town hall: {townHallError}.");
+            return;
+        }
+
+        CityWorld.MigrantOutcome hosted = fixture.TryHostExpeditionProspect();
+        if (hosted != CityWorld.MigrantOutcome.Success)
+        {
+            GD.PushError($"Migrant cube fixture could not host a prospect: {hosted}.");
+            return;
+        }
+        CityWorld.MigrantResult accepted = fixture.TryAcceptPendingProspect();
+        if (accepted.Outcome != CityWorld.MigrantOutcome.Success
+            || accepted.MigrantId is not CitizenId migrantId)
+        {
+            GD.PushError($"Migrant cube fixture could not accept the prospect: {accepted.Outcome}.");
+            return;
+        }
+
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
+            .ShowMigrantCubeForVisualRegression(migrantId);
+    }
+
+    /// <summary>
+    /// Authorises a construction and forces it to completion, depositing enough
+    /// of every rudimentary resource for the recipe gate to pass. Fixture-only:
+    /// the player earns these, and the point here is the state after they did.
+    /// </summary>
+    private static bool TryCompleteForFixture(
+        CityWorld fixture,
+        ConstructionKind kind,
+        out string error)
+    {
+        foreach (ResourceType resource in Enum.GetValues<ResourceType>())
+        {
+            fixture.Resources.DepositToCityInventory(resource, 40);
+        }
+
+        ConstructionAuthorizationResult authorization = fixture.TryAuthorizeConstruction(kind);
+        if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
+        {
+            error = authorization.Outcome.ToString();
+            return false;
+        }
+
+        ConstructionProject project = fixture.GetProject(projectId)!;
+        project.Progress = project.RequiredWork;
+        fixture.AdvanceWorldTick();
+        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        error = string.Empty;
+        return true;
     }
 
     private void ShowShelterResourcesForVisualRegression()

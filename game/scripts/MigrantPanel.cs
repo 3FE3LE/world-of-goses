@@ -1,5 +1,6 @@
 #nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Presentation;
@@ -95,6 +96,31 @@ public partial class MigrantPanel : Control
         // selection the panel only renders its empty-roster hint, which is what
         // let the DEC-0013 crash in DescribeCitizen ship unseen.
         if (_controller.World.Hero is Citizen hero) SelectCitizen(hero.Id);
+    }
+
+    /// <summary>
+    /// Selects the migrant whose cube the <c>DEC-0019</c> capture exists to
+    /// show. The world is built by
+    /// <c>CityPrototype.ShowMigrantCubeForVisualRegression</c>, which fails
+    /// loudly if it cannot produce one.
+    ///
+    /// There is deliberately no fallback to the founder. The founder's cube is
+    /// shaped by the onboarding and a generated citizen's by their id; a
+    /// capture that quietly swapped one for the other is what let the first
+    /// version of this fixture photograph a bare vertex and read as proof.
+    /// </summary>
+    public void ShowMigrantCubeForVisualRegression(CitizenId migrantId)
+    {
+        Open();
+        if (!_controller.World.Citizens.TryGetValue(migrantId, out Citizen? migrant)
+            || migrant.IsHero)
+        {
+            GD.PushError(
+                $"Migrant cube fixture expected a non-hero citizen {migrantId.Value}; " +
+                "refusing to photograph a substitute.");
+            return;
+        }
+        SelectCitizen(migrant.Id);
     }
 
     public void Close()

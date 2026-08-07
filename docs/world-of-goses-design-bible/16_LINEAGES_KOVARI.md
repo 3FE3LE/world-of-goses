@@ -139,14 +139,28 @@ Vaelun (rutas), Eirune (redes vivas), Caelith (fases), Myrven
 
 ### Familias de armas y el vértice Kovari
 
-El vértice (Cuerpo, Impulso, Dominio) favorece familias como:
+> **Superada 2026-08-07 por `DEC-0019`.** La sugerencia de armas por
+> vértice quedó descartada cuando la expresión física pasó a derivarse
+> del cubo persistido y los tiers de aprendizaje
+> (`WeaponLearningAffinity.Natural`/`LineageFamiliar`/`Foreign`) leen
+> el cubo del ciudadano, no una tabla por vértice. Lo que sigue es el
+> texto original; se conserva como contexto de la decisión, no como
+> instrucción.
+
+El vértice (Cuerpo, Impulso, Dominio) favorecía familias como:
 
 - **Armas dobles** (Impulso + Dominio): frecuencia alta, desgaste
   independiente, fatiga sostenida.
 - **Dagas** (Dominio + Impulso): alcance corto, dependencia del filo,
   precisión y frecuencia.
 - **Pesada a dos manos** inicial pero con cadencia baja; el vértice
-  invita a buscar cadencia antes que impacto.
+  invitaba a buscar cadencia antes que impacto.
+
+Mandan la **expresión física** (cara más alta del cubo) y la **elección
+del jugador**: `DEC-0018` deriva el tier del ciudadano y `DEC-0019`
+introduce la variación `±8` que rompe el empate de tres bandas del vértice
+puro. Una tabla por vértice sería una lista redundante con la del
+atlas `bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md`.
 
 ### Afinidad elemental
 

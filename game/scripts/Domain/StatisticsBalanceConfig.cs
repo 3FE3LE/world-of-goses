@@ -15,6 +15,7 @@ public sealed record StatisticsBalanceConfig
     public double BaseSkillFactor { get; init; } = 1.0;
     public double SkillFactorPerLevel { get; init; } = 0.025;
     public double NaturalWeaponExperienceFactor { get; init; } = 1.00;
+    public double LineageFamiliarWeaponExperienceFactor { get; init; } = 0.50;
     public double ForeignWeaponExperienceFactor { get; init; } = 0.10;
 
     public double MinimumWeaponChannel { get; init; } = 0.75;
@@ -71,7 +72,19 @@ public sealed record StatisticsBalanceConfig
         ValidatePositive(SkillFactorPerLevel, nameof(SkillFactorPerLevel), allowZero: true);
         ValidatePositive(BaseSkillFactor, nameof(BaseSkillFactor));
         ValidateFactor(NaturalWeaponExperienceFactor, nameof(NaturalWeaponExperienceFactor));
+        ValidateFactor(LineageFamiliarWeaponExperienceFactor, nameof(LineageFamiliarWeaponExperienceFactor));
         ValidateFactor(ForeignWeaponExperienceFactor, nameof(ForeignWeaponExperienceFactor));
+        // The three tiers must stay ordered. A configuration where a foreign
+        // family learns faster than a natural one is not a balance choice, it
+        // is the learning model inverted.
+        ValidateOrdered(
+            LineageFamiliarWeaponExperienceFactor,
+            NaturalWeaponExperienceFactor,
+            nameof(LineageFamiliarWeaponExperienceFactor));
+        ValidateOrdered(
+            ForeignWeaponExperienceFactor,
+            LineageFamiliarWeaponExperienceFactor,
+            nameof(ForeignWeaponExperienceFactor));
         ValidateOrdered(MinimumWeaponChannel, MaximumWeaponChannel, nameof(MinimumWeaponChannel));
         ValidatePositive(MinimumWeaponChannel, nameof(MinimumWeaponChannel));
         ValidatePositive(MaximumGearSupportPerFace, nameof(MaximumGearSupportPerFace), allowZero: true);

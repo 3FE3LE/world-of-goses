@@ -22,6 +22,173 @@ their commits for the real content.
 
 ---
 
+## La cara Dominio del cubo deja de llamarse Mastery y los migrantes dejan de ser gemelos
+
+**2026-08-07** · schema v31 → v32 · EG-5
+
+El Cubo Kovari arrastraba `Mastery` como nombre de su tercera cara —en disco,
+en los DTOs, en la UI— y el nombre se reservaba para los tiers de aprendizaje
+de familias de arma que están a punto de entrar en dominio. Si el cubo y los
+tiers hubieran coincidido leyendo `Mastery`, dos cosas distintas habrían
+compartido nombre justo cuando la segunda empezara a existir. La cara pasa a
+`Dominio` antes de que llegue la colisión.
+
+Y bajo `60/60/60` con desempate `Body` primero, **todo ciudadano no fundador
+era Fracture si su linaje era Body y Poisoning si era Bond**: las seis
+expresiones físicas, dos alcanzables. Migrar después no servía: ese es el M-29
+que `DEC-0018` dejó abierto.
+
+### Connected
+
+- **`CubeScoring.GenerateOrdinaryProfile(lineage, seed)`.** FNV-1a por eje
+  sobre el vértice del linaje, delta en `[-8, +8]`, aplicado vía
+  `ApplyContribution` — el mismo clamp y el mismo invariante de pareja del
+  onboarding. La misma constante vive en
+  `NaturalResourceLayoutPlanner.StableScore` y `CityWorld.StableAppearanceSeed`,
+  así que el vocabulario de hashes del repositorio es uno solo. Un mismo
+  `(linaje, seed)` produce siempre el mismo cubo; dos seeds distintos
+  producen cubos distintos; cada linaje alcanza exactamente sus tres
+  expresiones en un barrido y ninguna de las opuestas.
+- **`CitizenProfile.TryCreate` con cubo explícito.** Nuevo overload
+  opcional: `cubeProfile` por defecto sigue siendo el vértice, así
+  `TestHelpers.NewProfile()` no se mueve y ningún test heredado cambia su
+  cubo. Sólo `CreateMigrantProfile` lo pasa.
+- **Descorrelación nombre / linaje.** El índice de nombre usaba
+  `(seed - 2) % 8` y el de linaje `seed % 8`: misma longitud, mismo
+  desfase, así que el id 2 siempre era Inara y siempre del mismo linaje.
+  Ahora `CityWorld.MigrantNameForSeed(seed) = MigrantNames[(seed * 11 + 3) % 8]`,
+  descorrelado en fase y reutilizable desde el test.
+- **Rename `Mastery` → `Domain` en código, disco y UI.** El ctor,
+  la propiedad y el `nameof` del mensaje de validación de
+  `FounderCubeProfile` pasan al nombre canónico. `CubeScoring.MasteryValueId`
+  pasa a `DomainValueId` con valor `"Domain"`, `WithMastery` a `WithDomain`,
+  las ramas `"mastery"` del switch a `"domain"`. Las 16 referencias del
+  `FounderNarrativeCatalog` siguen al renombrado. Los cuatro sitios de
+  `WorldPersistence` que escribían `cube.Mastery` (captura y restauración
+  en `MigrateV28ToV29` y `MigrateV29ToV30`) leen y escriben `Domain` desde
+  la fuente canónica. `CitizenNatureText.cs` deja de imprimir el literal
+  inglés `"Mastery"` y la ficha de fundación, el perfil del héroe y el
+  panel de ciudadanos leen `cube.Domain`. El comentario obsoleto de
+  `CubeExpression.cs` que documentaba el alias se quita: ya no hay alias.
+
+### Schema
+
+**v31 → v32, un paso.** El campo en disco del cubo se llama `Domain`. La
+clave vieja `Mastery` se conserva una versión como puente nullable
+(`FounderCubeProfileSave.Mastery`) para que un save v31 deserializado por
+el código nuevo no pierda el cubo del fundador — el dato se pierde al
+deserializar, antes de que la migración corra, así que el puente vive en
+el DTO, no en el migrador. `MigrateV31ToV32` recorre los ciudadanos,
+copia el puente a `Domain` y lo deja en `null`. Una partida que pasó por
+`MigrateV29ToV30` antes del rename sigue funcionando: esa migración lee
+`savedCube.Mastery ?? savedCube.Domain` (puente nullable, fallback al
+campo canónico) y reconstruye la `FounderCubeProfile` que usaba el código
+nuevo. **El cubo del fundador es idéntico antes y después.**
+
+### Decisión
+
+`DEC-0019` cierra M-29 y fija el rename. `DEC-0018` anota la resolución.
+
+### Reshaped
+
+- `DEC-0018` (Cube decides physical expression) gana la nota de que
+  `M-29` quedó resuelto por `DEC-0019` el 2026-08-07.
+- `13_KOVARI_CUBE.md` § *Estrategia y fallback* deja de afirmar
+  "60/40 por eje" para todo no fundador: el nuevo fallback llama a
+  `GenerateOrdinaryProfile(lineage, id)` y mantiene el invariante del
+  sobre.
+- `16_LINEAGES_KOVARI.md` § *Familias de armas y el vértice Kovari*
+  se marca **superada 2026-08-07**: la sugerencia de armas por vértice
+  quedó descartada cuando `DEC-0018` derivó el tier del ciudadano del
+  cubo persistido y `DEC-0019` introdujo la variación `±8` que rompe el
+  empate de tres bandas. Una tabla por vértice sería una lista
+  redundante con el atlas de `bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md`.
+- `07_ONBOARDING_AND_FOUNDER.md` snippet del `FounderOnboardingResult`
+  cambia el parámetro `int Mastery` por `int Domain`.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido
+del snapshot JSON de `VerticalLoopPersistenceTests`). Localización: el
+`msgstr` bajo `msgid "Dominio"` pasa de `"Mastery"` a `"Domain"`; la
+clave no cambia, ninguna traducción queda vacía, ningún marcador ni
+placeholder se mueve. La carga con captura manual de un save v31 escrito
+con la clave `"Mastery"` migra limpiamente al campo `Domain` con el cubo
+idéntico y el puente `null`. Agent context: 448 / 448. Arranque
+headless limpio.
+
+**La fixture `migrant-cube` fotografiaba al fundador.** Se capturó y se
+leyó la imagen: decía `1/0 ciudadanos alojados · 0 no héroes`. El mundo
+de la fixture no tiene Shelter, así que `AvailableHousing == 0`,
+`TryAcceptPendingProspect()` devolvía `AtCapacity` y un `else` silencioso
+seleccionaba al fundador — cuyo cubo es el vértice desnudo, es decir
+exactamente lo que este cambio existe para mover. La fixture leía como
+prueba de lo contrario de lo que probaba. Ahora monta su mundo con el
+idioma de `ShowShelterResourcesForVisualRegression` (Shelter para
+alojamiento, Town Hall para hospedar, prospecto hospedado y aceptado por
+las APIs reales), **no tiene fallback** y cada precondición que falle
+emite `GD.PushError`. La captura verificada muestra `2/3 alojados · 1 no
+héroes`, con `Tovan` (Kovari) seleccionado y expresión física
+**Sangrado** — no Fractura, que es lo que daría el vértice.
+
+Dos correcciones menores en el mismo paso: el baseline de localización
+del `TO_DO` afirmaba `908 / 296` contra los `922 / 283` medidos —la
+medición manda, §5.1— y `MigrantNameForSeed` indexaba con aritmética
+`unchecked` con signo, de modo que un seed lo bastante grande daba un
+índice negativo; ahora mezcla sin signo.
+
+Lo que queda pendiente: un jugador con una partida guardada antes del
+rename verá **exactamente la misma ciudad** al cargar — M-29 ya no se
+introduce retroactivamente en una ciudad existente, sólo en los
+migrantes que lleguen a partir de ahora. Esa consecuencia ya estaba
+anunciada en la propia nota de M-29.
+
+---
+
+## La expresión física deja de ser la afinidad con otro nombre
+
+**2026-08-07** · schema v31 (sin cambio) · EG-5
+
+Un fundador de Fuego era siempre Aturdimiento y aprendía siempre Maza y Orbe.
+No era una regla de diseño: era un atajo. La biblia publica **una tabla de tres
+columnas** —cara del Cubo, afinidad elemental, expresión física— y la
+implementación la leyó como una cadena, derivando la expresión de la afinidad.
+Dos ejes independientes colapsados en uno, y treinta de las treinta y seis
+combinaciones que el propio roadmap describe perdidas.
+
+Ahora la expresión sale de la **cara más alta del `CubeProfile`** y la afinidad
+va por su cuenta. Un Ardhen puede ser Fractura con Fuego, Parálisis con Aire o
+Sangrado con Éter. La derivación es función pura del cubo persistido: el mismo
+cubo responde siempre lo mismo y no se guarda ninguna copia que pueda
+contradecirlo.
+
+Cada linaje admite exactamente tres expresiones y cada expresión pertenece a
+exactamente cuatro linajes. Eso no se impone con una lista de exclusión: bajo
+`60/40` con el tope `±8` una cara favorecida vive en `52–68` y su opuesta en
+`32–48`, así que la más alta es siempre una de las tres favorecidas. Los
+empates se resuelven por el orden canónico explícito `Body, Bond, Stability,
+Impulse, Domain, Reach`, nunca por orden de enum, diccionario o carga.
+
+Sobre esa base, **aprender un arma tiene tres velocidades** en vez de dos
+(`DEC-0018`): `100 %` para las dos familias de la propia expresión, `50 %` para
+las cuatro de las otras dos expresiones que el vértice del linaje alcanza, y
+`10 %` para las seis restantes. El nivel escala **sólo la adquisición de
+experiencia**: quien llega a Espada 20 con una familia extranjera tiene Espada
+20, y pelea igual que cualquiera. La dificultad estaba en llegar.
+
+**Sin migración.** La expresión nunca se persistió y todo ciudadano ya guardaba
+su cubo desde v30, así que cambiar la derivación bastó. Consecuencia real y
+buscada: una partida existente **carga con expresiones distintas** a las de
+ayer. Nada en disco cambia; el valor obsoleto no sobrevive porque nunca se
+guardó.
+
+De paso, dos incoherencias que el corte destapó: `EnemyCatalog` construía la
+naturaleza desde la afinidad ignorando el `Expression` que la definición ya
+traía, y un test llamaba "natural" a un arma que en realidad era familiar de
+linaje —seguía verde porque `0.50 > 0.10 × 2`—.
+
+---
+
 ## La biblia recupera sus capítulos huérfanos
 
 **2026-08-07** · schema v31 (sin cambio)

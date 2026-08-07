@@ -248,9 +248,12 @@ public sealed class FirstNightTests
         Assert.Equal(
             FirstNightStage.Concluded.ToString(),
             migrated.FirstNight!.Stage);
-        WorldPersistence.Validate(migrated);
+        // The schema has since moved past v31, so the migrator chain runs to
+        // the current version before validation can succeed.
+        WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
+        WorldPersistence.Validate(current);
 
-        CityWorld restored = CityWorld.FromSave(migrated);
+        CityWorld restored = CityWorld.FromSave(current);
         Assert.False(restored.IsFirstNightActive);
     }
 

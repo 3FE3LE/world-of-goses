@@ -35,27 +35,33 @@ public sealed class CitizenNatureTextTests
         Assert.Contains("Embodiment profile", text);
         Assert.Contains("Signature Reconfiguración", text);
         Assert.Contains("Affinity: Fire", text);
-        // Fire is the Impulse face, whose physical expression is Stunning, whose
-        // natural weapon families are Mace and Orb.
-        Assert.Contains("Physical expression: Stunning", text);
-        Assert.Contains("Natural weapons: Mace, Orb", text);
+        // The affinity says nothing about the expression. This founder sits on
+        // the bare Kovari vertex — Body, Impulse and Domain all at 60 — and Body
+        // wins the tie, so they are Fracture whatever element they resonate with.
+        Assert.Contains("Physical expression: Fracture", text);
+        Assert.Contains("Natural weapons: Hammer, Axe", text);
     }
 
     [Theory]
-    [InlineData(ElementalAffinity.Earth, "Fracture", "Hammer, Axe")]
-    [InlineData(ElementalAffinity.Water, "Paralysis", "Whip, Gauntlets")]
-    [InlineData(ElementalAffinity.Air, "Knockdown", "Spear, Staff")]
-    [InlineData(ElementalAffinity.Aether, "Poisoning", "Bow, Darts")]
-    [InlineData(ElementalAffinity.Silence, "Bleeding", "Sword, Daggers")]
-    public void Format_DerivesPhysicalExpressionAndNaturalWeaponsFromTheAffinity(
-        ElementalAffinity affinity,
+    [InlineData(64, 36, 56, 44, 56, 44, "Fracture", "Hammer, Axe")]
+    [InlineData(36, 64, 44, 56, 44, 56, "Poisoning", "Bow, Darts")]
+    [InlineData(56, 44, 64, 36, 56, 44, "Paralysis", "Whip, Gauntlets")]
+    [InlineData(44, 56, 36, 64, 44, 56, "Stunning", "Mace, Orb")]
+    [InlineData(56, 44, 56, 44, 64, 36, "Bleeding", "Sword, Daggers")]
+    [InlineData(44, 56, 44, 56, 36, 64, "Knockdown", "Spear, Staff")]
+    public void Format_DerivesPhysicalExpressionAndNaturalWeaponsFromTheHighestCubeFace(
+        int body, int bond, int stability, int impulse, int domain, int reach,
         string expectedExpression,
         string expectedWeapons)
     {
+        var cube = new FounderCubeProfile(body, bond, stability, impulse, domain, reach);
+
+        // The affinity is held constant across all six rows on purpose: only the
+        // cube moves, and only the cube changes the answer.
         string text = CitizenNatureText.Format(
-            CubeScoring.ComputeCubeVertex(LineageId.Ardhen),
+            cube,
             LineageId.Ardhen,
-            new CombatNature(affinity));
+            CombatNature.FromCube(ElementalAffinity.Fire, cube));
 
         Assert.Contains($"Physical expression: {expectedExpression}", text);
         Assert.Contains($"Natural weapons: {expectedWeapons}", text);
@@ -67,9 +73,10 @@ public sealed class CitizenNatureTextTests
         HeroProfileSnapshot snapshot =
             Assert.IsType<HeroProfileSnapshot>(HeroProfileSnapshot.From(NewFireFounderWorld()));
 
-        Assert.Equal("Stunning", snapshot.PhysicalExpression);
-        Assert.Equal(new[] { "Mace", "Orb" }, snapshot.NaturalWeaponFamilies);
-        // The affinity was already surfaced; the expression derived from it was not.
+        // Kovari vertex, Body wins the three-way tie: Fracture, not the Stunning
+        // the old affinity shortcut produced for a Fire founder.
+        Assert.Equal("Fracture", snapshot.PhysicalExpression);
+        Assert.Equal(new[] { "Hammer", "Axe" }, snapshot.NaturalWeaponFamilies);
         Assert.Equal("Fire", snapshot.ElementalAffinity);
     }
 
@@ -96,13 +103,13 @@ public sealed class CitizenNatureTextTests
         string text = CitizenNatureText.Format(
             cube,
             LineageId.Kovari,
-            new CombatNature(ElementalAffinity.Earth));
+            CombatNature.FromCube(ElementalAffinity.Earth, cube));
 
         Assert.Contains($"Body {cube.Body} / {cube.Bond} Bond", text);
         Assert.Contains($"Stability {cube.Stability} / {cube.Impulse} Impulse", text);
-        Assert.Contains($"Mastery {cube.Mastery} / {cube.Reach} Reach", text);
+        Assert.Contains($"Domain {cube.Domain} / {cube.Reach} Reach", text);
         Assert.Equal(100, cube.Body + cube.Bond);
         Assert.Equal(100, cube.Stability + cube.Impulse);
-        Assert.Equal(100, cube.Mastery + cube.Reach);
+        Assert.Equal(100, cube.Domain + cube.Reach);
     }
 }

@@ -56,9 +56,17 @@ public sealed class WorldSave
     ///   <item><description>v29 — persists the founder's canonical cube profile and narrative memory; None/Neutral elemental affinity migrates to Silence.</description></item>
     ///   <item><description>v30 — every citizen persists a cube profile, equipment loadout, weapon-family competencies, and current health/condition; combat expression is derived immutably from affinity.</description></item>
     ///   <item><description>v31 — persists the authored first night's stage and open dialogue node so the sequence resumes exactly; existing cities migrate as already concluded.</description></item>
+    ///   <item><description>v32 — renames the third cube face from <c>Mastery</c> to <c>Domain</c> on disk to free the name for weapon-family mastery tiers. The legacy field is preserved one schema bump as a nullable bridge so a v31 save loads without losing the founder's cube.</description></item>
     /// </list>
+    /// <para>
+    /// The v30 note above described the combat expression as derived from the
+    /// affinity. That rule was corrected on 2026-08-07 (DEC-0018): it derives
+    /// from the persisted cube profile instead. No schema version was needed —
+    /// the expression was never a stored field — but a save written before that
+    /// date loads with a different expression than it used to.
+    /// </para>
     /// </summary>
-    public const int CurrentVersion = 31;
+    public const int CurrentVersion = 32;
 
     public int Version { get; set; } = CurrentVersion;
 

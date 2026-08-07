@@ -621,10 +621,26 @@ public sealed class CityWorld
         int nextId = NextCitizenId();
         CitizenProfile profile = CreateMigrantProfile(nextId);
         string generatedName = string.IsNullOrWhiteSpace(name)
-            ? MigrantNames[(nextId - 2) % MigrantNames.Length]
+            ? MigrantNameForSeed(nextId)
             : name;
         return TryHostExpeditionProspect(profile, generatedName, nextId);
     }
+
+    /// <summary>
+    /// Picks a migrant's display name from <see cref="MigrantNames"/> using a
+    /// mix of <paramref name="seed"/> that is intentionally out of phase with
+    /// the lineage index (<c>seed % Lineages.Count</c>). The two cycles used
+    /// to share a length and a constant shift, so the same seed always paired
+    /// the same name with the same lineage — two migrants of one lineage
+    /// were statistically the same person.
+    ///
+    /// The mix runs unsigned so a seed large enough to overflow wraps into a
+    /// valid index instead of a negative one. Citizen ids never get near that,
+    /// but this is a public entry point and an unguarded index is a crash
+    /// waiting for the first caller who does not know that.
+    /// </summary>
+    public static string MigrantNameForSeed(int seed) =>
+        MigrantNames[unchecked((uint)(seed * 11 + 3)) % MigrantNames.Length];
 
     public MigrantOutcome TryHostExpeditionProspect(CitizenProfile profile, string name)
     {
@@ -665,6 +681,7 @@ public sealed class CityWorld
         GenderId gender = seed % 2 == 0
             ? GenderId.Feminine
             : GenderId.Masculine;
+        FounderCubeProfile cube = CubeScoring.GenerateOrdinaryProfile(lineage.Id, seed);
         bool created = CitizenProfile.TryCreate(
             lineage.Id,
             gender,
@@ -686,6 +703,7 @@ public sealed class CityWorld
                 seed % ProfileCatalog.PoliticalOrientations.Count].Id,
             ProfileCatalog.SpiritualPostures[
                 seed % ProfileCatalog.SpiritualPostures.Count].Id,
+            cube,
             out CitizenProfile? profile,
             out string error);
         return created
@@ -4894,7 +4912,7 @@ public sealed class CityWorld
             ? new CitizenProspect(
                 prospectSeed,
                 string.IsNullOrWhiteSpace(save.PendingProspectName)
-                    ? MigrantNames[(prospectSeed - 2) % MigrantNames.Length]
+                    ? MigrantNameForSeed(prospectSeed)
                     : save.PendingProspectName,
                 CreateMigrantProfile(prospectSeed))
             : null;

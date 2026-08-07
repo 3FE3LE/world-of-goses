@@ -491,7 +491,7 @@ public static class WorldPersistence
             cubeSave.Bond,
             cubeSave.Stability,
             cubeSave.Impulse,
-            cubeSave.Mastery,
+            cubeSave.Domain,
             cubeSave.Reach);
         FounderOnboardingResult? onboarding = null;
         if (save.NarrativeMemory is { } memory)
@@ -528,7 +528,7 @@ public static class WorldPersistence
         Bond = cube.Bond,
         Stability = cube.Stability,
         Impulse = cube.Impulse,
-        Mastery = cube.Mastery,
+        Domain = cube.Domain,
         Reach = cube.Reach,
     };
 
@@ -1940,6 +1940,7 @@ public static class WorldPersistence
                 28 => MigrateV28ToV29(save),
                 29 => MigrateV29ToV30(save),
                 30 => MigrateV30ToV31(save),
+                31 => MigrateV31ToV32(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2714,7 +2715,7 @@ public static class WorldPersistence
                     Bond = cube.Bond,
                     Stability = cube.Stability,
                     Impulse = cube.Impulse,
-                    Mastery = cube.Mastery,
+                    Domain = cube.Domain,
                     Reach = cube.Reach,
                 };
             }
@@ -2760,6 +2761,38 @@ public static class WorldPersistence
         return save;
     }
 
+    /// <summary>
+    /// Renames the third cube face from <c>Mastery</c> to <c>Domain</c> on
+    /// disk. The canonical field is now <c>Domain</c>; the legacy
+    /// <c>Mastery</c> key is preserved as a nullable bridge
+    /// (<see cref="FounderCubeProfileSave.Mastery"/>) for exactly one schema
+    /// bump so a v31 save keeps its founder's cube. Anything written by the
+    /// new code never populates the bridge; once this migration runs the
+    /// bridge is cleared and the round-trip writes only the canonical key.
+    /// </summary>
+    public static WorldSave MigrateV31ToV32(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 31)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV31ToV32 expects version 31 but found {save.Version}.");
+        }
+#pragma warning disable CS0618 // Reading the legacy bridge exactly once per save.
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            if (citizen?.Profile?.CubeProfile is not { } cube) continue;
+            if (cube.Mastery is int legacy)
+            {
+                cube.Domain = legacy;
+                cube.Mastery = null;
+            }
+        }
+#pragma warning restore CS0618
+        save.Version = 32;
+        return save;
+    }
+
     public static WorldSave MigrateV29ToV30(WorldSave save)
     {
         ArgumentNullException.ThrowIfNull(save);
@@ -2797,12 +2830,20 @@ public static class WorldPersistence
                     continue;
                 }
                 FounderCubeProfileSave savedCube = profile.CubeProfile;
+                // v29→v30 runs before v31→v32 in the migration chain, so a
+                // legacy save still carries the cube under the bridge field
+                // (`Mastery`). The bridge is nullable and the canonical field
+                // has its real value once the rename is in effect, so a
+                // null-coalesce reads whichever holds the data on disk.
+#pragma warning disable CS0618
+                int domain = savedCube.Mastery ?? savedCube.Domain;
+#pragma warning restore CS0618
                 var cube = new FounderCubeProfile(
                     savedCube.Body,
                     savedCube.Bond,
                     savedCube.Stability,
                     savedCube.Impulse,
-                    savedCube.Mastery,
+                    domain,
                     savedCube.Reach);
                 EquipmentLoadout loadout = RestoreEquipmentLoadout(citizen.EquipmentLoadout);
                 double maxHealth = defenseCalculator.Calculate(cube, loadout, neutralContext).MaxHealth.Value;

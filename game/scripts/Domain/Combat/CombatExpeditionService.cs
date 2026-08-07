@@ -156,6 +156,7 @@ public sealed class CombatExpeditionService
                         : new CompetencyProgress(family, _stats.MinimumSkillLevel, 0, _stats);
                 citizen.SetWeaponCompetency(current.GrantAndLevel(
                     member.WeaponExperience,
+                    citizen.Profile.Lineage,
                     citizen.CombatNature,
                     _curve,
                     learningCeiling: null,

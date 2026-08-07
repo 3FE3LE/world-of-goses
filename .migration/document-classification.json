@@ -5166,110 +5166,135 @@
     "path": "CHANGELOG.md",
     "title": "Changelog",
     "root_kind": "repo-root",
-    "bytes": 54496,
-    "lines": 955,
+    "bytes": 63925,
+    "lines": 1122,
     "has_front_matter": false,
-    "headings": 30,
+    "headings": 37,
     "contains_backlog": true,
-    "backlog_hit_count": 20,
+    "backlog_hit_count": 25,
     "backlog_hits": [
       {
-        "line": 54,
+        "line": 36,
+        "marker": "TODO",
+        "text": "Y bajo `60/60/60` con desempate `Body` primero, **todo ciudadano no fundador"
+      },
+      {
+        "line": 97,
+        "marker": "TODO",
+        "text": "\"60/40 por eje\" para todo no fundador: el nuevo fallback llama a"
+      },
+      {
+        "line": 140,
+        "marker": "pendiente",
+        "text": "Lo que queda pendiente: un jugador con una partida guardada antes del"
+      },
+      {
+        "line": 157,
+        "marker": "roadmap",
+        "text": "combinaciones que el propio roadmap describe perdidas."
+      },
+      {
+        "line": 179,
+        "marker": "TODO",
+        "text": "**Sin migración.** La expresión nunca se persistió y todo ciudadano ya guardaba"
+      },
+      {
+        "line": 221,
         "marker": "backlog",
         "text": "bloque es canon, especificación, roadmap o backlog es un juicio que se revisa"
       },
       {
-        "line": 57,
+        "line": 224,
         "marker": "roadmap",
         "text": "`ARCHITECTURE.md` y el capítulo 10 mezclan descripción con roadmap,"
       },
       {
-        "line": 68,
+        "line": 235,
         "marker": "deferred",
         "text": "El detector de marcadores buscaba subcadenas. Contaba «deferred disposal» como"
       },
       {
-        "line": 69,
+        "line": 236,
         "marker": "future",
         "text": "trabajo diferido, «future attachments» como plan, y encontraba `owed` dentro de"
       },
       {
-        "line": 71,
+        "line": 238,
         "marker": "roadmap",
         "text": "de mezclar arquitectura con roadmap. Con coincidencia por palabra completa el"
       },
       {
-        "line": 72,
+        "line": 239,
         "marker": "backlog",
         "text": "repositorio pasa de 124 documentos con backlog a 84, y los 14 que le quedan a"
       },
       {
-        "line": 73,
+        "line": 240,
         "marker": "future",
         "text": "`ARCHITECTURE.md` son todos el adjetivo «future» dentro de prosa descriptiva."
       },
       {
-        "line": 84,
+        "line": 251,
         "marker": "roadmap",
         "text": "secuencia de quince pasos se archivó en vez de reubicarse en un roadmap vivo,"
       },
       {
-        "line": 94,
+        "line": 261,
         "marker": "backlog",
         "text": "—casillas sin marcar— y leían como un backlog sin dueño. De paso desaparece el"
       },
       {
-        "line": 104,
+        "line": 271,
         "marker": "TODO",
         "text": "Y una cosa que el corte destapó y era peor que todo lo anterior: cuatro skills"
       },
       {
-        "line": 118,
+        "line": 285,
         "marker": "TODO",
         "text": "Un ciudadano se dibujaba **siempre** por delante de todo el mundo, incluso de un"
       },
       {
-        "line": 213,
+        "line": 380,
         "marker": "TODO",
         "text": "linajes**. Todo panel construido antes de que exista un héroe caía por ahí; y"
       },
       {
-        "line": 303,
+        "line": 470,
         "marker": "todavía no",
         "text": "apuntando al suelo vacío, porque en `Manifested` el espíritu todavía no está"
       },
       {
-        "line": 319,
+        "line": 486,
         "marker": "pendiente",
         "text": "Lo que sigue pendiente: el espíritu es una llama autoral, no un sprite — no hay"
       },
       {
-        "line": 365,
+        "line": 532,
         "marker": "roadmap",
         "text": "- La sección **14 (Short initial roadmap)** incorpora la secuencia"
       },
       {
-        "line": 367,
+        "line": 534,
         "marker": "pendiente",
         "text": "de lo activo (EG-5) y lo pendiente (EG-6)."
       },
       {
-        "line": 446,
+        "line": 613,
         "marker": "todavía no",
         "text": "enterrada en el panel de detalle de un refugio que todavía no existía, al final"
       },
       {
-        "line": 489,
+        "line": 656,
         "marker": "todavía no",
         "text": "Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la"
       },
       {
-        "line": 576,
+        "line": 743,
         "marker": "roadmap",
         "text": "mismas personas. El circuito completo del roadmap —`Citizen` → preparación →"
       },
       {
-        "line": 944,
+        "line": 1111,
         "marker": "vertical slice",
         "text": "| 2026-07-28 | `13525c96` | Advance VS-1/VS-2 vertical slice and fix macro-view/pathfinding bugs |"
       }
@@ -5277,7 +5302,7 @@
     "contains_open_questions": true,
     "open_question_hits": [
       {
-        "line": 726,
+        "line": 893,
         "marker": "sin resolver",
         "text": "recibe condición neutral; uno herido queda explícitamente sin resolver para no"
       }
@@ -6343,12 +6368,12 @@
     "path": "docs/ai/DECISION_LOG.md",
     "title": "Decision log",
     "root_kind": "documentation",
-    "bytes": 29720,
-    "lines": 698,
+    "bytes": 37449,
+    "lines": 843,
     "has_front_matter": false,
-    "headings": 22,
+    "headings": 24,
     "contains_backlog": true,
-    "backlog_hit_count": 5,
+    "backlog_hit_count": 6,
     "backlog_hits": [
       {
         "line": 3,
@@ -6374,6 +6399,11 @@
         "line": 587,
         "marker": "owed",
         "text": "which `docs/ART_PIPELINE.md` §10 forbids. Real spirit art is still owed."
+      },
+      {
+        "line": 664,
+        "marker": "roadmap",
+        "text": "`100 %` natural and `10 %` foreign, in `22_…` §3 and the roadmap §Fase 1. The"
       }
     ],
     "contains_open_questions": false,
@@ -6718,8 +6748,8 @@
     "path": "docs/CURRENT_STATUS.md",
     "title": "Current Project Status",
     "root_kind": "documentation",
-    "bytes": 22770,
-    "lines": 391,
+    "bytes": 23999,
+    "lines": 406,
     "has_front_matter": false,
     "headings": 16,
     "contains_backlog": true,
@@ -6731,12 +6761,12 @@
         "text": "- Combat/expedition vertical slice (`EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md` fases 0–7) lives in"
       },
       {
-        "line": 263,
+        "line": 278,
         "marker": "future",
         "text": "- Production priority is persisted but remains a future scheduling hint."
       },
       {
-        "line": 388,
+        "line": 403,
         "marker": "backlog",
         "text": "- Active backlog: `TO_DO.md`"
       }
@@ -6860,8 +6890,8 @@
     "path": "docs/EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md",
     "title": "Roadmap de integración de combate y expediciones",
     "root_kind": "documentation",
-    "bytes": 14225,
-    "lines": 628,
+    "bytes": 14450,
+    "lines": 631,
     "has_front_matter": false,
     "headings": 62,
     "contains_backlog": true,
@@ -6873,17 +6903,17 @@
         "text": "# Roadmap de integración de combate y expediciones"
       },
       {
-        "line": 510,
+        "line": 513,
         "marker": "vertical slice",
         "text": "## 3. Fases posteriores al vertical slice"
       },
       {
-        "line": 512,
+        "line": 515,
         "marker": "roadmap",
         "text": "Estas fases forman parte del roadmap general, pero no bloquean la primera expedición jugable."
       },
       {
-        "line": 613,
+        "line": 616,
         "marker": "vertical slice",
         "text": "## 6. Definición de terminado del primer vertical slice"
       }
@@ -7269,7 +7299,7 @@
     "path": "docs/session-state/STATE.txt",
     "title": "STATE",
     "root_kind": "documentation",
-    "bytes": 1284,
+    "bytes": 1311,
     "lines": 38,
     "has_front_matter": false,
     "headings": 0,
@@ -7514,40 +7544,40 @@
     "path": "docs/VISUAL_REGRESSION.md",
     "title": "Visual regression matrix",
     "root_kind": "documentation",
-    "bytes": 54128,
-    "lines": 292,
+    "bytes": 54476,
+    "lines": 293,
     "has_front_matter": false,
     "headings": 12,
     "contains_backlog": true,
     "backlog_hit_count": 6,
     "backlog_hits": [
       {
-        "line": 164,
+        "line": 165,
         "marker": "backlog",
         "text": "- any deliberately deferred state with its backlog ID."
       },
       {
-        "line": 247,
+        "line": 248,
         "marker": "future",
         "text": "| 2026-07-23 | `farm-detail`, `quarry-detail` | 1024×576, 1280×720, 1600×900 | Pass for layout. Production, stock, policy controls, assignment sidebar, available citizen action, and `Back to city` remain inside the viewport. Review also found that the runtime still exposes `Reactive policy` although `CURRENT_STATUS.md` describes the future simplified panel; that product/code mismatch is not treated as a visual pass criterion. |"
       },
       {
-        "line": 260,
+        "line": 261,
         "marker": "pending",
         "text": "| 2026-07-31 | `eg2-founding-blueprint`, `eg2-founding-module-choice`, `eg2-founding-blocked-cargo` | 1280×720, 1920×1080 | Pass with deterministic fresh-city fixtures. The localized Campfire cost and enabled Founding Site CTA fit; after Campfire, Bedroll and Cache remain simultaneously visible without Canopy being chosen automatically; a worst-case 6/6 Wild Food load in `AwaitingModule` exposes the localized cargo-return recovery action beside those module choices. Header, scroll body and fixed footer remain contained at both official resolutions. Authored module sprites remain pending art integration; the current Home placeholder is intentional. |"
       },
       {
-        "line": 261,
+        "line": 262,
         "marker": "pending",
         "text": "| 2026-07-31 | `early-game-resources`, `early-game-resource-menu`, `early-game-resource-gather-signal` | 1280×720, 1920×1080 | Pass. Fresh fixture shows six mature trees and all 17 EG-A0 ground nodes. A real right-click on a Branches bundle opens the localized contextual action; confirming it routes the founder, removes that exact node and records `Branches +2` without changing Wood. Ground markers are intentional code-drawn placeholders pending authored sprites. |"
       },
       {
-        "line": 282,
+        "line": 283,
         "marker": "future",
         "text": "| 2026-08-06 | `macro-current` (daylight, live slot) | 1280×720 | Pass after removing a bonfire that rendered on top of the founder. `FirstNightScene` had always placed the campfire at `founderScreenPosition + (0,-32)` — a documented placeholder (\"a future iteration can refine this\") that put the fire on the citizen. It was invisible while `FirstNightEmbers` was a faint wireframe and became an obvious bonfire the moment the embers were given the atlas campfire sprite. `MacroStreetLiveView.GetBuildingGlobalPosition` now resolves a real anchor from `_clickableRects`, and `CityWorld.FoundingSiteBuildingId` supplies the id. **While the founding site is still a construction project there is no Building and the macro view exposes no anchor for a project, so the embers now draw nothing rather than guessing** — a fire in an invented place reads as world state and is worse than no fire. The fire spirit was also halved and lifted to `(34,-44)`: at the previous size it stood as tall as the founder on his own ground line, which is why two separate playtest reports called it \"a campfire on the floor\". **Open:** the embers are therefore unverifiable and effectively unreachable until the macro view publishes a project anchor; that plumbing is still owed. |"
       },
       {
-        "line": 286,
+        "line": 287,
         "marker": "owed",
         "text": "| 2026-08-06 | `time-noon`, `early-game-resources` | 1280×720 | **Partial.** The macro view now sorts obstacles and citizens on one axis: buildings and resources moved out of the view's own `_Draw()` into one `StreetBandLayer` per street, whose `ZIndex` comes from the same `DepthToZ(depth)` the citizen carriers now use. Before this they were incomparable — a `CanvasItem` emits its own commands before its children, so every citizen drew after the entire world regardless of depth. Ground stays in the view's own `_Draw()`, which is correct: terrain is always behind. Two regressions were found and fixed during the pass, both only visible in capture: helpers kept drawing onto `this` after gaining a canvas parameter, which silently blanked every tree (\"Drawing is only allowed inside this node's `_draw()`\"); and the new positive child z-indices outranked the HUD, so a tree on the nearest street drew over the Chronicle — the view now sits at `OverlayLayers.WorldDepthBase` so its whole child range stays under the ambient tint and the panels. **Not signed:** the decisive case — a founder occluded by a nearer tree and occluding a farther one in the same frame — has not been captured. No current fixture places the founder behind a nearer tree, so the ordering is implemented and the world renders correctly, but the acceptance row at \"tree canopy > founder\" is still unproven. A fixture that parks the founder mid-band is owed. |"
       }
@@ -7555,7 +7585,7 @@
     "contains_open_questions": true,
     "open_question_hits": [
       {
-        "line": 276,
+        "line": 277,
         "marker": "open question",
         "text": "| 2026-08-06 | `firstnight-manifested` | 1280×720, 1920×1080 | **Root-cause fix verified, composition NOT signed.** `CityPrototype` was constructing `FirstNightScene` with `ControllerPath = \"CityWorldController\"`, but the node is added as a *child* of `CityPrototype`, so the path resolved to `FirstNightScene/CityWorldController` and never matched. `FirstNightScene._Ready` logged a warning and returned before subscribing, so the authored night never rendered and never advanced: no spirit, no dialogue, and `IsFirstNightActive` stayed permanently true, which also suppressed `DayBegan`/`NightBegan` and `ApplyResidentFoodRation` for the life of the save. Confirmed at runtime by the boot warning, which is gone after the fix. With the new fixture, the strip shows its first authored line and a real click on `Continuar` advances the stage and manifests the spirit ring at both resolutions. **Not signed:** this is the first time the strip has ever rendered, and it exposes its own defects — light body text on the yellow 9-slice is close to unreadable, the band's bottom border sits on the viewport edge, and the status strip picks up the same yellow fallback stylebox. Those need their own pass. The displayed-clock stall (`FirstNightState.DisplayedTick`) is still unwired; see the open question in `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` §9. |"
       }
@@ -7771,7 +7801,7 @@
     "path": "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md",
     "title": "Onboarding y héroe fundador",
     "root_kind": "documentation",
-    "bytes": 13544,
+    "bytes": 13543,
     "lines": 368,
     "has_front_matter": false,
     "headings": 20,
@@ -8009,15 +8039,15 @@
     "path": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
     "title": "El Cubo Kovari — sistema de predisposiciones y stats",
     "root_kind": "documentation",
-    "bytes": 19042,
-    "lines": 586,
+    "bytes": 19470,
+    "lines": 590,
     "has_front_matter": false,
     "headings": 45,
     "contains_backlog": true,
     "backlog_hit_count": 1,
     "backlog_hits": [
       {
-        "line": 585,
+        "line": 589,
         "marker": "TODO",
         "text": "**La vida posterior construye todo lo demás.**"
       }
@@ -8111,8 +8141,8 @@
     "path": "docs/world-of-goses-design-bible/16_LINEAGES_KOVARI.md",
     "title": "Kovari — El Cubo",
     "root_kind": "documentation",
-    "bytes": 8182,
-    "lines": 215,
+    "bytes": 8962,
+    "lines": 229,
     "has_front_matter": false,
     "headings": 26,
     "contains_backlog": true,
@@ -8124,7 +8154,7 @@
         "text": "**Todo sistema puede desmontarse, repararse o recombinarse.**"
       },
       {
-        "line": 184,
+        "line": 198,
         "marker": "TODO",
         "text": "- **No** seis estadísticas vagas que oculten todo."
       }
@@ -8327,30 +8357,30 @@
     "path": "docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md",
     "title": "Sistema de estadísticas, progresión y fórmulas de combate",
     "root_kind": "documentation",
-    "bytes": 18756,
-    "lines": 744,
+    "bytes": 21613,
+    "lines": 800,
     "has_front_matter": false,
-    "headings": 45,
+    "headings": 46,
     "contains_backlog": true,
     "backlog_hit_count": 4,
     "backlog_hits": [
       {
-        "line": 282,
+        "line": 338,
         "marker": "pendiente",
         "text": "La forma de derivar este factor desde heridas, enfermedades, fatiga y hambre queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
       },
       {
-        "line": 296,
+        "line": 352,
         "marker": "pendiente",
         "text": "La forma de derivarlo desde edificios, políticas, salud pública, alimentación o vivienda queda pendiente. La primera implementación puede recibirlo como un valor ya resuelto."
       },
       {
-        "line": 342,
+        "line": 398,
         "marker": "todavía no",
         "text": "Los coeficientes de técnica todavía no están definidos."
       },
       {
-        "line": 691,
+        "line": 747,
         "marker": "TODO",
         "text": "Todo stat mostrado debe poder explicar su procedencia."
       }
@@ -8528,12 +8558,12 @@
     "path": "TO_DO.md",
     "title": "TO DO — Cola operativa",
     "root_kind": "repo-root",
-    "bytes": 45522,
-    "lines": 750,
+    "bytes": 46931,
+    "lines": 771,
     "has_front_matter": false,
-    "headings": 40,
+    "headings": 41,
     "contains_backlog": true,
-    "backlog_hit_count": 23,
+    "backlog_hit_count": 24,
     "backlog_hits": [
       {
         "line": 3,
@@ -8556,97 +8586,102 @@
         "text": "| Diferido | Tiene un trigger explícito que todavía no se cumple. |"
       },
       {
-        "line": 75,
+        "line": 77,
         "marker": "pendiente",
         "text": "| Pendiente | 0 | 0 | 1 | 0 |"
       },
       {
-        "line": 77,
+        "line": 79,
         "marker": "diferido",
-        "text": "| Diferido por trigger | 0 | 2 | 1 | 0 |"
+        "text": "| Diferido por trigger | 0 | 2 | 0 | 0 |"
       },
       {
-        "line": 122,
+        "line": 125,
         "marker": "pendiente",
         "text": "- **Pendiente para EG-1:** contención visual de los nodos Branches/Plant"
       },
       {
-        "line": 140,
+        "line": 143,
         "marker": "pendiente",
         "text": "| 15 | Decisión post-regreso | Implementado; firma humana pendiente |"
       },
       {
-        "line": 142,
+        "line": 145,
         "marker": "pendiente",
         "text": "| 17 | Repetición sin reset/debug | Automatizado; firma humana pendiente |"
       },
       {
-        "line": 211,
+        "line": 214,
         "marker": "pendiente",
         "text": "- **Estado:** Cerrado el 2026-08-06. **Firma humana pendiente** vía M-14."
       },
       {
-        "line": 220,
+        "line": 223,
         "marker": "pendiente",
         "text": "- **Pendiente (sólo firma humana):** playtest en slot limpio con el recorrido"
       },
       {
-        "line": 221,
+        "line": 224,
         "marker": "pendiente",
         "text": "descrito en M-14 → Pendiente para EG-5 / M-26. `verify-clicks-with-real-clicks`"
       },
       {
-        "line": 234,
+        "line": 237,
         "marker": "pendiente",
         "text": "- **Pendiente para EG-5:** firma humana de recolección idempotente, bloqueo por"
       },
       {
-        "line": 246,
+        "line": 249,
         "marker": "pendiente",
         "text": "- **Estado:** Pendiente."
       },
       {
-        "line": 264,
+        "line": 267,
         "marker": "diferido",
         "text": "## 6. Diferido por trigger"
       },
       {
-        "line": 297,
+        "line": 298,
+        "marker": "TODO",
+        "text": "siguen siendo los del onboarding. Todo ciudadano no fundador tiene ahora"
+      },
+      {
+        "line": 318,
         "marker": "pendiente",
         "text": "- **Pendiente:**"
       },
       {
-        "line": 329,
+        "line": 350,
         "marker": "diferido",
         "text": "| S-1.4 MultiMesh | Diferido al trigger de H-30. |"
       },
       {
-        "line": 363,
+        "line": 384,
         "marker": "pendiente",
         "text": "**Firma humana pendiente** vía M-14."
       },
       {
-        "line": 391,
+        "line": 412,
         "marker": "futuro",
         "text": "futuro de reduced-motion toque un solo sitio. Firma humana y coherencia de"
       },
       {
-        "line": 437,
+        "line": 458,
         "marker": "TODO",
         "text": "`FirstNightRules` con todo lo cuantitativo derivado de `FoundingSiteRules`, de"
       },
       {
-        "line": 456,
+        "line": 477,
         "marker": "TODO",
         "text": "`MigrateV30ToV31` marca **concluida** la noche de todo save existente: esas"
       },
       {
-        "line": 597,
+        "line": 618,
         "marker": "TODO",
         "text": "ociosos que esto mide. Todo se registra en eventos de dominio o en la"
       },
       {
-        "line": 613,
+        "line": 634,
         "marker": "TODO",
         "text": "en 05:00–06:00 y 18:00–19:00, tramos largos con deriva lenta, todo"
       }
@@ -8654,7 +8689,7 @@
     "contains_open_questions": true,
     "open_question_hits": [
       {
-        "line": 628,
+        "line": 649,
         "marker": "sin resolver",
         "text": "aún sin resolver en la primera pasada de layout, y el arte cargaba pero nunca"
       }

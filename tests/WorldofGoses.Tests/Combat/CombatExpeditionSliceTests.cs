@@ -122,24 +122,34 @@ public sealed class CombatExpeditionSliceTests
     }
 
     [Fact]
-    public void ExperienceIsGranted_AndRespectsTheForeignFamilyPenalty()
+    public void ExperienceIsGranted_AndRespectsTheThreeLearningTiers()
     {
-        // Fire → Stunning, whose natural families are Mace and Orb. Spear is foreign.
-        Citizen natural = Member(1, WeaponFamily.Mace, ElementalAffinity.Fire);
-        Citizen foreign = Member(2, WeaponFamily.Spear, ElementalAffinity.Fire);
-        var party = new List<Citizen> { natural, foreign };
+        // Every member here is Kovari on the bare vertex, so their expression is
+        // Fracture — Body wins the three-way tie. The Kovari vertex also reaches
+        // Stunning and Bleeding, which is what makes Mace familiar rather than
+        // foreign. Spear belongs to Knockdown, which no Kovari cube produces.
+        Citizen natural = Member(1, WeaponFamily.Hammer, ElementalAffinity.Fire);
+        Citizen familiar = Member(2, WeaponFamily.Mace, ElementalAffinity.Fire);
+        Citizen foreign = Member(3, WeaponFamily.Spear, ElementalAffinity.Fire);
+        var party = new List<Citizen> { natural, familiar, foreign };
         var service = new CombatExpeditionService();
+
+        Assert.Equal(PhysicalExpression.Fracture, natural.CombatNature.PhysicalExpression);
 
         ExpeditionRunResult result = service.Run(party, Plan(party, ExpeditionRoute.SafeRoute));
         service.ApplyResult(party, result);
 
-        double naturalXp = natural.WeaponCompetencies[WeaponFamily.Mace].Experience;
+        double naturalXp = natural.WeaponCompetencies[WeaponFamily.Hammer].Experience;
+        double familiarXp = familiar.WeaponCompetencies[WeaponFamily.Mace].Experience;
         double foreignXp = foreign.WeaponCompetencies[WeaponFamily.Spear].Experience;
 
+        // All three fought and all three learned. The tier decides how much of
+        // what they generated they keep, and nothing else about the fight.
         Assert.True(naturalXp > 0);
+        Assert.True(familiarXp > 0);
         Assert.True(foreignXp > 0);
-        // The penalty is on learning only; both fought, one learns ten times slower.
-        Assert.True(naturalXp > foreignXp * 2, $"natural={naturalXp} foreign={foreignXp}");
+        Assert.True(naturalXp > familiarXp, $"natural={naturalXp} familiar={familiarXp}");
+        Assert.True(familiarXp > foreignXp, $"familiar={familiarXp} foreign={foreignXp}");
     }
 
     [Fact]

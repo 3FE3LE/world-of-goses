@@ -119,22 +119,64 @@ La expresión física:
 | Domain | Silence | Bleeding |
 | Reach | Air | Knockdown |
 
-En `v0.1`, esta correspondencia también determina la expresión física a
-partir de la afinidad elemental al crear o migrar un `Citizen`:
+**Las dos columnas de la derecha son correspondencias independientes de la
+cara, no una cadena.** Leer esta tabla como `afinidad → expresión física` es el
+error que la implementación cometió hasta el 2026-08-07: colapsaba los dos ejes
+en uno y dejaba seis combinaciones donde el diseño describe treinta y seis.
+Ningún `Citizen` deriva su expresión de su elemento.
+
+### 2.5 De dónde sale cada uno
 
 ```text
-Earth   → Fracture
-Aether  → Poisoning
-Water   → Paralysis
-Fire    → Stunning
-Silence → Bleeding
-Air     → Knockdown
+Onboarding
+    │
+    ├── puntuación de linaje ── Lineage
+    │          │
+    │          └── vértice 60/40 del Cubo
+    │                     +
+    │       contribuciones de las doce respuestas (±8 agregado por eje)
+    │                     ↓
+    │              CubeProfile final
+    │                     ↓
+    │              cara más alta
+    │                     ↓
+    │            PhysicalExpression
+    │
+    └── señal elemental ── PrimaryAffinity
 ```
 
-Se persiste la afinidad como fuente inmutable y se deriva la expresión
-física, evitando dos campos capaces de contradecirse. Esta relación no es un
-multiplicador y no obliga a que un `Citizen` con afinidad Fire tenga Impulse
-alto ni a que uno con expresión Knockdown tenga Reach alto.
+Se persiste el `CubeProfile` como fuente inmutable y se deriva la expresión
+física de él, evitando dos campos capaces de contradecirse. La derivación es
+una función pura del cubo: el mismo cubo responde siempre lo mismo, sea cual
+sea la afinidad, y ningún estado adicional se guarda.
+
+**Empates.** Las tres caras favorecidas pueden igualarse — de hecho es el caso
+normal de un ciudadano sin onboarding, cuyo cubo es el vértice puro `60/60/60`.
+El desempate es determinista y no usa azar, orden de enum, iteración de
+diccionario ni orden de carga: gana la primera cara del orden canónico
+explícito `Body, Bond, Stability, Impulse, Domain, Reach`.
+
+Bajo `60/40` con el tope de `±8`, una cara favorecida se mueve dentro de
+`52–68` y su opuesta dentro de `32–48`. La cara más alta es por tanto siempre
+una de las tres favorecidas del linaje, y **cada linaje admite exactamente tres
+expresiones físicas**: eso no se impone con una lista de exclusión, sale de las
+restricciones del cubo. Cada expresión pertenece así a exactamente cuatro
+linajes.
+
+| Linaje | Expresiones alcanzables |
+|---|---|
+| Ardhen | Fracture · Paralysis · Bleeding |
+| Eirune | Fracture · Paralysis · Knockdown |
+| Kovari | Fracture · Stunning · Bleeding |
+| Vaelun | Fracture · Stunning · Knockdown |
+| Orveth | Poisoning · Paralysis · Bleeding |
+| Myrven | Poisoning · Paralysis · Knockdown |
+| Theryn | Poisoning · Stunning · Bleeding |
+| Caelith | Poisoning · Stunning · Knockdown |
+
+Esta relación no es un multiplicador. Un `Citizen` con afinidad Fire no está
+obligado a tener Impulse alto, y la expresión no confiere ventaja: sólo dice
+qué consecuencia física es natural en él.
 
 ---
 
@@ -154,9 +196,23 @@ Reglas:
 - La expresión física determina dos familias naturales inmutables.
 - El arma inicial se elige entre las dos familias naturales.
 - Cualquier `Citizen` puede equipar cualquier familia.
-- Una familia natural aprende al `100 %` de eficiencia.
-- Una familia extranjera aprende inicialmente al `10 %` de eficiencia.
-- La penalización extranjera afecta adquisición de experiencia, no aplica una reducción directa al daño.
+- El aprendizaje tiene tres niveles, no dos (`DEC-0018`):
+
+  | Nivel | Qué familia | Eficiencia de XP |
+  |---|---|---|
+  | Natural | Las dos de la expresión física del propio `Citizen` | `100 %` |
+  | Familiar de linaje | Las cuatro de las otras dos expresiones que su linaje alcanza | `50 %` |
+  | Extranjera | Las seis de expresiones que su vértice no puede producir | `10 %` |
+
+  Cada `Citizen` ve por tanto `2` naturales, `4` familiares y `6` extranjeras.
+  El nivel se deriva de tres piezas —expresión propia, vértice del linaje y la
+  tabla de arriba—, nunca de una tabla de armas por linaje.
+- El nivel afecta **sólo** la adquisición de experiencia. No reduce daño,
+  precisión, `PhysicalTransfer`, `ElementalResonance`, cooldown, velocidad ni
+  coeficientes de técnica. Un `Citizen` que alcanza Sword `20` con una familia
+  extranjera ha alcanzado Sword `20`: la dificultad estaba en llegar, no en usarlo.
+- Entrenar cualquier familia no cambia la expresión física, que es inmutable y
+  deriva del Cubo.
 - El `Citizen` solo desbloquea técnicas físicas de su expresión.
 - El `Citizen` solo desbloquea técnicas elementales de su afinidad.
 - Puede aprender técnicas generales de cualquier arma.

@@ -84,7 +84,11 @@ public static class EnemyCatalog
     public static CombatantState Create(EnemyArchetype archetype, string id)
     {
         EnemyDefinition definition = Get(archetype);
-        var nature = new CombatNature(definition.Affinity);
+        // The definition authors both values. Deriving the expression from the
+        // affinity instead, as this did, silently discarded a definition whose
+        // two fields disagreed: the techniques came from `Expression` while the
+        // combatant carried whatever the affinity implied.
+        var nature = new CombatNature(definition.Affinity, definition.Expression);
         var techniques = new List<TechniqueDefinition>();
         techniques.AddRange(TechniqueCatalog.ForAffinity(definition.Affinity));
         techniques.AddRange(TechniqueCatalog.ForExpression(definition.Expression));

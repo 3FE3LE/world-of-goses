@@ -284,15 +284,21 @@ public sealed class DerivedStatisticsTests
     }
 
     [Fact]
-    public void NaturalFamiliesReceiveFullExperienceAndForeignFamiliesTenPercent()
+    public void WeaponExperienceFollowsTheThreeLearningTiers()
     {
-        var nature = new CombatNature(ElementalAffinity.Earth);
+        // Ardhen reaches Fracture, Paralysis and Bleeding. For a Fracture
+        // citizen: Hammer is their own, Sword belongs to Bleeding which their
+        // people know, and Bow belongs to Poisoning which no Ardhen cube reaches.
+        var nature = new CombatNature(ElementalAffinity.Earth, PhysicalExpression.Fracture);
         var natural = new CompetencyProgress(WeaponFamily.Hammer, 0, 0)
-            .GrantGeneratedExperience(100, nature);
-        var foreign = new CompetencyProgress(WeaponFamily.Sword, 0, 0)
-            .GrantGeneratedExperience(100, nature);
+            .GrantGeneratedExperience(100, LineageId.Ardhen, nature);
+        var familiar = new CompetencyProgress(WeaponFamily.Sword, 0, 0)
+            .GrantGeneratedExperience(100, LineageId.Ardhen, nature);
+        var foreign = new CompetencyProgress(WeaponFamily.Bow, 0, 0)
+            .GrantGeneratedExperience(100, LineageId.Ardhen, nature);
 
         Assert.Equal(100, natural.Experience);
+        Assert.Equal(50, familiar.Experience);
         Assert.Equal(10, foreign.Experience);
     }
 
@@ -317,8 +323,11 @@ public sealed class DerivedStatisticsTests
     }
 
     [Fact]
-    public void AffinityAndPhysicalExpressionDoNotChangeChannelPower()
+    public void AffinityChangesNeitherChannelPowerNorPhysicalExpression()
     {
+        // Two citizens off the same Ardhen vertex, differing only in affinity.
+        // The expression is a function of the cube, so it cannot move here — and
+        // neither channel power reacts to the affinity either.
         Citizen earth = TestCitizen(ElementalAffinity.Earth);
         Citizen air = TestCitizen(ElementalAffinity.Air);
         EquipmentLoadout loadout = Reference("Aren").Loadout;
@@ -329,22 +338,27 @@ public sealed class DerivedStatisticsTests
         DerivedStatistics airStats = new CitizenStatisticsService().Calculate(air, 1);
 
         Assert.NotEqual(earth.CombatNature.ElementalAffinity, air.CombatNature.ElementalAffinity);
-        Assert.NotEqual(earth.CombatNature.PhysicalExpression, air.CombatNature.PhysicalExpression);
+        Assert.Equal(earth.CombatNature.PhysicalExpression, air.CombatNature.PhysicalExpression);
         Assert.Equal(earthStats.Offense.PhysicalChannelPower.Value, airStats.Offense.PhysicalChannelPower.Value);
         Assert.Equal(earthStats.Offense.ElementalChannelPower.Value, airStats.Offense.ElementalChannelPower.Value);
     }
 
-    [Theory]
-    [InlineData(ElementalAffinity.Earth, PhysicalExpression.Fracture)]
-    [InlineData(ElementalAffinity.Aether, PhysicalExpression.Poisoning)]
-    [InlineData(ElementalAffinity.Water, PhysicalExpression.Paralysis)]
-    [InlineData(ElementalAffinity.Fire, PhysicalExpression.Stunning)]
-    [InlineData(ElementalAffinity.Silence, PhysicalExpression.Bleeding)]
-    [InlineData(ElementalAffinity.Air, PhysicalExpression.Knockdown)]
-    public void CombatNature_DerivesPhysicalExpression(
-        ElementalAffinity affinity,
-        PhysicalExpression expression) =>
-        Assert.Equal(expression, new CombatNature(affinity).PhysicalExpression);
+    [Fact]
+    public void PhysicalExpressionComesFromTheCubeNotTheAffinity()
+    {
+        // The obsolete rule read Earth as Fracture, Fire as Stunning and so on.
+        // The cube decides now: this Ardhen citizen is Fracture because Body is
+        // their highest face, whichever element they resonate with.
+        foreach (ElementalAffinity affinity in Enum.GetValues<ElementalAffinity>())
+        {
+            Citizen citizen = TestCitizen(affinity);
+
+            Assert.Equal(affinity, citizen.CombatNature.ElementalAffinity);
+            Assert.Equal(
+                CubeExpression.Derive(citizen.CubeProfile),
+                citizen.CombatNature.PhysicalExpression);
+        }
+    }
 
     private StatisticsCalculator Calculator() => new(_balance);
     private StatCalculationContext NeutralContext() => new(0, 1, 1, _balance);

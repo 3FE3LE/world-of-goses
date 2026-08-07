@@ -33,6 +33,7 @@ public sealed record CompetencyProgress
 
     public CompetencyProgress GrantGeneratedExperience(
         double generatedExperience,
+        LineageId lineage,
         CombatNature nature,
         StatisticsBalanceConfig? balance = null)
     {
@@ -43,24 +44,39 @@ public sealed record CompetencyProgress
         return new CompetencyProgress(
             Family,
             Level,
-            Experience + generatedExperience * LearningEfficiency(nature, config),
+            Experience + generatedExperience * LearningEfficiency(lineage, nature, config),
             config);
     }
 
     /// <summary>
-    /// Fraction of generated experience this family actually absorbs: full rate
-    /// for a family the citizen's physical expression makes natural, a tenth for a
-    /// foreign one. The penalty is on learning, never on the technique's result.
+    /// Which of the three learning tiers this family falls in for the citizen.
+    /// The lineage is required because the middle tier is defined by what the
+    /// lineage's cube vertex can produce, not by the citizen's own expression.
     /// </summary>
+    public WeaponLearning LearningAffinity(LineageId lineage, CombatNature nature)
+    {
+        ArgumentNullException.ThrowIfNull(nature);
+        return WeaponLearningAffinity.For(lineage, nature.PhysicalExpression, Family);
+    }
+
+    /// <summary>
+    /// Fraction of generated experience this family actually absorbs: the full
+    /// rate for a family of the citizen's own physical expression, half for one
+    /// of the other two expressions their lineage can produce, a tenth for a
+    /// family no expression of that lineage reaches.
+    /// </summary>
+    /// <remarks>
+    /// The tier is a learning cost, never a combat one. It scales the
+    /// experience absorbed and nothing else — a level reached through a foreign
+    /// family is worth exactly as much as any other level at that number.
+    /// </remarks>
     public double LearningEfficiency(
+        LineageId lineage,
         CombatNature nature,
         StatisticsBalanceConfig? balance = null)
     {
         ArgumentNullException.ThrowIfNull(nature);
-        StatisticsBalanceConfig config = balance ?? StatisticsBalanceConfig.Default;
-        return NaturalWeaponFamilies.Contains(nature.PhysicalExpression, Family)
-            ? config.NaturalWeaponExperienceFactor
-            : config.ForeignWeaponExperienceFactor;
+        return WeaponLearningAffinity.ExperienceFactor(LearningAffinity(lineage, nature), balance);
     }
 
     /// <summary>
@@ -71,13 +87,14 @@ public sealed record CompetencyProgress
     /// </summary>
     public CompetencyProgress GrantAndLevel(
         double generatedExperience,
+        LineageId lineage,
         CombatNature nature,
         Combat.CompetencyLevelCurve curve,
         int? learningCeiling = null,
         StatisticsBalanceConfig? balance = null)
     {
         ArgumentNullException.ThrowIfNull(curve);
-        CompetencyProgress granted = GrantGeneratedExperience(generatedExperience, nature, balance);
+        CompetencyProgress granted = GrantGeneratedExperience(generatedExperience, lineage, nature, balance);
         int level = curve.LevelFor(granted.Experience, learningCeiling);
         return new CompetencyProgress(
             granted.Family,

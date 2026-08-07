@@ -628,6 +628,151 @@ architectural" — before the current olive-ground was accepted.
 
 ---
 
+## DEC-0018: The Cube decides the physical expression, and weapons are learned in three tiers
+
+**Status:** Accepted
+**Date:** 2026-08-07
+
+**Decision:**
+`PhysicalExpression` derives from the **highest face of the persisted
+`CubeProfile`**, not from the elemental affinity. The affinity keeps coming from
+the onboarding's elemental signal and the two are independent axes.
+
+Weapon competency experience is acquired at one of three rates:
+
+| Tier | Families | XP efficiency |
+|---|---|---|
+| Natural | the two of the citizen's own expression | `100 %` |
+| Lineage-familiar | the four of the other two expressions their lineage's vertex reaches | `50 %` |
+| Foreign | the remaining six | `10 %` |
+
+The tier scales **experience acquisition only**. It never touches damage,
+accuracy, `PhysicalTransfer`, `ElementalResonance`, cooldown, defence or
+technique coefficients.
+
+**Why it needed a decision:**
+Two separate reasons.
+
+The derivation was a *correction*, not a choice: `22_…` §2.4 publishes one table
+with three columns — face, affinity, expression — and the implementation read it
+as a chain, deriving the expression from the affinity. That collapsed two
+independent axes into one and left six of the thirty-six combinations the same
+chapter's technique model assumes (`EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md`
+§2: six expression trees × six affinity trees).
+
+The **middle tier is new canon**. No document described it: the bible knew only
+`100 %` natural and `10 %` foreign, in `22_…` §3 and the roadmap §Fase 1. The
+hard rule is to never invent a rule absent from the docs, so it is recorded here
+rather than slipped into a table.
+
+**Consequences:**
+- Nothing new is persisted and no migration exists. `PhysicalExpression` was
+  never stored; every citizen already persists a `CubeProfile` since v30, so
+  changing the derivation was sufficient and `WorldSave.CurrentVersion` stays 31.
+- **Existing saves load with different expressions than before.** A Kovari+Fire
+  founder read as Stunning and now reads as Fracture. Nothing on disk changed;
+  the obsolete value simply no longer exists to be recomputed.
+- Each lineage admits exactly three expressions and each expression belongs to
+  exactly four lineages. This is not enforced by a blacklist: under `60/40` with
+  the `±8` cap a favoured face stays in `52–68` and its opposite in `32–48`, so
+  the highest face is always favoured. `DEC-0013` §3 is therefore load-bearing —
+  widening `±8` past `10` would break the property.
+- Ties are resolved by the explicit order `Body, Bond, Stability, Impulse,
+  Domain, Reach`, never by enum, dictionary, insertion or load order.
+- **A citizen with no onboarding sits on the bare vertex `60/60/60`, which is a
+  three-way tie.** Every non-founder of a Body lineage is therefore Fracture and
+  every one of a Bond lineage is Poisoning: two of the six expressions in play.
+  Accepted knowingly and tracked as `M-29`; varying an ordinary citizen's cube is
+  a separate decision about citizen generation. **`M-29` is resolved by
+  `DEC-0019` (2026-08-07).**
+- `DEC-0002` still holds: the lineage confers no advantage. The tier is a
+  qualitative *learning context* — what your people know — and never a
+  production or combat bonus.
+
+---
+
+## DEC-0019: Ordinary citizens get a deterministic cube seeded from their id
+
+**Status:** Accepted
+**Date:** 2026-08-07
+
+**Decision:**
+
+`CubeScoring.GenerateOrdinaryProfile(LineageId lineage, int seed)` produces
+the cube of every non-founder citizen as a pure function of `(lineage, seed)`.
+The lineage vertex is shifted by `±8` per axis using FNV-1a — the same
+stable hash the repo already uses for layout and appearance seeds (see
+`NaturalResourceLayoutPlanner.StableScore`, `CityWorld.StableAppearanceSeed`)
+— and applied through `ApplyContribution`, so the existing `±8` clamp and
+pair invariant are the same code path the onboarding already exercises.
+The cube and its seeded `name → lineage` cycle live together: the name index
+deliberately uses a different mix of the seed
+(`MigrantNames[(seed * 11 + 3) % 8]`) so two migrants of one lineage are
+statistically distinct people, not statistical copies.
+
+The third cube face used to be `Mastery` everywhere — on disk, in the
+DTOs and in the JSON key — and that name was about to collide with the
+weapon-family mastery tiers (see `WeaponLearningAffinity`, `WeaponLearning`).
+`DEC-0013` §2 already named the face `Dominio`; the rename removes the
+alias, frees the canonical mechanical name for the cube, and reserves the
+English form for the upcoming skill-tier system. The on-disk field
+`Mastery` is preserved one schema bump as a nullable bridge
+(`FounderCubeProfileSave.Mastery`) so a v31 save loads without losing its
+founder's cube; `MigrateV31ToV32` copies the legacy value into the new
+`Domain` field and clears the bridge, and new code never writes it.
+
+**Reason:**
+
+The M-29 gap named in `DEC-0018` only became visible after the
+expression derivation was corrected: every Body lineage read Fracture and
+every Bond lineage read Poisoning because their `±0` vertex was always a
+three-way tie. Two migrants of the same lineage were statistically the
+same person even before that. A `±8` shift keyed off the citizen id is
+the smallest move that produces six reachable expressions, stays inside
+the same envelope the onboarding already commits to, and adds no
+production or combat consequence. The on-disk rename exists to prevent
+the inevitable collision between the cube's third face and the
+weapon-family mastery tier before either side acquires readers.
+
+**Affected domains:** citizens, combat, persistence, narrative,
+presentation.
+
+**Consequences:**
+
+- `WorldSave.CurrentVersion` rises to `32`. `MigrateV31ToV32` walks every
+  citizen, copies `cube.Mastery` into `cube.Domain` and nulls the bridge.
+- `CubeScoring.MasteryValueId` becomes `CubeScoring.DomainValueId`; the
+  switch arm `"mastery"` becomes `"domain"`; `WithMastery` becomes
+  `WithDomain`. The founder narrative catalog and every `Recalculate` /
+  `ApplyContribution` test fixture follow.
+- A pre-v32 save keeps the founder's cube exactly: `MigrateV31ToV32` is
+  lossless because the bridge carries the legacy value through
+  deserialization.
+- An existing city keeps its population uniform: the v29→v30 path
+  already fills missing cubes with the lineage vertex, and the
+  generation code only runs for *new* migrants. Migrated saves see
+  variation only for citizens who arrived after the rename — the same
+  conservative posture `M-29`'s note already declared.
+- The English face name `Mastery` is reserved for the weapon-family
+  mastery tier; until that tier lands, no field or document in the
+  domain may use it.
+
+**Documents affected:** `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`
+§ *Estrategia y fallback*; `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`
+snippet for the canonical face list; `docs/world-of-goses-design-bible/16_LINEAGES_KOVARI.md`
+weapons-per-vertex paragraph; `docs/ai/DECISION_LOG.md`; `docs/CURRENT_STATUS.md`;
+`TO_DO.md` (closes `M-29`).
+
+**Code affected:** `game/scripts/Domain/CubeScoring.cs`,
+`FounderCubeProfile.cs`, `FounderNarrativeCatalog.cs`,
+`game/scripts/Domain/Persistence/FounderCubeProfileSave.cs` (adds the
+bridge), `game/scripts/Domain/Persistence/WorldPersistence.cs`
+(`MigrateV31ToV32`, four legacy capture/restore sites), `game/scripts/Ui/CitizenNatureText.cs`,
+`game/scripts/Ui/FounderCardPanel.cs`, `game/scripts/HeroProfileView.cs`,
+`game/locale/en.po` (msgstr `"Mastery"` → `"Domain"`).
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

@@ -102,9 +102,12 @@ CompetencyProgress
 
 - Nivel mínimo: `0`.
 - Nivel máximo: `20`.
-- Familia natural de arma: `100 %` de XP aplicada.
-- Familia extranjera: `10 %` de XP aplicada.
-- La penalización extranjera afecta aprendizaje, no daño directo.
+- Familia natural de arma (las dos de la propia expresión física): `100 %` de XP aplicada.
+- Familia familiar de linaje (las cuatro de las otras dos expresiones que el
+  vértice del linaje alcanza): `50 %` de XP aplicada.
+- Familia extranjera (las seis restantes): `10 %` de XP aplicada.
+- El nivel afecta aprendizaje, nunca daño directo ni efectividad ya adquirida.
+  Ver `DEC-0018`.
 - Las competencias profesionales no usan la penalización de familias de arma.
 - La práctica rutinaria no permite superar indefinidamente el techo de la actividad.
 - El progreso offline puede consolidar trabajo ya configurado, pero no inventa oportunidades nuevas.

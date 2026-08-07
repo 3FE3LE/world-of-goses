@@ -43,11 +43,14 @@ and this section gets corrected in the same change.
   Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
   `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
   the two is the main technical debt of this slice.
-- `dotnet test`: 879/880 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 973/974 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 31. V22→V23 rescales the obsolete 16×40 founding
+- `WorldSave.CurrentVersion`: 32. V31→V32 renames the third cube face from
+  `Mastery` to `Domain` on disk (DEC-0019) and preserves the legacy field one
+  schema bump as a nullable bridge so a v31 save loads without losing the
+  founder's cube. V22→V23 rescales the obsolete 16×40 founding
   forests to six finite mature trees with 8 Wood each while preserving their
   depletion ratio; V23→V24 adds the EG-3 Cultivation Site lifecycle without
   inventing a plot in migrated cities; V24→V25 converts fixed lots into
@@ -67,12 +70,22 @@ and this section gets corrected in the same change.
   migration.
 - Godot headless boot loads the current scene/slot without C# or scene errors.
 - EN/ES catalogs: 856 template IDs and 337 runtime keys validated.
-- The physical expression derived from the elemental affinity, and the two weapon
-  families it makes natural, are shown on the hero profile, the founder arrival
-  card (compact, per DEC-0013) and the onboarding result card. There is no
-  equipment UI because there is no equipment: `SetEquipmentLoadout` has no
-  production caller and no weapon catalog exists, so these read as learning
-  affinities and the copy says so.
+- The physical expression is derived from the **Kovari Cube** — the highest face
+  of the persisted `CubeProfile` — and no longer from the elemental affinity.
+  The two are independent: an Ardhen founder can be Fracture with Fire,
+  Paralysis with Air or Bleeding with Aether. It and the two weapon families it
+  makes natural are shown on the hero profile, the founder arrival card
+  (compact, per DEC-0013) and the onboarding result card. There is no equipment
+  UI because there is no equipment: `SetEquipmentLoadout` has no production
+  caller and no weapon catalog exists, so these read as learning affinities and
+  the copy says so. The English face name `Mastery` was reserved for the
+  upcoming weapon-family mastery tiers (DEC-0019) and is no longer used on
+  the cube; the cube face is `Dominio` everywhere — code, JSON, UI.
+- Weapon experience follows three learning tiers (DEC-0018): `100 %` for the two
+  families of the citizen's own expression, `50 %` for the four their lineage's
+  vertex also reaches, `10 %` for the remaining six. The tier scales experience
+  acquisition only; a level reached through a foreign family is worth exactly
+  what any other level of that number is worth.
 - The status strip reports a worksite's `ConstructionStopCause` beside its
   progress, with an explanatory tooltip. Buildings already exposed their
   production stop cause; worksites did not, so a founding site waiting between
@@ -133,7 +146,9 @@ and §17 acceptance test are complete.
 - Exactly one sealed `Citizen` person entity. Heroism, profession, competence,
   work, expedition and health are attached state, not subclasses.
 - Deterministic recruited-citizen identity/profile and selectable Citizens
-  roster.
+  roster. Each migrant's `CubeProfile` is now a deterministic `±8` shift of
+  their lineage vertex seeded by the citizen id (`DEC-0019`); pre-existing
+  cities keep their population uniform, and only newcomers arrive varied.
 - Authoritative `Citizen.Commitment` across work, construction, expedition and
   recovery; durable `Citizen.WorkOrder` survives temporary interruption.
 - Stamina/food/rest cycle plus one persistent moderate wound and treatment.

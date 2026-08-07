@@ -40,8 +40,9 @@ public sealed class CitizenProfile
         SpiritualPosture = spiritualPosture;
         CubeProfile = cubeProfile;
         FounderOnboardingResult = founderOnboardingResult;
-        CombatNature = new CombatNature(
-            founderOnboardingResult?.ElementalAffinity ?? ToCanonicalAffinity(elementalAffinity));
+        CombatNature = CombatNature.FromCube(
+            founderOnboardingResult?.ElementalAffinity ?? ToCanonicalAffinity(elementalAffinity),
+            cubeProfile);
     }
 
     public LineageId Lineage { get; }
@@ -136,6 +137,43 @@ public sealed class CitizenProfile
         PoliticalOrientationId politicalOrientation,
         SpiritualPostureId spiritualPosture,
         out CitizenProfile? profile,
+        out string error) =>
+        TryCreate(
+            lineage,
+            gender,
+            aptitudes,
+            professionalAffinities,
+            elementalAffinity,
+            combatStyle,
+            weaponPreferences,
+            personalityTraits,
+            politicalOrientation,
+            spiritualPosture,
+            cubeProfile: null,
+            out profile,
+            out error);
+
+    /// <summary>
+    /// Overload that lets the caller pass a precomputed
+    /// <see cref="FounderCubeProfile"/> instead of falling back to the
+    /// lineage vertex. Used by <see cref="CityWorld.CreateMigrantProfile"/>
+    /// to give ordinary citizens a deterministic ±8 shift around their
+    /// lineage's vertex; the canonical path (no cube) stays unchanged so
+    /// every existing test fixture keeps its vertex-shaped cube.
+    /// </summary>
+    public static bool TryCreate(
+        LineageId lineage,
+        GenderId gender,
+        IEnumerable<AptitudeId> aptitudes,
+        IEnumerable<ProfessionFamilyId> professionalAffinities,
+        ElementalAffinityId elementalAffinity,
+        CombatStyleId combatStyle,
+        IEnumerable<WeaponPreferenceId> weaponPreferences,
+        IEnumerable<PersonalityTraitId> personalityTraits,
+        PoliticalOrientationId politicalOrientation,
+        SpiritualPostureId spiritualPosture,
+        FounderCubeProfile? cubeProfile,
+        out CitizenProfile? profile,
         out string error)
     {
         profile = null;
@@ -191,7 +229,7 @@ public sealed class CitizenProfile
             traitValues,
             politicalOrientation,
             spiritualPosture,
-            CubeScoring.ComputeCubeVertex(lineage),
+            cubeProfile ?? CubeScoring.ComputeCubeVertex(lineage),
             null);
         return true;
     }

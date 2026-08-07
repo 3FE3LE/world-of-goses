@@ -77,7 +77,7 @@ public partial class FounderCardPanel : PanelContainer
         AddLabel(
             body,
             "BodySmall",
-            DescribePhysicalExpression(result.ElementalAffinity, translate),
+            DescribePhysicalExpression(CubeExpression.Derive(result.CubeProfile), translate),
             HorizontalAlignment.Left,
             wrap: true);
 
@@ -95,7 +95,7 @@ public partial class FounderCardPanel : PanelContainer
         FounderCubeProfile cube = result.CubeProfile;
         AddAxis(axes, translate("Cuerpo"), cube.Body, translate("Vínculo"), cube.Bond);
         AddAxis(axes, translate("Estabilidad"), cube.Stability, translate("Impulso"), cube.Impulse);
-        AddAxis(axes, translate("Dominio"), cube.Mastery, translate("Alcance"), cube.Reach);
+        AddAxis(axes, translate("Dominio"), cube.Domain, translate("Alcance"), cube.Reach);
     }
 
     /// <summary>
@@ -106,10 +106,9 @@ public partial class FounderCardPanel : PanelContainer
     /// fuller wording — this omission is scoped to the founding card.
     /// </summary>
     private static string DescribePhysicalExpression(
-        ElementalAffinity affinity,
+        PhysicalExpression expression,
         Func<string, string> translate)
     {
-        PhysicalExpression expression = CombatNature.PhysicalExpressionFor(affinity);
         return string.Format(
             translate("ui.citizen.physical_expression"),
             translate(ProfileCatalog.DisplayName(expression)));

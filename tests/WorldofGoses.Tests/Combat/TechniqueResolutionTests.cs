@@ -98,7 +98,7 @@ public sealed class TechniqueResolutionTests
     [Fact]
     public void Catalog_CombinesThreeModulesInsteadOfOnePerCombination()
     {
-        var nature = new CombatNature(ElementalAffinity.Fire);
+        var nature = new CombatNature(ElementalAffinity.Fire, PhysicalExpression.Stunning);
 
         IReadOnlyList<TechniqueDefinition> all = TechniqueCatalog.For(WeaponFamily.Mace, nature);
 

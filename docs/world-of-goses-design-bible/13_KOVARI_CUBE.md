@@ -498,7 +498,11 @@ serialización activa.
 3. Mantener lectura compatible durante una versión de migración.
 4. Generar el Cubo a partir de respuestas guardadas cuando existan.
 5. Si no existen respuestas, generarlo desde el vértice del linaje con
-   valores base `60/40`.
+   valores base `60/40`. **Para ciudadanos no fundadores posteriores a
+   `DEC-0019`**, el vértice se desplaza `±8` por eje con FNV-1a
+   (`CubeScoring.GenerateOrdinaryProfile(lineage, seed)`); el rango del
+   sobre y el invariante de pareja son los mismos que el onboarding, y
+   el resultado sigue siendo determinista por `(linaje, id)`.
 6. Eliminar los campos obsoletos únicamente después de migrar guardados
    y pruebas.
 
@@ -506,9 +510,9 @@ serialización activa.
 
 ```text
 Sin respuestas históricas
-  → usar vértice del linaje
-  → asignar 60/40 por eje
-  → conservar afinidad existente
+  → fundador: usar vértice del linaje, asignar 60/40 por eje, conservar afinidad
+  → ciudadano corriente: usar CubeScoring.GenerateOrdinaryProfile(lineage, id)
+    para sembrar ±8 por eje con FNV-1a
 ```
 
 Nunca volver a ejecutar el onboarding automáticamente sobre una partida
