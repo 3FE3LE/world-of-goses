@@ -26,7 +26,7 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 | Area | Current state |
 | --- | --- |
 | Macro world | `MacroStreetLiveView` is the only runtime macro representation. |
-| HUD | CanvasLayer-independent status/navigation surfaces; immediate time/alerts and global actions, without resource counters. |
+| HUD | CanvasLayer-independent status/navigation surfaces; immediate time/alerts and global actions, without resource counters. Navigation is a shrink-wrapped vertical `NavigationRail` at the top-left, icon-only with tooltips, not the full-width strip it was until 2026-08-07. |
 | Shelter resources | Collapsible icon-and-quantity inventory in Shelter detail; reservation detail remains available by tooltip. |
 | Founding cargo | Construction shows the founder's 6-unit load expanded before Cache, then the site's 12-unit Cache; no hidden pre-camp warehouse. |
 | Modals | `ModalHost` owns scrim, focus restoration, ESC and outside-click close. |

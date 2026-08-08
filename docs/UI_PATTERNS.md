@@ -77,10 +77,31 @@ Use `[GlobalClass]` when:
 
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
-`GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`, and the
-three `ActionButton` roles — `PrimaryActionButton`,
-`SecondaryActionButton`, `DangerActionButton`. Future targets include
-`ExpeditionCard`.
+`GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
+`NavigationRail`, and the three `ActionButton` roles —
+`PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
+Future targets include `ExpeditionCard`.
+
+`NavigationRail` replaced `MacroActions`, the full-width 42 px strip under
+the status bar, with a shrink-wrapped vertical cluster at the top-left. It
+owns its own structure and hands back typed buttons, so the 4576-line
+`MacroStreetLiveView` holds one path to the rail instead of five literal
+paths like `"../MacroActions/Actions/PoliciesButton"`. Deciding what a
+button opens stays with the macro view: the rail is chrome, and chrome
+does not know what a screen is.
+
+Two things it is worth not relearning:
+
+- **Resolve children on access, not in `_Ready`.** The macro view precedes
+  the rail in `CityPrototype.tscn` and Godot readies siblings in tree
+  order, so caching the buttons in the rail's `_Ready` returned null and
+  crashed the boot. Reordering the scene would have fixed that one caller
+  and left the trap set for the next.
+- **A rail cannot widen at higher resolutions in this project.**
+  `project.godot` uses `stretch/mode=canvas_items` on a 16:9 base of
+  1280×720, so 1920×1080 is the *same* logical viewport drawn at 1.5×:
+  `GetVisibleRect().Size.X` reads 1280 at both official review sizes.
+  There is no extra space to expand into.
 
 `StatChip` landed here rather than as the `StatChip.tscn` §2.1 sketches:
 chips are only ever built procedurally, never placed in the editor, so

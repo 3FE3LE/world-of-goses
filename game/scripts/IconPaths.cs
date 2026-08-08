@@ -52,6 +52,18 @@ public static class IconPaths
 
     // Characters and places.
     public const string User = Root + "user.svg";
+
+    /// <summary>
+    /// The citizen roster, as opposed to the single hero <see cref="User"/> stands
+    /// for. Promoted 2026-08-07: the navigation rail showed the hero, the roster
+    /// and the camera toggle with the same <c>user.svg</c>, so three unrelated
+    /// actions were indistinguishable once the rail collapsed to icons.
+    /// </summary>
+    public const string Users = Root + "users.svg";
+
+    /// <summary>The camera follow/free toggle.</summary>
+    public const string Camera = Root + "camera.svg";
+
     public const string House = Root + "house.svg";
     public const string Building = Root + "building.svg";
     /// <summary>Alias for <see cref="Leaf"/> while the forest-slice

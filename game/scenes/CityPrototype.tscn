@@ -20,7 +20,7 @@
 [ext_resource type="Script" uid="uid://chwc1uluiw6sb" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
-[ext_resource type="Script" uid="uid://b74ulvnbqucfd" path="res://scripts/MacroActions.cs" id="29_macroactions"]
+[ext_resource type="Script" path="res://scripts/Ui/NavigationRail.cs" id="29_navrail"]
 [ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
 [ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
@@ -229,22 +229,21 @@ size_flags_vertical = 8
 theme_type_variation = &"PanelCard"
 script = ExtResource("9_prod")
 
-[node name="MacroActions" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
+[node name="NavigationRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 42.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_type_variation = &"StatusStrip"
-script = ExtResource("29_macroactions")
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 8.0
+offset_bottom = 8.0
+theme_type_variation = &"PanelCard"
+script = ExtResource("29_navrail")
 
-[node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/MacroActions" unique_id=2007280117]
+[node name="Actions" type="VBoxContainer" parent="GameUiShell/ScreenContent/NavigationRail" unique_id=2007280117]
 layout_mode = 2
 theme_override_constants/separation = 8
-alignment = 1
 
-[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=352864886]
+[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=352864886]
 layout_mode = 2
 tooltip_text = "Open the hero profile"
 theme_type_variation = &"ButtonText"
@@ -254,7 +253,7 @@ ControllerPath = NodePath("../../../../../CityWorldController")
 IconPath = "res://assets/ui/icons/24/user.svg"
 ButtonText = "View hero"
 
-[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=388338105]
+[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=388338105]
 layout_mode = 2
 tooltip_text = "Open the construction menu"
 theme_type_variation = &"ButtonText"
@@ -263,7 +262,7 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/plus.svg"
 ButtonText = "Construction"
 
-[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=456502058]
+[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=456502058]
 layout_mode = 2
 tooltip_text = "Open the city menu (ESC)"
 theme_type_variation = &"ButtonText"
@@ -272,7 +271,7 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/menu.svg"
 ButtonText = "Menu"
 
-[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions" unique_id=623378802]
+[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=623378802]
 layout_mode = 2
 tooltip_text = "Send the founder on a reconnaissance"
 theme_type_variation = &"ButtonText"
@@ -281,7 +280,7 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/leaf.svg"
 ButtonText = "Recon"
 
-[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
 layout_mode = 2
 tooltip_text = "Review city-wide policies"
 theme_type_variation = &"ButtonText"
@@ -290,22 +289,22 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/cog.svg"
 ButtonText = "Policies"
 
-[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
 layout_mode = 2
 tooltip_text = "Open the citizens roster"
 theme_type_variation = &"ButtonText"
 text = "Citizens"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/user.svg"
+IconPath = "res://assets/ui/icons/24/users.svg"
 ButtonText = "Citizens"
 
-[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/MacroActions/Actions"]
+[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
 layout_mode = 2
 tooltip_text = "Camera is free to pan. Click to follow the selected citizen (F)."
 theme_type_variation = &"ButtonText"
 text = "Free camera"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/user.svg"
+IconPath = "res://assets/ui/icons/24/camera.svg"
 ButtonText = "Free camera"
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]

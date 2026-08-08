@@ -51,4 +51,18 @@ public static class Tokens
     /// converging them is a metric change and belongs to its own pass.
     /// </summary>
     public const int ControlHeight = 40;
+
+    /// <summary>
+    /// Width of the navigation rail. One value, not a compact/expanded pair.
+    /// </summary>
+    /// <remarks>
+    /// A rail that widens at higher resolutions cannot work in this project.
+    /// <c>project.godot</c> uses <c>stretch/mode=canvas_items</c> on a 16:9 base of
+    /// 1280x720, so 1920x1080 is the *same* logical viewport drawn at 1.5x, not
+    /// more space: <c>GetVisibleRect().Size.X</c> reads 1280 at both official review
+    /// sizes. There is no extra room to expand into, and keying off the window size
+    /// instead would shrink the UI relative to the world — which contradicts the
+    /// uniform integer-ish scaling the presentation invariants ask for.
+    /// </remarks>
+    public const int RailWidth = 56;
 }

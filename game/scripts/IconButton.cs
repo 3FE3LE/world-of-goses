@@ -30,6 +30,32 @@ public partial class IconButton : Button
     [Export] public string IconPath { get; set; } = string.Empty;
     [Export] public string ButtonText { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether the label is rendered. False collapses the button to its icon
+    /// while keeping <see cref="ButtonText"/> intact, so the label can come back
+    /// without the caller having to remember what it was.
+    /// </summary>
+    /// <remarks>
+    /// Lives here rather than in the surface that wants the compaction because
+    /// <see cref="SetIconAndLabel"/> has other callers: the macro view rewrites
+    /// the construction and camera buttons as their state changes. If compaction
+    /// were applied from outside, the next one of those writes would silently
+    /// restore the text. Routing both through <see cref="ApplyContent"/> means
+    /// the two cannot fight.
+    /// </remarks>
+    public bool ShowLabel
+    {
+        get => _showLabel;
+        set
+        {
+            if (_showLabel == value) return;
+            _showLabel = value;
+            ApplyContent();
+        }
+    }
+
+    private bool _showLabel = true;
+
     public override void _Ready()
     {
         ApplyContent();
@@ -53,7 +79,7 @@ public partial class IconButton : Button
 
     private void ApplyContent()
     {
-        Text = ButtonText ?? string.Empty;
+        Text = _showLabel ? (ButtonText ?? string.Empty) : string.Empty;
         Icon = string.IsNullOrEmpty(IconPath)
             ? null
             : ResourceLoader.Load<Texture2D>(IconPath);

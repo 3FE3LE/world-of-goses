@@ -98,6 +98,65 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## La navegación deja de cruzar la pantalla y se recoge en un rail
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+`MacroActions` era una franja de 42 px de borde a borde justo bajo la barra de
+estado: gastaba el ancho completo del viewport para siete botones y partía el
+mundo en horizontal. Pasa a ser `NavigationRail`, un grupo vertical arriba a la
+izquierda que se ajusta a su propio contenido.
+
+Lo que un jugador ve: la ciudad recupera la franja superior entera y el mundo se
+lee de un borde al otro. La navegación sigue permanentemente visible, ahora en
+una esquina, con el marco de bisel del composite.
+
+### Connected
+
+- **`Ui/NavigationRail.cs`.** Posee su propia estructura y devuelve los botones
+  como propiedades tipadas, así que `MacroStreetLiveView` —4576 líneas— guarda
+  **una** ruta al rail en lugar de cinco rutas literales del tipo
+  `"../MacroActions/Actions/PoliciesButton"`. Decidir qué abre cada botón sigue
+  siendo del macro view: el rail es cromo, y el cromo no sabe qué es una pantalla.
+- **Resolver los hijos al acceder, no en `_Ready`.** El macro view precede al rail
+  en `CityPrototype.tscn` y Godot inicializa los hermanos en orden de árbol, así
+  que cachear los botones en el `_Ready` del rail devolvía null y **rompía el
+  arranque**. Reordenar la escena habría arreglado ese consumidor y habría dejado
+  la trampa puesta para el siguiente.
+- **El rail no se ensancha a mayor resolución, y no puede.** `project.godot` usa
+  `stretch/mode=canvas_items` sobre una base 16:9 de 1280×720, de modo que
+  1920×1080 es **el mismo** viewport lógico dibujado a 1.5×:
+  `GetVisibleRect().Size.X` vale 1280 en las dos medidas oficiales de revisión. No
+  hay espacio extra al que expandirse. Se quitó el código responsive que lo
+  intentaba en vez de dejarlo como adorno muerto.
+- **`users.svg` y `camera.svg` promovidos.** El rail dibujaba el héroe, el censo y
+  el modo de cámara con el mismo `user.svg`. Con etiquetas de texto se toleraba;
+  al recoger el rail a solo iconos, tres acciones sin relación quedaban como el
+  mismo glifo repetido. Son navegación genérica, que la guía de iconografía asigna
+  a Pixelarticons, así que el modelo de tres capas funciona como está previsto.
+- **`IconButton.ShowLabel`.** Colapsa el botón a su icono conservando
+  `ButtonText`. Vive en `IconButton` y no en el rail porque `SetIconAndLabel`
+  tiene otros consumidores —el macro view reescribe los botones de construcción y
+  cámara según su estado— y aplicar el colapso desde fuera habría hecho que la
+  siguiente de esas escrituras restaurara el texto en silencio.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Contexto de agentes 448/448. Localización 922/283.
+Importaciones de fuentes pixel válidas.
+
+**Verificado con clics reales**, no leyendo código: un clic en el botón de
+construcción del rail abre el panel *y* el segundo botón cambia a su glifo de
+cierre **sin** recuperar la etiqueta, que es la prueba de que `ShowLabel` aguanta
+las mutaciones del macro view; un clic en un árbol del mundo sigue seleccionándolo
+y poblando el panel de selección; el menú de pausa sigue encontrando su botón tras
+cambiar la ruta del nodo. Capturas a 1280×720 y 1920×1080.
+
+**Pendiente de esta fase:** el `ContextInspector` y el `ActionDock` del plan no
+existen todavía. `SelectionInfoPanel` sigue construyéndose en runtime y sondeando
+`_Process`, y el footer de colocación sigue siendo un `new Button` sin superficie.
+
 ## Los paneles ganan marco autoral sin ceder la paleta
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

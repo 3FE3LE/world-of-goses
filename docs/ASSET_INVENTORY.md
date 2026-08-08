@@ -52,6 +52,19 @@ Three MIT Pixelarticons were copied verbatim into
 - `reload.svg` — destructive reset confirmation.
 - `trash.svg` — start-over action.
 
+Two more followed on 2026-08-07, for a real missing state rather than a wish:
+
+- `users.svg` — the citizen roster.
+- `camera.svg` — the camera follow/free toggle.
+
+The navigation rail drew the hero, the roster and the camera toggle with the
+same `user.svg`. That was survivable while every button carried a text label; it
+is not survivable once the rail collapses to icons, because three unrelated
+actions become one glyph repeated three times. Both are generic navigation, which
+`art/world-of-goses-iconography-guideline.md` assigns to Pixelarticons rather than
+to Kenney or to project-owned iconography, so promoting them is the tier model
+working as intended. `game/assets/ui/icons/24/` now holds 31 SVGs.
+
 The CC0 Kenney Roguelike RPG transparent atlas and its license were selectively
 promoted into `game/assets/terrain/kenney/roguelike-rpg/`. The atlas currently
 supplies provisional ground tiles and scattered trees to the macro parcel scene.

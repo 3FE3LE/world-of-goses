@@ -12,7 +12,7 @@ public partial class PauseMenu : Control
 {
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
     [Export] public NodePath OpenButtonPath { get; set; } =
-        "../GameUiShell/ScreenContent/MacroActions/Actions/GameMenuButton";
+        "../GameUiShell/ScreenContent/NavigationRail/Actions/GameMenuButton";
 
     private CityWorldController _controller = null!;
     private PanelContainer _card = null!;
