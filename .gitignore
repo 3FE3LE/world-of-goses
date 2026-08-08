@@ -96,6 +96,16 @@ keystore.properties
 # MiniMax splash output is reviewed before intentional pipeline promotion.
 /game/art/generated/
 
+# ── Visual review artifacts ─────────────────────────────────────────────────
+# Capture-VisualMatrix.ps1 output. docs/VISUAL_REGRESSION.md states twice that
+# captures "are not committed by default" and "stay out of the repository", but
+# nothing enforced it, so every review run left this directory reported as
+# untracked until someone deleted it by hand. The sign-off it feeds is a human
+# reading the frames, not a diff; what gets recorded is the signature in
+# UI_AUDIT.md. The one capture that IS permanent history is the dated session
+# frame, which lives under docs/session-state/ and stays tracked.
+/art/review/
+
 # ── Logs ────────────────────────────────────────────────────────────────────
 *.log
 logs/
