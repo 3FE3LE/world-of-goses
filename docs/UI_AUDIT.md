@@ -31,6 +31,7 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 | Founding cargo | Construction shows the founder's 6-unit load expanded before Cache, then the site's 12-unit Cache; no hidden pre-camp warehouse. |
 | Modals | `ModalHost` owns scrim, focus restoration, ESC and outside-click close. |
 | Reusable controls | `StandardButtons`, `PanelHeader`, `AssignmentRow`, `SafeAreaMarginContainer` and shared theme variations. |
+| Compact HUD foundation | An isolated second scale: six `Hud*` text variations (14–20 px), twelve `Hud*` chrome variations all drawing one 1 px Kenney frame at different fills, and the primitives `HudSectionHeader`, `HudMetricRow`, `HudResourceRow`, `HudProgressBar`, `HudBadge`, `CollapsiblePanelHeader`. Foundation only — no HUD surface consumes it yet. |
 | Citizens | Selectable roster; selection does not activate camera follow; debug builds expose semantic routine context. |
 | Policies | Read-only workday/production/off-duty/construction surface with bounded scroll. |
 | Chronicle | Bounded scroll, compaction and causal blockers; routine resource gains are excluded from its presentation. |

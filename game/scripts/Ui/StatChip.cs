@@ -36,12 +36,32 @@ public partial class StatChip : HBoxContainer
 
     private readonly Label _label;
 
-    public StatChip(string iconPath, string text, string labelVariation = DefaultLabelVariation)
+    /// <summary>
+    /// The compact HUD's icon-and-value pair, built from this chip rather than
+    /// from a type of its own.
+    /// </summary>
+    /// <remarks>
+    /// The HUD component set nominally wanted a separate `HudIconValue`. It would
+    /// have been this class with two arguments changed: the icon cell is already
+    /// <see cref="Tokens.IconInline"/>, the chip height already matches
+    /// <see cref="Tokens.HudRowHeight"/>, and the label variation was already a
+    /// parameter. Only the gap differed. `UI_PATTERNS.md` §2.4 and the whole point
+    /// of the component showcase is to catch exactly this — a second widget that
+    /// renders the same thing — so the gap became a parameter instead.
+    /// </remarks>
+    public static StatChip HudIconValue(string iconPath, string value) =>
+        new(iconPath, value, "HudNumeric", Tokens.SpacingTight);
+
+    public StatChip(
+        string iconPath,
+        string text,
+        string labelVariation = DefaultLabelVariation,
+        int separation = Tokens.SpacingBase)
     {
         MouseFilter = MouseFilterEnum.Pass;
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
         CustomMinimumSize = new Vector2(0, Tokens.ChipHeight);
-        AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        AddThemeConstantOverride("separation", separation);
         TooltipText = string.Empty;
 
         var iconCell = new MarginContainer

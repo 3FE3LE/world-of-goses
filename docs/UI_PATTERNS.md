@@ -80,7 +80,17 @@ Current registered controls: `ModalHost`, `PanelHeader`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
 `NavigationRail`, `ContextInspector`, `ActionDock`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
+The compact HUD adds `HudSectionHeader`, `HudMetricRow`, `HudResourceRow`,
+`HudProgressBar`, `HudBadge` and `CollapsiblePanelHeader` (§ 5.2).
 Future targets include `ExpeditionCard`.
+
+**`HudIconValue` deliberately does not exist.** The compact HUD wanted an
+icon-and-value pair and `StatChip` already was one: same 24 px icon cell,
+same height, and the label variation was already a parameter. Only the gap
+between icon and text differed, so the gap became a parameter and
+`StatChip.HudIconValue(...)` names the role. A second widget that renders
+the same thing is exactly what §2.4 and the component showcase exist to
+catch, and it is worth noticing that the showcase caught this one.
 
 `ContextInspector` was `SelectionInfoPanel`, which the macro view
 constructed at runtime and which repositioned itself in `_Process`
@@ -306,6 +316,35 @@ type would be a real safety net, but it also gives every unannotated
 button new content margins — a size change — so it belongs with a pass
 that can re-check the affected surfaces, not with a chrome swap.
 
+### 5.0 The compact HUD profile
+
+The HUD runs a **second, isolated type scale**. It is not a rescaling of the
+seventeen variations above and must never be merged with them: the screens are
+read while stopped, the HUD while playing, and the reference the HUD is built
+against (`art/references/Proposal 06 — minimalist workstation.png`) puts roughly
+twice as many rows on screen as the current screen scale allows.
+
+| Variation | Family | Size | Sized by |
+| --- | --- | ---: | --- |
+| `HudBrand` | Geist Pixel | 20 | the brand plate |
+| `HudHeader` | Jersey 10 | 18 | the 20 px header strip |
+| `HudLabel` | Jersey 10 | 16 | section and metric labels |
+| `HudBody` | Pixelify Sans | 16 | the 24 px row |
+| `HudNumeric` | Pixelify Sans | 16 | figures, right-aligned |
+| `HudCaption` | Pixelify Sans | 14 | log lines and deltas |
+
+**14 px is the floor, and it is signed.** It was read in a real 1280×720
+capture of `HudComponentShowcase.tscn` before approval — solid pixels, no
+grayscale fringe — which is the only evidence that counts for a size below the
+project's previous 16 px minimum. `HudThemeVariationTests` enforces the floor;
+going under it needs its own capture and its own sign-off, not an edit.
+
+Changing a `Hud*` size does not touch a screen, and changing a screen size does
+not touch the HUD. `ScreenVariations_AreUnchangedByTheHudProfile` exists because
+that separation fails silently otherwise: reaching for "the body size" and
+editing `BodyText` instead of `HudBody` restyles every modal in the game with
+nothing to notice it.
+
 ### 5.1 Surface variations
 
 Alongside the text variations the theme registers the surfaces
@@ -352,6 +391,64 @@ dropping its override would change how modals read), `CityStatusPanel`
 (mutates content margins for the compact HUD), and the inline
 non-lineage ones. Before concluding a surface is themed, check whether
 its script overrides it.
+
+### 5.2 The compact HUD's chrome — one frame, many fills
+
+The HUD registers twelve more variations: the surfaces `HudSurface`, `HudInset`,
+`HudHeaderSurface`, `HudCard`, `HudDock` and `HudBadge`; the buttons `HudButton`,
+`HudButtonSelected`, `HudButtonDanger` and `HudCollapsibleHeader`; plus
+`HudProgress` and `HudSeparator`.
+
+**Every one of them draws the same authored frame at a different fill.** That is
+not a shortcut, it is what the reference does: its whole hierarchy is one border
+weight and three fills sitting within twelve luminance steps of each other.
+Measured from the reference, converted to the 1280×720 logical viewport:
+
+| Tier | Fill | Lum | Border |
+| --- | --- | ---: | --- |
+| `HudInset` / `HudHeaderSurface` | `#070A11` | 8 | `#1A1B22` |
+| `HudSurface` / `HudDock` | `#090C13` | 12 | `#36373F` |
+| `HudCard` / `HudButton` | `#13141D` | 20 | `#31323C` |
+
+Three things here were established by measurement and should not be re-litigated
+from taste:
+
+- **The border is one pixel.** The reference draws 1 px and nothing thicker. The
+  Kenney Adventure pack's rectangular frames are 3–6 px; its *only* 1 px artefact
+  is `Small tiles/Thin outline/tile_0069`, a 10×10 rounded outline with a 1 px
+  stroke, and every `hud_*` composite is baked from it. The showcase first drew
+  1 px, 3 px and 4 px side by side and the heavier two lost plainly at 1920×1080 —
+  `tile_0019`'s corner studs read as artefacts and `tile_0018` doubled its edge.
+  Neither was promoted.
+- **A header strip is recessed, not raised.** `HudHeaderSurface` fills *darker*
+  than the panel containing it (lum 8 against 12). A raised header belongs to a
+  heavier language than this one.
+- **Borders went cool grey; text did not.** The HUD's chrome is neutral
+  (`#36373F`, `#31323C`, `#1A1B22`) and amber (`#D5903E`) is spent only on
+  progress fills, the selected state, the danger action and `HudBadge` — the one
+  place the accent covers a surface rather than a line, which is why a single
+  amber pill is unmissable. HUD *text* stays on the project's warm cream, because
+  the reference's is warm too (`#EEE4DA` for a value). The existing screen
+  surfaces keep their tan and gold and were not touched.
+
+**HUD surfaces stay out of `LineageThemePainter.RepaintedTypes`, deliberately.**
+The lineage assets are ornate frames 6–8 px thick at card weight, and the painter
+normalises content margins to the card's 14/12 — roughly twice what a 24 px HUD
+row holds. Painting a lineage over `HudSurface` would therefore change *minimum
+sizes*, which the cross-domain invariants forbid a lineage theme from doing.
+Lineage identity reaches the HUD through `LineageThemeRegistry.IconAccent`
+instead: chrome stays neutral, the accent carries the lineage, and every HUD
+primitive tints its glyphs with it. Reskinning HUD chrome per lineage would need
+a one-pixel asset per lineage, not three more strings in that array.
+
+Two exceptions to "no StyleBoxFlat for visible HUD chrome", both named in
+`HudThemeVariationTests` so a third has to be a visible edit: `HudSeparator` is a
+`StyleBoxLine`, because a rounded 10×10 outline cannot draw a straight 1 px rule;
+and `HudProgress`'s **fill** is flat, because it is a solid colour bar with no
+border to author and a 9-slice stretched across a 6 px interior would repeat its
+corner along the length. The progress fill is amber rather than the existing
+green because green carries the success semantic here — the same reason
+`CubeAxisBar` refuses to be a `ProgressBar`.
 
 `PanelAction`, `PanelIdle` and `PanelWarning` were removed on
 2026-08-07: all three resolved to the *same* stylebox as `PanelCard`

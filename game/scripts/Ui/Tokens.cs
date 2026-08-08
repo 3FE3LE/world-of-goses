@@ -87,6 +87,61 @@ public static class Tokens
     /// </summary>
     public const int ControlHeight = 40;
 
+    // ── Compact HUD profile ────────────────────────────────────────────────
+    // A deliberately separate scale, not a rescaling of the values above. The
+    // screen surfaces keep their metrics; only the HUD gets these. Every number
+    // is measured from `art/references/Proposal 06 — minimalist workstation.png`
+    // and converted to the 1280x720 logical viewport, so they can be re-derived
+    // rather than re-argued.
+
+    // The compact profile's border weight is one logical pixel. It is deliberately
+    // *not* a token: it is baked into the `hud_*` composite PNGs, so no C# reads it
+    // and a constant here would be a second, silent source of truth that could
+    // disagree with the assets. `UI_PATTERNS.md` §5.2 records the number.
+
+    /// <summary>
+    /// Height of one HUD row — a metric, a resource, a log line.
+    /// </summary>
+    /// <remarks>
+    /// The reference measures 22, and this is 24, for a reason that is not a
+    /// rounding error. The project's semantic icons are Pixelarticons authored
+    /// on a strict 24x24 grid with one-unit strokes (`heart.svg` is 24 integer
+    /// rectangles). They are pixel-exact only at integer multiples of 24;
+    /// re-rasterizing the SVG at `svg/scale = 0.667` to reach the reference's
+    /// ~14 px glyph lands every edge on a fractional coordinate and returns
+    /// antialiased mush, which is the same trap <see cref="IconInline"/> already
+    /// documents for bitmap downscaling. So the icon sets the row, and the row
+    /// is 24. Closing the last 2 px needs icons *authored* at a smaller grid,
+    /// which is an art task, not a layout constant.
+    /// </remarks>
+    public const int HudRowHeight = 24;
+
+    /// <summary>Height of a section header strip.</summary>
+    public const int HudHeaderHeight = 20;
+
+    /// <summary>Height of an interactive HUD control.</summary>
+    public const int HudControlHeight = 24;
+
+    /// <summary>Height of an inline progress meter, as drawn inside a metric row.</summary>
+    public const int HudBarHeight = 8;
+
+    /// <summary>Height of a progress meter that carries its own percentage.</summary>
+    public const int HudBarHeightCard = 11;
+
+    /// <summary>
+    /// Height of a count badge. Eighteen rather than sixteen because a 14 px
+    /// Pixelify line plus the frame's two-pixel slice does not fit in sixteen, and
+    /// a badge that clips its own number is worse than one two pixels taller.
+    /// </summary>
+    public const int HudBadgeHeight = 18;
+
+    /// <summary>
+    /// Width of the cell a HUD chevron or trailing glyph occupies. Reserved
+    /// whether or not the glyph is drawn, so a collapsing header's title never
+    /// jogs sideways as its state changes.
+    /// </summary>
+    public const int HudGlyphCell = 16;
+
     /// <summary>
     /// Width of the navigation rail. One value, not a compact/expanded pair.
     /// </summary>

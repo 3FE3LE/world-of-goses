@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "generator": "tools/New-CompositeStylebox.ps1",
+  "frame_tile": "C:/dev/world-of-goses/art/exports/ui/kenney_ui-pack-pixel-adventure/Tiles/Small tiles/Thin outline/tile_0069.png",
+  "size": {
+    "width": 16,
+    "height": 16
+  },
+  "fill_rgba": [
+    26,
+    23,
+    18,
+    250
+  ],
+  "frame_ramp": [
+    {
+      "source_tone": "162,192,217",
+      "mapped_to": "87,66,43"
+    },
+    {
+      "source_tone": "255,255,255",
+      "mapped_to": "133,101,55"
+    }
+  ],
+  "interior_px": 60,
+  "note": "Interior is flood-filled from the centre; pixels outside the frame silhouette stay transparent."
+}

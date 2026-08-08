@@ -15,6 +15,20 @@
 [ext_resource type="StyleBox" path="res://assets/ui/kenney-pixel-adventure/9-slice/green.tres" id="24_green"]
 [ext_resource type="StyleBox" path="res://assets/ui/composites/panel_card.tres" id="25_panel_card"]
 [ext_resource type="StyleBox" path="res://assets/ui/composites/panel_elevated.tres" id="26_panel_elevated"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_surface.tres" id="27_hud_surface"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_inset.tres" id="28_hud_inset"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_header.tres" id="29_hud_header"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_card.tres" id="30_hud_card"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_dock.tres" id="31_hud_dock"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button.tres" id="32_hud_button"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_hover.tres" id="33_hud_button_hover"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_pressed.tres" id="34_hud_button_pressed"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_disabled.tres" id="35_hud_button_disabled"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_selected.tres" id="36_hud_button_selected"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_danger.tres" id="37_hud_button_danger"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_button_danger_hover.tres" id="38_hud_button_danger_hover"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_header_hover.tres" id="39_hud_header_hover"]
+[ext_resource type="StyleBox" path="res://assets/ui/composites/hud_badge.tres" id="40_hud_badge"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_focus"]
 bg_color = Color(0, 0, 0, 0)
@@ -44,6 +58,13 @@ content_margin_bottom = 2.0
 bg_color = Color(0.025, 0.032, 0.048, 0.97)
 border_width_bottom = 2
 border_color = Color(0.72, 0.57, 0.27, 1)
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_hud_separator"]
+color = Color(0.161, 0.169, 0.184, 1)
+thickness = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_progress_fill"]
+bg_color = Color(0.518, 0.392, 0.216, 1)
 
 [resource]
 BodySmall/base_type = &"Label"
@@ -115,6 +136,106 @@ GameTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
 GameTitle/constants/line_spacing = 4
 GameTitle/font_sizes/font_size = 48
 GameTitle/fonts/font = ExtResource("1_geist")
+HudBody/base_type = &"Label"
+HudBody/colors/font_color = Color(0.86, 0.84, 0.78, 1)
+HudBody/font_sizes/font_size = 16
+HudBody/fonts/font = ExtResource("3_pixelify")
+HudBrand/base_type = &"Label"
+HudBrand/colors/font_color = Color(1, 0.937, 0.776, 1)
+HudBrand/font_sizes/font_size = 20
+HudBrand/fonts/font = ExtResource("1_geist")
+HudButton/base_type = &"Button"
+HudButton/colors/font_color = Color(0.86, 0.84, 0.78, 1)
+HudButton/colors/font_disabled_color = Color(0.45, 0.46, 0.5, 1)
+HudButton/colors/font_focus_color = Color(1, 0.968, 0.878, 1)
+HudButton/colors/font_hover_color = Color(0.97, 0.95, 0.9, 1)
+HudButton/colors/font_pressed_color = Color(1, 0.968, 0.878, 1)
+HudButton/constants/h_separation = 6
+HudButton/font_sizes/font_size = 16
+HudButton/fonts/font = ExtResource("2_jersey")
+HudButton/styles/disabled = ExtResource("35_hud_button_disabled")
+HudButton/styles/focus = SubResource("StyleBoxFlat_focus")
+HudButton/styles/hover = ExtResource("33_hud_button_hover")
+HudButton/styles/normal = ExtResource("32_hud_button")
+HudButton/styles/pressed = ExtResource("34_hud_button_pressed")
+HudButtonDanger/base_type = &"Button"
+HudButtonDanger/colors/font_color = Color(0.93, 0.66, 0.62, 1)
+HudButtonDanger/colors/font_disabled_color = Color(0.45, 0.46, 0.5, 1)
+HudButtonDanger/colors/font_focus_color = Color(1, 0.86, 0.83, 1)
+HudButtonDanger/colors/font_hover_color = Color(1, 0.86, 0.83, 1)
+HudButtonDanger/colors/font_pressed_color = Color(1, 0.86, 0.83, 1)
+HudButtonDanger/constants/h_separation = 6
+HudButtonDanger/font_sizes/font_size = 16
+HudButtonDanger/fonts/font = ExtResource("2_jersey")
+HudButtonDanger/styles/disabled = ExtResource("35_hud_button_disabled")
+HudButtonDanger/styles/focus = SubResource("StyleBoxFlat_focus")
+HudButtonDanger/styles/hover = ExtResource("38_hud_button_danger_hover")
+HudButtonDanger/styles/normal = ExtResource("37_hud_button_danger")
+HudButtonDanger/styles/pressed = ExtResource("38_hud_button_danger_hover")
+HudButtonSelected/base_type = &"Button"
+HudButtonSelected/colors/font_color = Color(1, 0.9, 0.71, 1)
+HudButtonSelected/colors/font_disabled_color = Color(0.45, 0.46, 0.5, 1)
+HudButtonSelected/colors/font_focus_color = Color(1, 0.94, 0.8, 1)
+HudButtonSelected/colors/font_hover_color = Color(1, 0.94, 0.8, 1)
+HudButtonSelected/colors/font_pressed_color = Color(1, 0.94, 0.8, 1)
+HudButtonSelected/constants/h_separation = 6
+HudButtonSelected/font_sizes/font_size = 16
+HudButtonSelected/fonts/font = ExtResource("2_jersey")
+HudButtonSelected/styles/disabled = ExtResource("35_hud_button_disabled")
+HudButtonSelected/styles/focus = SubResource("StyleBoxFlat_focus")
+HudButtonSelected/styles/hover = ExtResource("36_hud_button_selected")
+HudButtonSelected/styles/normal = ExtResource("36_hud_button_selected")
+HudButtonSelected/styles/pressed = ExtResource("36_hud_button_selected")
+HudBadge/base_type = &"PanelContainer"
+HudBadge/styles/panel = ExtResource("40_hud_badge")
+HudCaption/base_type = &"Label"
+HudCaption/colors/font_color = Color(0.76, 0.75, 0.73, 1)
+HudCaption/font_sizes/font_size = 14
+HudCaption/fonts/font = ExtResource("3_pixelify")
+HudCard/base_type = &"PanelContainer"
+HudCard/styles/panel = ExtResource("30_hud_card")
+HudCollapsibleHeader/base_type = &"Button"
+HudCollapsibleHeader/colors/font_color = Color(0.69, 0.69, 0.68, 1)
+HudCollapsibleHeader/colors/font_focus_color = Color(1, 0.968, 0.878, 1)
+HudCollapsibleHeader/colors/font_hover_color = Color(0.92, 0.91, 0.87, 1)
+HudCollapsibleHeader/colors/font_pressed_color = Color(0.92, 0.91, 0.87, 1)
+HudCollapsibleHeader/constants/h_separation = 6
+HudCollapsibleHeader/font_sizes/font_size = 16
+HudCollapsibleHeader/fonts/font = ExtResource("2_jersey")
+HudCollapsibleHeader/styles/disabled = ExtResource("29_hud_header")
+HudCollapsibleHeader/styles/focus = SubResource("StyleBoxFlat_focus")
+HudCollapsibleHeader/styles/hover = ExtResource("39_hud_header_hover")
+HudCollapsibleHeader/styles/normal = ExtResource("29_hud_header")
+HudCollapsibleHeader/styles/pressed = ExtResource("39_hud_header_hover")
+HudDock/base_type = &"PanelContainer"
+HudDock/styles/panel = ExtResource("31_hud_dock")
+HudHeader/base_type = &"Label"
+HudHeader/colors/font_color = Color(0.88, 0.87, 0.81, 1)
+HudHeader/font_sizes/font_size = 18
+HudHeader/fonts/font = ExtResource("2_jersey")
+HudHeaderSurface/base_type = &"PanelContainer"
+HudHeaderSurface/styles/panel = ExtResource("29_hud_header")
+HudInset/base_type = &"PanelContainer"
+HudInset/styles/panel = ExtResource("28_hud_inset")
+HudLabel/base_type = &"Label"
+HudLabel/colors/font_color = Color(0.69, 0.69, 0.68, 1)
+HudLabel/font_sizes/font_size = 16
+HudLabel/fonts/font = ExtResource("2_jersey")
+HudNumeric/base_type = &"Label"
+HudNumeric/colors/font_color = Color(0.93, 0.89, 0.85, 1)
+HudNumeric/font_sizes/font_size = 16
+HudNumeric/fonts/font = ExtResource("3_pixelify")
+HudProgress/base_type = &"ProgressBar"
+HudProgress/colors/font_color = Color(0.93, 0.89, 0.85, 1)
+HudProgress/font_sizes/font_size = 14
+HudProgress/fonts/font = ExtResource("3_pixelify")
+HudProgress/styles/background = ExtResource("28_hud_inset")
+HudProgress/styles/fill = SubResource("StyleBoxFlat_hud_progress_fill")
+HudSeparator/base_type = &"HSeparator"
+HudSeparator/constants/separation = 1
+HudSeparator/styles/separator = SubResource("StyleBoxLine_hud_separator")
+HudSurface/base_type = &"PanelContainer"
+HudSurface/styles/panel = ExtResource("27_hud_surface")
 Label/colors/font_color = Color(0.96, 0.92, 0.82, 1)
 Label/font_sizes/font_size = 18
 Label/fonts/font = ExtResource("3_pixelify")

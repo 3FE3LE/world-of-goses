@@ -43,6 +43,26 @@ public static class LineageThemePainter
     private const float CardMarginVertical = 12f;
 
     /// <summary>Theme entries repainted per lineage. All are card-weight surfaces.</summary>
+    /// <remarks>
+    /// <para>
+    /// The compact HUD's surfaces are deliberately absent, and adding them would be a
+    /// regression rather than an improvement. The lineage assets are ornate frames
+    /// 6-8 px thick at card weight; the <c>Hud*</c> surfaces are a one-pixel outline
+    /// with 3-8 px of padding. Painting the former over the latter would not just
+    /// change palette and border — which lineages are allowed to change — it would
+    /// change the padding under every compact row, and
+    /// <c>CROSS_DOMAIN_INVARIANTS.md</c> forbids a lineage theme touching minimum
+    /// sizes. The normalisation below cannot rescue that: it pins content margins to
+    /// the *card's* 14/12, which is roughly twice what a 24 px HUD row can hold.
+    /// </para>
+    /// <para>
+    /// Lineage identity still reaches the HUD, through
+    /// <see cref="LineageThemeRegistry.IconAccent"/>: every HUD primitive tints its
+    /// glyphs with it. Chrome stays neutral, accent carries the lineage. If a lineage
+    /// should ever reskin HUD chrome too, it needs its own one-pixel asset per
+    /// lineage, not this list gaining three strings.
+    /// </para>
+    /// </remarks>
     private static readonly string[] RepaintedTypes = { "PanelContainer", "Panel", "PanelCard" };
 
     private static StyleBox? _neutral;

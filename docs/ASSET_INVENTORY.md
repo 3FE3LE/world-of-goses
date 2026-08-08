@@ -182,8 +182,58 @@ PNG it produced. The margins are `8` for `panel_card` (6 px frame plus slack) an
 than repeating its corner nub along the whole side. Both are even multiples that
 land on whole pixels at the 1.5× that 1920×1080 implies.
 
+### The compact HUD's chrome, 2026-08-08
+
+The HUD profile needed a **1 px** border — measured off
+`art/references/Proposal 06 — minimalist workstation.png`, which draws 1 px and
+nothing thicker. Every tile in the pack was measured again for frame thickness,
+which settled a question this file previously answered only for tone count:
+
+| Set | Tile | Tones | Frame | Note |
+| --- | --- | ---: | ---: | --- |
+| Large/Thick | `tile_0008`, `tile_0009` | 3, 4 | 6 | in use → `panel_card`, `panel_elevated` |
+| Large/Thick | `tile_0019`, `tile_0032` | 6, 3 | 6 | free, too heavy |
+| Small/Thin | `tile_0018`, `tile_0062` | 4, 3 | 4 | free |
+| Small/Thin | `tile_0019`, `tile_0039` | 4, 6 | 3 | thinnest **rectangular** frame |
+| **Small/Thin** | **`tile_0069`** | **2** | **1** | 10×10 rounded outline, 1 px stroke |
+| Small/Thin | `tile_0092` | 2 | 1 | the same outline, full-height |
+
+`tile_0069` is the pack's only 1 px artefact. Its corners carry a 1 px chamfer
+and the reference's are square; that one pixel is the whole cost of using an
+authored frame instead of a drawn rectangle, and it was judged worth paying.
+
+Seven composites are generated from that single tile by
+`tools/New-CompositeStylebox.ps1`, each with its `.recipe.json`:
+
+| Output | Fill | Ramp | Consumers |
+| --- | --- | --- | --- |
+| `hud_surface.png` | `9,12,19,250` | cool grey | `HudSurface`, `HudDock` |
+| `hud_inset.png` | `7,10,17,250` | dim grey | `HudInset`, `HudHeaderSurface`, `HudCollapsibleHeader`, `HudProgress` background |
+| `hud_card.png` | `19,20,29,250` | mid grey | `HudCard` |
+| `hud_button.png` | `19,20,29,250` | light grey | `HudButton` |
+| `hud_button_selected.png` | `26,23,18,250` | amber | `HudButtonSelected` |
+| `hud_button_danger.png` | `32,18,18,250` | red | `HudButtonDanger` |
+| `hud_badge.png` | `200,135,58,255` | dark amber | `HudBadge` |
+
+All seven are `region_rect = Rect2(3, 3, 10, 10)` with `texture_margin = 6`'s
+small-tile logic reduced to `2`: the region crops the source's 3 px transparent
+padding, and a 2 px slice puts the corner chamfer in the corner cell. Hover,
+pressed and disabled reuse those same PNGs through `modulate_color`, per the
+standing rule that a brightness change is not grounds for a new asset — as does
+`hud_dock.tres`, which is `hud_surface.png` at dock padding.
+
+**Two tiles were composited and then withdrawn.** `hud_card` and `hud_dock` were
+first baked from `tile_0019` (3 px) and `tile_0018` (4 px) and shown beside the
+1 px frame in `HudComponentShowcase.tscn`. At 1920×1080 `tile_0019`'s corner
+studs read as artefacts and `tile_0018` doubled its own edge, so both were
+rebuilt on `tile_0069` and the heavier PNGs deleted rather than left in
+`game/assets/` unused. That is the promotion checklist below working: the
+showcase is step 2's "concrete UI state that needs it", and it is allowed to say
+no.
+
 No complete ZIP was extracted into `game/assets/`. 7 of 504 tiles are imported
-directly, plus 2 composited from hollow frames.
+directly, plus 9 composited from hollow frames — 2 for the screens and 7 for the
+HUD, all seven of the latter from one tile.
 
 ## Integration plan
 

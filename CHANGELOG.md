@@ -22,6 +22,80 @@ their commits for the real content.
 
 ---
 
+## El HUD gana una escala propia, y un borde de un solo píxel
+
+**2026-08-08** · schema v32 (sin cambio) · EG-5
+
+La propuesta 06 —`art/references/Proposal 06 — minimalist workstation.png`— pone
+en pantalla el doble de filas que la escala actual permite. Medida contra el
+viewport lógico de 1280×720, la diferencia no está en la paleta: sus rellenos
+(luminancia 8, 12 y 20) ya coinciden casi exactamente con los `panel_elevated` y
+`panel_card` que el proyecto tiene. Está en dos cosas — **el borde es de 1 px** y
+el texto baja a 14–20.
+
+Esto es sólo la fundación. Ninguna superficie del HUD la consume todavía, y eso
+es deliberado: `TopStatusBar`, `CitySummaryPanel`, `NavDock` y `ExpeditionRail`
+quedan fuera del alcance.
+
+### Connected
+
+- **Un solo tile sostiene todo el cromo del HUD.** Medí el grosor de marco de
+  todos los tiles huecos del pack: los rectangulares van de 3 a 6 px, y el único
+  artefacto de **1 px** es `Small tiles/Thin outline/tile_0069`, un contorno
+  redondeado de 10×10. De él salen **7 composites** —`hud_surface`, `hud_inset`,
+  `hud_card`, `hud_button`, `hud_button_selected`, `hud_button_danger`,
+  `hud_badge`— que se diferencian sólo por el relleno, que es exactamente lo que
+  hace la referencia. Hover, pressed y disabled reutilizan esos PNG con
+  `modulate_color`; `hud_dock.tres` es `hud_surface.png` con otro padding.
+- **Corrección registrada.** Este trabajo empezó asumiendo que ningún recurso del
+  pack podía dar 1 px y que haría falta `StyleBoxFlat`. Era falso: `tile_0069` y
+  `tile_0092` estaban señalados como candidatos pero sin medir. Al medirlos, la
+  decisión se invirtió y todo marco del HUD es un asset Kenney real. `StyleBoxFlat`
+  sobrevive sólo en el **relleno** de progreso, y `StyleBoxLine` en el separador —
+  ambos nombrados uno a uno en el test, para que un tercero tenga que ser una
+  edición visible.
+- **Dos composites promovidos y retirados.** `hud_card` y `hud_dock` se hornearon
+  primero desde `tile_0019` (3 px) y `tile_0018` (4 px) y se pusieron al lado del
+  de 1 px en el escaparate. A 1920×1080 los remaches de esquina de `tile_0019` se
+  leían como artefactos y `tile_0018` doblaba su propio borde: ambos se
+  reconstruyeron sobre `tile_0069` y los PNG perdedores se borraron en vez de
+  quedarse sin consumidor.
+- **Perfil tipográfico aislado.** `HudBrand` 20, `HudHeader` 18, `HudLabel` 16,
+  `HudBody` 16, `HudNumeric` 16, `HudCaption` **14** — el primer tamaño por debajo
+  del suelo de 16 que tenía el proyecto. Ninguna variación de pantalla se tocó: el
+  diff del tema son 121 inserciones y cero borrados, y
+  `ScreenVariations_AreUnchangedByTheHudProfile` falla si alguien edita `BodyText`
+  creyendo que edita `HudBody`.
+- **Seis primitivas `[GlobalClass]`**: `HudSectionHeader`, `HudMetricRow`,
+  `HudResourceRow`, `HudProgressBar`, `HudBadge` y `CollapsiblePanelHeader`.
+- **`HudIconValue` no existe, a propósito.** Era `StatChip` con el hueco cambiado:
+  misma celda de icono de 24 px, misma altura, y la variación de etiqueta ya era
+  un parámetro. El hueco pasó a ser parámetro y `StatChip.HudIconValue(...)` nombra
+  el rol. El escaparate existe para cazar justo eso, y cazó éste.
+- **El linaje no repinta el HUD.** Los assets de linaje son marcos de 6–8 px y el
+  painter normaliza márgenes a 14/12, más del doble de lo que cabe en una fila de
+  24 px: pintarlos sobre `HudSurface` cambiaría *minimum sizes*, que los
+  invariantes prohíben a un tema de linaje. La identidad llega por `IconAccent`.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **1015 / 1016** (1 omitido conocido,
+previo a este cambio), de los cuales **34 nuevos**; comprobé que los guardias
+fallan de verdad mutando el tema en dos sitios antes de revertir. Arranque
+headless limpio. Contexto de agentes 448/448. Importaciones de fuentes pixel
+válidas. Capturas reales de `HudComponentShowcase.tscn` a **1280×720 y
+1920×1080**: los 14 px se leyeron a 3× sobre la captura de 720p —píxeles sólidos,
+sin franja gris— que es la única evidencia que vale para bajar del suelo
+anterior. El bloque de advertencia se comprobó **desaturado a escala de grises**:
+el signo `[!]`, el glifo, el `-9` y el `94%` sobreviven todos sin color.
+
+**No verificado:** nada consume la fundación todavía, así que no hay prueba de
+que resista una composición real de HUD. Y las filas son de **24 px donde la
+referencia usa 22**: los Pixelarticons son SVG de rejilla 24 estricta con trazos
+de una unidad, y re-rasterizarlos a 0.667 deja cada borde en coordenada
+fraccionaria. Cerrar esos 2 px necesita iconos dibujados en rejilla menor, que es
+trabajo de arte y no una constante de layout.
+
 ## Un solo pack de UI en el juego, y la medida real de lo que ese pack puede dar
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5
