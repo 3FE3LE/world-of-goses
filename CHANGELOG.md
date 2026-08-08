@@ -98,6 +98,46 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## Un escaparate de componentes, y el icono que llevaba tiempo pisando su etiqueta
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+La verificación era el punto débil de todo este trabajo. Varias primitivas solo se
+alcanzan desde estados de juego estrechos: `AssignmentPanel` y `ProductionPanel` se
+ocultan para hogares y para el Ayuntamiento
+(`Visible = !isHome && !isTownHall`), así que **ninguna fixture de la matriz visual
+las dibuja** y un cambio en su superficie no se podía ver. `ComponentShowcase.tscn`
+pone todas las primitivas compartidas en una pantalla, revisable a las dos medidas
+oficiales cuando haga falta.
+
+Se amortizó en la primera captura.
+
+### Connected
+
+- **`Tokens.IconInline` pasa de 12 a 24, y `ChipHeight` de 20 a 24.** 12 reservaba
+  la mitad del espacio que el glifo ocupaba de verdad:
+  `TextureRect.StretchModeEnum.Keep` dibuja la textura a su tamaño natural por
+  pequeño que sea el rect, y los iconos se importan a `svg/scale=1.0` sobre origen
+  24×24. Resultado: **cada icono de chip se desbordaba a la derecha sobre su propia
+  etiqueta y hacia abajo sobre el chip siguiente** — visible en la barra de estado
+  desde antes de esta sesión, con la luna encajada contra "Día 1 · 05:59". La
+  alternativa, escalar arte de píxel de 24 a 12, es un 0.5× que se come los trazos
+  de un píxel; reservar el tamaño real cuesta 12 px de ancho por chip y conserva los
+  glifos intactos.
+- **La última columna del escaparate compone una ficha de expedición sin nada más
+  que primitivas de ciudad** — `StatChip`, `ActionButton`, `PanelCard`. Es la prueba
+  de reutilización en miniatura: si una pantalla de expedición necesita widgets
+  propios, ahí es donde aparece primero.
+- **Una fila nueva en la matriz visual**, con la instrucción de revisarla antes de
+  tocar `Ui/Tokens.cs`, un `StatChip` o una variación de panel.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Contexto de agentes 448/448. Escaparate y `macro-current`
+capturados a 1280×720 tras el arreglo: los iconos quedan separados de su etiqueta y
+la luna de la barra de estado ya no pisa la fecha.
+
 ## El linaje llega al panel por el tema, no rodeándolo
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

@@ -108,6 +108,7 @@ review artifacts still stay out of the repository.
 | State | Fixture/precondition | Automated capture | Human assertions |
 | --- | --- | --- | --- |
 | Macro, running | Loaded playable slot | Yes | Time/actions inside status bar with no resource counters; plots and Chronicle unobstructed |
+| Component showcase | `-ScenePath res://scenes/prototypes/ComponentShowcase.tscn` | Yes | Every surface variation visually distinct; the three action roles plus disabled and focus; `StatChip` icons clear of their labels and of the chip below; `AssignmentRow` in all three states; the expedition column composed only of city primitives. **Review this before any change to `Ui/Tokens.cs`, a `StatChip`, or a panel variation** — several primitives appear in no other fixture, because `AssignmentPanel` and `ProductionPanel` hide themselves for homes and the town hall |
 | Macro street depth | `camera-depth-third-row` fixture | Yes | First street has crossed the near plane and is absent; second street remains as a large foreground obstruction; third street is the focal band; farther streets remain readable |
 | Bounded terrarium window | `terrarium-8x9-window` fixture | Yes | Eight parcel rows by nine columns semantically; verify only thirteen construction streets render, the same perspective angle survives minimum zoom, the near/far edges approach the viewport bounds, and camera stepping reveals off-window rows |
 | Orthogonal parcel terrain | Loaded playable slot | Yes | Eight parcel boundaries, integer-scaled ground, trees only, plots readable above terrain |

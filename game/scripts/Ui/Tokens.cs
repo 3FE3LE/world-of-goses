@@ -35,14 +35,25 @@ public static class Tokens
     public const int SpacingLoose = 18;
 
     /// <summary>
-    /// Edge length of an inline icon that sits inside a line of text. Smaller
-    /// than the 24 px icons in <see cref="IconPaths"/>, which are sized for
-    /// buttons; a status chip's glyph reads next to 16 px type.
+    /// Edge length of an inline icon, and of the cell reserved for it.
     /// </summary>
-    public const int IconInline = 12;
+    /// <remarks>
+    /// This is the icons' real imported size: `svg/scale=1.0` on a 24×24 source.
+    /// It was 12, which reserved half the space the glyph actually occupied —
+    /// <see cref="Godot.TextureRect.StretchModeEnum.Keep"/> draws a texture at its
+    /// natural size no matter how small the rect is, so every status chip's icon
+    /// overflowed right into its own label and down into the chip below. The
+    /// alternative, scaling 24 px pixel art to 12, is a 0.5× downscale that eats
+    /// one-pixel strokes; reserving the true size costs 12 px of width per chip and
+    /// keeps the glyphs intact.
+    /// </remarks>
+    public const int IconInline = 24;
 
-    /// <summary>Height of a status chip, sized so a 16 px label clears its box.</summary>
-    public const int ChipHeight = 20;
+    /// <summary>
+    /// Height of a status chip: the icon's own height, which a 16 px label clears.
+    /// Matches the 28 px status strip once its 2 px content margins are added.
+    /// </summary>
+    public const int ChipHeight = 24;
 
     /// <summary>
     /// Height of an interactive control. Shared with
