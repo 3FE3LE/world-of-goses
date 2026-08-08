@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
 [ext_resource type="Script" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
+[ext_resource type="Script" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -228,6 +229,21 @@ size_flags_horizontal = 3
 size_flags_vertical = 8
 theme_type_variation = &"PanelCard"
 script = ExtResource("9_prod")
+
+[node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+visible = false
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -16.0
+offset_right = 236.0
+offset_bottom = -16.0
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"OverlayPanel"
+script = ExtResource("34_inspector")
 
 [node name="NavigationRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 layout_mode = 1

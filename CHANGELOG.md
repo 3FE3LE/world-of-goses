@@ -98,6 +98,35 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## El panel de selección deja de recolocarse cada frame
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+`SelectionInfoPanel` lo construía el macro view en runtime y **se recolocaba en
+`_Process` en cada frame mientras estaba visible**. El sondeo no era gratuito ni
+arbitrario: una colocación de una sola vez competía con el asentamiento del tamaño
+mínimo del contenedor de Godot y calculaba durante un instante un panel
+absurdamente alto. La solución no era colocar mejor, era **dejar de calcular la
+posición**.
+
+Pasa a `Ui/ContextInspector.cs`, declarado en la escena y anclado abajo a la
+izquierda con `grow_vertical = Begin`: queda fijado al borde inferior y crece hacia
+arriba cuando su texto se parte. Sin callback por frame y sin carrera. La regla
+general que deja escrita: **si un widget se recoloca en `_Process`, normalmente los
+anclajes están mal.**
+
+El nombre cambia porque el papel se amplía: `ShowSelection` toma un trío
+icono/título/detalle, así que árboles, edificios y ciudadanos comparten una
+superficie, y una pantalla de expedición podrá apuntar a la misma con un nodo de
+ruta o una entrada de bestiario.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Contexto de agentes 448/448. Localización 922/283.
+Verificado con un clic real sobre un árbol del mundo: el inspector aparece anclado
+y completo a **1280×720 y 1920×1080**, sin `_Process`.
+
 ## La navegación deja de cruzar la pantalla y se recoge en un rail
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

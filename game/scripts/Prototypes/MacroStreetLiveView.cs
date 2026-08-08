@@ -187,6 +187,12 @@ public partial class MacroStreetLiveView : Node2D
     /// buttons, so moving a button inside it no longer breaks the world view.
     /// </summary>
     [Export] public NodePath NavigationRailPath { get; set; } = "../NavigationRail";
+    /// <summary>
+    /// The contextual selection surface. Authored in the scene rather than
+    /// constructed here, so its placement is anchors instead of a per-frame
+    /// reposition.
+    /// </summary>
+    [Export] public NodePath ContextInspectorPath { get; set; } = "../ContextInspector";
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
 
     private CityWorldController _controller = null!;
@@ -302,7 +308,7 @@ public partial class MacroStreetLiveView : Node2D
     private bool _heroWalking;
     private bool _heroPositionInitialized;
 
-    private SelectionInfoPanel _selectionInfoPanel = null!;
+    private ContextInspector _contextInspector = null!;
     private TreeBox? _selectedTree;
     private int? _selectedBuildingId;
     private CitizenId? _selectedCitizenId;
@@ -419,6 +425,7 @@ public partial class MacroStreetLiveView : Node2D
         _citizensPanel = GetNode<MigrantPanel>(CitizensPanelPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _navigationRail = GetNode<NavigationRail>(NavigationRailPath);
+        _contextInspector = GetNode<ContextInspector>(ContextInspectorPath);
         _constructionMenuButton = _navigationRail.ConstructionButton;
         _expeditionMenuButton = _navigationRail.ExpeditionButton;
         _policiesButton = _navigationRail.PoliciesButton;
@@ -446,8 +453,6 @@ public partial class MacroStreetLiveView : Node2D
             .Instantiate<CultivationActionMenu>();
         _cultivationActionMenu.CultivationRequested += OnCultivationRequested;
         GetParent().CallDeferred(Node.MethodName.AddChild, _cultivationActionMenu);
-        _selectionInfoPanel = new SelectionInfoPanel();
-        GetParent().CallDeferred(Node.MethodName.AddChild, _selectionInfoPanel);
         _navmeshPlanner = new StreetNavigationServerPlanner();
         BuildPlacementChrome();
 
@@ -614,7 +619,7 @@ public partial class MacroStreetLiveView : Node2D
         _navigationRail.Show();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
-        _selectionInfoPanel.Hide();
+        _contextInspector.Hide();
         _worldStatusBubble.Hide();
         Show();
         RefreshPlots();
@@ -682,7 +687,7 @@ public partial class MacroStreetLiveView : Node2D
         _chronicle.Hide();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
-        _selectionInfoPanel.Hide();
+        _contextInspector.Hide();
         _selectedTree = null;
         _selectedBuildingId = null;
         ClearTreeHover();
@@ -940,7 +945,7 @@ public partial class MacroStreetLiveView : Node2D
         _placementFooter.Visible = true;
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
-        _selectionInfoPanel.Hide();
+        _contextInspector.Hide();
         _selectedTree = null;
         _selectedBuildingId = null;
         ClearTreeHover();
@@ -1185,7 +1190,7 @@ public partial class MacroStreetLiveView : Node2D
         _selectedTree = null;
         _selectedBuildingId = null;
         Texture2D? icon = ResourceLoader.Load<Texture2D>(IconPaths.User);
-        _selectionInfoPanel.ShowSelection(icon, citizen.Name, FormatCitizenSelectionDetail(citizen));
+        _contextInspector.ShowSelection(icon, citizen.Name, FormatCitizenSelectionDetail(citizen));
     }
 
     internal static string FormatCitizenSelectionDetail(CityMacroSnapshot.CitizenItem citizen)
@@ -1774,7 +1779,7 @@ public partial class MacroStreetLiveView : Node2D
 
     /// <summary>
     /// Left click: select. Both trees and buildings populate
-    /// <see cref="_selectionInfoPanel"/> with their details instead of
+    /// <see cref="_contextInspector"/> with their details instead of
     /// immediately acting — right click is reserved for actions (gather,
     /// entering a building) — see <see cref="TryRightClick"/>.
     /// </summary>
@@ -1885,7 +1890,7 @@ public partial class MacroStreetLiveView : Node2D
                 : TerrainAtlas.ResourceRegion(tree.ResourceType, tree.ForestId, tree.UnitId));
         string resourceName = UiText.Get(tree.ResourceType.ToString().ToLowerInvariant());
         string detail = UiText.Format("ui.resource.units_remain", tree.Reserve, resourceName);
-        _selectionInfoPanel.ShowSelection(icon, resourceName, detail);
+        _contextInspector.ShowSelection(icon, resourceName, detail);
     }
 
     /// <summary>
@@ -1904,7 +1909,7 @@ public partial class MacroStreetLiveView : Node2D
             _selectedBuildingId = buildingId;
             _selectedTree = null;
             string cultivationDetail = CultivationDetail(plot, state);
-            _selectionInfoPanel.ShowSelection(
+            _contextInspector.ShowSelection(
                 GD.Load<Texture2D>(IconPaths.Leaf),
                 UiText.Get("Cultivation Site"),
                 cultivationDetail);
@@ -1931,7 +1936,7 @@ public partial class MacroStreetLiveView : Node2D
             : UiText.Format("ui.selection.building_workers", occupants, snapshot.WorkerCapacity);
         string fullLabel = UiText.Format(
             "ui.building_detail.full_label", UiText.Get(snapshot.DisplayName), UiText.Get(snapshot.ResourceLabel));
-        _selectionInfoPanel.ShowSelection(icon, fullLabel, detail);
+        _contextInspector.ShowSelection(icon, fullLabel, detail);
     }
 
     private string CultivationDetail(PlotBox plot, CultivationPlotState state)
@@ -2028,7 +2033,7 @@ public partial class MacroStreetLiveView : Node2D
         _selectedTree = null;
         _selectedBuildingId = null;
         _selectedCitizenId = null;
-        _selectionInfoPanel.Hide();
+        _contextInspector.Hide();
     }
 
     /// <summary>
@@ -3474,7 +3479,7 @@ public partial class MacroStreetLiveView : Node2D
     /// shallow hover box (max(scaledSize, StatusBadgeSize)) so it never
     /// out-grows the rendered sprite — citizens need a real left-click path
     /// to surface the same at-a-glance summary trees and buildings already
-    /// get from <see cref="SelectionInfoPanel"/>.
+    /// get from <see cref="ContextInspector"/>.
     /// </summary>
     private void UpdateCitizenHitRects()
     {

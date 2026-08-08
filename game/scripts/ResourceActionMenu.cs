@@ -10,7 +10,7 @@ namespace WorldofGoses;
 /// panel, frame, or text, matching the reference minimalist interaction
 /// style (a single button with the corresponding action icon, nothing
 /// else). Right-click triggered; left-click instead selects the resource
-/// and shows its details in <see cref="SelectionInfoPanel"/> — see
+/// and shows its details in <see cref="Ui.ContextInspector"/> — see
 /// <see cref="Prototypes.MacroStreetLiveView"/>.
 /// </summary>
 public partial class ResourceActionMenu : IconButton

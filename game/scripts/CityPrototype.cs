@@ -1010,7 +1010,7 @@ public partial class CityPrototype : Node
     {
         // The bubble fixture above already drives the hover path; this one
         // exercises the dedicated click path (TryClick → SelectCitizen →
-        // SelectionInfoPanel) so the regression matrix proves both the
+        // ContextInspector) so the regression matrix proves both the
         // pointer overlay and the at-a-glance summary arrive when the
         // player clicks a citizen — not just when the macro view paints
         // the bubble for a known citizen by hand.

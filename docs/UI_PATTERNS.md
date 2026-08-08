@@ -78,9 +78,19 @@ Use `[GlobalClass]` when:
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
-`NavigationRail`, and the three `ActionButton` roles —
+`NavigationRail`, `ContextInspector`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
 Future targets include `ExpeditionCard`.
+
+`ContextInspector` was `SelectionInfoPanel`, which the macro view
+constructed at runtime and which repositioned itself in `_Process`
+**every frame while visible**. The poll was not arbitrary — a one-shot
+placement raced Godot's container minimum-size settling and briefly
+computed a wildly-too-tall panel. The fix was to stop computing the
+position at all: anchored bottom-left with `grow_vertical = Begin`, the
+panel is pinned to the bottom and grows upward as its text wraps. **If a
+widget is repositioning itself in `_Process`, the anchors are usually
+wrong.**
 
 `NavigationRail` replaced `MacroActions`, the full-width 42 px strip under
 the status bar, with a shrink-wrapped vertical cluster at the top-left. It
