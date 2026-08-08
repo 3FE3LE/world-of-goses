@@ -31,8 +31,32 @@ public static class Tokens
     /// <summary>The default gap between related controls.</summary>
     public const int SpacingBase = 8;
 
+    /// <summary>Gap inside a dense list or a stack of short rows.</summary>
+    public const int SpacingRelaxed = 10;
+
+    /// <summary>Gap between the rows of a panel's body.</summary>
+    public const int SpacingComfortable = 12;
+
+    /// <summary>Inset of a panel's content from its frame.</summary>
+    public const int SpacingWide = 16;
+
+    /// <summary>Gap between the sections of a screen, and their vertical inset.</summary>
+    public const int SpacingSection = 20;
+
+    /// <summary>Horizontal inset of a full screen's content.</summary>
+    public const int SpacingBlock = 24;
+
     /// <summary>Gap between the independent groups on one row, e.g. HUD chips.</summary>
     public const int SpacingLoose = 18;
+
+    // NOTE: the values above name what the code already uses; they are not yet a
+    // rhythm. A survey of the 71 literal `AddThemeConstantOverride` calls found
+    // 2, 4, 6, 8, 10, 12, 16, 18, 20, 22, 24 and 28 — a near-continuous spread
+    // rather than a scale, with 18 sitting awkwardly between 16 and 20. Naming
+    // them is safe and makes a future re-scale one edit per token. Collapsing
+    // them onto a single step moves layout metrics on surfaces that no
+    // visual-regression fixture renders, so it belongs to its own pass with the
+    // component showcase open.
 
     /// <summary>
     /// Edge length of an inline icon, and of the cell reserved for it.

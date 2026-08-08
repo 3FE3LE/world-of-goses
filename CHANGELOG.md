@@ -98,6 +98,42 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## El chip del reloj deja de recortar, y el espaciado empieza a tener nombres
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+Subir el icono de chip de 12 a sus 24 px reales en la entrada anterior arrastraba
+una consecuencia que no era visible: `ClockChipWidth` valía `180f` con el
+presupuesto calculado para un icono de 12, y su envoltorio tiene `ClipContents =
+true`. Con el icono real, "Día 99 · 23:59" habría perdido los últimos dígitos **sin
+ningún error visible**. Ahora se deriva del propio token —`168f +
+Tokens.IconInline`— de modo que el presupuesto no puede volver a desincronizarse del
+icono.
+
+Y el espaciado empieza a tener vocabulario. Un recuento de las 71 llamadas literales
+a `AddThemeConstantOverride` da 2, 4, 6, 8, 10, 12, 16, 18, 20, 22, 24 y 28: **no es
+una escala, es un reparto casi continuo**, con el 18 sentado de forma incómoda entre
+16 y 20. Nombrarlos es seguro y convierte un futuro re-escalado en una edición por
+token; colapsarlos a un solo paso mueve métricas en superficies que ninguna fixture
+dibuja, y eso pertenece a su propio pase con el escaparate abierto.
+
+### Connected
+
+- **Cinco tokens nuevos** —`SpacingRelaxed` 10, `SpacingComfortable` 12,
+  `SpacingWide` 16, `SpacingSection` 20, `SpacingBlock` 24— y barrido de
+  `ConstructionPanel`, `OfflineReportPanel` y `PoliciesPanel`. Se eligieron esos tres
+  porque **tienen fixture**: el barrido se puede demostrar, no solo afirmar.
+- El comentario de `Tokens` deja escrito que la escala todavía no es un ritmo, para
+  que nadie la lea como si lo fuera.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. `construction-scroll` recapturado y comparado píxel a
+píxel con la captura previa al barrido: **0 píxeles distintos** en los 316 800 de la
+región del panel. El barrido cambia el espaciado interno; que el contenido interno
+sea idéntico es la prueba de que no movió ninguna métrica.
+
 ## Un escaparate de componentes, y el icono que llevaba tiempo pisando su etiqueta
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

@@ -225,14 +225,14 @@ public partial class ConstructionPanel : PanelContainer
 
         var margin = new MarginContainer();
         margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        margin.AddThemeConstantOverride("margin_left", 24);
-        margin.AddThemeConstantOverride("margin_right", 24);
-        margin.AddThemeConstantOverride("margin_top", 20);
-        margin.AddThemeConstantOverride("margin_bottom", 20);
+        margin.AddThemeConstantOverride("margin_left", Tokens.SpacingBlock);
+        margin.AddThemeConstantOverride("margin_right", Tokens.SpacingBlock);
+        margin.AddThemeConstantOverride("margin_top", Tokens.SpacingSection);
+        margin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingSection);
         AddChild(margin);
 
         var shell = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        shell.AddThemeConstantOverride("separation", 10);
+        shell.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         margin.AddChild(shell);
 
         _header = new PanelHeader { Title = string.Empty };
@@ -260,7 +260,7 @@ public partial class ConstructionPanel : PanelContainer
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
             MouseFilter = MouseFilterEnum.Pass,
         };
-        _bodyContent.AddThemeConstantOverride("separation", 10);
+        _bodyContent.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         _bodyScroll.AddChild(_bodyContent);
 
         _constructionPreview = new TextureRect
@@ -338,19 +338,19 @@ public partial class ConstructionPanel : PanelContainer
         _bodyContent.AddChild(_foundingResourcesPanel);
 
         var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        lists.AddThemeConstantOverride("separation", 16);
+        lists.AddThemeConstantOverride("separation", Tokens.SpacingWide);
         _bodyContent.AddChild(lists);
 
         _assignList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _assignList.AddThemeConstantOverride("separation", 4);
+        _assignList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         lists.AddChild(_assignList);
 
         _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _availableList.AddThemeConstantOverride("separation", 4);
+        _availableList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         lists.AddChild(_availableList);
 
         _unavailableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _unavailableList.AddThemeConstantOverride("separation", 4);
+        _unavailableList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         lists.AddChild(_unavailableList);
 
         _errorLabel = new Label
@@ -365,7 +365,7 @@ public partial class ConstructionPanel : PanelContainer
             Alignment = FlowContainer.AlignmentMode.End,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        footer.AddThemeConstantOverride("separation", 8);
+        footer.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         shell.AddChild(footer);
 
         _authorizeButton = NewFooterButton(

@@ -61,10 +61,10 @@ public partial class OfflineReportPanel : PanelContainer
         OverlayLayers.Apply(this, OverlayLayers.Chronicle);
         AddThemeStyleboxOverride(
             "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
-        AddThemeConstantOverride("margin_left", 16);
-        AddThemeConstantOverride("margin_right", 16);
-        AddThemeConstantOverride("margin_top", 12);
-        AddThemeConstantOverride("margin_bottom", 12);
+        AddThemeConstantOverride("margin_left", Tokens.SpacingWide);
+        AddThemeConstantOverride("margin_right", Tokens.SpacingWide);
+        AddThemeConstantOverride("margin_top", Tokens.SpacingComfortable);
+        AddThemeConstantOverride("margin_bottom", Tokens.SpacingComfortable);
 
         var safeArea = new SafeAreaMarginContainer
         {
@@ -82,7 +82,7 @@ public partial class OfflineReportPanel : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        shell.AddThemeConstantOverride("separation", 8);
+        shell.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         margin.AddChild(shell);
 
         // One direct native Button owns the whole header. The previous
@@ -582,7 +582,7 @@ public partial class OfflineReportPanel : PanelContainer
         public EventRow(EventItem evt)
         {
             MouseFilter = MouseFilterEnum.Ignore;
-            AddThemeConstantOverride("separation", 8);
+            AddThemeConstantOverride("separation", Tokens.SpacingBase);
             SizeFlagsHorizontal = SizeFlags.ExpandFill;
             CustomMinimumSize = new Vector2(0, 24);
 

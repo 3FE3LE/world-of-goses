@@ -27,8 +27,11 @@ public partial class CityStatusPanel : PanelContainer
     private const float StatusVerticalPadding = 0f;
     /// <summary>Fixed width of the clock chip so the row never shifts when
     /// the day digit count changes (1–3 digits). Sized to fit
-    /// "Day 99 · 23:59" at 22 px Jersey 10 plus the icon + gap.</summary>
-    private const float ClockChipWidth = 180f;
+    /// "Day 99 · 23:59" at 22 px Jersey 10 plus the icon + gap.
+    /// Derived from the icon rather than hardcoded: the wrapper clips, so a
+    /// budget that silently lost 12 px when the icon grew from 12 to its true
+    /// 24 would have cut the last digits without any visible error.</summary>
+    private const float ClockChipWidth = 168f + Tokens.IconInline;
 
     private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;

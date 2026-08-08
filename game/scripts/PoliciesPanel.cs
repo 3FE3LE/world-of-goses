@@ -54,14 +54,14 @@ public partial class PoliciesPanel : Control
         AddChild(surface);
 
         var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", 20);
-        margin.AddThemeConstantOverride("margin_top", 16);
-        margin.AddThemeConstantOverride("margin_right", 20);
-        margin.AddThemeConstantOverride("margin_bottom", 20);
+        margin.AddThemeConstantOverride("margin_left", Tokens.SpacingSection);
+        margin.AddThemeConstantOverride("margin_top", Tokens.SpacingWide);
+        margin.AddThemeConstantOverride("margin_right", Tokens.SpacingSection);
+        margin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingSection);
         surface.AddChild(margin);
 
         var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 12);
+        layout.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         margin.AddChild(layout);
 
         var header = new PanelHeader { Title = UiText.Get("ui.policies.title") };
@@ -75,7 +75,7 @@ public partial class PoliciesPanel : Control
         };
         layout.AddChild(scroll);
         var body = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        body.AddThemeConstantOverride("separation", 12);
+        body.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         scroll.AddChild(body);
 
         _scheduleValue = AddPolicy(body, "ui.policies.workday");
