@@ -98,6 +98,43 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## ESC durante la colocación, comprobado con una tecla de verdad
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+El dock contextual se metió entre el jugador y el mundo, y sus botones pueden tomar
+el foco. Que ESC siguiera cancelando la colocación estaba en el código
+—`_placementActive && ui_cancel` en `_UnhandledInput`— pero **leer el código no es
+verificar**, y la matriz visual no tenía ninguna fila que ejerciera una tecla.
+
+La fixture `construction-placement-escape` entra en modo colocación e inyecta un
+`ui_cancel` real por `Input.ParseInputEvent`, no llamando a `CancelPlacement`. La
+captura confirma el recorrido entero: el dock desaparece, los solares de colocación
+se limpian, vuelve el menú de construcción y el botón del rail muestra su glifo de
+cierre.
+
+Se envía pulsación **y** liberación: `IsActionPressed` solo dispara en el flanco, y
+una acción encallada se filtraría a la siguiente fixture.
+
+### Connected
+
+- **Ocho guardas nuevas de composición del HUD** (`HudCompositionTests`), que
+  afirman la escena y no los píxeles: las propiedades que merece la pena proteger son
+  justo las que una captura esconde. Un rail que vuelve a `mouse_filter = 2` se ve
+  igual mientras deja pasar sus clics al mundo; un inspector que pierde
+  `grow_vertical = 0` se dibuja bien hasta que su texto salta a una segunda línea.
+  **Cada guarda se comprobó rompiendo lo que guarda**: inyectar `mouse_filter = 2` en
+  el rail y borrar `grow_vertical = 0` del inspector hizo fallar exactamente esas dos
+  y ninguna más. Una guarda que no puede fallar no es una guarda.
+- Cubren además superficies que ninguna fixture alcanza: `AssignmentPanel` y
+  `ProductionPanel` se ocultan para hogares y Ayuntamiento.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **981 / 982** (1 omitido conocido), desde 973.
+Arranque headless limpio. Contexto de agentes 448/448. Captura de la fixture nueva a
+1280×720.
+
 ## El chip del reloj deja de recortar, y el espaciado empieza a tener nombres
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

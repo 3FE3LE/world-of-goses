@@ -85,6 +85,14 @@ public partial class CityPrototype : Node
             return;
         }
 
+        // Pressed and released, because IsActionPressed only fires on the edge and
+        // a stuck action would leak into whatever the next fixture does.
+        static void SendCancelForVisualRegression()
+        {
+            Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });
+            Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
+        }
+
         switch (fixture)
         {
             case "offline-report":
@@ -105,6 +113,16 @@ public partial class CityPrototype : Node
             case "construction-placement":
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: true);
+                break;
+            case "construction-placement-escape":
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowConstructionForVisualRegression(placement: true);
+                // A real ui_cancel through the input queue, not a direct call to
+                // CancelPlacement: the point is to prove the key reaches
+                // _UnhandledInput now that the action dock sits between the player
+                // and the world and its buttons can hold focus. Deferred so the
+                // placement state exists before the key arrives.
+                Callable.From(SendCancelForVisualRegression).CallDeferred();
                 break;
             case "construction-placement-hover-invalid":
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
