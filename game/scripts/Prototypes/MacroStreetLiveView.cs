@@ -193,6 +193,8 @@ public partial class MacroStreetLiveView : Node2D
     /// reposition.
     /// </summary>
     [Export] public NodePath ContextInspectorPath { get; set; } = "../ContextInspector";
+    /// <summary>The contextual action tray, shown only while a mode needs it.</summary>
+    [Export] public NodePath ActionDockPath { get; set; } = "../ActionDock";
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
 
     private CityWorldController _controller = null!;
@@ -274,10 +276,7 @@ public partial class MacroStreetLiveView : Node2D
     private ConstructionLot? _selectedPlacementLot;
     private PlacementLotBox? _hoveredPlacementLot;
     private string _placementBaseInstruction = string.Empty;
-    private Label _placementInstruction = null!;
-    private Button _placementConfirmButton = null!;
-    private Button _placementCancelButton = null!;
-    private Control _placementFooter = null!;
+    private ActionDock _actionDock = null!;
 
     private readonly List<PlotBox> _plots = new();
     private readonly List<TreeBox> _trees = new();
@@ -426,6 +425,7 @@ public partial class MacroStreetLiveView : Node2D
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _navigationRail = GetNode<NavigationRail>(NavigationRailPath);
         _contextInspector = GetNode<ContextInspector>(ContextInspectorPath);
+        _actionDock = GetNode<ActionDock>(ActionDockPath);
         _constructionMenuButton = _navigationRail.ConstructionButton;
         _expeditionMenuButton = _navigationRail.ExpeditionButton;
         _policiesButton = _navigationRail.PoliciesButton;
@@ -522,56 +522,24 @@ public partial class MacroStreetLiveView : Node2D
         _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
         _modalHost.Closed -= OnModalHostClosedForButtonLabel;
         _cameraModeButton.Pressed -= ToggleCameraMode;
-        _placementConfirmButton.Pressed -= OnPlacementConfirmPressed;
-        _placementCancelButton.Pressed -= OnPlacementCancelPressed;
+        _actionDock.ConfirmButton.Pressed -= OnPlacementConfirmPressed;
+        _actionDock.CancelButton.Pressed -= OnPlacementCancelPressed;
         _navmeshPlanner?.Dispose();
     }
 
     /// <summary>
-    /// Confirm/Cancel footer + instruction label for placement mode. The
-    /// lots themselves are drawn and
-    /// hit-tested like every other element in this view (see
-    /// <see cref="_Draw"/>/<see cref="TryClick"/>), not as a button grid,
+    /// Labels the dock's actions for placement mode and subscribes to them. The
+    /// lots themselves are drawn and hit-tested like every other element in this
+    /// view (see <see cref="_Draw"/>/<see cref="TryClick"/>), not as a button grid,
     /// since their position depends on the depth projection.
     /// </summary>
     private void BuildPlacementChrome()
     {
-        _placementInstruction = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            ThemeTypeVariation = "SectionTitle",
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            OffsetTop = 12,
-            OffsetBottom = 48,
-            Visible = false,
-        };
-        _placementInstruction.SetAnchorsPreset(Control.LayoutPreset.TopWide);
-
-        var footer = new HBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            OffsetTop = -64,
-            OffsetBottom = -16,
-            Visible = false,
-        };
-        footer.SetAnchorsPreset(Control.LayoutPreset.BottomWide);
-        footer.AddThemeConstantOverride("separation", 12);
-        _placementConfirmButton = new Button
-        {
-            Text = UiText.Get("Confirm placement"),
-            ThemeTypeVariation = "ButtonPrimary",
-            Disabled = true,
-        };
-        _placementCancelButton = new IconButton { ThemeTypeVariation = "ButtonText" };
-        ((IconButton)_placementCancelButton).SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
-        footer.AddChild(_placementConfirmButton);
-        footer.AddChild(_placementCancelButton);
-        _placementConfirmButton.Pressed += OnPlacementConfirmPressed;
-        _placementCancelButton.Pressed += OnPlacementCancelPressed;
-
-        _placementFooter = footer;
-        GetParent().CallDeferred(Node.MethodName.AddChild, _placementInstruction);
-        GetParent().CallDeferred(Node.MethodName.AddChild, footer);
+        _actionDock.ConfirmButton.Text = UiText.Get("Confirm placement");
+        _actionDock.ConfirmButton.Disabled = true;
+        _actionDock.CancelButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
+        _actionDock.ConfirmButton.Pressed += OnPlacementConfirmPressed;
+        _actionDock.CancelButton.Pressed += OnPlacementCancelPressed;
     }
 
     /// <summary>
@@ -818,7 +786,7 @@ public partial class MacroStreetLiveView : Node2D
         {
             if (candidate.Window.IsValid != valid) continue;
             _hoveredPlacementLot = candidate;
-            _placementInstruction.Text = PlacementHoverText(candidate.Window.State);
+            _actionDock.InstructionText = PlacementHoverText(candidate.Window.State);
             QueueRedraw();
             return;
         }
@@ -936,13 +904,12 @@ public partial class MacroStreetLiveView : Node2D
         _placementKind = kind;
         _selectedPlacementLot = null;
         _hoveredPlacementLot = null;
-        _placementConfirmButton.Disabled = true;
+        _actionDock.ConfirmButton.Disabled = true;
         _placementBaseInstruction = UiText.Format(
             "ui.construction.choose_lot",
             UiText.Get(ConstructionRules.DisplayNameFor(kind)));
-        _placementInstruction.Text = _placementBaseInstruction;
-        _placementInstruction.Visible = true;
-        _placementFooter.Visible = true;
+        _actionDock.InstructionText = _placementBaseInstruction;
+        _actionDock.Show();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
@@ -988,8 +955,7 @@ public partial class MacroStreetLiveView : Node2D
         _placementLots.Clear();
         _placementCells.Clear();
         _clickablePlacementRects.Clear();
-        _placementInstruction.Visible = false;
-        _placementFooter.Visible = false;
+        _actionDock.Hide();
         _navigationRail.Show();
         UpdateConstructionButtonLabel();
         QueueRedraw();
@@ -1000,14 +966,14 @@ public partial class MacroStreetLiveView : Node2D
         if (!lot.Window.IsValid)
         {
             _selectedPlacementLot = null;
-            _placementConfirmButton.Disabled = true;
-            _placementInstruction.Text = PlacementHoverText(lot.Window.State);
+            _actionDock.ConfirmButton.Disabled = true;
+            _actionDock.InstructionText = PlacementHoverText(lot.Window.State);
             QueueRedraw();
             return;
         }
         _selectedPlacementLot = lot.Window.Lot;
-        _placementConfirmButton.Disabled = false;
-        _placementInstruction.Text = UiText.Get("ui.construction.placement_selected");
+        _actionDock.ConfirmButton.Disabled = false;
+        _actionDock.InstructionText = UiText.Get("ui.construction.placement_selected");
         QueueRedraw();
     }
 
@@ -1026,7 +992,7 @@ public partial class MacroStreetLiveView : Node2D
 
         if (_hoveredPlacementLot == nearest) return;
         _hoveredPlacementLot = nearest;
-        _placementInstruction.Text = nearest is PlacementLotBox hovered
+        _actionDock.InstructionText = nearest is PlacementLotBox hovered
             ? PlacementHoverText(hovered.Window.State)
             : _selectedPlacementLot.HasValue
                 ? UiText.Get("ui.construction.placement_selected")

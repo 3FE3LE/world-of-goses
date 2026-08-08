@@ -98,6 +98,43 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## Las acciones de colocación dejan de flotar sobre el mundo
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+El modo de colocación repartía su interfaz por la pantalla: la instrucción era un
+`Label` anclado **arriba del todo**, y los botones Confirmar/Cancelar un
+`HBoxContainer` abajo construido con un `new Button` crudo y **sin superficie
+ninguna**, de modo que las acciones flotaban directamente sobre el terreno. Dos
+nodos, dos banderas de visibilidad, y la instrucción tan lejos de sus propios
+botones como permitía el viewport.
+
+`Ui/ActionDock.cs` los reúne en una bandeja inferior centrada con cromo real: la
+instrucción y sus acciones en una sola superficie con un solo `Visible`. No es una
+barra permanente — nadie la muestra salvo un modo que tenga algo que ofrecer, y la
+ciudad queda despejada en cuanto ese modo termina. Esa misma forma es la que
+necesitará una expedición para su bandeja de despacho o retirada.
+
+### Connected
+
+- **Construir los hijos al primer acceso, no solo en `_Ready`.** Segunda vez que
+  aparece la misma trampa: el macro view precede al dock en la escena y etiqueta
+  sus acciones desde su propio `_Ready`, que corre antes, así que construir solo en
+  `_Ready` le entregaba botones nulos y **rompía el arranque**. `EnsureBuilt` es
+  idempotente, con la misma forma que `CityStatusPanel.EnsureBuilt`. Queda escrito
+  en `UI_PATTERNS.md` como regla: toda superficie compartida que una pantalla toque
+  desde su `_Ready` debe resolverse al acceder.
+- **`_placementInstruction.Visible` + `_placementFooter.Visible`** se reducen a
+  `_actionDock.Show()` / `.Hide()`.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Fixture `construction-placement` capturado a **1280×720 y
+1920×1080**: la bandeja aparece abajo al centro con la instrucción, "Confirmar
+ubicación" correctamente deshabilitado y "Cancelar", y el rail se oculta durante el
+modo de colocación.
+
 ## El panel de selección deja de recolocarse cada frame
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

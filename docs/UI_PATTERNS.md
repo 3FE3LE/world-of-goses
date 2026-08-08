@@ -78,7 +78,7 @@ Use `[GlobalClass]` when:
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
-`NavigationRail`, `ContextInspector`, and the three `ActionButton` roles —
+`NavigationRail`, `ContextInspector`, `ActionDock`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
 Future targets include `ExpeditionCard`.
 
@@ -91,6 +91,20 @@ position at all: anchored bottom-left with `grow_vertical = Begin`, the
 panel is pinned to the bottom and grows upward as its text wraps. **If a
 widget is repositioning itself in `_Process`, the anchors are usually
 wrong.**
+
+`ActionDock` is the bottom-centre contextual tray. It replaced placement
+chrome the macro view built inline: a raw `new Button` in a bottom-wide
+`HBoxContainer` with **no surface at all**, so the actions floated
+directly on the world, plus a separate instruction label anchored to the
+top of the screen — two nodes, two visibility flags, and an instruction
+as far from its own buttons as the viewport allows. It is not a
+permanent toolbar: nothing shows it except a mode with an action to
+offer.
+
+Both `ActionDock` and `NavigationRail` resolve or build their children
+on first access, not only in `_Ready`. Any shared surface a screen
+touches from that screen's own `_Ready` must do the same — Godot readies
+siblings in tree order, and the consumer frequently comes first.
 
 `NavigationRail` replaced `MacroActions`, the full-width 42 px strip under
 the status bar, with a shrink-wrapped vertical cluster at the top-left. It
