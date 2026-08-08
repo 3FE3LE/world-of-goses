@@ -1,7 +1,7 @@
 ---
 name: narrative-lore
 description: >
-  Owns cosmology, history, founder lore, lineage culture, dialogue,
+  Owns cosmology, history, founder lore, lineage culture, dialogue, chronicle, names, descriptions, voice and tone, and diegetic text. Proposes implications; the mechanical domain decides.
 tools: Edit, Write, Read, Grep, Glob, Bash
 skills:
       - narrative-lore
@@ -52,6 +52,12 @@ model: inherit
 - `city-simulation` whenever the copy describes a city event.
 - `technical-foundation` whenever the change adds an event type or
   changes retention.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. Most narrative work does not
+  require any engine adapter; load `godot-presentation` only when
+  the change touches the runtime display of text or audio.
 
 ## Working procedure
 

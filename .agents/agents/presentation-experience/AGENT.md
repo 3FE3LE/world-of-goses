@@ -36,6 +36,16 @@
 - `technical-foundation` whenever a snapshot, a presentation adapter,
   or a layer-boundary concern is introduced.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `godot-presentation` whenever a Godot Control, theme, animation, or
+  audio API is needed. The adapter delegates to the verified upstream
+  provider installed by `Install-GodotDotNetSkills.ps1` (see
+  `docs/ai/SKILL_MIGRATION.md`).
+- `godot-dotnet` whenever the presentation is implemented in C#.
+- `repo-navigation` for every task; this adapter is the default
+  symbol-first retrieval guidance.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`

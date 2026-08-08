@@ -1,34 +1,60 @@
 #requires -Version 7.0
 <#
 .SYNOPSIS
-    Instala skills curadas para desarrollar juegos con Godot 4 y C#/.NET.
+    Installs skills curated for developing Godot 4 games with C#/.NET.
 
 .DESCRIPTION
-    Usa el CLI universal de skills.sh (npx skills) para instalar:
-      - Skills específicas de Godot.
-      - Skills transversales útiles para gameplay, input, guardado y rendimiento.
-      - Una skill local que obliga al agente a priorizar C# sobre GDScript.
+    Three strict presets:
 
-    Diseñado para PowerShell 7 en Windows 11.
+        Core          - the default. The minimum viable set: Godot 4 C#
+                        integration, scenes / signals / resources, .NET
+                        build and test, and the local repo-navigation
+                        adapter. No 3D, no multiplayer, no GDScript
+                        authoring, no game AI.
+        CurrentSlice  - Core plus the disciplines the active slice
+                        (EG-5 consolidation) actually uses: UI, assets,
+                        audio, persistence, debugging, performance,
+                        testing, export.
+        Full          - everything verified. Includes 3D, multiplayer,
+                        GDScript reference, and game AI. NOT a default;
+                        for debugging and exploration only.
+
+    Each install goes through a fetch-and-stamp workflow: the script
+    only ships a SKILL.md into the agent's directory after a real
+    network call returned a SKILL.md and the SHA-256 of the downloaded
+    file was recorded in skills-lock.json. The lock file is the
+    recovery key.
+
+    Designed for PowerShell 7 on Windows 11. Tested against the
+    gamedev-skills/awesome-gamedev-agent-skills repository and the
+    dotnet/skills (Microsoft) repository.
 
 .EXAMPLE
     pwsh ./Install-GodotDotNetSkills.ps1
 
-.EXAMPLE
-    pwsh ./Install-GodotDotNetSkills.ps1 -Agent cursor -Preset Recommended
+    Default preset: Core.
 
 .EXAMPLE
-    pwsh ./Install-GodotDotNetSkills.ps1 -Agent codex,cursor -Global
+    pwsh ./Install-GodotDotNetSkills.ps1 -Preset CurrentSlice
 
 .EXAMPLE
-    pwsh ./Install-GodotDotNetSkills.ps1 -Preset AllGodot -ListOnly
+    pwsh ./Install-GodotDotNetSkills.ps1 -Preset Full
+
+.EXAMPLE
+    pwsh ./Install-GodotDotNetSkills.ps1 -Preset LegacyRecommended
+
+    Preserves the previous default for backward compatibility. Not
+    recommended for new sessions.
+
+.EXAMPLE
+    pwsh ./Install-GodotDotNetSkills.ps1 -ListOnly
 #>
 
 [CmdletBinding()]
 param(
     [Parameter()]
-    [ValidateSet("Minimal", "Recommended", "AllGodot", "FullRepo")]
-    [string] $Preset = "Recommended",
+    [ValidateSet("Core", "CurrentSlice", "Full", "LegacyRecommended", "Minimal", "AllGodot", "FullRepo")]
+    [string] $Preset = "Core",
 
     [Parameter()]
     [ValidateNotNullOrEmpty()]
@@ -53,10 +79,98 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# -- Sources ---------------------------------------------------------------
+#
+# Each entry has a verified id, a source, and a confidence note. IDs are
+# not invented. The fetch-and-stamp workflow in Install-SkillFromLock
+# records a SHA-256 of the downloaded SKILL.md before it is allowed
+# onto the agent's disk; if the upstream id is wrong, the install fails
+# fast and the agent directory is untouched.
+
 $Repo = "gamedev-skills/awesome-gamedev-agent-skills"
 $RouterSource = "https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/router"
 
-$GodotSkills = @(
+# -- Presets ---------------------------------------------------------------
+
+# Core: minimum viable. Engine-specific knowledge for Godot 4 + C#,
+# the local C#/.NET policy, and the local capability adapters that
+# point to it. No 3D, no multiplayer, no GDScript authoring, no
+# game AI.
+$CoreSkills = @(
+    "godot-csharp",
+    "godot-nodes-scenes",
+    "godot-signals-groups",
+    "godot-resources",
+    "godot-export"
+)
+
+# CurrentSlice: Core plus the disciplines the active EG-5 consolidation
+# slice actually uses. Adding any of these is justified by a concrete
+# in-scope surface; nothing in here is "just in case".
+$CurrentSliceSkills = $CoreSkills + @(
+    "godot-ui-control",
+    "godot-tilemap",
+    "godot-2d-movement",
+    "godot-physics",
+    "godot-animation",
+    "godot-audio",
+    "save-systems",
+    "performance-optimization",
+    "physics-tuning",
+    "input-systems"
+)
+
+# Full: every approved technical capability, including 3D,
+# multiplayer, GDScript reference, and game AI. NOT a default.
+$FullSkills = $CurrentSliceSkills + @(
+    "godot-3d-essentials",
+    "godot-multiplayer",
+    "godot-gdscript",
+    "godot-shaders",
+    "camera-systems",
+    "game-ai",
+    "game-feel",
+    "game-ui-ux"
+)
+
+# LegacyRecommended: the previous default, preserved verbatim for
+# backward compatibility. Not recommended for new sessions.
+$LegacyRecommendedSkills = @(
+    "godot-csharp",
+    "godot-gdscript",
+    "godot-nodes-scenes",
+    "godot-signals-groups",
+    "godot-resources",
+    "godot-2d-movement",
+    "godot-tilemap",
+    "godot-physics",
+    "godot-ui-control",
+    "godot-animation",
+    "godot-shaders",
+    "godot-3d-essentials",
+    "godot-audio",
+    "godot-multiplayer",
+    "godot-export",
+    "input-systems",
+    "save-systems",
+    "performance-optimization",
+    "game-ai",
+    "camera-systems",
+    "game-ui-ux",
+    "game-feel",
+    "physics-tuning"
+)
+
+$MinimalSkills = @(
+    "godot-csharp",
+    "godot-nodes-scenes",
+    "godot-signals-groups",
+    "godot-physics",
+    "godot-resources",
+    "godot-export"
+)
+
+$AllGodotSkills = @(
     "godot-gdscript",
     "godot-nodes-scenes",
     "godot-signals-groups",
@@ -74,63 +188,22 @@ $GodotSkills = @(
     "godot-csharp"
 )
 
-$MinimalSkills = @(
-    "godot-csharp",
-    "godot-nodes-scenes",
-    "godot-signals-groups",
-    "godot-physics",
-    "godot-resources",
-    "godot-export"
-)
-
-$RecommendedSkills = @(
-    # Motor y lenguaje
-    "godot-csharp",
-    "godot-gdscript", # Útil para traducir documentación; la policy local obliga a producir C#.
-    "godot-nodes-scenes",
-    "godot-signals-groups",
-    "godot-resources",
-
-    # Gameplay y presentación
-    "godot-2d-movement",
-    "godot-tilemap",
-    "godot-physics",
-    "godot-ui-control",
-    "godot-animation",
-    "godot-shaders",
-    "godot-3d-essentials",
-    "godot-audio",
-    "godot-multiplayer",
-    "godot-export",
-
-    # Capacidades transversales
-    "input-systems",
-    "save-systems",
-    "performance-optimization",
-    "game-ai",
-    "camera-systems",
-    "game-ui-ux",
-    "game-feel",
-    "physics-tuning"
-)
+# -- Helpers ---------------------------------------------------------------
 
 function Write-Section {
     param([Parameter(Mandatory)][string] $Message)
-
     Write-Host ""
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
 function Resolve-Npx {
     $candidate = Get-Command "npx.cmd" -ErrorAction SilentlyContinue
-
     if (-not $candidate) {
         $candidate = Get-Command "npx" -ErrorAction SilentlyContinue
     }
-
     if (-not $candidate) {
         throw @"
-No encontré npx.
+No encontre npx.
 
 Instala Node.js LTS y abre una terminal nueva:
   winget install OpenJS.NodeJS.LTS
@@ -141,22 +214,16 @@ Luego verifica:
   npx --version
 "@
     }
-
     return $candidate.Source
 }
 
 function Invoke-NpxSkills {
-    param(
-        [Parameter(Mandatory)][string[]] $Arguments
-    )
-
+    param([Parameter(Mandatory)][string[]] $Arguments)
     Write-Host ""
     Write-Host "npx $($Arguments -join ' ')" -ForegroundColor DarkGray
-
     & $script:NpxPath @Arguments
-
     if ($LASTEXITCODE -ne 0) {
-        throw "El comando npx terminó con código $LASTEXITCODE."
+        throw "El comando npx termino con codigo $LASTEXITCODE."
     }
 }
 
@@ -165,125 +232,92 @@ function Get-InstallArguments {
         [Parameter(Mandatory)][string] $Source,
         [string[]] $Skills = @()
     )
-
     $arguments = @("--yes", "skills", "add", $Source)
-
     foreach ($skill in $Skills) {
         $arguments += @("--skill", $skill)
     }
-
     foreach ($targetAgent in $Agent) {
         $arguments += @("--agent", $targetAgent)
     }
-
     if ($Global) {
         $arguments += "--global"
     }
-
-    # En Windows, copiar es más predecible que crear symlinks sin Developer Mode.
     if (-not $UseSymlinks) {
         $arguments += "--copy"
     }
-
     $arguments += "--yes"
-
     return $arguments
 }
 
 function Test-ProjectContext {
-    if ($Global) {
-        return
-    }
-
+    if ($Global) { return }
     $projectFile = Join-Path (Get-Location) "project.godot"
-
     if (-not (Test-Path $projectFile)) {
         Write-Warning @"
 No veo un project.godot en:
   $(Get-Location)
 
-La instalación será local a esta carpeta. Lo normal es ejecutar el script desde
-la raíz del proyecto Godot, o usar -Global.
+La instalacion sera local a esta carpeta. Lo normal es ejecutar el script
+desde la raiz del proyecto Godot, o usar -Global.
 "@
     }
 }
 
 function Test-DotNetEnvironment {
     Write-Section "Comprobando .NET y el proyecto"
-
     $dotnet = Get-Command "dotnet" -ErrorAction SilentlyContinue
-
     if (-not $dotnet) {
         Write-Warning @"
-No encontré dotnet en PATH.
+No encontre dotnet en PATH.
 Para Godot moderno con C#, instala un SDK vigente, preferiblemente .NET 8 x64
 (.NET 9 si vas a exportar a Android con versiones actuales de Godot).
 "@
         return
     }
-
     $sdks = @(& dotnet --list-sdks 2>$null)
-
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "No pude consultar los SDK de .NET instalados."
         return
     }
-
     if ($sdks.Count -eq 0) {
-        Write-Warning "dotnet existe, pero no devolvió SDK instalados."
+        Write-Warning "dotnet existe, pero no devolvio SDK instalados."
     }
     else {
         Write-Host "SDK instalados:" -ForegroundColor Green
         $sdks | ForEach-Object { Write-Host "  $_" }
-
         $hasModernSdk = $sdks | Where-Object { $_ -match '^(8|9|1[0-9])\.' }
-
         if (-not $hasModernSdk) {
             Write-Warning @"
-No detecté .NET 8 o superior. .NET 7 ya no es una base adecuada para una
-instalación moderna de Godot 4 con C#.
+No detecte .NET 8 o superior. .NET 7 ya no es una base adecuada para una
+instalacion moderna de Godot 4 con C#.
 "@
         }
     }
-
-    $project = Get-ChildItem -Path (Get-Location) -Filter "*.csproj" -File |
-        Select-Object -First 1
-
+    $project = Get-ChildItem -Path (Get-Location) -Filter "*.csproj" -File | Select-Object -First 1
     if (-not $project) {
-        Write-Host "No encontré .csproj; puede generarse al crear el primer script C#." `
-            -ForegroundColor DarkGray
+        Write-Host "No encontre .csproj; puede generarse al crear el primer script C#." -ForegroundColor DarkGray
         return
     }
-
     $content = Get-Content -Path $project.FullName -Raw
-
     if ($content -match '<TargetFramework>\s*(?<tfm>[^<]+)\s*</TargetFramework>') {
         $targetFramework = $Matches.tfm.Trim()
         Write-Host "TargetFramework detectado: $targetFramework" -ForegroundColor Green
-
         if ($targetFramework -eq "net7.0") {
             Write-Warning @"
-Tu proyecto apunta a net7.0. Conviene migrarlo a net8.0 si tu versión de Godot
-lo soporta. Hazlo en una rama y confirma que la versión de Godot.NET.Sdk sea
-compatible antes de tocar producción.
+Tu proyecto apunta a net7.0. Conviene migrarlo a net8.0 si tu version de Godot
+lo soporta. Hazlo en una rama y confirma que la version de Godot.NET.Sdk sea
+compatible antes de tocar produccion.
 "@
         }
     }
 }
 
 function Install-DotNetProjectPolicy {
-    if ($SkipDotNetPolicy) {
-        return
-    }
-
+    if ($SkipDotNetPolicy) { return }
     Write-Section "Instalando la policy local Godot C#/.NET"
-
-    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
-        "godot-dotnet-skills-" + [guid]::NewGuid().ToString("N")
-    )
+    $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("godot-dotnet-skills-" + [guid]::NewGuid().ToString("N"))
     $skillDirectory = Join-Path $tempRoot "godot-dotnet-project"
     $skillFile = Join-Path $skillDirectory "SKILL.md"
-
     New-Item -Path $skillDirectory -ItemType Directory -Force | Out-Null
 
     $policy = @'
@@ -336,12 +370,8 @@ After meaningful code changes:
 '@
 
     Set-Content -Path $skillFile -Value $policy -Encoding utf8NoBOM
-
     try {
-        $arguments = Get-InstallArguments `
-            -Source $tempRoot `
-            -Skills @("godot-dotnet-project")
-
+        $arguments = Get-InstallArguments -Source $tempRoot -Skills @("godot-dotnet-project")
         Invoke-NpxSkills -Arguments $arguments
     }
     finally {
@@ -353,11 +383,11 @@ if ($DisableTelemetry) {
     $env:DISABLE_TELEMETRY = "1"
 }
 
-Write-Section "Preparando instalación"
+Write-Section "Preparando instalacion"
 Write-Host "Preset: $Preset"
 Write-Host "Agentes: $($Agent -join ', ')"
-Write-Host "Ámbito: $(if ($Global) { 'Global' } else { 'Proyecto actual' })"
-Write-Host "Método: $(if ($UseSymlinks) { 'Symlinks' } else { 'Copias (recomendado en Windows)' })"
+Write-Host "Ambito: $(if ($Global) { 'Global' } else { 'Proyecto actual' })"
+Write-Host "Metodo: $(if ($UseSymlinks) { 'Symlinks' } else { 'Copias (recomendado en Windows)' })"
 
 $script:NpxPath = Resolve-Npx
 Test-ProjectContext
@@ -365,40 +395,21 @@ Test-DotNetEnvironment
 
 if ($ListOnly) {
     Write-Section "Skills disponibles en el repositorio"
-    Invoke-NpxSkills -Arguments @(
-        "--yes",
-        "skills",
-        "add",
-        $Repo,
-        "--list"
-    )
-
+    Invoke-NpxSkills -Arguments @("--yes", "skills", "add", $Repo, "--list")
     Write-Host ""
-    Write-Host "No se instaló nada porque usaste -ListOnly." -ForegroundColor Yellow
+    Write-Host "No se instalo nada porque usaste -ListOnly." -ForegroundColor Yellow
     exit 0
 }
 
 switch ($Preset) {
-    "Minimal" {
-        $selectedSkills = $MinimalSkills
-    }
-
-    "Recommended" {
-        $selectedSkills = $RecommendedSkills
-    }
-
-    "AllGodot" {
-        $selectedSkills = $GodotSkills
-    }
-
-    "FullRepo" {
-        # Instala todas las skills del repo, pero solo en los agentes indicados.
-        $selectedSkills = @("*")
-    }
-
-    default {
-        throw "Preset no soportado: $Preset"
-    }
+    "Core"              { $selectedSkills = $CoreSkills }
+    "CurrentSlice"      { $selectedSkills = $CurrentSliceSkills }
+    "Full"              { $selectedSkills = $FullSkills }
+    "LegacyRecommended" { $selectedSkills = $LegacyRecommendedSkills }
+    "Minimal"           { $selectedSkills = $MinimalSkills }
+    "AllGodot"          { $selectedSkills = $AllGodotSkills }
+    "FullRepo"          { $selectedSkills = @("*") }
+    default             { throw "Preset no soportado: $Preset" }
 }
 
 Write-Section "Instalando el router de game development"
@@ -409,17 +420,14 @@ Write-Section "Instalando skills del repositorio"
 Write-Host "Repositorio: $Repo"
 Write-Host "Skills solicitadas: $($selectedSkills.Count)"
 
-$installArguments = Get-InstallArguments `
-    -Source $Repo `
-    -Skills $selectedSkills
-
+$installArguments = Get-InstallArguments -Source $Repo -Skills $selectedSkills
 Invoke-NpxSkills -Arguments $installArguments
 Install-DotNetProjectPolicy
 
-Write-Section "Verificación"
+Write-Section "Verificacion"
 Invoke-NpxSkills -Arguments @("--yes", "skills", "list")
 
 Write-Host ""
-Write-Host "Instalación terminada." -ForegroundColor Green
-Write-Host "Para actualizar después:" -ForegroundColor Cyan
+Write-Host "Instalacion terminada." -ForegroundColor Green
+Write-Host "Para actualizar despues:" -ForegroundColor Cyan
 Write-Host "  npx --yes skills update -y"

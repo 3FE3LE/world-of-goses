@@ -2,7 +2,7 @@
 name: agent-narrative-lore
 description: >
   narrative-lore agent for World of Goses.
-  Owns cosmology, history, founder lore, lineage culture, dialogue,
+  Owns cosmology, history, founder lore, lineage culture, dialogue, chronicle, names, descriptions, voice and tone, and diegetic text. Proposes implications; the mechanical domain decides.
   Use when the task matches this agent's domain.
   Loads these skills on activation: narrative-lore, core-game-vision, lineages-and-cultures, citizens-rpg, presentation-experience, expeditions-territory, city-simulation, technical-foundation.
 license: World of Goses project license
@@ -50,6 +50,12 @@ metadata:
 - `city-simulation` whenever the copy describes a city event.
 - `technical-foundation` whenever the change adds an event type or
   changes retention.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. Most narrative work does not
+  require any engine adapter; load `godot-presentation` only when
+  the change touches the runtime display of text or audio.
 
 ## Working procedure
 

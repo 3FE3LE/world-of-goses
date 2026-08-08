@@ -37,6 +37,12 @@
 - `technical-foundation` whenever the change adds an event type or
   changes retention.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. Most narrative work does not
+  require any engine adapter; load `godot-presentation` only when
+  the change touches the runtime display of text or audio.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/01_GAME_VISION.md`,

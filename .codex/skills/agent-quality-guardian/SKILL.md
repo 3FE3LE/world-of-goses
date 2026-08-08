@@ -2,7 +2,7 @@
 name: agent-quality-guardian
 description: >
   quality-guardian agent for World of Goses.
-  Read-only reviewer. Reviews completed changes, finds regressions,
+  Read-only reviewer. Reviews completed changes, finds regressions, checks acceptance criteria, and guards the RPG-city-builder-idle identity.
   Use when the task matches this agent's domain.
   Loads these skills on activation: vertical-slice-validation, core-game-vision, lineages-and-cultures.
 license: World of Goses project license
@@ -48,6 +48,14 @@ decision not to.
 - Every domain skill whose area is touched by the change.
 - `lineages-and-cultures` whenever the change could erode lineage
   invariants.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. Reviews must inspect the diff
+  before surrounding files.
+- `dotnet-testing` to run the test suite cited by the change.
+- `dotnet-diagnostics` (on demand) when the change claims a
+  performance improvement.
 
 ## Working procedure
 

@@ -35,6 +35,14 @@ decision not to.
 - `lineages-and-cultures` whenever the change could erode lineage
   invariants.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. Reviews must inspect the diff
+  before surrounding files.
+- `dotnet-testing` to run the test suite cited by the change.
+- `dotnet-diagnostics` (on demand) when the change claims a
+  performance improvement.
+
 ## Working procedure
 
 1. Read the handoff in

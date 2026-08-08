@@ -1,7 +1,7 @@
 ---
 name: gameplay-integrator
 description: >
-  Cross-domain coordinator. Routes tasks that touch two or more pillars,
+  Cross-domain coordinator. Routes tasks that touch two or more pillars, sequences the work, prevents local improvements that erode the game identity, and consolidates feedback from consulting agents.
 tools: Edit, Write, Read, Grep, Glob, Bash
 skills:
       - core-game-vision
@@ -42,6 +42,14 @@ adds latency and obscures ownership.
 
 - `core-game-vision` (mandatory).
 - The skill of every domain the task touches.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task; the integrator should never read
+  the whole source tree.
+- `godot-dotnet` when the cross-domain work lands in C# runtime code.
+- `dotnet-testing` when a cross-domain test is required.
+- `vertical-slice-validation` whenever the active slice changes.
 
 ## Working procedure
 

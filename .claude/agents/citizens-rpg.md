@@ -1,7 +1,7 @@
 ---
 name: citizens-rpg
 description: >
-  Owns the single `Citizen` entity and every aspect of personal state in
+  Owns the single `Citizen` entity and every aspect of personal state in the game. Prevents parallel person types and guarantees that commitments remain mutually exclusive.
 tools: Edit, Write, Read, Grep, Glob, Bash
 skills:
       - citizens-rpg
@@ -51,6 +51,18 @@ model: inherit
 - `lineages-and-cultures` whenever the change touches lineage.
 - `narrative-lore` whenever the change introduces dialogue, an event, or
   a chronicle entry tied to a citizen.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The default workflow is
+  symbol-first retrieval; targeted file reads only when necessary.
+- `dotnet-testing` whenever a `Citizen*Tests.cs` file is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for stamina or commitment
+  performance work.
+- `godot-dotnet` and `godot-presentation` only when a citizen is
+  represented in the engine runtime; the agent does not own the
+  visual layer.
 
 ## Working procedure
 

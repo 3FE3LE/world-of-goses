@@ -38,6 +38,16 @@
   lineage bonus. Refuse fixed multipliers.
 - `narrative-lore` whenever a chronicle entry or event is needed.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The domain does not require
+  Godot or the engine to reason about the simulation; load
+  `godot-dotnet` or `godot-presentation` only when the change
+  touches runtime code.
+- `dotnet-testing` whenever a `*Tests.cs` file is added or modified.
+- `dotnet-diagnostics` (on demand) for performance work on
+  production or construction ticks.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`

@@ -2,7 +2,7 @@
 name: agent-citizens-rpg
 description: >
   citizens-rpg agent for World of Goses.
-  Owns the single `Citizen` entity and every aspect of personal state in
+  Owns the single `Citizen` entity and every aspect of personal state in the game. Prevents parallel person types and guarantees that commitments remain mutually exclusive.
   Use when the task matches this agent's domain.
   Loads these skills on activation: citizens-rpg, core-game-vision, technical-foundation, city-simulation, expeditions-territory, lineages-and-cultures, narrative-lore.
 license: World of Goses project license
@@ -50,6 +50,18 @@ metadata:
 - `lineages-and-cultures` whenever the change touches lineage.
 - `narrative-lore` whenever the change introduces dialogue, an event, or
   a chronicle entry tied to a citizen.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The default workflow is
+  symbol-first retrieval; targeted file reads only when necessary.
+- `dotnet-testing` whenever a `Citizen*Tests.cs` file is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for stamina or commitment
+  performance work.
+- `godot-dotnet` and `godot-presentation` only when a citizen is
+  represented in the engine runtime; the agent does not own the
+  visual layer.
 
 ## Working procedure
 

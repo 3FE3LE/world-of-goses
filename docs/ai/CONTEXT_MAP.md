@@ -7,6 +7,17 @@
 Skill ids resolve to `.agents/skills/<id>/SKILL.md`.
 Agent ids resolve to `.agents/agents/<id>/AGENT.md`.
 
+The local capability adapter layer — `godot-dotnet`,
+`godot-presentation`, `godot-persistence`, `dotnet-testing`,
+`dotnet-diagnostics`, and `repo-navigation` — is loaded by the agent
+whose task names a Godot 4 engine API, a `.NET` test, a diagnostics
+question, or any symbol-retrieval question. The adapter layer never
+duplicates a project-domain skill; project rules always come from
+`technical-foundation` and the relevant domain skill. Engine API
+specifics are delegated to the verified upstream provider installed
+by `Install-GodotDotNetSkills.ps1`; see
+[`SKILL_MIGRATION.md`](SKILL_MIGRATION.md).
+
 ## How to use this file
 
 1. Find the row that matches the request. If several match, the task is

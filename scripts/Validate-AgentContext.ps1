@@ -245,11 +245,21 @@ foreach ($id in $expectedAgents) {
         $frontmatter = Get-Frontmatter -Path $adapter
         $hasName = ($frontmatter -match "(?m)^name:\s+$id\s*$")
         # Accept either a quoted scalar "..." or a block scalar '>' with at
-        # least one indented continuation line.
+        # least one indented continuation line. Require at least 80
+        # characters of description text; the canonical blockquote
+        # summaries must not be truncated to a single short line.
         $hasDesc = ($frontmatter -match '(?ms)^description:\s*".+?"') `
                 -or ($frontmatter -match "(?ms)^description:\s*>\r?\n\s+\S.+")
+        $descChars = 0
+        if ($frontmatter -match '(?ms)^description:\s*>\r?\n([\s\S]*?)(?=^[a-z\-]+:|\z)') {
+            $descChars = $Matches[1].Trim().Length
+        }
+        elseif ($frontmatter -match '(?ms)^description:\s*"(.+?)"') {
+            $descChars = $Matches[1].Length
+        }
         Check "Claude adapter '$id' has name in frontmatter" $hasName
         Check "Claude adapter '$id' has description"        $hasDesc
+        Check "Claude adapter '$id' has complete description (>= 80 chars)" ($descChars -ge 80) "actual=$descChars"
 
         if ($id -eq 'quality-guardian') {
             $hasReadOnlyTool = ($frontmatter -match '(?m)^tools:\s*Read,\s*Grep,\s*Glob\s*$')
@@ -321,6 +331,27 @@ if (Test-Path -LiteralPath $claudeMdPath) {
     Check 'CLAUDE.md references CONTEXT_MAP.md'        ($content -match 'CONTEXT_MAP')
     Check 'CLAUDE.md references AGENT_DISPATCH.md'     ($content -match 'AGENT_DISPATCH')
     Check 'CLAUDE.md references CROSS_DOMAIN_INVARIANTS' ($content -match 'CROSS_DOMAIN_INVARIANTS\.md')
+}
+
+# The new local capability adapter layer. Each of these must have a
+# canonical SKILL.md and the corresponding Claude and Codex mirrors.
+$localAdapterSkillIds = @(
+    'godot-dotnet',
+    'godot-presentation',
+    'godot-persistence',
+    'dotnet-testing',
+    'dotnet-diagnostics',
+    'repo-navigation'
+)
+foreach ($id in $localAdapterSkillIds) {
+    $src = Join-Path $canonicalSkillsDir $id 'SKILL.md'
+    Check "local adapter skill present: $id" (Test-Path -LiteralPath $src)
+    if (Test-Path -LiteralPath $src) {
+        $adapterContent = Get-Content -LiteralPath $src -Raw -Encoding UTF8
+        $adapterFm = Get-Frontmatter -Path $src
+        Check "local adapter '$id' has name in frontmatter"   ($adapterFm -match "(?m)^name:\s+$id\s*$")
+        Check "local adapter '$id' has description"          ($adapterFm -match '(?ms)^description:\s*(>.+?(?=^\S)|\S.+)')
+    }
 }
 
 # -- 8. CONTEXT_MAP.md routes resolve to real files -------------------------

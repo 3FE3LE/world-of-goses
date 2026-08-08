@@ -2,7 +2,7 @@
 name: agent-city-simulation
 description: >
   city-simulation agent for World of Goses.
-  Owns buildings, construction, recipes, production, consumption,
+  Owns buildings, construction, recipes, production, consumption, storage, the production policy triplet, and the systemic pressures of one persistent city. Prevents drift toward a generic city builder.
   Use when the task matches this agent's domain.
   Loads these skills on activation: city-simulation, core-game-vision, citizens-rpg, expeditions-territory, technical-foundation, lineages-and-cultures, narrative-lore.
 license: World of Goses project license
@@ -51,6 +51,16 @@ metadata:
 - `lineages-and-cultures` whenever the change could be misread as a
   lineage bonus. Refuse fixed multipliers.
 - `narrative-lore` whenever a chronicle entry or event is needed.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The domain does not require
+  Godot or the engine to reason about the simulation; load
+  `godot-dotnet` or `godot-presentation` only when the change
+  touches runtime code.
+- `dotnet-testing` whenever a `*Tests.cs` file is added or modified.
+- `dotnet-diagnostics` (on demand) for performance work on
+  production or construction ticks.
 
 ## Working procedure
 

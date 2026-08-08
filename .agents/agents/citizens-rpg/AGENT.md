@@ -37,6 +37,18 @@
 - `narrative-lore` whenever the change introduces dialogue, an event, or
   a chronicle entry tied to a citizen.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The default workflow is
+  symbol-first retrieval; targeted file reads only when necessary.
+- `dotnet-testing` whenever a `Citizen*Tests.cs` file is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for stamina or commitment
+  performance work.
+- `godot-dotnet` and `godot-presentation` only when a citizen is
+  represented in the engine runtime; the agent does not own the
+  visual layer.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`.

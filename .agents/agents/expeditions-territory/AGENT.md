@@ -41,6 +41,17 @@ This agent has **mandatory** consultations, not optional:
 - `lineages-and-cultures` for per-lineage encounter modifiers. Refuse
   automatic multipliers.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The domain logic does not require
+  the engine.
+- `dotnet-testing` whenever an expedition or parcel test is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for performance work on
+  `OfflineProgression` catch-up.
+- `godot-presentation` only when the change touches the expedition
+  panel or the world map visual layer.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`.

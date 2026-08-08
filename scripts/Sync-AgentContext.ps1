@@ -137,19 +137,23 @@ function Read-CanonicalAgentBody {
     }
 
     # Derive description from the first non-empty, non-heading paragraph
-    # immediately following the H1. Stop at the next heading or fenced block.
-    # Strip a leading Markdown blockquote (`> `) so YAML frontmatter is
-    # readable.
+    # immediately following the H1. The paragraph may be a Markdown
+    # blockquote (one or more lines starting with `> `) or a plain
+    # paragraph. Continue collecting until the first blank line, heading,
+    # or fenced block. Strip a leading `> ` from each line so YAML
+    # frontmatter is readable.
     $description = ''
     $inFence = $false
     $seenTitle = $false
     $collecting = $false
+    $parts = New-Object System.Collections.Generic.List[string]
     foreach ($line in ($body -split "`r?`n")) {
         if ($line -match '^```') {
             if ($collecting) { break }
             $inFence = -not $inFence
             continue
         }
+        if ($inFence) { continue }
         if (-not $seenTitle) {
             if ($line -match '^#\s+') {
                 $seenTitle = $true
@@ -164,9 +168,11 @@ function Read-CanonicalAgentBody {
         if ($line -match '^#{1,6}\s+') { break }
         if ($line -match '^\s*$') { break }
         $cleaned = $line.Trim() -replace '^\s*>\s?', ''
-        $description = $cleaned.Trim()
-        break
+        if (-not [string]::IsNullOrWhiteSpace($cleaned)) {
+            $parts.Add($cleaned.Trim())
+        }
     }
+    $description = ($parts -join ' ').Trim()
 
     if ([string]::IsNullOrWhiteSpace($description)) {
         throw "Canonical agent file '$Path' has no description line."

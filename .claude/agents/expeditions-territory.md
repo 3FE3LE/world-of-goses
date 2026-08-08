@@ -1,7 +1,7 @@
 ---
 name: expeditions-territory
 description: >
-  Owns expeditions, encounters, retreat, return, parcels, and the
+  Owns expeditions, encounters, retreat, return, parcels, and the territorial state machine. Prevents one-way timers that yield resources.
 tools: Edit, Write, Read, Grep, Glob, Bash
 skills:
       - expeditions-territory
@@ -55,6 +55,17 @@ This agent has **mandatory** consultations, not optional:
 - `narrative-lore` for chronicle entries, dialogue, or lore.
 - `lineages-and-cultures` for per-lineage encounter modifiers. Refuse
   automatic multipliers.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The domain logic does not require
+  the engine.
+- `dotnet-testing` whenever an expedition or parcel test is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for performance work on
+  `OfflineProgression` catch-up.
+- `godot-presentation` only when the change touches the expedition
+  panel or the world map visual layer.
 
 ## Working procedure
 

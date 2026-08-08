@@ -2,7 +2,7 @@
 name: agent-expeditions-territory
 description: >
   expeditions-territory agent for World of Goses.
-  Owns expeditions, encounters, retreat, return, parcels, and the
+  Owns expeditions, encounters, retreat, return, parcels, and the territorial state machine. Prevents one-way timers that yield resources.
   Use when the task matches this agent's domain.
   Loads these skills on activation: expeditions-territory, core-game-vision, citizens-rpg, city-simulation, technical-foundation, narrative-lore, lineages-and-cultures.
 license: World of Goses project license
@@ -54,6 +54,17 @@ This agent has **mandatory** consultations, not optional:
 - `narrative-lore` for chronicle entries, dialogue, or lore.
 - `lineages-and-cultures` for per-lineage encounter modifiers. Refuse
   automatic multipliers.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task. The domain logic does not require
+  the engine.
+- `dotnet-testing` whenever an expedition or parcel test is added or
+  modified.
+- `dotnet-diagnostics` (on demand) for performance work on
+  `OfflineProgression` catch-up.
+- `godot-presentation` only when the change touches the expedition
+  panel or the world map visual layer.
 
 ## Working procedure
 

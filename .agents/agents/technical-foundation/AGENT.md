@@ -31,6 +31,18 @@
   `city-simulation`, `expeditions-territory`, `narrative-lore`,
   `presentation-experience`.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `godot-dotnet` whenever the implementation crosses into Godot
+  runtime code (a `[Export]`, a node lifecycle, a resource).
+- `godot-persistence` whenever persistence touches the Godot runtime
+  (file paths, `ResourceLoader` / `ResourceSaver`).
+- `dotnet-testing` whenever a test is added or modified; the adapter
+  delegates to the verified upstream .NET provider.
+- `dotnet-diagnostics` (on demand) for performance or GC analysis.
+- `repo-navigation` for every task. The default workflow is
+  symbol-first retrieval; if Serena is registered, prefer it.
+
 ## Working procedure
 
 1. Read `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.

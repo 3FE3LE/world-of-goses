@@ -34,6 +34,14 @@ adds latency and obscures ownership.
 - `core-game-vision` (mandatory).
 - The skill of every domain the task touches.
 
+## Technical capabilities (load via the local adapter layer)
+
+- `repo-navigation` for every task; the integrator should never read
+  the whole source tree.
+- `godot-dotnet` when the cross-domain work lands in C# runtime code.
+- `dotnet-testing` when a cross-domain test is required.
+- `vertical-slice-validation` whenever the active slice changes.
+
 ## Working procedure
 
 1. Read `docs/ai/CONTEXT_MAP.md` and identify every route that applies.

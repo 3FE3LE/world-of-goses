@@ -2,7 +2,7 @@
 name: agent-technical-foundation
 description: >
   technical-foundation agent for World of Goses.
-  Owns the technical architecture, the Godot/.NET boundary, C# and
+  Owns the technical architecture, the Godot/.NET boundary, C# and Godot conventions, persistence, schema versioning, migrations, determinism, offline progression, performance, and tests.
   Use when the task matches this agent's domain.
   Loads these skills on activation: technical-foundation, core-game-vision, citizens-rpg, city-simulation, expeditions-territory, narrative-lore, presentation-experience.
 license: World of Goses project license
@@ -44,6 +44,18 @@ metadata:
 - Every domain whose state is being changed: `citizens-rpg`,
   `city-simulation`, `expeditions-territory`, `narrative-lore`,
   `presentation-experience`.
+
+## Technical capabilities (load via the local adapter layer)
+
+- `godot-dotnet` whenever the implementation crosses into Godot
+  runtime code (a `[Export]`, a node lifecycle, a resource).
+- `godot-persistence` whenever persistence touches the Godot runtime
+  (file paths, `ResourceLoader` / `ResourceSaver`).
+- `dotnet-testing` whenever a test is added or modified; the adapter
+  delegates to the verified upstream .NET provider.
+- `dotnet-diagnostics` (on demand) for performance or GC analysis.
+- `repo-navigation` for every task. The default workflow is
+  symbol-first retrieval; if Serena is registered, prefer it.
 
 ## Working procedure
 

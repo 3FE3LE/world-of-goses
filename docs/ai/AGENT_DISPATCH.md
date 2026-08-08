@@ -8,6 +8,15 @@
 > This is not a replacement for [`CONTEXT_MAP.md`](CONTEXT_MAP.md). Use
 > `CONTEXT_MAP.md` to find the canonical docs and code; use this file to
 > pick the right agent from a free-form prompt.
+>
+> Routing contract: every agent lists its **primary** and **conditional**
+> skills under `.agents/agents/<id>/AGENT.md`. The local capability
+> adapter layer (godot-dotnet, godot-presentation, godot-persistence,
+> dotnet-testing, dotnet-diagnostics, repo-navigation) is loaded
+> conditionally and never duplicates a project-domain skill. Engine API
+> specifics are delegated to the verified upstream provider installed by
+> `Install-GodotDotNetSkills.ps1`; see
+> [`SKILL_MIGRATION.md`](SKILL_MIGRATION.md).
 
 ---
 
