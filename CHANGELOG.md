@@ -98,6 +98,54 @@ misma que la del rojo, ya comprobada, pero queda como comprobación manual, junt
 con el aplastamiento de los cortes cuando la razón de llenado es menor que los
 márgenes.
 
+## El linaje llega al panel por el tema, no rodeándolo
+
+**2026-08-07** · schema v32 (sin cambio) · EG-5
+
+Catorce superficies pedían su cromo de linaje llamando
+`AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(...))` sobre sí
+mismas. Eso costaba tres cosas: un override local gana al tema, así que
+`default_theme.tres` **no era** la autoridad visual que dice ser; casi todas lo
+aplicaban una vez en `_Ready` y nunca más, de modo que cambiar de linaje a media
+sesión las dejaba mostrando el anterior; y eran catorce oportunidades de hacerlo
+distinto.
+
+El motivo por el que *tenían* que sobrescribir es más aburrido de lo que parece: el
+tema registraba `Panel` —el control `Panel`— pero **nunca registró
+`PanelContainer`**, que es lo que estas superficies son en realidad. Un
+`PanelContainer` pelado caía al stylebox gris del motor, y sobrescribir era la
+única forma de parecerse al proyecto. Ya está registrado.
+
+### Connected
+
+- **`Ui/LineageThemePainter`.** Escribe la superficie del linaje activo en
+  `PanelContainer`, `Panel` y `PanelCard` del tema del proyecto cuando el linaje
+  cambia. `AssignmentPanel` y `ProductionPanel` dejan de sobrescribir y de
+  suscribirse a `LineageChanged`: reciben exactamente el mismo stylebox que antes,
+  ahora por el tema.
+- **Solo los ocho linajes reales reciben marco de linaje.** Pedirle al registro
+  cualquier otra cosa devuelve su *fallback*, `slate_raised_dark` —la textura de
+  botón elevado, último recurso para que ninguna superficie quede sin estilo—. No
+  es una superficie de tarjeta, y pintarla sobre `PanelCard` sustituía el composite
+  autoral por pizarra de medio tono. **Medido, no supuesto:** movía el marco del
+  rail de `(158,135,92)` a `(161,192,202)`. Con el linaje `default` el composite se
+  conserva intacto.
+- **Los márgenes de contenido se normalizan, no se heredan.** Los assets de linaje
+  traen 8/7 y la tarjeta neutra 14/12. Un tema de linaje puede cambiar paleta,
+  bordes, esquinas y rellenos; los invariantes le prohíben cambiar tamaños mínimos,
+  y el padding es layout.
+
+Quedan tres overrides del patrón, a propósito: `ConstructionPanel` es un
+`OverlayPanel` y quitárselo cambiaría cómo se leen los modales; `CityStatusPanel`
+muta los márgenes de contenido para la HUD compacta.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **973 / 974** (1 omitido conocido).
+Arranque headless limpio. Contexto de agentes 448/448. Localización 922/283. La
+ciudad guardada es Vaelun, así que la captura de `macro-current` muestra el rail con
+el marco de Vaelun llegado por el tema — que es justamente la función.
+
 ## Las acciones de colocación dejan de flotar sobre el mundo
 
 **2026-08-07** · schema v32 (sin cambio) · EG-5

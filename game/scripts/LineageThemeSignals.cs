@@ -20,6 +20,9 @@ public partial class LineageThemeSignals : Node
     {
         LineageThemeRegistry.ActiveLineageChanged += OnLineageChanged;
         LineageThemeRegistry.FallbackUsed += OnFallbackUsed;
+        // Paint once at startup so surfaces built before any lineage exists still
+        // read from the theme rather than from the engine's default grey.
+        Ui.LineageThemePainter.Repaint(LineageThemeRegistry.ActiveLineage);
     }
 
     public override void _ExitTree()
@@ -35,6 +38,9 @@ public partial class LineageThemeSignals : Node
 
     private void OnLineageChanged(string lineage)
     {
+        // Repaint before the signal goes out: a subscriber that re-reads a themed
+        // stylebox in its handler must not see the previous lineage's surface.
+        Ui.LineageThemePainter.Repaint(lineage);
         EmitSignal(SignalName.LineageChanged, lineage);
     }
 

@@ -133,6 +133,7 @@ OverlayPanel/styles/panel = ExtResource("26_panel_elevated")
 Panel/styles/panel = ExtResource("25_panel_card")
 PanelCard/base_type = &"PanelContainer"
 PanelCard/styles/panel = ExtResource("25_panel_card")
+PanelContainer/styles/panel = ExtResource("25_panel_card")
 PanelTitle/base_type = &"Label"
 PanelTitle/colors/font_color = Color(0.96, 0.93, 0.86, 1)
 PanelTitle/font_sizes/font_size = 26

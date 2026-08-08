@@ -30,7 +30,6 @@ public partial class AssignmentPanel : PanelContainer
     private ScrollContainer _availableScroll = null!;
     private ScrollContainer _unavailableScroll = null!;
     private Label _unavailableHeader = null!;
-    private LineageThemeSignals? _themeSignals;
 
     public override void _Ready()
     {
@@ -42,12 +41,9 @@ public partial class AssignmentPanel : PanelContainer
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
         AddChild(_root);
-        AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
-        _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
-        if (_themeSignals is not null)
-        {
-            _themeSignals.LineageChanged += OnLineageChanged;
-        }
+        // The panel surface arrives through the theme: this node's PanelCard
+        // variation is repainted per lineage by LineageThemePainter, so there is
+        // nothing to override here and nothing to re-apply on a lineage change.
 
         var header = new Label
         {
@@ -103,13 +99,6 @@ public partial class AssignmentPanel : PanelContainer
         return scroll;
     }
 
-    public override void _ExitTree()
-    {
-        if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
-    }
-
-    private void OnLineageChanged(string lineage) => AddThemeStyleboxOverride(
-        "panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
     public void Refresh(BuildingDetailSnapshot snapshot)
     {

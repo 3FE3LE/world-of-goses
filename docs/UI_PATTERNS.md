@@ -322,11 +322,36 @@ bottom border, and a four-sided frame would draw borders down the
 screen edges. See `ASSET_INVENTORY.md` for why a raw pack tile cannot
 serve as a panel here.
 
-**A theme variation is not the last word on a panel's appearance.** 17 of
-the 24 `AddThemeStyleboxOverride` calls in the repository push
-`LineageThemeRegistry.GetStyleBox("panel")` onto a `PanelContainer`, and a
-local override beats the theme. Before concluding that a surface is
-themed, check whether its script overrides it.
+**Lineage identity arrives through the theme, not around it.**
+`Ui/LineageThemePainter` writes the active lineage's panel surface into
+`PanelContainer`, `Panel` and `PanelCard` on the project theme whenever
+the lineage changes, so a panel needs no override to carry lineage
+identity and cannot go stale when the lineage changes mid-session.
+
+The reason so many panels used to override is duller than it looks: the
+theme registered `Panel` — the `Panel` *control* — but never
+`PanelContainer`, which is what these surfaces actually are. A bare
+`PanelContainer` fell through to the engine's grey stylebox, so
+overriding was the only way to look like the project at all. It is
+registered now.
+
+Two things the painter must keep doing, both learned by measuring:
+
+- **Only the eight real lineages get a lineage frame.** Asking the
+  registry for anything else returns its *fallback*,
+  `slate_raised_dark` — the raised button texture, a last resort so a
+  surface is never unstyled. It is not a card surface, and painting it
+  over `PanelCard` replaced the authored composite with mid-tone slate.
+- **Content margins are normalised, not inherited.** The lineage assets
+  carry 8/7 and the neutral card 14/12. Lineage themes may change
+  palette, borders, corners and fills; the invariants forbid them
+  changing minimum sizes, and padding is layout.
+
+Some overrides remain — `ConstructionPanel` (an `OverlayPanel`, so
+dropping its override would change how modals read), `CityStatusPanel`
+(mutates content margins for the compact HUD), and the inline
+non-lineage ones. Before concluding a surface is themed, check whether
+its script overrides it.
 
 `PanelAction`, `PanelIdle` and `PanelWarning` were removed on
 2026-08-07: all three resolved to the *same* stylebox as `PanelCard`
