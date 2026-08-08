@@ -98,7 +98,7 @@ public partial class AstralOnboardingView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        shell.AddThemeConstantOverride("separation", 12);
+        shell.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         safe.AddChild(shell);
 
         _progress = NewLabel("SectionTitle", HorizontalAlignment.Center);
@@ -108,7 +108,7 @@ public partial class AstralOnboardingView : Control
             Alignment = BoxContainer.AlignmentMode.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _fragments.AddThemeConstantOverride("separation", 8);
+        _fragments.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         shell.AddChild(_fragments);
 
         // The two spacers are the structural reason this view no longer
@@ -155,7 +155,7 @@ public partial class AstralOnboardingView : Control
             Alignment = BoxContainer.AlignmentMode.End,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _footer.AddThemeConstantOverride("separation", 10);
+        _footer.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         shell.AddChild(_footer);
         _back = StandardButtons.NavigationButton(TrKey("ui.onboarding.back"));
         _next = StandardButtons.NavigationButton(TrKey("ui.onboarding.stabilise"));

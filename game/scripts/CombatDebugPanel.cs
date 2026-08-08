@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections.Generic;
 using Godot;
+using WorldofGoses.Ui;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
 using WorldofGoses.Presentation;
@@ -60,14 +61,14 @@ public partial class CombatDebugPanel : Control
         surface.AddChild(margin);
 
         var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", 8);
+        layout.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         margin.AddChild(layout);
 
         var title = new Label { Text = "Combat expedition — debug", ThemeTypeVariation = "ScreenTitle" };
         layout.AddChild(title);
 
         var controls = new HBoxContainer();
-        controls.AddThemeConstantOverride("separation", 8);
+        controls.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         layout.AddChild(controls);
 
         _route = new OptionButton();

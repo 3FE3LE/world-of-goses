@@ -32,7 +32,7 @@ public partial class PanelHeader : HBoxContainer
     public override void _Ready()
     {
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        AddThemeConstantOverride("separation", 12);
+        AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
 
         _title = new Label
         {

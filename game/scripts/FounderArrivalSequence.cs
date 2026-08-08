@@ -134,7 +134,7 @@ public partial class FounderArrivalSequence : Control
         margin.AddThemeConstantOverride("margin_bottom", 22);
         _card.AddChild(margin);
         var content = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
-        content.AddThemeConstantOverride("separation", 8);
+        content.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         margin.AddChild(content);
         content.AddChild(LabelFor(founder.Name.ToUpperInvariant(), "ScreenTitle"));
         content.AddChild(LabelFor(

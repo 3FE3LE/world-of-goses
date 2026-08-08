@@ -259,7 +259,7 @@ public partial class BuildingDetailView : Control
 	{
 		if (_townHallPanel is not null) return;
 		var layout = new VBoxContainer();
-		layout.AddThemeConstantOverride("separation", 12);
+		layout.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
 		_prospectLabel = new Label
 		{
 			ThemeTypeVariation = "BodyText",
@@ -356,7 +356,7 @@ public partial class BuildingDetailView : Control
 		_craftAxeButton.CustomMinimumSize = new Vector2(0, 44);
 		_craftAxeButton.Pressed += OnCraftPrimitiveAxe;
 		var layout = new VBoxContainer();
-		layout.AddThemeConstantOverride("separation", 8);
+		layout.AddThemeConstantOverride("separation", Tokens.SpacingBase);
 		layout.AddChild(_homeSummaryLabel);
 		_shelterResourcesPanel = new ResourceInventoryPanel();
 		layout.AddChild(_shelterResourcesPanel);

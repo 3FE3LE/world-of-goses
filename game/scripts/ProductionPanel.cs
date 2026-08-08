@@ -57,7 +57,7 @@ public partial class ProductionPanel : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             Alignment = BoxContainer.AlignmentMode.Center,
         };
-        stockRow.AddThemeConstantOverride("separation", 8);
+        stockRow.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         root.AddChild(stockRow);
 
         _stockLabel = new Label { Text = string.Empty };
@@ -109,7 +109,7 @@ public partial class ProductionPanel : PanelContainer
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             Alignment = BoxContainer.AlignmentMode.Center,
         };
-        policyRow.AddThemeConstantOverride("separation", 12);
+        policyRow.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         root.AddChild(policyRow);
 
         _minStockBox = BuildPolicyBox("Min");
@@ -135,7 +135,7 @@ public partial class ProductionPanel : PanelContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        column.AddThemeConstantOverride("separation", 4);
+        column.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         var label = new Label
         {
             Text = caption,

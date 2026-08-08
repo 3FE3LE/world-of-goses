@@ -27,7 +27,7 @@ public partial class ResourceInventoryPanel : PanelContainer
             LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
 
         var shell = new VBoxContainer();
-        shell.AddThemeConstantOverride("separation", 8);
+        shell.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         AddChild(shell);
 
         _toggle.ThemeTypeVariation = "ButtonText";
@@ -42,7 +42,7 @@ public partial class ResourceInventoryPanel : PanelContainer
         _capacity.AddThemeColorOverride("font_color", LineageThemeRegistry.IconAccent);
         shell.AddChild(_capacity);
 
-        _rows.AddThemeConstantOverride("separation", 4);
+        _rows.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         shell.AddChild(_rows);
         ApplyExpandedState();
     }
@@ -77,7 +77,7 @@ public partial class ResourceInventoryPanel : PanelContainer
             CustomMinimumSize = new Vector2(0, RowHeight),
             MouseFilter = MouseFilterEnum.Pass,
         };
-        row.AddThemeConstantOverride("separation", 8);
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         row.AddChild(new ResourceIcon(item.Resource));
         row.AddChild(new Label
         {

@@ -54,7 +54,7 @@ public partial class FounderCardPanel : PanelContainer
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
 
         var body = new VBoxContainer();
-        body.AddThemeConstantOverride("separation", 8);
+        body.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         AddChild(body);
 
         LineageDefinition lineage = ProfileCatalog.Get(result.Lineage);
@@ -129,7 +129,7 @@ public partial class FounderCardPanel : PanelContainer
     private static void AddPair(Container parent, string label, string value, string? qualifier)
     {
         var row = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 10);
+        row.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         parent.AddChild(row);
 
         // A fixed gutter for the label keeps the values of successive rows on

@@ -68,10 +68,10 @@ public partial class Notifier : Node
         align.AddChild(_panel);
 
         var padding = new MarginContainer();
-        padding.AddThemeConstantOverride("margin_left", 16);
-        padding.AddThemeConstantOverride("margin_right", 16);
-        padding.AddThemeConstantOverride("margin_top", 10);
-        padding.AddThemeConstantOverride("margin_bottom", 10);
+        padding.AddThemeConstantOverride("margin_left", Tokens.SpacingWide);
+        padding.AddThemeConstantOverride("margin_right", Tokens.SpacingWide);
+        padding.AddThemeConstantOverride("margin_top", Tokens.SpacingRelaxed);
+        padding.AddThemeConstantOverride("margin_bottom", Tokens.SpacingRelaxed);
         _panel.AddChild(padding);
 
         _label = new Label

@@ -64,7 +64,7 @@ public partial class CubeAxisBar : HBoxContainer
 
         CustomMinimumSize = new Vector2(0, RowHeight);
         MouseFilter = MouseFilterEnum.Ignore;
-        AddThemeConstantOverride("separation", 8);
+        AddThemeConstantOverride("separation", Tokens.SpacingBase);
 
         _leftName = AddLabel("BodySmall", HorizontalAlignment.Right, NameWidth);
         _leftValue = AddLabel("NumericText", HorizontalAlignment.Right, ValueWidth);

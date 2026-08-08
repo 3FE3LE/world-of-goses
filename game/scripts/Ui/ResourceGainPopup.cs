@@ -68,7 +68,7 @@ public partial class ResourceGainPopup : Node2D
             Position = new Vector2(-28, -20),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        content.AddThemeConstantOverride("separation", 4);
+        content.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         AddChild(content);
 
         var icon = new ResourceIcon(resource)

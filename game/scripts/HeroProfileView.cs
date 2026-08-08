@@ -61,7 +61,7 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        shell.AddThemeConstantOverride("separation", 12);
+        shell.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         margin.AddChild(shell);
 
         var header = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
@@ -89,7 +89,7 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        columns.AddThemeConstantOverride("separation", 20);
+        columns.AddThemeConstantOverride("separation", Tokens.SpacingSection);
         shell.AddChild(columns);
 
         _splash = new TextureRect
@@ -132,10 +132,10 @@ public partial class HeroProfileView : Control
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        contentMargin.AddThemeConstantOverride("margin_left", 8);
-        contentMargin.AddThemeConstantOverride("margin_right", 20);
-        contentMargin.AddThemeConstantOverride("margin_top", 8);
-        contentMargin.AddThemeConstantOverride("margin_bottom", 8);
+        contentMargin.AddThemeConstantOverride("margin_left", Tokens.SpacingBase);
+        contentMargin.AddThemeConstantOverride("margin_right", Tokens.SpacingSection);
+        contentMargin.AddThemeConstantOverride("margin_top", Tokens.SpacingBase);
+        contentMargin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingBase);
         scroll.AddChild(contentMargin);
 
         _content = new VBoxContainer
@@ -143,7 +143,7 @@ public partial class HeroProfileView : Control
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
-        _content.AddThemeConstantOverride("separation", 10);
+        _content.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         contentMargin.AddChild(_content);
     }
 
@@ -329,7 +329,7 @@ public partial class HeroProfileView : Control
             MouseFilter = Control.MouseFilterEnum.Ignore,
             SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
         };
-        row.AddThemeConstantOverride("separation", 10);
+        row.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         _content.AddChild(row);
 
         var icon = new TextureRect
@@ -375,7 +375,7 @@ public partial class HeroProfileView : Control
             MouseFilter = Control.MouseFilterEnum.Ignore,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        row.AddThemeConstantOverride("separation", 10);
+        row.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
         _content.AddChild(row);
 
         var icon = new TextureRect

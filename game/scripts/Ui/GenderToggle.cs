@@ -69,7 +69,7 @@ public partial class GenderToggle : HBoxContainer
 
         Alignment = AlignmentMode.Center;
         SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
-        AddThemeConstantOverride("separation", 8);
+        AddThemeConstantOverride("separation", Tokens.SpacingBase);
 
         var group = new ButtonGroup();
         foreach (GenderId id in new[] { GenderId.Feminine, GenderId.Masculine })
