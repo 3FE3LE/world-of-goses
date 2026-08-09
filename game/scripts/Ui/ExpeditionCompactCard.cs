@@ -27,38 +27,41 @@ public partial class ExpeditionCompactCard : PanelContainer
         content.AddThemeConstantOverride("separation", Tokens.SpacingTight);
         AddChild(content);
 
+        // Identity row: leading glyph (resource or backpack fallback) +
+        // destination name as the action surface. The card stays click-
+        // through to the planning panel; the action button is the only
+        // interactive cell, so the rest of the card is informational.
+        var identity = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
+        identity.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        content.AddChild(identity);
+
+        var iconCell = new MarginContainer
+        {
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.HudRowHeight),
+            MouseFilter = MouseFilterEnum.Ignore,
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        };
+        iconCell.AddThemeConstantOverride("margin_top", 1);
+        identity.AddChild(iconCell);
+        iconCell.AddChild(ExpeditionIcon.Leading(item));
+
         DetailsButton = new IconButton
         {
-            IconPath = IconPaths.Leaf,
             ButtonText = localizedDisplayName,
             ShowLabel = true,
             ThemeTypeVariation = "HudButton",
             TooltipText = UiText.Format(
-                "ui.expedition_rail.details_tooltip",
-                localizedDisplayName),
+                "ui.expedition_rail.members_tooltip",
+                item.MemberCount,
+                item.MemberNames.Count == 0
+                    ? UiText.Get("ui.expedition_rail.members_unknown")
+                    : string.Join(", ", item.MemberNames)),
             FocusMode = FocusModeEnum.All,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             ClipText = true,
         };
         DetailsButton.Pressed += OnDetailsPressed;
-        content.AddChild(DetailsButton);
-
-        string names = item.MemberNames.Count == 0
-            ? UiText.Get("ui.expedition_rail.members_unknown")
-            : string.Join(", ", item.MemberNames);
-        var members = new Label
-        {
-            Text = UiText.Format(
-                item.MemberCount == 1
-                    ? "ui.expedition_rail.members.one"
-                    : "ui.expedition_rail.members.many",
-                item.MemberCount,
-                names),
-            ThemeTypeVariation = "HudCaption",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        content.AddChild(members);
+        identity.AddChild(DetailsButton);
 
         var facts = new HBoxContainer { MouseFilter = MouseFilterEnum.Pass };
         facts.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
@@ -68,13 +71,9 @@ public partial class ExpeditionCompactCard : PanelContainer
         facts.AddChild(StatChip.HudIconValue(item.SupplyResource, item.SupplyAmount.ToString()));
         content.AddChild(facts);
 
-        var phase = new Label
-        {
-            Text = PhaseText(item.Phase),
-            ThemeTypeVariation = "HudCaption",
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        content.AddChild(phase);
+        content.AddChild(new HudStateBadge(
+            HudStateBadge.IconFor(item.Phase),
+            PhaseText(item.Phase)));
         content.AddChild(new HudProgressBar(item.Progress(currentTick), showPercent: true));
 
         if (item.CanCancel)

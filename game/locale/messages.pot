@@ -1522,10 +1522,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -2174,6 +2174,12 @@ msgid "ui.expedition_rail.cancel_tooltip"
 msgstr ""
 
 msgid "ui.expedition_rail.details_tooltip"
+msgstr ""
+
+msgid "ui.expedition_rail.header"
+msgstr ""
+
+msgid "ui.expedition_rail.members_tooltip"
 msgstr ""
 
 msgid "ui.expedition_rail.members_unknown"

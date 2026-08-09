@@ -2850,6 +2850,9 @@ msgstr "People"
 msgid "ui.expedition_rail.title"
 msgstr "EXPEDITIONS"
 
+msgid "ui.expedition_rail.header"
+msgstr "EXPEDITIONS · {0}"
+
 msgid "ui.expedition_rail.active"
 msgstr "ACTIVE"
 
@@ -2873,6 +2876,9 @@ msgstr "Open the full Chronicle"
 
 msgid "ui.expedition_rail.details_tooltip"
 msgstr "Open expedition details for {0}"
+
+msgid "ui.expedition_rail.members_tooltip"
+msgstr "{0} member(s): {1}"
 
 msgid "ui.expedition_rail.members_unknown"
 msgstr "Unknown members"

@@ -204,6 +204,31 @@ public partial class HudComponentShowcase : Control
         });
         column.AddChild(badgeRow);
 
+        // State badge: every phase of an expedition, glyph + label.
+        // Each row uses the same authoring path the compact card uses,
+        // so a future expedition screen can compose the same chip without
+        // a second design system.
+        column.AddChild(new HudSectionHeader("STATE BADGE", "6"));
+        var stateBadgeStack = Stack(Tokens.SpacingTight);
+        foreach (ExpeditionPhase phase in new[]
+                 {
+                     ExpeditionPhase.Outbound,
+                     ExpeditionPhase.Encounter,
+                     ExpeditionPhase.Objective,
+                     ExpeditionPhase.Returning,
+                     ExpeditionPhase.Retreating,
+                     ExpeditionPhase.Resolved,
+                 })
+        {
+            stateBadgeStack.AddChild(new HudStateBadge(
+                HudStateBadge.IconFor(phase),
+                PhaseLabel(phase)));
+        }
+        column.AddChild(stateBadgeStack);
+        column.AddChild(Caption(
+            "Phase carried by a glyph plus a localized word — colour is "
+            + "never the only signal."));
+
         // The sixth state. Unlike the other five it is not a stylebox a control
         // switches into — every primitive expresses it differently, and each one has
         // to prove it does so without relying on colour.
@@ -243,6 +268,21 @@ public partial class HudComponentShowcase : Control
         if (stylebox is not null) button.AddThemeStyleboxOverride("normal", stylebox);
         return button;
     }
+
+    /// <summary>
+    /// Localized label for a phase, mirroring <see cref="ExpeditionCompactCard.PhaseText"/>.
+    /// The showcase intentionally uses literals to keep the developer
+    /// surface free of <see cref="UiText"/> keys.
+    /// </summary>
+    private static string PhaseLabel(ExpeditionPhase phase) => phase switch
+    {
+        ExpeditionPhase.Outbound => "Outbound",
+        ExpeditionPhase.Encounter => "Encounter",
+        ExpeditionPhase.Objective => "At objective",
+        ExpeditionPhase.Returning => "Returning",
+        ExpeditionPhase.Retreating => "Retreating",
+        _ => "Resolved",
+    };
 
     /// <summary>
     /// Every <see cref="ResourceType"/> in canonical priority order, with the
@@ -463,6 +503,18 @@ public partial class HudComponentShowcase : Control
             CanCancel: false),
             currentTick: GameClock.TicksPerInGameDay));
 
+        // The reuse proofs: five fixture-only compositions built from the
+        // existing primitives. Each one is what a future dedicated
+        // expedition screen might render without inventing a second
+        // design system. Strings are literals — this is a developer
+        // surface, not a player-facing catalog.
+        column.AddChild(new HudSectionHeader("EXPEDITION REUSE PATTERNS"));
+        column.AddChild(BuildExpeditionMemberCard());
+        column.AddChild(BuildRouteNodeRow());
+        column.AddChild(BuildDecisionOptionRow());
+        column.AddChild(BuildBestiarySummaryCard());
+        column.AddChild(BuildRewardItemCard());
+
         column.AddChild(new HudSectionHeader("TYPE SCALE"));
         var type = Stack();
         foreach ((string variation, string sample) in new[]
@@ -481,5 +533,157 @@ public partial class HudComponentShowcase : Control
         column.AddChild(Caption("14 px is unapproved until it is read here at 1280x720."));
 
         return column;
+    }
+
+    // ── Expedition reuse patterns ──────────────────────────────────────────
+    //
+    // Five fixture-only compositions built from the existing primitives.
+    // Each one is what a future dedicated expedition screen might
+    // render without inventing a second design system. Strings are
+    // literals — this is a developer surface, not a player-facing
+    // catalog.
+
+    /// <summary>
+    /// The hero / member card. A HudCard with a leading resource icon,
+    /// the member name, and one HudMetricRow for role and one for state.
+    /// Composed from HudCard + HudMetricRow + ResourceIcon.
+    /// </summary>
+    private static Control BuildExpeditionMemberCard()
+    {
+        var body = Stack(Tokens.SpacingTight);
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        row.AddChild(new ResourceIcon(ResourceType.Food)
+        {
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(new Label
+        {
+            Text = "Aster",
+            ThemeTypeVariation = "HudHeader",
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
+        row.AddChild(new HudStateBadge(
+            IconPaths.Shield, "Leader"));
+        body.AddChild(row);
+        body.AddChild(new HudMetricRow("Rol", "exploradora"));
+        body.AddChild(new HudMetricRow("Herida", "ninguna"));
+        return Surface("HudCard", body);
+    }
+
+    /// <summary>
+    /// A route / waypoint row. Target glyph + name + state badge + a
+    /// progress bar. Composed from HBoxContainer + ResourceIcon +
+    /// HudStateBadge + HudProgressBar.
+    /// </summary>
+    private static Control BuildRouteNodeRow()
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        row.AddChild(new ResourceIcon(ResourceType.Wood)
+        {
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(new Label
+        {
+            Text = "Sendero del espíritu",
+            ThemeTypeVariation = "HudBody",
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
+        row.AddChild(new HudStateBadge(
+            HudStateBadge.IconFor(ExpeditionPhase.Objective),
+            PhaseLabel(ExpeditionPhase.Objective)));
+        row.AddChild(new HudProgressBar(0.5, showPercent: true));
+        return row;
+    }
+
+    /// <summary>
+    /// A decision option. An IconButton with a selectable state, the
+    /// same contract the planning panel's posture buttons already use.
+    /// Composed from IconButton with HudButtonSelected. Proves that the
+    /// existing button primitive is sufficient for 2–4 way choices — no
+    /// bespoke DecisionTray widget is needed for the showcase.
+    /// </summary>
+    private static Control BuildDecisionOptionRow()
+    {
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        var confirm = new IconButton
+        {
+            IconPath = IconPaths.Check,
+            ButtonText = "Confirmar",
+            ShowLabel = true,
+            ThemeTypeVariation = "HudButtonSelected",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        var alt = new IconButton
+        {
+            IconPath = IconPaths.Warning,
+            ButtonText = "Retirada",
+            ShowLabel = true,
+            ThemeTypeVariation = "HudButton",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        row.AddChild(confirm);
+        row.AddChild(alt);
+        return row;
+    }
+
+    /// <summary>
+    /// A bestiary summary card. HudCard with an icon, a name, and two
+    /// HudMetricRows (threat and stats). Composed from HudCard +
+    /// ResourceIcon + HudMetricRow.
+    /// </summary>
+    private static Control BuildBestiarySummaryCard()
+    {
+        var body = Stack(Tokens.SpacingTight);
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        row.AddChild(new ResourceIcon(ResourceType.Iron)
+        {
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(new Label
+        {
+            Text = "Jabalí del bosque",
+            ThemeTypeVariation = "HudHeader",
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
+        body.AddChild(row);
+        body.AddChild(new HudMetricRow("Amenaza", "media", IconPaths.Shield));
+        body.AddChild(new HudMetricRow("Botín", "+12 alimento", IconPaths.Coin));
+        return Surface("HudCard", body);
+    }
+
+    /// <summary>
+    /// A reward item card. HudCard with a ResourceIcon, the amount, and
+    /// a label. Composed from HudCard + ResourceIcon + HudMetricRow.
+    /// </summary>
+    private static Control BuildRewardItemCard()
+    {
+        var body = Stack(Tokens.SpacingTight);
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        row.AddChild(new ResourceIcon(ResourceType.Stone)
+        {
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        });
+        row.AddChild(new Label
+        {
+            Text = "Piedra",
+            ThemeTypeVariation = "HudBody",
+            VerticalAlignment = VerticalAlignment.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        });
+        body.AddChild(row);
+        body.AddChild(new HudMetricRow("Cantidad", "+18"));
+        return Surface("HudCard", body);
     }
 }

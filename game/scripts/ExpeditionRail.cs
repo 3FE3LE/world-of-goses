@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses;
@@ -19,6 +20,8 @@ public partial class ExpeditionRail : PanelContainer
     private CityWorldController _controller = null!;
     private ExpeditionPanel _expeditionPanel = null!;
     private LocaleManager _localeManager = null!;
+    private CollapsiblePanelHeader _header = null!;
+    private VBoxContainer _body = null!;
     private VBoxContainer _content = null!;
     private VBoxContainer _expeditionContent = null!;
     private ChroniclePanel _chronicle = null!;
@@ -34,6 +37,14 @@ public partial class ExpeditionRail : PanelContainer
     public bool ChronicleExpanded => _chronicle.Expanded;
     public ExpeditionId? FirstExpeditionId { get; private set; }
 
+    /// <summary>
+    /// Whether the whole rail is folded. Ephemeral: the rail is a HUD
+    /// surface and the player's fold preference belongs to the session,
+    /// not to the save. The chronicle owns its own internal toggle for
+    /// compact-vs-full and is unaffected by this flag.
+    /// </summary>
+    public bool Expanded => _header is null || _header.Expanded;
+
     public override void _Ready()
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
@@ -41,6 +52,31 @@ public partial class ExpeditionRail : PanelContainer
         _controller = GetNode<CityWorldController>(ControllerPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
+
+        // The whole rail is a VBox with the CollapsiblePanelHeader on top
+        // and the scrollable body underneath. Hiding the body is what
+        // collapses the rail; the chronicle's internal toggle continues
+        // to work independently inside the body when the body is shown.
+        var layout = new VBoxContainer
+        {
+            MouseFilter = MouseFilterEnum.Pass,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        layout.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        AddChild(layout);
+
+        _header = new CollapsiblePanelHeader(UiText.Get("ui.expedition_rail.title"));
+        _header.ExpandedChanged += expanded => _body.Visible = expanded;
+        layout.AddChild(_header);
+
+        _body = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        _body.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        layout.AddChild(_body);
 
         _scroll = new ScrollContainer
         {
@@ -51,7 +87,7 @@ public partial class ExpeditionRail : PanelContainer
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         _scroll.GuiInput += OnScrollGuiInput;
-        AddChild(_scroll);
+        _body.AddChild(_scroll);
 
         _content = new VBoxContainer
         {
@@ -154,6 +190,17 @@ public partial class ExpeditionRail : PanelContainer
         ShowOfflineReport(report);
     }
 
+    /// <summary>
+    /// Forces the rail collapsed or expanded for visual-regression
+    /// fixtures. Not part of the public contract; the player toggles
+    /// the rail through the header itself.
+    /// </summary>
+    internal void SetExpandedForVisualRegression(bool expanded)
+    {
+        if (_header is null) return;
+        _header.Expanded = expanded;
+    }
+
     private void OnWorldTickAdvanced(int _) => RequestRefresh();
     private void OnExpeditionStateChanged(int _) => RequestRefresh();
     private void OnStateChanged(int _) => RequestRefresh();
@@ -192,7 +239,18 @@ public partial class ExpeditionRail : PanelContainer
         FirstCancelButton = null;
         FirstExpeditionId = null;
 
-        _expeditionContent.AddChild(new HudSectionHeader(UiText.Get("ui.expedition_rail.title")));
+        // Header trailing count: active expeditions when there are any,
+        // otherwise the chronicle's compacted visible row count so the
+        // header still signals "there is something to read" when the
+        // city is quiet but the chronicle has history.
+        int headerCount = _snapshot.ActiveExpeditions.Count > 0
+            ? _snapshot.ActiveExpeditions.Count
+            : ChronicleEventProjection.Compact(
+                ChronicleEventProjection.MeaningfulEvents(_snapshot.Events)).Count;
+        _header.Text = UiText.Format(
+            "ui.expedition_rail.header",
+            headerCount.ToString());
+
         _expeditionContent.AddChild(new HudSectionHeader(
             UiText.Get("ui.expedition_rail.active"),
             _snapshot.ActiveExpeditions.Count.ToString()));

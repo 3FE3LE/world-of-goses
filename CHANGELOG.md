@@ -62,6 +62,82 @@ una expedición no se toma a ciegas.
 
 ---
 
+## El panel de expediciones se dobla y deja de ahogar la pantalla, y sus piezas ya sirven a la futura pantalla de expediciones
+
+**2026-08-09** · schema v32 (sin cambio) · presentación
+
+Lo que se nota: la columna derecha del HUD macro, donde vive la lista de
+expediciones en curso y la crónica, ahora se cierra como cualquier otro
+panel del HUD. Cuando está plegada deja sólo el encabezado `EXPEDICIONES ·
+N` con un chevron — la ciudad se queda con el mundo visible sin perder
+el indicador de que hay algo pasando. Cada tarjeta de expedición ya no
+imprime la lista entera de miembros (`Aster, Lira, ...`) en su cuerpo;
+los nombres sobreviven sólo dentro del tooltip del botón "detalles". La
+fase (`Outbound`, `Encounter`, etc.) ya no es una línea de texto suelta
+sino un chip con glifo a la izquierda y la palabra localizada a la
+derecha, igual que las superficies que ya reutilizan `HudBadge` y los
+nuevos `HudStateBadge`. La hoja se cierra con el mismo gesto que el panel
+de la ciudad; el estado del pliegue es efímero (no se guarda).
+
+### Estructural (S)
+
+- El rail pasa a ser un `VBoxContainer` con un `CollapsiblePanelHeader`
+  en la parte superior; el cuerpo plegable contiene las tarjetas y la
+  crónica. La crónica mantiene su propio pliegue interno
+  (compact/full) — no se fusiona con el pliegue del rail, sino que se
+  oculta junto con él cuando el rail se cierra.
+- La cabecera del pliegue carga el formato `ui.expedition_rail.header`
+  con un conteo: expediciones activas cuando hay alguna, filas
+  compactadas de la crónica cuando la ciudad está en calma.
+- El pliegue del rail es efímero: nada se serializa en `WorldSave`, ni
+  en `EditorPrefs` ni en `ConfigFile`. La preferencia del jugador
+  pertenece a la sesión, no a la partida guardada.
+- `ExpeditionIcon.Leading(item)` resuelve el glifo de identidad a partir
+  del `SupplyResource` del snapshot, reusando `ResourceIcon` (mismo
+  mapeo que la barra superior y el panel de la ciudad). No se inventa
+  ningún `biomeId` ni se accede al `RewardResource` — el snapshot no
+  lo expone, y ampliarlo tocaría el dominio.
+- `HudStateBadge` se añade como widget reutilizable (no sólo para
+  expediciones) con la única responsabilidad de llevar glifo + etiqueta.
+  Su mapa `IconFor(ExpeditionPhase)` vive como fuente única que usan
+  la tarjeta, el showcase y los tests. `Outbound` y `Resolved` comparten
+  marca de verificación a propósito; `Returning` y `Retreating`
+  comparten flecha — la palabra localizada distingue las dos.
+
+### Iteración visual (V)
+
+- Tarjeta compacta: la identidad (recurso + nombre) sustituye al
+  `Leaf` genérico. La fase pasa de `Label "HudCaption"` a `HudStateBadge`
+  con glifo. Los miembros se eliminan del cuerpo y pasan al tooltip del
+  botón "detalles" con la clave `ui.expedition_rail.members_tooltip`.
+- Se conserva `StatChip.HudIconValue` para tiempo restante y suministros,
+  `HudProgressBar` para el avance, y el botón cancelar cuando
+  `CanCancel` lo permite.
+- El showcase (`HudComponentShowcase`) gana una sección `STATE BADGE`
+  con las seis fases, y un bloque `EXPEDITION REUSE PATTERNS` con cinco
+  composiciones sólo visuales: `ExpeditionMemberCard`, `RouteNode`,
+  `DecisionOption`, `BestiarySummaryCard`, `RewardItemCard`. Cada una
+  está construida con `HudCard` + `HudMetricRow` + `HudProgressBar` +
+  `IconButton` + `ResourceIcon` — ningún widget nuevo dedicado a
+  expediciones. La composición prueba que `DecisionTray` no hace falta:
+  las decisiones de 2-4 vías se cubren con `IconButton` + `HudButton`
+  / `HudButtonSelected` que ya usa el panel de planificación.
+
+### Tests
+
+- Nuevos guardas estructurales (`HudCompositionTests`): el rail usa
+  `CollapsiblePanelHeader`, no persiste el pliegue, la tarjeta compacta
+  no renderiza los miembros en línea y usa `HudStateBadge`, y el mapa
+  de fases cubre los seis valores del enum.
+- Tests dedicados (`HudStateBadgePhaseMapTests`): cada `ExpeditionPhase`
+  resuelve a un `res://` no vacío; `Returning` y `Retreating` comparten
+  glifo a propósito; `Outbound` y `Returning` no se colapsan.
+- Catálogo de localización: dos claves nuevas (`ui.expedition_rail.header`,
+  `ui.expedition_rail.members_tooltip`) en EN y ES.
+- Suite completa: 1111 superadas, 1 omitida (pre-existente), 0 fallidas.
+
+---
+
 ## El panel lateral de la ciudad lee el estado real y la ciudad habla tu idioma al instante
 
 **2026-08-09** · schema v32 (sin cambio) · presentación

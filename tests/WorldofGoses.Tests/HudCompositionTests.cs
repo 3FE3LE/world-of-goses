@@ -858,6 +858,87 @@ public sealed class HudCompositionTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ExpeditionRail_UsesCollapsiblePanelHeader()
+    {
+        // The rail is now a folder: the whole strip is the CollapsiblePanelHeader,
+        // a single body holds the cards and the chronicle, and the
+        // ExpandedChanged event drives body visibility. Mirrors the
+        // CitySummaryPanel pattern.
+        string rail = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
+
+        Assert.Contains("new CollapsiblePanelHeader", rail, StringComparison.Ordinal);
+        Assert.Contains("ExpandedChanged", rail, StringComparison.Ordinal);
+        Assert.Contains("_body.Visible = expanded", rail, StringComparison.Ordinal);
+        Assert.Contains("public bool Expanded =>", rail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionRail_DoesNotPersistCollapseState()
+    {
+        // The fold is ephemeral HUD state. A persistence round-trip
+        // (EditorPrefs/ConfigFile/WorldSave) would silently push the
+        // player's preference into a save file the player cannot reset
+        // without reloading. The hard rule forbids that without a
+        // documented migration.
+        string rail = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
+
+        Assert.DoesNotContain("EditorPrefs", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("ConfigFile", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorldSave", rail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionCompactCard_DoesNotRenderAllMemberNamesInline()
+    {
+        // Member names used to be joined with ", " and printed as a
+        // Caption label, which does not scale. The names now live
+        // only inside the DetailsButton tooltip and inside the
+        // UiText.Get("ui.expedition_rail.members_tooltip") formatter.
+        // No `Label { Text = ...MemberNames }` survives.
+        string card = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Ui", "ExpeditionCompactCard.cs"));
+
+        Assert.Contains("ui.expedition_rail.members_tooltip", card, StringComparison.Ordinal);
+        Assert.Contains("TooltipText =", card, StringComparison.Ordinal);
+        Assert.Contains("string.Join(\", \", item.MemberNames)", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui.expedition_rail.members.one", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui.expedition_rail.members.many", card, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionCompactCard_UsesPhaseStateChip()
+    {
+        // The phase used to be a plain HudCaption Label. It is now a
+        // HudStateBadge that carries the phase glyph plus the localized
+        // label — colour is no longer the only signal.
+        string card = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Ui", "ExpeditionCompactCard.cs"));
+
+        Assert.Contains("new HudStateBadge", card, StringComparison.Ordinal);
+        Assert.Contains("HudStateBadge.IconFor(item.Phase)", card, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HudStateBadge_HasPhaseMapping()
+    {
+        // The phase map must lock every ExpeditionPhase to a stable
+        // icon path. A missing case would fall through to Resolved,
+        // collapsing two unrelated phases into one chip.
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Ui", "HudStateBadge.cs"));
+
+        foreach (ExpeditionPhase phase in Enum.GetValues<ExpeditionPhase>())
+        {
+            Assert.Contains($"ExpeditionPhase.{phase}", source, StringComparison.Ordinal);
+        }
+    }
+
     private static string[] NodeBlock(string nodeName)
     {
         string[] lines = ReadScene();
