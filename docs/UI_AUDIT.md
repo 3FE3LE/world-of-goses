@@ -37,7 +37,8 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 | Chronicle | One `ChroniclePanel` embedded in `ExpeditionRail`: compact mode shows four rows; expanded mode reuses the rail's bounded scroll for the 80 newest compacted events, offline summary and actionable blocker groups. `ChronicleEventProjection` remains the single filtering/compaction rule, so routine resource gains stay excluded. The former `OfflineReportPanel` surface is removed. |
 | Connected menus | Construction, Expeditions, Policies, Citizens and Pause retain their existing controllers and modal routing while sharing `HudSurface`, compact `Hud*` typography and `HudButton*` state roles. Hero and building detail retain their full-screen ownership but reuse HUD typography, progress, cards and actions for their information surfaces. |
 | Save feedback | Temporary confirmation; no permanent `Saved` navigation chip. |
-| Camera | Free default, explicit follow, WASD/arrows camera-only; uniform zoom preserves one perspective while a thirteen-street render window moves through the territory. |
+| Camera | Free default, explicit follow, WASD/arrows camera-only; physical arrows are consumed before HUD focus dispatch in unobstructed macro mode, while gamepad D-pad retains explicit HUD navigation. Uniform zoom preserves one perspective while a thirteen-street render window moves through the territory. |
+| World dialogue | Hover/status bubbles plus first-night balloon, spirit and embers use `OverlayLayers.WorldDialogue`: above the ambient tint, below persistent HUD/modals, and horizontally clamped to the central world corridor between the 240/236 px rails. |
 | Wheel input | A hovered `ScrollContainer` owns the wheel at both scroll limits; map zoom cannot leak through. |
 | Localization | Native EN/ES PO catalogs and hot locale changes. |
 
@@ -76,4 +77,5 @@ whatever the code does.
 | 2026-07-29 | Policies and Citizens, 1280×720 / 1920×1080 | Contained; scroll surfaces and actions visible. |
 | 2026-08-06 | Expedition team, finite Food/Wood objectives, supplies and retreat posture | Signed. Posture uses pixel-font `[X]`/`[ ]` buttons, verified by real pointer capture at both official sizes. |
 | 2026-08-08 | Embedded Chronicle, 300×52 icon-only dock, Construction, Expeditions, Policies, Citizens and Pause | Signed at 1280×720 and 1920×1080. Chronicle begins on its offline summary/decisions and retains bounded scroll; promoted icons remain legible after tint normalization. |
+| 2026-08-08 | World-dialogue layering, macro arrow isolation, Construction → Hero route | Signed at 1280×720 and 1920×1080. Dialogue remains legible inside the central corridor below both rails; a physical Right arrow moves only the camera while preserving HUD focus; a real View Hero click closes Construction before the profile appears. |
 | Pending | A complete normal-UI run of the current loop, plus relaunch boundaries | Not signed. |

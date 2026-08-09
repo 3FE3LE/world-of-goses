@@ -14,6 +14,7 @@ public partial class WorldStatusBubble : PanelContainer
 {
     private const float ViewportMargin = 8f;
     private const float AnchorGap = 8f;
+    private const float HudPanelGap = 16f;
     private readonly VBoxContainer _content = new();
     private string _contentSignature = string.Empty;
 
@@ -22,7 +23,12 @@ public partial class WorldStatusBubble : PanelContainer
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
-        ZIndex = 100;
+        // The bubble is mounted below MacroStreetLiveView, whose negative
+        // depth range keeps world geometry under the HUD. Opt out of relative
+        // z so the semantic world-dialogue layer is explicit and cannot rise
+        // over CitySummaryPanel or ExpeditionRail when parent depth changes.
+        ZAsRelative = false;
+        ZIndex = OverlayLayers.WorldDialogue;
         var panelStyle = new StyleBoxFlat
         {
             BgColor = new Color(0.06f, 0.05f, 0.04f, 0.94f),
@@ -102,10 +108,12 @@ public partial class WorldStatusBubble : PanelContainer
         Vector2 desired = new(
             globalAnchor.X - minimum.X * 0.5f,
             globalAnchor.Y - minimum.Y - AnchorGap);
+        float worldLeft = CitySummaryPanel.PanelWidth + HudPanelGap;
+        float worldRight = viewportSize.X - ExpeditionRail.PanelWidth - HudPanelGap;
         desired.X = Mathf.Clamp(
             desired.X,
-            ViewportMargin,
-            Mathf.Max(ViewportMargin, viewportSize.X - minimum.X - ViewportMargin));
+            worldLeft,
+            Mathf.Max(worldLeft, worldRight - minimum.X));
         desired.Y = Mathf.Clamp(
             desired.Y,
             ViewportMargin,

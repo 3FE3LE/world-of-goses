@@ -583,6 +583,11 @@ Four rules apply to every screen:
    that container is already at its first or last row. World cameras must use
    `UiInputBoundary` before treating an unhandled wheel event as zoom; reaching
    a scroll limit must never leak the gesture into the city behind the panel.
+6. **Physical arrow keys belong to the macro camera while the unobstructed
+   macro view is active.** Consume them before GUI focus dispatch so a single
+   press cannot pan the world and move a HUD focus ring simultaneously.
+   Gamepad D-pad remains the explicit focus-navigation path. When a modal or
+   contextual menu is open, its controls retain normal keyboard ownership.
 
 Mouse + gamepad coexistence is the default expectation: hover
 triggers tooltips, but gamepad focus also drives the selection ring

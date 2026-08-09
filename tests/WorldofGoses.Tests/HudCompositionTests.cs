@@ -330,6 +330,47 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
+    public void MacroArrowKeys_MoveWorldWithoutMovingHudFocus()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        Assert.Contains("public override void _Input(InputEvent @event)", source, StringComparison.Ordinal);
+        Assert.Contains("IsWorldNavigationArrow(key)", source, StringComparison.Ordinal);
+        Assert.Contains("GetViewport().SetInputAsHandled();", source, StringComparison.Ordinal);
+        Assert.Contains("key.Keycode is Key.Left or Key.Right or Key.Up or Key.Down", source, StringComparison.Ordinal);
+        Assert.Contains("|| _pauseMenu.Visible", source, StringComparison.Ordinal);
+        Assert.Contains("MotionTick(allowCameraInput: CanUseWorldNavigationInput);", source, StringComparison.Ordinal);
+        Assert.Contains("&& !_pauseMenu.Visible", source, StringComparison.Ordinal);
+        Assert.Contains("InputEventJoypadButton", File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs")), StringComparison.Ordinal);
+        Assert.Contains("case \"macro-arrow-focus-isolation\":", File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs")), StringComparison.Ordinal);
+        Assert.Contains("case \"pause-arrow-focus\":", File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConstructionClosesItsModalBeforeOpeningHeroProfile()
+    {
+        string construction = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ConstructionPanel.cs"));
+        string macro = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+        int closedBranch = macro.IndexOf("if (_selectHeroAfterModalClose)", StringComparison.Ordinal);
+        int hero = macro.IndexOf("_controller.SelectHero();", closedBranch, StringComparison.Ordinal);
+
+        Assert.Contains("EmitSignal(SignalName.ViewHeroRequested)", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("_controller.SelectHero();", construction, StringComparison.Ordinal);
+        Assert.Contains("_constructionPanel.ViewHeroRequested += OnConstructionHeroRequested", macro, StringComparison.Ordinal);
+        Assert.Contains("_modalHost.Close();", macro[macro.IndexOf("private void OnConstructionHeroRequested", StringComparison.Ordinal)..], StringComparison.Ordinal);
+        Assert.True(closedBranch >= 0, "Macro navigation must wait for ModalHost.Closed.");
+        Assert.True(hero > closedBranch, "Hero selection must happen from the modal-closed branch.");
+        Assert.Contains("case \"construction-hero-route\":", File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs")), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SimulationControls_OwnTheExistingPairAndHorizontalFocus()
     {
         string[] block = NodeBlock("SimulationControls");

@@ -43,20 +43,28 @@ public static class OverlayLayers
     /// control that forgot to claim <see cref="Hud"/>.</summary>
     public const int AmbientTint = 5;
 
+    /// <summary>
+    /// Diegetic labels, speech bubbles and first-night guidance projected over
+    /// the tinted world but below every persistent HUD surface. These elements
+    /// explain something in the city; they must never cover city management
+    /// chrome at the left or right edge.
+    /// </summary>
+    public const int WorldDialogue = 6;
+
     /// <summary>Persistent HUD chrome: status strip, macro action bar,
     /// and the full-screen views that replace the map (building detail,
     /// hero profile). Above <see cref="AmbientTint"/> so the interface
     /// keeps its authored colours at every hour of the in-game day.</summary>
-    public const int Hud = 6;
+    public const int Hud = 8;
 
     /// <summary>Contextual menu anchored to an in-world resource.</summary>
-    public const int ContextMenu = 8;
+    public const int ContextMenu = 10;
 
     /// <summary>Bottom-left anchored selection details (ContextInspector).</summary>
-    public const int SelectionInfo = 9;
+    public const int SelectionInfo = 11;
 
     /// <summary>Chronicle/activity presentation inside the authored HUD rail.</summary>
-    public const int Chronicle = 10;
+    public const int Chronicle = 12;
 
     /// <summary>Full-viewport scrim owned by ModalHost.</summary>
     public const int ModalScrim = 20;
@@ -74,9 +82,8 @@ public static class OverlayLayers
     /// Reserved and currently unclaimed: the three-step modal
     /// <c>TutorialOverlay</c> that used to own it was deleted because its
     /// hand-written copy had drifted out of step with the real recipes and
-    /// status strip. The slot is kept for the first-night dialogue surface,
-    /// which must occlude the construction and expedition modals without
-    /// hiding the pause menu or Notifier toasts.</summary>
+    /// status strip. First-night dialogue is diegetic and therefore uses
+    /// <see cref="WorldDialogue"/> instead.</summary>
     public const int Tutorial = 50;
 
     /// <summary>Founding-hero astral onboarding (12-step narrative).</summary>

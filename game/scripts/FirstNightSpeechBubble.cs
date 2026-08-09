@@ -35,6 +35,7 @@ public partial class FirstNightSpeechBubble : Control
 
     private const int TailWidth = 14;
     private const int TailHeight = 10;
+    private const int HudPanelGap = 16;
 
     /// <summary>Narration reads a shade back from the surface, like a caption.</summary>
     private static readonly Color NarrationTint = new(0.86f, 0.84f, 0.80f, 1f);
@@ -52,7 +53,7 @@ public partial class FirstNightSpeechBubble : Control
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Stop;
-        ZIndex = OverlayLayers.Tutorial;
+        ZIndex = OverlayLayers.WorldDialogue;
         // The balloon sizes to its content and is placed by hand, so it must
         // not be laid out by a parent container.
         SetAnchorsAndOffsetsPreset(LayoutPreset.TopLeft);
@@ -154,10 +155,12 @@ public partial class FirstNightSpeechBubble : Control
         Size = size;
 
         Rect2 viewport = GetViewportRect();
+        float worldLeft = CitySummaryPanel.PanelWidth + HudPanelGap;
+        float worldRight = viewport.Size.X - ExpeditionRail.PanelWidth - HudPanelGap;
         float left = Mathf.Clamp(
             speakerPosition.X - size.X * 0.5f,
-            8f,
-            Mathf.Max(8f, viewport.Size.X - size.X - 8f));
+            worldLeft,
+            Mathf.Max(worldLeft, worldRight - size.X));
 
         // Above the speaker by default, below when there is no room. Clamping
         // to the top edge instead would drop the balloon *onto* the speaker

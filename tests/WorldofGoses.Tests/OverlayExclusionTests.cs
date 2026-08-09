@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using WorldofGoses.Ui;
 using Xunit;
 
@@ -18,6 +20,7 @@ public sealed class OverlayExclusionTests
     {
         OverlayLayers.World,
         OverlayLayers.AmbientTint,
+        OverlayLayers.WorldDialogue,
         OverlayLayers.Hud,
         OverlayLayers.ContextMenu,
         OverlayLayers.SelectionInfo,
@@ -65,6 +68,7 @@ public sealed class OverlayExclusionTests
         (int From, int To, int MinimumGap)[] groupTransitions = new[]
         {
             (OverlayLayers.World, OverlayLayers.AmbientTint, 2),
+            (OverlayLayers.AmbientTint, OverlayLayers.Hud, 2),
             (OverlayLayers.Hud, OverlayLayers.ContextMenu, 2),
             (OverlayLayers.Chronicle, OverlayLayers.ModalScrim, 2),
             (OverlayLayers.Modal, OverlayLayers.PlacementOverlay, 2),
@@ -115,6 +119,31 @@ public sealed class OverlayExclusionTests
     }
 
     [Fact]
+    public void WorldDialogue_SitsAboveTintButBelowPersistentHud()
+    {
+        Assert.True(OverlayLayers.WorldDialogue > OverlayLayers.AmbientTint);
+        Assert.True(OverlayLayers.WorldDialogue < OverlayLayers.Hud);
+
+        string root = TestHelpers.FindRepositoryRoot();
+        string firstNight = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "FirstNightScene.cs"));
+        string speechBubble = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "FirstNightSpeechBubble.cs"));
+        string statusBubble = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "WorldStatusBubble.cs"));
+
+        Assert.Contains("OverlayLayers.WorldDialogue", firstNight, StringComparison.Ordinal);
+        Assert.DoesNotContain("OverlayLayers.Tutorial", firstNight, StringComparison.Ordinal);
+        Assert.Contains("OverlayLayers.WorldDialogue", speechBubble, StringComparison.Ordinal);
+        Assert.Contains("CitySummaryPanel.PanelWidth", speechBubble, StringComparison.Ordinal);
+        Assert.Contains("ExpeditionRail.PanelWidth", speechBubble, StringComparison.Ordinal);
+        Assert.Contains("ZAsRelative = false", statusBubble, StringComparison.Ordinal);
+        Assert.Contains("OverlayLayers.WorldDialogue", statusBubble, StringComparison.Ordinal);
+        Assert.Contains("CitySummaryPanel.PanelWidth", statusBubble, StringComparison.Ordinal);
+        Assert.Contains("ExpeditionRail.PanelWidth", statusBubble, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PauseAndNotifier_LayerSitsAboveEveryOtherOverlay()
     {
         // Pause menu + Notifier toasts must always be readable, even
@@ -147,9 +176,8 @@ public sealed class OverlayExclusionTests
         // The guidance slot must occlude ConstructionPanel/ExpeditionPanel/
         // MigrantPanel (Modal = 21) so the player cannot act behind authored
         // guidance, but the pause menu and Notifier toasts must remain
-        // visible above it. The slot is currently unclaimed — the drifted
-        // three-step TutorialOverlay was removed — and is reserved for the
-        // first-night dialogue surface.
+        // visible above it. The slot is currently unclaimed: diegetic
+        // first-night dialogue uses WorldDialogue below the persistent HUD.
         Assert.True(OverlayLayers.Tutorial > OverlayLayers.Modal);
         Assert.True(OverlayLayers.Tutorial < OverlayLayers.PauseAndNotifier);
     }
@@ -197,6 +225,9 @@ public sealed class OverlayExclusionTests
         string[] knownCatalogValues = new[]
         {
             OverlayLayers.World.ToString(),
+            OverlayLayers.AmbientTint.ToString(),
+            OverlayLayers.WorldDialogue.ToString(),
+            OverlayLayers.Hud.ToString(),
             OverlayLayers.ContextMenu.ToString(),
             OverlayLayers.SelectionInfo.ToString(),
             OverlayLayers.Chronicle.ToString(),

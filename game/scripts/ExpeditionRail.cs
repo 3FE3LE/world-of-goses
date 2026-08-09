@@ -11,6 +11,8 @@ namespace WorldofGoses;
 [GlobalClass]
 public partial class ExpeditionRail : PanelContainer
 {
+    public const int PanelWidth = 236;
+
     [Export] public NodePath ControllerPath { get; set; } = new("../../../CityWorldController");
     [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../ExpeditionPanel");
 

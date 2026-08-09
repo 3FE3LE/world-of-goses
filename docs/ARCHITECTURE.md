@@ -190,7 +190,10 @@ of leaving a silent carrier at the threshold.
 
 The macro camera is free by default. Selection changes information and action
 context only; following the selected citizen requires the explicit camera toggle. WASD
-and the arrow keys always pan the camera. Manual pan releases follow mode and
+and the arrow keys always pan the camera. In an unobstructed macro view their
+physical key events are handled before GUI focus dispatch, so they cannot also
+move focus across HUD buttons; gamepad D-pad remains available for focus.
+Manual pan releases follow mode and
 never changes the founder's physical street position.
 
 `StreetDepthProjection` has one focus-relative perspective at every zoom level;

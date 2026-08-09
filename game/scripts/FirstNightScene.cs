@@ -11,9 +11,8 @@ namespace WorldofGoses;
 /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Owns the
 /// non-modal <see cref="FirstNightSpeechBubble"/> and the
 /// <see cref="FireSpiritVisual"/>, both rendered at
-/// <see cref="OverlayLayers.Tutorial"/> so they occlude the
-/// construction and expedition modals without hiding the onboarding,
-/// the pause menu or <see cref="Notifier"/> toasts.
+/// <see cref="OverlayLayers.WorldDialogue"/> so they remain above the
+/// day/night tint while every HUD surface and modal can occlude them.
 ///
 /// <para>
 /// Subscribes to <see cref="CityWorldController.FirstNightStageChanged"/>
@@ -92,18 +91,18 @@ public partial class FirstNightScene : Node
         // the project: hosting the night on `CanvasLayer.Layer = 50` drew the
         // strip and the spirit over the onboarding (ZIndex 80), the pause menu
         // (100) and the Notifier, which is the opposite of what
-        // `OverlayLayers.Tutorial` promises. The surfaces are canvas roots
+        // `OverlayLayers.WorldDialogue` promises. The surfaces are canvas roots
         // here — FirstNightScene is a plain Node — so their ZIndex is
         // comparable with every other overlay, exactly like
         // AstralOnboardingView.
-        _spirit = new FireSpiritVisual { ZIndex = OverlayLayers.Tutorial };
+        _spirit = new FireSpiritVisual { ZIndex = OverlayLayers.WorldDialogue };
         AddChild(_spirit);
 
         _bubble = new FirstNightSpeechBubble();
         AddChild(_bubble);
         _bubble.Confirmed += OnStripFollowPressed;
 
-        _embers = new FirstNightEmbers { ZIndex = OverlayLayers.Tutorial };
+        _embers = new FirstNightEmbers { ZIndex = OverlayLayers.WorldDialogue };
         AddChild(_embers);
 
         _controller = GetNodeOrNull<CityWorldController>(ControllerPath);
@@ -226,8 +225,8 @@ public partial class FirstNightScene : Node
     /// The night speaks about the world, so it only speaks while the player is
     /// looking at it. Inside a building detail view or the hero profile the
     /// balloon and the spirit would float over a surface they have nothing to
-    /// do with — they sit at <see cref="OverlayLayers.Tutorial"/>, above the
-    /// HUD-layer views, so without this they draw straight over the panels.
+    /// do with. They remain hidden there even though the world-dialogue layer
+    /// now sits below every HUD-layer view.
     /// </summary>
     private void OnSelectionChanged(int selection)
     {

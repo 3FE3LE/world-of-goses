@@ -196,6 +196,7 @@ public partial class MacroStreetLiveView : Node2D
     [Export] public NodePath ContextInspectorPath { get; set; } = "../ContextInspector";
     /// <summary>The contextual action tray, shown only while a mode needs it.</summary>
     [Export] public NodePath ActionDockPath { get; set; } = "../ActionDock";
+    [Export] public NodePath PauseMenuPath { get; set; } = "../../../PauseMenu";
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
 
     private CityWorldController _controller = null!;
@@ -276,11 +277,13 @@ public partial class MacroStreetLiveView : Node2D
     private readonly List<PlacementCellBox> _placementCells = new();
     private readonly List<(Rect2 Rect, PlacementLotBox Lot)> _clickablePlacementRects = new();
     private bool _placementActive;
+    private bool _selectHeroAfterModalClose;
     private ConstructionKind _placementKind;
     private ConstructionLot? _selectedPlacementLot;
     private PlacementLotBox? _hoveredPlacementLot;
     private string _placementBaseInstruction = string.Empty;
     private ActionDock _actionDock = null!;
+    private PauseMenu _pauseMenu = null!;
 
     private readonly List<PlotBox> _plots = new();
     private readonly List<TreeBox> _trees = new();
@@ -368,6 +371,8 @@ public partial class MacroStreetLiveView : Node2D
     private bool _heroIsGatheringOutsideHome;
     private bool _heroAmbientRoute;
     private int _heroNextAmbientDecisionTick;
+
+    internal float CameraLateralForVisualRegression => _freeCameraLateral;
     // Tracks the domain's own hero.CurrentAssignment so a route to the
     // workplace fires exactly once per NEW assignment (see
     // EnsureHeroCarrier) — without this, every world tick re-triggered the
@@ -431,6 +436,7 @@ public partial class MacroStreetLiveView : Node2D
         _expeditionRail = GetNode<ExpeditionRail>(ExpeditionRailPath);
         _contextInspector = GetNode<ContextInspector>(ContextInspectorPath);
         _actionDock = GetNode<ActionDock>(ActionDockPath);
+        _pauseMenu = GetNode<PauseMenu>(PauseMenuPath);
         _constructionMenuButton = _primaryNavDock.ConstructionButton;
         _expeditionMenuButton = _primaryNavDock.ExpeditionButton;
         _policiesButton = _primaryNavDock.PoliciesButton;
@@ -475,6 +481,7 @@ public partial class MacroStreetLiveView : Node2D
         _citizensButton.Pressed += OnCitizensPressed;
         _constructionPanel.PlacementRequested += OnPlacementRequested;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
+        _constructionPanel.ViewHeroRequested += OnConstructionHeroRequested;
         _modalHost.Closed += OnModalHostClosedForNavigationState;
         _localeManager.LocaleChanged += OnLocaleChanged;
         _cameraModeButton.Pressed += ToggleCameraMode;
@@ -526,6 +533,7 @@ public partial class MacroStreetLiveView : Node2D
         _citizensButton.Pressed -= OnCitizensPressed;
         _constructionPanel.PlacementRequested -= OnPlacementRequested;
         _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
+        _constructionPanel.ViewHeroRequested -= OnConstructionHeroRequested;
         _modalHost.Closed -= OnModalHostClosedForNavigationState;
         _localeManager.LocaleChanged -= OnLocaleChanged;
         _cameraModeButton.Pressed -= ToggleCameraMode;
@@ -889,8 +897,21 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnModalHostClosedForNavigationState()
     {
+        if (_selectHeroAfterModalClose)
+        {
+            _selectHeroAfterModalClose = false;
+            _controller.SelectHero();
+            return;
+        }
         if (!Visible) return;
         UpdatePrimaryNavigationState();
+    }
+
+    private void OnConstructionHeroRequested()
+    {
+        if (!Visible || !_modalHost.IsOpen || _modalHost.Content != _constructionPanel) return;
+        _selectHeroAfterModalClose = true;
+        _modalHost.Close();
     }
 
     private void OnLocaleChanged(string _)
@@ -1570,7 +1591,7 @@ public partial class MacroStreetLiveView : Node2D
         while (_motionAccumulator >= PixelMotion.CadenceSeconds)
         {
             _motionAccumulator -= PixelMotion.CadenceSeconds;
-            MotionTick(allowCameraInput: Visible);
+            MotionTick(allowCameraInput: CanUseWorldNavigationInput);
             AdvanceCitizenJourneysTick();
         }
         // The founder's own smoothed row (always active — it also paces
@@ -1633,6 +1654,41 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
+    public override void _Input(InputEvent @event)
+    {
+        if (!Visible
+            || _pauseMenu.Visible
+            || _modalHost?.IsOpen == true
+            || _placementActive
+            || _actionMenu.Visible
+            || _cultivationActionMenu.Visible
+            || @event is not InputEventKey { Pressed: true } key
+            || !IsWorldNavigationArrow(key))
+        {
+            return;
+        }
+
+        // Arrow keys are a world-camera binding in macro mode. Godot also
+        // maps them to ui_left/right/up/down, which otherwise moves focus in
+        // the HUD while Input.IsActionPressed moves the camera in the same
+        // frame. Handling the physical key before GUI dispatch reserves it
+        // for the world. Gamepad D-pad events remain available to the HUD's
+        // explicit focus neighbours.
+        GetViewport().SetInputAsHandled();
+    }
+
+    internal static bool IsWorldNavigationArrow(InputEventKey key) =>
+        key.Keycode is Key.Left or Key.Right or Key.Up or Key.Down
+        || key.PhysicalKeycode is Key.Left or Key.Right or Key.Up or Key.Down;
+
+    private bool CanUseWorldNavigationInput =>
+        Visible
+        && !_pauseMenu.Visible
+        && !_modalHost.IsOpen
+        && !_placementActive
+        && !_actionMenu.Visible
+        && !_cultivationActionMenu.Visible;
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (!Visible) return;
@@ -1666,6 +1722,15 @@ public partial class MacroStreetLiveView : Node2D
         {
             _cultivationActionMenu.Hide();
             GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (!CanUseWorldNavigationInput
+            && (@event.IsActionPressed(CameraInputActions.PanLeft)
+                || @event.IsActionPressed(CameraInputActions.PanRight)
+                || @event.IsActionPressed(CameraInputActions.PanUp)
+                || @event.IsActionPressed(CameraInputActions.PanDown)
+                || @event.IsActionPressed(CameraInputActions.ToggleFollow)))
+        {
             return;
         }
         if (@event.IsActionPressed(CameraInputActions.PanUp))

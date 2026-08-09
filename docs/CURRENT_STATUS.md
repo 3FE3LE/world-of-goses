@@ -134,8 +134,9 @@ and §17 acceptance test are complete.
   lineage reveal, founder arrival and profile.
 - **Authored first night** (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`,
   DEC-0014): from manifestation to dawn, the fire spirit teaches the
-  founder why the ground materials matter. Non-modal dialogue strip on
-  `OverlayLayers.Tutorial=50`, eight lineage variants per main node, no
+  founder why the ground materials matter. A non-modal balloon follows the
+  spirit on `OverlayLayers.WorldDialogue`, above the ambient tint but below
+  every persistent HUD surface and modal; it has eight lineage variants per main node, no
   literal digits in body keys, route advances on a closed dialogue or a
   completed module (never on the clock), `HasRestingPlace()` gates the
   `OtherLightTold` → `Sleeping` transition. The dawn emits

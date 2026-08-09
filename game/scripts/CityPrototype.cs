@@ -134,6 +134,26 @@ public partial class CityPrototype : Node
             });
         }
 
+        static void SendArrowRightForVisualRegression(bool pressed)
+        {
+            Input.ParseInputEvent(new InputEventKey
+            {
+                Keycode = Key.Right,
+                PhysicalKeycode = Key.Right,
+                Pressed = pressed,
+            });
+        }
+
+        static void SendArrowDownForVisualRegression(bool pressed)
+        {
+            Input.ParseInputEvent(new InputEventKey
+            {
+                Keycode = Key.Down,
+                PhysicalKeycode = Key.Down,
+                Pressed = pressed,
+            });
+        }
+
         switch (fixture)
         {
             case "macro-hud-default":
@@ -170,6 +190,55 @@ public partial class CityPrototype : Node
                     GetTree().CreateTimer(0.15).Timeout +=
                         ValidatePrimaryNavFocusForVisualRegression;
                 }).CallDeferred();
+                break;
+            case "macro-arrow-focus-isolation":
+                ShowTopStatusForVisualRegression("en");
+                PrimaryNavDock arrowDock = GetNode<PrimaryNavDock>(
+                    "GameUiShell/ScreenContent/PrimaryNavDock");
+                MacroStreetLiveView arrowMacro = GetNode<MacroStreetLiveView>(
+                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                arrowDock.HeroButton.GrabFocus();
+                float cameraBefore = arrowMacro.CameraLateralForVisualRegression;
+                Callable.From(() =>
+                {
+                    SendArrowRightForVisualRegression(pressed: true);
+                    GetTree().CreateTimer(0.2).Timeout += () =>
+                    {
+                        SendArrowRightForVisualRegression(pressed: false);
+                        ValidateMacroArrowFocusIsolationForVisualRegression(cameraBefore);
+                    };
+                }).CallDeferred();
+                break;
+            case "pause-arrow-focus":
+                ShowTopStatusForVisualRegression("en");
+                PauseMenu arrowPause = GetNode<PauseMenu>("PauseMenu");
+                MacroStreetLiveView pausedMacro = GetNode<MacroStreetLiveView>(
+                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                arrowPause.ShowForVisualRegression(confirmReset: false);
+                float pausedCameraBefore = pausedMacro.CameraLateralForVisualRegression;
+                Callable.From(() =>
+                {
+                    SendArrowDownForVisualRegression(pressed: true);
+                    GetTree().CreateTimer(0.2).Timeout += () =>
+                    {
+                        SendArrowDownForVisualRegression(pressed: false);
+                        ValidatePauseArrowFocusForVisualRegression(pausedCameraBefore);
+                    };
+                }).CallDeferred();
+                break;
+            case "construction-hero-route":
+                ShowTopStatusForVisualRegression("en");
+                MacroStreetLiveView heroRouteMacro = GetNode<MacroStreetLiveView>(
+                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                heroRouteMacro.ShowConstructionForVisualRegression(placement: false);
+                GetTree().CreateTimer(0.25).Timeout += () =>
+                {
+                    ConstructionPanel construction = GetNode<ConstructionPanel>(
+                        "GameUiShell/ScreenContent/Center/ConstructionPanel");
+                    SendPointerClickForVisualRegression(construction.ViewHeroButtonForVisualRegression);
+                    GetTree().CreateTimer(0.5).Timeout +=
+                        ValidateConstructionHeroRouteForVisualRegression;
+                };
                 break;
             case "simulation-controls-focus":
                 SimulationControls controls = GetNode<SimulationControls>(
@@ -481,6 +550,60 @@ public partial class CityPrototype : Node
             return;
         }
         GD.Print($"[WOG-NAV-FOCUS] ui_right -> Construction OK; dock={dockRect}");
+    }
+
+    private void ValidateMacroArrowFocusIsolationForVisualRegression(float cameraBefore)
+    {
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
+            "GameUiShell/ScreenContent/PrimaryNavDock");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        Control? focus = GetViewport().GuiGetFocusOwner();
+        if (focus != dock.HeroButton || macro.CameraLateralForVisualRegression <= cameraBefore)
+        {
+            GD.PushError(
+                "Macro arrow isolation fixture failed; "
+                + $"focus={focus?.Name ?? "<none>"}, camera before={cameraBefore}, "
+                + $"after={macro.CameraLateralForVisualRegression}.");
+            return;
+        }
+        GD.Print("[WOG-MACRO-ARROW] Right moved camera and preserved Hero HUD focus OK");
+    }
+
+    private void ValidatePauseArrowFocusForVisualRegression(float cameraBefore)
+    {
+        PauseMenu pause = GetNode<PauseMenu>("PauseMenu");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        IconButton settings = pause.GetNode<IconButton>(
+            "Center/Card/Margin/Shell/MainActions/SettingsButton");
+        Control? focus = GetViewport().GuiGetFocusOwner();
+        if (focus != settings || macro.CameraLateralForVisualRegression != cameraBefore)
+        {
+            GD.PushError(
+                "Pause arrow fixture failed; "
+                + $"focus={focus?.Name ?? "<none>"}, camera before={cameraBefore}, "
+                + $"after={macro.CameraLateralForVisualRegression}.");
+            return;
+        }
+        GD.Print("[WOG-PAUSE-ARROW] Down moved Pause focus and left camera unchanged OK");
+    }
+
+    private void ValidateConstructionHeroRouteForVisualRegression()
+    {
+        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
+        ConstructionPanel construction = GetNode<ConstructionPanel>(
+            "GameUiShell/ScreenContent/Center/ConstructionPanel");
+        HeroProfileView hero = GetNode<HeroProfileView>(
+            "GameUiShell/ScreenContent/HeroProfileView");
+        if (modalHost.IsOpen || construction.Visible || !hero.Visible)
+        {
+            GD.PushError(
+                "Construction -> Hero route left the modal stacked; "
+                + $"modal={modalHost.IsOpen}, construction={construction.Visible}, hero={hero.Visible}.");
+            return;
+        }
+        GD.Print("[WOG-CONSTRUCTION-HERO] modal closed before Hero profile OK");
     }
 
     private void ValidateActionDockFocusForVisualRegression()

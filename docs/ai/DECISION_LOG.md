@@ -561,6 +561,13 @@ affordance — clicking it advances — so there is no separate button.
 `FirstNightDialogueStrip` is removed. `OverlayLayers.Tutorial = 50` remains the
 night's layer, and clicks outside the balloon still fall through to the world.
 
+**Presentation amendment (2026-08-08):** the balloon, spirit and embers now use
+`OverlayLayers.WorldDialogue`, a diegetic slot above the ambient tint and below
+the persistent HUD. Proposal-06 added permanent city and expedition rails after
+this decision; playtesting showed the old tutorial layer let world dialogue
+cover those management surfaces. Modals still outrank and hide the night, while
+clicks outside the balloon continue to reach the world.
+
 **Why the earlier decision did not survive contact:**
 The strip was specified before anything rendered it. The whole sequence was
 inert behind a mis-resolved `NodePath` (`CityPrototype` passed
@@ -575,9 +582,8 @@ character who was teaching them stood elsewhere on screen.
 - The balloon follows the spirit every frame. `MacroStreetLiveView` projects
   its streets by hand rather than through a camera transform, so the anchor is
   re-derived in `_Process`; re-parenting would not help.
-- The night's surfaces hide whenever the player is not on the macro view. They
-  sit above the HUD layer, so without that gate they draw over building detail
-  panels.
+- The night's surfaces hide whenever the player is not on the macro view and
+  sit below persistent HUD/modal chrome while remaining above the ambient tint.
 - The confirm hint (`Continue` / `Give in to sleep`) is a quiet label inside
   the balloon, keeping the existing `firstnight.*` catalogue keys.
 - The fire spirit itself is still a placeholder, now shaped as a flame rather

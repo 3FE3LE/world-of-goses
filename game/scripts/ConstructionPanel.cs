@@ -83,6 +83,8 @@ public partial class ConstructionPanel : PanelContainer
     private Label _errorLabel = null!;
     private Button _primaryFocus = null!;
 
+    internal IconButton ViewHeroButtonForVisualRegression => _viewHeroButton;
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (!Visible || _bodyScroll is null) return;
@@ -116,7 +118,6 @@ public partial class ConstructionPanel : PanelContainer
         PauseRequested += OnPauseRequested;
         ResumeRequested += OnResumeRequested;
         CancelProjectRequested += OnCancelProjectRequested;
-        ViewHeroRequested += OnViewHeroRequested;
         ViewCompletedBuildingRequested += OnViewCompletedBuilding;
         AssignToProjectRequested += OnAssignToProject;
         UnassignFromProjectRequested += OnUnassignFromProject;
@@ -144,8 +145,6 @@ public partial class ConstructionPanel : PanelContainer
     private void OnPauseRequested() => OnPauseResume(true);
 
     private void OnResumeRequested() => OnPauseResume(false);
-
-    private void OnViewHeroRequested() => _controller.SelectHero();
 
     private void OnHeroCreated(int citizenId) => Refresh();
 
@@ -495,7 +494,6 @@ public partial class ConstructionPanel : PanelContainer
         PauseRequested -= OnPauseRequested;
         ResumeRequested -= OnResumeRequested;
         CancelProjectRequested -= OnCancelProjectRequested;
-        ViewHeroRequested -= OnViewHeroRequested;
         ViewCompletedBuildingRequested -= OnViewCompletedBuilding;
         AssignToProjectRequested -= OnAssignToProject;
         UnassignFromProjectRequested -= OnUnassignFromProject;

@@ -22,6 +22,57 @@ their commits for the real content.
 
 ---
 
+## El diálogo del mundo deja de tapar las rails, y una flecha deja de hacer dos cosas
+
+**2026-08-08** · schema v32 (sin cambio) · EG-5
+
+Tres arreglos que sólo existen porque la entrada anterior puso superficies
+permanentes donde antes no había ninguna. Ese es el patrón que vale la pena
+notar: enmarcar la ciudad no rompió nada por sí solo, pero invalidó tres
+supuestos que se habían escrito cuando la pantalla estaba vacía.
+
+### Connected
+
+- **Un hueco propio para el diálogo diegético.** El globo de la primera noche, el
+  espíritu y las brasas pasan de `OverlayLayers.Tutorial` a
+  `OverlayLayers.WorldDialogue`: por encima del tinte ambiental, por debajo de
+  todo HUD persistente y de los modales. La decisión original —`DECISION_LOG.md`,
+  la enmienda queda anotada bajo ella en vez de reescribirla— se tomó cuando no
+  existían `CitySummaryPanel` ni `ExpeditionRail`, así que "por encima del HUD"
+  era inofensivo; con las rails puestas, el diálogo las tapaba. El globo además
+  se acota al corredor central, de modo que ninguna de las dos rails queda
+  cubierta y la línea completa se sigue leyendo. Los clics fuera del globo siguen
+  llegando al mundo.
+- **Una flecha deja de hacer dos cosas a la vez.** Con la vista macro sin
+  obstruir, las flechas físicas se consumen antes del reparto de foco de GUI, así
+  que una sola pulsación ya no puede desplazar la cámara *y* mover el anillo de
+  foco del dock al mismo tiempo. El D-pad del mando sigue siendo la vía explícita
+  de navegación por foco, y con un modal o un menú contextual abierto sus
+  controles recuperan la propiedad normal del teclado.
+- **La ruta Construcción → Héroe espera a que el modal se cierre.** Un clic real
+  en *View Hero* pide el cierre del modal antes de seleccionar el perfil a
+  pantalla completa, de modo que el panel y su scrim ya no sobreviven a la
+  transición por encima de la pantalla nueva.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **1044 / 1045** (1 omitido conocido,
+previo), 3 más que la entrada anterior. Arranque headless limpio. Contexto de
+agentes 517/517. Localización 976 plantillas y 288 claves de runtime. Esquema sin
+tocar en v32.
+
+Cuatro filas nuevas del matrix, todas con entrada real y no con llamadas a
+método: `macro-arrow-focus-isolation` y `pause-arrow-focus` inyectan teclas
+físicas —Derecha mueve la cámara sin cambiar el foco del dock; con Pausa abierta,
+Abajo mueve Resume → Settings y la cámara no se mueve—, `construction-hero-route`
+usa un puntero real, y `firstnight-manifested` comprueba que el diálogo queda
+detrás de ambas rails. Firmado a 1280×720 y 1920×1080.
+
+**No verificado:** el harness reportó picos aislados de arranque y de frame por
+encima de los 40 ms en los fixtures de diálogo y flechas. Esta pasada **no hace
+ninguna afirmación de rendimiento**; queda como medición pendiente, no como
+resultado.
+
 ## La fundación del HUD deja de ser un escaparate y se convierte en la pantalla
 
 **2026-08-08** · schema v32 (sin cambio) · EG-5
