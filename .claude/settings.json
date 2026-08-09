@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "pwsh -NoProfile -File \"${CLAUDE_PROJECT_DIR}/tools/New-SessionSnapshot.ps1\" -Mode Fast",
+            "command": "pwsh -NoProfile -File \"${CLAUDE_PROJECT_DIR}/tools/New-SessionSnapshot.ps1\" -Mode Fast -Quiet",
             "timeout": 60
           }
         ]

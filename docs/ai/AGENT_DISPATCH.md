@@ -9,14 +9,17 @@
 > `CONTEXT_MAP.md` to find the canonical docs and code; use this file to
 > pick the right agent from a free-form prompt.
 >
+> Workflow mode (`SURGICAL` / `FEATURE` / `RELEASE`) and risk tier
+> (`LOW` / `MEDIUM` / `HIGH`) come from
+> [`WORKFLOW_MODES.md`](WORKFLOW_MODES.md) and
+> [`RISK_MODEL.md`](RISK_MODEL.md), not from this file.
+>
 > Routing contract: every agent lists its **primary** and **conditional**
 > skills under `.agents/agents/<id>/AGENT.md`. The local capability
-> adapter layer (godot-dotnet, godot-presentation, godot-persistence,
-> dotnet-testing, dotnet-diagnostics, repo-navigation) is loaded
-> conditionally and never duplicates a project-domain skill. Engine API
-> specifics are delegated to the verified upstream provider installed by
-> `Install-GodotDotNetSkills.ps1`; see
-> [`SKILL_MIGRATION.md`](SKILL_MIGRATION.md).
+> adapter layer is documented in `CONTEXT_MAP.md` and in
+> [`SKILL_MIGRATION.md`](SKILL_MIGRATION.md). Engine API specifics are
+> delegated to the verified upstream provider installed by
+> `Install-GodotDotNetSkills.ps1`.
 
 ---
 

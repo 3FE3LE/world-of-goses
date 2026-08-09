@@ -28,17 +28,26 @@ The architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
    to infer the agent from the prompt's keywords or symptoms. Then open
    [`docs/ai/CONTEXT_MAP.md`](docs/ai/CONTEXT_MAP.md) and match the
    request to a route. If several match, the task is cross-domain.
-2. **Load only what the route names.** Each route lists a primary skill and
-   conditional skills. Do not load the whole `docs/` tree.
-3. **Read the canonical docs the skill names.** Inspect the actual code.
-4. **List the affected invariants.** They are in
+2. **Pick a workflow mode and risk tier.** See
+   [`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md) (SURGICAL /
+   FEATURE / RELEASE) and [`docs/ai/RISK_MODEL.md`](docs/ai/RISK_MODEL.md)
+   (LOW / MEDIUM / HIGH). The mode governs how much verification runs.
+3. **Load only what the route names.** Each route lists a primary skill and
+   conditional skills. Do not load the whole `docs/` tree. Reading
+   existing state does not activate a domain skill — see
+   [`docs/ai/DOMAIN_CONSULTATION.md`](docs/ai/DOMAIN_CONSULTATION.md).
+4. **Read the canonical docs the skill names.** Inspect the actual code.
+5. **List the affected invariants.** They are in
    [`docs/ai/CROSS_DOMAIN_INVARIANTS.md`](docs/ai/CROSS_DOMAIN_INVARIANTS.md).
-5. **Cooperate by the protocol.** See
+6. **Cooperate by the protocol.** See
    [`docs/ai/AGENT_COLLABORATION_PROTOCOL.md`](docs/ai/AGENT_COLLABORATION_PROTOCOL.md).
    One agent writes a shared area; the rest consult.
-6. **Hand off by the template.** See
+7. **Hand off by the template.** See
    [`docs/ai/FEATURE_HANDOFF_TEMPLATE.md`](docs/ai/FEATURE_HANDOFF_TEMPLATE.md).
-7. **Sync and validate before merge.** Run `pwsh ./scripts/Sync-AgentContext.ps1 -Apply`
+8. **Apply the documentation impact gate.** Update docs only when their
+   contract changed — see
+   [`docs/ai/DOCUMENTATION_IMPACT_GATE.md`](docs/ai/DOCUMENTATION_IMPACT_GATE.md).
+9. **Sync and validate before merge.** Run `pwsh ./scripts/Sync-AgentContext.ps1 -Apply`
    then `pwsh ./scripts/Validate-AgentContext.ps1`.
 
 ## 2. Skills and agents
@@ -129,23 +138,40 @@ write with `.bak`).
 
 ## 5. Verification
 
+Verification scales with the workflow mode. A `SURGICAL` change does
+not need a Full snapshot; a `FEATURE` change runs the affected test
+families and the relevant fixtures; a `RELEASE` change runs the
+full workflow. See [`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md)
+and [`docs/ai/RISK_MODEL.md`](docs/ai/RISK_MODEL.md).
+
 ```powershell
-# Build (must be clean; warnings reported honestly)
+# Recommended: ask the deterministic planner what to run.
+pwsh ./tools/Get-VerificationPlan.ps1
+
+# Or build the plan by hand using the rules below.
+```
+
+### Core checks (run whenever code changed)
+
+```powershell
 cd game
 dotnet build
 
-# Domain and persistence tests
 cd ../tests/WorldofGoses.Tests
-dotnet test
+dotnet test --filter "<affected test family>"
+```
 
-# Sync and validate the agent-context layer
-cd ../..
-pwsh ./scripts/Sync-AgentContext.ps1 -Apply
-pwsh ./scripts/Validate-AgentContext.ps1
+### Path-gated checks (run only when the diff touches the path)
 
-# Only when a document was added, moved, or renamed. The second script
-# fails when a document is unclassified, when the ledger names a file
-# that no longer exists, or when docs/README.md does not index it.
+| Path pattern | Run |
+| --- | --- |
+| `.agents/`, `.claude/`, `.codex/`, `AGENTS.md`, `CLAUDE.md`, `docs/ai/`, `scripts/`, `tools/`, `Install-GodotDotNetSkills.ps1` | `pwsh ./scripts/Sync-AgentContext.ps1 -Apply` then `pwsh ./scripts/Validate-AgentContext.ps1` |
+| `*.po`, `*.pot`, `game/locale/`, `UiText.*` calls in `game/scripts/` | `pwsh ./tools/Test-LocalizationCatalog.ps1` |
+| `game/scenes/`, `game/scripts/Ui/`, scenes touching visual surfaces | `pwsh ./tools/Capture-VisualMatrix.ps1` with the affected fixture names; full matrix only on `RELEASE` |
+
+### Documentation checks (run only when a document was added, moved, or renamed)
+
+```powershell
 pwsh ./scripts/docs/inventory.ps1
 pwsh ./scripts/docs/classify.ps1
 ```
@@ -163,19 +189,35 @@ against a real 804. When they disagree, the measurement wins and the prose
 gets corrected in the same change.
 
 ```powershell
-# Cheap. Git and source only: no dotnet, no Godot, under a second.
-pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast
+# Cheap. Git and source only: no dotnet, no Godot, under a second. Used by
+# the SessionStart hook. -Quiet suppresses the console report so the agent's
+# context window is not bloated by routine snapshot prose.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast -Quiet
 
-# Before the session's first commit. Measures build, tests, headless boot,
-# agent context and catalogs, and captures a dated 1280x720 frame of the
-# live city.
+# Before the session's first commit in a RELEASE-mode change. Measures build,
+# tests, headless boot, agent context and catalogs, and captures a dated
+# 1280x720 frame of the live city.
 pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full
 
 # Same, where no interactive desktop exists.
 pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full -SkipCapture
 ```
 
-Then, in that same commit:
+**Full snapshot policy** (see [`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md)):
+
+- `SURGICAL`: not required.
+- `FEATURE`: optional at closure when useful; not required before intermediate
+  commits.
+- `RELEASE`: required before the first commit.
+
+**CHANGELOG policy** (see [`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md)):
+
+- `SURGICAL`: only when the change is player-visible or architecturally
+  meaningful.
+- `FEATURE`: one entry when the feature closes.
+- `RELEASE`: required.
+
+Then, in that same RELEASE commit:
 
 1. `docs/session-state/STATE.txt` and the dated `.png`.
 2. A `CHANGELOG.md` entry for the increment — what a player can now do that

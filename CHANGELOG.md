@@ -22,7 +22,87 @@ their commits for the real content.
 
 ---
 
-## El diálogo del mundo deja de tapar las rails, y una flecha deja de hacer dos cosas
+## La infraestructura de agentes deja de pagar release por cualquier cosa
+
+**2026-08-09** · schema v32 (sin cambio) · meta
+
+Lo que se nota desde fuera es muy poco: `New-SessionSnapshot.ps1 -Mode Fast -Quiet`
+en `SessionStart`, un `Get-VerificationPlan.ps1` nuevo, seis carpetas de skills
+fuera del slice borradas. Lo que cambia debajo es la regla que decide cuánto
+trabajo se exige a cada cambio.
+
+### Modos y riesgo
+
+Tres modos ahora — `SURGICAL`, `FEATURE`, `RELEASE` — y tres niveles de
+riesgo — `LOW`, `MEDIUM`, `HIGH`. Un cambio cosmético ya no exige Full snapshot,
+ni la matriz visual completa, ni una revisión de Quality Guardian con todo el
+catálogo de invariantes. Un cambio de schema sigue exigiéndolo todo. El
+escalado es ahora proporcional al riesgo, no al tamaño del commit.
+
+Las decisiones viven en:
+
+- `docs/ai/WORKFLOW_MODES.md`
+- `docs/ai/RISK_MODEL.md`
+- `docs/ai/DOMAIN_CONSULTATION.md` — leer estado existente no activa el dominio
+- `docs/ai/DOCUMENTATION_IMPACT_GATE.md` — un doc sólo se abre si su contrato
+  cambió
+- `tools/Get-VerificationPlan.ps1` — recomendación determinista, sin LLM
+- `docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md` — métricas antes/después y el
+  motivo de cada decisión
+
+### Verificación proporcional
+
+`Validate-AgentContext.ps1` ya no corre en cada commit: sólo cuando el diff
+toca `.agents/`, `.claude/`, `.codex/`, `AGENTS.md`, `CLAUDE.md`, `docs/ai/`,
+`scripts/`, `tools/`, o el instalador. Lo mismo para la validación de
+localización y la captura visual. La matriz visual completa se reserva para
+`RELEASE` o un cambio arquitectónico de presentación.
+
+### Skills fuera del slice, borradas
+
+Seis skills que el slice actual (2D pixel art, Godot 4 + C#/.NET,
+single-player) nunca pidió:
+
+- `godot-3d-essentials` — sin contenido 3D
+- `godot-multiplayer` — single-player
+- `game-ai` — los ciudadanos son personales, no FSM/A\*
+- `godot-gdscript` — C#/.NET sólo, política local
+- `godot-2d-movement` — sin avatar de jugador
+- `router` — motor fijo, detección no aporta
+
+Quitar estas seis (más seis archivos de `references/` y los espejos huérfanos
+en `.claude/skills/` y `.codex/skills/`) baja la corpus siempre-cargado de 40 a
+34 skills. `skills-lock.json`, `Install-GodotDotNetSkills.ps1` y el §11 del
+validador se actualizaron al nuevo conjunto.
+
+### Quality Guardian
+
+Tres profundidades — `PRESENTATION_REVIEW`, `DOMAIN_REVIEW`, `SYSTEM_REVIEW` —
+y una sola revisión por `FEATURE`. Antes corría una revisión completa después
+de cada subtarea; ahora corre una vez, a la profundidad del riesgo.
+
+### Lo que se quedó como estaba
+
+- `DomainBoundaryTests` sigue activo — sin `using Godot` en
+  `game/scripts/Domain/`.
+- El `AuthorGuardHook` sigue activo.
+- La separación dominio / presentación, dominio / motor, sigue intacta.
+- `CityPrototype.cs` se queda con su 1,956 líneas: el dispatch de fixtures y
+  el seam runtime están demasiado entrelazados para extraerlos sin poner en
+  riesgo la matriz visual. El motivo queda en
+  `AGENT_WORKFLOW_REFACTOR_REPORT.md` §12.
+
+### Measured baseline
+
+- `dotnet build`: 0 advertencias, 0 errores.
+- `dotnet test`: 1058 superadas, 0 fallidas, 1 omitida (era 1015 / 0 / 1; las
+  +43 vienen de los tests del refactor y de trabajo previo no medido).
+- `Validate-AgentContext.ps1`: 474 / 474 checks.
+- `Sync-AgentContext.ps1`: 34 skills, 8 agents, 0 errores.
+- Ningún cambio al schema, a gameplay, a balance, a lore, a ciudad,
+  expediciones o ciudadanos. Esta entrada es de infraestructura.
+
+---
 
 **2026-08-08** · schema v32 (sin cambio) · EG-5
 

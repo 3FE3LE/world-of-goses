@@ -36,11 +36,20 @@
     Run every Full probe but leave the screenshot alone. Use on a machine with
     no interactive desktop: the capture harness needs a real window.
 
+.PARAMETER Quiet
+    Suppress the console report at the end of the run. The STATE.txt and any
+    dated PNG are still written to disk. The SessionStart hook uses this so the
+    agent's context window is not bloated by routine snapshot prose on every
+    session start.
+
 .EXAMPLE
     pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast
 
 .EXAMPLE
     pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full
+
+.EXAMPLE
+    pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast -Quiet
 #>
 [CmdletBinding()]
 param(
@@ -53,7 +62,9 @@ param(
 
     [string]$Date,
 
-    [switch]$SkipCapture
+    [switch]$SkipCapture,
+
+    [switch]$Quiet
 )
 
 # Deliberately Continue, not Stop. This script reports on a repository that may
@@ -323,4 +334,6 @@ $report.Add("")
 $statePath = Join-Path $OutputDirectory "STATE.txt"
 [System.IO.File]::WriteAllText($statePath, ($report -join "`r`n"), [System.Text.UTF8Encoding]::new($false))
 
-Write-Host ($report -join [Environment]::NewLine)
+if (-not $Quiet) {
+    Write-Host ($report -join [Environment]::NewLine])
+}

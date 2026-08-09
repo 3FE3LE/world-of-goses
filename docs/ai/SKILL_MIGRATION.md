@@ -26,17 +26,37 @@ verified upstream provider, and document the workflow. They do not
 duplicate project rules or upstream manuals; long-form content lives
 in the upstream provider's skill.
 
-## 2. Skills removed
+## 2. Skills removed (this refactor)
 
-**No skill was removed in this change.** The previous vendor set under
-`.agents/skills/` (24 Apache-2.0 entries plus the local
-`godot-dotnet-project`) remains present, and `Recommended` remains the
-installer default until a verified Core / CurrentSlice / Full preset
-is built and tested in a follow-up. Per the migration protocol in
-`docs/ai/CONTEXT_MAP.md`, removal is gated on: (a) the upstream
-provider being verified, (b) every consumer being updated, and (c) a
-single-source-of-truth pinning recorded in `skills-lock.json`. None
-of those conditions was met in this pass; removal is deferred.
+The agent-workflow refactor (see [`WORKFLOW_MODES.md`](WORKFLOW_MODES.md),
+[`RISK_MODEL.md`](RISK_MODEL.md), and [`DOCUMENTATION_IMPACT_GATE.md`](DOCUMENTATION_IMPACT_GATE.md))
+deleted the following six vendored skills because they were out of the
+current vertical slice (2D pixel art, Godot 4 + C#/.NET, single-player
+desktop):
+
+| Removed skill | Reason |
+| --- | --- |
+| `godot-3d-essentials` | Project is 2D pixel art; no `Node3D` / `Camera3D` / `GridMap` content. |
+| `godot-multiplayer` | Project is single-player; no `ENetMultiplayerPeer`, no `MultiplayerSpawner`, no `@rpc`. |
+| `game-ai` | Citizens are personal entities owned by `citizens-rpg`, not generic FSM/behavior-tree/A* enemies. |
+| `godot-gdscript` | Project is C#/.NET-only by `godot-dotnet-project` policy; GDScript is not produced. |
+| `godot-2d-movement` | City builder has no player avatar; `CharacterBody2D` / `move_and_slide()` platformer/top-down avatar not in scope. |
+| `router` | Engine is locked to Godot/C#; engine-detection logic and multi-engine routing table add no value in-project. |
+
+The previous vendor set under `.agents/skills/` (24 Apache-2.0 entries
+plus the local `godot-dotnet-project`) was reduced to **19 entries**
+(18 vendored + 1 local policy) plus the **6 new local adapter skills**.
+
+`skills-lock.json` was updated to drop the deleted entries.
+`Install-GodotDotNetSkills.ps1` removed the deleted ids from the
+`Core`, `CurrentSlice`, `Full`, `Minimal`, and `AllGodot` presets, and
+dropped the always-on router install. `LegacyRecommended` is preserved
+verbatim for backward compatibility with already-installed user-level
+skill directories.
+
+`scripts/Validate-AgentContext.ps1` §11 was updated to no longer
+require `router`. The remaining `godot-csharp` and `save-systems`
+checks stay because those skills are still in scope.
 
 ## 3. Mapping OLD → NEW
 
@@ -51,8 +71,10 @@ of those conditions was met in this pass; removal is deferred.
 | `Sync-AgentContext.ps1` truncated agent descriptions to the first blockquote line | Description collected across the whole first paragraph, validated to be ≥ 80 characters per Claude/Codex adapter | fixed | Frontmatter `description` is what agent discovery reads; truncation narrowed every agent's visible scope. |
 | `Validate-AgentContext.ps1` did not check description completeness or local adapter presence | Now requires ≥ 80 chars of description text on every Claude/Codex adapter, and verifies the six new local adapter skills are present and well-formed | extended | Closes the gap that allowed the truncation bug to ship. |
 | Installer default `Recommended` installs 24 broad gamedev skills | Installer keeps `Recommended` for backward compatibility; documents `Core` / `CurrentSlice` / `Full` presets; explicit "no install until upstream IDs are verified" gate | on-demand | The user requires Core as the new default, but doing so without verified upstream slugs would invent ids. The new presets are scaffolded, not yet executed. |
-| Vendored `godot-3d-essentials`, `godot-multiplayer`, `game-ai` in default `Recommended` preset | Not in the new Core preset; classified as on-demand | on-demand | Project is 2D pixel art with no networking; A* / FSM / 3D content is a future slice. |
-| Vendored `godot-gdscript` in default `Recommended` preset | Still present (for translating documentation only) but not loaded by any canonical agent; `godot-dotnet-project` policy forbids producing `.gd` | on-demand | Retained as a reference, not a default. |
+| Vendored `godot-3d-essentials`, `godot-multiplayer`, `game-ai` in default `Recommended` preset | Removed in this refactor; out of scope for the current 2D pixel-art, single-player slice | removed | Project is 2D pixel art with no networking; A* / FSM / 3D content is a future slice. |
+| Vendored `godot-gdscript` in default `Recommended` preset | Removed in this refactor; `godot-dotnet-project` policy forbids producing `.gd` | removed | Project is C#/.NET-only. |
+| Vendored `godot-2d-movement` in default `Recommended` preset | Removed in this refactor; no player avatar | removed | City builder; `CharacterBody2D` / `move_and_slide()` is a future slice. |
+| Vendored `router` in default `Recommended` preset | Removed in this refactor; engine is locked | removed | Engine is locked to Godot/C#; engine-detection is moot. |
 | Vendored `godot-dotnet-project` (local C#/.NET policy) | Preserved; the C#/.NET rules it carries are now also referenced by the `godot-dotnet` local adapter | preserved | It is the project's own local policy; do not remove. |
 
 ## 4. Verified upstream providers
@@ -147,29 +169,36 @@ session start without explicit `Read` calls": canonical skill
 `SKILL.md` files, canonical agent `AGENT.md` files, and the Claude
 subagent adapter frontmatter.
 
-| Metric | BEFORE | AFTER | Delta |
-| --- | ---: | ---: | ---: |
-| Canonical project-domain skills | 9 | 9 | 0 |
-| Canonical local adapter skills | 0 | 6 | +6 |
-| Vendored / technical skills still in canonical | 24 + 1 local policy | 24 + 1 local policy | 0 |
-| Total canonical skills | 34 | 40 | +6 |
-| Canonical agents | 8 | 8 | 0 |
-| `AGENT_DISPATCH.md` characters | 13,741 | 14,250 | +509 |
-| `CONTEXT_MAP.md` characters | 22,200 | 22,814 | +614 |
-| Claude skills mirror count | 34 | 40 | +6 |
-| Codex skills mirror count | 42 | 48 | +6 |
-| Claude subagent adapters with truncated `description` | 8 / 8 | 0 / 8 | fixed |
-| Description truncation in Claude / Codex adapter frontmatter | yes (single line) | no (full paragraph, ≥ 80 chars) | fix |
+The table below shows two snapshots: (a) after the local-adapter
+refactor (this section's earlier content), and (b) after the
+agent-workflow refactor that deleted six out-of-slice vendored
+skills.
 
-**Headline:** the refactor's goal was not to shrink the canonical
-content, it was to (a) make the agents' visible scope correct
-(non-truncated descriptions), (b) decouple the project from vendor
-IDs, and (c) gate any further default-shrinkage on verified upstream
-IDs rather than invented ones. The new local adapters add six
-canonical skills to the always-loaded corpus — this is the cost of
-the stable local layer. Removing the vendor skills
-(≈ 270,000 characters when completed) is the next step; it requires
-verified upstream IDs and is deferred.
+| Metric | ORIGINAL BEFORE | AFTER (adapters) | AFTER (workflow refactor) | Final delta |
+| --- | ---: | ---: | ---: | ---: |
+| Canonical project-domain skills | 9 | 9 | 9 | 0 |
+| Canonical local adapter skills | 0 | 6 | 6 | +6 |
+| Vendored skills in canonical (excluding local policy) | 24 | 24 | 18 | −6 |
+| Local policy skill (`godot-dotnet-project`) | 1 | 1 | 1 | 0 |
+| Total canonical skills | 34 | 40 | 34 | 0 |
+| Canonical agents | 8 | 8 | 8 | 0 |
+| `AGENT_DISPATCH.md` characters | 13,741 | 14,250 | ~14,000 | ~+250 |
+| `CONTEXT_MAP.md` characters | 22,200 | 22,814 | ~22,500 | ~+300 |
+| Claude skills mirror count | 34 | 40 | 34 | 0 |
+| Codex skills mirror count | 42 | 48 | ~42 | 0 |
+| Claude subagent adapters with truncated `description` | 8 / 8 | 0 / 8 | 0 / 8 | fixed |
+
+**Headline (post agent-workflow refactor):** the canonical skill
+corpus is now 34 (down from the previous 40 / original 34) — the
+local adapter layer replaced six of the out-of-slice vendored skills
+with project-owned equivalents, and the workflow refactor then
+removed the remaining out-of-slice vendored skills. Net context
+cost at session start is roughly equivalent to the original (six
+local adapters replaced six removed vendors, the domain skills and
+agents are unchanged), but the always-loaded corpus is now
+project-owned and on-scope; future sessions do not pay for 3D,
+multiplayer, generic AI, GDScript, 2D platformer, or engine
+detection.
 
 ## 10. Validation
 
@@ -189,10 +218,11 @@ Run on the working tree after the refactor:
 
 ## 11. Pending decisions
 
-- The `Core` preset is scaffolded conceptually but not yet executed
-  as a deletion. It will be executed only after:
-  (a) every upstream provider id is verified by a real fetch and
-  (b) `skills-lock.json` is introduced and pinned to that fetch.
+- The remaining vendor set (18 + 1 local policy) is still upstream-
+  verified. A future pass can decide whether to additionally remove
+  any of `game-ui-ux`, `physics-tuning`, `performance-optimization`,
+  `input-systems`, `camera-systems`, `godot-shaders`, `godot-physics`,
+  or `game-feel` if the current slice proves they are not consumed.
 - GodotPrompter is a candidate replacement for the curated
   `awesome-gamedev-agent-skills` set, but its C# coverage is thin
   and its framework rules can fight the project's domain

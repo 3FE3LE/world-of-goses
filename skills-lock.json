@@ -7,12 +7,6 @@
       "skillPath": "skills/disciplines/camera-systems/SKILL.md",
       "computedHash": "e42abb9476b206b2e43e498c8dadaea6551234cf6901f0d802c357a87b0afe23"
     },
-    "game-ai": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/disciplines/game-ai/SKILL.md",
-      "computedHash": "189d23e7b6e9a29fbf951532e7b82e4a272925d19dc7817152a93e71d3422c92"
-    },
     "game-feel": {
       "source": "gamedev-skills/awesome-gamedev-agent-skills",
       "sourceType": "github",
@@ -24,18 +18,6 @@
       "sourceType": "github",
       "skillPath": "skills/disciplines/game-ui-ux/SKILL.md",
       "computedHash": "03750fba98e36165ed9a8470cf3df1a4aac0e06d687b9b5b7ee02bdf3599c19c"
-    },
-    "godot-2d-movement": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/godot/godot-2d-movement/SKILL.md",
-      "computedHash": "58367e55f56a6c3fd997dba5466d33920d8aeba3f7b171df0e475ea3ba12dd24"
-    },
-    "godot-3d-essentials": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/godot/godot-3d-essentials/SKILL.md",
-      "computedHash": "83a398cc8a121d19ea5ffe05548891384662597f221daa826f5465a23b825585"
     },
     "godot-animation": {
       "source": "gamedev-skills/awesome-gamedev-agent-skills",
@@ -65,18 +47,6 @@
       "sourceType": "github",
       "skillPath": "skills/godot/godot-export/SKILL.md",
       "computedHash": "7d96927cace2a3ca2f8c99e841b5d4028cc5a196be9dce5c3d633edec8cd3ae4"
-    },
-    "godot-gdscript": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/godot/godot-gdscript/SKILL.md",
-      "computedHash": "91f4537d81788c08860ceaf380fa1d24e3a6c19d9dbf2c96232e2c8fb3bc9fd6"
-    },
-    "godot-multiplayer": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "sourceType": "github",
-      "skillPath": "skills/godot/godot-multiplayer/SKILL.md",
-      "computedHash": "cad4306b750c8979288f05aa9919fa687ee43006374d7299e6eb0a0e8c7ea6bd"
     },
     "godot-nodes-scenes": {
       "source": "gamedev-skills/awesome-gamedev-agent-skills",
@@ -138,18 +108,11 @@
       "skillPath": "skills/disciplines/physics-tuning/SKILL.md",
       "computedHash": "68b7a3d1c4f83eb002d99f399c6c022aa49d05416bd0aee3c46f5d997fe55e72"
     },
-    "router": {
-      "source": "gamedev-skills/awesome-gamedev-agent-skills",
-      "ref": "main",
-      "sourceType": "github",
-      "skillPath": "router/SKILL.md",
-      "computedHash": "8bf9deb969caa933c724ffeaeec5c5b44df6690a8faa74ddee7ac4eddf0b97f3"
-    },
     "save-systems": {
       "source": "gamedev-skills/awesome-gamedev-agent-skills",
       "sourceType": "github",
       "skillPath": "skills/disciplines/save-systems/SKILL.md",
-      "computedHash": "35e081fe6e2166f79bfae772bdbc39e07e024623c8aec5cae3fcfd1248a44952"
+      "computedHash": "35a081fe6e2166f79bfae772bdbc39e07e024623c8aec5cae3fcfd1248a44952"
     }
   }
 }

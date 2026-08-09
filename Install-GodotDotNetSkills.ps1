@@ -88,14 +88,17 @@ $ErrorActionPreference = "Stop"
 # fast and the agent directory is untouched.
 
 $Repo = "gamedev-skills/awesome-gamedev-agent-skills"
-$RouterSource = "https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/router"
+
+# The router skill is no longer installed: it was removed by the
+# agent-workflow refactor because the engine (Godot/C#) is already
+# locked and engine-detection adds nothing in-project.
 
 # -- Presets ---------------------------------------------------------------
 
 # Core: minimum viable. Engine-specific knowledge for Godot 4 + C#,
 # the local C#/.NET policy, and the local capability adapters that
 # point to it. No 3D, no multiplayer, no GDScript authoring, no
-# game AI.
+# game AI, no router.
 $CoreSkills = @(
     "godot-csharp",
     "godot-nodes-scenes",
@@ -106,11 +109,12 @@ $CoreSkills = @(
 
 # CurrentSlice: Core plus the disciplines the active EG-5 consolidation
 # slice actually uses. Adding any of these is justified by a concrete
-# in-scope surface; nothing in here is "just in case".
+# in-scope surface; nothing in here is "just in case". Out-of-slice
+# skills (3D, multiplayer, GDScript, game-AI, 2D movement, router) are
+# removed; see SKILL_MIGRATION.md.
 $CurrentSliceSkills = $CoreSkills + @(
     "godot-ui-control",
     "godot-tilemap",
-    "godot-2d-movement",
     "godot-physics",
     "godot-animation",
     "godot-audio",
@@ -120,21 +124,18 @@ $CurrentSliceSkills = $CoreSkills + @(
     "input-systems"
 )
 
-# Full: every approved technical capability, including 3D,
-# multiplayer, GDScript reference, and game AI. NOT a default.
+# Full: every approved technical capability (no 3D, multiplayer,
+# GDScript, game-AI, 2D movement, or router). NOT a default.
 $FullSkills = $CurrentSliceSkills + @(
-    "godot-3d-essentials",
-    "godot-multiplayer",
-    "godot-gdscript",
     "godot-shaders",
     "camera-systems",
-    "game-ai",
     "game-feel",
     "game-ui-ux"
 )
 
 # LegacyRecommended: the previous default, preserved verbatim for
-# backward compatibility. Not recommended for new sessions.
+# backward compatibility with already-installed user-level skill
+# directories. Not recommended for new sessions.
 $LegacyRecommendedSkills = @(
     "godot-csharp",
     "godot-gdscript",
@@ -171,19 +172,15 @@ $MinimalSkills = @(
 )
 
 $AllGodotSkills = @(
-    "godot-gdscript",
     "godot-nodes-scenes",
     "godot-signals-groups",
-    "godot-2d-movement",
     "godot-tilemap",
     "godot-physics",
     "godot-ui-control",
     "godot-animation",
     "godot-shaders",
-    "godot-3d-essentials",
     "godot-resources",
     "godot-audio",
-    "godot-multiplayer",
     "godot-export",
     "godot-csharp"
 )
@@ -411,10 +408,6 @@ switch ($Preset) {
     "FullRepo"          { $selectedSkills = @("*") }
     default             { throw "Preset no soportado: $Preset" }
 }
-
-Write-Section "Instalando el router de game development"
-$routerArguments = Get-InstallArguments -Source $RouterSource
-Invoke-NpxSkills -Arguments $routerArguments
 
 Write-Section "Instalando skills del repositorio"
 Write-Host "Repositorio: $Repo"

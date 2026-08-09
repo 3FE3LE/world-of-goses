@@ -467,8 +467,10 @@ Check 'no duplicate agent names in .claude/agents/' ($dup.Count -eq 0) "duplicat
 Write-Host ""
 Write-Host "==> Existing files preserved" -ForegroundColor Cyan
 
-# The pre-existing vendored skills must still be tracked.
-foreach ($expected in @('godot-csharp', 'router', 'save-systems')) {
+# The pre-existing vendored skills must still be tracked. Out-of-slice
+# skills (3D, multiplayer, game-AI, GDScript, 2D movement, router) were
+# removed by the agent-workflow refactor; see SKILL_MIGRATION.md.
+foreach ($expected in @('godot-csharp', 'save-systems')) {
     Check "vendored skill '$expected' still present" (Test-Path -LiteralPath (Join-Path $canonicalSkillsDir $expected 'SKILL.md'))
 }
 

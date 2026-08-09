@@ -1,8 +1,20 @@
 # Context map
 
-> Routing table. Classify a request here **before** reading design documents.
-> Load the primary skill, then only the conditional skills whose trigger fires.
-> Never load the whole `docs/` tree.
+> Per-skill deep cards. Load only the route that matches your task; do
+> not load the whole file. Reading existing state does not activate a
+> domain skill — see
+> [`DOMAIN_CONSULTATION.md`](DOMAIN_CONSULTATION.md).
+>
+> Agent → skill inference lives in
+> [`AGENT_DISPATCH.md`](AGENT_DISPATCH.md). Workflow mode
+> (`SURGICAL` / `FEATURE` / `RELEASE`) and risk tier
+> (`LOW` / `MEDIUM` / `HIGH`) live in
+> [`WORKFLOW_MODES.md`](WORKFLOW_MODES.md) and
+> [`RISK_MODEL.md`](RISK_MODEL.md). The documentation impact gate lives
+> in [`DOCUMENTATION_IMPACT_GATE.md`](DOCUMENTATION_IMPACT_GATE.md).
+>
+> This file is the per-skill lookup once a route is matched. It is not
+> the prompt → agent inference layer; that is `AGENT_DISPATCH.md`.
 
 Skill ids resolve to `.agents/skills/<id>/SKILL.md`.
 Agent ids resolve to `.agents/agents/<id>/AGENT.md`.
@@ -20,27 +32,33 @@ by `Install-GodotDotNetSkills.ps1`; see
 
 ## How to use this file
 
-1. Find the row that matches the request. If several match, the task is
-   cross-domain — use `gameplay-integrator`.
-2. Read the **primary skill** in full.
-3. Read a **conditional skill** only when its trigger applies.
-4. Open the **canonical docs** the skill names, not the whole bible.
-5. Inspect the **code** listed before proposing a change.
+1. **Find the row that matches the request.** If several match, the
+   task is cross-domain — use `gameplay-integrator`.
+2. **Read the primary skill in full.**
+3. **Read a conditional skill only when its trigger applies.**
+4. **Open the canonical docs the skill names, not the whole bible.**
+5. **Inspect the code listed before proposing a change.**
+6. **Apply the documentation impact gate** before touching any doc.
 
-If no route matches, use `gameplay-integrator` and add the missing route to
-this file as part of the change.
+If no route matches, use `gameplay-integrator` and add the missing
+route to this file as part of the change.
 
 ---
 
 ## Global defaults
 
-`core-game-vision` is required for any task that can change what the player
-does, decides, or perceives. It is *not* required for a pure mechanical
-refactor, a test-only change, or a typo fix.
+`core-game-vision` is **not** loaded by default. Load it only when the
+change alters **at least one** of: player decisions, gameplay meaning,
+information availability, system purpose, fantasy, progression,
+risk/reward, or player agency. The full trigger list lives in the
+`core-game-vision` skill. See also
+[`DOMAIN_CONSULTATION.md`](DOMAIN_CONSULTATION.md) — a UI panel reading
+a snapshot does not activate `core-game-vision` just because the
+player can perceive the result.
 
-`technical-foundation` is required whenever persistence, offline progression,
-determinism, or the domain/presentation boundary is touched — regardless of
-which domain owns the feature.
+`technical-foundation` is required whenever persistence, offline
+progression, determinism, or the domain/presentation boundary is
+touched — regardless of which domain owns the feature.
 
 ---
 

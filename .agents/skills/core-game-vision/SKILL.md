@@ -2,11 +2,12 @@
 name: core-game-vision
 description: >
   Load the project-level vision, the nine gameplay pillars, and the RPG-city-builder-idle
-  identity. Use whenever a task could change the player's overall experience,
-  the fantasy the game sells, or the relationship between the city and its
-  inhabitants. This skill is required for any product, balance, or cross-domain
-  task. Do not load it for a pure mechanical refactor, test-only change, or
-  typo fix.
+  identity. Load only when the change alters at least one of: player decisions,
+  gameplay meaning, information availability, system purpose, fantasy, progression,
+  risk/reward, or player agency. Do NOT load for spacing, layout, borders,
+  typography, icon replacement, focus bug, scroll behavior, visual regression
+  fixture, equivalent component swap, pure presentation refactor, test-only
+  change, mechanical rename, or comment cleanup.
 license: World of Goses project license
 compatibility: Documentation-only; references files under docs/world-of-goses-design-bible/.
 metadata:
@@ -26,11 +27,39 @@ a generic city builder or a colony simulator.
 
 ## When to use
 
-- Any task that can change what the player does, decides, or perceives.
-- Any task that introduces a new building, system, or mechanic.
-- Any task that touches progression, identity, or the boundaries between
-  the city and its citizens.
-- Any task where two or more domains disagree.
+Load this skill only when the change alters **at least one** of:
+
+- **Player decisions** — new choice the player can make, or removal of
+  an existing one.
+- **Gameplay meaning** — what an action or system *means* in the world
+  (e.g. "this building now produces hope instead of grain").
+- **Information availability** — what the player can know vs must
+  discover.
+- **System purpose** — the reason a system exists.
+- **Fantasy** — the world the game sells.
+- **Progression** — what advances, in what order, under what rules.
+- **Risk / reward** — what can be lost, what can be gained.
+- **Player agency** — the player's capacity to act on the city.
+
+Load also when two or more domains disagree about any of the above.
+
+## When NOT to use
+
+Do **not** load this skill for:
+
+- spacing, layout, border, padding, alignment
+- font size, typography, icon replacement
+- focus bug, scroll behavior, hover state, click target
+- visual regression fixture, snapshot baseline update
+- equivalent component swap with no semantic change
+- pure presentation refactor
+- test-only change, mechanical rename, comment cleanup, typo
+- new file or scene with no decision, agency, or meaning attached
+- reading existing state (see `docs/ai/DOMAIN_CONSULTATION.md`)
+
+If the change is purely cosmetic, structural, or infrastructural
+and does not alter any of the eight load-when items above, do not
+load this skill.
 
 ## Required documentation
 

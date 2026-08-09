@@ -28,6 +28,13 @@ agent from the prompt's keywords or symptoms. Then open
 to a route. Load the primary skill listed by the route. Load conditional
 skills only when their trigger fires. **Never load the whole `docs/` tree.**
 
+Pick a workflow mode (`SURGICAL` / `FEATURE` / `RELEASE`) and risk tier
+(`LOW` / `MEDIUM` / `HIGH`) using
+[`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md) and
+[`docs/ai/RISK_MODEL.md`](docs/ai/RISK_MODEL.md). Reading existing state
+does not activate a domain skill — see
+[`docs/ai/DOMAIN_CONSULTATION.md`](docs/ai/DOMAIN_CONSULTATION.md).
+
 Canonical skills live at `.agents/skills/<id>/SKILL.md`. Canonical agents
 live at `.agents/agents/<id>/AGENT.md`. Claude Code discovers mirrors at
 `.claude/skills/<id>/SKILL.md` and `.claude/agents/<id>.md`. **Edit
@@ -144,20 +151,38 @@ One-paragraph summary:
 
 ## 5. Verification
 
+Verification scales with the workflow mode. A `SURGICAL` change does
+not need a Full snapshot; a `FEATURE` change runs the affected test
+families and the relevant fixtures; a `RELEASE` change runs the
+full workflow. See [`docs/ai/WORKFLOW_MODES.md`](docs/ai/WORKFLOW_MODES.md)
+and [`docs/ai/RISK_MODEL.md`](docs/ai/RISK_MODEL.md).
+
+```powershell
+# Recommended: ask the deterministic planner what to run.
+pwsh ./tools/Get-VerificationPlan.ps1
+```
+
+### Core checks (run whenever code changed)
+
 ```powershell
 cd game
 dotnet build
 
 cd ../tests/WorldofGoses.Tests
-dotnet test
+dotnet test --filter "<affected test family>"
+```
 
-cd ../..
-pwsh ./scripts/Sync-AgentContext.ps1 -Apply
-pwsh ./scripts/Validate-AgentContext.ps1
+### Path-gated checks (run only when the diff touches the path)
 
-# Only when a document was added, moved, or renamed. The second script
-# fails when a document is unclassified, when the ledger names a file
-# that no longer exists, or when docs/README.md does not index it.
+| Path pattern | Run |
+| --- | --- |
+| `.agents/`, `.claude/`, `.codex/`, `AGENTS.md`, `CLAUDE.md`, `docs/ai/`, `scripts/`, `tools/`, `Install-GodotDotNetSkills.ps1` | `pwsh ./scripts/Sync-AgentContext.ps1 -Apply` then `pwsh ./scripts/Validate-AgentContext.ps1` |
+| `*.po`, `*.pot`, `game/locale/`, `UiText.*` calls in `game/scripts/` | `pwsh ./tools/Test-LocalizationCatalog.ps1` |
+| `game/scenes/`, `game/scripts/Ui/`, scenes touching visual surfaces | `pwsh ./tools/Capture-VisualMatrix.ps1` with the affected fixture names; full matrix only on `RELEASE` |
+
+### Documentation checks (run only when a document was added, moved, or renamed)
+
+```powershell
 pwsh ./scripts/docs/inventory.ps1
 pwsh ./scripts/docs/classify.ps1
 ```
@@ -175,12 +200,14 @@ gets corrected in the same change.
 
 ```powershell
 # Automatic at session start (SessionStart hook). Git and source only,
-# no dotnet, no Godot, under a second.
-pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast
+# no dotnet, no Godot, under a second. -Quiet suppresses the console
+# report so the agent's context window is not bloated by routine
+# snapshot prose on every session start.
+pwsh ./tools/New-SessionSnapshot.ps1 -Mode Fast -Quiet
 
-# Yours to run, before the session's first commit. Measures build, tests,
-# headless boot, agent context and catalogs, and captures a dated
-# 1280x720 frame of the live city.
+# Required only for RELEASE-mode changes before the session's first
+# commit. Measures build, tests, headless boot, agent context and
+# catalogs, and captures a dated 1280x720 frame of the live city.
 pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full
 ```
 
