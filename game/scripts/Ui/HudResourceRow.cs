@@ -1,6 +1,7 @@
 #nullable enable
 
 using Godot;
+using WorldofGoses.Domain;
 
 namespace WorldofGoses.Ui;
 
@@ -29,6 +30,20 @@ public partial class HudResourceRow : HBoxContainer
     private readonly Label _delta;
 
     public HudResourceRow(string iconPath, string name, string amount, string delta = "")
+        : this(CreateTextureIcon(iconPath), name, amount, delta)
+    {
+    }
+
+    /// <summary>
+    /// Uses the existing project-owned resource glyph while preserving this
+    /// row's name/amount/delta columns.
+    /// </summary>
+    public HudResourceRow(ResourceType resourceType, string name, string amount, string delta = "")
+        : this(CreateResourceIcon(resourceType), name, amount, delta)
+    {
+    }
+
+    private HudResourceRow(Control icon, string name, string amount, string delta)
     {
         CustomMinimumSize = new Vector2(0, Tokens.HudRowHeight);
         MouseFilter = MouseFilterEnum.Pass;
@@ -41,16 +56,7 @@ public partial class HudResourceRow : HBoxContainer
         };
         AddChild(iconCell);
 
-        iconCell.AddChild(new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(iconPath),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-        });
+        iconCell.AddChild(icon);
 
         AddChild(new Label
         {
@@ -79,14 +85,33 @@ public partial class HudResourceRow : HBoxContainer
             HorizontalAlignment = HorizontalAlignment.Right,
             CustomMinimumSize = new Vector2(Tokens.HudRowHeight + Tokens.SpacingBase, 0),
             MouseFilter = MouseFilterEnum.Ignore,
+            Visible = !string.IsNullOrEmpty(delta),
         };
         AddChild(_delta);
     }
+
+    private static TextureRect CreateTextureIcon(string iconPath) => new()
+    {
+        Texture = ResourceLoader.Load<Texture2D>(iconPath),
+        StretchMode = TextureRect.StretchModeEnum.Keep,
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+        SizeFlagsVertical = SizeFlags.ShrinkCenter,
+        MouseFilter = MouseFilterEnum.Ignore,
+        Modulate = LineageThemeRegistry.IconAccent,
+    };
+
+    private static ResourceIcon CreateResourceIcon(ResourceType resourceType) => new(resourceType)
+    {
+        CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+        SizeFlagsVertical = SizeFlags.ShrinkCenter,
+    };
 
     /// <summary>Refreshes both figures together, so a row never shows a stale pair.</summary>
     public void SetValues(string amount, string delta)
     {
         _amount.Text = amount;
         _delta.Text = delta;
+        _delta.Visible = !string.IsNullOrEmpty(delta);
     }
 }

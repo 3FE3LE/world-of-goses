@@ -86,10 +86,10 @@ and this section gets corrected in the same change.
   vertex also reaches, `10 %` for the remaining six. The tier scales experience
   acquisition only; a level reached through a foreign family is worth exactly
   what any other level of that number is worth.
-- The status strip reports a worksite's `ConstructionStopCause` beside its
-  progress, with an explanatory tooltip. Buildings already exposed their
-  production stop cause; worksites did not, so a founding site waiting between
-  modules read as `Obra 0/180` forever with no reason given.
+- A worksite's natural construction surface reports its
+  `ConstructionStopCause` beside progress, with an explanatory tooltip.
+  Buildings already expose their production stop cause; worksite blockers stay
+  contextual instead of competing with the compact global status strip.
 - While a Founding Site waits between modules, the construction panel lists each
   authorisable module with its cost and the amount held, and the module button's
   tooltip names what is still missing. The founder-cargo inventory starts
@@ -245,15 +245,33 @@ and §17 acceptance test are complete.
   `CityWorldController.ReturnToCity()` from `CityPrototype._UnhandledInput`.
   `ModalHost.CompleteClose` no longer throws when its content is freed
   mid-animation.
-- HUD carries immediate time/alerts and global actions; resource quantities
-  progress contextually from founder cargo in Construction, through the
-  Founding Cache, to the Shelter's collapsible inventory surface. Save
-  confirmation is temporary.
+- HUD carries immediate time, a small read-only ticker of resources that
+  actually exist in the authoritative ledger, truthful population/capacity,
+  and temporary save feedback in the 40 px top bar. The compact icon-only
+  `PrimaryNavDock` owns connected global actions at bottom-centre and yields
+  that zone to contextual `ActionDock` during placement; bottom-right
+  `SimulationControls` owns the restored play/pause and existing speed pair,
+  plus the connected camera-mode world utility.
+  The final authored macro composition measures 240 px on the left, 236 px on
+  the right, and 300×52 for the primary dock at the fixed 1280×720 logical
+  canvas. Macro-only rails/controls follow perspective activation and disappear
+  on full profile/detail views; the 40 px top status remains shell-owned.
+  Ownership and detailed storage remain
+  contextual from founder cargo in Construction, through the Founding Cache,
+  to the Shelter's collapsible inventory surface. Save confirmation is
+  temporary.
 - Chronicle compacts routine events and preserves causal links for significant
   results/blockers, while resource-production and harvest arithmetic stays out
   of its player-facing projection. Basic gathering reports icon + amount above
   the physical owner: it follows the founder before Cache, then anchors above
   the Founding Site or Shelter once either owns storage.
+- A persistent right-side `ExpeditionRail` projects real active
+  phase/member/supply/timing state and the newest four meaningful Chronicle
+  events. It omits a queue because no queue exists; details open the existing
+  `ExpeditionPanel`, valid cancellation uses the existing controller command,
+  and `VER MÁS` expands the complete Chronicle in the same rail. Expanded mode
+  includes the offline catch-up summary, grouped actionable blockers and the
+  bounded compacted history; the previous separate full-log panel is gone.
 - Construction placement now renders every frontage cell with horizontal and
   vertical depth divisions, including blocked cells. Hover previews valid and
   invalid three-column windows before selection using the domain's
@@ -396,7 +414,8 @@ de cualquier cambio de UI.
   `game/scripts/BuildingDetailView.cs`
 - Citizens: `game/scripts/MigrantPanel.cs`, citizen snapshots/routines
 - Expedition: `game/scripts/ExpeditionPanel.cs`, expedition domain files
-- Chronicle: `game/scripts/OfflineReportPanel.cs`, domain event log
+- Chronicle: `game/scripts/Ui/ChroniclePanel.cs`,
+  `game/scripts/Ui/ChronicleEventProjection.cs`, domain event log
 - Policies: `game/scripts/PoliciesPanel.cs`
 - Reusable UI/input: `game/scripts/Ui/`
 - Tests: `tests/WorldofGoses.Tests/`

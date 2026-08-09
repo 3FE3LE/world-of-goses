@@ -68,6 +68,17 @@ public partial class LocaleManager : Node
     }
 
     /// <summary>
+    /// Capture-only locale switch. It exercises the same catalog loading path
+    /// without rewriting the player's persisted preference.
+    /// </summary>
+    internal void SetLocaleForVisualRegression(string locale)
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!LoadLocale(locale)) return;
+        EmitSignal(SignalName.LocaleChanged, CurrentLocale);
+    }
+
+    /// <summary>
     /// Cycles to the next locale in <see cref="AvailableLocales"/>.
     /// Loops back to the first after the last. Convenient for the
     /// pause-menu button.

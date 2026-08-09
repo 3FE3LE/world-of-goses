@@ -31,11 +31,11 @@ namespace WorldofGoses.Ui;
 public partial class ActionDock : PanelContainer
 {
     private Label _instruction = null!;
-    private Button _confirmButton = null!;
+    private IconButton _confirmButton = null!;
     private IconButton _cancelButton = null!;
 
     /// <summary>The affirmative action. The owning mode supplies its meaning.</summary>
-    public Button ConfirmButton
+    public IconButton ConfirmButton
     {
         get { EnsureBuilt(); return _confirmButton; }
     }
@@ -58,6 +58,8 @@ public partial class ActionDock : PanelContainer
         // Above the ambient tint like the rest of the HUD, and above the world so
         // a placement overlay cannot draw over its own controls.
         OverlayLayers.Apply(this, OverlayLayers.PlacementOverlay);
+        ThemeTypeVariation = "HudDock";
+        MouseFilter = MouseFilterEnum.Stop;
         EnsureBuilt();
         Hide();
     }
@@ -83,7 +85,7 @@ public partial class ActionDock : PanelContainer
 
         _instruction = new Label
         {
-            ThemeTypeVariation = "SectionTitle",
+            ThemeTypeVariation = "HudHeader",
             HorizontalAlignment = HorizontalAlignment.Center,
             MouseFilter = MouseFilterEnum.Ignore,
         };
@@ -93,11 +95,34 @@ public partial class ActionDock : PanelContainer
         actions.AddThemeConstantOverride("separation", Tokens.SpacingLoose);
         layout.AddChild(actions);
 
-        _confirmButton = new PrimaryActionButton();
+        _confirmButton = new IconButton
+        {
+            IconPath = IconPaths.Check,
+            ShowLabel = true,
+            ThemeTypeVariation = "HudButtonSelected",
+            CustomMinimumSize = new Vector2(176, Tokens.HudControlHeight),
+        };
         actions.AddChild(_confirmButton);
 
-        _cancelButton = new IconButton { ThemeTypeVariation = "ButtonText" };
-        _cancelButton.CustomMinimumSize = new Vector2(0, Tokens.ControlHeight);
+        _cancelButton = new IconButton
+        {
+            ShowLabel = true,
+            ThemeTypeVariation = "HudButton",
+            CustomMinimumSize = new Vector2(128, Tokens.HudControlHeight),
+        };
         actions.AddChild(_cancelButton);
+
+        _confirmButton.FocusMode = FocusModeEnum.All;
+        _cancelButton.FocusMode = FocusModeEnum.All;
+        NodePath confirmPath = _cancelButton.GetPathTo(_confirmButton);
+        NodePath cancelPath = _confirmButton.GetPathTo(_cancelButton);
+        _confirmButton.FocusNeighborLeft = cancelPath;
+        _confirmButton.FocusNeighborRight = cancelPath;
+        _confirmButton.FocusPrevious = cancelPath;
+        _confirmButton.FocusNext = cancelPath;
+        _cancelButton.FocusNeighborLeft = confirmPath;
+        _cancelButton.FocusNeighborRight = confirmPath;
+        _cancelButton.FocusPrevious = confirmPath;
+        _cancelButton.FocusNext = confirmPath;
     }
 }

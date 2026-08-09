@@ -1,23 +1,111 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
+using WorldofGoses.Presentation;
 using Xunit;
 
 namespace WorldofGoses.Tests;
 
 public sealed class UiSnapshotTests
 {
-    [Theory]
-    [InlineData(1024, false, true)]
-    [InlineData(1280, false, false)]
-    [InlineData(1600, false, false)]
-    [InlineData(1600, true, true)]
-    public void CityStatusPanel_CompactsForNarrowWindowsOrActiveProjects(
-        float windowWidth,
-        bool hasActiveProject,
-        bool expected)
+    [Fact]
+    public void CityStatusSnapshot_SupportsEmptyCitySummarySections()
     {
-        Assert.Equal(expected, CityStatusPanel.ShouldUseCompactLayout(windowWidth, hasActiveProject));
+        CityStatusSnapshot snapshot = CityStatusSnapshot.From(TestHelpers.NewHeroWorld());
+
+        Assert.Empty(snapshot.Resources);
+        Assert.Empty(snapshot.Projects);
+        Assert.Equal(1, snapshot.CitizenCount);
+        Assert.Equal(0, snapshot.HousingCapacity);
+    }
+
+    [Fact]
+    public void CityStatusSnapshot_SupportsFewCitySummaryResourcesWithoutInventedDeltas()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.Resources.DepositToCityInventory(ResourceType.Branches, 3);
+        world.Resources.DepositToCityInventory(ResourceType.SmallStone, 2);
+
+        CityStatusSnapshot snapshot = CityStatusSnapshot.From(world);
+
+        Assert.Collection(
+            snapshot.Resources.OrderBy(item => item.Resource),
+            item =>
+            {
+                Assert.Equal(ResourceType.Branches, item.Resource);
+                Assert.Equal(3, item.AvailableAmount);
+            },
+            item =>
+            {
+                Assert.Equal(ResourceType.SmallStone, item.Resource);
+                Assert.Equal(2, item.AvailableAmount);
+            });
+    }
+
+    [Fact]
+    public void CityStatusSnapshot_SupportsActiveAndBlockedConstructionSummaryStates()
+    {
+        CityWorld active = TestHelpers.NewConstructionWorld();
+        ConstructionProject activeProject = active.Projects.Values.Single();
+        active.AdvanceWorldTick();
+        CityStatusSnapshot.ProjectItem activeItem =
+            CityStatusSnapshot.From(active).Projects.Single();
+        Assert.Equal(ConstructionStopCause.Authorized, activeItem.StopCause);
+
+        CityWorld blocked = TestHelpers.NewConstructionWorld();
+        ConstructionProject blockedProject = blocked.Projects.Values.Single();
+        Assert.True(blocked.TryUnassignFromProject(blockedProject.Id, blocked.Hero!.Id).IsSuccess);
+        CityStatusSnapshot.ProjectItem blockedItem =
+            CityStatusSnapshot.From(blocked).Projects.Single();
+        Assert.Equal(ConstructionStopCause.NoWorkers, blockedItem.StopCause);
+        Assert.Equal(activeProject.RequiredWork, blockedItem.RequiredWork);
+    }
+
+    [Fact]
+    public void CityStatusSnapshot_ProjectsAuthoritativeResourceAvailabilityAndReservations()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.Resources.DepositToCityInventory(ResourceType.Branches, 5);
+        Assert.True(world.Resources.TryReserve(
+            ResourceType.Branches,
+            2,
+            new ResourceReservationOwner(ResourceReservationOwnerKind.ConstructionProject, 9),
+            out ResourceReservation? reservation));
+
+        CityStatusSnapshot before = CityStatusSnapshot.From(world);
+        ResourceInventoryItem branches = Assert.Single(before.Resources);
+        Assert.Equal(ResourceType.Branches, branches.Resource);
+        Assert.Equal(5, branches.TotalAmount);
+        Assert.Equal(3, branches.AvailableAmount);
+
+        Assert.True(world.Resources.Release(reservation!.Id));
+        world.Resources.DepositToCityInventory(ResourceType.PlantFiber, 1);
+        CityStatusSnapshot after = CityStatusSnapshot.From(world);
+
+        Assert.Equal(3, branches.AvailableAmount);
+        Assert.Equal(5, Assert.Single(after.Resources,
+            item => item.Resource == ResourceType.Branches).AvailableAmount);
+        Assert.Equal(1, Assert.Single(after.Resources,
+            item => item.Resource == ResourceType.PlantFiber).AvailableAmount);
+        Assert.DoesNotContain(after.Resources, item => item.TotalAmount <= 0);
+    }
+
+    [Fact]
+    public void CityStatusSnapshot_ProjectsLineageAndTruthfulPopulationCapacity()
+    {
+        CityWorld world = TestHelpers.WorldWithHome();
+        CityStatusSnapshot before = CityStatusSnapshot.From(world);
+
+        Assert.Equal("Ardhen", before.LineageName);
+        Assert.Equal(world.Citizens.Count, before.CitizenCount);
+        Assert.Equal(world.HousingCapacity, before.HousingCapacity);
+
+        world.RegisterCitizen(TestHelpers.NewCitizen(999));
+        CityStatusSnapshot after = CityStatusSnapshot.From(world);
+
+        Assert.Equal(before.CitizenCount + 1, after.CitizenCount);
+        Assert.Equal(before.HousingCapacity, after.HousingCapacity);
     }
 
     [Fact]
@@ -391,7 +479,7 @@ public sealed class UiSnapshotTests
         log.Record(3, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
         log.Record(4, WorldEventKind.StockProduced, forest, 4);
 
-        var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
+        var compacted = ChronicleEventProjection.Compact(log.Events);
 
         Assert.Equal(3, compacted.Count);
         Assert.Equal(4, compacted[0].Amount);
@@ -423,13 +511,66 @@ public sealed class UiSnapshotTests
             WorldEventSubject.ConstructionProject(new BuildingId(2), "Shelter"));
 
         IReadOnlyList<WorldEvent> visible =
-            OfflineReportPanel.VisibleChronicleEvents(log.Events);
+            ChronicleEventProjection.MeaningfulEvents(log.Events);
 
         Assert.Equal(2, visible.Count);
         Assert.DoesNotContain(visible, evt => evt.Kind == WorldEventKind.StockProduced);
         Assert.DoesNotContain(visible, evt => evt.Kind == WorldEventKind.CropHarvested);
         Assert.Contains(visible, evt => evt.Kind == WorldEventKind.DayBegan);
         Assert.Contains(visible, evt => evt.Kind == WorldEventKind.ProjectCompleted);
+    }
+
+    [Fact]
+    public void ExpeditionRailSnapshot_ProjectsOnlyTruthfulActiveExpeditionState()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        ExpeditionStartResult started = world.StartExpedition(
+            ExpeditionRequest.Reconnaissance(world.Hero!.Id));
+
+        Assert.True(started.IsSuccess);
+        ExpeditionRailSnapshot snapshot = ExpeditionRailSnapshot.From(world);
+        ExpeditionRailSnapshot.Item item = Assert.Single(snapshot.ActiveExpeditions);
+        Assert.Equal("Reconnaissance", item.DisplayName);
+        Assert.Equal(ExpeditionPhase.Outbound, item.Phase);
+        Assert.Equal(new[] { "Aster" }, item.MemberNames);
+        Assert.Equal(ResourceType.Wood, item.SupplyResource);
+        Assert.Equal(1, item.SupplyAmount);
+        Assert.True(item.CanCancel);
+        Assert.InRange(item.Progress(snapshot.CurrentTick), 0d, 1d);
+
+        Assert.True(world.CancelExpedition(started.ExpeditionId!.Value));
+        Assert.Empty(ExpeditionRailSnapshot.From(world).ActiveExpeditions);
+    }
+
+    [Fact]
+    public void ExpeditionRailSnapshot_EmptyWorldHasNoInventedCardOrQueue()
+    {
+        ExpeditionRailSnapshot snapshot = ExpeditionRailSnapshot.From(
+            TestHelpers.NewHeroWorld());
+
+        Assert.Empty(snapshot.ActiveExpeditions);
+        Assert.DoesNotContain(
+            typeof(ExpeditionRailSnapshot).GetProperties(),
+            property => property.Name.Contains("Queue", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ActivityFeed_UsesTheChroniclesMeaningfulNewestProjection()
+    {
+        var log = new WorldEventLog();
+        log.Record(1, WorldEventKind.StockProduced, WorldEventSubject.World("Store"), 4);
+        log.Record(2, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
+        log.Record(3, WorldEventKind.ProjectCompleted,
+            WorldEventSubject.ConstructionProject(new BuildingId(2), "Shelter"));
+
+        var newest = WorldofGoses.Presentation.ChronicleEventProjection.NewestMeaningful(
+            log.Events, 1);
+
+        var item = Assert.Single(newest);
+        Assert.Equal(WorldEventKind.ProjectCompleted, item.Kind);
+        Assert.Equal(3, item.LastTick);
     }
 
     [Fact]
@@ -442,7 +583,7 @@ public sealed class UiSnapshotTests
         log.Record(3, WorldEventKind.DayBegan, WorldEventSubject.World("Sun"));
         log.Record(4, WorldEventKind.StockCapped, forest);
 
-        var compacted = OfflineReportPanel.CompactConsecutiveEvents(log.Events);
+        var compacted = ChronicleEventProjection.Compact(log.Events);
 
         Assert.Equal(3, compacted.Count);
         Assert.Equal(1, compacted[0].FirstTick);
@@ -456,7 +597,18 @@ public sealed class UiSnapshotTests
     [InlineData(4500, "Day 2 · 06:00")]
     public void EventLog_FormatsSimulationTimeForPlayers(int tick, string expected)
     {
-        Assert.Equal(expected, OfflineReportPanel.FormatSimulationDate(tick));
+        Assert.Equal(expected, SimulationTimeText.Format(tick));
+    }
+
+    [Theory]
+    [InlineData(0, "Day 1 · 00:00")]
+    [InlineData(32400, "Day 10 · 00:00")]
+    [InlineData(356400, "Day 100 · 00:00")]
+    public void SimulationTimeText_KeepsOneTwoAndThreeDigitDaysAuthoritative(
+        int tick,
+        string expected)
+    {
+        Assert.Equal(expected, SimulationTimeText.Format(tick));
     }
 
     [Theory]

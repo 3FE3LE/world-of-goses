@@ -183,6 +183,9 @@ public partial class CityWorldController : Node
         }
     }
 
+    public void ToggleSimulationPause() =>
+        SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused);
+
     public enum Selection
     {
         MacroView = 0,
@@ -309,6 +312,13 @@ public partial class CityWorldController : Node
         }
         // Reflect the new state through the existing signals so the
         // macro view re-renders without an autosave side-effect.
+        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+    }
+
+    public void AdvanceWorldTickForVisualRegression()
+    {
+        if (!IsVisualCaptureMode) return;
+        _world.AdvanceWorldTick();
         EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
     }
 
@@ -564,8 +574,7 @@ public partial class CityWorldController : Node
 
     public Building? GetBuilding(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
-    public CityStatusSnapshot GetCityStatusSnapshot() =>
-        CityStatusSnapshot.From(_world, hasController: true, currentSpeed: (int)_speed);
+    public CityStatusSnapshot GetCityStatusSnapshot() => CityStatusSnapshot.From(_world);
 
     public ConstructionSnapshot GetConstructionSnapshot() => ConstructionSnapshot.From(_world);
 
@@ -579,6 +588,9 @@ public partial class CityWorldController : Node
 
     public ExpeditionPlanningSnapshot GetExpeditionPlanningSnapshot() =>
         ExpeditionPlanningSnapshot.From(_world);
+
+    public ExpeditionRailSnapshot GetExpeditionRailSnapshot() =>
+        ExpeditionRailSnapshot.From(_world);
 
     public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
 

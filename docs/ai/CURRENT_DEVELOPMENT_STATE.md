@@ -4,7 +4,7 @@
 > and what is still a placeholder. Update it when a phase completes, a slice
 > advances, or something on this list stops being true.
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-08-08
 
 This file deliberately holds **no numbers**. Build, tests, schema version,
 headless boot, catalogs and agent-context checks are measured into
@@ -23,10 +23,22 @@ The following are wired end to end in `game/scenes/CityPrototype.tscn` and the
 domain. Treat each as a hard "do not regress" target.
 
 - Founder onboarding, hero creation, profile view, lineage theme pack.
-- Macro city view (`MacroStreetLiveView`), resource-free status bar, lineage
-  ornament, physical-owner-anchored basic-resource gain feedback, and
-  collapsible Shelter inventory. Before Cache the feedback follows the
+- Macro city view (`MacroStreetLiveView`), compact 40 px status bar with brand,
+  lineage/time context, ledger-backed resource availability and population;
+  compact icon-only bottom-centre `PrimaryNavDock`; mutually exclusive contextual
+  `ActionDock`; bottom-right `SimulationControls`; physical-owner-anchored basic-resource gain
+  feedback, and collapsible Shelter inventory. The bar keeps neutral one-pixel
+  HUD chrome and receives lineage through accent/content. Before Cache the feedback follows the
   founder; afterward it anchors to Founding Site/Shelter storage.
+- Persistent collapsible `CitySummaryPanel` at the left safe margin, using
+  the status snapshot for lineage, population/housing, named ledger resources,
+  and real construction progress/stop causes. The transient typed
+  `ContextInspector` remains separate, pointer-transparent, bottom-aligned in
+  its authored slot to the summary's right, and grows upward without polling.
+- Persistent right-side `ExpeditionRail` with snapshot-backed active cards and
+  a four-row activity feed sharing Chronicle filtering/formatting; details route
+  to `ExpeditionPanel`, while the full Chronicle expands inside the same rail
+  slot. There is intentionally no expedition queue projection.
 - Before Shelter, Construction exposes the founder's six-unit carried load and
   then the Founding Cache's twelve-unit storage; unrelated legacy Food/Wood no
   longer blocks rudimentary gathering before Cache.
@@ -117,7 +129,7 @@ domain. Treat each as a hard "do not regress" target.
   `OfflineProgression` and `WorldTimeAdvance`; save confirmation is temporary.
 - Read-only Policies surface for the provisional workday, production,
   off-duty, and construction-authorization rules.
-- Causal event log: `CauseEventId` chains, 128-event retention, `OfflineReportPanel`
+- Causal event log: `CauseEventId` chains, 128-event retention, embedded `ChroniclePanel`
   with "Decisions needed" grouping.
 - Chronicle UI, GameUiShell, ModalHost, lineage theme.
 - Snapshot-based presentation: `CityMacroSnapshot`, `HeroProfileSnapshot`,

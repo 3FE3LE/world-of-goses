@@ -192,8 +192,8 @@ public partial class MigrantPanel : Control
                 Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(0, 44),
                 ThemeTypeVariation = _selectedCitizenId == citizen.Id
-                    ? "ButtonPrimary"
-                    : "ButtonText",
+                    ? "HudButtonSelected"
+                    : "HudButton",
             };
             CitizenId id = citizen.Id;
             button.Pressed += () => SelectCitizen(id);

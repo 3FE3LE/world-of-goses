@@ -25,7 +25,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = "OverlayPanel"
+theme_type_variation = "HudSurface"
 
 [node name="Margin" type="MarginContainer" parent="Surface"]
 layout_mode = 2
@@ -40,13 +40,13 @@ theme_override_constants/separation = 8
 
 [node name="Title" type="Label" parent="Surface/Margin/Layout"]
 layout_mode = 2
-theme_type_variation = "ScreenTitle"
+theme_type_variation = "HudHeader"
 text = "Citizens"
 horizontal_alignment = 1
 
 [node name="StatusLabel" type="Label" parent="Surface/Margin/Layout"]
 layout_mode = 2
-theme_type_variation = "BodyText"
+theme_type_variation = "HudBody"
 text = "City roster"
 autowrap_mode = 3
 
@@ -73,18 +73,18 @@ theme_override_constants/separation = 6
 [node name="DetailLabel" type="Label" parent="Surface/Margin/Layout/BodyScroll/Body"]
 custom_minimum_size = Vector2(0, 84)
 layout_mode = 2
-theme_type_variation = "BodyText"
+theme_type_variation = "HudBody"
 text = "Select a citizen."
 autowrap_mode = 3
 
 [node name="RecruitButton" type="Button" parent="Surface/Margin/Layout"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = "ButtonPrimary"
+theme_type_variation = "HudButtonSelected"
 text = "Recruit citizen"
 
 [node name="CloseButton" type="Button" parent="Surface/Margin/Layout"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_type_variation = "ButtonText"
+theme_type_variation = "HudButton"
 text = "Close"

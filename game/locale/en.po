@@ -529,6 +529,66 @@ msgstr "Off-hours"
 msgid "ui.status.off_hours_hint"
 msgstr "Work paused. Production, construction and expedition mobilisation resume at 08:00."
 
+msgid "ui.status.world_context"
+msgstr "{0} · {1}"
+
+msgid "ui.status.resource_available"
+msgstr "Available: {0}"
+
+msgid "ui.status.resource_stored"
+msgstr "Stored: {0}"
+
+msgid "ui.status.resource_reserved"
+msgstr "Reserved: {0}"
+
+msgid "ui.status.population"
+msgstr "Population: {0}"
+
+msgid "ui.status.population_with_capacity"
+msgstr "Population: {0}/{1}"
+
+msgid "ui.city_summary.city"
+msgstr "CITY"
+
+msgid "ui.city_summary.header"
+msgstr "CITY · {0}"
+
+msgid "ui.city_summary.unknown_lineage"
+msgstr "Unfounded"
+
+msgid "ui.city_summary.founding_lineage"
+msgstr "Founding lineage: {0}"
+
+msgid "ui.city_summary.status"
+msgstr "STATUS"
+
+msgid "ui.city_summary.housing"
+msgstr "Housing"
+
+msgid "ui.city_summary.resources"
+msgstr "RESOURCES"
+
+msgid "ui.city_summary.no_resources"
+msgstr "No resources are currently held."
+
+msgid "ui.city_summary.construction"
+msgstr "CONSTRUCTION"
+
+msgid "ui.city_summary.no_construction"
+msgstr "No active construction."
+
+msgid "ui.city_summary.in_progress"
+msgstr "In progress"
+
+msgid "ui.city_summary.waiting_materials"
+msgstr "Waiting for materials"
+
+msgid "ui.city_summary.project_tooltip"
+msgstr "{0}\nProgress: {1}/{2}\nState: {3}"
+
+msgid "ui.city_summary.inspector_fixture_detail"
+msgstr "Selected citizen · available at home"
+
 msgid "ui.citizens.debug_context"
 msgstr "Debug — activity: {0} · context: {1} · blocker: {2}\nWorkplace: {3} · Shelter: {4}\nStarted: {5} · expected: {6} · next: {7}\nLast simulation processing: {8}"
 
@@ -2675,3 +2735,108 @@ msgstr "The rememberer forgets for a night. The spirit will not."
 
 msgid "firstnight.sleeping.body.theryn"
 msgstr "The binder is bound to sleep. The spirit is unbound."
+
+msgid "Policies"
+msgstr "Policies"
+
+msgid "ui.simulation.pause"
+msgstr "Pause the simulation."
+
+msgid "ui.simulation.resume"
+msgstr "Simulation paused. Resume at {0}×."
+
+msgid "Review city-wide policies"
+msgstr "Review city-wide policies"
+
+msgid "Open the citizens roster"
+msgstr "Open the citizens roster"
+
+msgid "Build"
+msgstr "Build"
+
+msgid "ui.camera.follow_short"
+msgstr "Track"
+
+msgid "ui.camera.free_short"
+msgstr "View"
+
+msgid "ui.nav.hero_short"
+msgstr "Hero"
+
+msgid "ui.nav.build_short"
+msgstr "Build"
+
+msgid "ui.nav.menu_short"
+msgstr "Menu"
+
+msgid "ui.nav.expedition_short"
+msgstr "Scout"
+
+msgid "ui.nav.policies_short"
+msgstr "Rules"
+
+msgid "ui.nav.citizens_short"
+msgstr "People"
+
+msgid "ui.expedition_rail.title"
+msgstr "EXPEDITIONS"
+
+msgid "ui.expedition_rail.active"
+msgstr "ACTIVE"
+
+msgid "ui.expedition_rail.none_active"
+msgstr "No expedition underway."
+
+msgid "ui.expedition_rail.activity"
+msgstr "ACTIVITY"
+
+msgid "ui.expedition_rail.no_activity"
+msgstr "No meaningful events yet."
+
+msgid "ui.expedition_rail.activity_row"
+msgstr "• {0} · {1}"
+
+msgid "ui.expedition_rail.more"
+msgstr "VIEW MORE"
+
+msgid "ui.expedition_rail.more_tooltip"
+msgstr "Open the full Chronicle"
+
+msgid "ui.expedition_rail.details_tooltip"
+msgstr "Open expedition details for {0}"
+
+msgid "ui.expedition_rail.members_unknown"
+msgstr "Unknown members"
+
+msgid "ui.expedition_rail.members.one"
+msgstr "{0} member · {1}"
+
+msgid "ui.expedition_rail.members.many"
+msgstr "{0} members · {1}"
+
+msgid "ui.expedition_rail.cancel"
+msgstr "Cancel"
+
+msgid "ui.expedition_rail.cancel_tooltip"
+msgstr "Cancel this active expedition and return its committed supplies"
+
+msgid "ui.expedition_rail.phase.outbound"
+msgstr "Outbound"
+
+msgid "ui.expedition_rail.phase.encounter"
+msgstr "Encounter"
+
+msgid "ui.expedition_rail.phase.objective"
+msgstr "At objective"
+
+msgid "ui.expedition_rail.phase.returning"
+msgstr "Returning"
+
+msgid "ui.expedition_rail.phase.retreating"
+msgstr "Retreating"
+
+msgid "ui.expedition_rail.phase.resolved"
+msgstr "Resolved"
+
+msgid "Close"
+msgstr "Close"

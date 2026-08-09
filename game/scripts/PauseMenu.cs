@@ -12,7 +12,7 @@ public partial class PauseMenu : Control
 {
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
     [Export] public NodePath OpenButtonPath { get; set; } =
-        "../GameUiShell/ScreenContent/NavigationRail/Actions/GameMenuButton";
+        "../GameUiShell/ScreenContent/PrimaryNavDock/Actions/GameMenuButton";
 
     private CityWorldController _controller = null!;
     private PanelContainer _card = null!;
@@ -63,9 +63,6 @@ public partial class PauseMenu : Control
         _languageButton.Pressed += OnLanguageButtonPressed;
         if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
 
-        _card.AddThemeStyleboxOverride(
-            "panel",
-            LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
         _resumeButton.Pressed += Close;
         _closeButton.Pressed += Close;
         _resetButton.Pressed += ShowResetConfirmation;

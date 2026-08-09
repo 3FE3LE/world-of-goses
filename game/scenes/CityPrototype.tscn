@@ -13,20 +13,22 @@
 [ext_resource type="Script" uid="uid://bo5b2cx83b77t" path="res://scripts/HeroAccessButton.cs" id="14_heroaccess"]
 [ext_resource type="Script" uid="uid://u7jawqyectws" path="res://scripts/IconButton.cs" id="15_iconbtn"]
 [ext_resource type="Script" uid="uid://mywcitsjkael" path="res://scripts/KenneyBackground.cs" id="16_kenbg"]
-[ext_resource type="Script" uid="uid://bmfly2pbx8r42" path="res://scripts/OfflineReportPanel.cs" id="17_offrep"]
 [ext_resource type="Script" uid="uid://b6vfsbr4sw38f" path="res://scripts/Ui/ModalHost.cs" id="18_modalhost"]
 [ext_resource type="PackedScene" path="res://scenes/Components/BackToCityButton.tscn" id="19_backbutton"]
 [ext_resource type="Script" uid="uid://crg4evm3yqil0" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="20_safearea"]
 [ext_resource type="Script" uid="uid://chwc1uluiw6sb" path="res://scripts/Ui/GameUiShell.cs" id="24_shell"]
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
-[ext_resource type="Script" path="res://scripts/Ui/NavigationRail.cs" id="29_navrail"]
+[ext_resource type="Script" uid="uid://grhfjvibk8re" path="res://scripts/Ui/PrimaryNavDock.cs" id="29_primarynav"]
 [ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
 [ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
 [ext_resource type="Script" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
 [ext_resource type="Script" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
 [ext_resource type="Script" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
+[ext_resource type="Script" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
+[ext_resource type="Script" path="res://scripts/SimulationControls.cs" id="37_simcontrols"]
+[ext_resource type="Script" uid="uid://dexpeditionrail06" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -46,31 +48,16 @@ theme_override_constants/separation = 0
 script = ExtResource("24_shell")
 
 [node name="CityStatusPanel" type="PanelContainer" parent="GameUiShell" unique_id=1259124350]
-custom_minimum_size = Vector2(0, 28)
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 mouse_filter = 2
-theme_type_variation = &"StatusStrip"
+theme_type_variation = &"HudSurface"
 script = ExtResource("5_status")
 
 [node name="ScreenContent" type="Control" parent="GameUiShell" unique_id=2019693930]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-
-[node name="OfflineReportPanel" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1450691085]
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -376.0
-offset_top = -336.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 0
-grow_vertical = 0
-script = ExtResource("17_offrep")
 
 [node name="ModalHost" type="Control" parent="GameUiShell/ScreenContent" unique_id=1131647978]
 visible = false
@@ -94,7 +81,7 @@ mouse_filter = 2
 [node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/Center" unique_id=2074700493]
 visible = false
 layout_mode = 2
-theme_type_variation = &"OverlayPanel"
+theme_type_variation = &"HudSurface"
 script = ExtResource("12_construction")
 
 [node name="ExpeditionPanel" parent="GameUiShell/ScreenContent" unique_id=1643693377 instance=ExtResource("27_expedition")]
@@ -153,13 +140,13 @@ theme_override_constants/separation = 12
 [node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=924062929]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_type_variation = &"PanelTitle"
+theme_type_variation = &"HudHeader"
 text = "Building"
 vertical_alignment = 1
 
 [node name="BackButton" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=1925650650 instance=ExtResource("19_backbutton")]
 layout_mode = 2
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 
 [node name="Content" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout" unique_id=136504885]
 custom_minimum_size = Vector2(824, 0)
@@ -211,7 +198,7 @@ custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
-theme_type_variation = &"PanelCard"
+theme_type_variation = &"HudCard"
 script = ExtResource("8_assign")
 
 [node name="Details" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
@@ -228,23 +215,39 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
-theme_type_variation = &"PanelCard"
+theme_type_variation = &"HudCard"
 script = ExtResource("9_prod")
 
 [node name="ActionDock" type="PanelContainer" parent="GameUiShell/ScreenContent"]
 visible = false
+custom_minimum_size = Vector2(480, 72)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_top = -16.0
+offset_left = -240.0
+offset_top = -88.0
+offset_right = 240.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_type_variation = &"OverlayPanel"
+mouse_filter = 0
+theme_type_variation = &"HudDock"
 script = ExtResource("35_actiondock")
+
+[node name="CitySummaryPanel" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 248.0
+offset_bottom = 8.0
+mouse_filter = 0
+theme_type_variation = &"HudSurface"
+script = ExtResource("36_summary")
 
 [node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent"]
 visible = false
@@ -252,92 +255,130 @@ layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = -16.0
-offset_right = 236.0
-offset_bottom = -16.0
+offset_left = 256.0
+offset_top = -88.0
+offset_right = 476.0
+offset_bottom = -88.0
 grow_vertical = 0
 mouse_filter = 2
-theme_type_variation = &"OverlayPanel"
+theme_type_variation = &"HudCard"
 script = ExtResource("34_inspector")
 
-[node name="NavigationRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
+[node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+visible = false
 layout_mode = 1
-anchors_preset = 0
-offset_left = 8.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -244.0
 offset_top = 8.0
-offset_right = 8.0
-offset_bottom = 8.0
-theme_type_variation = &"PanelCard"
-script = ExtResource("29_navrail")
+offset_right = -8.0
+offset_bottom = -104.0
+grow_horizontal = 0
+mouse_filter = 0
+theme_type_variation = &"HudSurface"
+script = ExtResource("38_expeditionrail")
+ControllerPath = NodePath("../../../CityWorldController")
+ExpeditionPanelPath = NodePath("../ExpeditionPanel")
 
-[node name="Actions" type="VBoxContainer" parent="GameUiShell/ScreenContent/NavigationRail" unique_id=2007280117]
+[node name="PrimaryNavDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
+visible = false
+custom_minimum_size = Vector2(300, 52)
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -68.0
+offset_right = 150.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 0
+theme_type_variation = &"HudDock"
+script = ExtResource("29_primarynav")
+
+[node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/PrimaryNavDock" unique_id=2007280117]
 layout_mode = 2
-theme_override_constants/separation = 8
+alignment = 1
+theme_override_constants/separation = 4
 
-[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=352864886]
+[node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=352864886]
 layout_mode = 2
 tooltip_text = "Open the hero profile"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "View hero"
 script = ExtResource("14_heroaccess")
 ControllerPath = NodePath("../../../../../CityWorldController")
 IconPath = "res://assets/ui/icons/24/user.svg"
 ButtonText = "View hero"
 
-[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=388338105]
+[node name="ConstructionMenuButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=388338105]
 layout_mode = 2
 tooltip_text = "Open the construction menu"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "Construction"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/plus.svg"
+IconPath = "res://assets/ui/icons/24/building.svg"
 ButtonText = "Construction"
 
-[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=456502058]
+[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=456502058]
 layout_mode = 2
 tooltip_text = "Open the city menu (ESC)"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "Menu"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/menu.svg"
 ButtonText = "Menu"
 
-[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions" unique_id=623378802]
+[node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=623378802]
 layout_mode = 2
 tooltip_text = "Send the founder on a reconnaissance"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "Recon"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/leaf.svg"
+IconPath = "res://assets/ui/icons/24/backpack.svg"
 ButtonText = "Recon"
 
-[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
+[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions"]
 layout_mode = 2
 tooltip_text = "Review city-wide policies"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "Policies"
 script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/cog.svg"
+IconPath = "res://assets/ui/icons/24/clipboard-note.svg"
 ButtonText = "Policies"
 
-[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
+[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions"]
 layout_mode = 2
 tooltip_text = "Open the citizens roster"
-theme_type_variation = &"ButtonText"
+theme_type_variation = &"HudButton"
 text = "Citizens"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/users.svg"
 ButtonText = "Citizens"
 
-[node name="CameraModeButton" type="Button" parent="GameUiShell/ScreenContent/NavigationRail/Actions"]
-layout_mode = 2
-tooltip_text = "Camera is free to pan. Click to follow the selected citizen (F)."
-theme_type_variation = &"ButtonText"
-text = "Free camera"
-script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/camera.svg"
-ButtonText = "Free camera"
+[node name="SimulationControls" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+visible = false
+custom_minimum_size = Vector2(184, 40)
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -56.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 0
+theme_type_variation = &"HudDock"
+script = ExtResource("37_simcontrols")
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
 layout_mode = 1

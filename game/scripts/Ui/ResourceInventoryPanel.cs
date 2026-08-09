@@ -22,22 +22,20 @@ public partial class ResourceInventoryPanel : PanelContainer
     {
         _expanded = expandedByDefault;
         Name = "ResourceInventory";
-        AddThemeStyleboxOverride(
-            "panel",
-            LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+        ThemeTypeVariation = "HudInset";
 
         var shell = new VBoxContainer();
         shell.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         AddChild(shell);
 
-        _toggle.ThemeTypeVariation = "ButtonText";
+        _toggle.ThemeTypeVariation = "HudButton";
         _toggle.CustomMinimumSize = new Vector2(0, 40);
         _toggle.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _toggle.FocusMode = FocusModeEnum.All;
         _toggle.Pressed += ToggleExpanded;
         shell.AddChild(_toggle);
 
-        _capacity.ThemeTypeVariation = "BodySmall";
+        _capacity.ThemeTypeVariation = "HudCaption";
         _capacity.HorizontalAlignment = HorizontalAlignment.Center;
         _capacity.AddThemeColorOverride("font_color", LineageThemeRegistry.IconAccent);
         shell.AddChild(_capacity);
@@ -82,7 +80,7 @@ public partial class ResourceInventoryPanel : PanelContainer
         row.AddChild(new Label
         {
             Text = UiText.Get(item.Resource.ToString().ToLowerInvariant()),
-            ThemeTypeVariation = "BodyText",
+            ThemeTypeVariation = "HudBody",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = MouseFilterEnum.Ignore,
@@ -90,7 +88,7 @@ public partial class ResourceInventoryPanel : PanelContainer
         row.AddChild(new Label
         {
             Text = item.TotalAmount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            ThemeTypeVariation = "SectionTitle",
+            ThemeTypeVariation = "HudNumeric",
             CustomMinimumSize = new Vector2(52, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,

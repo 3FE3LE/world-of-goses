@@ -661,9 +661,10 @@ The increments, in design order:
    unlockable frontier; resources use deterministic scatter and generic
    clearance-based traversal. A durable Primitive Axe (1 Branch + 1 Small
    Stone after Shelter completion) gates mature-tree Wood. Second/third plots
-   and Farm consolidation remain. Resource quantities no longer occupy the
-   global status strip: the completed Shelter exposes a collapsible inventory
-   surface. Routine gains remain domain facts but are omitted from Chronicle;
+   and Farm consolidation remain. The compact global status strip may expose a
+   small icon-and-available-amount projection of resources that actually exist;
+   the completed Shelter remains the contextual inventory and storage surface.
+   Routine gains remain domain facts but are omitted from Chronicle;
    gathering a basic ground resource instead raises a transient icon and
    `+amount` above its current owner: founder before Cache, Founding Site after
    Cache, and Shelter after consolidation.

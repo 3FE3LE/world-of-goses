@@ -1,6 +1,7 @@
 #nullable enable
 
 using Godot;
+using WorldofGoses.Domain;
 
 namespace WorldofGoses.Ui;
 
@@ -52,11 +53,28 @@ public partial class StatChip : HBoxContainer
     public static StatChip HudIconValue(string iconPath, string value) =>
         new(iconPath, value, "HudNumeric", Tokens.SpacingTight);
 
+    /// <summary>
+    /// The same HUD value role using the existing project-owned resource glyph.
+    /// The glyph sits in the same 24 px cell as Pixelarticons, so callers do not
+    /// need a second resource-chip primitive or a fake generic icon mapping.
+    /// </summary>
+    public static StatChip HudIconValue(ResourceType resourceType, string value) =>
+        new(CreateResourceIcon(resourceType), value, "HudNumeric", Tokens.SpacingTight);
+
     public StatChip(
         string iconPath,
         string text,
         string labelVariation = DefaultLabelVariation,
         int separation = Tokens.SpacingBase)
+        : this(CreateTextureIcon(iconPath), text, labelVariation, separation)
+    {
+    }
+
+    private StatChip(
+        Control icon,
+        string text,
+        string labelVariation,
+        int separation)
     {
         MouseFilter = MouseFilterEnum.Pass;
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
@@ -74,16 +92,6 @@ public partial class StatChip : HBoxContainer
         iconCell.AddThemeConstantOverride("margin_top", 1);
         AddChild(iconCell);
 
-        var icon = new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(iconPath),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-        };
         iconCell.AddChild(icon);
 
         _label = new Label
@@ -101,6 +109,23 @@ public partial class StatChip : HBoxContainer
         };
         AddChild(_label);
     }
+
+    private static TextureRect CreateTextureIcon(string iconPath) => new()
+    {
+        Texture = ResourceLoader.Load<Texture2D>(iconPath),
+        StretchMode = TextureRect.StretchModeEnum.Keep,
+        CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        MouseFilter = MouseFilterEnum.Ignore,
+        Modulate = LineageThemeRegistry.IconAccent,
+        SizeFlagsVertical = SizeFlags.ShrinkCenter,
+    };
+
+    private static ResourceIcon CreateResourceIcon(ResourceType resourceType) => new(resourceType)
+    {
+        CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+        SizeFlagsVertical = SizeFlags.ShrinkCenter,
+    };
 
     /// <summary>
     /// Replaces the text without rebuilding the icon, so a value can refresh in

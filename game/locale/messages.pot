@@ -163,6 +163,9 @@ msgstr ""
 msgid "branches"
 msgstr ""
 
+msgid "Build"
+msgstr ""
+
 msgid "Build a Farm."
 msgstr ""
 
@@ -754,10 +757,10 @@ msgstr ""
 msgid "firstnight.strip.sleep"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
 msgid "Forest"
@@ -1363,6 +1366,9 @@ msgstr ""
 msgid "Open the building that needs attention."
 msgstr ""
 
+msgid "Open the citizens roster"
+msgstr ""
+
 msgid "Open the city menu (ESC)"
 msgstr ""
 
@@ -1424,6 +1430,9 @@ msgid "Poisoning"
 msgstr ""
 
 msgid "Polearm"
+msgstr ""
+
+msgid "Policies"
 msgstr ""
 
 msgid "Political orientation — choose one"
@@ -1513,10 +1522,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1547,6 +1556,9 @@ msgid "Returned {0} carried units to the ground."
 msgstr ""
 
 msgid "Returns all carried founding resources to the ground so you can prepare the exact load for the next module."
+msgstr ""
+
+msgid "Review city-wide policies"
 msgstr ""
 
 msgid "Risk tolerance"
@@ -1609,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
 msgid "Strength"
@@ -1795,10 +1807,16 @@ msgstr ""
 msgid "ui.camera.follow_label"
 msgstr ""
 
+msgid "ui.camera.follow_short"
+msgstr ""
+
 msgid "ui.camera.follow_tooltip"
 msgstr ""
 
 msgid "ui.camera.free_label"
+msgstr ""
+
+msgid "ui.camera.free_short"
 msgstr ""
 
 msgid "ui.camera.free_tooltip"
@@ -1877,6 +1895,48 @@ msgid "ui.citizens.recruit_failed"
 msgstr ""
 
 msgid "ui.citizens.roster_row"
+msgstr ""
+
+msgid "ui.city_summary.city"
+msgstr ""
+
+msgid "ui.city_summary.construction"
+msgstr ""
+
+msgid "ui.city_summary.founding_lineage"
+msgstr ""
+
+msgid "ui.city_summary.header"
+msgstr ""
+
+msgid "ui.city_summary.housing"
+msgstr ""
+
+msgid "ui.city_summary.in_progress"
+msgstr ""
+
+msgid "ui.city_summary.inspector_fixture_detail"
+msgstr ""
+
+msgid "ui.city_summary.no_construction"
+msgstr ""
+
+msgid "ui.city_summary.no_resources"
+msgstr ""
+
+msgid "ui.city_summary.project_tooltip"
+msgstr ""
+
+msgid "ui.city_summary.resources"
+msgstr ""
+
+msgid "ui.city_summary.status"
+msgstr ""
+
+msgid "ui.city_summary.unknown_lineage"
+msgstr ""
+
+msgid "ui.city_summary.waiting_materials"
 msgstr ""
 
 msgid "ui.common.language.english"
@@ -2033,6 +2093,66 @@ msgid "ui.duration.minute.one"
 msgstr ""
 
 msgid "ui.duration.separator"
+msgstr ""
+
+msgid "ui.expedition_rail.active"
+msgstr ""
+
+msgid "ui.expedition_rail.activity"
+msgstr ""
+
+msgid "ui.expedition_rail.activity_row"
+msgstr ""
+
+msgid "ui.expedition_rail.cancel"
+msgstr ""
+
+msgid "ui.expedition_rail.cancel_tooltip"
+msgstr ""
+
+msgid "ui.expedition_rail.details_tooltip"
+msgstr ""
+
+msgid "ui.expedition_rail.members_unknown"
+msgstr ""
+
+msgid "ui.expedition_rail.members.many"
+msgstr ""
+
+msgid "ui.expedition_rail.members.one"
+msgstr ""
+
+msgid "ui.expedition_rail.more"
+msgstr ""
+
+msgid "ui.expedition_rail.more_tooltip"
+msgstr ""
+
+msgid "ui.expedition_rail.no_activity"
+msgstr ""
+
+msgid "ui.expedition_rail.none_active"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.encounter"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.objective"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.outbound"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.resolved"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.retreating"
+msgstr ""
+
+msgid "ui.expedition_rail.phase.returning"
+msgstr ""
+
+msgid "ui.expedition_rail.title"
 msgstr ""
 
 msgid "ui.expedition.active_posture"
@@ -2347,6 +2467,24 @@ msgstr ""
 msgid "ui.hero.weapons_choose"
 msgstr ""
 
+msgid "ui.nav.build_short"
+msgstr ""
+
+msgid "ui.nav.citizens_short"
+msgstr ""
+
+msgid "ui.nav.expedition_short"
+msgstr ""
+
+msgid "ui.nav.hero_short"
+msgstr ""
+
+msgid "ui.nav.menu_short"
+msgstr ""
+
+msgid "ui.nav.policies_short"
+msgstr ""
+
 msgid "ui.onboarding.back"
 msgstr ""
 
@@ -2503,6 +2641,12 @@ msgstr ""
 msgid "ui.shelter_storage.reserved"
 msgstr ""
 
+msgid "ui.simulation.pause"
+msgstr ""
+
+msgid "ui.simulation.resume"
+msgstr ""
+
 msgid "ui.speed.change"
 msgstr ""
 
@@ -2566,7 +2710,22 @@ msgstr ""
 msgid "ui.status.off_hours_hint"
 msgstr ""
 
+msgid "ui.status.population"
+msgstr ""
+
+msgid "ui.status.population_with_capacity"
+msgstr ""
+
 msgid "ui.status.project"
+msgstr ""
+
+msgid "ui.status.resource_available"
+msgstr ""
+
+msgid "ui.status.resource_reserved"
+msgstr ""
+
+msgid "ui.status.resource_stored"
 msgstr ""
 
 msgid "ui.status.saved"
@@ -2582,6 +2741,9 @@ msgid "ui.status.wood_reserve"
 msgstr ""
 
 msgid "ui.status.wood_stock"
+msgstr ""
+
+msgid "ui.status.world_context"
 msgstr ""
 
 msgid "ui.territory.available"
@@ -2728,10 +2890,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
 msgid "Wood remains"

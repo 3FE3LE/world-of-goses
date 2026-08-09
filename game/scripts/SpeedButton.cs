@@ -12,7 +12,7 @@ namespace WorldofGoses;
 /// not touch the paused state — that is the responsibility of
 /// <see cref="PlayPauseButton"/>.
 ///
-/// Pairs with <see cref="PlayPauseButton"/> in the status bar: each
+/// Pairs with <see cref="PlayPauseButton"/> in <see cref="SimulationControls"/>: each
 /// owns one concern (play/pause vs. speed) so the player can target
 /// either independently.
 /// </summary>
@@ -84,6 +84,11 @@ public partial class SpeedButton : Button
 
     public void AttachController(CityWorldController controller)
     {
+        if (ReferenceEquals(_controller, controller)) return;
+        if (_controller is not null)
+        {
+            _controller.SimulationSpeedChanged -= OnSpeedChanged;
+        }
         _controller = controller;
         _lastRunningSpeed = controller.LastRunningSpeed;
         controller.SimulationSpeedChanged += OnSpeedChanged;

@@ -6,6 +6,10 @@ namespace WorldofGoses;
 
 public sealed record CityStatusSnapshot(
     int CurrentTick,
+    string? LineageName,
+    IReadOnlyList<ResourceInventoryItem> Resources,
+    int CitizenCount,
+    int HousingCapacity,
     int FoodStock,
     int MaxFoodStock,
     int DailyFoodRation,
@@ -20,15 +24,13 @@ public sealed record CityStatusSnapshot(
     IReadOnlyList<CityStatusSnapshot.BuildingItem> Buildings,
     IReadOnlyList<string> FreeCitizenNames,
     string? HeroName,
-    bool HasController,
-    int CurrentSpeed,
     bool IsLaborTime)
 {
     public bool IsEmpty => Buildings.Count == 0 && Projects.Count == 0;
 
     /// <summary>
-    /// A worksite in the status strip. <paramref name="StopCause"/> is what keeps
-    /// the strip honest: a project can sit at 0/180 indefinitely because its
+    /// A worksite in the city-status presentation snapshot. <paramref name="StopCause"/>
+    /// keeps the summary honest: a project can sit at 0/180 indefinitely because its
     /// contributor is exhausted, still walking, or waiting on a module, and
     /// without it the chip reported progress without ever saying why.
     /// </summary>
@@ -53,8 +55,19 @@ public sealed record CityStatusSnapshot(
         int WorkerCapacity,
         ProductionStopCause StopCause);
 
-    public static CityStatusSnapshot From(CityWorld world, bool hasController = false, int currentSpeed = 1)
+    public static CityStatusSnapshot From(CityWorld world)
     {
+        var resources = new List<ResourceInventoryItem>();
+        foreach (ResourceType resource in System.Enum.GetValues<ResourceType>())
+        {
+            int total = world.Resources.Total(resource);
+            if (total <= 0) continue;
+            resources.Add(new ResourceInventoryItem(
+                resource,
+                total,
+                world.Resources.Available(resource)));
+        }
+
         var projects = new List<ProjectItem>();
         foreach (var project in world.Projects.Values)
         {
@@ -93,11 +106,17 @@ public sealed record CityStatusSnapshot(
         // the night landed; nothing had ever called it.
         return new CityStatusSnapshot(
             world.FirstNight?.DisplayedTick(world.CurrentTick) ?? world.CurrentTick,
+            world.Hero is null
+                ? null
+                : ProfileCatalog.Get(world.Hero.Profile.Lineage).DisplayName,
+            resources,
+            world.Citizens.Count,
+            world.HousingCapacity,
             world.FoodStock, world.MaxFoodStock,
             world.DailyFoodRation, world.FoodHorizonDays,
             world.ProtectedFoodTarget, world.TicksUntilFirstHarvest,
             world.TotalWood, world.TotalWoodReserve,
             atWork, atHome, projects, buildings, freeNames, world.Hero?.Name,
-            hasController, currentSpeed, world.IsLaborTime());
+            world.IsLaborTime());
     }
 }

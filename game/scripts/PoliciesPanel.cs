@@ -49,7 +49,7 @@ public partial class PoliciesPanel : Control
 
     private void Build()
     {
-        var surface = new PanelContainer { ThemeTypeVariation = "OverlayPanel" };
+        var surface = new PanelContainer { ThemeTypeVariation = "HudSurface" };
         surface.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         AddChild(surface);
 
@@ -87,7 +87,7 @@ public partial class PoliciesPanel : Control
         var future = new Label
         {
             Text = UiText.Get("ui.policies.future"),
-            ThemeTypeVariation = "BodySmall",
+            ThemeTypeVariation = "HudCaption",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         body.AddChild(future);
@@ -98,12 +98,12 @@ public partial class PoliciesPanel : Control
         var title = new Label
         {
             Text = UiText.Get(titleKey),
-            ThemeTypeVariation = "SectionTitle",
+            ThemeTypeVariation = "HudLabel",
         };
         layout.AddChild(title);
         var value = new Label
         {
-            ThemeTypeVariation = "BodyText",
+            ThemeTypeVariation = "HudBody",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
         layout.AddChild(value);

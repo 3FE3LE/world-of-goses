@@ -82,7 +82,6 @@ public partial class ConstructionPanel : PanelContainer
     private IconButton _viewBuildingButton = null!;
     private Label _errorLabel = null!;
     private Button _primaryFocus = null!;
-    private LineageThemeSignals? _themeSignals;
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -132,22 +131,9 @@ public partial class ConstructionPanel : PanelContainer
             _controller.BuildingStateChanged += OnBuildingStateChanged;
             _controller.SelectionChanged += OnSelectionChanged;
             _controller.CitizenAssignmentRejected += OnCitizenAssignmentRejected;
-            _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
-            if (_themeSignals is not null)
-            {
-                _themeSignals.LineageChanged += OnLineageChanged;
-            }
-            ApplyLineageTheme();
             Refresh();
         }
     }
-
-    private void ApplyLineageTheme()
-    {
-        AddThemeStyleboxOverride("panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
-    }
-
-    private void OnLineageChanged(string lineage) => ApplyLineageTheme();
 
     private void OnAuthorizeRequested(int constructionKind)
     {
@@ -161,7 +147,7 @@ public partial class ConstructionPanel : PanelContainer
 
     private void OnViewHeroRequested() => _controller.SelectHero();
 
-    private void OnHeroCreated(int citizenId) => ApplyLineageTheme();
+    private void OnHeroCreated(int citizenId) => Refresh();
 
     private void OnProjectStateChanged(int projectId) => Refresh();
 
@@ -278,7 +264,7 @@ public partial class ConstructionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
             Visible = false,
         };
-        _title.ThemeTypeVariation = "ScreenTitle";
+        _title.ThemeTypeVariation = "HudHeader";
         _bodyContent.AddChild(_title);
 
         _description = new Label
@@ -286,11 +272,11 @@ public partial class ConstructionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _description.ThemeTypeVariation = "BodyText";
+        _description.ThemeTypeVariation = "HudBody";
         _bodyContent.AddChild(_description);
 
         _phaseLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        _phaseLabel.ThemeTypeVariation = "SectionTitle";
+        _phaseLabel.ThemeTypeVariation = "HudLabel";
         _bodyContent.AddChild(_phaseLabel);
 
         _progress = new ProgressBar
@@ -301,6 +287,7 @@ public partial class ConstructionPanel : PanelContainer
             ShowPercentage = false,
             CustomMinimumSize = new Vector2(0, 24),
         };
+        _progress.ThemeTypeVariation = "HudProgress";
         _bodyContent.AddChild(_progress);
 
         _statusLabel = new Label
@@ -308,7 +295,7 @@ public partial class ConstructionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _statusLabel.ThemeTypeVariation = "BodyText";
+        _statusLabel.ThemeTypeVariation = "HudBody";
         _bodyContent.AddChild(_statusLabel);
 
         _contributors = new Label
@@ -316,14 +303,14 @@ public partial class ConstructionPanel : PanelContainer
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
         };
-        _contributors.ThemeTypeVariation = "BodySmall";
+        _contributors.ThemeTypeVariation = "HudCaption";
         _bodyContent.AddChild(_contributors);
 
         _requirementsLabel = new Label
         {
             HorizontalAlignment = HorizontalAlignment.Center,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            ThemeTypeVariation = "BodyText",
+            ThemeTypeVariation = "HudBody",
         };
         _bodyContent.AddChild(_requirementsLabel);
 
@@ -371,59 +358,60 @@ public partial class ConstructionPanel : PanelContainer
         _authorizeButton = NewFooterButton(
             iconPath: IconPaths.Check,
             label: UiText.Get("Establish Founding Site"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _farmButton = NewFooterButton(
             iconPath: IconPaths.Leaf,
             label: UiText.Get("Build Farm"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _cultivationButton = NewFooterButton(
             iconPath: IconPaths.Leaf,
             label: UiText.Get("Prepare Cultivation Site"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _quarryButton = NewFooterButton(
             iconPath: IconPaths.Building,
             label: UiText.Get("Build Quarry"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _townHallButton = NewFooterButton(
             iconPath: IconPaths.Building,
             label: UiText.Get("Build Town Hall"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _bedrollButton = NewFooterButton(
             iconPath: IconPaths.House,
             label: UiText.Get("Build Bedroll"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _cacheButton = NewFooterButton(
             iconPath: IconPaths.Building,
             label: UiText.Get("Build Cache"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _canopyButton = NewFooterButton(
             iconPath: IconPaths.House,
             label: UiText.Get("Build Canopy"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _clearCargoButton = NewFooterButton(
             iconPath: IconPaths.Close,
             label: UiText.Get("Return carried cargo"),
-            variation: "ButtonText");
+            variation: "HudButton");
         _clearCargoButton.TooltipText = UiText.Get(
             "Returns all carried founding resources to the ground so you can prepare the exact load for the next module.");
         _pauseButton = NewFooterButton(
             iconPath: IconPaths.Pause,
             label: UiText.Get("Pause"),
-            variation: "ButtonText");
+            variation: "HudButton");
         _resumeButton = NewFooterButton(
             iconPath: IconPaths.Play,
             label: UiText.Get("Resume"),
-            variation: "ButtonText");
+            variation: "HudButton");
         _cancelButton = NewFooterButton(
             iconPath: IconPaths.Close,
             label: UiText.Get("Cancel project"),
-            variation: "ButtonText");
+            variation: "HudButtonDanger");
         _cancelButton.TooltipText = UiText.Get("Cancel the project. The deposit is lost and the site is cleared.");
         _viewHeroButton = StandardButtons.ViewHeroButton();
+        _viewHeroButton.ThemeTypeVariation = "HudButton";
         _viewBuildingButton = NewFooterButton(
             iconPath: IconPaths.House,
             label: UiText.Get("View shelter"),
-            variation: "ButtonPrimary");
+            variation: "HudButtonSelected");
         _authorizeButton.Pressed += () => EmitSignal(
             SignalName.AuthorizeRequested, (int)ConstructionKind.FoundingSite);
         _farmButton.Pressed += () => EmitSignal(
@@ -498,7 +486,6 @@ public partial class ConstructionPanel : PanelContainer
     {
         GetViewport().SizeChanged -= ApplyResponsiveMinimumSize;
         if (_controller is null) return;
-        if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         _controller.HeroCreated -= OnHeroCreated;
         _controller.ProjectStateChanged -= OnProjectStateChanged;
         _controller.BuildingStateChanged -= OnBuildingStateChanged;
@@ -1058,7 +1045,7 @@ public partial class ConstructionPanel : PanelContainer
     private static void AddSectionHeader(VBoxContainer list, string title)
     {
         var label = new Label { Text = title };
-        label.ThemeTypeVariation = "SectionTitle";
+        label.ThemeTypeVariation = "HudLabel";
         list.AddChild(label);
     }
 
@@ -1080,7 +1067,7 @@ public partial class ConstructionPanel : PanelContainer
         {
             Text = text,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            ThemeTypeVariation = "BodySmall",
+            ThemeTypeVariation = "HudCaption",
         };
         list.AddChild(label);
     }

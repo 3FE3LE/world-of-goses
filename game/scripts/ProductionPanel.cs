@@ -40,16 +40,15 @@ public partial class ProductionPanel : PanelContainer
     {
         var root = new VBoxContainer();
         AddChild(root);
-        // The panel surface arrives through the theme: this node's PanelCard
-        // variation is repainted per lineage by LineageThemePainter, so there is
-        // nothing to override here and nothing to re-apply on a lineage change.
+        // The authored HudCard parent owns the shared one-pixel surface. This
+        // content contributes no competing frame or lineage style override.
 
         _titleLabel = new Label
         {
             Text = UiText.Get("Production"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        _titleLabel.ThemeTypeVariation = "PanelTitle";
+        _titleLabel.ThemeTypeVariation = "HudHeader";
         root.AddChild(_titleLabel);
 
         var stockRow = new HBoxContainer
@@ -61,7 +60,7 @@ public partial class ProductionPanel : PanelContainer
         root.AddChild(stockRow);
 
         _stockLabel = new Label { Text = string.Empty };
-        _stockLabel.ThemeTypeVariation = "BodyText";
+        _stockLabel.ThemeTypeVariation = "HudBody";
         stockRow.AddChild(_stockLabel);
 
         _enabledToggle = StandardButtons.IconAction(
@@ -86,11 +85,11 @@ public partial class ProductionPanel : PanelContainer
         root.AddChild(_rateLabel);
 
         _inputsLabel = new Label { Text = UiText.Get("Inputs due: none") };
-        _inputsLabel.ThemeTypeVariation = "BodySmall";
+        _inputsLabel.ThemeTypeVariation = "HudCaption";
         root.AddChild(_inputsLabel);
 
         _statusLabel = new Label();
-        _statusLabel.ThemeTypeVariation = "BodySmall";
+        _statusLabel.ThemeTypeVariation = "HudCaption";
         root.AddChild(_statusLabel);
 
         var policySeparator = new HSeparator();
@@ -101,7 +100,7 @@ public partial class ProductionPanel : PanelContainer
             Text = UiText.Get("Reactive policy"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        policyHeader.ThemeTypeVariation = "PanelTitle";
+        policyHeader.ThemeTypeVariation = "HudHeader";
         root.AddChild(policyHeader);
 
         var policyRow = new HBoxContainer
@@ -141,7 +140,7 @@ public partial class ProductionPanel : PanelContainer
             Text = caption,
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        label.ThemeTypeVariation = "BodySmall";
+        label.ThemeTypeVariation = "HudCaption";
         column.AddChild(label);
         column.AddChild(box);
         return column;

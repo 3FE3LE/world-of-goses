@@ -57,13 +57,18 @@ Two more followed on 2026-08-07, for a real missing state rather than a wish:
 - `users.svg` — the citizen roster.
 - `camera.svg` — the camera follow/free toggle.
 
-The navigation rail drew the hero, the roster and the camera toggle with the
+The former navigation rail drew the hero, the roster and the camera toggle with the
 same `user.svg`. That was survivable while every button carried a text label; it
-is not survivable once the rail collapses to icons, because three unrelated
-actions become one glyph repeated three times. Both are generic navigation, which
+was not survivable when the rail collapsed to icons, because three unrelated
+actions became one glyph repeated three times. The icon-only `PrimaryNavDock`
+keeps those distinct glyphs and adds `backpack.svg` for Expeditions plus
+`clipboard-note.svg` for Policies. These are generic navigation, which
 `art/world-of-goses-iconography-guideline.md` assigns to Pixelarticons rather than
 to Kenney or to project-owned iconography, so promoting them is the tier model
-working as intended. `game/assets/ui/icons/24/` now holds 31 SVGs.
+working as intended. `game/assets/ui/icons/24/` now holds 33 SVGs.
+All promoted SVGs use a white source fill so Godot's HUD icon-color overrides
+can tint them; `currentColor` imports as black and cannot be brightened by a
+multiplicative theme tint.
 
 The CC0 Kenney Roguelike RPG transparent atlas and its license were selectively
 promoted into `game/assets/terrain/kenney/roguelike-rpg/`. The atlas currently
@@ -221,6 +226,13 @@ padding, and a 2 px slice puts the corner chamfer in the corner cell. Hover,
 pressed and disabled reuse those same PNGs through `modulate_color`, per the
 standing rule that a brightness change is not grounds for a new asset — as does
 `hud_dock.tres`, which is `hud_surface.png` at dock padding.
+
+The final macro composition promoted no additional asset. `CityStatusPanel`,
+`CitySummaryPanel`, `ExpeditionRail`, `PrimaryNavDock`, `ActionDock`,
+`SimulationControls` and transient `ContextInspector` all resolve through the
+same seven `hud_*.png` composites above. In particular, the contextual dock no
+longer reaches the large-screen slate `OverlayPanel`, and the inspector uses
+`HudCard`; this is reuse of the selected one-pixel family, not a new frame.
 
 **Two tiles were composited and then withdrawn.** `hud_card` and `hud_dock` were
 first baked from `tile_0019` (3 px) and `tile_0018` (4 px) and shown beside the

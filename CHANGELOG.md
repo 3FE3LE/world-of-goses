@@ -22,6 +22,63 @@ their commits for the real content.
 
 ---
 
+## La fundación del HUD deja de ser un escaparate y se convierte en la pantalla
+
+**2026-08-08** · schema v32 (sin cambio) · EG-5
+
+La entrada anterior dejó una fundación que nada consumía. Ahora la consume el
+juego entero: las cuatro superficies que aquel trabajo tenía explícitamente fuera
+de alcance existen, y las pantallas conectadas —Construcción, Expediciones,
+Políticas, Ciudadanos, Pausa— pasan a compartir su tipografía y sus roles de
+botón en vez de mantener cada una su propio vocabulario.
+
+Lo que un jugador ve: la ciudad enmarcada por superficies estables en vez de
+rodeada de controles sueltos. Arriba una barra de 40 px de borde a borde con
+marca, contexto de linaje/día/hora, un marcador de recursos sólo-icono respaldado
+por el ledger, y población/capacidad reales. A la izquierda `CitySummaryPanel`
+(240 px), a la derecha `ExpeditionRail` (236 px). Abajo al centro un
+`PrimaryNavDock` de 300×52 sólo-icono que **cede su zona** al `ActionDock` de
+480×72 durante la colocación, y abajo a la derecha `SimulationControls` con
+play/pausa, velocidad y modo de cámara.
+
+### Connected
+
+- **Dos superficies desaparecen en vez de acumularse.** `NavigationRail` se borra
+  entera a favor de `PrimaryNavDock`, y `OfflineReportPanel` a favor de un
+  `ChroniclePanel` único embebido en el rail: modo compacto con cuatro filas
+  significativas, modo expandido que reemplaza el resumen de expediciones dentro
+  del mismo rail y añade el resumen offline, los bloqueadores agrupados y hasta
+  80 eventos compactados. `ChronicleEventProjection` queda como **única** regla
+  de filtrado y compactación, de modo que no hay una segunda superficie de log
+  que pueda discrepar de la primera.
+- **Las primitivas de la fundación se usan tal cual.** `ConstructionQueueItem` y
+  `ExpeditionCompactCard` son composiciones sobre ellas, no un segundo sistema de
+  marcos: el estado bloqueado se escribe como texto localizado y tooltip, nunca
+  sólo por color.
+- **Dos iconos promovidos por un estado real.** `backpack.svg` para Expediciones
+  y `clipboard-note.svg` para Políticas — el dock sólo-icono no puede repetir un
+  glifo para acciones distintas. `game/assets/ui/icons/24/` pasa a 33 SVG. Los
+  seis iconos ya promovidos que traían `currentColor` se reescriben a relleno
+  blanco: `currentColor` importa como negro y un tinte multiplicativo no puede
+  aclararlo, así que el HUD no podía teñirlos.
+- **El rail y el dock reclaman su propio input**, rueda incluida en los límites
+  de scroll, y la cadena de foco vertical alcanza detalles, cancelar válido y el
+  toggle del Chronicle.
+
+### Verified
+
+Build 0 errores / 0 advertencias. Tests **1041 / 1042** (1 omitido conocido,
+previo), 26 más que la entrada anterior. Arranque headless limpio. Contexto de
+agentes 517/517. Catálogos de localización válidos: 976 identificadores de
+plantilla y 288 claves de runtime. Esquema sin tocar en v32.
+
+`UI_AUDIT.md` §4 registra la firma humana del 2026-08-08 a 1280×720 y 1920×1080
+para el Chronicle embebido, el dock de 300×52 y las cinco pantallas conectadas.
+
+**No verificado en esta sesión:** las capturas de esa firma viven en `%TEMP%` como
+artefactos de revisión y no se volvieron a generar aquí; lo medido arriba es
+build, tests, arranque, contexto y localización, no una segunda pasada visual.
+
 ## El HUD gana una escala propia, y un borde de un solo píxel
 
 **2026-08-08** · schema v32 (sin cambio) · EG-5

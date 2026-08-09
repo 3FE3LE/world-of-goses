@@ -42,6 +42,7 @@ public partial class ContextInspector : PanelContainer
         // Never blocks world clicks: this panel only reports what was selected
         // elsewhere, and nothing on it is interactive.
         MouseFilter = MouseFilterEnum.Ignore;
+        ThemeTypeVariation = "HudCard";
         OverlayLayers.Apply(this, OverlayLayers.SelectionInfo);
         CustomMinimumSize = new Vector2(PanelWidth, 0);
         Hide();
@@ -75,14 +76,14 @@ public partial class ContextInspector : PanelContainer
 
         _title = new Label
         {
-            ThemeTypeVariation = "SectionTitle",
+            ThemeTypeVariation = "HudHeader",
             MouseFilter = MouseFilterEnum.Ignore,
         };
         text.AddChild(_title);
 
         _detail = new Label
         {
-            ThemeTypeVariation = "BodySmall",
+            ThemeTypeVariation = "HudCaption",
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             MouseFilter = MouseFilterEnum.Ignore,
         };

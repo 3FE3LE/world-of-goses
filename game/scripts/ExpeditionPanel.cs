@@ -76,6 +76,8 @@ public partial class ExpeditionPanel : Control
     // player does not miss the cause on a 3-second toast. Cleared on
     // the next successful dispatch or panel close.
     private string _lastDispatchFailure = string.Empty;
+    private ExpeditionId? _requestedExpeditionId;
+    public ExpeditionId? PresentedExpeditionId { get; private set; }
 
     public override void _Ready()
     {
@@ -145,6 +147,19 @@ public partial class ExpeditionPanel : Control
     }
 
     public void Open()
+    {
+        _requestedExpeditionId = null;
+        OpenSurface();
+    }
+
+    /// <summary>Opens status for the expedition card the player selected.</summary>
+    public void Open(ExpeditionId expeditionId)
+    {
+        _requestedExpeditionId = expeditionId;
+        OpenSurface();
+    }
+
+    private void OpenSurface()
     {
         Show();
         _modalHost.Open(this);
@@ -245,15 +260,7 @@ public partial class ExpeditionPanel : Control
 
     private void OnCancelPressed()
     {
-        ExpeditionId? active = null;
-        foreach (Expedition expedition in _controller.World.Expeditions.Values)
-        {
-            if (expedition.Status == ExpeditionStatus.Active)
-            {
-                active = expedition.Id;
-                break;
-            }
-        }
+        ExpeditionId? active = PresentedExpeditionId;
         if (active.HasValue)
         {
             _controller.CancelExpedition(active.Value);
@@ -291,14 +298,23 @@ public partial class ExpeditionPanel : Control
         CityWorld world = _controller.World;
         ExpeditionPlanningSnapshot planning = _controller.GetExpeditionPlanningSnapshot();
         Expedition? active = null;
+        if (_requestedExpeditionId is ExpeditionId requested
+            && world.Expeditions.TryGetValue(requested, out Expedition? requestedExpedition)
+            && requestedExpedition.Status == ExpeditionStatus.Active)
+        {
+            active = requestedExpedition;
+        }
         foreach (Expedition expedition in world.Expeditions.Values)
         {
-            if (!_showRecoveryFixture && expedition.Status == ExpeditionStatus.Active)
+            if (active is null
+                && !_showRecoveryFixture
+                && expedition.Status == ExpeditionStatus.Active)
             {
                 active = expedition;
                 break;
             }
         }
+        PresentedExpeditionId = active?.Id;
 
         // Selection only matters while there is no active expedition to
         // prepare a new one against; keep it clean of citizens who became
@@ -459,7 +475,7 @@ public partial class ExpeditionPanel : Control
             .FirstOrDefault(candidate => candidate.Kind == kind);
         bool selected = item is not null && item.Id == _selectedOpportunityId;
         button.Text = $"[{(selected ? "X" : " ")}] {label}";
-        button.ThemeTypeVariation = selected ? "ButtonPrimary" : "ButtonText";
+        button.ThemeTypeVariation = selected ? "HudButtonSelected" : "HudButton";
         button.ButtonPressed = selected;
         button.Disabled = !snapshot.ResourceSortiesUnlocked || item is not { CanDispatch: true };
         button.TooltipText = !snapshot.ResourceSortiesUnlocked
@@ -517,7 +533,7 @@ public partial class ExpeditionPanel : Control
     private static void ConfigurePostureButton(Button button, bool selected, string label)
     {
         button.Text = $"[{(selected ? "X" : " ")}] {label}";
-        button.ThemeTypeVariation = selected ? "ButtonPrimary" : "ButtonText";
+        button.ThemeTypeVariation = selected ? "HudButtonSelected" : "HudButton";
         button.ButtonPressed = selected;
     }
 
@@ -589,7 +605,7 @@ public partial class ExpeditionPanel : Control
             button.ToggleMode = true;
             button.ButtonPressed = isSelected;
             button.Disabled = !canToggleOn;
-            button.ThemeTypeVariation = isSelected ? "ButtonPrimary" : "ButtonText";
+            button.ThemeTypeVariation = isSelected ? "HudButtonSelected" : "HudButton";
             CitizenId heroId = citizen.Id;
             button.Toggled += pressed => OnTeamMemberToggled(heroId, pressed);
             _teamList.AddChild(button);

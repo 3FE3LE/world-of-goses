@@ -187,8 +187,10 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
 
 ## Recursos, Shelter y Chronicle
 
-- La barra de estado global reserva su espacio para tiempo, velocidad,
-  alertas y acciones globales; no enumera existencias de recursos.
+- La barra de estado global integra una franja pequeña de recursos: solo icono
+  y cantidad disponible, sin nombre permanente. El tooltip conserva nombre,
+  total almacenado y reserva cuando existe. La franja lee la proyección del
+  ledger; no implica un inventario global nuevo ni cambia propiedad física.
 - El inventario de la ciudad se consulta desde el Shelter mediante una
   sección plegable, con icono, cantidad total y reserva disponible cuando
   corresponda. Esta ubicación es una superficie de gestión, no implica que
@@ -207,6 +209,25 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
   desaparece en pocos pasos discretos. Mientras el fundador sea el propietario,
   el aviso sigue su posición durante todo su recorrido; no queda fijado al
   punto del terreno donde terminó la recolección.
+
+## Navegación HUD
+
+- La navegación primaria usa un dock oscuro, etiquetado y centrado en el borde
+  inferior. Solo contiene destinos o utilidades realmente conectados.
+- El dock primario y las acciones contextuales comparten la misma zona, nunca
+  se apilan: la colocación oculta navegación y muestra confirmar/cancelar; al
+  terminar o cancelar vuelve la navegación.
+- Pausa/reanudación, velocidad y el modo de cámara —una utilidad del mundo, no
+  un destino— viven en una superficie compacta separada en la esquina inferior
+  derecha. Sus opciones reflejan únicamente capacidades realmente conectadas.
+- Ratón, rueda, teclado y gamepad quedan contenidos por las superficies HUD;
+  foco y estado visible no dependen solo del color.
+
+La banda derecha persistente resume expediciones activas y acontecimientos
+recientes sin sustituir el panel de planificación. Solo muestra miembros,
+suministros, fase y tiempo procedentes del estado real; si no existe una cola,
+no representa una cola ficticia. El registro compacto y la Crónica completa
+comparten las mismas reglas de filtrado, causalidad y texto.
 
 ## UI por linaje
 

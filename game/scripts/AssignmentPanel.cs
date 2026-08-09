@@ -41,26 +41,25 @@ public partial class AssignmentPanel : PanelContainer
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
         };
         AddChild(_root);
-        // The panel surface arrives through the theme: this node's PanelCard
-        // variation is repainted per lineage by LineageThemePainter, so there is
-        // nothing to override here and nothing to re-apply on a lineage change.
+        // The authored HudCard parent owns the shared one-pixel surface. This
+        // content contributes no competing frame or lineage style override.
 
         var header = new Label
         {
             Text = UiText.Get("ui.assignment.workers_title"),
             HorizontalAlignment = HorizontalAlignment.Center,
         };
-        header.ThemeTypeVariation = "PanelTitle";
+        header.ThemeTypeVariation = "HudHeader";
         _root.AddChild(header);
 
         _summary = new Label { Text = "" };
-        _summary.ThemeTypeVariation = "BodySmall";
+        _summary.ThemeTypeVariation = "HudCaption";
         _root.AddChild(_summary);
 
         _root.AddChild(new HSeparator());
 
         var assignedHeader = new Label { Text = UiText.Get("Assigned") };
-        assignedHeader.ThemeTypeVariation = "SectionTitle";
+        assignedHeader.ThemeTypeVariation = "HudLabel";
         _root.AddChild(assignedHeader);
         _assignedList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _assignedScroll = BuildListScroll(_assignedList);
@@ -69,7 +68,7 @@ public partial class AssignmentPanel : PanelContainer
         _root.AddChild(new HSeparator());
 
         var availableHeader = new Label { Text = UiText.Get("Available") };
-        availableHeader.ThemeTypeVariation = "SectionTitle";
+        availableHeader.ThemeTypeVariation = "HudLabel";
         _root.AddChild(availableHeader);
         _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _availableScroll = BuildListScroll(_availableList);
@@ -78,7 +77,7 @@ public partial class AssignmentPanel : PanelContainer
         _root.AddChild(new HSeparator());
 
         _unavailableHeader = new Label { Text = UiText.Get("ui.assignment.unavailable_title") };
-        _unavailableHeader.ThemeTypeVariation = "SectionTitle";
+        _unavailableHeader.ThemeTypeVariation = "HudLabel";
         _root.AddChild(_unavailableHeader);
         _unavailableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _unavailableScroll = BuildListScroll(_unavailableList);
@@ -134,7 +133,7 @@ public partial class AssignmentPanel : PanelContainer
         if (snapshot.AssignedCount == 0)
         {
             var empty = new Label { Text = UiText.Get("ui.assignment.no_workers") };
-            empty.ThemeTypeVariation = "BodySmall";
+            empty.ThemeTypeVariation = "HudCaption";
             _assignedList.AddChild(empty);
             return;
         }
@@ -162,7 +161,7 @@ public partial class AssignmentPanel : PanelContainer
         if (snapshot.AvailableCitizens.Count == 0)
         {
             var empty = new Label { Text = UiText.Get("ui.assignment.no_free_citizens") };
-            empty.ThemeTypeVariation = "BodySmall";
+            empty.ThemeTypeVariation = "HudCaption";
             _availableList.AddChild(empty);
             return;
         }

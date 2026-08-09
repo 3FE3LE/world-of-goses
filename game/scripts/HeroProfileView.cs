@@ -72,10 +72,11 @@ public partial class HeroProfileView : Control
             Text = UiText.Get("ui.hero_profile.title"),
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        title.ThemeTypeVariation = "ScreenTitle";
+        title.ThemeTypeVariation = "HudHeader";
         header.AddChild(title);
 
         _backButton = StandardButtons.BackToCityButton();
+        _backButton.ThemeTypeVariation = "HudButton";
         _backButton.Pressed += () => _controller.ReturnToCity();
         header.AddChild(_backButton);
 
@@ -262,13 +263,14 @@ public partial class HeroProfileView : Control
             ShowPercentage = false,
             CustomMinimumSize = new Vector2(0, 14),
         };
+        bar.ThemeTypeVariation = "HudProgress";
         _content.AddChild(bar);
     }
 
     private void AddHeading(string text)
     {
         var label = new Label { Text = text };
-        label.ThemeTypeVariation = "PanelTitle";
+        label.ThemeTypeVariation = "HudHeader";
         _content.AddChild(label);
     }
 
@@ -357,7 +359,7 @@ public partial class HeroProfileView : Control
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        label.ThemeTypeVariation = "BodyText";
+        label.ThemeTypeVariation = "HudBody";
         _content.AddChild(label);
     }
 
@@ -397,7 +399,7 @@ public partial class HeroProfileView : Control
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        label.ThemeTypeVariation = "BodyText";
+        label.ThemeTypeVariation = "HudBody";
         row.AddChild(label);
     }
 

@@ -7,33 +7,16 @@ using WorldofGoses.Ui;
 namespace WorldofGoses;
 
 /// <summary>
-/// Top-of-screen status strip. Renders the city's headline state as
-/// a horizontal row of icon-plus-label pairs (day/night, mobilisation,
-/// per-building summary, free citizens) separated by thin gaps.
-///
-/// Each pair is built with <see cref="StatChip"/>, a tiny helper that
-/// keeps the icon-on-the-left layout consistent across the strip and
-/// guarantees integer pixel positions for the pixel-art pipeline.
-/// Text styling comes from the project's default theme (BodySmall);
-/// icons come from <see cref="IconPaths"/>.
+/// Edge-to-edge compact HUD bar: stable brand, world context, authoritative
+/// resource availability and population.
+/// It consumes <see cref="CityStatusSnapshot"/> only; storage and reservation
+/// rules remain in the city domain.
 /// </summary>
 public partial class CityStatusPanel : PanelContainer
 {
-    private const int ChipGap = Tokens.SpacingLoose;
-    private const float StatusHorizontalPadding = 8f;
-    // Vertical breathing room comes from the global 8 px safe-area rule.
-    // Keep the ornamental resource itself at zero so the two layers do not
-    // accumulate padding.
-    private const float StatusVerticalPadding = 0f;
-    /// <summary>Fixed width of the clock chip so the row never shifts when
-    /// the day digit count changes (1–3 digits). Sized to fit
-    /// "Day 99 · 23:59" at 22 px Jersey 10 plus the icon + gap.
-    /// Derived from the icon rather than hardcoded: the wrapper clips, so a
-    /// budget that silently lost 12 px when the icon grew from 12 to its true
-    /// 24 would have cut the last digits without any visible error.</summary>
-    private const float ClockChipWidth = 168f + Tokens.IconInline;
+    internal const float BrandBlockWidth = 190f;
+    internal const float WorldContextWidth = 250f;
 
-    private LineageThemeSignals? _themeSignals;
     private HBoxContainer _row = null!;
     private StatChip? _savedChip;
     private ulong _saveIndicatorGeneration;
@@ -47,7 +30,6 @@ public partial class CityStatusPanel : PanelContainer
         // strip keeps its authored contrast at every in-game hour.
         OverlayLayers.Apply(this, OverlayLayers.Hud);
         EnsureBuilt();
-        GetViewport().SizeChanged += OnViewportSizeChanged;
     }
 
     /// <summary>
@@ -63,10 +45,12 @@ public partial class CityStatusPanel : PanelContainer
 
         _row = new HBoxContainer
         {
-            Alignment = BoxContainer.AlignmentMode.Center,
+            Name = "StatusComposition",
+            Alignment = BoxContainer.AlignmentMode.Begin,
             MouseFilter = Control.MouseFilterEnum.Ignore,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
         };
-        _row.AddThemeConstantOverride("separation", ChipGap);
+        _row.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
         // The status bar surface spans the full width of the GameUiShell
         // VBox; wrap the chip row in a SafeAreaMarginContainer so the
         // chip content stays inside the OS safe area on notched or
@@ -75,18 +59,14 @@ public partial class CityStatusPanel : PanelContainer
         // reverted (TO_DO.md 2026-07-22).
         var safeArea = new SafeAreaMarginContainer
         {
+            MinimumTopInset = 0,
+            MinimumBottomInset = 0,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         AddChild(safeArea);
         safeArea.AddChild(_row);
 
-        ApplyLineageStatusStyle();
-        _themeSignals = GetNodeOrNull<LineageThemeSignals>("/root/LineageThemeSignals");
-        if (_themeSignals is not null)
-        {
-            _themeSignals.LineageChanged += OnLineageChanged;
-        }
         LineageThemeRegistry.ActiveLineageChanged += OnLineageAccentChanged;
     }
 
@@ -103,18 +83,11 @@ public partial class CityStatusPanel : PanelContainer
 
     public override void _ExitTree()
     {
-        GetViewport().SizeChanged -= OnViewportSizeChanged;
         if (_controller is not null)
         {
             _controller.WorldSaved -= OnWorldSaved;
         }
-        if (_themeSignals is not null) _themeSignals.LineageChanged -= OnLineageChanged;
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageAccentChanged;
-    }
-
-    private void OnViewportSizeChanged()
-    {
-        if (_controller is not null) Refresh(_controller);
     }
 
     private void OnWorldSaved(long unixMillis)
@@ -137,7 +110,7 @@ public partial class CityStatusPanel : PanelContainer
         string text = UiText.Get("ui.status.saved_short");
         if (_savedChip is null)
         {
-            _savedChip = new StatChip(IconPaths.Check, text);
+            _savedChip = StatChip.HudIconValue(IconPaths.Check, text);
             _row.AddChild(_savedChip);
         }
         else
@@ -161,47 +134,18 @@ public partial class CityStatusPanel : PanelContainer
         _saveIndicatorVisible = false;
     }
 
-    private void OnLineageChanged(string lineage)
-    {
-        ApplyLineageStatusStyle();
-        ReapplyAccent();
-    }
-
-    /// <summary>
-    /// Keeps the active lineage's ornamental panel without inheriting the
-    /// generous card padding intended for large views. The resource is
-    /// duplicated so compacting the HUD never mutates panels elsewhere.
-    /// </summary>
-    private void ApplyLineageStatusStyle()
-    {
-        var style = (StyleBox)LineageThemeRegistry
-            .GetStyleBox(LineageThemeRegistry.ComponentPanel)
-            .Duplicate();
-        style.ContentMarginLeft = StatusHorizontalPadding;
-        style.ContentMarginTop = StatusVerticalPadding;
-        style.ContentMarginRight = StatusHorizontalPadding;
-        style.ContentMarginBottom = StatusVerticalPadding;
-        AddThemeStyleboxOverride("panel", style);
-    }
-
     private void OnLineageAccentChanged(string lineage) => ReapplyAccent();
 
     /// <summary>
     /// Walks every chip currently in the row and re-tints its leading
     /// icon with the active linaje's accent. Called once on _Ready and
-    /// again whenever the linaje changes via <c>LineageThemeSignals</c>.
+    /// again whenever the active lineage changes.
     /// </summary>
     private void ReapplyAccent()
     {
         if (_row is null) return;
         var accent = LineageThemeRegistry.IconAccent;
-        foreach (var child in _row.GetChildren())
-        {
-            if (child is HBoxContainer chip)
-            {
-                TintTextureRects(chip, accent);
-            }
-        }
+        TintTextureRects(_row, accent);
     }
 
     private static void TintTextureRects(Node root, Color accent)
@@ -217,16 +161,6 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-		// The status bar is intentionally bounded: clock, speed control,
-		// and — only when a project exists — a concise project
-        // chip. The mobilisation, hero, and empty-state chips moved to
-        // their natural surface (BuildingDetailView, EmptyPanel); a
-        // building's own StopCause is visible on its detail view and
-        // plot tooltip. Upkeep is dormant; the chip that used to
-        // advertise it is gone.
-        float windowWidth = DisplayServer.WindowGetSize().X;
-        bool compact = ShouldUseCompactLayout(windowWidth, snapshot.Projects.Count > 0);
-        _row.AddThemeConstantOverride("separation", compact ? Tokens.SpacingBase : ChipGap);
         foreach (var child in _row.GetChildren())
         {
             _row.RemoveChild(child);
@@ -234,159 +168,125 @@ public partial class CityStatusPanel : PanelContainer
         }
         _savedChip = null;
 
-		BuildClockChip(snapshot);
-		BuildOffHoursChip(snapshot);
-
-        // Construction is intentionally singular in the current slice. Keep
-        // one concise progress chip instead of allowing future projects to
-        // grow the status strip horizontally without bound.
-        if (snapshot.Projects.Count > 0)
-        {
-            BuildProjectChip(snapshot.Projects[0], compact);
-        }
-
+        _row.AddChild(BuildBrandBlock());
+        _row.AddChild(BuildWorldContext(snapshot));
+        _row.AddChild(BuildResourceTicker(snapshot));
+        _row.AddChild(BuildPopulation(snapshot));
         if (_saveIndicatorVisible) ApplySavedChip();
+        ReapplyAccent();
     }
 
-    internal static bool ShouldUseCompactLayout(float windowWidth, bool hasActiveProject) =>
-        windowWidth < 1280f || hasActiveProject;
-
-    private void BuildClockChip(CityStatusSnapshot snapshot)
+    private static Label BuildBrandBlock() => new()
     {
-        int tick = snapshot.CurrentTick;
-        bool day = GameClock.IsDaytime(tick);
-        string iconPath = day ? IconPaths.Sun : IconPaths.Moon;
-        // The day field varies (1–3 digits) and even a monospaced font
-        // shifts the chip width when the digit count changes. Wrap the
-        // chip in a fixed-width Control with clip_contents so the row
-        // never reflows as the simulation advances.
-        var chip = new StatChip(iconPath, SimulationTimeText.FormatLocalized(tick), "BuildingName");
-        chip.TooltipText = SimulationTimeText.FormatLocalized(tick);
+        Name = "BrandBlock",
+        Text = "WORLD OF GOSES",
+        ThemeTypeVariation = "HudBrand",
+        CustomMinimumSize = new Vector2(BrandBlockWidth, Tokens.HudRowHeight),
+        VerticalAlignment = VerticalAlignment.Center,
+        MouseFilter = MouseFilterEnum.Ignore,
+    };
+
+    private static Control BuildWorldContext(CityStatusSnapshot snapshot)
+    {
+        string time = SimulationTimeText.FormatLocalized(snapshot.CurrentTick);
+        string context = string.IsNullOrWhiteSpace(snapshot.LineageName)
+            ? time
+            : UiText.Format("ui.status.world_context", snapshot.LineageName, time);
         var wrap = new Control
         {
-            CustomMinimumSize = new Vector2(ClockChipWidth, 0),
+            Name = "WorldContext",
+            CustomMinimumSize = new Vector2(WorldContextWidth, Tokens.HudRowHeight),
             ClipContents = true,
             MouseFilter = MouseFilterEnum.Ignore,
         };
-        wrap.AddChild(chip);
-        _row.AddChild(wrap);
-        if (snapshot.HasController)
+        var contextRow = new HBoxContainer
         {
-            // Speed only. The play/pause control is gone: the world advances
-            // while the game is closed, so a button that freezes it was
-            // arguing with the premise. A player who wants the city to settle
-            // slows it down instead of stopping it.
-            _row.AddChild(new SpeedButton
-            {
-                ThemeTypeVariation = "ButtonText",
-                FocusMode = Control.FocusModeEnum.All,
-            });
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        contextRow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        contextRow.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        contextRow.AddChild(new Label
+        {
+            Text = context,
+            ThemeTypeVariation = "HudBody",
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        });
+        contextRow.AddChild(new TextureRect
+        {
+            Texture = ResourceLoader.Load<Texture2D>(
+                GameClock.IsDaytime(snapshot.CurrentTick) ? IconPaths.Sun : IconPaths.Moon),
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Modulate = LineageThemeRegistry.IconAccent,
+        });
+        wrap.TooltipText = snapshot.IsLaborTime
+            ? context
+            : context + "\n" + UiText.Get("ui.status.off_hours_hint");
+        wrap.AddChild(contextRow);
+        return wrap;
+    }
+
+    private static HBoxContainer BuildResourceTicker(CityStatusSnapshot snapshot)
+    {
+        var ticker = new HBoxContainer
+        {
+            Name = "ResourceTicker",
+            Alignment = BoxContainer.AlignmentMode.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            ClipContents = true,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        ticker.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        foreach (ResourceInventoryItem resource in snapshot.Resources)
+        {
+            StatChip chip = StatChip.HudIconValue(
+                resource.Resource,
+                resource.AvailableAmount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            chip.Name = $"Resource{resource.Resource}";
+            chip.TooltipText = BuildResourceTooltip(resource);
+            ticker.AddChild(chip);
         }
+        return ticker;
     }
 
-    private void BuildUpkeepChip(CityStatusSnapshot snapshot)
+    private static string BuildResourceTooltip(ResourceInventoryItem resource)
     {
-        // Upkeep is dormant. Kept private to avoid leaving the public
-        // surface dangling for any external caller; the call site in
-        // Refresh() no longer invokes it. Remove this stub entirely
-        // when the seam is reactivated.
-        _ = snapshot;
-    }
-
-    /// <summary>
-    /// Surfaces the configured workday window so the player knows at
-    /// a glance whether production, construction and expedition
-    /// mobilisation can run. The chip only appears outside the
-    /// configured 08:00–16:00 window (the day/night clock already
-    /// rotates the icon for the full daily cycle, but the chip is
-    /// the explicit "work paused" cue the player asked for during
-    /// the 2026-07-30 playtest).
-    ///
-    /// It reads the snapshot's labour flag rather than the raw clock: the
-    /// founding-camp bypass keeps work running at any hour until the first
-    /// Basic Shelter exists, so a clock-only test announced "work paused"
-    /// for the entire opening while the founder was in fact building.
-    /// </summary>
-    private void BuildOffHoursChip(CityStatusSnapshot snapshot)
-    {
-        if (snapshot.IsLaborTime) return;
-        var chip = new StatChip(IconPaths.Moon, UiText.Get("ui.status.off_hours"));
-        chip.TooltipText = UiText.Get("ui.status.off_hours_hint");
-        _row.AddChild(chip);
-    }
-
-    private void BuildProjectChip(CityStatusSnapshot.ProjectItem project, bool compact)
-    {
-        var phase = ConstructionRules.PhaseFor(project.Progress, project.RequiredWork);
-        string label = compact
-            ? UiText.Format("ui.status.build", project.Progress, project.RequiredWork)
-            : UiText.Format(
-                "ui.status.project",
-                UiText.Get(project.DisplayName),
-                project.Progress,
-                project.RequiredWork,
-                UiText.Get(ConstructionRules.Describe(phase)),
-                project.AssignedCount,
-                project.WorkerCapacity);
-        // A worksite that is not advancing must say so here. The strip is the
-        // one surface always on screen, and "Obra 0/180" with no reason reads as
-        // a broken game rather than a blocked one.
-        label += StopCauseSuffix(project);
-        var chip = new StatChip(IconPaths.Building, label);
-        chip.TooltipText = StopCauseHint(project);
-        _row.AddChild(chip);
-    }
-
-    private static string StopCauseSuffix(CityStatusSnapshot.ProjectItem project)
-    {
-        if (!project.Enabled) return UiText.Get(" · paused");
-        return project.StopCause switch
+        string amount = resource.AvailableAmount.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+        string total = resource.TotalAmount.ToString(
+            System.Globalization.CultureInfo.InvariantCulture);
+        var lines = new System.Collections.Generic.List<string>
         {
-            ConstructionStopCause.Paused => UiText.Get(" · paused"),
-            ConstructionStopCause.NoWorkers => UiText.Get(" · no workers"),
-            ConstructionStopCause.WorkersExhausted => UiText.Get(" · exhausted"),
-            ConstructionStopCause.WorkersInTransit => UiText.Get(" · travelling"),
-            ConstructionStopCause.MissingMaterials => UiText.Get(" · missing inputs"),
-            ConstructionStopCause.Night => UiText.Get(" · night"),
-            ConstructionStopCause.AwaitingModule => UiText.Get(" · awaiting module"),
-            ConstructionStopCause.NoHero => UiText.Get(" · no hero"),
-            _ => string.Empty,
+            UiText.Get(resource.Resource.ToString().ToLowerInvariant()),
+            UiText.Format("ui.status.resource_available", amount),
+            UiText.Format("ui.status.resource_stored", total),
         };
-    }
-
-    private static string StopCauseHint(CityStatusSnapshot.ProjectItem project)
-    {
-        if (!project.Enabled) return UiText.Get("Paused. Resume from the construction menu.");
-        return project.StopCause switch
+        int reserved = resource.TotalAmount - resource.AvailableAmount;
+        if (reserved > 0)
         {
-            ConstructionStopCause.NoWorkers =>
-                UiText.Get("ui.status.build_hint_no_workers"),
-            ConstructionStopCause.WorkersExhausted =>
-                UiText.Get("ui.status.build_hint_exhausted"),
-            ConstructionStopCause.WorkersInTransit =>
-                UiText.Get("ui.status.build_hint_travelling"),
-            ConstructionStopCause.MissingMaterials =>
-                UiText.Get("ui.status.build_hint_materials"),
-            ConstructionStopCause.Night =>
-                UiText.Get("ui.status.build_hint_night"),
-            ConstructionStopCause.AwaitingModule =>
-                UiText.Get("ui.status.build_hint_module"),
-            _ => UiText.Get("In progress. Click the construction menu for details."),
-        };
+            lines.Add(UiText.Format("ui.status.resource_reserved", reserved));
+        }
+        return string.Join("\n", lines);
     }
 
-    private static string StopCauseSuffix(CityStatusSnapshot.BuildingItem building) => building.StopCause switch
+    private static StatChip BuildPopulation(CityStatusSnapshot snapshot)
     {
-        ProductionStopCause.Paused => UiText.Get(" · paused"),
-        ProductionStopCause.TargetReached => UiText.Get(" · full"),
-        ProductionStopCause.WorkersExhausted => UiText.Get(" · exhausted"),
-        ProductionStopCause.NoWorkers => UiText.Get(" · no workers"),
-        ProductionStopCause.Night => UiText.Get(" · night"),
-        ProductionStopCause.MissingInputs => UiText.Get(" · missing inputs"),
-        ProductionStopCause.WorkersInTransit => UiText.Get(" · travelling"),
-        ProductionStopCause.WorkersRecovering => UiText.Get(" · recovering"),
-        ProductionStopCause.WorkersBlockedNoFood => UiText.Get(" · no food"),
-        _ => string.Empty,
-    };
+        string value = snapshot.HousingCapacity > 0
+            ? $"{snapshot.CitizenCount}/{snapshot.HousingCapacity}"
+            : snapshot.CitizenCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        StatChip chip = StatChip.HudIconValue(IconPaths.Users, value);
+        chip.Name = "Population";
+        chip.TooltipText = snapshot.HousingCapacity > 0
+            ? UiText.Format(
+                "ui.status.population_with_capacity",
+                snapshot.CitizenCount,
+                snapshot.HousingCapacity)
+            : UiText.Format("ui.status.population", snapshot.CitizenCount);
+        return chip;
+    }
+
 }
-

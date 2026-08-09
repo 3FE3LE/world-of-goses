@@ -78,11 +78,14 @@ Use `[GlobalClass]` when:
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
-`NavigationRail`, `ContextInspector`, `ActionDock`, and the three `ActionButton` roles —
+`PrimaryNavDock`, `ContextInspector`, `ActionDock`, `SimulationControls`,
+`CitySummaryPanel`, `ExpeditionRail`, `ExpeditionCompactCard`,
+`ConstructionQueueItem`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
 The compact HUD adds `HudSectionHeader`, `HudMetricRow`, `HudResourceRow`,
 `HudProgressBar`, `HudBadge` and `CollapsiblePanelHeader` (§ 5.2).
-Future targets include `ExpeditionCard`.
+Future targets must compose these controls rather than introduce a second
+expedition frame grammar.
 
 **`HudIconValue` deliberately does not exist.** The compact HUD wanted an
 icon-and-value pair and `StatChip` already was one: same 24 px icon cell,
@@ -102,6 +105,24 @@ panel is pinned to the bottom and grows upward as its text wraps. **If a
 widget is repositioning itself in `_Process`, the anchors are usually
 wrong.**
 
+The persistent `CitySummaryPanel` and transient `ContextInspector` have
+separate authored left-edge slots. The summary begins at the 8 px safe margin;
+the inspector anchors immediately to its right, stays
+bottom-aligned, grows upward, and keeps `MouseFilter.Ignore`. Neither surface
+positions itself in `_Process`. `ConstructionQueueItem` is the reusable
+icon/name/state/progress composition inside the summary; blocked state is
+written as localized text and tooltip, never colour alone.
+
+The right-side `ExpeditionRail` is a persistent summary, not a replacement for
+`ExpeditionPanel`: compact cards expose active status and route details back to
+the existing planning surface. The rail owns pointer and wheel input, including
+at scroll limits, and its vertical focus chain reaches details, valid cancel and
+the embedded Chronicle toggle. `ChroniclePanel` has one data/rendering path:
+compact mode shows four meaningful rows; expanded mode replaces the expedition
+summary inside the same rail and adds the offline summary, grouped actionable
+blockers and up to 80 compacted events. `ChronicleEventProjection` remains the
+single filtering/compaction rule. Do not recreate a second full-log surface.
+
 `ActionDock` is the bottom-centre contextual tray. It replaced placement
 chrome the macro view built inline: a raw `new Button` in a bottom-wide
 `HBoxContainer` with **no surface at all**, so the actions floated
@@ -111,27 +132,49 @@ as far from its own buttons as the viewport allows. It is not a
 permanent toolbar: nothing shows it except a mode with an action to
 offer.
 
-Both `ActionDock` and `NavigationRail` resolve or build their children
+`ActionDock`, `PrimaryNavDock`, and `SimulationControls` resolve or build their children
 on first access, not only in `_Ready`. Any shared surface a screen
 touches from that screen's own `_Ready` must do the same — Godot readies
 siblings in tree order, and the consumer frequently comes first.
 
-`NavigationRail` replaced `MacroActions`, the full-width 42 px strip under
-the status bar, with a shrink-wrapped vertical cluster at the top-left. It
-owns its own structure and hands back typed buttons, so the 4576-line
-`MacroStreetLiveView` holds one path to the rail instead of five literal
+`PrimaryNavDock` is the semantic successor to the short-lived vertical
+`NavigationRail`, which had already replaced the deleted full-width
+`MacroActions` strip. The dock is a fixed 300×52 logical surface centred 16 px
+above the bottom edge. It owns an icon-only horizontal structure with full
+localized tooltips and hands back
+typed buttons, so `MacroStreetLiveView` holds one path to the dock instead of literal
 paths like `"../MacroActions/Actions/PoliciesButton"`. Deciding what a
-button opens stays with the macro view: the rail is chrome, and chrome
+button opens stays with the macro view: the dock is chrome, and chrome
 does not know what a screen is.
+
+`PrimaryNavDock` and `ActionDock` are mutually exclusive presentations of the
+same bottom-centre zone. Normal macro mode shows primary navigation; placement
+hides it and shows the contextual instruction/confirm/cancel tray; confirm,
+cancel and real `ui_cancel` restore primary navigation. `SimulationControls`
+is a separate bottom-right `HudDock` containing the existing `PlayPauseButton`
+and `SpeedButton` plus the connected camera-mode world utility. Camera logic
+remains in the macro view; only its typed button moved. No duplicate simulation
+controls remain in `CityStatusPanel`. `ActionDock` is also a `HudDock`, with
+`HudHeader` instruction text and `HudButtonSelected`/`HudButton` actions; it no
+longer borrows large-screen `OverlayPanel` or `ButtonText` chrome.
+
+The macro perspective owns the visibility of its authored summary surfaces.
+`ActivatePerspective` reveals `CitySummaryPanel`, `ExpeditionRail` and
+`SimulationControls`; `Deactivate` hides all three together with primary
+navigation and the transient inspector. This keeps onboarding, hero profile and
+building detail from inheriting a complete macro HUD while leaving every node
+authored under `GameUiShell/ScreenContent`. `ContextInspector` remains
+pointer-transparent and upward-growing, but uses `HudCard`/`HudHeader`/
+`HudCaption` so the transient cue does not introduce a second frame grammar.
 
 Two things it is worth not relearning:
 
 - **Resolve children on access, not in `_Ready`.** The macro view precedes
-  the rail in `CityPrototype.tscn` and Godot readies siblings in tree
-  order, so caching the buttons in the rail's `_Ready` returned null and
+  the dock in `CityPrototype.tscn` and Godot readies siblings in tree
+  order, so caching the buttons in the dock's `_Ready` returned null and
   crashed the boot. Reordering the scene would have fixed that one caller
   and left the trap set for the next.
-- **A rail cannot widen at higher resolutions in this project.**
+- **The dock cannot widen at higher resolutions in this project.**
   `project.godot` uses `stretch/mode=canvas_items` on a 16:9 base of
   1280×720, so 1920×1080 is the *same* logical viewport drawn at 1.5×:
   `GetVisibleRect().Size.X` reads 1280 at both official review sizes.
@@ -387,8 +430,7 @@ Two things the painter must keep doing, both learned by measuring:
   changing minimum sizes, and padding is layout.
 
 Some overrides remain — `ConstructionPanel` (an `OverlayPanel`, so
-dropping its override would change how modals read), `CityStatusPanel`
-(mutates content margins for the compact HUD), and the inline
+dropping its override would change how modals read), and the inline
 non-lineage ones. Before concluding a surface is themed, check whether
 its script overrides it.
 
@@ -595,7 +637,7 @@ inherit the patterns in this file:
   `StandardAssignmentButton` factory so the panel and the
   expedition-crew picker share vocabulary.
 - **Notification feed**: derived from `WorldEventLog`. The
-  `OfflineReportPanel` already implements the structure — extend it
+  the embedded `ChroniclePanel` already implements the structure — extend it
   with a "decisions needed" anchor reachable from anywhere on the
   macro view via an icon-button factory.
 

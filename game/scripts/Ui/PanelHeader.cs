@@ -41,7 +41,7 @@ public partial class PanelHeader : HBoxContainer
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _title.ThemeTypeVariation = "PanelTitle";
+        _title.ThemeTypeVariation = "HudHeader";
         AddChild(_title);
 
         _closeButton = new IconButton
@@ -52,6 +52,7 @@ public partial class PanelHeader : HBoxContainer
             CustomMinimumSize = new Vector2(40, 40),
             FocusMode = Control.FocusModeEnum.All,
             TooltipText = UiText.Get("Close (ESC)"),
+            ThemeTypeVariation = "HudButton",
         };
         _closeButton.Pressed += () => EmitSignal(SignalName.CloseRequested);
         AddChild(_closeButton);

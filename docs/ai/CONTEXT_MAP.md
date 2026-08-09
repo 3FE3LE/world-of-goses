@@ -259,7 +259,7 @@ which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`
 - **Conditional skills:** `technical-foundation`, `presentation-experience`, `city-simulation`
-- **Code:** `game/scripts/Domain/WorldEvent.cs`, `WorldEventLog.cs`, `WorldEventRetention.cs`, `game/scripts/Ui/WorldEventTextFormatter.cs`, `game/scripts/OfflineReportPanel.cs`
+- **Code:** `game/scripts/Domain/WorldEvent.cs`, `WorldEventLog.cs`, `WorldEventRetention.cs`, `game/scripts/Ui/WorldEventTextFormatter.cs`, `game/scripts/Ui/ChronicleEventProjection.cs`, `game/scripts/Ui/ChroniclePanel.cs`
 - **Consult `technical-foundation` when:** event retention, causality chains, or persistence change.
 
 ---

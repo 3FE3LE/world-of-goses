@@ -85,6 +85,33 @@ public partial class CityPrototype : Node
             return;
         }
 
+        const string primaryNavClickPrefix = "primary-nav-click-";
+        if (fixture is not null
+            && fixture.StartsWith(primaryNavClickPrefix, StringComparison.Ordinal))
+        {
+            ExercisePrimaryNavPointerForVisualRegression(
+                fixture[primaryNavClickPrefix.Length..]);
+            return;
+        }
+
+        const string simulationClickPrefix = "simulation-click-";
+        if (fixture is not null
+            && fixture.StartsWith(simulationClickPrefix, StringComparison.Ordinal))
+        {
+            ExerciseSimulationPointerForVisualRegression(
+                fixture[simulationClickPrefix.Length..]);
+            return;
+        }
+
+        const string expeditionRailClickPrefix = "expedition-rail-click-";
+        if (fixture is not null
+            && fixture.StartsWith(expeditionRailClickPrefix, StringComparison.Ordinal))
+        {
+            ExerciseExpeditionRailPointerForVisualRegression(
+                fixture[expeditionRailClickPrefix.Length..]);
+            return;
+        }
+
         // Pressed and released, because IsActionPressed only fires on the edge and
         // a stuck action would leak into whatever the next fixture does.
         static void SendCancelForVisualRegression()
@@ -93,11 +120,37 @@ public partial class CityPrototype : Node
             Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
         }
 
+        static void SendRightForVisualRegression()
+        {
+            Input.ParseInputEvent(new InputEventJoypadButton
+            {
+                ButtonIndex = JoyButton.DpadRight,
+                Pressed = true,
+            });
+            Input.ParseInputEvent(new InputEventJoypadButton
+            {
+                ButtonIndex = JoyButton.DpadRight,
+                Pressed = false,
+            });
+        }
+
         switch (fixture)
         {
+            case "macro-hud-default":
+                ShowMacroHudForVisualRegression(MacroHudFixtureState.Default);
+                break;
+            case "macro-hud-selection":
+                ShowMacroHudForVisualRegression(MacroHudFixtureState.Selection);
+                break;
+            case "macro-hud-active-construction":
+                ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveConstruction);
+                break;
+            case "macro-hud-expedition-active":
+                ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveExpedition);
+                break;
             case "offline-report":
-                GetNode<OfflineReportPanel>(
-                    "GameUiShell/ScreenContent/OfflineReportPanel")
+                GetNode<ExpeditionRail>(
+                    "GameUiShell/ScreenContent/ExpeditionRail")
                     .ShowVisualRegressionReport(BuildVisualOfflineReport());
                 break;
             case "pause-menu":
@@ -106,15 +159,54 @@ public partial class CityPrototype : Node
             case "pause-menu-reset":
                 GetNode<PauseMenu>("PauseMenu").ShowForVisualRegression(confirmReset: true);
                 break;
+            case "primary-nav-focus":
+                PrimaryNavDock navDock = GetNode<PrimaryNavDock>(
+                    "GameUiShell/ScreenContent/PrimaryNavDock");
+                navDock.Show();
+                navDock.GrabDefaultFocus();
+                Callable.From(() =>
+                {
+                    SendRightForVisualRegression();
+                    GetTree().CreateTimer(0.15).Timeout +=
+                        ValidatePrimaryNavFocusForVisualRegression;
+                }).CallDeferred();
+                break;
+            case "simulation-controls-focus":
+                SimulationControls controls = GetNode<SimulationControls>(
+                    "GameUiShell/ScreenContent/SimulationControls");
+                controls.PlayPauseButton.GrabFocus();
+                Callable.From(() =>
+                {
+                    SendRightForVisualRegression();
+                    GetTree().CreateTimer(0.15).Timeout +=
+                        ValidateSimulationControlsFocusForVisualRegression;
+                }).CallDeferred();
+                break;
             case "construction-scroll":
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: false);
                 break;
             case "construction-placement":
+                ShowTopStatusForVisualRegression("en");
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: true);
                 break;
+            case "action-dock-focus":
+                ShowTopStatusForVisualRegression("en");
+                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                    .ShowConstructionForVisualRegression(placement: true);
+                ActionDock actionDock = GetNode<ActionDock>(
+                    "GameUiShell/ScreenContent/ActionDock");
+                actionDock.ConfirmButton.GrabFocus();
+                Callable.From(() =>
+                {
+                    SendRightForVisualRegression();
+                    GetTree().CreateTimer(0.15).Timeout +=
+                        ValidateActionDockFocusForVisualRegression;
+                }).CallDeferred();
+                break;
             case "construction-placement-escape":
+                ShowTopStatusForVisualRegression("en");
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
                     .ShowConstructionForVisualRegression(placement: true);
                 // A real ui_cancel through the input queue, not a direct call to
@@ -122,7 +214,18 @@ public partial class CityPrototype : Node
                 // _UnhandledInput now that the action dock sits between the player
                 // and the world and its buttons can hold focus. Deferred so the
                 // placement state exists before the key arrives.
-                Callable.From(SendCancelForVisualRegression).CallDeferred();
+                Callable.From(() =>
+                {
+                    SendCancelForVisualRegression();
+                    GetTree().CreateTimer(0.15).Timeout += () =>
+                        ValidateActionDockExitForVisualRegression(confirm: false, input: "escape");
+                }).CallDeferred();
+                break;
+            case "construction-placement-confirm-click":
+                ExerciseActionDockPointerForVisualRegression(confirm: true);
+                break;
+            case "construction-placement-cancel-click":
+                ExerciseActionDockPointerForVisualRegression(confirm: false);
                 break;
             case "construction-placement-hover-invalid":
                 GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
@@ -139,6 +242,18 @@ public partial class CityPrototype : Node
                 break;
             case "early-game-resources":
                 ShowEarlyGameResourcesForVisualRegression();
+                break;
+            case "top-status-en":
+                ShowTopStatusForVisualRegression("en");
+                break;
+            case "top-status-es":
+                ShowTopStatusForVisualRegression("es");
+                break;
+            case "city-summary-en":
+                ShowCitySummaryForVisualRegression("en", blocked: false);
+                break;
+            case "city-summary-es-blocked":
+                ShowCitySummaryForVisualRegression("es", blocked: true);
                 break;
             case "shelter-resources":
                 ShowShelterResourcesForVisualRegression();
@@ -166,6 +281,43 @@ public partial class CityPrototype : Node
                 break;
             case "expedition-returned":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Returned);
+                break;
+            case "expedition-rail-empty":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Empty);
+                break;
+            case "expedition-rail-outbound":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+                break;
+            case "expedition-rail-outbound-en":
+                ShowExpeditionRailForVisualRegression(
+                    ExpeditionRailFixtureState.Outbound, "en");
+                break;
+            case "expedition-rail-outbound-es":
+                ShowExpeditionRailForVisualRegression(
+                    ExpeditionRailFixtureState.Outbound, "es");
+                break;
+            case "expedition-rail-encounter":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Encounter);
+                break;
+            case "expedition-rail-objective":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Objective);
+                break;
+            case "expedition-rail-returning":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Returning);
+                break;
+            case "expedition-rail-resolved":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Resolved);
+                break;
+            case "expedition-rail-cancelled":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Cancelled);
+                break;
+            case "expedition-rail-focus":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+                CallDeferred(MethodName.ExerciseExpeditionRailFocusForVisualRegression);
+                break;
+            case "expedition-rail-phase-focus":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+                CallDeferred(MethodName.ExerciseExpeditionRailPhaseFocusForVisualRegression);
                 break;
             case "modal-layout-close":
                 ValidateModalLayoutAndClosePaths();
@@ -247,6 +399,222 @@ public partial class CityPrototype : Node
                 ShowMigrantCubeForVisualRegression();
                 break;
         }
+    }
+
+    private void ExercisePrimaryNavPointerForVisualRegression(string action)
+    {
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        macro.ShowEarlyGameResourcesForVisualRegression();
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
+            "GameUiShell/ScreenContent/PrimaryNavDock");
+        SimulationControls simulationControls = GetNode<SimulationControls>(
+            "GameUiShell/ScreenContent/SimulationControls");
+        IconButton button = action switch
+        {
+            "hero" => dock.HeroButton,
+            "construction" => dock.ConstructionButton,
+            "menu" => dock.MenuButton,
+            "expedition" => dock.ExpeditionButton,
+            "policies" => dock.PoliciesButton,
+            "citizens" => dock.CitizensButton,
+            "camera" => simulationControls.CameraButton,
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unknown primary navigation action."),
+        };
+        dock.Show();
+        Callable.From(() =>
+        {
+            SendPointerClickForVisualRegression(button);
+            GetTree().CreateTimer(0.15).Timeout +=
+                () => ValidatePrimaryNavPointerForVisualRegression(action);
+        }).CallDeferred();
+    }
+
+    private static void SendPointerClickForVisualRegression(Control target)
+    {
+        Vector2 logicalPosition = target.GetGlobalRect().GetCenter();
+        Vector2 logicalViewportSize = target.GetViewport().GetVisibleRect().Size;
+        Vector2 windowSize = DisplayServer.WindowGetSize();
+        Vector2 windowScale = new(
+            windowSize.X / logicalViewportSize.X,
+            windowSize.Y / logicalViewportSize.Y);
+        Vector2 position = logicalPosition * windowScale;
+        Input.ParseInputEvent(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.Left,
+            ButtonMask = MouseButtonMask.Left,
+            Position = position,
+            GlobalPosition = position,
+            Pressed = true,
+        });
+        Input.ParseInputEvent(new InputEventMouseButton
+        {
+            ButtonIndex = MouseButton.Left,
+            Position = position,
+            GlobalPosition = position,
+            Pressed = false,
+        });
+    }
+
+    private void ValidatePrimaryNavFocusForVisualRegression()
+    {
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
+            "GameUiShell/ScreenContent/PrimaryNavDock");
+        SimulationControls simulationControls = GetNode<SimulationControls>(
+            "GameUiShell/ScreenContent/SimulationControls");
+        Rect2 dockRect = dock.GetGlobalRect();
+        if (dockRect.Size != new Vector2(300, 52)
+            || dockRect.Intersects(simulationControls.GetGlobalRect()))
+        {
+            GD.PushError(
+                $"Primary navigation geometry is {dockRect}; expected 300x52 without "
+                + "overlapping SimulationControls.");
+            return;
+        }
+        if (GetViewport().GuiGetFocusOwner() != dock.ConstructionButton)
+        {
+            Control? owner = GetViewport().GuiGetFocusOwner();
+            GD.PushError(
+                "Primary navigation ui_right fixture did not move focus to Construction; "
+                + $"focus is {owner?.Name ?? "<none>"}, hero right is "
+                + $"{dock.HeroButton.FocusNeighborRight}.");
+            return;
+        }
+        GD.Print($"[WOG-NAV-FOCUS] ui_right -> Construction OK; dock={dockRect}");
+    }
+
+    private void ValidateActionDockFocusForVisualRegression()
+    {
+        ActionDock dock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
+        if (GetViewport().GuiGetFocusOwner() != dock.CancelButton)
+        {
+            Control? owner = GetViewport().GuiGetFocusOwner();
+            GD.PushError(
+                "Action dock ui_right fixture did not move focus from Confirm to Cancel; "
+                + $"focus is {owner?.Name ?? "<none>"}, confirm right is "
+                + $"{dock.ConfirmButton.FocusNeighborRight}.");
+            return;
+        }
+        GD.Print("[WOG-ACTION-DOCK-FOCUS] ui_right -> Cancel OK");
+    }
+
+    private void ValidateSimulationControlsFocusForVisualRegression()
+    {
+        SimulationControls controls = GetNode<SimulationControls>(
+            "GameUiShell/ScreenContent/SimulationControls");
+        if (GetViewport().GuiGetFocusOwner() != controls.SpeedButton)
+        {
+            Control? owner = GetViewport().GuiGetFocusOwner();
+            GD.PushError(
+                "Simulation controls ui_right fixture did not move focus from Play/Pause "
+                + $"to Speed; focus is {owner?.Name ?? "<none>"}.");
+            return;
+        }
+        GD.Print("[WOG-SIMULATION-FOCUS] ui_right -> Speed OK");
+    }
+
+    private void ValidatePrimaryNavPointerForVisualRegression(string action)
+    {
+        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
+            "GameUiShell/ScreenContent/PrimaryNavDock");
+        SimulationControls simulationControls = GetNode<SimulationControls>(
+            "GameUiShell/ScreenContent/SimulationControls");
+        bool passed = action switch
+        {
+            "hero" => GetNode<HeroProfileView>(
+                "GameUiShell/ScreenContent/HeroProfileView").Visible,
+            "construction" => modalHost.IsOpen && modalHost.Content?.Name == "ConstructionPanel",
+            "menu" => GetNode<PauseMenu>("PauseMenu").Visible,
+            "expedition" => modalHost.IsOpen && modalHost.Content?.Name == "ExpeditionPanel",
+            "policies" => modalHost.IsOpen && modalHost.Content?.Name == "PoliciesPanel",
+            "citizens" => modalHost.IsOpen && modalHost.Content?.Name == "MigrantPanel",
+            "camera" => simulationControls.CameraButton.ThemeTypeVariation == "HudButtonSelected",
+            _ => false,
+        };
+        if (!passed)
+        {
+            GD.PushError(
+                $"Primary navigation pointer fixture failed for {action}; "
+                + $"camera label={simulationControls.CameraButton.ButtonText}, "
+                + $"theme={simulationControls.CameraButton.ThemeTypeVariation}, "
+                + $"rect={simulationControls.CameraButton.GetGlobalRect()}.");
+            return;
+        }
+        GD.Print($"[WOG-NAV-CLICK] {action} OK");
+    }
+
+    private void ExerciseActionDockPointerForVisualRegression(bool confirm)
+    {
+        ShowTopStatusForVisualRegression("en");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        if (confirm) macro.PreparePlacementConfirmationForVisualRegression();
+        else macro.ShowConstructionForVisualRegression(placement: true);
+
+        ActionDock actionDock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
+        Control target = confirm ? actionDock.ConfirmButton : actionDock.CancelButton;
+        Callable.From(() =>
+        {
+            SendPointerClickForVisualRegression(target);
+            GetTree().CreateTimer(0.15).Timeout +=
+                () => ValidateActionDockExitForVisualRegression(confirm, input: "pointer");
+        }).CallDeferred();
+    }
+
+    private void ValidateActionDockExitForVisualRegression(bool confirm, string input)
+    {
+        PrimaryNavDock primaryDock = GetNode<PrimaryNavDock>(
+            "GameUiShell/ScreenContent/PrimaryNavDock");
+        ActionDock actionDock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
+        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
+        bool passed = primaryDock.Visible
+            && !actionDock.Visible
+            && (confirm
+                ? !modalHost.IsOpen
+                : modalHost.IsOpen && modalHost.Content?.Name == "ConstructionPanel");
+        if (!passed)
+        {
+            GD.PushError(
+                $"ActionDock {(confirm ? "confirm" : "cancel")} {input} fixture failed; "
+                + $"primary={primaryDock.Visible}, contextual={actionDock.Visible}, "
+                + $"modal={modalHost.Content?.Name}.");
+            return;
+        }
+        GD.Print(
+            $"[WOG-ACTION-DOCK-EXIT] {(confirm ? "confirm" : "cancel")} {input} OK");
+    }
+
+    private void ExerciseSimulationPointerForVisualRegression(string action)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Normal);
+        SimulationControls controls = GetNode<SimulationControls>(
+            "GameUiShell/ScreenContent/SimulationControls");
+        Control target = action switch
+        {
+            "pause" => controls.PlayPauseButton,
+            "speed" => controls.SpeedButton,
+            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unknown simulation action."),
+        };
+        Callable.From(() =>
+        {
+            SendPointerClickForVisualRegression(target);
+            GetTree().CreateTimer(0.15).Timeout += () =>
+            {
+                CityWorldController.SpeedChoice expected = action == "pause"
+                    ? CityWorldController.SpeedChoice.Paused
+                    : CityWorldController.SpeedChoice.Fast;
+                if (controller.CurrentSpeed != expected)
+                {
+                    GD.PushError(
+                        $"Simulation {action} pointer fixture expected {expected}, "
+                        + $"got {controller.CurrentSpeed}.");
+                    return;
+                }
+                GD.Print($"[WOG-SIMULATION-CLICK] {action} OK");
+            };
+        }).CallDeferred();
     }
 
     /// <summary>
@@ -774,6 +1142,155 @@ public partial class CityPrototype : Node
             .ExpandShelterResourcesForVisualRegression();
     }
 
+    /// <summary>
+    /// Deterministic worst-case status composition: a three-digit day, six real
+    /// resource types (including one reservation), and a populated Shelter.
+    /// It changes only a capture-owned world and never writes the live slot.
+    /// </summary>
+    private void ShowTopStatusForVisualRegression(string locale)
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CitizenProfile profile = NewFounderProfile(LineageId.Kovari);
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            profile,
+            profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Top status fixture could not create founder: {heroResult.Outcome}.");
+            return;
+        }
+
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        fixture.Resources.DepositToCityInventory(ResourceType.Wood, 4);
+        ConstructionAuthorizationResult shelter =
+            fixture.TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+        if (!shelter.IsSuccess || shelter.ProjectId is not BuildingId shelterId)
+        {
+            GD.PushError($"Top status fixture could not authorize shelter: {shelter.Outcome}.");
+            return;
+        }
+        ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
+        shelterProject.Progress = shelterProject.RequiredWork;
+        fixture.AdvanceWorldTick();
+        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+
+        fixture.Resources.DepositToCityInventory(ResourceType.Food, 6);
+        fixture.Resources.DepositToCityInventory(ResourceType.Wood, 4);
+        fixture.Resources.DepositToCityInventory(ResourceType.Branches, 3);
+        fixture.Resources.DepositToCityInventory(ResourceType.PlantFiber, 2);
+        fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 1);
+        fixture.Resources.DepositToCityInventory(ResourceType.WildFood, 4);
+        fixture.Resources.TryReserve(
+            ResourceType.Branches,
+            1,
+            new ResourceReservationOwner(ResourceReservationOwnerKind.ConstructionProject, 99),
+            out _);
+        fixture.RegisterCitizen(new Citizen(new CitizenId(2), "Nara", 22, profile));
+        fixture.RegisterCitizen(new Citizen(new CitizenId(3), "Ivo", 33, profile));
+        fixture.ConcludeFirstNightForFixtures();
+
+        WorldSave save = WorldPersistence.Capture(fixture);
+        save.CurrentTick = (123 - 1) * GameClock.TicksPerInGameDay
+            + GameClock.TicksPerInGameDay / 2;
+        controller.World.Restore(save);
+        LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(profile.Lineage);
+        GetNode<LocaleManager>("/root/LocaleManager")
+            .SetLocaleForVisualRegression(locale);
+        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    /// <summary>
+    /// Exercises the persistent city summary with real ledger, housing and
+    /// project state, plus the existing typed selection-inspector path.
+    /// </summary>
+    private void ShowCitySummaryForVisualRegression(string locale, bool blocked)
+    {
+        ShowTopStatusForVisualRegression(locale);
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        ConstructionAuthorizationResult authorization =
+            controller.TryAuthorizeConstruction(ConstructionKind.Farm);
+        if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
+        {
+            GD.PushError(
+                $"City summary fixture could not authorize farm: {authorization.Outcome}.");
+            return;
+        }
+
+        ConstructionProject project = controller.World.GetProject(projectId)!;
+        project.Progress = project.RequiredWork / 3;
+        if (!blocked && controller.World.Hero is Citizen founder)
+        {
+            controller.TryAssignCitizenToProject(projectId, founder.Id);
+            controller.World.ConfirmCitizenArrivedAtAssignment(founder.Id, projectId);
+            controller.World.AdvanceWorldTick();
+        }
+
+        GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector")
+            .ShowSelection(
+                ResourceLoader.Load<Texture2D>(IconPaths.User),
+                "Inspector",
+                UiText.Get("ui.city_summary.inspector_fixture_detail"));
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+            .Refresh(controller.GetCityStatusSnapshot());
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    private enum MacroHudFixtureState
+    {
+        Default,
+        Selection,
+        ActiveConstruction,
+        ActiveExpedition,
+    }
+
+    /// <summary>
+    /// Composes the final authored macro HUD from existing truthful fixtures.
+    /// It adds no production-only state: construction and expedition variants
+    /// still use the same domain commands as their focused fixture families.
+    /// </summary>
+    private void ShowMacroHudForVisualRegression(MacroHudFixtureState state)
+    {
+        ShowTopStatusForVisualRegression("en");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        macro.ShowEarlyGameResourcesForVisualRegression();
+
+        if (state == MacroHudFixtureState.ActiveConstruction)
+        {
+            ShowCitySummaryForVisualRegression("en", blocked: false);
+            GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Hide();
+            return;
+        }
+
+        if (state == MacroHudFixtureState.ActiveExpedition)
+        {
+            ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+        }
+
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+            .Refresh(controller.GetCityStatusSnapshot());
+        GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRail").Refresh();
+
+        ContextInspector inspector = GetNode<ContextInspector>(
+            "GameUiShell/ScreenContent/ContextInspector");
+        if (state == MacroHudFixtureState.Selection)
+        {
+            inspector.ShowSelection(
+                ResourceLoader.Load<Texture2D>(IconPaths.User),
+                UiText.Get("ui.city_summary.city"),
+                UiText.Get("ui.city_summary.inspector_fixture_detail"));
+        }
+        else
+        {
+            inspector.Hide();
+        }
+    }
+
     private void ShowCultivationForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
@@ -957,6 +1474,16 @@ public partial class CityPrototype : Node
     }
 
     private enum ExpeditionFixtureState { Idle, Active, Returned }
+    private enum ExpeditionRailFixtureState
+    {
+        Empty,
+        Outbound,
+        Encounter,
+        Objective,
+        Returning,
+        Resolved,
+        Cancelled,
+    }
 
     private void ShowHeroIncorporationForVisualRegression()
     {
@@ -1079,6 +1606,198 @@ public partial class CityPrototype : Node
         if (!controller.StartExpedition(request).IsSuccess) return;
         if (state == ExpeditionFixtureState.Returned) controller.World.AdvanceWorldTick();
         panel.Open();
+    }
+
+    private void ShowExpeditionRailForVisualRegression(
+        ExpeditionRailFixtureState state,
+        string? locale = null)
+    {
+        if (locale is not null)
+        {
+            GetNode<LocaleManager>("/root/LocaleManager")
+                .SetLocaleForVisualRegression(locale);
+        }
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorld world = controller.World;
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+
+        if (world.Hero?.CurrentAssignment is BuildingId assignment)
+        {
+            AssignmentResult unassigned = world.TryUnassignCitizen(assignment, world.Hero.Id);
+            if (!unassigned.IsSuccess) world.TryUnassignFromProject(assignment, world.Hero.Id);
+        }
+        foreach (Expedition expedition in world.Expeditions.Values.ToArray())
+        {
+            if (expedition.Status == ExpeditionStatus.Active) controller.CancelExpedition(expedition.Id);
+        }
+        if (state == ExpeditionRailFixtureState.Empty)
+        {
+            rail.Refresh();
+            return;
+        }
+        if (world.Resources.Available(ResourceType.Wood) < 1)
+        {
+            world.Resources.DepositToCityInventory(ResourceType.Wood, 1);
+        }
+
+        ExpeditionRequest request = ExpeditionRequest.Reconnaissance(world.Hero!.Id) with
+        {
+            DurationTicks = 8,
+        };
+        ExpeditionStartResult started = controller.StartExpedition(request);
+        if (!started.IsSuccess) return;
+
+        int ticks = state switch
+        {
+            ExpeditionRailFixtureState.Encounter => 2,
+            ExpeditionRailFixtureState.Objective => 4,
+            ExpeditionRailFixtureState.Returning => 6,
+            ExpeditionRailFixtureState.Resolved => 8,
+            _ => 0,
+        };
+        for (int i = 0; i < ticks; i++) world.AdvanceWorldTick();
+        if (state == ExpeditionRailFixtureState.Cancelled)
+        {
+            controller.CancelExpedition(started.ExpeditionId!.Value);
+        }
+        rail.Refresh();
+    }
+
+    private void ExerciseExpeditionRailPointerForVisualRegression(string action)
+    {
+        ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        CallDeferred(MethodName.SendExpeditionRailPointerForVisualRegression, action, rail);
+    }
+
+    private void SendExpeditionRailPointerForVisualRegression(string action, ExpeditionRail rail)
+    {
+        Control? target = action switch
+        {
+            "details" => rail.FirstDetailsButton,
+            "cancel" => rail.FirstCancelButton,
+            "more" => rail.MoreButton,
+            _ => null,
+        };
+        if (target is null)
+        {
+            GD.PushError($"[WOG-EXPEDITION-RAIL-CLICK] missing target for {action}.");
+            return;
+        }
+        SendPointerClickForVisualRegression(target);
+        GD.Print($"[WOG-EXPEDITION-RAIL-CLICK] {action} dispatched.");
+        if (action == "details" && rail.FirstExpeditionId is ExpeditionId id)
+        {
+            CallDeferred(MethodName.ValidateExpeditionRailDetailsForVisualRegression, id.Value);
+        }
+        else if (action == "cancel")
+        {
+            CallDeferred(MethodName.DeferExpeditionRailCancelValidation);
+        }
+        else if (action == "more")
+        {
+            CallDeferred(MethodName.ValidateExpeditionRailMoreForVisualRegression);
+        }
+    }
+
+    private void ExerciseExpeditionRailFocusForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        rail.GrabDefaultFocus();
+        Input.ParseInputEvent(new InputEventJoypadButton
+        {
+            ButtonIndex = JoyButton.DpadDown,
+            Pressed = true,
+        });
+        Input.ParseInputEvent(new InputEventJoypadButton
+        {
+            ButtonIndex = JoyButton.DpadDown,
+            Pressed = false,
+        });
+        CallDeferred(MethodName.ValidateExpeditionRailFocusForVisualRegression);
+    }
+
+    private void ValidateExpeditionRailFocusForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        Control? focused = GetViewport().GuiGetFocusOwner();
+        if (focused != rail.FirstCancelButton)
+        {
+            GD.PushError("[WOG-EXPEDITION-RAIL-FOCUS] ui_down did not reach Cancel.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-RAIL-FOCUS] ui_down -> Cancel OK");
+    }
+
+    private void ValidateExpeditionRailDetailsForVisualRegression(int expectedId)
+    {
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
+            "GameUiShell/ScreenContent/ExpeditionPanel");
+        if (panel.PresentedExpeditionId?.Value != expectedId)
+        {
+            GD.PushError("[WOG-EXPEDITION-RAIL-DETAILS] clicked ID was not presented.");
+            return;
+        }
+        GD.Print($"[WOG-EXPEDITION-RAIL-DETAILS] expedition {expectedId} OK");
+    }
+
+    private void DeferExpeditionRailCancelValidation() =>
+        CallDeferred(MethodName.ValidateExpeditionRailCancelForVisualRegression);
+
+    private void ValidateExpeditionRailCancelForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        if (GetNode<CityWorldController>("CityWorldController")
+                .GetExpeditionRailSnapshot().ActiveExpeditions.Count != 0
+            || rail.FirstDetailsButton is not null)
+        {
+            GD.PushError("[WOG-EXPEDITION-RAIL-CANCEL] active card remained after cancel.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-RAIL-CANCEL] active expedition removed OK");
+    }
+
+    private void ValidateExpeditionRailMoreForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        if (!rail.Visible || !rail.ChronicleExpanded)
+        {
+            GD.PushError("[WOG-EXPEDITION-RAIL-MORE] Chronicle did not open.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-RAIL-MORE] Chronicle opened OK");
+    }
+
+    private void ExerciseExpeditionRailPhaseFocusForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        rail.GrabDefaultFocus();
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        controller.AdvanceWorldTickForVisualRegression();
+        controller.AdvanceWorldTickForVisualRegression();
+        CallDeferred(MethodName.DeferExpeditionRailPhaseFocusValidation);
+    }
+
+    private void DeferExpeditionRailPhaseFocusValidation() =>
+        CallDeferred(MethodName.ValidateExpeditionRailPhaseFocusForVisualRegression);
+
+    private void ValidateExpeditionRailPhaseFocusForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        if (GetViewport().GuiGetFocusOwner() != rail.FirstDetailsButton)
+        {
+            GD.PushError("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] focus lost on phase tick.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] details focus preserved OK");
     }
 
     private static OfflineProgressionReport BuildVisualOfflineReport()

@@ -365,17 +365,49 @@ to bounded subsections whose data can grow without a practical visual limit
 screen chrome stable; each screen must still fit its primary composition in the
 available content region and delegate overflow only to the growing subsection.
 
-Resource quantities are intentionally absent from `CityStatusPanel`.
-`BuildingDetailSnapshot` projects the inventory read model consumed by the
-Shelter's collapsible resource panel; presentation never queries scene nodes
-to infer stock. `StockProduced` and `CropHarvested` remain persisted domain
-events for metrics and causal history, while `OfflineReportPanel` excludes
+`CityStatusPanel` renders a small global ticker from `CityStatusSnapshot`:
+one resource icon plus its available amount, with stored and reserved totals
+in the tooltip. The projection reads `CityResourceLedger`; it does not create
+a second inventory or change physical ownership. `BuildingDetailSnapshot`
+continues to project the fuller inventory read model consumed by the Shelter's
+collapsible resource panel; presentation never queries scene nodes to infer
+stock. `StockProduced` and `CropHarvested` remain persisted domain
+events for metrics and causal history, while `ChronicleEventProjection` excludes
 them from the player-facing Chronicle. Basic ground-resource gathering emits
 a transient `ResourceGainPopup` at the current physical owner (founder,
 Founding Cache, or Shelter); this feedback is presentation-only and cannot
 mutate inventory. Before Cache, the popup samples the founder carrier's world
 position at each quantized motion step; building-owned feedback remains fixed
 to the projected storage anchor.
+
+`CitySummaryPanel` consumes that same immutable `CityStatusSnapshot` as a
+persistent, collapsible left-side read model. It shows the founding lineage,
+truthful population/housing occupancy, ledger availability, and every exposed
+construction project with work progress and its explicit stop cause. It does
+not estimate production deltas or construction duration because no aggregate
+rate currently exists. Collapse is presentation-only and never enters
+`WorldSave`. The authored macro HUD slots remain non-overlapping: the
+`CitySummaryPanel` begins at the left safe margin, with transient
+`ContextInspector` immediately to its right and bottom-aligned. The fixed
+bottom-centre `PrimaryNavDock` is mutually exclusive with contextual
+`ActionDock`; the bottom-right `SimulationControls` surface owns the existing
+play/pause and speed buttons plus the camera-mode utility without moving
+simulation or camera rules into presentation. These macro-only siblings start
+hidden and are revealed/hidden by `MacroStreetLiveView`'s existing
+`ActivatePerspective`/`Deactivate` routing, so full profile/detail perspectives
+cannot retain the city rails accidentally; no global HUD manager or runtime
+surface construction is involved.
+
+The persistent right-side `ExpeditionRail` consumes an immutable
+`ExpeditionRailSnapshot` projected by `CityWorldController`. It exposes only
+active domain expeditions, their real members, persisted phase, committed
+supplies and authoritative tick interval; it introduces no queue or dispatch
+rules. Its embedded `ChroniclePanel` delegates meaningful-event filtering and
+compaction to `ChronicleEventProjection`, then uses the existing localized
+`WorldEventTextFormatter`. Compact and expanded states share the same rail,
+controller and scroll ownership; expansion replaces the expedition summary and
+adds offline catch-up summary, grouped blocker decisions and bounded history.
+There is no adjacent or duplicate Chronicle surface.
 
 Before a Cache exists, the four rudimentary resources are a six-unit founder
 load rather than general city storage. `ConstructionSnapshot` projects that
@@ -533,7 +565,7 @@ bootstrap requirement.
 `WorldEvent` carries a typed subject kind, optional entity ID, captured display
 label, and typed `CauseEventId`. `CityWorld.FindCauseEvent` compares building
 identity rather than display names. The
-`OfflineReportPanel` renders a "Decisions needed" list grouped by subject
+`ChroniclePanel` renders a "Decisions needed" list grouped by subject
 above the chronological rows so the player can scan what requires attention
 without scrolling the full timeline.
 
@@ -606,8 +638,9 @@ Godot-free read models: `CityStatusSnapshot`, `ConstructionSnapshot`, and
 `BuildingDetailSnapshot`; `CityMacroSnapshot` additionally projects every
 `NaturalResourcePatch` type, its independently gatherable units, and each
 Cultivation Site's state/timing on its stable lot. `CityStatusSnapshot`
-projects daily ration, Food horizon, protected target and time to first
-harvest. The status
+projects daily ration, Food horizon, protected target, time to first harvest,
+ledger-backed resource totals/availability, founding lineage, and current
+population/housing capacity. The status
 strip, construction panel, building-detail
 shell, worker slots, assignment panel, production panel, and forest gather panel
 render those snapshots instead of traversing `CityWorld` or retaining domain

@@ -48,7 +48,7 @@ namespace WorldofGoses.Prototypes;
 ///
 /// Camera mode (design bible §04 "Cámara-sigue"): free pan by default,
 /// with follow-the-founder available only through an explicit toggle
-/// (<see cref="ToggleCameraMode"/>, F key or the navigation rail button),
+/// (<see cref="ToggleCameraMode"/>, F key or the primary navigation button),
 /// independent from selection. Free mode decouples the vanishing point
 /// (<see cref="CameraLateral"/>/
 /// <see cref="CameraDepthAnchor"/>) from the founder's own true position
@@ -70,9 +70,8 @@ public partial class MacroStreetLiveView : Node2D
 {
     private const bool DefaultCameraFollowsHero = false;
     private const float CenterX = 640f;
-    private const float BaseY = 580f; // ScreenContent-local. Unchanged by the move
-    // from a full-width top band to a left rail: freeing the band gives the world
-    // headroom it simply does not use, and retuning it would shift every depth row.
+    private const float BaseY = 580f; // ScreenContent-local. HUD migrations do not
+    // retune the world projection; doing so would shift every authored depth row.
     private const float CameraZoomPivotY = 680f;
     private const float LotUnitPx = 90f;
     private const int DefaultWorldParcelColumns = 5;
@@ -175,18 +174,20 @@ public partial class MacroStreetLiveView : Node2D
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
-    [Export] public NodePath ChroniclePath { get; set; } = "../OfflineReportPanel";
     [Export] public NodePath ConstructionPanelPath { get; set; } = "../Center/ConstructionPanel";
     [Export] public NodePath ExpeditionPanelPath { get; set; } = "../ExpeditionPanel";
     [Export] public NodePath PoliciesPanelPath { get; set; } = "../PoliciesPanel";
     [Export] public NodePath CitizensPanelPath { get; set; } = "../MigrantPanel";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";
     /// <summary>
-    /// The navigation rail. One path replaces the five literal button paths this
-    /// view used to carry: the rail owns its own structure and hands back typed
+    /// The primary navigation dock. One path replaces the literal button paths this
+    /// view used to carry: the dock owns its own structure and hands back typed
     /// buttons, so moving a button inside it no longer breaks the world view.
     /// </summary>
-    [Export] public NodePath NavigationRailPath { get; set; } = "../NavigationRail";
+    [Export] public NodePath PrimaryNavDockPath { get; set; } = "../PrimaryNavDock";
+    [Export] public NodePath SimulationControlsPath { get; set; } = "../SimulationControls";
+    [Export] public NodePath CitySummaryPanelPath { get; set; } = "../CitySummaryPanel";
+    [Export] public NodePath ExpeditionRailPath { get; set; } = "../ExpeditionRail";
     /// <summary>
     /// The contextual selection surface. Authored in the scene rather than
     /// constructed here, so its placement is anchors instead of a per-frame
@@ -198,8 +199,8 @@ public partial class MacroStreetLiveView : Node2D
     [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
 
     private CityWorldController _controller = null!;
+    private LocaleManager _localeManager = null!;
     private CityStatusPanel _statusPanel = null!;
-    private OfflineReportPanel _chronicle = null!;
     private ResourceActionMenu _actionMenu = null!;
     private CultivationActionMenu _cultivationActionMenu = null!;
     private IconButton _constructionMenuButton = null!;
@@ -211,7 +212,10 @@ public partial class MacroStreetLiveView : Node2D
     private IconButton _citizensButton = null!;
     private MigrantPanel _citizensPanel = null!;
     private ModalHost _modalHost = null!;
-    private NavigationRail _navigationRail = null!;
+    private PrimaryNavDock _primaryNavDock = null!;
+    private SimulationControls _simulationControls = null!;
+    private CitySummaryPanel _citySummaryPanel = null!;
+    private ExpeditionRail _expeditionRail = null!;
     private BuildingDetailView _buildingDetailView = null!;
     private IconButton _cameraModeButton = null!;
     private CursorController? _cursorController;
@@ -412,25 +416,26 @@ public partial class MacroStreetLiveView : Node2D
         ZIndex = OverlayLayers.WorldDepthBase;
         CameraInputActions.EnsureRegistered();
         _controller = GetNode<CityWorldController>(ControllerPath);
+        _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
         _statusPanel = GetNode<CityStatusPanel>(StatusPanelPath);
         _statusPanel.AttachController(_controller);
         _statusPanel.Refresh(_controller);
-        _chronicle = GetNode<OfflineReportPanel>(ChroniclePath);
-        _chronicle.SetController(_controller);
-        _chronicle.Hide();
         _constructionPanel = GetNode<ConstructionPanel>(ConstructionPanelPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _policiesPanel = GetNode<PoliciesPanel>(PoliciesPanelPath);
         _citizensPanel = GetNode<MigrantPanel>(CitizensPanelPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
-        _navigationRail = GetNode<NavigationRail>(NavigationRailPath);
+        _primaryNavDock = GetNode<PrimaryNavDock>(PrimaryNavDockPath);
+        _simulationControls = GetNode<SimulationControls>(SimulationControlsPath);
+        _citySummaryPanel = GetNode<CitySummaryPanel>(CitySummaryPanelPath);
+        _expeditionRail = GetNode<ExpeditionRail>(ExpeditionRailPath);
         _contextInspector = GetNode<ContextInspector>(ContextInspectorPath);
         _actionDock = GetNode<ActionDock>(ActionDockPath);
-        _constructionMenuButton = _navigationRail.ConstructionButton;
-        _expeditionMenuButton = _navigationRail.ExpeditionButton;
-        _policiesButton = _navigationRail.PoliciesButton;
-        _citizensButton = _navigationRail.CitizensButton;
-        _cameraModeButton = _navigationRail.CameraButton;
+        _constructionMenuButton = _primaryNavDock.ConstructionButton;
+        _expeditionMenuButton = _primaryNavDock.ExpeditionButton;
+        _policiesButton = _primaryNavDock.PoliciesButton;
+        _citizensButton = _primaryNavDock.CitizensButton;
+        _cameraModeButton = _simulationControls.CameraButton;
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
@@ -470,10 +475,11 @@ public partial class MacroStreetLiveView : Node2D
         _citizensButton.Pressed += OnCitizensPressed;
         _constructionPanel.PlacementRequested += OnPlacementRequested;
         _constructionPanel.CloseRequested += OnConstructionPanelCloseRequested;
-        _modalHost.Closed += OnModalHostClosedForButtonLabel;
+        _modalHost.Closed += OnModalHostClosedForNavigationState;
+        _localeManager.LocaleChanged += OnLocaleChanged;
         _cameraModeButton.Pressed += ToggleCameraMode;
         UpdateCameraModeButtonLabel();
-        UpdateConstructionButtonLabel();
+        UpdatePrimaryNavigationState();
 
         RefreshPlots();
         _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
@@ -520,7 +526,8 @@ public partial class MacroStreetLiveView : Node2D
         _citizensButton.Pressed -= OnCitizensPressed;
         _constructionPanel.PlacementRequested -= OnPlacementRequested;
         _constructionPanel.CloseRequested -= OnConstructionPanelCloseRequested;
-        _modalHost.Closed -= OnModalHostClosedForButtonLabel;
+        _modalHost.Closed -= OnModalHostClosedForNavigationState;
+        _localeManager.LocaleChanged -= OnLocaleChanged;
         _cameraModeButton.Pressed -= ToggleCameraMode;
         _actionDock.ConfirmButton.Pressed -= OnPlacementConfirmPressed;
         _actionDock.CancelButton.Pressed -= OnPlacementCancelPressed;
@@ -535,7 +542,8 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BuildPlacementChrome()
     {
-        _actionDock.ConfirmButton.Text = UiText.Get("Confirm placement");
+        _actionDock.ConfirmButton.SetIconAndLabel(
+            IconPaths.Check, UiText.Get("Confirm placement"));
         _actionDock.ConfirmButton.Disabled = true;
         _actionDock.CancelButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
         _actionDock.ConfirmButton.Pressed += OnPlacementConfirmPressed;
@@ -553,7 +561,6 @@ public partial class MacroStreetLiveView : Node2D
         _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
-        RefreshChronicleIfActive();
     }
 
     private void OnWorldTickAdvanced(int _)
@@ -561,7 +568,6 @@ public partial class MacroStreetLiveView : Node2D
         _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
-        RefreshChronicleIfActive();
     }
 
     /// <summary>
@@ -584,14 +590,14 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void ActivatePerspective()
     {
-        _navigationRail.Show();
+        ShowMacroHudSurfaces();
+        if (!_placementActive) ShowPrimaryNavigation();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
         _worldStatusBubble.Hide();
         Show();
         RefreshPlots();
-        _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
     }
 
     /// <summary>
@@ -634,14 +640,14 @@ public partial class MacroStreetLiveView : Node2D
     public void PrepareFounderArrival()
     {
         ActivatePerspective();
-        _navigationRail.Hide();
+        _primaryNavDock.Hide();
         _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
     }
 
     public void CompleteFounderArrival()
     {
         ActivatePerspective();
-        _navigationRail.Show();
+        ShowPrimaryNavigation();
         EnsureHeroCarrier(_controller.GetCityMacroSnapshot());
     }
 
@@ -651,24 +657,30 @@ public partial class MacroStreetLiveView : Node2D
         ClearWorldStatusHover();
         _visualStatusCitizenId = null;
         Hide();
-        _navigationRail.Hide();
-        _chronicle.Hide();
+        HideMacroHudSurfaces();
+        _primaryNavDock.Hide();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
         _selectedTree = null;
         _selectedBuildingId = null;
         ClearTreeHover();
-        if (_placementActive) EndPlacement();
+        if (_placementActive) EndPlacement(restorePrimaryNavigation: false);
         ResetZoom();
     }
 
-    private void RefreshChronicleIfActive()
+    private void ShowMacroHudSurfaces()
     {
-        if (Visible && _selectionIsMacro)
-        {
-            _chronicle.ShowLog(_controller.GetCityMacroSnapshot().Events);
-        }
+        _citySummaryPanel.Show();
+        _expeditionRail.Show();
+        _simulationControls.Show();
+    }
+
+    private void HideMacroHudSurfaces()
+    {
+        _citySummaryPanel.Hide();
+        _expeditionRail.Hide();
+        _simulationControls.Hide();
     }
 
     /// <summary>
@@ -716,6 +728,7 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         _expeditionPanel.Open();
+        UpdatePrimaryNavigationState();
     }
 
     /// <summary>Starts perspective-native lot placement.</summary>
@@ -749,6 +762,7 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         _policiesPanel.Open();
+        UpdatePrimaryNavigationState();
     }
 
     private void OnCitizensPressed()
@@ -761,6 +775,7 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         _citizensPanel.Open();
+        UpdatePrimaryNavigationState();
     }
 
     internal void ShowConstructionForVisualRegression(bool placement)
@@ -774,6 +789,7 @@ public partial class MacroStreetLiveView : Node2D
         }
         _modalHost.Open(_constructionPanel);
         _constructionPanel.Refresh();
+        UpdatePrimaryNavigationState();
         _constructionPanel.ScrollBodyToEndForVisualRegression();
     }
 
@@ -790,6 +806,20 @@ public partial class MacroStreetLiveView : Node2D
             QueueRedraw();
             return;
         }
+    }
+
+    internal void PreparePlacementConfirmationForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        ActivatePerspective();
+        OnPlacementRequested((int)ConstructionKind.Farm);
+        foreach (PlacementLotBox candidate in _placementLots)
+        {
+            if (!candidate.Window.IsValid) continue;
+            SelectPlacementLot(candidate);
+            return;
+        }
+        GD.PushError("Placement confirmation fixture found no valid lot.");
     }
 
     internal void ShowEarlyGameResourcesForVisualRegression()
@@ -857,28 +887,82 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
-    private void OnModalHostClosedForButtonLabel()
+    private void OnModalHostClosedForNavigationState()
     {
         if (!Visible) return;
+        UpdatePrimaryNavigationState();
+    }
+
+    private void OnLocaleChanged(string _)
+    {
+        UpdatePrimaryNavigationState();
+        UpdateCameraModeButtonLabel();
+    }
+
+    private void UpdatePrimaryNavigationState()
+    {
         UpdateConstructionButtonLabel();
+        UpdateModalNavigationButton(
+            _expeditionMenuButton,
+            _expeditionPanel,
+            IconPaths.Backpack,
+            "ui.nav.expedition_short",
+            "Send the founder on a reconnaissance");
+        UpdateModalNavigationButton(
+            _policiesButton,
+            _policiesPanel,
+            IconPaths.ClipboardNote,
+            "ui.nav.policies_short",
+            "Review city-wide policies");
+        UpdateModalNavigationButton(
+            _citizensButton,
+            _citizensPanel,
+            IconPaths.Users,
+            "ui.nav.citizens_short",
+            "Open the citizens roster");
+    }
+
+    private void UpdateModalNavigationButton(
+        IconButton button,
+        Control content,
+        string normalIcon,
+        string normalLabel,
+        string normalTooltip)
+    {
+        bool selected = _modalHost.IsOpen && _modalHost.Content == content;
+        button.SetIconAndLabel(
+            selected ? IconPaths.Close : normalIcon,
+            UiText.Get(selected ? "Close" : normalLabel));
+        button.ThemeTypeVariation = selected ? "HudButtonSelected" : "HudButton";
+        button.TooltipText = UiText.Get(selected ? "Close" : normalTooltip);
     }
 
     private void UpdateConstructionButtonLabel()
     {
         if (_modalHost.IsOpen && _modalHost.Content == _constructionPanel)
         {
-            _constructionMenuButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Close construction"));
+            _constructionMenuButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Close"));
+            _constructionMenuButton.ThemeTypeVariation = "HudButtonSelected";
             _constructionMenuButton.TooltipText = UiText.Get("Close the construction menu (work continues).");
         }
         else if (_placementActive)
         {
             _constructionMenuButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
+            _constructionMenuButton.ThemeTypeVariation = "HudButtonSelected";
         }
         else
         {
-            _constructionMenuButton.SetIconAndLabel(IconPaths.Plus, "Construction");
+            _constructionMenuButton.SetIconAndLabel(
+                IconPaths.Building, UiText.Get("ui.nav.build_short"));
+            _constructionMenuButton.ThemeTypeVariation = "HudButton";
             _constructionMenuButton.TooltipText = UiText.Get("Open the construction menu.");
         }
+    }
+
+    private void ShowPrimaryNavigation()
+    {
+        _actionDock.Hide();
+        _primaryNavDock.Show();
     }
 
     private void RefreshConstructionPanelIfOpen()
@@ -909,6 +993,7 @@ public partial class MacroStreetLiveView : Node2D
             "ui.construction.choose_lot",
             UiText.Get(ConstructionRules.DisplayNameFor(kind)));
         _actionDock.InstructionText = _placementBaseInstruction;
+        _primaryNavDock.Hide();
         _actionDock.Show();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
@@ -916,7 +1001,6 @@ public partial class MacroStreetLiveView : Node2D
         _selectedTree = null;
         _selectedBuildingId = null;
         ClearTreeHover();
-        _navigationRail.Hide();
         float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
         _placementLots.Clear();
         _placementCells.Clear();
@@ -947,7 +1031,7 @@ public partial class MacroStreetLiveView : Node2D
         QueueRedraw();
     }
 
-    private void EndPlacement()
+    private void EndPlacement(bool restorePrimaryNavigation = true)
     {
         _placementActive = false;
         _selectedPlacementLot = null;
@@ -956,7 +1040,7 @@ public partial class MacroStreetLiveView : Node2D
         _placementCells.Clear();
         _clickablePlacementRects.Clear();
         _actionDock.Hide();
-        _navigationRail.Show();
+        if (restorePrimaryNavigation) _primaryNavDock.Show();
         UpdateConstructionButtonLabel();
         QueueRedraw();
     }
@@ -1517,7 +1601,7 @@ public partial class MacroStreetLiveView : Node2D
                 // a citizen or a full-storage badge. The macro view's own
                 // hit-rects are the single source of truth for what the
                 // world can claim — overlaying a PanelContainer with
-                // MouseFilter = Stop (OfflineReportPanel, MigrantPanel,
+                // MouseFilter = Stop (ExpeditionRail, MigrantPanel,
                 // etc.) must not strip the bubble, because the macro view
                 // is the only world surface and a Stop overlay sitting
                 // beside a citizen does not mean the world yields input.
@@ -1737,10 +1821,15 @@ public partial class MacroStreetLiveView : Node2D
     {
         _cameraModeButton.SetIconAndLabel(
             IconPaths.Camera,
-            _cameraFollowsHero ? UiText.Get("ui.camera.follow_label") : UiText.Get("ui.camera.free_label"));
+            _cameraFollowsHero
+                ? UiText.Get("ui.camera.follow_short")
+                : UiText.Get("ui.camera.free_short"));
         _cameraModeButton.TooltipText = _cameraFollowsHero
             ? UiText.Get("ui.camera.follow_tooltip")
             : UiText.Get("ui.camera.free_tooltip");
+        _cameraModeButton.ThemeTypeVariation = _cameraFollowsHero
+            ? "HudButtonSelected"
+            : "HudButton";
     }
 
     /// <summary>

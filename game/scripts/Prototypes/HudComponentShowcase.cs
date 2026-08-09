@@ -1,6 +1,7 @@
 #nullable enable
 
 using Godot;
+using WorldofGoses.Domain;
 using WorldofGoses.Ui;
 
 namespace WorldofGoses.Prototypes;
@@ -265,15 +266,63 @@ public partial class HudComponentShowcase : Control
         stock.AddChild(new HudResourceRow(IconPaths.Coin, "Metal", "210", "-6"));
         column.AddChild(Surface("HudSurface", stock));
 
-        var expedition = Stack();
-        expedition.AddChild(new Label { Text = "Bosque Silente", ThemeTypeVariation = "HudHeader" });
-        var facts = new HBoxContainer();
-        facts.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        facts.AddChild(StatChip.HudIconValue(IconPaths.Clock, "1d 12h"));
-        facts.AddChild(StatChip.HudIconValue(IconPaths.Users, "4"));
-        expedition.AddChild(facts);
-        expedition.AddChild(new HudProgressBar(0.71, showPercent: true, tall: true));
-        column.AddChild(Surface("HudCard", expedition));
+        var construction = Stack();
+        construction.AddChild(new HudSectionHeader("CONSTRUCTION", "1"));
+        construction.AddChild(new ConstructionQueueItem(new CityStatusSnapshot.ProjectItem(
+            "Basic Shelter",
+            Progress: 240,
+            RequiredWork: 720,
+            AssignedCount: 1,
+            WorkerCapacity: 2,
+            Enabled: true,
+            StopCause: ConstructionStopCause.WorkersExhausted)));
+        column.AddChild(Surface("HudSurface", construction));
+
+        column.AddChild(new HudSectionHeader("EXPEDITION COMPACT CARD STATES"));
+        column.AddChild(new ExpeditionCompactCard(new ExpeditionRailSnapshot.Item(
+            new ExpeditionId(1),
+            "Bosque Silente",
+            ExpeditionPhase.Outbound,
+            new[] { "Aster", "Lira" },
+            ResourceType.Food,
+            2,
+            StartTick: 0,
+            EndTick: GameClock.TicksPerInGameDay,
+            CanCancel: true),
+            currentTick: 0));
+        column.AddChild(new ExpeditionCompactCard(new ExpeditionRailSnapshot.Item(
+            new ExpeditionId(2),
+            "Sendero del espíritu",
+            ExpeditionPhase.Returning,
+            new[] { "Aster" },
+            ResourceType.Wood,
+            1,
+            StartTick: 0,
+            EndTick: GameClock.TicksPerInGameDay,
+            CanCancel: false),
+            currentTick: GameClock.TicksPerInGameDay * 3 / 4));
+        column.AddChild(new ExpeditionCompactCard(new ExpeditionRailSnapshot.Item(
+            new ExpeditionId(3),
+            "Paso de la niebla",
+            ExpeditionPhase.Retreating,
+            new[] { "Aster" },
+            ResourceType.Wood,
+            1,
+            StartTick: 0,
+            EndTick: GameClock.TicksPerInGameDay,
+            CanCancel: false),
+            currentTick: GameClock.TicksPerInGameDay / 2));
+        column.AddChild(new ExpeditionCompactCard(new ExpeditionRailSnapshot.Item(
+            new ExpeditionId(4),
+            "Cantera distante",
+            ExpeditionPhase.Resolved,
+            new[] { "Aster" },
+            ResourceType.Food,
+            2,
+            StartTick: 0,
+            EndTick: GameClock.TicksPerInGameDay,
+            CanCancel: false),
+            currentTick: GameClock.TicksPerInGameDay));
 
         column.AddChild(new HudSectionHeader("TYPE SCALE"));
         var type = Stack();

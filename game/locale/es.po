@@ -528,6 +528,66 @@ msgstr "Fuera de horario"
 msgid "ui.status.off_hours_hint"
 msgstr "Trabajo en pausa. Producción, construcción y movilización de expediciones se reanudan a las 08:00."
 
+msgid "ui.status.world_context"
+msgstr "{0} · {1}"
+
+msgid "ui.status.resource_available"
+msgstr "Disponible: {0}"
+
+msgid "ui.status.resource_stored"
+msgstr "Almacenado: {0}"
+
+msgid "ui.status.resource_reserved"
+msgstr "Reservado: {0}"
+
+msgid "ui.status.population"
+msgstr "Población: {0}"
+
+msgid "ui.status.population_with_capacity"
+msgstr "Población: {0}/{1}"
+
+msgid "ui.city_summary.city"
+msgstr "CIUDAD"
+
+msgid "ui.city_summary.header"
+msgstr "CIUDAD · {0}"
+
+msgid "ui.city_summary.unknown_lineage"
+msgstr "Sin fundar"
+
+msgid "ui.city_summary.founding_lineage"
+msgstr "Linaje fundador: {0}"
+
+msgid "ui.city_summary.status"
+msgstr "ESTADO"
+
+msgid "ui.city_summary.housing"
+msgstr "Vivienda"
+
+msgid "ui.city_summary.resources"
+msgstr "RECURSOS"
+
+msgid "ui.city_summary.no_resources"
+msgstr "No hay recursos almacenados."
+
+msgid "ui.city_summary.construction"
+msgstr "CONSTRUCCIONES"
+
+msgid "ui.city_summary.no_construction"
+msgstr "No hay construcciones activas."
+
+msgid "ui.city_summary.in_progress"
+msgstr "En progreso"
+
+msgid "ui.city_summary.waiting_materials"
+msgstr "Esperando materiales"
+
+msgid "ui.city_summary.project_tooltip"
+msgstr "{0}\nProgreso: {1}/{2}\nEstado: {3}"
+
+msgid "ui.city_summary.inspector_fixture_detail"
+msgstr "Ciudadano seleccionado · disponible en casa"
+
 msgid "ui.citizens.debug_context"
 msgstr "Depuración — actividad: {0} · contexto: {1} · bloqueo: {2}\nTrabajo: {3} · Shelter: {4}\nInicio: {5} · llegada: {6} · siguiente: {7}\nÚltimo procesamiento de simulación: {8}"
 
@@ -2828,3 +2888,105 @@ msgstr "El memorioso olvida por una noche. El espíritu no."
 
 msgid "firstnight.sleeping.body.theryn"
 msgstr "El enlazador está ligado al sueño. El espíritu está desligado."
+
+msgid "Policies"
+msgstr "Políticas"
+
+msgid "ui.simulation.pause"
+msgstr "Pausar la simulación."
+
+msgid "ui.simulation.resume"
+msgstr "Simulación pausada. Reanudar a {0}×."
+
+msgid "Review city-wide policies"
+msgstr "Revisar las políticas de la ciudad"
+
+msgid "Open the citizens roster"
+msgstr "Abrir la lista de ciudadanos"
+
+msgid "Build"
+msgstr "Construir"
+
+msgid "ui.camera.follow_short"
+msgstr "Sigue"
+
+msgid "ui.camera.free_short"
+msgstr "Vista"
+
+msgid "ui.nav.hero_short"
+msgstr "Héroe"
+
+msgid "ui.nav.build_short"
+msgstr "Obra"
+
+msgid "ui.nav.menu_short"
+msgstr "Menú"
+
+msgid "ui.nav.expedition_short"
+msgstr "Exp."
+
+msgid "ui.nav.policies_short"
+msgstr "Norma"
+
+msgid "ui.nav.citizens_short"
+msgstr "Gente"
+
+msgid "ui.expedition_rail.title"
+msgstr "EXPEDICIONES"
+
+msgid "ui.expedition_rail.active"
+msgstr "EN CURSO"
+
+msgid "ui.expedition_rail.none_active"
+msgstr "No hay expediciones en curso."
+
+msgid "ui.expedition_rail.activity"
+msgstr "REGISTRO"
+
+msgid "ui.expedition_rail.no_activity"
+msgstr "Aún no hay eventos relevantes."
+
+msgid "ui.expedition_rail.activity_row"
+msgstr "• {0} · {1}"
+
+msgid "ui.expedition_rail.more"
+msgstr "VER MÁS"
+
+msgid "ui.expedition_rail.more_tooltip"
+msgstr "Abrir la Crónica completa"
+
+msgid "ui.expedition_rail.details_tooltip"
+msgstr "Abrir los detalles de la expedición {0}"
+
+msgid "ui.expedition_rail.members_unknown"
+msgstr "Miembros desconocidos"
+
+msgid "ui.expedition_rail.members.one"
+msgstr "{0} miembro · {1}"
+
+msgid "ui.expedition_rail.members.many"
+msgstr "{0} miembros · {1}"
+
+msgid "ui.expedition_rail.cancel"
+msgstr "Cancelar"
+
+msgid "ui.expedition_rail.cancel_tooltip"
+msgstr "Cancelar esta expedición activa y devolver sus suministros comprometidos"
+
+msgid "ui.expedition_rail.phase.outbound"
+msgstr "En camino"
+
+msgid "ui.expedition_rail.phase.encounter"
+msgstr "Encuentro"
+
+msgid "ui.expedition_rail.phase.objective"
+msgstr "En el objetivo"
+
+msgid "ui.expedition_rail.phase.returning"
+msgstr "Regresando"
+
+msgid "ui.expedition_rail.phase.retreating"
+msgstr "En retirada"
+
+msgid "ui.expedition_rail.phase.resolved"
+msgstr "Resuelta"

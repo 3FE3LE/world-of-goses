@@ -70,7 +70,7 @@ public partial class BuildingDetailView : Control
 		_provisionalArt.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
 		_provisionalArtLabel = new Label
 		{
-			ThemeTypeVariation = "SectionTitle",
+			ThemeTypeVariation = "HudLabel",
 			HorizontalAlignment = HorizontalAlignment.Center,
 			VerticalAlignment = VerticalAlignment.Center,
 			MouseFilter = MouseFilterEnum.Ignore,
@@ -262,19 +262,22 @@ public partial class BuildingDetailView : Control
 		layout.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
 		_prospectLabel = new Label
 		{
-			ThemeTypeVariation = "BodyText",
+			ThemeTypeVariation = "HudBody",
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
 		_acceptProspectButton = new Ui.PrimaryActionButton
 		{
 			Text = UiText.Get("ui.town_hall.accept"),
+			ThemeTypeVariation = "HudButtonSelected",
 		};
 		_acceptProspectButton.Pressed += OnAcceptProspect;
 		layout.AddChild(_prospectLabel);
 		layout.AddChild(_acceptProspectButton);
-		_townHallPanel = new PanelContainer { Name = "TownHallProspect" };
-		_townHallPanel.AddThemeStyleboxOverride(
-			"panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+		_townHallPanel = new PanelContainer
+		{
+			Name = "TownHallProspect",
+			ThemeTypeVariation = "HudCard",
+		};
 		_townHallPanel.AddChild(layout);
 		_productionPanel.GetParent().AddChild(_townHallPanel);
 	}
@@ -344,7 +347,7 @@ public partial class BuildingDetailView : Control
 
 		_homeSummaryLabel = new Label
 		{
-			ThemeTypeVariation = "BodyText",
+			ThemeTypeVariation = "HudBody",
 			HorizontalAlignment = HorizontalAlignment.Center,
 			AutowrapMode = TextServer.AutowrapMode.WordSmart,
 		};
@@ -352,7 +355,7 @@ public partial class BuildingDetailView : Control
 		_craftAxeButton = StandardButtons.TextAction(
 			UiText.Get("ui.tools.craft_primitive_axe"),
 			UiText.Get("ui.tools.primitive_axe_recipe"));
-		_craftAxeButton.ThemeTypeVariation = "ButtonPrimary";
+		_craftAxeButton.ThemeTypeVariation = "HudButtonSelected";
 		_craftAxeButton.CustomMinimumSize = new Vector2(0, 44);
 		_craftAxeButton.Pressed += OnCraftPrimitiveAxe;
 		var layout = new VBoxContainer();
@@ -362,9 +365,11 @@ public partial class BuildingDetailView : Control
 		layout.AddChild(_shelterResourcesPanel);
 		layout.AddChild(_craftAxeButton);
 
-		_homeSummary = new PanelContainer { Name = "HomeSummary" };
-		_homeSummary.AddThemeStyleboxOverride(
-			"panel", LineageThemeRegistry.GetStyleBox(LineageThemeRegistry.ComponentPanel));
+		_homeSummary = new PanelContainer
+		{
+			Name = "HomeSummary",
+			ThemeTypeVariation = "HudCard",
+		};
 		_homeSummary.AddChild(layout);
 		_productionPanel.GetParent().AddChild(_homeSummary);
 	}

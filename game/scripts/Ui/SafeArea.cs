@@ -8,7 +8,7 @@ namespace WorldofGoses.Ui;
 /// anchors to the edges of the viewport (HUD status bar, macro action
 /// strip). It avoids wrapping the node in a <c>MarginContainer</c>,
 /// which previously rendered as a visible grey band on
-/// <c>CityStatusPanel</c> and <c>NavigationRail</c> (see <c>TO_DO.md</c>
+/// <c>CityStatusPanel</c> and <c>PrimaryNavDock</c> (see <c>TO_DO.md</c>
 /// 2026-07-22 entry, reverted in commit <c>d0fd51d</c>).
 ///
 /// The helper writes four <c>Offset*</c> values that **shrink** the

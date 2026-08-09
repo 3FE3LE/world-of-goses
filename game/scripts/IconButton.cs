@@ -15,11 +15,9 @@ namespace WorldofGoses;
 /// - Icon sits to the left of the text and both are centred by the theme.
 /// - The native renderer guarantees that the configured label participates
 ///   in minimum-size calculation and cannot disappear behind a child Control.
-/// - Icons are imported with the cream tint baked into the SVG
-///   (<c>fill="#f2ebd3"</c>) so they stay legible against both the
-///   yellow primary and grey secondary panel backgrounds without any
-///   runtime tint (which would be multiplicative and darken the
-///   stroke).
+/// - Icons use a white SVG source fill so the theme can apply the active
+///   lineage accent multiplicatively without a dark source colour swallowing
+///   the result.
 ///
 /// Tooltips use Godot's native popup, whose internal Label inherits the
 /// project-wide Pixelify base theme.

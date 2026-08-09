@@ -7,13 +7,12 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// Structural guards for the macro HUD's three surfaces, added when navigation
-/// moved out of the full-width <c>MacroActions</c> strip on 2026-08-07.
+/// Structural guards for the macro HUD's authored shared surfaces.
 /// </summary>
 /// <remarks>
 /// <para>
 /// These assert the scene, not the pixels, because the properties they protect are
-/// the ones a screenshot hides. A rail that silently reverts to
+/// the ones a screenshot hides. A dock that silently reverts to
 /// <c>mouse_filter = 2</c> still looks correct and quietly passes its clicks
 /// through to the world behind it. An inspector that loses <c>grow_vertical = 0</c>
 /// still renders until its text wraps to a second line.
@@ -28,9 +27,13 @@ namespace WorldofGoses.Tests;
 public sealed class HudCompositionTests
 {
     [Theory]
-    [InlineData("NavigationRail")]
+    [InlineData("PrimaryNavDock")]
     [InlineData("ContextInspector")]
     [InlineData("ActionDock")]
+    [InlineData("CityStatusPanel")]
+    [InlineData("CitySummaryPanel")]
+    [InlineData("SimulationControls")]
+    [InlineData("ExpeditionRail")]
     public void HudSurface_IsAuthoredInTheScene(string nodeName)
     {
         string[] lines = ReadScene();
@@ -43,9 +46,9 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
-    public void NavigationRail_ClaimsItsOwnPointerInput()
+    public void PrimaryNavDock_ClaimsItsOwnPointerInput()
     {
-        string[] block = NodeBlock("NavigationRail");
+        string[] block = NodeBlock("PrimaryNavDock");
 
         Assert.DoesNotContain(
             block,
@@ -76,6 +79,20 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
+    public void ContextInspector_StartsHiddenAndUsesItsTypedShowContract()
+    {
+        string[] block = NodeBlock("ContextInspector");
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ContextInspector.cs"));
+
+        Assert.Contains(block, line => line.Trim() == "visible = false");
+        Assert.Contains("public void ShowSelection(Texture2D? icon, string title, string detail)",
+            source, StringComparison.Ordinal);
+        Assert.Contains("Show();", source, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
+    }
+
+    [Fact]
     public void ActionDock_StartsHidden()
     {
         string[] block = NodeBlock("ActionDock");
@@ -86,15 +103,371 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
+    public void MacroHudSurfaces_AreAuthoredCompactAndOwnedByTheMacroPerspective()
+    {
+        string[] summary = NodeBlock("CitySummaryPanel");
+        string[] rail = NodeBlock("ExpeditionRail");
+        string[] primary = NodeBlock("PrimaryNavDock");
+        string[] simulation = NodeBlock("SimulationControls");
+        string[] action = NodeBlock("ActionDock");
+        string[] inspector = NodeBlock("ContextInspector");
+        string macro = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes",
+            "MacroStreetLiveView.cs"));
+        string actionSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ActionDock.cs"));
+        string inspectorSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ContextInspector.cs"));
+
+        Assert.All(new[] { summary, rail, primary, simulation }, block =>
+            Assert.Contains(block, line => line.Trim() == "visible = false"));
+        Assert.Contains(action, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
+        Assert.Contains(action, line => line.Trim() == "mouse_filter = 0");
+        Assert.Contains(inspector, line => line.Trim() == "theme_type_variation = &\"HudCard\"");
+        Assert.Contains("ThemeTypeVariation = \"HudButtonSelected\"", actionSource,
+            StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudButton\"", actionSource,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ButtonText", actionSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("OverlayPanel", actionSource, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudHeader\"", inspectorSource,
+            StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudCaption\"", inspectorSource,
+            StringComparison.Ordinal);
+        Assert.Contains("private void ShowMacroHudSurfaces()", macro, StringComparison.Ordinal);
+        Assert.Contains("private void HideMacroHudSurfaces()", macro, StringComparison.Ordinal);
+        Assert.Contains("_citySummaryPanel.Show();", macro, StringComparison.Ordinal);
+        Assert.Contains("_expeditionRail.Show();", macro, StringComparison.Ordinal);
+        Assert.Contains("_simulationControls.Show();", macro, StringComparison.Ordinal);
+        Assert.Contains("_citySummaryPanel.Hide();", macro, StringComparison.Ordinal);
+        Assert.Contains("_expeditionRail.Hide();", macro, StringComparison.Ordinal);
+        Assert.Contains("_simulationControls.Hide();", macro, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MacroActions_IsGone()
     {
         string[] lines = ReadScene();
 
         Assert.True(
             IndexOfNodeHeader(lines, "MacroActions") < 0,
-            "MacroActions was the full-width strip the navigation rail replaced. "
+            "MacroActions was the full-width strip the primary dock replaced. "
             + "Reintroducing it costs the city 42 px of viewport height across its "
             + "whole width for seven buttons.");
+    }
+
+    [Fact]
+    public void CityStatusPanel_UsesTheCompactEdgeToEdgeHudSurface()
+    {
+        string[] block = NodeBlock("CityStatusPanel");
+
+        Assert.Contains(block, line => line.Trim() == "custom_minimum_size = Vector2(0, 40)");
+        Assert.Contains(block, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
+    }
+
+    [Fact]
+    public void CityStatusPanel_HasFixedLogicalCompositionWithoutViewportBranching()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game",
+            "scripts",
+            "CityStatusPanel.cs"));
+
+        Assert.Contains("Name = \"BrandBlock\"", source, StringComparison.Ordinal);
+        Assert.Contains("Name = \"WorldContext\"", source, StringComparison.Ordinal);
+        Assert.Contains("Name = \"ResourceTicker\"", source, StringComparison.Ordinal);
+        Assert.Contains("Name = \"Population\"", source, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudBrand\"", source, StringComparison.Ordinal);
+        Assert.Contains("StatChip.HudIconValue", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayServer.WindowGetSize", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("GetVisibleRect", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddThemeStyleboxOverride", source, StringComparison.Ordinal);
+        Assert.Contains("CreateTimer(2.25)", source, StringComparison.Ordinal);
+        Assert.Contains("_saveIndicatorVisible = false", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PlayPauseButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SpeedButton", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummaryAndInspector_HaveDeterministicNonOverlappingAuthoredSlots()
+    {
+        string[] summary = NodeBlock("CitySummaryPanel");
+        string[] inspector = NodeBlock("ContextInspector");
+
+        Assert.Contains(summary, line => line.Trim() == "offset_left = 8.0");
+        Assert.Contains(summary, line => line.Trim() == "offset_right = 248.0");
+        Assert.Contains(summary, line => line.Trim() == "offset_top = 8.0");
+        Assert.Contains(summary, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
+        Assert.Contains(inspector, line => line.Trim() == "offset_left = 256.0");
+        Assert.Contains(inspector, line => line.Trim() == "offset_right = 476.0");
+        Assert.Contains(inspector, line => line.Trim() == "offset_bottom = -88.0");
+    }
+
+    [Fact]
+    public void ExpeditionRail_IsAuthoredRightFixedAndOwnsPointerAndWheelInput()
+    {
+        string[] rail = NodeBlock("ExpeditionRail");
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
+        string chronicle = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
+
+        Assert.Contains(rail, line => line.Trim() == "anchor_left = 1.0");
+        Assert.Contains(rail, line => line.Trim() == "anchor_bottom = 1.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_left = -244.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_right = -8.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_top = 8.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_bottom = -104.0");
+        Assert.Contains(rail, line => line.Trim() == "mouse_filter = 0");
+        Assert.Contains(rail, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
+        Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
+        Assert.Contains("ChronicleEventProjection.Compact", chronicle, StringComparison.Ordinal);
+        Assert.Contains("_scroll.AcceptEvent();", source, StringComparison.Ordinal);
+        Assert.Contains("GetViewport().SetInputAsHandled();", source, StringComparison.Ordinal);
+        Assert.Contains("RestorePendingFocus", source, StringComparison.Ordinal);
+        Assert.Contains("if (_refreshQueued) return;", source, StringComparison.Ordinal);
+        Assert.Contains("if (focusedIndex >= 0) _pendingFocusIndex = focusedIndex;", source, StringComparison.Ordinal);
+        Assert.Contains("_localeManager.LocaleChanged += OnLocaleChanged", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborTop", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborBottom", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ui.expedition_rail.queue", source, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
+    }
+
+    [Fact]
+    public void ExpeditionRail_ReusesPlanningAndOwnsTheCompleteChronicle()
+    {
+        string rail = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
+        string chronicle = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
+        string card = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ExpeditionCompactCard.cs"));
+
+        Assert.Contains("_expeditionPanel.Open(id);", rail, StringComparison.Ordinal);
+        Assert.Contains("new ChroniclePanel()", rail, StringComparison.Ordinal);
+        Assert.Contains("_controller.LastOfflineReport", rail, StringComparison.Ordinal);
+        Assert.Contains("GetExpeditionRailSnapshot", rail, StringComparison.Ordinal);
+        Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
+        Assert.Contains("ChronicleEventProjection.Compact", chronicle, StringComparison.Ordinal);
+        Assert.Contains("SimulationTimeText.FormatDurationLocalized", chronicle, StringComparison.Ordinal);
+        Assert.Contains("SelectBuilding(buildingId)", chronicle, StringComparison.Ordinal);
+        Assert.Contains("evt.Subject.Kind", chronicle, StringComparison.Ordinal);
+        Assert.Contains("evt.Subject.EntityId", chronicle, StringComparison.Ordinal);
+        Assert.DoesNotContain("_controller.World", chronicle, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudCard\"", card, StringComparison.Ordinal);
+        Assert.Contains("StatChip.HudIconValue", card, StringComparison.Ordinal);
+        Assert.Contains("HudProgressBar", card, StringComparison.Ordinal);
+        Assert.Contains("HudButtonDanger", card, StringComparison.Ordinal);
+        Assert.Contains("UiText.Get(item.DisplayName)", card, StringComparison.Ordinal);
+
+        string panel = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionPanel.cs"));
+        Assert.Contains("public void Open(ExpeditionId expeditionId)", panel, StringComparison.Ordinal);
+        Assert.Contains("PresentedExpeditionId = active?.Id;", panel, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NavigationRail_IsGoneAfterPrimaryDockMigration()
+    {
+        Assert.True(IndexOfNodeHeader(ReadScene(), "NavigationRail") < 0);
+        string root = TestHelpers.FindRepositoryRoot();
+        Assert.False(File.Exists(Path.Combine(root, "game", "scripts", "Ui", "NavigationRail.cs")));
+    }
+
+    [Fact]
+    public void PrimaryNavDock_IsBottomCentredCompactIconOnlyAndHorizontallyFocused()
+    {
+        string[] dock = NodeBlock("PrimaryNavDock");
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "PrimaryNavDock.cs"));
+        string macroSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+        string pauseSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "PauseMenu.cs"));
+
+        Assert.Contains(dock, line => line.Trim() == "anchor_left = 0.5");
+        Assert.Contains(dock, line => line.Trim() == "anchor_bottom = 1.0");
+        Assert.Contains(dock, line => line.Trim() == "offset_bottom = -16.0");
+        Assert.Contains(dock, line => line.Trim() == "custom_minimum_size = Vector2(300, 52)");
+        Assert.Contains(dock, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
+        Assert.Contains("button.ShowLabel = false", source, StringComparison.Ordinal);
+        Assert.Contains("button.ClipText = false", source, StringComparison.Ordinal);
+        Assert.Contains("new Vector2(Tokens.ControlHeight, Tokens.ControlHeight)", source, StringComparison.Ordinal);
+        Assert.Contains("IconPaths.Backpack", source, StringComparison.Ordinal);
+        Assert.Contains("IconPaths.ClipboardNote", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
+        Assert.Contains("public IconButton ConstructionButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
+        Assert.Contains("PrimaryNavDockPath", macroSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("NavigationRailPath", macroSource, StringComparison.Ordinal);
+        Assert.Contains("_localeManager.LocaleChanged += OnLocaleChanged", macroSource, StringComparison.Ordinal);
+        Assert.Contains("_localeManager.LocaleChanged -= OnLocaleChanged", macroSource, StringComparison.Ordinal);
+        Assert.Contains("UpdatePrimaryNavigationState();\n        UpdateCameraModeButtonLabel();", Normalize(macroSource), StringComparison.Ordinal);
+        Assert.Contains("PrimaryNavDock/Actions/GameMenuButton", pauseSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PrimaryAndContextualDocks_AreMutuallyExclusiveAcrossPlacementAndEscape()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+        string actionDockSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ActionDock.cs"));
+
+        Assert.Contains("private void ShowPrimaryNavigation()", source, StringComparison.Ordinal);
+        Assert.Contains("_actionDock.Hide();\n        _primaryNavDock.Show();", Normalize(source), StringComparison.Ordinal);
+        Assert.Contains("_primaryNavDock.Hide();\n        _actionDock.Show();", Normalize(source), StringComparison.Ordinal);
+        Assert.Contains("if (restorePrimaryNavigation) _primaryNavDock.Show();", source, StringComparison.Ordinal);
+        Assert.Contains("_placementActive && @event.IsActionPressed(\"ui_cancel\")", source, StringComparison.Ordinal);
+        Assert.Contains("CancelPlacement();", source, StringComparison.Ordinal);
+        Assert.Contains("_confirmButton.FocusNeighborLeft", actionDockSource, StringComparison.Ordinal);
+        Assert.Contains("_confirmButton.FocusNeighborRight", actionDockSource, StringComparison.Ordinal);
+        Assert.Contains("_cancelButton.FocusNeighborLeft", actionDockSource, StringComparison.Ordinal);
+        Assert.Contains("_cancelButton.FocusNeighborRight", actionDockSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SimulationControls_OwnTheExistingPairAndHorizontalFocus()
+    {
+        string[] block = NodeBlock("SimulationControls");
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "SimulationControls.cs"));
+        string controllerSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityWorldController.cs"));
+
+        Assert.Contains(block, line => line.Trim() == "anchor_left = 1.0");
+        Assert.Contains(block, line => line.Trim() == "anchor_bottom = 1.0");
+        Assert.Contains(block, line => line.Trim() == "mouse_filter = 0");
+        Assert.Contains(block, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
+        Assert.Contains("new PlayPauseButton", source, StringComparison.Ordinal);
+        Assert.Contains("new SpeedButton", source, StringComparison.Ordinal);
+        Assert.Contains("new IconButton", source, StringComparison.Ordinal);
+        Assert.Contains("public IconButton CameraButton", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
+        Assert.Contains(
+            "SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused)",
+            controllerSource,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Chronicle_IsIntegratedIntoTheRightRailWithoutLegacySurface()
+    {
+        string[] scene = ReadScene();
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
+        string root = TestHelpers.FindRepositoryRoot();
+
+        Assert.DoesNotContain(scene, line => line.Contains("OfflineReportPanel", StringComparison.Ordinal));
+        Assert.False(File.Exists(Path.Combine(root, "game", "scripts", "OfflineReportPanel.cs")));
+        Assert.Contains("MaximumRows = 80", source, StringComparison.Ordinal);
+        Assert.Contains("CompactRows = 4", source, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
+    }
+
+    [Fact]
+    public void ConnectedMacroMenus_ReuseTheCompactHudThemeWithoutChangingOwnership()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string expeditionScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "ExpeditionPanel.tscn"));
+        string citizensScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "MigrantPanel.tscn"));
+        string policies = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "PoliciesPanel.cs"));
+        string construction = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ConstructionPanel.cs"));
+        string pauseScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "PauseMenu.tscn"));
+        string pauseSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "PauseMenu.cs"));
+        string cityScene = string.Join('\n', ReadScene());
+
+        Assert.Contains("theme_type_variation = \"HudSurface\"", expeditionScene, StringComparison.Ordinal);
+        Assert.Contains("theme_type_variation = \"HudSurface\"", citizensScene, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudSurface\"", policies, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudProgress\"", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddThemeStyleboxOverride(\"panel\"", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", expeditionScene, StringComparison.Ordinal);
+        Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", citizensScene, StringComparison.Ordinal);
+        Assert.Contains("theme_type_variation = \"HudSurface\"", pauseScene, StringComparison.Ordinal);
+        Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", pauseScene, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddThemeStyleboxOverride", pauseSource, StringComparison.Ordinal);
+        Assert.Contains("theme_type_variation = &\"HudCard\"", cityScene, StringComparison.Ordinal);
+        Assert.Contains("_modalHost.Open(this);", policies, StringComparison.Ordinal);
+        Assert.Contains("public void Open(ExpeditionId expeditionId)", File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ExpeditionPanel.cs")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NavigationFixtures_UseRealDirectionalAndPointerInputEvents()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs"));
+
+        Assert.Contains("case \"primary-nav-focus\":", source, StringComparison.Ordinal);
+        Assert.Contains("dockRect.Size != new Vector2(300, 52)", source, StringComparison.Ordinal);
+        Assert.Contains("case \"action-dock-focus\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"simulation-controls-focus\":", source, StringComparison.Ordinal);
+        Assert.Contains("ButtonIndex = JoyButton.DpadRight", source, StringComparison.Ordinal);
+        Assert.Contains("new InputEventJoypadButton", source, StringComparison.Ordinal);
+        Assert.Contains("GrabDefaultFocus();", source, StringComparison.Ordinal);
+        Assert.Contains("actionDock.ConfirmButton.GrabFocus();", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-ACTION-DOCK-FOCUS] ui_right -> Cancel OK", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-SIMULATION-FOCUS] ui_right -> Speed OK", source, StringComparison.Ordinal);
+        Assert.Contains("primary-nav-click-", source, StringComparison.Ordinal);
+        Assert.Contains("construction-placement-confirm-click", source, StringComparison.Ordinal);
+        Assert.Contains("construction-placement-cancel-click", source, StringComparison.Ordinal);
+        Assert.Contains("simulation-click-", source, StringComparison.Ordinal);
+        Assert.Contains("expedition-rail-click-", source, StringComparison.Ordinal);
+        Assert.Contains("case \"expedition-rail-focus\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"expedition-rail-phase-focus\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"macro-hud-default\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"macro-hud-selection\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"macro-hud-active-construction\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"macro-hud-expedition-active\":", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-FOCUS] ui_down -> Cancel OK", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] details focus preserved OK", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-DETAILS] expedition", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-CANCEL] active expedition removed OK", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-MORE] Chronicle opened OK", source, StringComparison.Ordinal);
+        Assert.Contains("new InputEventMouseButton", source, StringComparison.Ordinal);
+        Assert.Contains("ButtonIndex = MouseButton.Left", source, StringComparison.Ordinal);
+        Assert.Contains("DisplayServer.WindowGetSize()", source, StringComparison.Ordinal);
+        Assert.Contains("logicalPosition * windowScale", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummary_UsesExistingHudPrimitivesAndSnapshotOnlyState()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs"));
+        string itemSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ConstructionQueueItem.cs"));
+
+        Assert.Contains("CollapsiblePanelHeader", source, StringComparison.Ordinal);
+        Assert.Contains("HudSectionHeader", source, StringComparison.Ordinal);
+        Assert.Contains("HudMetricRow", source, StringComparison.Ordinal);
+        Assert.Contains("HudResourceRow", source, StringComparison.Ordinal);
+        Assert.Contains("HudProgressBar", source, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudSeparator\"", source, StringComparison.Ordinal);
+        Assert.Contains("GetCityStatusSnapshot", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.Resources", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.Projects", source, StringComparison.Ordinal);
+        Assert.Contains("_body.Visible = expanded", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("WorldSave", source, StringComparison.Ordinal);
+        Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
+        Assert.DoesNotContain("DisplayServer.WindowGetSize", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Happiness", source, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Order", source, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("project.StopCause", itemSource, StringComparison.Ordinal);
+        Assert.Contains("HudProgressBar", itemSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("ETA", itemSource, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string[] NodeBlock(string nodeName)
@@ -109,6 +482,8 @@ public sealed class HudCompositionTests
     }
 
     private static string[] ReadScene() => File.ReadAllLines(ResolveScenePath());
+
+    private static string Normalize(string source) => source.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     private static string ResolveScenePath()
     {

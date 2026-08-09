@@ -55,7 +55,7 @@ public static class OverlayLayers
     /// <summary>Bottom-left anchored selection details (ContextInspector).</summary>
     public const int SelectionInfo = 9;
 
-    /// <summary>Bottom-right anchored event log (OfflineReportPanel).</summary>
+    /// <summary>Chronicle/activity presentation inside the authored HUD rail.</summary>
     public const int Chronicle = 10;
 
     /// <summary>Full-viewport scrim owned by ModalHost.</summary>
