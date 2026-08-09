@@ -284,16 +284,16 @@ ExpeditionPanelPath = NodePath("../ExpeditionPanel")
 
 [node name="PrimaryNavDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 visible = false
-custom_minimum_size = Vector2(300, 52)
+custom_minimum_size = Vector2(520, 60)
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -150.0
-offset_top = -68.0
-offset_right = 150.0
+offset_left = -260.0
+offset_top = -76.0
+offset_right = 260.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -325,15 +325,6 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/building.svg"
 ButtonText = "Construction"
 
-[node name="GameMenuButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=456502058]
-layout_mode = 2
-tooltip_text = "Open the city menu (ESC)"
-theme_type_variation = &"HudButton"
-text = "Menu"
-script = ExtResource("15_iconbtn")
-IconPath = "res://assets/ui/icons/24/menu.svg"
-ButtonText = "Menu"
-
 [node name="ExpeditionMenuButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=623378802]
 layout_mode = 2
 tooltip_text = "Send the founder on a reconnaissance"
@@ -363,15 +354,15 @@ ButtonText = "Citizens"
 
 [node name="SimulationControls" type="PanelContainer" parent="GameUiShell/ScreenContent"]
 visible = false
-custom_minimum_size = Vector2(184, 40)
+custom_minimum_size = Vector2(76, 32)
 layout_mode = 1
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -56.0
+offset_left = -92.0
+offset_top = -48.0
 offset_right = -16.0
 offset_bottom = -16.0
 grow_horizontal = 0
@@ -388,5 +379,6 @@ script = ExtResource("33_timeoffilter")
 ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="PauseMenu" parent="." unique_id=1513436726 instance=ExtResource("25_pause_menu")]
+open_button_path = NodePath("../GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton")
 
 [node name="OnboardingView" parent="." unique_id=1152483645 instance=ExtResource("10_onboarding")]

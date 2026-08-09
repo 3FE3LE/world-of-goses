@@ -15,6 +15,118 @@ for its increment, in the same commit. An entry states what a player can now
 do that they could not before, the schema range it crossed, and the measured
 baseline — not a list of touched files, which `git log` already owns.
 
+---
+
+## La barra superior distingue cada recurso y ya no se queda callada cuando hay más de los que caben
+
+**2026-08-09** · schema v32 (sin cambio) · presentación
+
+Lo que se nota: las nueve `ResourceType` que pueden llegar a aparecer
+juntas en la barra superior tienen ahora siluetas distintas — Piedra no
+es Piedra Pequeña, Comida no es Comida Silvestre, Madera no es Ramas,
+Pociones es un frasco deliberado. Cuando el catálogo crezca y la barra
+no quepa, la fila ya no se recorta en silencio: enseña un chip `+N`
+cuyo tooltip lista los recursos ocultos con su cantidad exacta. Las
+cantidades que cruzan los mil se abrevian (`1.2K`, `18.4K`, `1.1M`) en
+la fila y se quedan exactas en el tooltip — la decisión de despachar
+una expedición no se toma a ciegas.
+
+### Estructural (S)
+
+- Las prioridades de la barra superior y del panel lateral de la ciudad
+  vienen de un único `ResourcePriority.Sequence` — antes cada superficie
+  tenía su propia copia, lista a separarse en cuanto alguien añadiera
+  un recurso.
+- El tope visible (`MaxVisibleResourceChips = 5`) y la condición
+  asociada (añadir el chip `+N` cuando hay más) viven como constante
+  documentada en `CityStatusPanel`, no como un cálculo de layout en
+  `_Process`.
+- `CompactNumber.Format` aplica en la barra y en los tooltips;
+  `FormatExact` reserva el separador de miles para los tooltips.
+  Los tipos numéricos del dominio siguen siendo `int`.
+
+### Iteración visual (V)
+
+- Las siluetas nuevas de `ResourceIcon` se evalúan a 16 px dentro de la
+  celda de 24 px que ya reservaba la barra. Coordenadas enteras, sin
+  antialiasing, y curvar (tronco, manzana, frasco) se hace apilando
+  rectángulos, no con curvas reales.
+- La paleta por recurso se queda en la zona del material: gris para
+  piedra, marrón para madera, verde para fibra, rojo para manzana, gris
+  azulado para hierro, violeta para pociones. La modulación por acento
+  de linaje se aplica encima como antes.
+- El catálogo del showcase expone los nueve `ResourceType` con icono,
+  nombre, cantidad pequeña y cantidad grande, así las colisiones de
+  silueta son visibles de un vistazo y se puede verificar el formateador
+  compacto en la misma captura.
+
+---
+
+## El panel lateral de la ciudad lee el estado real y la ciudad habla tu idioma al instante
+
+**2026-08-09** · schema v32 (sin cambio) · presentación
+
+Lo que se nota: la columna izquierda del HUD macro ya no se queda en
+"población 3/3" como única cifra. Ahora muestra cinco renglones útiles
+bajo `ESTADO` — horizonte de comida, ciudadanos trabajando, en casa,
+próxima cosecha y jornada activa/pau­sada — y dos de ellos llevan una
+advertencia visual cuando el dominio ya la justifica (comida por agotarse,
+cose que llega después de que se acabe la comida). La lista de recursos
+aparece en el orden que importa leerla — primero lo que alimenta, luego lo
+que construye, al final lo demás. Y si el jugador cambia el idioma en
+medio de la partida, el panel se reescribe sin esperar al próximo tick
+de simulación.
+
+### Estructural (S)
+
+- La sección de identidad, la barra de progreso de vivienda y el orden de
+  renderizado (identidad → estado → recursos → construcción) se conservan.
+- `ConstructionQueueItem` ya no mezcla cadenas crudas en inglés con
+  `UiText.Get` — cada causa de parada pasa por la clave correspondiente.
+- El panel se suscribe a `LocaleChanged` y se da de baja en `_ExitTree`;
+  el panel deja de depender de que llegue un evento de simulación para
+  reescribir el idioma.
+- El panel no añade nuevos dominios: las cifras siguen siendo
+  `CityStatusSnapshot` — `FoodHorizonDays`, `CitizensAtWork`,
+  `CitizensAtHome`, `TicksUntilFirstHarvest`, `IsLaborTime`,
+  `HousingCapacity`. Cero métrica inventada.
+
+### Iteración visual (V)
+
+- Sección `ESTADO` añadida con cinco renglones `HudMetricRow` + una barra
+  de vivienda al final. Las etiquetas y formatos van por
+  `ui.city_summary.*` y `UiText.Format`.
+- Recursos re-secuenciados por supervivencia → construcción → resto
+  (`ResourceSequence`, orden estático).
+- Las advertencias sólo se pintan cuando el dominio ya da la regla:
+  `FoodHorizonDays < 1` y `TicksUntilFirstHarvest > FoodHorizonDays *
+  TicksPerInGameDay`. La barra de vivienda no lleva glifo (no hay regla
+  defendible).
+
+### Tests
+
+- Nuevos guardas estructurales (`HudCompositionTests`): el panel lee los
+  cinco campos autorizados, los umbrales de advertencia sólo cubren los
+  dos casos definidos por el dominio, la secuencia de recursos antepone
+  comida, el panel se suscribe a `LocaleChanged`, y `ConstructionQueueItem`
+  no conserva ninguna cadena cruda en inglés. Más una invariante de
+  catálogo: cada clave nueva existe en ambos `.po` (EN y ES).
+- Suite completa: 1068 superadas, 1 omitida (pre-existente), 0 fallidas.
+
+### Capturas
+
+- `$env:TEMP\wog-city-summary\city-summary-en-1280x720.png` y
+  `…-1920x1080.png` (panel en inglés, sin y con obra activa).
+- `…-city-summary-es-…` (panel en español, glifos y orden preservados).
+- `…-city-summary-housing-full-…` (vivienda al 100%).
+- `…-city-summary-no-construction-…` (sección de construcción vacía).
+- Pendiente re-toma humana para `city-summary-low-food` (la captura
+  automatizada compite con la progresión offline de la ranura
+  persistente; el código de advertencia está verificado por test y
+  disparo manual).
+
+---
+
 Entries dated before 2026-08-03 were reconstructed from commit subjects when
 this file was introduced. They are deliberately thin: their detail was never
 written down at the time, and inventing it now would be fabrication. Read
@@ -22,14 +134,78 @@ their commits for the real content.
 
 ---
 
+## El dock primario deja de ser un strip de iconos y se separa la cámara del reloj
+
+**2026-08-09** · schema v32 (sin cambio) · presentación
+
+Lo que el jugador nota son tres cosas. La primera: la franja inferior ya no
+tiene seis cuadrados anónimos — ahora lee cinco destinos con su nombre debajo
+del icono (Héroe, Obra, Exp., Norma, Gente), igual que en la referencia
+Proposal 06 que se guardó al inicio de la fundación del HUD. La segunda: el
+botón de pausa ya no vive entre esos cinco destinos — vive, junto con el
+selector de modo de cámara, en un pequeño cluster de iconos en el borde
+derecho de la barra superior, donde nunca se confunde con un destino de
+navegación. La tercera: el control de simulación de la esquina inferior
+derecha se quedó en lo suyo, sólo pausa y velocidad — la cámara se fue al
+cluster de arriba, donde el resto de las utilidades globales viven.
+
+El bible ya decía `etiquetado`; la implementación anterior vivía en tensión
+con esa línea. Este pase cierra esa distancia sin tocar el render del mundo,
+la lógica de la cámara, `PlayPauseButton` o `SpeedButton`. La composición
+macro sigue midiendo 240 px a la izquierda, 236 px a la derecha y 520×60 para
+el dock primario etiquetado en el lienzo lógico fijo de 1280×720.
+
+### Estructural (S)
+
+- `GameUiShell`, `CityStatusPanel`, `ActionDock`, `ContextInspector`,
+  `ChroniclePanel`, `ExpeditionRail`, `CitySummaryPanel`, `ModalHost`,
+  `OverlayLayers`, `Tokens`, `IconButton`, `PlayPauseButton`, `SpeedButton`
+  y `PauseMenu` (sólo cambia el valor por defecto de `OpenButtonPath`)
+  intactos.
+- `PrimaryNavDock` ↔ `ActionDock` siguen siendo mutuamente exclusivos en la
+  misma zona inferior central.
+- Cada superficie HUD sigue siendo dueña de su puntero
+  (`MouseFilterEnum.Stop`); el ciclo de foco horizontal explícito se mantiene.
+- La regla "el dock no puede ensancharse con la resolución" (UI_PATTERNS §11)
+  sigue vigente: el nuevo tamaño vive en el lienzo lógico 1280, igual que
+  antes.
+- Los assets `art/references/` siguen siendo referencia, no contrato.
+
+### Iteración visual (V)
+
+- `PrimaryNavDock.custom_minimum_size` 300×52 → 520×60 (re-afirmar sólo tras
+  visto bueno humano en ambos tamaños oficiales).
+- Ancho por botón 40 → 88 (`PerButtonWidth` en el script, no literal).
+- `SimulationControls.custom_minimum_size` 184×40 → 76×32.
+- Nuevo `UtilityCluster` dentro de `CityStatusPanel` después de la población,
+  antes del chip de guardado: dos `IconButton` 40×40 sólo icono con
+  tooltips.
+
+### Tests
+
+- Relajados a rangos y a constantes con nombre: `Vector2(300, 52)` →
+  rango `[480, 560] × [56, 72]`; `dockRect.Size != new Vector2(300, 52)` →
+  `dockRect.Size != PrimaryNavDockSize` (constante en `CityPrototype.cs`).
+- Mantenidos: superficies autoradas, propiedad de puntero, exclusión mutua,
+  MacroActions/NavigationRail ausentes, aislamiento de flechas en el mundo,
+  controles de simulación autorados y `FocusNeighborLeft/Right` cíclicos.
+- Nuevos guards estructurales para el cambio: el dock ya no posee
+  `MenuButton`, `CityStatusPanel` expone `UtilityCluster` con `CameraButton`
+  y `MenuButton`, `PauseMenu.OpenButtonPath` apunta al nuevo menú, y
+  `SimulationControls` ya no construye un `IconButton` de cámara.
+
+### Verificación
+
+- Build limpio (`dotnet build` → 0 errores, 0 advertencias).
+- Suite completa: 1062 superadas, 1 omitida (pre-existente), 0 fallidas.
+- Capturas antes/después en `$env:TEMP\wog-hud-convergence-{before,after}`
+  a 1280×720 y 1920×1080.
+- Pendiente: visto bueno humano sobre las dimensiones finales del dock
+  etiquetado y el cluster de utilidades.
+
+---
+
 ## La infraestructura de agentes deja de pagar release por cualquier cosa
-
-**2026-08-09** · schema v32 (sin cambio) · meta
-
-Lo que se nota desde fuera es muy poco: `New-SessionSnapshot.ps1 -Mode Fast -Quiet`
-en `SessionStart`, un `Get-VerificationPlan.ps1` nuevo, seis carpetas de skills
-fuera del slice borradas. Lo que cambia debajo es la regla que decide cuánto
-trabajo se exige a cada cambio.
 
 ### Modos y riesgo
 

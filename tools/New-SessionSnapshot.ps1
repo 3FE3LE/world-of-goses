@@ -335,5 +335,5 @@ $statePath = Join-Path $OutputDirectory "STATE.txt"
 [System.IO.File]::WriteAllText($statePath, ($report -join "`r`n"), [System.Text.UTF8Encoding]::new($false))
 
 if (-not $Quiet) {
-    Write-Host ($report -join [Environment]::NewLine])
+    Write-Host ($report -join [Environment]::NewLine)
 }

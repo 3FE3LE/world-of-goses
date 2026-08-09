@@ -757,10 +757,10 @@ msgstr ""
 msgid "firstnight.strip.sleep"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
 msgid "Forest"
@@ -1522,10 +1522,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1621,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
 msgid "Strength"
@@ -1897,13 +1897,31 @@ msgstr ""
 msgid "ui.citizens.roster_row"
 msgstr ""
 
+msgid "ui.city_summary.awaiting_module"
+msgstr ""
+
 msgid "ui.city_summary.city"
+msgstr ""
+
+msgid "ui.city_summary.completed"
 msgstr ""
 
 msgid "ui.city_summary.construction"
 msgstr ""
 
+msgid "ui.city_summary.contributor_travelling"
+msgstr ""
+
+msgid "ui.city_summary.contributors_exhausted"
+msgstr ""
+
+msgid "ui.city_summary.food_horizon_format"
+msgstr ""
+
 msgid "ui.city_summary.founding_lineage"
+msgstr ""
+
+msgid "ui.city_summary.harvest_format"
 msgstr ""
 
 msgid "ui.city_summary.header"
@@ -1918,10 +1936,25 @@ msgstr ""
 msgid "ui.city_summary.inspector_fixture_detail"
 msgstr ""
 
+msgid "ui.city_summary.labor_active"
+msgstr ""
+
+msgid "ui.city_summary.labor_paused"
+msgstr ""
+
 msgid "ui.city_summary.no_construction"
 msgstr ""
 
+msgid "ui.city_summary.no_hero"
+msgstr ""
+
+msgid "ui.city_summary.no_next_harvest"
+msgstr ""
+
 msgid "ui.city_summary.no_resources"
+msgstr ""
+
+msgid "ui.city_summary.paused"
 msgstr ""
 
 msgid "ui.city_summary.project_tooltip"
@@ -1930,10 +1963,40 @@ msgstr ""
 msgid "ui.city_summary.resources"
 msgstr ""
 
+msgid "ui.city_summary.resting_night"
+msgstr ""
+
 msgid "ui.city_summary.status"
 msgstr ""
 
+msgid "ui.city_summary.status_citizens_home"
+msgstr ""
+
+msgid "ui.city_summary.status_citizens_work"
+msgstr ""
+
+msgid "ui.city_summary.status_food_horizon"
+msgstr ""
+
+msgid "ui.city_summary.status_labor"
+msgstr ""
+
+msgid "ui.city_summary.status_next_harvest"
+msgstr ""
+
+msgid "ui.city_summary.tooltip_food_critical"
+msgstr ""
+
+msgid "ui.city_summary.tooltip_harvest_late"
+msgstr ""
+
+msgid "ui.city_summary.tooltip_housing_full"
+msgstr ""
+
 msgid "ui.city_summary.unknown_lineage"
+msgstr ""
+
+msgid "ui.city_summary.waiting_contributors"
 msgstr ""
 
 msgid "ui.city_summary.waiting_materials"
@@ -2720,6 +2783,12 @@ msgid "ui.status.project"
 msgstr ""
 
 msgid "ui.status.resource_available"
+msgstr ""
+
+msgid "ui.status.resource_overflow_label"
+msgstr ""
+
+msgid "ui.status.resource_overflow_line"
 msgstr ""
 
 msgid "ui.status.resource_reserved"

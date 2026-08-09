@@ -540,6 +540,12 @@ msgstr "Almacenado: {0}"
 msgid "ui.status.resource_reserved"
 msgstr "Reservado: {0}"
 
+msgid "ui.status.resource_overflow_label"
+msgstr "Más recursos"
+
+msgid "ui.status.resource_overflow_line"
+msgstr "{0} — {1}"
+
 msgid "ui.status.population"
 msgstr "Población: {0}"
 
@@ -587,6 +593,69 @@ msgstr "{0}\nProgreso: {1}/{2}\nEstado: {3}"
 
 msgid "ui.city_summary.inspector_fixture_detail"
 msgstr "Ciudadano seleccionado · disponible en casa"
+
+msgid "ui.city_summary.paused"
+msgstr "Pausado por el jugador"
+
+msgid "ui.city_summary.waiting_contributors"
+msgstr "Esperando contribuyentes"
+
+msgid "ui.city_summary.contributor_travelling"
+msgstr "Contribuyente caminando a la obra"
+
+msgid "ui.city_summary.contributors_exhausted"
+msgstr "Esperando: contribuyentes agotados"
+
+msgid "ui.city_summary.resting_night"
+msgstr "Descansando durante la noche"
+
+msgid "ui.city_summary.completed"
+msgstr "Completado"
+
+msgid "ui.city_summary.awaiting_module"
+msgstr "Esperando el siguiente módulo del sitio fundacional"
+
+msgid "ui.city_summary.no_hero"
+msgstr "Sin héroe disponible"
+
+msgid "ui.city_summary.status_food_horizon"
+msgstr "Horizonte de comida"
+
+msgid "ui.city_summary.status_citizens_work"
+msgstr "Trabajando"
+
+msgid "ui.city_summary.status_citizens_home"
+msgstr "En casa"
+
+msgid "ui.city_summary.status_next_harvest"
+msgstr "Próxima cosecha"
+
+msgid "ui.city_summary.status_labor"
+msgstr "Jornada"
+
+msgid "ui.city_summary.labor_active"
+msgstr "Activa"
+
+msgid "ui.city_summary.labor_paused"
+msgstr "Fuera de horario"
+
+msgid "ui.city_summary.food_horizon_format"
+msgstr "{0} días"
+
+msgid "ui.city_summary.harvest_format"
+msgstr "{0}d {1}h"
+
+msgid "ui.city_summary.no_next_harvest"
+msgstr "—"
+
+msgid "ui.city_summary.tooltip_food_critical"
+msgstr "Queda menos de un día de raciones."
+
+msgid "ui.city_summary.tooltip_harvest_late"
+msgstr "La próxima cosecha llega después de que se acabe la comida."
+
+msgid "ui.city_summary.tooltip_housing_full"
+msgstr "Todas las camas están ocupadas."
 
 msgid "ui.citizens.debug_context"
 msgstr "Depuración — actividad: {0} · contexto: {1} · bloqueo: {2}\nTrabajo: {3} · Shelter: {4}\nInicio: {5} · llegada: {6} · siguiente: {7}\nÚltimo procesamiento de simulación: {8}"

@@ -8,7 +8,8 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Edge-to-edge compact HUD bar: stable brand, world context, authoritative
-/// resource availability and population.
+/// resource availability, population, and a right-edge utility cluster that
+/// carries the camera-mode toggle and the menu/pause open button.
 /// It consumes <see cref="CityStatusSnapshot"/> only; storage and reservation
 /// rules remain in the city domain.
 /// </summary>
@@ -17,12 +18,51 @@ public partial class CityStatusPanel : PanelContainer
     internal const float BrandBlockWidth = 190f;
     internal const float WorldContextWidth = 250f;
 
+    /// <summary>
+    /// Maximum number of resource chips the ticker shows inline. Resources
+    /// beyond this cap are exposed through a single "+N" overflow affordance
+    /// whose tooltip lists each hidden resource with its exact amount.
+    /// </summary>
+    /// <remarks>
+    /// The cap is a presentation constant, not a layout measurement: the
+    /// ticker's parent row has no fixed width the way the rest of the HUD
+    /// does, and trying to derive a cap from <c>GetRect()</c> on a child that
+    /// is itself not yet laid out (sibling-order trap) reintroduced the
+    /// flicker the old clipped-ticker already suffered. A fixed cap plus an
+    /// explicit overflow affordance is also what the brief asked for:
+    /// "deliberate overflow behaviour BEFORE the resource catalog grows".
+    /// When the catalog gains a tenth resource, the only change is the cap.
+    /// </remarks>
+    internal const int MaxVisibleResourceChips = 5;
+
     private HBoxContainer _row = null!;
+    private HBoxContainer? _utilityCluster;
+    private IconButton? _cameraButton;
+    private IconButton? _menuButton;
     private StatChip? _savedChip;
     private ulong _saveIndicatorGeneration;
     private ulong _emphasizedSaveGeneration;
     private bool _saveIndicatorVisible;
     private CityWorldController? _controller;
+
+    /// <summary>
+    /// Typed accessor for the camera-mode toggle. Owned by the right-edge
+    /// utility cluster; the macro view's <c>UpdateCameraModeButtonLabel</c>
+    /// keeps its icon, tooltip and selected-state theme variation fresh.
+    /// </summary>
+    public IconButton CameraButton
+    {
+        get { EnsureUtilityClusterBuilt(); return _cameraButton!; }
+    }
+
+    /// <summary>
+    /// Typed accessor for the menu/pause open button. The macro view hooks
+    /// this into the existing pause-menu toggle.
+    /// </summary>
+    public IconButton MenuButton
+    {
+        get { EnsureUtilityClusterBuilt(); return _menuButton!; }
+    }
 
     public override void _Ready()
     {
@@ -59,6 +99,7 @@ public partial class CityStatusPanel : PanelContainer
         // reverted (TO_DO.md 2026-07-22).
         var safeArea = new SafeAreaMarginContainer
         {
+            Name = "SafeArea",
             MinimumTopInset = 0,
             MinimumBottomInset = 0,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
@@ -66,6 +107,8 @@ public partial class CityStatusPanel : PanelContainer
         };
         AddChild(safeArea);
         safeArea.AddChild(_row);
+
+        EnsureUtilityClusterBuilt();
 
         LineageThemeRegistry.ActiveLineageChanged += OnLineageAccentChanged;
     }
@@ -163,6 +206,10 @@ public partial class CityStatusPanel : PanelContainer
         var snapshot = controller.GetCityStatusSnapshot();
         foreach (var child in _row.GetChildren())
         {
+            // The utility cluster is persistent — its buttons (camera-mode,
+            // menu) are bound by typed accessors that the macro view caches.
+            // Tear-down would free the very nodes the macro view still holds.
+            if (child == _utilityCluster) continue;
             _row.RemoveChild(child);
             child.QueueFree();
         }
@@ -172,8 +219,60 @@ public partial class CityStatusPanel : PanelContainer
         _row.AddChild(BuildWorldContext(snapshot));
         _row.AddChild(BuildResourceTicker(snapshot));
         _row.AddChild(BuildPopulation(snapshot));
+        // Brand/world/ticker/population were just added to the end, so the
+        // persistent cluster (initially at index 0) now sits left of them.
+        // Move it back to the rightmost position so it stays right-edge.
+        if (_utilityCluster is not null)
+        {
+            _row.MoveChild(_utilityCluster, _row.GetChildCount() - 1);
+        }
         if (_saveIndicatorVisible) ApplySavedChip();
         ReapplyAccent();
+    }
+
+    /// <summary>
+    /// Builds the right-edge utility cluster exactly once. Subsequent calls
+    /// are idempotent. The cluster is persistent across <see cref="Refresh"/>
+    /// because the macro view caches typed references to its buttons.
+    /// </summary>
+    private void EnsureUtilityClusterBuilt()
+    {
+        if (_utilityCluster is not null) return;
+
+        _utilityCluster = new HBoxContainer
+        {
+            Name = "UtilityCluster",
+            SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
+            MouseFilter = MouseFilterEnum.Stop,
+        };
+        _utilityCluster.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+
+        _cameraButton = new IconButton
+        {
+            Name = "CameraButton",
+            ThemeTypeVariation = "HudButton",
+            FocusMode = FocusModeEnum.All,
+            MouseFilter = MouseFilterEnum.Stop,
+            CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight),
+            ShowLabel = false,
+        };
+
+        _menuButton = new IconButton
+        {
+            Name = "MenuButton",
+            IconPath = IconPaths.Menu,
+            ButtonText = UiText.Get("ui.nav.menu_short"),
+            TooltipText = UiText.Get("ui.pause.open"),
+            ThemeTypeVariation = "HudButton",
+            FocusMode = FocusModeEnum.All,
+            MouseFilter = MouseFilterEnum.Stop,
+            CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight),
+            ShowLabel = false,
+        };
+
+        _utilityCluster.AddChild(_cameraButton);
+        _utilityCluster.AddChild(_menuButton);
+        _row.AddChild(_utilityCluster);
     }
 
     private static Label BuildBrandBlock() => new()
@@ -241,24 +340,65 @@ public partial class CityStatusPanel : PanelContainer
             MouseFilter = MouseFilterEnum.Pass,
         };
         ticker.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        foreach (ResourceInventoryItem resource in snapshot.Resources)
+        System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> ordered =
+            ResourcePriority.Prioritize(snapshot.Resources);
+        int visibleCount = System.Math.Min(ordered.Count, MaxVisibleResourceChips);
+        for (int i = 0; i < visibleCount; i++)
         {
+            ResourceInventoryItem resource = ordered[i];
             StatChip chip = StatChip.HudIconValue(
                 resource.Resource,
-                resource.AvailableAmount.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                CompactNumber.Format(resource.AvailableAmount));
             chip.Name = $"Resource{resource.Resource}";
             chip.TooltipText = BuildResourceTooltip(resource);
             ticker.AddChild(chip);
         }
+        if (ordered.Count > visibleCount)
+        {
+            var hidden = new System.Collections.Generic.List<ResourceInventoryItem>(ordered.Count - visibleCount);
+            for (int i = visibleCount; i < ordered.Count; i++)
+            {
+                hidden.Add(ordered[i]);
+            }
+            StatChip overflow = BuildResourceOverflowChip(hidden);
+            ticker.AddChild(overflow);
+        }
         return ticker;
+    }
+
+    private static StatChip BuildResourceOverflowChip(
+        System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> hidden)
+    {
+        StatChip chip = StatChip.HudIconValue(IconPaths.Backpack, "+" + hidden.Count.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+        chip.Name = "ResourceOverflow";
+        chip.TooltipText = BuildOverflowTooltip(hidden);
+        return chip;
+    }
+
+    private static string BuildOverflowTooltip(
+        System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> hidden)
+    {
+        var lines = new System.Collections.Generic.List<string>
+        {
+            UiText.Get("ui.status.resource_overflow_label"),
+        };
+        foreach (ResourceInventoryItem resource in hidden)
+        {
+            string name = UiText.Get(resource.Resource.ToString().ToLowerInvariant());
+            string amount = CompactNumber.FormatExact(resource.AvailableAmount);
+            lines.Add(UiText.Format("ui.status.resource_overflow_line", name, amount));
+        }
+        return string.Join("\n", lines);
     }
 
     private static string BuildResourceTooltip(ResourceInventoryItem resource)
     {
-        string amount = resource.AvailableAmount.ToString(
-            System.Globalization.CultureInfo.InvariantCulture);
-        string total = resource.TotalAmount.ToString(
-            System.Globalization.CultureInfo.InvariantCulture);
+        // Tooltips must show the exact amount even when the chip uses the
+        // compact form (1.2K vs. 1,200). A player deciding whether to
+        // dispatch an expedition cannot afford to round.
+        string amount = CompactNumber.FormatExact(resource.AvailableAmount);
+        string total = CompactNumber.FormatExact(resource.TotalAmount);
         var lines = new System.Collections.Generic.List<string>
         {
             UiText.Get(resource.Resource.ToString().ToLowerInvariant()),

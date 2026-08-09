@@ -19,6 +19,16 @@ namespace WorldofGoses;
 public partial class CityPrototype : Node
 {
     /// <summary>
+    /// Authored macro composition target for the bottom-centre
+    /// <see cref="PrimaryNavDock"/> in the labelled profile. Re-freeze only
+    /// after human visual sign-off at both 1280×720 and 1920×1080; the
+    /// fixture in <see cref="ValidatePrimaryNavFocusForVisualRegression"/>
+    /// asserts against this constant, not a literal, so re-tuning touches
+    /// one place.
+    /// </summary>
+    private static readonly Vector2 PrimaryNavDockSize = new(520, 60);
+
+    /// <summary>
     /// Top-level back key. Iterates the input tree so a single ESC
     /// pulse closes exactly one overlay:
     /// <list type="number">
@@ -324,6 +334,18 @@ public partial class CityPrototype : Node
             case "city-summary-es-blocked":
                 ShowCitySummaryForVisualRegression("es", blocked: true);
                 break;
+            case "city-summary-es":
+                ShowCitySummaryForVisualRegression("es", blocked: false);
+                break;
+            case "city-summary-low-food":
+                ShowCitySummaryLowFoodForVisualRegression("en");
+                break;
+            case "city-summary-housing-full":
+                ShowCitySummaryHousingFullForVisualRegression("en");
+                break;
+            case "city-summary-no-construction":
+                ShowCitySummaryNoConstructionForVisualRegression("en");
+                break;
             case "shelter-resources":
                 ShowShelterResourcesForVisualRegression();
                 break;
@@ -479,15 +501,17 @@ public partial class CityPrototype : Node
             "GameUiShell/ScreenContent/PrimaryNavDock");
         SimulationControls simulationControls = GetNode<SimulationControls>(
             "GameUiShell/ScreenContent/SimulationControls");
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
+            "GameUiShell/CityStatusPanel");
         IconButton button = action switch
         {
             "hero" => dock.HeroButton,
             "construction" => dock.ConstructionButton,
-            "menu" => dock.MenuButton,
+            "menu" => statusPanel.MenuButton,
             "expedition" => dock.ExpeditionButton,
             "policies" => dock.PoliciesButton,
             "citizens" => dock.CitizensButton,
-            "camera" => simulationControls.CameraButton,
+            "camera" => statusPanel.CameraButton,
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unknown primary navigation action."),
         };
         dock.Show();
@@ -532,11 +556,11 @@ public partial class CityPrototype : Node
         SimulationControls simulationControls = GetNode<SimulationControls>(
             "GameUiShell/ScreenContent/SimulationControls");
         Rect2 dockRect = dock.GetGlobalRect();
-        if (dockRect.Size != new Vector2(300, 52)
+        if (dockRect.Size != PrimaryNavDockSize
             || dockRect.Intersects(simulationControls.GetGlobalRect()))
         {
             GD.PushError(
-                $"Primary navigation geometry is {dockRect}; expected 300x52 without "
+                $"Primary navigation geometry is {dockRect}; expected {PrimaryNavDockSize} without "
                 + "overlapping SimulationControls.");
             return;
         }
@@ -643,6 +667,8 @@ public partial class CityPrototype : Node
             "GameUiShell/ScreenContent/PrimaryNavDock");
         SimulationControls simulationControls = GetNode<SimulationControls>(
             "GameUiShell/ScreenContent/SimulationControls");
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
+            "GameUiShell/CityStatusPanel");
         bool passed = action switch
         {
             "hero" => GetNode<HeroProfileView>(
@@ -652,16 +678,16 @@ public partial class CityPrototype : Node
             "expedition" => modalHost.IsOpen && modalHost.Content?.Name == "ExpeditionPanel",
             "policies" => modalHost.IsOpen && modalHost.Content?.Name == "PoliciesPanel",
             "citizens" => modalHost.IsOpen && modalHost.Content?.Name == "MigrantPanel",
-            "camera" => simulationControls.CameraButton.ThemeTypeVariation == "HudButtonSelected",
+            "camera" => statusPanel.CameraButton.ThemeTypeVariation == "HudButtonSelected",
             _ => false,
         };
         if (!passed)
         {
             GD.PushError(
                 $"Primary navigation pointer fixture failed for {action}; "
-                + $"camera label={simulationControls.CameraButton.ButtonText}, "
-                + $"theme={simulationControls.CameraButton.ThemeTypeVariation}, "
-                + $"rect={simulationControls.CameraButton.GetGlobalRect()}.");
+                + $"camera label={statusPanel.CameraButton.ButtonText}, "
+                + $"theme={statusPanel.CameraButton.ThemeTypeVariation}, "
+                + $"rect={statusPanel.CameraButton.GetGlobalRect()}.");
             return;
         }
         GD.Print($"[WOG-NAV-CLICK] {action} OK");
@@ -1357,6 +1383,85 @@ public partial class CityPrototype : Node
                 ResourceLoader.Load<Texture2D>(IconPaths.User),
                 "Inspector",
                 UiText.Get("ui.city_summary.inspector_fixture_detail"));
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+            .Refresh(controller.GetCityStatusSnapshot());
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    /// <summary>
+    /// Composes the CitySummary panel with a near-empty food stock so the
+    /// food-horizon warning glyph fires and the at-risk metric reads.
+    /// </summary>
+    private void ShowCitySummaryLowFoodForVisualRegression(string locale)
+    {
+        ShowTopStatusForVisualRegression(locale);
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorld world = controller.World;
+        Citizen? hero = world.Hero;
+        if (hero is null)
+        {
+            GD.PushError("City-summary low-food fixture requires a loaded hero.");
+            return;
+        }
+        // Drain Food so the horizon falls under one day of rations.
+        while (world.FoodStock > 0)
+        {
+            world.Resources.TryConsume(ResourceType.Food, 1);
+        }
+        world.Resources.DepositToCityInventory(ResourceType.WildFood, 1);
+
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+            .Refresh(controller.GetCityStatusSnapshot());
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    /// <summary>
+    /// Composes the CitySummary panel with citizens at full housing capacity
+    /// so the housing progress bar renders full and the row count matches.
+    /// </summary>
+    private void ShowCitySummaryHousingFullForVisualRegression(string locale)
+    {
+        ShowTopStatusForVisualRegression(locale);
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorld world = controller.World;
+        Citizen? hero = world.Hero;
+        if (hero is null)
+        {
+            GD.PushError("City-summary housing-full fixture requires a loaded hero.");
+            return;
+        }
+        int capacity = world.HousingCapacity;
+        if (capacity > 0)
+        {
+            CitizenProfile profile = hero.Profile;
+            bool any = world.Citizens.Count > 0;
+            int nextId = any
+                ? world.Citizens.Keys.Max(id => id.Value) + 1
+                : 900;
+            for (int i = world.Citizens.Count; i < capacity; i++)
+            {
+                world.RegisterCitizen(new Citizen(
+                    new CitizenId(nextId++),
+                    $"Resident {i + 1}",
+                    appearanceSeed: nextId * 11,
+                    profile: profile));
+            }
+        }
+
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+            .Refresh(controller.GetCityStatusSnapshot());
+        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    /// <summary>
+    /// Composes the CitySummary panel with no active construction so the
+    /// "No active construction" empty-state caption renders.
+    /// </summary>
+    private void ShowCitySummaryNoConstructionForVisualRegression(string locale)
+    {
+        ShowTopStatusForVisualRegression(locale);
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+
         GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);

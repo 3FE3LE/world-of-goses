@@ -6,8 +6,10 @@ using Godot;
 namespace WorldofGoses.Ui;
 
 /// <summary>
-/// Reusable compact, icon-only bottom-centre surface for the city's connected
-/// primary navigation.
+/// Reusable compact, labelled (icon + short label) bottom-centre surface for
+/// the city's connected primary navigation. The dock widens at 1280×720 so
+/// every destination reads as <c>[ icon ] Construir</c> rather than icon-only,
+/// aligning with the bible's "etiquetado" wording and Proposal 06.
 /// It owns layout, focus and chrome while the macro view owns what each action
 /// opens.
 /// </summary>
@@ -16,11 +18,18 @@ public partial class PrimaryNavDock : PanelContainer
 {
     public static readonly StringName ActionsName = "Actions";
 
+    /// <summary>
+    /// Per-button minimum width in the labelled profile. Sized so the
+    /// Spanish word <c>Construir</c> and the English word
+    /// <c>Construction</c> fit without ellipsis at the default
+    /// <c>HudButton</c> content margins. Re-tune via visual review only.
+    /// </summary>
+    private const float PerButtonWidth = 88f;
+
     private BoxContainer? _actions;
 
     public IconButton HeroButton => RequireButton("HeroAccessButton");
     public IconButton ConstructionButton => RequireButton("ConstructionMenuButton");
-    public IconButton MenuButton => RequireButton("GameMenuButton");
     public IconButton ExpeditionButton => RequireButton("ExpeditionMenuButton");
     public IconButton PoliciesButton => RequireButton("PoliciesButton");
     public IconButton CitizensButton => RequireButton("CitizensButton");
@@ -50,24 +59,23 @@ public partial class PrimaryNavDock : PanelContainer
     {
         IconButton[] buttons =
         {
-            HeroButton, ConstructionButton, MenuButton, ExpeditionButton,
+            HeroButton, ConstructionButton, ExpeditionButton,
             PoliciesButton, CitizensButton,
         };
 
         foreach (IconButton button in buttons)
         {
-            button.ShowLabel = false;
+            button.ShowLabel = true;
             button.ThemeTypeVariation = "HudButton";
             button.FocusMode = FocusModeEnum.All;
             button.ClipText = false;
-            button.CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight);
+            button.CustomMinimumSize = new Vector2(PerButtonWidth, Tokens.ControlHeight);
             button.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
         }
 
         HeroButton.SetIconAndLabel(IconPaths.User, UiText.Get("ui.nav.hero_short"));
         ConstructionButton.SetIconAndLabel(
             IconPaths.Building, UiText.Get("ui.nav.build_short"));
-        MenuButton.SetIconAndLabel(IconPaths.Menu, UiText.Get("ui.nav.menu_short"));
         ExpeditionButton.SetIconAndLabel(
             IconPaths.Backpack, UiText.Get("ui.nav.expedition_short"));
         PoliciesButton.SetIconAndLabel(

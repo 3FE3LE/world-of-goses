@@ -1,7 +1,9 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using WorldofGoses.Domain;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -277,7 +279,7 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
-    public void PrimaryNavDock_IsBottomCentredCompactIconOnlyAndHorizontallyFocused()
+    public void PrimaryNavDock_IsBottomCentredLabelledAndHorizontallyFocused()
     {
         string[] dock = NodeBlock("PrimaryNavDock");
         string source = File.ReadAllText(Path.Combine(
@@ -290,23 +292,46 @@ public sealed class HudCompositionTests
         Assert.Contains(dock, line => line.Trim() == "anchor_left = 0.5");
         Assert.Contains(dock, line => line.Trim() == "anchor_bottom = 1.0");
         Assert.Contains(dock, line => line.Trim() == "offset_bottom = -16.0");
-        Assert.Contains(dock, line => line.Trim() == "custom_minimum_size = Vector2(300, 52)");
+        // The dock widens for the labelled profile. The literal is a visual
+        // iteration value: re-tune only after human visual sign-off at both
+        // 1280×720 and 1920×1080, then bump the bounds here.
+        string? sizeLine = dock.FirstOrDefault(
+            line => line.Trim().StartsWith("custom_minimum_size = Vector2("));
+        Assert.NotNull(sizeLine);
+        var sizeMatch = SizeLiteral.Match(sizeLine!);
+        Assert.True(
+            sizeMatch.Success,
+            $"PrimaryNavDock custom_minimum_size line did not match expected format: {sizeLine}");
+        float width = float.Parse(
+            sizeMatch.Groups[1].Value, CultureInfo.InvariantCulture);
+        float height = float.Parse(
+            sizeMatch.Groups[2].Value, CultureInfo.InvariantCulture);
+        Assert.InRange(width, 480f, 560f);
+        Assert.InRange(height, 56f, 72f);
         Assert.Contains(dock, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
-        Assert.Contains("button.ShowLabel = false", source, StringComparison.Ordinal);
+        // Per-button width lives as a named constant on the script so a future
+        // re-tune does not silently split this assertion from the visual value.
+        Assert.Contains("PerButtonWidth", source, StringComparison.Ordinal);
+        Assert.Contains("button.ShowLabel = true", source, StringComparison.Ordinal);
         Assert.Contains("button.ClipText = false", source, StringComparison.Ordinal);
-        Assert.Contains("new Vector2(Tokens.ControlHeight, Tokens.ControlHeight)", source, StringComparison.Ordinal);
         Assert.Contains("IconPaths.Backpack", source, StringComparison.Ordinal);
         Assert.Contains("IconPaths.ClipboardNote", source, StringComparison.Ordinal);
         Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
         Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
         Assert.Contains("public IconButton ConstructionButton", source, StringComparison.Ordinal);
         Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
+        // Menu no longer belongs in the dock; the menu button moved to the
+        // top-bar utility cluster in CityStatusPanel.
+        Assert.DoesNotContain("public IconButton MenuButton", source, StringComparison.Ordinal);
         Assert.Contains("PrimaryNavDockPath", macroSource, StringComparison.Ordinal);
         Assert.DoesNotContain("NavigationRailPath", macroSource, StringComparison.Ordinal);
         Assert.Contains("_localeManager.LocaleChanged += OnLocaleChanged", macroSource, StringComparison.Ordinal);
         Assert.Contains("_localeManager.LocaleChanged -= OnLocaleChanged", macroSource, StringComparison.Ordinal);
         Assert.Contains("UpdatePrimaryNavigationState();\n        UpdateCameraModeButtonLabel();", Normalize(macroSource), StringComparison.Ordinal);
-        Assert.Contains("PrimaryNavDock/Actions/GameMenuButton", pauseSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton",
+            pauseSource,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -385,8 +410,12 @@ public sealed class HudCompositionTests
         Assert.Contains(block, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
         Assert.Contains("new PlayPauseButton", source, StringComparison.Ordinal);
         Assert.Contains("new SpeedButton", source, StringComparison.Ordinal);
-        Assert.Contains("new IconButton", source, StringComparison.Ordinal);
-        Assert.Contains("public IconButton CameraButton", source, StringComparison.Ordinal);
+        // Camera mode moved out of the bottom-right surface into the top-bar
+        // utility cluster; the SimulationControls script no longer owns an
+        // IconButton child or a CameraButton accessor.
+        Assert.DoesNotContain("new IconButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("_cameraButton", source, StringComparison.Ordinal);
         Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
         Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
         Assert.Contains(
@@ -451,7 +480,9 @@ public sealed class HudCompositionTests
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs"));
 
         Assert.Contains("case \"primary-nav-focus\":", source, StringComparison.Ordinal);
-        Assert.Contains("dockRect.Size != new Vector2(300, 52)", source, StringComparison.Ordinal);
+        // The dock is a visual iteration value; the comparison in the
+        // fixture must use a named constant so re-tuning touches one place.
+        Assert.Contains("PrimaryNavDockSize", source, StringComparison.Ordinal);
         Assert.Contains("case \"action-dock-focus\":", source, StringComparison.Ordinal);
         Assert.Contains("case \"simulation-controls-focus\":", source, StringComparison.Ordinal);
         Assert.Contains("ButtonIndex = JoyButton.DpadRight", source, StringComparison.Ordinal);
@@ -511,6 +542,322 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("ETA", itemSource, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void CitySummary_StatusSection_ReadsAuthoritativeFields()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs"));
+
+        // Every metric in the STATUS section must be sourced from an
+        // authoritative CityStatusSnapshot field — never invented.
+        Assert.Contains("snapshot.FoodHorizonDays", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.CitizensAtWork", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.CitizensAtHome", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.TicksUntilFirstHarvest", source, StringComparison.Ordinal);
+        Assert.Contains("snapshot.IsLaborTime", source, StringComparison.Ordinal);
+        // Harvest format goes through UiText.Format, not raw interpolation.
+        Assert.Contains("ui.city_summary.harvest_format", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.food_horizon_format", source, StringComparison.Ordinal);
+        // Warnings stay on the glyph channel — never on colour alone.
+        Assert.Contains("IconPaths.Warning", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummary_WarningsAreDefensivelyThresholded()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs"));
+
+        // Only two warning thresholds are allowed in the panel: food
+        // exhaustion and harvest missing that threshold. Anything else
+        // would be inventing a UI-only threshold that domain logic does
+        // not justify.
+        Assert.Contains("FoodHorizonDays < 1", source, StringComparison.Ordinal);
+        Assert.Contains("HarvestIsLate", source, StringComparison.Ordinal);
+        Assert.Contains("ticks > foodRunsOutAt", source, StringComparison.Ordinal);
+        // Housing-bar shows capacity but does NOT carry a warning
+        // glyph — there is no defensible domain rule for the threshold.
+        Assert.DoesNotContain("HousingFullGlyph", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("HudMetricRow(... Warning",
+            source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummary_ResourceSequence_PrioritisesSurvivalThenConstruction()
+    {
+        // The summary panel and the top-bar ticker share a single priority
+        // sequence in `ResourcePriority`. Asserting the source order
+        // against the panel alone would let the two drift apart — the
+        // shared helper is what the brief asked for.
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "ResourcePriority.cs"));
+
+        int foodIndex = source.IndexOf("ResourceType.Food", StringComparison.Ordinal);
+        int wildFoodIndex = source.IndexOf("ResourceType.WildFood", StringComparison.Ordinal);
+        int woodIndex = source.IndexOf("ResourceType.Wood", StringComparison.Ordinal);
+        int ironIndex = source.IndexOf("ResourceType.Iron", StringComparison.Ordinal);
+        Assert.True(foodIndex > 0);
+        Assert.True(woodIndex > foodIndex, "Wood must come after food in the survival→construction sequence.");
+        Assert.True(ironIndex > woodIndex, "Iron (remaining) must come after construction resources.");
+        Assert.True(wildFoodIndex > 0);
+        // The summary panel must not have re-introduced a private copy of
+        // the sequence — the whole point of the shared helper is one
+        // canonical source.
+        string summary = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CitySummaryPanel.cs"));
+        Assert.DoesNotContain(
+            "private static readonly ResourceType[] ResourceSequence",
+            summary,
+            StringComparison.Ordinal);
+        Assert.Contains("ResourcePriority.Prioritize", summary, StringComparison.Ordinal);
+        // No synthetic production-rate delta column appears in the panel.
+        Assert.DoesNotContain("HudResourceRow(... \"+", summary, StringComparison.Ordinal);
+        Assert.DoesNotContain("SetValues(", summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummary_RefreshesOnLocaleChangedWithoutWaitingForSimulation()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs"));
+
+        // Hot-locale support: subscribe in _Ready, unsubscribe in _ExitTree,
+        // and Refresh immediately on the event.
+        Assert.Contains("_localeManager.LocaleChanged += OnLocaleChanged", source, StringComparison.Ordinal);
+        Assert.Contains("_localeManager.LocaleChanged -= OnLocaleChanged", source, StringComparison.Ordinal);
+        Assert.Contains("private void OnLocaleChanged(string _) => Refresh(_controller.GetCityStatusSnapshot());",
+            source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConstructionQueueItem_LocalizesEveryStopCause()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ConstructionQueueItem.cs"));
+
+        // The original StatusText mixed UiText.Get calls with raw English
+        // strings. Every stop-cause row must now route through UiText.
+        Assert.Contains("ui.city_summary.paused", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.waiting_contributors", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.contributor_travelling", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.contributors_exhausted", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.resting_night", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.completed", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.awaiting_module", source, StringComparison.Ordinal);
+        Assert.Contains("ui.city_summary.no_hero", source, StringComparison.Ordinal);
+        // No raw English stop-cause text survives.
+        Assert.DoesNotContain("Paused by the player", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Waiting for contributors", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Waiting: contributors exhausted", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Resting during the night", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Contributor travelling to the site", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Awaiting next Founding Site module", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("No hero available", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CitySummary_LocaleCatalog_ExposesNewStatusKeysInBothLanguages()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string en = File.ReadAllText(Path.Combine(root, "game", "locale", "en.po"));
+        string es = File.ReadAllText(Path.Combine(root, "game", "locale", "es.po"));
+
+        // Every new key added in this pass must appear in both catalogs
+        // — a one-sided translation would let the EN-default fallback hide
+        // the gap at runtime.
+        string[] keys =
+        {
+            "ui.city_summary.status_food_horizon",
+            "ui.city_summary.status_citizens_work",
+            "ui.city_summary.status_citizens_home",
+            "ui.city_summary.status_next_harvest",
+            "ui.city_summary.status_labor",
+            "ui.city_summary.labor_active",
+            "ui.city_summary.labor_paused",
+            "ui.city_summary.food_horizon_format",
+            "ui.city_summary.harvest_format",
+            "ui.city_summary.no_next_harvest",
+            "ui.city_summary.tooltip_food_critical",
+            "ui.city_summary.tooltip_harvest_late",
+            "ui.city_summary.tooltip_housing_full",
+            "ui.city_summary.paused",
+            "ui.city_summary.waiting_contributors",
+            "ui.city_summary.contributor_travelling",
+            "ui.city_summary.contributors_exhausted",
+            "ui.city_summary.resting_night",
+            "ui.city_summary.completed",
+            "ui.city_summary.awaiting_module",
+            "ui.city_summary.no_hero",
+        };
+        foreach (string key in keys)
+        {
+            Assert.Contains($"msgid \"{key}\"", en, StringComparison.Ordinal);
+            Assert.Contains($"msgid \"{key}\"", es, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void PrimaryNavDock_NoLongerOwnsTheMenuButton()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "PrimaryNavDock.cs"));
+        string[] sceneLines = ReadScene();
+
+        // The dock is no longer the menu's owner; the menu lives on the
+        // right-edge utility cluster of the top status bar.
+        Assert.DoesNotContain("public IconButton MenuButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "RequireButton(\"GameMenuButton\")", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            sceneLines,
+            line => line.Contains("GameMenuButton", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CityStatusPanel_ExposesUtilityClusterWithCameraAndMenuIconButtons()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityStatusPanel.cs"));
+
+        // The utility cluster lives inside the row, persists across Refresh,
+        // and exposes two icon-only IconButtons by typed accessor.
+        Assert.Contains("Name = \"UtilityCluster\"", source, StringComparison.Ordinal);
+        Assert.Contains("public IconButton CameraButton", source, StringComparison.Ordinal);
+        Assert.Contains("public IconButton MenuButton", source, StringComparison.Ordinal);
+        Assert.Contains("SizeFlagsHorizontal = SizeFlags.ShrinkEnd", source, StringComparison.Ordinal);
+        // Two icon-only buttons inside the cluster: ShowLabel = false must
+        // appear at least twice (Camera + Menu).
+        int showLabelFalse = Regex.Matches(source, "ShowLabel = false").Count;
+        Assert.True(
+            showLabelFalse >= 2,
+            $"Expected at least two ShowLabel = false sites in CityStatusPanel.cs; found {showLabelFalse}.");
+        // The status bar never gains a PlayPauseButton or SpeedButton —
+        // those still belong to SimulationControls.
+        Assert.DoesNotContain("PlayPauseButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SpeedButton", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PauseMenu_OpenButtonPath_RedirectsToUtilityClusterMenu()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string[] sceneLines = ReadScene();
+
+        // The PauseMenu node in CityPrototype.tscn sets open_button_path
+        // explicitly so the redirect is discoverable in the scene file.
+        int pauseNode = IndexOfNodeHeader(sceneLines, "PauseMenu");
+        Assert.True(pauseNode >= 0, "Could not locate PauseMenu node in CityPrototype.tscn.");
+        int end = IndexOfNextNodeHeader(sceneLines, pauseNode + 1);
+        int blockEnd = end < 0 ? sceneLines.Length : end;
+        string block = string.Join(
+            "\n", sceneLines[pauseNode..blockEnd]);
+        Assert.Contains(
+            "open_button_path = NodePath(\"../GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton\")",
+            block,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SimulationControls_DropsTheCameraIconButton()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "SimulationControls.cs"));
+
+        Assert.DoesNotContain("new IconButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("_cameraButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
+        // IconPaths.Camera is no longer a consumer of this script.
+        Assert.DoesNotContain("IconPaths.Camera", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CityStatusPanel_ExposesTheResourceOverflowAffordance()
+    {
+        // The ticker used to clip silently. The iconography / scalability
+        // pass replaces that with a deterministic visible cap plus a "+N"
+        // chip whose tooltip lists every hidden resource by name and
+        // exact amount. The structural contract is a constant on the
+        // script and a dedicated chip builder.
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityStatusPanel.cs"));
+
+        Assert.Contains("MaxVisibleResourceChips", source, StringComparison.Ordinal);
+        Assert.Contains("BuildResourceOverflowChip", source, StringComparison.Ordinal);
+        Assert.Contains("BuildOverflowTooltip", source, StringComparison.Ordinal);
+        Assert.Contains("ui.status.resource_overflow_label", source, StringComparison.Ordinal);
+        Assert.Contains("ui.status.resource_overflow_line", source, StringComparison.Ordinal);
+        // The ticker no longer clips silently: it routes through the
+        // shared priority order and the shared compact formatter.
+        Assert.Contains("ResourcePriority.Prioritize", source, StringComparison.Ordinal);
+        Assert.Contains("CompactNumber.Format", source, StringComparison.Ordinal);
+        // Tooltips keep the exact amount even when the chip shows the
+        // compact form.
+        Assert.Contains("CompactNumber.FormatExact", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CityStatusPanel_OverflowKeysExistInBothLocales()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string en = File.ReadAllText(Path.Combine(root, "game", "locale", "en.po"));
+        string es = File.ReadAllText(Path.Combine(root, "game", "locale", "es.po"));
+
+        // A one-sided translation would let the EN fallback hide the
+        // gap at runtime; both catalogs must carry the overflow keys.
+        foreach (string key in new[]
+                 {
+                     "ui.status.resource_overflow_label",
+                     "ui.status.resource_overflow_line",
+                 })
+        {
+            Assert.Contains($"msgid \"{key}\"", en, StringComparison.Ordinal);
+            Assert.Contains($"msgid \"{key}\"", es, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void ResourceIcon_CoversEveryResourceType()
+    {
+        // The icon-only ticker needs a distinct silhouette for every
+        // ResourceType. A missing case falls through to the generic
+        // fallback and turns two resources into one indistinguishable
+        // icon — exactly the bug the audit caught.
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "ResourceIcon.cs"));
+
+        foreach (ResourceType resource in Enum.GetValues<ResourceType>())
+        {
+            Assert.Contains(
+                $"case ResourceType.{resource}:",
+                source,
+                StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void CitySummaryPanel_SharesTheResourcePrioritySequence()
+    {
+        // The summary and the ticker must read the same order. A second
+        // copy of the sequence in the summary panel would drift the
+        // moment a new resource is added; the brief specifically asks
+        // for a single priority.
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CitySummaryPanel.cs"));
+
+        Assert.Contains("ResourcePriority.Prioritize", source, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "private static readonly ResourceType[] ResourceSequence",
+            source,
+            StringComparison.Ordinal);
+    }
+
     private static string[] NodeBlock(string nodeName)
     {
         string[] lines = ReadScene();
@@ -555,5 +902,9 @@ public sealed class HudCompositionTests
 
     private static readonly Regex MouseFilterPattern = new(
         @"^mouse_filter\s*=\s*(\d+)\s*$",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex SizeLiteral = new(
+        @"Vector2\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)",
         RegexOptions.CultureInvariant);
 }

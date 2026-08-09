@@ -8,7 +8,8 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Compact bottom-right surface that owns the existing play/pause and speed
-/// controls without owning simulation rules.
+/// controls without owning simulation rules. Camera mode lives on the
+/// top-bar utility cluster (see <see cref="CityStatusPanel.CameraButton"/>).
 /// </summary>
 [GlobalClass]
 public partial class SimulationControls : PanelContainer
@@ -17,7 +18,6 @@ public partial class SimulationControls : PanelContainer
 
     private PlayPauseButton? _playPauseButton;
     private SpeedButton? _speedButton;
-    private IconButton? _cameraButton;
 
     public PlayPauseButton PlayPauseButton
     {
@@ -27,11 +27,6 @@ public partial class SimulationControls : PanelContainer
     public SpeedButton SpeedButton
     {
         get { EnsureBuilt(); return _speedButton!; }
-    }
-
-    public IconButton CameraButton
-    {
-        get { EnsureBuilt(); return _cameraButton!; }
     }
 
     public override void _Ready()
@@ -67,22 +62,10 @@ public partial class SimulationControls : PanelContainer
             ThemeTypeVariation = "HudButton",
             FocusMode = FocusModeEnum.All,
         };
-        _cameraButton = new IconButton
-        {
-            Name = "CameraModeButton",
-            IconPath = IconPaths.Camera,
-            ButtonText = UiText.Get("ui.camera.free_short"),
-            TooltipText = UiText.Get("ui.camera.free_tooltip"),
-            ThemeTypeVariation = "HudButton",
-            FocusMode = FocusModeEnum.All,
-            CustomMinimumSize = new Vector2(88, Tokens.ControlHeight),
-            ClipText = true,
-        };
         actions.AddChild(_playPauseButton);
         actions.AddChild(_speedButton);
-        actions.AddChild(_cameraButton);
 
-        WireHorizontalFocus(new Control[] { _playPauseButton, _speedButton, _cameraButton });
+        WireHorizontalFocus(new Control[] { _playPauseButton, _speedButton });
     }
 
     private static void WireHorizontalFocus(Control[] controls)

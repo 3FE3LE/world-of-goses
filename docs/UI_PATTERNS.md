@@ -139,24 +139,30 @@ siblings in tree order, and the consumer frequently comes first.
 
 `PrimaryNavDock` is the semantic successor to the short-lived vertical
 `NavigationRail`, which had already replaced the deleted full-width
-`MacroActions` strip. The dock is a fixed 300×52 logical surface centred 16 px
-above the bottom edge. It owns an icon-only horizontal structure with full
-localized tooltips and hands back
+`MacroActions` strip. The dock is a fixed 520×60 logical surface centred 16 px
+above the bottom edge. It owns a labelled (icon + short label) horizontal
+structure with full localized tooltips and hands back
 typed buttons, so `MacroStreetLiveView` holds one path to the dock instead of literal
 paths like `"../MacroActions/Actions/PoliciesButton"`. Deciding what a
 button opens stays with the macro view: the dock is chrome, and chrome
-does not know what a screen is.
+does not know what a screen is. Each button reads as `[ icon ] Construir`
+rather than icon-only; this aligns with the bible's `etiquetado` wording and
+the supplied Proposal 06 reference. Per-button width lives as a named
+`PerButtonWidth` constant on the script — re-tune via visual review only.
 
 `PrimaryNavDock` and `ActionDock` are mutually exclusive presentations of the
 same bottom-centre zone. Normal macro mode shows primary navigation; placement
 hides it and shows the contextual instruction/confirm/cancel tray; confirm,
 cancel and real `ui_cancel` restore primary navigation. `SimulationControls`
 is a separate bottom-right `HudDock` containing the existing `PlayPauseButton`
-and `SpeedButton` plus the connected camera-mode world utility. Camera logic
-remains in the macro view; only its typed button moved. No duplicate simulation
-controls remain in `CityStatusPanel`. `ActionDock` is also a `HudDock`, with
-`HudHeader` instruction text and `HudButtonSelected`/`HudButton` actions; it no
-longer borrows large-screen `OverlayPanel` or `ButtonText` chrome.
+and `SpeedButton` only — simulation time owns this surface. The camera-mode
+world utility lives on the right-edge `UtilityCluster` inside `CityStatusPanel`,
+which also carries the menu/pause open button; both are icon-only IconButtons
+with localized tooltips. Camera logic remains in the macro view; only its
+typed button moved. No duplicate simulation controls remain in `CityStatusPanel`.
+`ActionDock` is also a `HudDock`, with `HudHeader` instruction text and
+`HudButtonSelected`/`HudButton` actions; it no longer borrows large-screen
+`OverlayPanel` or `ButtonText` chrome.
 
 The macro perspective owns the visibility of its authored summary surfaces.
 `ActivatePerspective` reveals `CitySummaryPanel`, `ExpeditionRail` and
@@ -660,5 +666,6 @@ inherit the patterns in this file:
 | Snapshot contracts | `game/scripts/*Snapshot.cs` (`CityMacroSnapshot`, `HeroProfileSnapshot`, `BuildingDetailSnapshot`, `ConstructionSnapshot`, `CityStatusSnapshot`) |
 | City world façade | `game/scripts/CityWorldController.cs` |
 | Component PackedScenes | `game/scenes/Components/` |
+| Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `MenuButton`) |
 | Current audit state | `docs/UI_AUDIT.md` |
 | Status snapshot | `docs/CURRENT_STATUS.md` |

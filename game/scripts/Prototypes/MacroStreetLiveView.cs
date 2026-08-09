@@ -441,7 +441,8 @@ public partial class MacroStreetLiveView : Node2D
         _expeditionMenuButton = _primaryNavDock.ExpeditionButton;
         _policiesButton = _primaryNavDock.PoliciesButton;
         _citizensButton = _primaryNavDock.CitizensButton;
-        _cameraModeButton = _simulationControls.CameraButton;
+        _cameraModeButton = _statusPanel.CameraButton;
+        _statusPanel.MenuButton.Pressed += OnUtilityClusterMenuPressed;
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
@@ -1821,6 +1822,14 @@ public partial class MacroStreetLiveView : Node2D
     {
         SetCameraFollowsHero(!_cameraFollowsHero);
     }
+
+    /// <summary>
+    /// Opens or closes the pause menu when the top-bar utility cluster's
+    /// menu button is pressed. The cluster's button is wired in <c>_Ready</c>;
+    /// the existing <see cref="_pauseMenu"/> owns the toggle behaviour so the
+    /// cluster and the dock's old menu button converge on the same action.
+    /// </summary>
+    private void OnUtilityClusterMenuPressed() => _pauseMenu.Toggle();
 
     private void SetCameraFollowsHero(bool value)
     {

@@ -69,15 +69,15 @@ public partial class ConstructionQueueItem : VBoxContainer
     internal static string StatusText(ConstructionStopCause cause) => cause switch
     {
         ConstructionStopCause.Authorized => UiText.Get("ui.city_summary.in_progress"),
-        ConstructionStopCause.Paused => UiText.Get("Paused by the player"),
-        ConstructionStopCause.NoWorkers => UiText.Get("Waiting for contributors"),
+        ConstructionStopCause.Paused => UiText.Get("ui.city_summary.paused"),
+        ConstructionStopCause.NoWorkers => UiText.Get("ui.city_summary.waiting_contributors"),
         ConstructionStopCause.MissingMaterials => UiText.Get("ui.city_summary.waiting_materials"),
-        ConstructionStopCause.WorkersInTransit => UiText.Get("Contributor travelling to the site"),
-        ConstructionStopCause.WorkersExhausted => UiText.Get("Waiting: contributors exhausted"),
-        ConstructionStopCause.Night => UiText.Get("Resting during the night"),
-        ConstructionStopCause.Completed => UiText.Get("Completed"),
-        ConstructionStopCause.AwaitingModule => UiText.Get("Awaiting next Founding Site module"),
-        ConstructionStopCause.NoHero => UiText.Get("No hero available"),
+        ConstructionStopCause.WorkersInTransit => UiText.Get("ui.city_summary.contributor_travelling"),
+        ConstructionStopCause.WorkersExhausted => UiText.Get("ui.city_summary.contributors_exhausted"),
+        ConstructionStopCause.Night => UiText.Get("ui.city_summary.resting_night"),
+        ConstructionStopCause.Completed => UiText.Get("ui.city_summary.completed"),
+        ConstructionStopCause.AwaitingModule => UiText.Get("ui.city_summary.awaiting_module"),
+        ConstructionStopCause.NoHero => UiText.Get("ui.city_summary.no_hero"),
         _ => cause.ToString(),
     };
 }

@@ -43,7 +43,7 @@ and this section gets corrected in the same change.
   Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
   `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
   the two is the main technical debt of this slice.
-- `dotnet test`: 973/974 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 1098/1099 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
@@ -69,7 +69,7 @@ and this section gets corrected in the same change.
   JSON shape is unchanged, so this widened only the validation and needed no
   migration.
 - Godot headless boot loads the current scene/slot without C# or scene errors.
-- EN/ES catalogs: 856 template IDs and 337 runtime keys validated.
+- EN/ES catalogs: 999 template IDs and 307 runtime keys validated.
 - The physical expression is derived from the **Kovari Cube** — the highest face
   of the persisted `CubeProfile` — and no longer from the elemental affinity.
   The two are independent: an Ardhen founder can be Fracture with Fire,
@@ -94,7 +94,7 @@ and this section gets corrected in the same change.
   authorisable module with its cost and the amount held, and the module button's
   tooltip names what is still missing. The founder-cargo inventory starts
   collapsed so those lines are not pushed out of the panel's scroll body.
-- Agent-context validation: 442 checks passing.
+- Agent-context validation: 474 checks passing.
 - Official visual review sizes: 1280×720 and 1920×1080.
 
 ## 2. Active proof
@@ -248,16 +248,19 @@ and §17 acceptance test are complete.
   mid-animation.
 - HUD carries immediate time, a small read-only ticker of resources that
   actually exist in the authoritative ledger, truthful population/capacity,
-  and temporary save feedback in the 40 px top bar. The compact icon-only
-  `PrimaryNavDock` owns connected global actions at bottom-centre and yields
-  that zone to contextual `ActionDock` during placement; bottom-right
-  `SimulationControls` owns the restored play/pause and existing speed pair,
-  plus the connected camera-mode world utility.
+  temporary save feedback, and a right-edge icon-only utility cluster
+  (`CameraButton`, `MenuButton`) inside the 40 px top bar. The compact
+  labelled `PrimaryNavDock` (520×60, five connected destinations — Hero,
+  Build, Scout, Rules, People — each reading `[ icon ] Construir`) owns
+  connected global actions at bottom-centre and yields that zone to contextual
+  `ActionDock` during placement; bottom-right `SimulationControls` owns
+  simulation time only — the existing play/pause and speed pair.
   The final authored macro composition measures 240 px on the left, 236 px on
-  the right, and 300×52 for the primary dock at the fixed 1280×720 logical
-  canvas. Macro-only rails/controls follow perspective activation and disappear
-  on full profile/detail views; the 40 px top status remains shell-owned.
-  Ownership and detailed storage remain
+  the right, and 520×60 for the labelled primary dock at the fixed 1280×720
+  logical canvas. Camera mode and menu/pause access moved into the
+  top-bar utility cluster. Macro-only rails/controls follow perspective
+  activation and disappear on full profile/detail views; the 40 px top status
+  remains shell-owned. Ownership and detailed storage remain
   contextual from founder cargo in Construction, through the Founding Cache,
   to the Shelter's collapsible inventory surface. Save confirmation is
   temporary.

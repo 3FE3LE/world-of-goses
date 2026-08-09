@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Globalization;
 using Godot;
 using WorldofGoses.Domain;
@@ -20,9 +21,15 @@ public partial class CitySummaryPanel : PanelContainer
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
 
     private CityWorldController _controller = null!;
+    private LocaleManager? _localeManager;
     private CollapsiblePanelHeader _header = null!;
     private ScrollContainer _body = null!;
     private VBoxContainer _content = null!;
+
+    // Survival-critical → construction-relevant → remaining. Lives in
+    // `ResourcePriority` so the city summary and the top-bar ticker
+    // agree on the priority: a resource that appears second in the ticker
+    // also appears second in the summary, not fourth.
 
     public override void _Ready()
     {
@@ -39,6 +46,8 @@ public partial class CitySummaryPanel : PanelContainer
         _controller.NaturalResourceStateChanged += OnStateChanged;
         _controller.CultivationSiteStateChanged += OnStateChanged;
         _controller.HeroCreated += OnStateChanged;
+        _localeManager = GetNodeOrNull<LocaleManager>("/root/LocaleManager");
+        if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
         LineageThemeRegistry.ActiveLineageChanged += OnLineageChanged;
         Refresh(_controller.GetCityStatusSnapshot());
     }
@@ -54,6 +63,7 @@ public partial class CitySummaryPanel : PanelContainer
             _controller.CultivationSiteStateChanged -= OnStateChanged;
             _controller.HeroCreated -= OnStateChanged;
         }
+        if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
         LineageThemeRegistry.ActiveLineageChanged -= OnLineageChanged;
     }
 
@@ -105,16 +115,9 @@ public partial class CitySummaryPanel : PanelContainer
         _header.Text = UiText.Format("ui.city_summary.header", lineage);
         BuildIdentity(snapshot, lineage);
 
-        if (snapshot.HousingCapacity > 0)
-        {
-            AddSeparator();
-            _content.AddChild(new HudSectionHeader(UiText.Get("ui.city_summary.status")));
-            _content.AddChild(new HudMetricRow(
-                UiText.Get("ui.city_summary.housing"),
-                $"{snapshot.CitizenCount}/{snapshot.HousingCapacity}"));
-            _content.AddChild(new HudProgressBar(
-                (double)snapshot.CitizenCount / snapshot.HousingCapacity));
-        }
+        AddSeparator();
+        _content.AddChild(new HudSectionHeader(UiText.Get("ui.city_summary.status")));
+        BuildStatusSection(snapshot);
 
         AddSeparator();
         _content.AddChild(new HudSectionHeader(
@@ -126,8 +129,10 @@ public partial class CitySummaryPanel : PanelContainer
         }
         else
         {
-            foreach (ResourceInventoryItem resource in snapshot.Resources)
+            foreach (ResourceInventoryItem resource in SequenceResources(snapshot))
             {
+                // No authoritative production rate exists; the delta column
+                // stays hidden by passing an empty string.
                 var row = new HudResourceRow(
                     resource.Resource,
                     UiText.Get(resource.Resource.ToString().ToLowerInvariant()),
@@ -154,6 +159,95 @@ public partial class CitySummaryPanel : PanelContainer
         }
 
         ReapplyAccent(_content);
+    }
+
+    /// <summary>
+    /// Composes the truthful STATUS section from authoritative snapshot
+    /// fields. Each metric answers a different question; warnings only
+    /// appear where domain meaning already defines the threshold
+    /// (food exhaustion, harvest missing that threshold, housing at
+    /// capacity).
+    /// </summary>
+    private void BuildStatusSection(CityStatusSnapshot snapshot)
+    {
+        // 1. Food horizon — warning if less than one day of rations remains.
+        var foodRow = new HudMetricRow(
+            UiText.Get("ui.city_summary.status_food_horizon"),
+            UiText.Format(
+                "ui.city_summary.food_horizon_format", snapshot.FoodHorizonDays),
+            FoodCriticalGlyph(snapshot));
+        if (snapshot.FoodHorizonDays < 1)
+        {
+            foodRow.TooltipText = UiText.Get("ui.city_summary.tooltip_food_critical");
+        }
+        _content.AddChild(foodRow);
+
+        // 2. Citizens currently contributing at a worksite.
+        _content.AddChild(new HudMetricRow(
+            UiText.Get("ui.city_summary.status_citizens_work"),
+            snapshot.CitizensAtWork.ToString(CultureInfo.InvariantCulture)));
+
+        // 3. Citizens currently at home (resting / available).
+        _content.AddChild(new HudMetricRow(
+            UiText.Get("ui.city_summary.status_citizens_home"),
+            snapshot.CitizensAtHome.ToString(CultureInfo.InvariantCulture)));
+
+        // 4. Time until the first crop harvest — warning if it lands
+        // after the food runs out.
+        var harvestRow = new HudMetricRow(
+            UiText.Get("ui.city_summary.status_next_harvest"),
+            FormatHarvest(snapshot),
+            HarvestLateGlyph(snapshot));
+        if (HarvestIsLate(snapshot))
+        {
+            harvestRow.TooltipText = UiText.Get("ui.city_summary.tooltip_harvest_late");
+        }
+        _content.AddChild(harvestRow);
+
+        // 5. Whether the workday rules currently apply.
+        _content.AddChild(new HudMetricRow(
+            UiText.Get("ui.city_summary.status_labor"),
+            UiText.Get(snapshot.IsLaborTime
+                ? "ui.city_summary.labor_active"
+                : "ui.city_summary.labor_paused")));
+
+        // Housing bar at the end of the section — a single visual cue for
+        // capacity, complementary to the text rows above. Empty cities
+        // (HousingCapacity == 0) skip it entirely.
+        if (snapshot.HousingCapacity > 0)
+        {
+            _content.AddChild(new HudProgressBar(
+                (double)snapshot.CitizenCount / snapshot.HousingCapacity));
+        }
+    }
+
+    private static string FoodCriticalGlyph(CityStatusSnapshot snapshot) =>
+        snapshot.FoodHorizonDays < 1 ? IconPaths.Warning : "";
+
+    private static string HarvestLateGlyph(CityStatusSnapshot snapshot) =>
+        HarvestIsLate(snapshot) ? IconPaths.Warning : "";
+
+    private static bool HarvestIsLate(CityStatusSnapshot snapshot)
+    {
+        if (snapshot.TicksUntilFirstHarvest is not int ticks) return false;
+        int foodRunsOutAt = snapshot.FoodHorizonDays * GameClock.TicksPerInGameDay;
+        return ticks > foodRunsOutAt;
+    }
+
+    private static string FormatHarvest(CityStatusSnapshot snapshot)
+    {
+        if (snapshot.TicksUntilFirstHarvest is not int ticks)
+        {
+            return UiText.Get("ui.city_summary.no_next_harvest");
+        }
+        int days = ticks / GameClock.TicksPerInGameDay;
+        int hours = ticks * 24 / GameClock.TicksPerInGameDay % 24;
+        return UiText.Format("ui.city_summary.harvest_format", days, hours);
+    }
+
+    private static IEnumerable<ResourceInventoryItem> SequenceResources(CityStatusSnapshot snapshot)
+    {
+        return ResourcePriority.Prioritize(snapshot.Resources);
     }
 
     private void BuildIdentity(CityStatusSnapshot snapshot, string lineage)
@@ -231,6 +325,8 @@ public partial class CitySummaryPanel : PanelContainer
     private void OnStateChanged(int _) => Refresh(_controller.GetCityStatusSnapshot());
 
     private void OnLineageChanged(string _) => Refresh(_controller.GetCityStatusSnapshot());
+
+    private void OnLocaleChanged(string _) => Refresh(_controller.GetCityStatusSnapshot());
 
     private static void ReapplyAccent(Node root)
     {

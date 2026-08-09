@@ -541,6 +541,12 @@ msgstr "Stored: {0}"
 msgid "ui.status.resource_reserved"
 msgstr "Reserved: {0}"
 
+msgid "ui.status.resource_overflow_label"
+msgstr "More resources"
+
+msgid "ui.status.resource_overflow_line"
+msgstr "{0} — {1}"
+
 msgid "ui.status.population"
 msgstr "Population: {0}"
 
@@ -588,6 +594,69 @@ msgstr "{0}\nProgress: {1}/{2}\nState: {3}"
 
 msgid "ui.city_summary.inspector_fixture_detail"
 msgstr "Selected citizen · available at home"
+
+msgid "ui.city_summary.paused"
+msgstr "Paused by the player"
+
+msgid "ui.city_summary.waiting_contributors"
+msgstr "Waiting for contributors"
+
+msgid "ui.city_summary.contributor_travelling"
+msgstr "Contributor travelling to the site"
+
+msgid "ui.city_summary.contributors_exhausted"
+msgstr "Waiting: contributors exhausted"
+
+msgid "ui.city_summary.resting_night"
+msgstr "Resting during the night"
+
+msgid "ui.city_summary.completed"
+msgstr "Completed"
+
+msgid "ui.city_summary.awaiting_module"
+msgstr "Awaiting next Founding Site module"
+
+msgid "ui.city_summary.no_hero"
+msgstr "No hero available"
+
+msgid "ui.city_summary.status_food_horizon"
+msgstr "Food horizon"
+
+msgid "ui.city_summary.status_citizens_work"
+msgstr "At work"
+
+msgid "ui.city_summary.status_citizens_home"
+msgstr "At home"
+
+msgid "ui.city_summary.status_next_harvest"
+msgstr "Next harvest"
+
+msgid "ui.city_summary.status_labor"
+msgstr "Labor"
+
+msgid "ui.city_summary.labor_active"
+msgstr "Active"
+
+msgid "ui.city_summary.labor_paused"
+msgstr "Off-hours"
+
+msgid "ui.city_summary.food_horizon_format"
+msgstr "{0} days"
+
+msgid "ui.city_summary.harvest_format"
+msgstr "{0}d {1}h"
+
+msgid "ui.city_summary.no_next_harvest"
+msgstr "—"
+
+msgid "ui.city_summary.tooltip_food_critical"
+msgstr "Less than one day of rations remaining."
+
+msgid "ui.city_summary.tooltip_harvest_late"
+msgstr "Next harvest arrives after the food runs out."
+
+msgid "ui.city_summary.tooltip_housing_full"
+msgstr "Every bed is occupied."
 
 msgid "ui.citizens.debug_context"
 msgstr "Debug — activity: {0} · context: {1} · blocker: {2}\nWorkplace: {3} · Shelter: {4}\nStarted: {5} · expected: {6} · next: {7}\nLast simulation processing: {8}"

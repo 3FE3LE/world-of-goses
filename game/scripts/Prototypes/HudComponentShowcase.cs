@@ -244,6 +244,138 @@ public partial class HudComponentShowcase : Control
         return button;
     }
 
+    /// <summary>
+    /// Every <see cref="ResourceType"/> in canonical priority order, with the
+    /// silhouette next to a small quantity and a large quantity. The two
+    /// amount columns exercise both the natural and the compact
+    /// (<see cref="CompactNumber"/>) presentations so a reviewer can confirm
+    /// the formatter triggers at the documented thresholds (1.0K, 1.0M).
+    /// </summary>
+    private static Control BuildResourceCatalog()
+    {
+        var stack = Stack(Tokens.SpacingTight);
+
+        // Header row so the columns are unambiguous in the captured frame.
+        var header = new HBoxContainer();
+        header.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        header.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        header.AddChild(BuildCatalogHeaderCell("ICON", Tokens.IconInline + Tokens.SpacingBase));
+        header.AddChild(BuildCatalogHeaderCell("NAME", 0, expand: true));
+        header.AddChild(BuildCatalogHeaderCell("SMALL", 56));
+        header.AddChild(BuildCatalogHeaderCell("LARGE", 64));
+        stack.AddChild(header);
+
+        foreach (ResourceType resource in ResourcePriority.Sequence)
+        {
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+            row.MouseFilter = MouseFilterEnum.Ignore;
+            // Reserve the 24 px icon cell so every glyph sits in the same
+            // 24 px column — the silhouettes are comparable at a glance.
+            var iconCell = new MarginContainer
+            {
+                CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.HudRowHeight),
+                MouseFilter = MouseFilterEnum.Ignore,
+                SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            };
+            iconCell.AddThemeConstantOverride("margin_top", 1);
+            var icon = new ResourceIcon(resource)
+            {
+                CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+                SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            };
+            iconCell.AddChild(icon);
+            row.AddChild(iconCell);
+
+            row.AddChild(new Label
+            {
+                Text = resource.ToString(),
+                ThemeTypeVariation = "HudBody",
+                VerticalAlignment = VerticalAlignment.Center,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+            row.AddChild(new Label
+            {
+                Text = CompactNumber.Format(CatalogSmallAmount(resource)),
+                ThemeTypeVariation = "HudNumeric",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                CustomMinimumSize = new Vector2(56, 0),
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+            row.AddChild(new Label
+            {
+                Text = CompactNumber.Format(CatalogLargeAmount(resource)),
+                ThemeTypeVariation = "HudNumeric",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                CustomMinimumSize = new Vector2(64, 0),
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+            stack.AddChild(row);
+        }
+        return stack;
+    }
+
+    private static Control BuildCatalogHeaderCell(
+        string text,
+        float minWidth,
+        bool expand = false)
+    {
+        var label = new Label
+        {
+            Text = text,
+            ThemeTypeVariation = "HudCaption",
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = expand
+                ? HorizontalAlignment.Left
+                : HorizontalAlignment.Right,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        if (expand) label.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        if (minWidth > 0) label.CustomMinimumSize = new Vector2(minWidth, 0);
+        return label;
+    }
+
+    /// <summary>
+    /// A small but distinctive per-resource value used by the catalog
+    /// sample. Hard-coded so each row reads differently even though the
+    /// formatter also sees a real <see cref="int"/>.
+    /// </summary>
+    private static int CatalogSmallAmount(ResourceType resource) => resource switch
+    {
+        ResourceType.Food => 28,
+        ResourceType.WildFood => 12,
+        ResourceType.Wood => 47,
+        ResourceType.Stone => 19,
+        ResourceType.Branches => 6,
+        ResourceType.PlantFiber => 9,
+        ResourceType.SmallStone => 14,
+        ResourceType.Iron => 3,
+        ResourceType.Potions => 2,
+        _ => 1,
+    };
+
+    /// <summary>
+    /// A large value chosen so the compact formatter triggers on at least
+    /// one of the K / M thresholds, letting the reviewer confirm the
+    /// formatter in a single pass.
+    /// </summary>
+    private static int CatalogLargeAmount(ResourceType resource) => resource switch
+    {
+        ResourceType.Food => 1_240,       // → 1.2K
+        ResourceType.Wood => 18_400,      // → 18.4K
+        ResourceType.Stone => 999,        // → 999 (natural)
+        ResourceType.Branches => 4_560,   // → 4.6K
+        ResourceType.PlantFiber => 870,   // → 870
+        ResourceType.SmallStone => 3_200, // → 3.2K
+        ResourceType.Iron => 1_120_000,   // → 1.1M
+        ResourceType.Potions => 42,       // → 42
+        ResourceType.WildFood => 96,      // → 96
+        _ => 1,
+    };
+
     /// <summary>The rows that carry values, plus the compact type scale itself.</summary>
     private static Control BuildDataColumn()
     {
@@ -259,12 +391,19 @@ public partial class HudComponentShowcase : Control
         city.AddChild(new HudProgressBar(0.42, showPercent: false));
         column.AddChild(Surface("HudSurface", city));
 
-        var stock = Stack();
-        stock.AddChild(new HudSectionHeader("RECURSOS"));
-        stock.AddChild(new HudResourceRow(IconPaths.Leaf, "Alimentos", "1320", "+28"));
-        stock.AddChild(new HudResourceRow(IconPaths.Tree, "Madera", "860", "+16"));
-        stock.AddChild(new HudResourceRow(IconPaths.Coin, "Metal", "210", "-6"));
-        column.AddChild(Surface("HudSurface", stock));
+        // The full resource catalog: every ResourceType that can appear in
+        // the icon-only HUD ticker, in canonical priority order, with the
+        // exact silhouette alongside its compact and large-quantity
+        // presentations. Silhouette collisions are visible at a glance:
+        // Stone≠SmallStone, Food≠WildFood, Wood≠Branches, Iron≠Potions, and
+        // so on. A reviewer should be able to confirm the unique
+        // silhouettes in a single pass.
+        column.AddChild(new HudSectionHeader("RESOURCE CATALOG", "9"));
+        column.AddChild(Surface("HudSurface", BuildResourceCatalog()));
+        column.AddChild(Caption(
+            "Every ResourceType, in priority order. The first column is the "
+            + "real silhouette, the second is a small-tick amount, the third "
+            + "is a large amount that crosses into the compact K/M formatter."));
 
         var construction = Stack();
         construction.AddChild(new HudSectionHeader("CONSTRUCTION", "1"));
