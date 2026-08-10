@@ -32,6 +32,7 @@ public partial class CityWorldController : Node
     private int _frameTimeSamplesEmitted;
     private bool _onboardingCompletionPending;
     private bool _suppressPersistenceWrites;
+    private Selection _currentSelection = Selection.MacroView;
 
     [Signal]
     public delegate void SelectionChangedEventHandler(int selectionState);
@@ -129,22 +130,21 @@ public partial class CityWorldController : Node
     /// <summary>
     /// Discrete speed choices the player can pick from the status
     /// panel. The numeric value is the multiplier applied to the
-    /// default tick interval (1.0 s). <see cref="SpeedChoice.Paused"/>
-    /// uses a sentinel of zero so the advance loop stops ticking.
+    /// default tick interval (1.0 s). The world always runs; the
+    /// player can speed it up but cannot pause it (the city keeps
+    /// advancing while the game is closed, per the design bible's
+    /// persistence chapter).
     /// </summary>
     public enum SpeedChoice
     {
-        Paused = 0,
         Normal = 1,
         Fast = 2,
         Fastest = 4,
     }
 
     private SpeedChoice _speed = SpeedChoice.Normal;
-    private SpeedChoice _lastRunningSpeed = SpeedChoice.Normal;
 
     public SpeedChoice CurrentSpeed => _speed;
-    public SpeedChoice LastRunningSpeed => _lastRunningSpeed;
     public CitizenId? ObservedCitizenId =>
         _observedCitizenId is CitizenId selected && _world.GetCitizen(selected) is not null
             ? selected
@@ -152,39 +152,24 @@ public partial class CityWorldController : Node
 
     /// <summary>
     /// Switches the simulation speed and adjusts
-    /// <see cref="SimulationTickIntervalSeconds"/> accordingly. A
-    /// value of <see cref="SpeedChoice.Paused"/> halts the world
-    /// entirely until the player resumes. The change is broadcast via
-    /// <see cref="SimulationSpeedChanged"/> so listeners can refresh.
+    /// <see cref="SimulationTickIntervalSeconds"/> accordingly. The
+    /// world always runs; the player can only speed it up. The change
+    /// is broadcast via <see cref="SimulationSpeedChanged"/> so
+    /// listeners can refresh.
     /// </summary>
     public void SetSimulationSpeed(SpeedChoice speed)
     {
-        if (speed is not SpeedChoice.Paused
-            and not SpeedChoice.Normal
+        if (speed is not SpeedChoice.Normal
             and not SpeedChoice.Fast
             and not SpeedChoice.Fastest)
         {
             throw new ArgumentOutOfRangeException(nameof(speed), speed, "Unsupported simulation speed.");
         }
 
-        SpeedChoice previous = _speed;
         _speed = speed;
-        if (speed != SpeedChoice.Paused) _lastRunningSpeed = speed;
-        SimulationTickIntervalSeconds = speed switch
-        {
-            SpeedChoice.Paused => 0,
-            _ => 1.0 / (int)speed,
-        };
-        if (speed == SpeedChoice.Paused) _simulationTimer = 0;
+        SimulationTickIntervalSeconds = 1.0 / (int)speed;
         EmitSignal(SignalName.SimulationSpeedChanged, (int)speed);
-        if (speed == SpeedChoice.Paused && previous != SpeedChoice.Paused)
-        {
-            TryAutoSave();
-        }
     }
-
-    public void ToggleSimulationPause() =>
-        SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused);
 
     public enum Selection
     {
@@ -196,6 +181,15 @@ public partial class CityWorldController : Node
     public CityWorld World => _world;
 
     public OfflineProgressionReport? LastOfflineReport { get; private set; }
+
+    /// <summary>
+    /// The current top-level view selection (macro, building detail, or
+    /// hero profile). Updated by the selection transition methods and
+    /// exposed so input handlers (notably the pause menu's ESC
+    /// handler) can branch on whether the macro view is active without
+    /// subscribing to the SelectionChanged signal.
+    /// </summary>
+    public Selection CurrentSelection => _currentSelection;
 
     /// <summary>
     /// Toggle for the persistence layer. Enabled by default now that
@@ -479,19 +473,24 @@ public partial class CityWorldController : Node
     public bool SelectBuilding(BuildingId buildingId)
     {
         if (_world.GetBuilding(buildingId) is null) return false;
+        _currentSelection = Selection.BuildingDetail;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.BuildingDetail);
         EmitSignal(SignalName.BuildingSelected, buildingId.Value);
         EmitSignal(SignalName.BuildingStateChanged, buildingId.Value);
         return true;
     }
 
-    public void ReturnToCity() =>
+    public void ReturnToCity()
+    {
+        _currentSelection = Selection.MacroView;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.MacroView);
+    }
 
     public bool SelectHero()
     {
         if (_world.Hero is null) return false;
         SelectCitizenForObservation(_world.Hero.Id);
+        _currentSelection = Selection.HeroProfile;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.HeroProfile);
         return true;
     }

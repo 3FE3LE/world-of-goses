@@ -21,11 +21,12 @@ public partial class ExpeditionRail : PanelContainer
     private ExpeditionPanel _expeditionPanel = null!;
     private LocaleManager _localeManager = null!;
     private CollapsiblePanelHeader _header = null!;
-    private VBoxContainer _body = null!;
+    private VBoxContainer _layout = null!;
+    private VBoxContainer _expeditionSection = null!;
+    private ScrollContainer _scroll = null!;
     private VBoxContainer _content = null!;
     private VBoxContainer _expeditionContent = null!;
     private ChroniclePanel _chronicle = null!;
-    private ScrollContainer _scroll = null!;
     private readonly List<Control> _focusables = new();
     private ExpeditionRailSnapshot _snapshot = null!;
     private int _pendingFocusIndex = -1;
@@ -33,15 +34,17 @@ public partial class ExpeditionRail : PanelContainer
     private bool _visualRegressionFixtureActive;
     public IconButton? FirstDetailsButton { get; private set; }
     public IconButton? FirstCancelButton { get; private set; }
-    public IconButton MoreButton => _chronicle.ToggleButton;
+    public Button MoreButton => _chronicle.Header;
     public bool ChronicleExpanded => _chronicle.Expanded;
     public ExpeditionId? FirstExpeditionId { get; private set; }
 
     /// <summary>
-    /// Whether the whole rail is folded. Ephemeral: the rail is a HUD
-    /// surface and the player's fold preference belongs to the session,
-    /// not to the save. The chronicle owns its own internal toggle for
-    /// compact-vs-full and is unaffected by this flag.
+    /// Whether the rail body is unfolded. Folding the rail also folds
+    /// the chronicle — its body disappears too, so the rail falls back
+    /// to a slim resume (rail header + chronicle header, two chevron
+    /// toggles, no rows). The chronicle's own collapse lives on its
+    /// own header, independent of this flag, so a fully-opened rail can
+    /// still have its chronicle folded like the city summary.
     /// </summary>
     public bool Expanded => _header is null || _header.Expanded;
 
@@ -49,34 +52,47 @@ public partial class ExpeditionRail : PanelContainer
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
         MouseFilter = MouseFilterEnum.Stop;
+        // ExpandFill vertical so the rail always claims the full
+        // vertical space between the status bar and the dock. Without
+        // it the PanelContainer collapses to the combined-minimum of
+        // its children (ShrinkBegin default) — when the chronicle body
+        // hides, that minimum shrinks to header-only and the rail
+        // panel itself drops to 80 px, hiding the expedition scroll
+        // inside an empty rail.
+        SizeFlagsVertical = SizeFlags.ExpandFill;
         _controller = GetNode<CityWorldController>(ControllerPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
 
-        // The whole rail is a VBox with the CollapsiblePanelHeader on top
-        // and the scrollable body underneath. Hiding the body is what
-        // collapses the rail; the chronicle's internal toggle continues
-        // to work independently inside the body when the body is shown.
+        // The rail body wraps the expedition section and the chronicle
+        // under a single rail-level header. Both the expedition cards
+        // and the chronicle's rows live below it; the chronicle has
+        // its own collapsible header so a player can fold it the same
+        // way they fold the city summary, while the rail-level header
+        // folds the whole body together — including the chronicle's
+        // body, so a folded rail is just two stacked headers.
         var layout = new VBoxContainer
         {
             MouseFilter = MouseFilterEnum.Pass,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         layout.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        AddChild(layout);
+        _layout = layout;
+        AddChild(_layout);
 
         _header = new CollapsiblePanelHeader(UiText.Get("ui.expedition_rail.title"));
-        _header.ExpandedChanged += expanded => _body.Visible = expanded;
-        layout.AddChild(_header);
+        _layout.AddChild(_header);
 
-        _body = new VBoxContainer
+        _expeditionSection = new VBoxContainer
         {
+            Name = "ExpeditionSection",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Pass,
         };
-        _body.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        layout.AddChild(_body);
+        _expeditionSection.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+        _layout.AddChild(_expeditionSection);
+        _header.ExpandedChanged += OnHeaderExpandedChanged;
 
         _scroll = new ScrollContainer
         {
@@ -87,7 +103,7 @@ public partial class ExpeditionRail : PanelContainer
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         _scroll.GuiInput += OnScrollGuiInput;
-        _body.AddChild(_scroll);
+        _layout.AddChild(_scroll);
 
         _content = new VBoxContainer
         {
@@ -107,13 +123,17 @@ public partial class ExpeditionRail : PanelContainer
         _expeditionContent.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         _content.AddChild(_expeditionContent);
 
+        // Chronicle sits as a direct child of the layout, below the
+        // rail-level scroll, so its own bounded rows scroll stays
+        // independent of the expedition section's overflow. Its own
+        // collapsible header governs the body exactly the way
+        // CitySummaryPanel governs its body — the player can fold the
+        // chronicle even when the rail is open.
         _chronicle = new ChroniclePanel();
         _chronicle.SetController(_controller);
         _chronicle.ExpandedChanged += OnChronicleExpanded;
         _chronicle.FocusablesChanged += OnChronicleFocusablesChanged;
-        _chronicle.ScrollToNewestRequested += RequestScrollToNewest;
-        _chronicle.ScrollToStartRequested += RequestScrollToStart;
-        _content.AddChild(_chronicle);
+        _layout.AddChild(_chronicle);
 
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
@@ -152,8 +172,6 @@ public partial class ExpeditionRail : PanelContainer
         {
             _chronicle.ExpandedChanged -= OnChronicleExpanded;
             _chronicle.FocusablesChanged -= OnChronicleFocusablesChanged;
-            _chronicle.ScrollToNewestRequested -= RequestScrollToNewest;
-            _chronicle.ScrollToStartRequested -= RequestScrollToStart;
         }
     }
 
@@ -164,6 +182,16 @@ public partial class ExpeditionRail : PanelContainer
             || !mouse.Pressed
             || mouse.ButtonIndex is not MouseButton.WheelUp and not MouseButton.WheelDown
             || !GetGlobalRect().HasPoint(mouse.GlobalPosition))
+        {
+            return;
+        }
+        // The chronicle sits below the rail-level scroll and owns its
+        // own bounded rows scroll. Letting the rail intercept the wheel
+        // here would scroll the wrong surface — the expedition cards
+        // instead of the chronicle the pointer is actually over.
+        if (_chronicle is not null
+            && _chronicle.Visible
+            && _chronicle.GetGlobalRect().HasPoint(mouse.GlobalPosition))
         {
             return;
         }
@@ -239,14 +267,11 @@ public partial class ExpeditionRail : PanelContainer
         FirstCancelButton = null;
         FirstExpeditionId = null;
 
-        // Header trailing count: active expeditions when there are any,
-        // otherwise the chronicle's compacted visible row count so the
-        // header still signals "there is something to read" when the
-        // city is quiet but the chronicle has history.
-        int headerCount = _snapshot.ActiveExpeditions.Count > 0
-            ? _snapshot.ActiveExpeditions.Count
-            : ChronicleEventProjection.Compact(
-                ChronicleEventProjection.MeaningfulEvents(_snapshot.Events)).Count;
+        // Header trailing count: only active expeditions. The chronicle
+        // has its own count badge in its own collapsible header — the
+        // rail toggler must never report chronicle events under its
+        // own label, otherwise the two badges bleed into each other.
+        int headerCount = _snapshot.ActiveExpeditions.Count;
         _header.Text = UiText.Format(
             "ui.expedition_rail.header",
             headerCount.ToString());
@@ -276,13 +301,7 @@ public partial class ExpeditionRail : PanelContainer
             }
         }
 
-        _expeditionContent.AddChild(new HSeparator
-        {
-            ThemeTypeVariation = "HudSeparator",
-            MouseFilter = MouseFilterEnum.Ignore,
-        });
         _chronicle.RefreshLive(_snapshot.Events);
-        _expeditionContent.Visible = !_chronicle.Expanded;
         _rebuilding = false;
         RebuildFocusables();
     }
@@ -305,11 +324,67 @@ public partial class ExpeditionRail : PanelContainer
         Refresh();
     }
 
+    /// <summary>
+    /// The rail-level header governs the expedition section: clicking
+    /// it expands the expedition scroll. The accordion rule keeps the
+    /// rail and the chronicle mutually exclusive — when the expedition
+    /// becomes the protagonist, the chronicle body folds out and the
+    /// two surfaces never compete for the same column at the same
+    /// time.
+    /// </summary>
+    private void OnHeaderExpandedChanged(bool expanded)
+    {
+        if (expanded)
+        {
+            // Accordion: when expedition expands, chronicle folds.
+            _chronicle.Expanded = false;
+        }
+        _expeditionSection.Visible = expanded;
+        _scroll.Visible = expanded;
+        // The Container caches its children's minimum sizes; the next
+        // frame's QueueSort re-measures so the body actually collapses
+        // to header-only instead of staying at its expanded rect.
+        if (IsInsideTree()) CallDeferred(MethodName.RequestRailRelayout);
+        RebuildFocusables();
+    }
+
+    /// <summary>
+    /// The chronicle header is the other half of the accordion. When
+    /// it expands, the expedition section folds out so the chronicle
+    /// takes the whole rail column — no overlap, no fighting for
+    /// pixels, no need to re-distribute a vertical layout that was
+    /// trying to fit both at once.
+    /// </summary>
     private void OnChronicleExpanded(bool expanded)
     {
-        _expeditionContent.Visible = !expanded;
+        if (expanded)
+        {
+            // Accordion: when chronicle expands, expedition folds.
+            // Also collapse the rail header so its chevron matches
+            // the now-hidden scroll.
+            _expeditionSection.Visible = false;
+            _scroll.Visible = false;
+            _header.Expanded = false;
+        }
         RebuildFocusables();
-        if (expanded) RequestScrollToNewest();
+        if (expanded) _chronicle.ScrollToNewest();
+        if (IsInsideTree()) CallDeferred(MethodName.RequestRailRelayout);
+    }
+
+    private void RequestRailRelayout()
+    {
+        if (_layout is null || !IsInsideTree()) return;
+        // Invalidate cached minimum sizes so the layout does not hand
+        // children back their pre-toggle rect. QueueSort then re-sorts
+        // and ResetSize forces each Container to re-ask its parent for
+        // a rect based on the new minimum.
+        _layout.UpdateMinimumSize();
+        if (_chronicle is not null) _chronicle.UpdateMinimumSize();
+        _layout.QueueSort();
+        if (_chronicle is not null) _chronicle.QueueSort();
+        ResetSize();
+        if (_scroll is not null) _scroll.ResetSize();
+        if (_chronicle is not null) _chronicle.ResetSize();
     }
 
     private void OnChronicleFocusablesChanged()
@@ -320,27 +395,12 @@ public partial class ExpeditionRail : PanelContainer
     private void RebuildFocusables()
     {
         _focusables.Clear();
-        if (!_chronicle.Expanded)
-        {
-            if (FirstDetailsButton is not null) _focusables.Add(FirstDetailsButton);
-            if (FirstCancelButton is not null) _focusables.Add(FirstCancelButton);
-        }
+        if (Expanded && FirstDetailsButton is not null) _focusables.Add(FirstDetailsButton);
+        if (Expanded && FirstCancelButton is not null) _focusables.Add(FirstCancelButton);
         foreach (Control control in _chronicle.Focusables) _focusables.Add(control);
         CallDeferred(MethodName.WireFocus);
         if (_pendingFocusIndex >= 0) CallDeferred(MethodName.RestorePendingFocus);
     }
-
-    private void RequestScrollToNewest() => CallDeferred(MethodName.ScrollToNewest);
-
-    private void RequestScrollToStart() => CallDeferred(MethodName.ScrollToStart);
-
-    private void ScrollToNewest()
-    {
-        VScrollBar bar = _scroll.GetVScrollBar();
-        bar.Value = bar.MaxValue;
-    }
-
-    private void ScrollToStart() => _scroll.GetVScrollBar().Value = 0d;
 
     private void WireFocus()
     {

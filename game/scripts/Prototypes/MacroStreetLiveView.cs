@@ -185,7 +185,6 @@ public partial class MacroStreetLiveView : Node2D
     /// buttons, so moving a button inside it no longer breaks the world view.
     /// </summary>
     [Export] public NodePath PrimaryNavDockPath { get; set; } = "../PrimaryNavDock";
-    [Export] public NodePath SimulationControlsPath { get; set; } = "../SimulationControls";
     [Export] public NodePath CitySummaryPanelPath { get; set; } = "../CitySummaryPanel";
     [Export] public NodePath ExpeditionRailPath { get; set; } = "../ExpeditionRail";
     /// <summary>
@@ -214,7 +213,6 @@ public partial class MacroStreetLiveView : Node2D
     private MigrantPanel _citizensPanel = null!;
     private ModalHost _modalHost = null!;
     private PrimaryNavDock _primaryNavDock = null!;
-    private SimulationControls _simulationControls = null!;
     private CitySummaryPanel _citySummaryPanel = null!;
     private ExpeditionRail _expeditionRail = null!;
     private BuildingDetailView _buildingDetailView = null!;
@@ -431,7 +429,6 @@ public partial class MacroStreetLiveView : Node2D
         _citizensPanel = GetNode<MigrantPanel>(CitizensPanelPath);
         _modalHost = GetNode<ModalHost>(ModalHostPath);
         _primaryNavDock = GetNode<PrimaryNavDock>(PrimaryNavDockPath);
-        _simulationControls = GetNode<SimulationControls>(SimulationControlsPath);
         _citySummaryPanel = GetNode<CitySummaryPanel>(CitySummaryPanelPath);
         _expeditionRail = GetNode<ExpeditionRail>(ExpeditionRailPath);
         _contextInspector = GetNode<ContextInspector>(ContextInspectorPath);
@@ -443,6 +440,7 @@ public partial class MacroStreetLiveView : Node2D
         _citizensButton = _primaryNavDock.CitizensButton;
         _cameraModeButton = _statusPanel.CameraButton;
         _statusPanel.MenuButton.Pressed += OnUtilityClusterMenuPressed;
+        _statusPanel.SpeedButton.AttachController(_controller);
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
@@ -682,14 +680,12 @@ public partial class MacroStreetLiveView : Node2D
     {
         _citySummaryPanel.Show();
         _expeditionRail.Show();
-        _simulationControls.Show();
     }
 
     private void HideMacroHudSurfaces()
     {
         _citySummaryPanel.Hide();
         _expeditionRail.Hide();
-        _simulationControls.Hide();
     }
 
     /// <summary>
@@ -731,12 +727,14 @@ public partial class MacroStreetLiveView : Node2D
     private void OnExpeditionMenuPressed()
     {
         ClearWorldStatusHover();
-        if (_modalHost.IsOpen && _modalHost.Content == _expeditionPanel)
+        if (_modalHost.IsOpen)
         {
-            _expeditionPanel.Close();
-            return;
+            _modalHost.Close();
         }
-        _expeditionPanel.Open();
+        else
+        {
+            _expeditionPanel.Open();
+        }
         UpdatePrimaryNavigationState();
     }
 
@@ -765,12 +763,14 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (!Visible) return;
         ClearWorldStatusHover();
-        if (_modalHost.IsOpen && _modalHost.Content == _policiesPanel)
+        if (_modalHost.IsOpen)
         {
             _modalHost.Close();
-            return;
         }
-        _policiesPanel.Open();
+        else
+        {
+            _policiesPanel.Open();
+        }
         UpdatePrimaryNavigationState();
     }
 
@@ -778,12 +778,14 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (!Visible) return;
         ClearWorldStatusHover();
-        if (_modalHost.IsOpen && _modalHost.Content == _citizensPanel)
+        if (_modalHost.IsOpen)
         {
             _modalHost.Close();
-            return;
         }
-        _citizensPanel.Open();
+        else
+        {
+            _citizensPanel.Open();
+        }
         UpdatePrimaryNavigationState();
     }
 

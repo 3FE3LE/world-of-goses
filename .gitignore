@@ -106,6 +106,20 @@ keystore.properties
 # frame, which lives under docs/session-state/ and stays tracked.
 /art/review/
 
+# Same rule, second output location: Capture-VisualMatrix.ps1 also writes named
+# fixture runs (png + godot.log + frame-time.json) here. The dated session frame
+# that IS permanent history sits directly under docs/session-state/, not in this
+# subdirectory, so it stays tracked.
+/docs/session-state/captures/
+
+# ── Audio masters ───────────────────────────────────────────────────────────
+# Mastered soundtrack renders (.wav) and their Peak/waveform sidecars (.pkf) are
+# multi-gigabyte binaries with no diffable content. Git has no LFS configured in
+# this repository, so committing them would bloat history irreversibly. They stay
+# local until an asset-storage decision is made; only game-ready imports under
+# game/assets/ belong in the repository.
+/audio/
+
 # ── Logs ────────────────────────────────────────────────────────────────────
 *.log
 logs/

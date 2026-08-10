@@ -27,7 +27,6 @@
 [ext_resource type="Script" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
 [ext_resource type="Script" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
 [ext_resource type="Script" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
-[ext_resource type="Script" path="res://scripts/SimulationControls.cs" id="37_simcontrols"]
 [ext_resource type="Script" uid="uid://dexpeditionrail06" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
@@ -274,7 +273,7 @@ anchor_bottom = 1.0
 offset_left = -244.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = -104.0
+offset_bottom = -8.0
 grow_horizontal = 0
 mouse_filter = 0
 theme_type_variation = &"HudSurface"
@@ -351,25 +350,6 @@ text = "Citizens"
 script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/users.svg"
 ButtonText = "Citizens"
-
-[node name="SimulationControls" type="PanelContainer" parent="GameUiShell/ScreenContent"]
-visible = false
-custom_minimum_size = Vector2(76, 32)
-layout_mode = 1
-anchors_preset = 3
-anchor_left = 1.0
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -92.0
-offset_top = -48.0
-offset_right = -16.0
-offset_bottom = -16.0
-grow_horizontal = 0
-grow_vertical = 0
-mouse_filter = 0
-theme_type_variation = &"HudDock"
-script = ExtResource("37_simcontrols")
 
 [node name="HeroProfileView" parent="GameUiShell/ScreenContent" unique_id=1241989877 instance=ExtResource("11_profile")]
 layout_mode = 1

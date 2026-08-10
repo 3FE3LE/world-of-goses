@@ -17,6 +17,41 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## El mundo ya no se puede pausar, y los controles sueltos vuelven a la barra de estado
+
+**2026-08-10** · schema v32 (sin cambio) · presentación
+
+Lo que se nota: la superficie flotante de abajo a la derecha
+(`SimulationControls`, con su botón de play/pausa) ha desaparecido. El
+control de velocidad vive ahora en el *utility cluster* del borde
+derecho de la barra de estado, junto a Cámara y Menú, compartiendo el
+mismo cromo de dock en vez de flotar solo en una esquina. Sigue
+ciclando las tres velocidades (1× → 2× → 4× → 1×) con el mismo
+apilado de iconos de play, ahora centrado con márgenes simétricos.
+
+La pausa se ha eliminado como concepto, no sólo como botón:
+`SpeedChoice.Paused` ya no existe y el jugador sólo puede acelerar el
+mundo. Es lo coherente con una ciudad que avanza con el juego cerrado
+— un botón que detiene un mundo que de todos modos sigue avanzando
+mientras no miras prometía un control que nunca tuvo.
+
+ESC recupera el gesto estándar de «tecla atrás abre el menú»: con la
+vista macro activa lo abre, con el menú abierto lo cierra (o cierra
+antes la confirmación de reinicio), y con un perfil de héroe o un
+detalle de edificio en pantalla deliberadamente no consume el evento
+para que `CityPrototype` pueda devolver al jugador a la ciudad. El
+menú, además, vuelve a abrirse: su botón estaba suscrito a `Toggle`
+dos veces —una aquí y otra desde la vista macro—, así que cada clic lo
+abría y lo cerraba en el mismo fotograma.
+
+Baseline medido: build correcto, 1114 pruebas superadas y 1 omitida
+sobre 1115, `HudCompositionTests` en 51/51. Los másters de audio
+(`audio/`, 4 GB de `.wav` y `.pkf`) y las capturas de regresión visual
+(`docs/session-state/captures/`) pasan a estar ignorados: el
+repositorio no tiene LFS configurado y esos binarios no se diffean.
+
+---
+
 ## La barra superior distingue cada recurso y ya no se queda callada cuando hay más de los que caben
 
 **2026-08-09** · schema v32 (sin cambio) · presentación

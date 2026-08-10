@@ -35,9 +35,10 @@ public partial class CityPrototype : Node
     /// <item>Topmost modal — <see cref="ModalHost"/> is the leafmost
     /// listener and eats the input via <c>SetInputAsHandled</c> when
     /// <c>IsOpen</c>; no further handler runs.</item>
-    /// <item>Pause menu — closes itself when visible; otherwise
-    /// deliberately lets the event propagate instead of opening
-    /// (the pause menu has its own button, see <see cref="PauseMenu"/>).</item>
+    /// <item>Pause menu — closes itself when visible; when hidden and
+    /// the macro view is active, opens itself; when hidden and the
+    /// player is in a hero profile or building detail, deliberately
+    /// lets the event propagate so this handler can run.</item>
     /// <item>Hero profile / building detail — this handler at the
     /// scene root returns to <see cref="CityWorldController.Selection.MacroView"/>
     /// via <see cref="CityWorldController.ReturnToCity"/>.</item>
@@ -51,6 +52,11 @@ public partial class CityPrototype : Node
         if (!@event.IsActionPressed("ui_cancel")) return;
         CityWorldController controller = GetNodeOrNull<CityWorldController>("CityWorldController");
         if (controller is null) return;
+        // The PauseMenu only opens via ESC when the macro view is the
+        // active selection. If the player is in a hero profile or
+        // building detail, PauseMenu lets the input propagate so this
+        // handler can return them to the macro view.
+        if (controller.CurrentSelection == CityWorldController.Selection.MacroView) return;
         controller.ReturnToCity();
         GetViewport().SetInputAsHandled();
     }
@@ -251,9 +257,11 @@ public partial class CityPrototype : Node
                 };
                 break;
             case "simulation-controls-focus":
-                SimulationControls controls = GetNode<SimulationControls>(
-                    "GameUiShell/ScreenContent/SimulationControls");
-                controls.PlayPauseButton.GrabFocus();
+                // Speed control now lives in the status bar's utility
+                // cluster; grab focus on it directly.
+                CityStatusPanel speedPanel = GetNode<CityStatusPanel>(
+                    "GameUiShell/CityStatusPanel");
+                speedPanel.SpeedButton.GrabFocus();
                 Callable.From(() =>
                 {
                     SendRightForVisualRegression();
@@ -406,6 +414,13 @@ public partial class CityPrototype : Node
                 ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
                 CallDeferred(MethodName.ExerciseExpeditionRailFocusForVisualRegression);
                 break;
+            case "expedition-rail-rail-protagonist":
+                // Force the expedition section to be the visible
+                // protagonist so the visual matrix can prove the cards
+                // actually render when the rail accordion opens.
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+                CallDeferred(MethodName.ForceExpeditionRailProtagonistForVisualRegression);
+                break;
             case "expedition-rail-phase-focus":
                 ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
                 CallDeferred(MethodName.ExerciseExpeditionRailPhaseFocusForVisualRegression);
@@ -499,8 +514,6 @@ public partial class CityPrototype : Node
         macro.ShowEarlyGameResourcesForVisualRegression();
         PrimaryNavDock dock = GetNode<PrimaryNavDock>(
             "GameUiShell/ScreenContent/PrimaryNavDock");
-        SimulationControls simulationControls = GetNode<SimulationControls>(
-            "GameUiShell/ScreenContent/SimulationControls");
         CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
             "GameUiShell/CityStatusPanel");
         IconButton button = action switch
@@ -553,11 +566,11 @@ public partial class CityPrototype : Node
     {
         PrimaryNavDock dock = GetNode<PrimaryNavDock>(
             "GameUiShell/ScreenContent/PrimaryNavDock");
-        SimulationControls simulationControls = GetNode<SimulationControls>(
-            "GameUiShell/ScreenContent/SimulationControls");
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
+            "GameUiShell/CityStatusPanel");
         Rect2 dockRect = dock.GetGlobalRect();
         if (dockRect.Size != PrimaryNavDockSize
-            || dockRect.Intersects(simulationControls.GetGlobalRect()))
+            || dockRect.Intersects(statusPanel.GetGlobalRect()))
         {
             GD.PushError(
                 $"Primary navigation geometry is {dockRect}; expected {PrimaryNavDockSize} without "
@@ -647,14 +660,14 @@ public partial class CityPrototype : Node
 
     private void ValidateSimulationControlsFocusForVisualRegression()
     {
-        SimulationControls controls = GetNode<SimulationControls>(
-            "GameUiShell/ScreenContent/SimulationControls");
-        if (GetViewport().GuiGetFocusOwner() != controls.SpeedButton)
+        CityStatusPanel speedPanel = GetNode<CityStatusPanel>(
+            "GameUiShell/CityStatusPanel");
+        if (GetViewport().GuiGetFocusOwner() != speedPanel.SpeedButton)
         {
             Control? owner = GetViewport().GuiGetFocusOwner();
             GD.PushError(
-                "Simulation controls ui_right fixture did not move focus from Play/Pause "
-                + $"to Speed; focus is {owner?.Name ?? "<none>"}.");
+                "Simulation controls ui_right fixture did not move focus to "
+                + $"Speed; focus is {owner?.Name ?? "<none>"}.");
             return;
         }
         GD.Print("[WOG-SIMULATION-FOCUS] ui_right -> Speed OK");
@@ -665,8 +678,6 @@ public partial class CityPrototype : Node
         ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
         PrimaryNavDock dock = GetNode<PrimaryNavDock>(
             "GameUiShell/ScreenContent/PrimaryNavDock");
-        SimulationControls simulationControls = GetNode<SimulationControls>(
-            "GameUiShell/ScreenContent/SimulationControls");
         CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
             "GameUiShell/CityStatusPanel");
         bool passed = action switch
@@ -736,32 +747,30 @@ public partial class CityPrototype : Node
 
     private void ExerciseSimulationPointerForVisualRegression(string action)
     {
+        if (action != "speed")
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(action), action,
+                "Only the 'speed' simulation action remains; pause is gone.");
+        }
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Normal);
-        SimulationControls controls = GetNode<SimulationControls>(
-            "GameUiShell/ScreenContent/SimulationControls");
-        Control target = action switch
-        {
-            "pause" => controls.PlayPauseButton,
-            "speed" => controls.SpeedButton,
-            _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Unknown simulation action."),
-        };
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
+            "GameUiShell/CityStatusPanel");
+        Control target = statusPanel.SpeedButton;
         Callable.From(() =>
         {
             SendPointerClickForVisualRegression(target);
             GetTree().CreateTimer(0.15).Timeout += () =>
             {
-                CityWorldController.SpeedChoice expected = action == "pause"
-                    ? CityWorldController.SpeedChoice.Paused
-                    : CityWorldController.SpeedChoice.Fast;
-                if (controller.CurrentSpeed != expected)
+                if (controller.CurrentSpeed != CityWorldController.SpeedChoice.Fast)
                 {
                     GD.PushError(
-                        $"Simulation {action} pointer fixture expected {expected}, "
+                        $"Simulation speed pointer fixture expected Fast, "
                         + $"got {controller.CurrentSpeed}.");
                     return;
                 }
-                GD.Print($"[WOG-SIMULATION-CLICK] {action} OK");
+                GD.Print("[WOG-SIMULATION-CLICK] speed OK");
             };
         }).CallDeferred();
     }
@@ -2011,6 +2020,38 @@ public partial class CityPrototype : Node
         controller.AdvanceWorldTickForVisualRegression();
         controller.AdvanceWorldTickForVisualRegression();
         CallDeferred(MethodName.DeferExpeditionRailPhaseFocusValidation);
+    }
+
+    /// <summary>
+    /// Programmatically opens the rail header so the expedition
+    /// section is the protagonist of the accordion. Used by the
+    /// visual matrix to verify the cards actually render when the
+    /// rail wins the column.
+    /// </summary>
+    private void ForceExpeditionRailProtagonistForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        // Collapse the chronicle body so the accordion hands the
+        // column back to the expedition scroll, then expand the rail
+        // header so the cards become visible.
+        if (rail.ChronicleExpanded)
+        {
+            // Toggle until collapsed (the chronicle header is the
+            // public surface for its own state).
+            while (rail.ChronicleExpanded)
+            {
+                rail.MoreButton.EmitSignal(Button.SignalName.Pressed);
+            }
+        }
+        // Now force the rail header to expanded. We do this by emitting
+        // the Pressed signal on the rail's header Button (its first
+        // named child), which fires the same path a real click does.
+        Control railHeader = rail.GetNodeOrNull<Control>("VBoxContainer/Header");
+        if (railHeader is Button railButton && !railButton.ButtonPressed)
+        {
+            railButton.EmitSignal(Button.SignalName.Pressed);
+        }
     }
 
     private void DeferExpeditionRailPhaseFocusValidation() =>

@@ -34,7 +34,6 @@ public sealed class HudCompositionTests
     [InlineData("ActionDock")]
     [InlineData("CityStatusPanel")]
     [InlineData("CitySummaryPanel")]
-    [InlineData("SimulationControls")]
     [InlineData("ExpeditionRail")]
     public void HudSurface_IsAuthoredInTheScene(string nodeName)
     {
@@ -110,7 +109,6 @@ public sealed class HudCompositionTests
         string[] summary = NodeBlock("CitySummaryPanel");
         string[] rail = NodeBlock("ExpeditionRail");
         string[] primary = NodeBlock("PrimaryNavDock");
-        string[] simulation = NodeBlock("SimulationControls");
         string[] action = NodeBlock("ActionDock");
         string[] inspector = NodeBlock("ContextInspector");
         string macro = File.ReadAllText(Path.Combine(
@@ -121,7 +119,7 @@ public sealed class HudCompositionTests
         string inspectorSource = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ContextInspector.cs"));
 
-        Assert.All(new[] { summary, rail, primary, simulation }, block =>
+        Assert.All(new[] { summary, rail, primary }, block =>
             Assert.Contains(block, line => line.Trim() == "visible = false"));
         Assert.Contains(action, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
         Assert.Contains(action, line => line.Trim() == "mouse_filter = 0");
@@ -140,10 +138,8 @@ public sealed class HudCompositionTests
         Assert.Contains("private void HideMacroHudSurfaces()", macro, StringComparison.Ordinal);
         Assert.Contains("_citySummaryPanel.Show();", macro, StringComparison.Ordinal);
         Assert.Contains("_expeditionRail.Show();", macro, StringComparison.Ordinal);
-        Assert.Contains("_simulationControls.Show();", macro, StringComparison.Ordinal);
         Assert.Contains("_citySummaryPanel.Hide();", macro, StringComparison.Ordinal);
         Assert.Contains("_expeditionRail.Hide();", macro, StringComparison.Ordinal);
-        Assert.Contains("_simulationControls.Hide();", macro, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -187,8 +183,8 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("AddThemeStyleboxOverride", source, StringComparison.Ordinal);
         Assert.Contains("CreateTimer(2.25)", source, StringComparison.Ordinal);
         Assert.Contains("_saveIndicatorVisible = false", source, StringComparison.Ordinal);
+        // PlayPauseButton is gone — the world always runs.
         Assert.DoesNotContain("PlayPauseButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("SpeedButton", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -216,11 +212,20 @@ public sealed class HudCompositionTests
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
 
         Assert.Contains(rail, line => line.Trim() == "anchor_left = 1.0");
+        Assert.Contains(rail, line => line.Trim() == "anchor_right = 1.0");
+        // The rail spans from the parent's top edge to the bottom edge,
+        // mirroring the city-summary panel on the opposite side: anchored
+        // to both top and bottom so the chronicle's scroll has a real
+        // height to fill. Without anchor_bottom the rect collapses to a
+        // 0-px strip and only the collapsible header renders — exactly
+        // what shipped before this guard existed.
         Assert.Contains(rail, line => line.Trim() == "anchor_bottom = 1.0");
         Assert.Contains(rail, line => line.Trim() == "offset_left = -244.0");
         Assert.Contains(rail, line => line.Trim() == "offset_right = -8.0");
         Assert.Contains(rail, line => line.Trim() == "offset_top = 8.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_bottom = -104.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_bottom = -8.0");
+        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = 8.0");
+        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -104.0");
         Assert.Contains(rail, line => line.Trim() == "mouse_filter = 0");
         Assert.Contains(rail, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
         Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
@@ -396,32 +401,47 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
-    public void SimulationControls_OwnTheExistingPairAndHorizontalFocus()
+    public void SpeedControl_MovedIntoTheStatusBarUtilityCluster()
     {
-        string[] block = NodeBlock("SimulationControls");
-        string source = File.ReadAllText(Path.Combine(
-            TestHelpers.FindRepositoryRoot(), "game", "scripts", "SimulationControls.cs"));
-        string controllerSource = File.ReadAllText(Path.Combine(
-            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityWorldController.cs"));
+        // The bottom-right SimulationControls surface is gone. The speed
+        // control lives in the CityStatusPanel utility cluster alongside
+        // Camera and Menu; the play/pause button is gone entirely.
+        string root = TestHelpers.FindRepositoryRoot();
+        Assert.False(
+            File.Exists(Path.Combine(root, "game", "scripts", "SimulationControls.cs")),
+            "SimulationControls.cs is gone; speed control lives in the status bar.");
+        Assert.False(
+            File.Exists(Path.Combine(root, "game", "scripts", "PlayPauseButton.cs")),
+            "PlayPauseButton.cs is gone; the world always runs.");
 
-        Assert.Contains(block, line => line.Trim() == "anchor_left = 1.0");
-        Assert.Contains(block, line => line.Trim() == "anchor_bottom = 1.0");
-        Assert.Contains(block, line => line.Trim() == "mouse_filter = 0");
-        Assert.Contains(block, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
-        Assert.Contains("new PlayPauseButton", source, StringComparison.Ordinal);
-        Assert.Contains("new SpeedButton", source, StringComparison.Ordinal);
-        // Camera mode moved out of the bottom-right surface into the top-bar
-        // utility cluster; the SimulationControls script no longer owns an
-        // IconButton child or a CameraButton accessor.
-        Assert.DoesNotContain("new IconButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("_cameraButton", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
-        Assert.Contains(
-            "SetSimulationSpeed(_speed == SpeedChoice.Paused ? _lastRunningSpeed : SpeedChoice.Paused)",
-            controllerSource,
-            StringComparison.Ordinal);
+        string[] scene = File.ReadAllLines(Path.Combine(root, "game", "scenes", "CityPrototype.tscn"));
+        Assert.DoesNotContain(scene, line => line.Contains("SimulationControls"));
+        Assert.DoesNotContain(scene, line => line.Contains("PlayPauseButton"));
+
+        string statusSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityStatusPanel.cs"));
+        Assert.Contains("new SpeedButton", statusSource, StringComparison.Ordinal);
+        Assert.Contains("public SpeedButton SpeedButton", statusSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CityWorldController_NoLongerExposesPause()
+    {
+        // Pause is no longer a possible speed choice; the simulation
+        // always runs. ToggleSimulationPause and the SpeedChoice.Paused
+        // sentinel are gone.
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "CityWorldController.cs"));
+
+        Assert.DoesNotContain("ToggleSimulationPause", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("SpeedChoice.Paused", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("_lastRunningSpeed", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("LastRunningSpeed", source, StringComparison.Ordinal);
+        Assert.Contains("public enum SpeedChoice", source, StringComparison.Ordinal);
+        Assert.Contains("Normal = 1", source, StringComparison.Ordinal);
+        Assert.Contains("Fast = 2", source, StringComparison.Ordinal);
+        Assert.Contains("Fastest = 4", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -435,7 +455,14 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain(scene, line => line.Contains("OfflineReportPanel", StringComparison.Ordinal));
         Assert.False(File.Exists(Path.Combine(root, "game", "scripts", "OfflineReportPanel.cs")));
         Assert.Contains("MaximumRows = 80", source, StringComparison.Ordinal);
-        Assert.Contains("CompactRows = 4", source, StringComparison.Ordinal);
+        // The chronicle now owns a collapsible header that governs the
+        // body, mirroring CitySummaryPanel — there is no longer an
+        // internal compact/full split; the rows-scroll caps the height
+        // when the body unfolds.
+        Assert.Contains("CollapsiblePanelHeader", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CompactRows", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ToggleButton", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("public bool Slim", source, StringComparison.Ordinal);
         Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
     }
 
@@ -727,17 +754,17 @@ public sealed class HudCompositionTests
         Assert.Contains("Name = \"UtilityCluster\"", source, StringComparison.Ordinal);
         Assert.Contains("public IconButton CameraButton", source, StringComparison.Ordinal);
         Assert.Contains("public IconButton MenuButton", source, StringComparison.Ordinal);
+        Assert.Contains("public SpeedButton SpeedButton", source, StringComparison.Ordinal);
         Assert.Contains("SizeFlagsHorizontal = SizeFlags.ShrinkEnd", source, StringComparison.Ordinal);
         // Two icon-only buttons inside the cluster: ShowLabel = false must
-        // appear at least twice (Camera + Menu).
+        // appear at least twice (Camera + Menu). SpeedButton uses its own
+        // play-icon stack rather than a ShowLabel toggle.
         int showLabelFalse = Regex.Matches(source, "ShowLabel = false").Count;
         Assert.True(
             showLabelFalse >= 2,
             $"Expected at least two ShowLabel = false sites in CityStatusPanel.cs; found {showLabelFalse}.");
-        // The status bar never gains a PlayPauseButton or SpeedButton —
-        // those still belong to SimulationControls.
+        // PlayPauseButton is gone — the world always runs.
         Assert.DoesNotContain("PlayPauseButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("SpeedButton", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -761,17 +788,23 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
-    public void SimulationControls_DropsTheCameraIconButton()
+    public void SpeedButton_CentresItsIconsOnTheButton()
     {
-        string root = TestHelpers.FindRepositoryRoot();
+        // The previous version used a centred nested FullRect container
+        // that left asymmetric visual padding. The current build sizes
+        // the button to its content and applies equal left/right margins
+        // so the play-icon stack sits on the geometric centre.
         string source = File.ReadAllText(Path.Combine(
-            root, "game", "scripts", "SimulationControls.cs"));
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "SpeedButton.cs"));
 
-        Assert.DoesNotContain("new IconButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("_cameraButton", source, StringComparison.Ordinal);
-        Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
-        // IconPaths.Camera is no longer a consumer of this script.
-        Assert.DoesNotContain("IconPaths.Camera", source, StringComparison.Ordinal);
+        Assert.Contains("CustomMinimumSize = new Vector2(ButtonWidth, ButtonHeight)",
+            source, StringComparison.Ordinal);
+        Assert.Contains(
+            "_container.AddThemeConstantOverride(\"margin_left\", IconPadding);",
+            source, StringComparison.Ordinal);
+        Assert.Contains(
+            "_container.AddThemeConstantOverride(\"margin_right\", IconPadding);",
+            source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -859,19 +892,121 @@ public sealed class HudCompositionTests
     }
 
     [Fact]
-    public void ExpeditionRail_UsesCollapsiblePanelHeader()
+    public void ExpeditionRail_CollapsibleHeaderFoldsToSlimResumeOfTheToggles()
     {
-        // The rail is now a folder: the whole strip is the CollapsiblePanelHeader,
-        // a single body holds the cards and the chronicle, and the
-        // ExpandedChanged event drives body visibility. Mirrors the
-        // CitySummaryPanel pattern.
+        // The rail's CollapsiblePanelHeader governs the whole body:
+        // collapsing the rail hides the expedition section AND the
+        // scroll AND collapses the chronicle, so only the rail header
+        // and the chronicle header stay visible — a slim resume of the
+        // toggles that still make sense while the rail is folded.
         string rail = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
+        string chronicle = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
 
         Assert.Contains("new CollapsiblePanelHeader", rail, StringComparison.Ordinal);
         Assert.Contains("ExpandedChanged", rail, StringComparison.Ordinal);
-        Assert.Contains("_body.Visible = expanded", rail, StringComparison.Ordinal);
+        Assert.Contains(
+            "_expeditionSection.Visible = expanded", rail, StringComparison.Ordinal);
+        Assert.Contains("_scroll.Visible = expanded", rail, StringComparison.Ordinal);
         Assert.Contains("public bool Expanded =>", rail, StringComparison.Ordinal);
+        // Accordion: when either header expands, the other surface
+        // folds out so only one occupies the rail's column at a time.
+        // Expanding the rail collapses the chronicle body; expanding
+        // the chronicle hides the expedition scroll. This is the only
+        // way to keep both surfaces fitting without overlap given the
+        // shared column.
+        Assert.Contains("if (expanded)", rail, StringComparison.Ordinal);
+        Assert.Contains("_chronicle.Expanded = false", rail, StringComparison.Ordinal);
+        Assert.Contains("_expeditionSection.Visible = false", rail, StringComparison.Ordinal);
+        Assert.Contains("_scroll.Visible = false", rail, StringComparison.Ordinal);
+        Assert.Contains("_header.Expanded = false", rail, StringComparison.Ordinal);
+        // The chronicle is added as a direct child of the layout
+        // (outside the rail's scroll), not inside _content. Putting it
+        // inside the scroll would hide it whenever the rail collapses.
+        Assert.Contains("layout.AddChild(_chronicle)", rail, StringComparison.Ordinal);
+        Assert.Contains("_layout.AddChild(_chronicle)", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
+        // The rail's layout must re-sort on the next frame so the body
+        // actually shrinks when the chronicle hides — without this
+        // deferred QueueSort, the rail would stay at its expanded
+        // rect with the body simply hidden underneath, and re-expanding
+        // the chronicle would overflow the rail and overlap the scroll.
+        Assert.Contains("_layout.QueueSort", rail, StringComparison.Ordinal);
+        Assert.Contains("_layout.UpdateMinimumSize", rail, StringComparison.Ordinal);
+        Assert.Contains("_scroll.ResetSize", rail, StringComparison.Ordinal);
+        Assert.Contains("_chronicle.QueueSort", rail, StringComparison.Ordinal);
+        // Both header sources must trigger the same layout refresh:
+        // rail header for the slim-resume cycle, chronicle header for
+        // folding just the chronicle body while the rail stays open.
+        Assert.Contains(
+            "OnChronicleExpanded(bool expanded)",
+            rail, StringComparison.Ordinal);
+        Assert.Contains(
+            "RequestRailRelayout",
+            rail, StringComparison.Ordinal);
+        // Chronicle folds with the rail. The chronicle is exposed via
+        // its own collapsible header so the rail-level "more" button
+        // falls back to that header — clicking it expands the
+        // chronicle body exactly like CitySummaryPanel's header.
+        Assert.Contains("public CollapsiblePanelHeader Header => _header;",
+            chronicle, StringComparison.Ordinal);
+        Assert.Contains("MoreButton => _chronicle.Header", rail, StringComparison.Ordinal);
+        // Accordion initial state: the chronicle starts collapsed so
+        // the expedition rail is the initial protagonist.
+        Assert.Contains(
+            "new CollapsiblePanelHeader(\n            UiText.Get(\"ui.expedition_rail.activity\"),\n            expanded: false)",
+            chronicle, StringComparison.Ordinal);
+        // The chronicle flips between ExpandFill (protagonist — body
+        // visible, fills the rail column) and ShrinkBegin (collapsed —
+        // just the header). When both flags are gone the chronicle
+        // stays stuck at the wrong vertical size on toggle.
+        Assert.Contains("SizeFlagsVertical = SizeFlags.ShrinkBegin;",
+            chronicle, StringComparison.Ordinal);
+        Assert.Contains(
+            "SizeFlagsVertical = expanded\n            ? SizeFlags.ExpandFill\n            : SizeFlags.ShrinkBegin;",
+            chronicle, StringComparison.Ordinal);
+        // The rail header counts ONLY active expeditions, never falls
+        // back to chronicle events. The two badges must not share a
+        // counter or the user confuses which surface they are reading.
+        Assert.Contains(
+            "int headerCount = _snapshot.ActiveExpeditions.Count;",
+            rail, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "ChronicleEventProjection.MeaningfulEvents(_snapshot.Events).Count",
+            rail, StringComparison.Ordinal);
+        // The chronicle must collapse the moment its own header
+        // toggles, so the body is hidden via _body.Visible — the
+        // same affordance CitySummaryPanel uses.
+        Assert.Contains("_body.Visible = expanded", chronicle, StringComparison.Ordinal);
+        // The chronicle's own scroll lives outside the rail scroll, so
+        // the rail's _Input must not steal wheel events that land over
+        // it — otherwise the rail would scroll the expedition section
+        // instead of the chronicle rows the pointer is over.
+        Assert.Contains(
+            "_chronicle.GetGlobalRect().HasPoint(mouse.GlobalPosition)",
+            rail, StringComparison.Ordinal);
+        // The body must cap at MaxHeight so a long event history
+        // actually scrolls instead of growing the chronicle off-screen.
+        // Anchoring top and bottom of the body to the same value with
+        // offset_bottom = cap pins the rect — CustomMinimumSize alone
+        // is a floor, not a ceiling. Single scroll, not nested.
+        Assert.Contains("SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide)",
+            chronicle, StringComparison.Ordinal);
+        Assert.Contains("_body.OffsetBottom = MaxHeight",
+            chronicle, StringComparison.Ordinal);
+        Assert.DoesNotContain("_rowsScroll", chronicle, StringComparison.Ordinal);
+        // The chronicle must drive the VScrollBar on wheel input —
+        // ScrollContainer does not auto-scroll, so the chronicle needs
+        // its own ScrollBy that mirrors the rail's wheel handler.
+        Assert.Contains("ScrollBy(mouse);", chronicle, StringComparison.Ordinal);
+        Assert.Contains("bar.Value += direction * 40d",
+            chronicle, StringComparison.Ordinal);
+        // The chronicle pins a minimum width (matching the rail's
+        // PanelWidth) so it cannot shrink to the chevron+title strip
+        // when the body hides — the same trick CitySummaryPanel uses.
+        Assert.Contains("CustomMinimumSize = new Vector2(MinWidth, 0)",
+            chronicle, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -921,6 +1056,103 @@ public sealed class HudCompositionTests
 
         Assert.Contains("new HudStateBadge", card, StringComparison.Ordinal);
         Assert.Contains("HudStateBadge.IconFor(item.Phase)", card, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PauseMenu_DoesNotDoubleSubscribeTheOpenButton()
+    {
+        // The open button lives in the city-status utility cluster and
+        // is also reached by the macro view's primary navigation. Both
+        // call sites used to subscribe `_openButton.Pressed += Toggle`
+        // independently, which fired Toggle twice on every click and
+        // left the menu closed (open → close). The macro view owns the
+        // click now; PauseMenu must NOT also subscribe.
+        string pauseSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "PauseMenu.cs"));
+        string macroSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes",
+            "MacroStreetLiveView.cs"));
+
+        Assert.DoesNotContain("_openButton.Pressed += Toggle", pauseSource,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "_statusPanel.MenuButton.Pressed += OnUtilityClusterMenuPressed",
+            macroSource, StringComparison.Ordinal);
+        // The ESC path still opens the menu from _UnhandledInput.
+        Assert.Contains("if (!@event.IsActionPressed(\"ui_cancel\")) return;",
+            pauseSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PauseMenu_OpensOnUiCancelWhenHiddenAndInMacroView()
+    {
+        // ESC opens the pause menu when nothing else is open AND the
+        // controller is on the macro view. If the player is in a hero
+        // profile or building detail, PauseMenu deliberately lets the
+        // input propagate so CityPrototype can return them to the city.
+        string pauseSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "PauseMenu.cs"));
+        string protoSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs"));
+
+        // PauseMenu's _UnhandledInput branches on Visible and on the
+        // controller selection. Assert the structural pattern.
+        Assert.Contains(
+            "_controller.CurrentSelection != CityWorldController.Selection.MacroView",
+            pauseSource, StringComparison.Ordinal);
+        Assert.Contains("Open();", pauseSource, StringComparison.Ordinal);
+        // CityPrototype's _UnhandledInput only returns to the city when
+        // the selection is NOT the macro view (PauseMenu has already
+        // eaten the input otherwise).
+        Assert.Contains(
+            "if (controller.CurrentSelection == CityWorldController.Selection.MacroView) return;",
+            protoSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PrimaryNavDockHandlers_CloseTheCurrentModalBeforeOpeningAnother()
+    {
+        // Three of the four dock handlers (OnExpeditionMenuPressed,
+        // OnPoliciesPressed, OnCitizensPressed) used to skip the
+        // close-first branch that OnConstructionMenuPressed had,
+        // letting two modals stack when the player clicked a
+        // different dock button while one was open.
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        // Each of the four dock handlers must call _modalHost.Close() when a
+        // modal is already open, then open its own panel in the else
+        // branch. We verify each handler body by looking for the
+        // close-then-open pattern around its panel name.
+        string[] handlers = { "ConstructionMenu", "ExpeditionMenu", "Policies", "Citizens" };
+        foreach (string handler in handlers)
+        {
+            int handlerStart = source.IndexOf(
+                $"private void On{handler}Pressed()", StringComparison.Ordinal);
+            Assert.True(
+                handlerStart >= 0,
+                $"Could not locate On{handler}Pressed() in MacroStreetLiveView.cs.");
+
+            // Find the end of this handler (next "private void On" or end of class).
+            int handlerEnd = source.IndexOf(
+                "private void On", handlerStart + 1, StringComparison.Ordinal);
+            string body = handlerEnd < 0
+                ? source[handlerStart..]
+                : source[handlerStart..handlerEnd];
+
+            Assert.Contains("_modalHost.IsOpen", body, StringComparison.Ordinal);
+            Assert.Contains("_modalHost.Close()", body, StringComparison.Ordinal);
+        }
+
+        // The construction handler additionally calls _modalHost.Open
+        // with the panel as a parameter; the others call their own
+        // panel's Open() method. Both shapes count as "open the
+        // panel" — the close-before-open contract is what matters.
+        Assert.Contains("_modalHost.Open(_constructionPanel)", source, StringComparison.Ordinal);
+        Assert.Contains("_expeditionPanel.Open()", source, StringComparison.Ordinal);
+        Assert.Contains("_policiesPanel.Open()", source, StringComparison.Ordinal);
+        Assert.Contains("_citizensPanel.Open()", source, StringComparison.Ordinal);
     }
 
     [Fact]

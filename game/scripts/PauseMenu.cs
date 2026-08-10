@@ -69,8 +69,13 @@ public partial class PauseMenu : Control
         _softResetButton.Pressed += ShowSoftResetConfirmation;
         _confirmResetButton.Pressed += ConfirmReset;
         _cancelResetButton.Pressed += HideResetConfirmation;
+        // The open button lives in the city-status utility cluster and
+        // is also reached by the macro view's primary navigation — that
+        // view already subscribes its Pressed to Toggle. Subscribing
+        // here as well fires Toggle twice on every click (open then
+        // immediately close) and the menu never opens. ESC closes via
+        // _UnhandledInput so the keyboard path is unaffected.
         RefreshLocalizedText();
-        _openButton.Pressed += Toggle;
         _scrim.GuiInput += OnScrimGuiInput;
         Hide();
     }
@@ -102,24 +107,36 @@ public partial class PauseMenu : Control
         if (_confirmResetButton is not null) _confirmResetButton.Pressed -= ConfirmReset;
         if (_cancelResetButton is not null) _cancelResetButton.Pressed -= HideResetConfirmation;
         if (_languageButton is not null) _languageButton.Pressed -= OnLanguageButtonPressed;
-        if (_openButton is not null) _openButton.Pressed -= Toggle;
         if (_scrim is not null) _scrim.GuiInput -= OnScrimGuiInput;
         if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        // ESC only closes the pause menu; it never opens it. The menu
-        // has its own button (see <see cref="_openButton"/>) so opening
-        // it via ESC would compete with the iterative back behaviour
-        // added in CityPrototype, which closes the topmost modal first,
-        // then returns to the macro view from a hero profile or
-        // building detail. Opening the pause menu from a single ESC
-        // press would skip those steps.
+        // ESC behaviour, two cases:
+        //  - Pause menu visible: close it (or hide the reset
+        //    confirmation first). Eats the input so no other handler
+        //    fires.
+        //  - Pause menu hidden and the macro view is active: open the
+        //    menu. This is the standard "back key opens menu" gesture.
+        //  - Pause menu hidden but a hero profile or building detail
+        //    is on screen: deliberately do not handle the input so it
+        //    propagates to CityPrototype._UnhandledInput, which calls
+        //    ReturnToCity and lets the player leave that view.
+        //  - Modal hosted by ModalHost closes itself and eats the input
+        //    before this fires (ModalHost is deeper in the tree), so
+        //    by the time we get here no modal is open.
         if (!@event.IsActionPressed("ui_cancel")) return;
-        if (!Visible) return;
-        if (_resetConfirmation.Visible) HideResetConfirmation();
-        else Close();
+        if (Visible)
+        {
+            if (_resetConfirmation.Visible) HideResetConfirmation();
+            else Close();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+        if (_controller is null) return;
+        if (_controller.CurrentSelection != CityWorldController.Selection.MacroView) return;
+        Open();
         GetViewport().SetInputAsHandled();
     }
 

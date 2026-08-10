@@ -39,6 +39,7 @@ public partial class CityStatusPanel : PanelContainer
     private HBoxContainer? _utilityCluster;
     private IconButton? _cameraButton;
     private IconButton? _menuButton;
+    private SpeedButton? _speedButton;
     private StatChip? _savedChip;
     private ulong _saveIndicatorGeneration;
     private ulong _emphasizedSaveGeneration;
@@ -62,6 +63,17 @@ public partial class CityStatusPanel : PanelContainer
     public IconButton MenuButton
     {
         get { EnsureUtilityClusterBuilt(); return _menuButton!; }
+    }
+
+    /// <summary>
+    /// Typed accessor for the speed control. Lives in the right-edge
+    /// utility cluster so the speed affordance shares the same dock
+    /// chrome as Camera and Menu and no longer floats in a separate
+    /// bottom-right surface.
+    /// </summary>
+    public SpeedButton SpeedButton
+    {
+        get { EnsureUtilityClusterBuilt(); return _speedButton!; }
     }
 
     public override void _Ready()
@@ -270,7 +282,18 @@ public partial class CityStatusPanel : PanelContainer
             ShowLabel = false,
         };
 
+        _speedButton = new SpeedButton
+        {
+            Name = "SpeedButton",
+            ThemeTypeVariation = "HudButton",
+            FocusMode = FocusModeEnum.All,
+            MouseFilter = MouseFilterEnum.Stop,
+        };
+
+        // Camera first (anchor for the cluster), Speed in the middle,
+        // Menu at the end where the original utility cluster lived.
         _utilityCluster.AddChild(_cameraButton);
+        _utilityCluster.AddChild(_speedButton);
         _utilityCluster.AddChild(_menuButton);
         _row.AddChild(_utilityCluster);
     }
