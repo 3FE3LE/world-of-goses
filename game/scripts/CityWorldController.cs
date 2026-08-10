@@ -623,6 +623,20 @@ public partial class CityWorldController : Node
     public ExpeditionLiveSnapshot? GetExpeditionLiveSnapshot(ExpeditionId expeditionId) =>
         ExpeditionLiveSnapshot.From(_world, expeditionId);
 
+    public bool SetCombatAutoSkillsEnabled(ExpeditionId expeditionId, bool enabled)
+    {
+        bool changed = _world.SetCombatAutoSkillsEnabled(expeditionId, enabled);
+        if (changed) _hasUnsavedChanges = true;
+        return changed;
+    }
+
+    public bool TryActivateMemberSkill(ExpeditionId expeditionId, int slotIndex)
+    {
+        bool accepted = _world.TryActivateMemberSkill(expeditionId, slotIndex);
+        if (accepted) _hasUnsavedChanges = true;
+        return accepted;
+    }
+
     public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
 
     public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)

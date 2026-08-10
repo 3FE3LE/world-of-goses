@@ -49,6 +49,21 @@ public sealed class CombatExpeditionService
     /// preparation step is where the player equips Spear, Staff, Mace or Orb.
     /// </summary>
     public CombatantState PrepareMember(Citizen citizen, double citySupportFactor = 1.0)
+        => PrepareMember(citizen, citySupportFactor, oneActiveSkill: false);
+
+    /// <summary>
+    /// Prepares the bounded live-view slice: exactly one Active Skill per member.
+    /// The broader debug run retains the full modular catalog.
+    /// </summary>
+    internal CombatantState PrepareSessionMember(
+        Citizen citizen,
+        double citySupportFactor = 1.0)
+        => PrepareMember(citizen, citySupportFactor, oneActiveSkill: true);
+
+    private CombatantState PrepareMember(
+        Citizen citizen,
+        double citySupportFactor,
+        bool oneActiveSkill)
     {
         ArgumentNullException.ThrowIfNull(citizen);
         WeaponChannelProfile weapon = citizen.EquipmentLoadout.Weapon
@@ -72,9 +87,15 @@ public sealed class CombatExpeditionService
         DerivedStatistics derived = _statistics.Calculate(citizen, citySupportFactor);
         int level = citizen.WeaponSkillLevel(weapon.Family);
         var techniques = new List<TechniqueDefinition>();
+        bool activeAdded = false;
         foreach (TechniqueDefinition technique in
             TechniqueCatalog.For(weapon.Family, citizen.CombatNature))
         {
+            if (oneActiveSkill && technique.Kind == TechniqueKind.Active)
+            {
+                if (activeAdded) continue;
+                activeAdded = true;
+            }
             // Apply the citizen's competency level so evolutions take effect.
             techniques.Add(technique.AtLevel(level, _combat));
         }

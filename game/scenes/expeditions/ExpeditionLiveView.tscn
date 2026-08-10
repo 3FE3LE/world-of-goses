@@ -29,28 +29,13 @@ theme_type_variation = &"HudSurface"
 [node name="ExpeditionStage" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 0
-anchor_bottom = 1.0
-offset_top = 96.0
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = 8.0
-offset_right = 344.0
-offset_bottom = -144.0
-grow_horizontal = 2
-grow_vertical = 2
 mouse_filter = 2
 theme_type_variation = &"OctagonalSkillSlot"
 script = ExtResource("2_stage")
 
 [node name="ExpeditionRouteStrip" type="PanelContainer" parent="."]
 layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 88.0
-grow_horizontal = 2
+anchors_preset = 0
 mouse_filter = 0
 theme_type_variation = &"HudDock"
 
@@ -58,9 +43,9 @@ theme_type_variation = &"HudDock"
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 6
+theme_override_constants/margin_top = 4
 theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_bottom = 4
 
 [node name="Layout" type="VBoxContainer" parent="ExpeditionRouteStrip/Content"]
 layout_mode = 2
@@ -146,15 +131,11 @@ mouse_filter = 2
 
 [node name="LeftColumn" type="VBoxContainer" parent="ExpeditionHud"]
 layout_mode = 1
-offset_left = 8.0
-offset_top = 96.0
-offset_right = 640.0
-offset_bottom = 520.0
 mouse_filter = 2
 theme_override_constants/separation = 8
 
 [node name="ExpeditionSummary" type="PanelContainer" parent="ExpeditionHud/LeftColumn"]
-custom_minimum_size = Vector2(632, 88)
+custom_minimum_size = Vector2(228, 136)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"HudCard"
@@ -189,7 +170,7 @@ mouse_filter = 2
 theme_type_variation = &"HudCaption"
 
 [node name="CitizenDetail" type="PanelContainer" parent="ExpeditionHud/LeftColumn"]
-custom_minimum_size = Vector2(632, 104)
+custom_minimum_size = Vector2(228, 320)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"HudCard"
@@ -233,29 +214,27 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"HudCaption"
 
-[node name="SquadHeader" type="Label" parent="ExpeditionHud/LeftColumn"]
+[node name="SquadArea" type="VBoxContainer" parent="ExpeditionHud"]
+layout_mode = 1
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="SquadHeader" type="Label" parent="ExpeditionHud/SquadArea"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"HudHeader"
 text = "SQUAD"
 
-[node name="ExpeditionSquadStrip" parent="ExpeditionHud/LeftColumn" instance=ExtResource("3_squad")]
+[node name="ExpeditionSquadStrip" parent="ExpeditionHud/SquadArea" instance=ExtResource("3_squad")]
 layout_mode = 2
 
 [node name="RightColumn" type="VBoxContainer" parent="ExpeditionHud"]
 layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -288.0
-offset_top = 96.0
-offset_right = -8.0
-offset_bottom = 412.0
-grow_horizontal = 0
+anchors_preset = 0
 mouse_filter = 2
 
 [node name="EncounterSummary" type="PanelContainer" parent="ExpeditionHud/RightColumn"]
-custom_minimum_size = Vector2(280, 280)
+custom_minimum_size = Vector2(224, 464)
 layout_mode = 2
 mouse_filter = 0
 theme_type_variation = &"HudCard"
@@ -317,57 +296,22 @@ theme_type_variation = &"HudCaption"
 
 [node name="ExpeditionSkillStrip" parent="ExpeditionHud" instance=ExtResource("4_skills")]
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -380.0
-offset_top = -136.0
-offset_right = 44.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 0
+anchors_preset = 0
 
-[node name="CombatCommands" type="PanelContainer" parent="ExpeditionHud"]
-custom_minimum_size = Vector2(320, 120)
+[node name="CombatCommands" type="VBoxContainer" parent="ExpeditionHud"]
 layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = 60.0
-offset_top = -136.0
-offset_right = 380.0
-offset_bottom = -16.0
-grow_horizontal = 2
-grow_vertical = 0
+anchors_preset = 0
 mouse_filter = 0
-theme_type_variation = &"HudDock"
+theme_override_constants/separation = 12
 
-[node name="Content" type="MarginContainer" parent="ExpeditionHud/CombatCommands"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
-
-[node name="Actions" type="HBoxContainer" parent="ExpeditionHud/CombatCommands/Content"]
-layout_mode = 2
-mouse_filter = 2
-alignment = 1
-theme_override_constants/separation = 8
-
-[node name="AutoButton" type="Button" parent="ExpeditionHud/CombatCommands/Content/Actions"]
-custom_minimum_size = Vector2(140, 44)
+[node name="AutoButton" type="Button" parent="ExpeditionHud/CombatCommands"]
+custom_minimum_size = Vector2(224, 64)
 layout_mode = 2
 focus_mode = 2
 theme_type_variation = &"HudButtonSelected"
 
-[node name="RetreatButton" type="Button" parent="ExpeditionHud/CombatCommands/Content/Actions"]
-custom_minimum_size = Vector2(140, 44)
+[node name="RetreatButton" type="Button" parent="ExpeditionHud/CombatCommands"]
+custom_minimum_size = Vector2(224, 48)
 layout_mode = 2
 focus_mode = 2
 theme_type_variation = &"HudButtonDanger"

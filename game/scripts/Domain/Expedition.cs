@@ -168,15 +168,19 @@ public sealed class Expedition
     internal void SetDispatchEventId(WorldEventId id) => DispatchEventId = id;
 
     /// <summary>
-    /// One-way, one-time transition out of <see cref="ExpeditionPhase.Outbound"/>.
-    /// Stores the outcome exactly once — the result of the encounter, not an
-    /// animation — so re-evaluating it on a later tick (e.g. after save/load)
-    /// can never re-roll it.
+    /// One-way, one-time transition into the encounter. The incremental combat
+    /// session may then span several world ticks before storing its outcome.
     /// </summary>
-    internal bool ResolveEncounter(ExpeditionEncounterOutcome outcome)
+    internal bool BeginEncounter()
     {
         if (Phase != ExpeditionPhase.Outbound) return false;
         Phase = ExpeditionPhase.Encounter;
+        return true;
+    }
+
+    internal bool CompleteEncounter(ExpeditionEncounterOutcome outcome)
+    {
+        if (Phase != ExpeditionPhase.Encounter || EncounterOutcome.HasValue) return false;
         EncounterOutcome = outcome;
         return true;
     }

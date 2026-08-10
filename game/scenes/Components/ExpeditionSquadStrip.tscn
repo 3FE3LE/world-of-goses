@@ -4,11 +4,11 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionSquadSlot.tscn" id="2_slot"]
 
 [node name="ExpeditionSquadStrip" type="PanelContainer"]
-custom_minimum_size = Vector2(632, 128)
+custom_minimum_size = Vector2(424, 136)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 632.0
-offset_bottom = 128.0
+offset_right = 424.0
+offset_bottom = 136.0
 mouse_filter = 0
 theme_type_variation = &"HudDock"
 script = ExtResource("1_strip")
@@ -16,10 +16,6 @@ script = ExtResource("1_strip")
 [node name="Content" type="MarginContainer" parent="."]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
 
 [node name="Slots" type="HBoxContainer" parent="Content"]
 layout_mode = 2

@@ -16,6 +16,7 @@ public enum CombatOutcome
 public enum CombatLogKind
 {
     EncounterBegan,
+    BasicAttackResolved,
     TechniqueResolved,
     StatusApplied,
     ActionPrevented,
@@ -229,8 +230,10 @@ public sealed class AutoCastController
 
 /// <summary>
 /// Resolves one encounter in discrete logical steps. No Node, no _Process, no
-/// animation: the encounter runs to completion inside a test, and presentation
-/// consumes the resulting <see cref="CombatLogEntry"/> stream afterwards.
+/// animation: application code may advance it incrementally, while tests and
+/// debug tools may consume the same engine through <see cref="ResolveToEnd"/>.
+/// Presentation observes session snapshots and the resulting
+/// <see cref="CombatLogEntry"/> stream.
 ///
 /// <para>
 /// Determinism: given the same combatants, plans, balance and seed, the produced
@@ -250,6 +253,8 @@ public sealed class CombatEncounter
     private readonly IRandomSource _random;
     private readonly CombatBalanceConfig _balance;
     private readonly List<CombatLogEntry> _log = new();
+    private bool _began;
+    private bool _ended;
 
     public CombatEncounter(
         string encounterId,
@@ -287,13 +292,19 @@ public sealed class CombatEncounter
     public IReadOnlyList<CombatantState> Party => _party;
     public IReadOnlyList<CombatantState> Enemies => _enemies;
 
-    /// <summary>Runs the encounter to a terminal outcome and returns it.</summary>
-    public CombatOutcome Resolve()
+    /// <summary>
+    /// Advances a bounded number of logical combat steps. World/application code
+    /// decides when those steps happen; the encounter owns no clock or speed.
+    /// </summary>
+    public CombatOutcome Advance(
+        int steps = 1,
+        bool autoPartySkills = true,
+        IReadOnlySet<string>? manuallyActivatedPartyMembers = null)
     {
-        Record(CombatLogKind.EncounterBegan, EncounterId, null,
-            $"{CountAlive(_party)} vs {CountAlive(_enemies)}");
+        if (steps < 0) throw new ArgumentOutOfRangeException(nameof(steps));
+        BeginIfNeeded();
 
-        while (Outcome == CombatOutcome.InProgress)
+        for (int index = 0; index < steps && Outcome == CombatOutcome.InProgress; index++)
         {
             if (Step >= _balance.MaximumEncounterSteps)
             {
@@ -301,15 +312,29 @@ public sealed class CombatEncounter
                 break;
             }
             Step++;
-            AdvanceOneStep();
+            AdvanceOneStep(
+                autoPartySkills,
+                index == 0 ? manuallyActivatedPartyMembers : null);
             EvaluateOutcome();
         }
 
-        Record(CombatLogKind.EncounterEnded, EncounterId, null, Outcome.ToString());
+        EndIfNeeded();
         return Outcome;
     }
 
-    private void AdvanceOneStep()
+    /// <summary>Runs the same incremental engine until it reaches a terminal outcome.</summary>
+    public CombatOutcome ResolveToEnd()
+    {
+        while (Outcome == CombatOutcome.InProgress) Advance();
+        return Outcome;
+    }
+
+    /// <summary>Compatibility alias retained for tests and the debug expedition.</summary>
+    public CombatOutcome Resolve() => ResolveToEnd();
+
+    private void AdvanceOneStep(
+        bool autoPartySkills,
+        IReadOnlySet<string>? manuallyActivatedPartyMembers)
     {
         foreach (CombatantState actor in TurnOrder())
         {
@@ -335,7 +360,16 @@ public sealed class CombatEncounter
             }
 
             (IReadOnlyList<CombatantState> allies, IReadOnlyList<CombatantState> foes) = Sides(actor);
-            TechniqueDefinition? technique = _autoCast.Choose(actor, plan, allies, foes);
+            ApplyBasicAttack(actor, plan, allies, foes);
+            if (CountAlive(foes) == 0) continue;
+
+            bool manuallyActivated = actor.Side == CombatSide.Party
+                && manuallyActivatedPartyMembers?.Contains(actor.Id) == true;
+            TechniqueDefinition? technique = manuallyActivated
+                ? FirstReadyActive(actor)
+                : actor.Side == CombatSide.Enemy || autoPartySkills
+                    ? _autoCast.Choose(actor, plan, allies, foes)
+                    : null;
             if (technique is null) continue;
 
             CombatantState? target =
@@ -365,17 +399,45 @@ public sealed class CombatEncounter
         }
     }
 
+    private void ApplyBasicAttack(
+        CombatantState actor,
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> allies,
+        IReadOnlyList<CombatantState> foes)
+    {
+        // Inert test targets carry no combat techniques. Production combatants
+        // always carry at least their active tree and therefore always pulse a
+        // Basic Attack, independently from the player's AUTO preference.
+        if (actor.Techniques.Count == 0) return;
+        TechniqueDefinition basic = TechniqueCatalog.BasicAttack;
+        CombatantState? target = _targets.Resolve(basic, actor, plan, allies, foes, _random);
+        if (target is null) return;
+
+        actor.AddFatigue(_balance.FatiguePerAction);
+        ApplyTechnique(basic, actor, target, CombatLogKind.BasicAttackResolved);
+    }
+
+    private static TechniqueDefinition? FirstReadyActive(CombatantState actor)
+    {
+        foreach (TechniqueDefinition technique in actor.ActiveTechniques)
+        {
+            if (actor.IsReady(technique.Id)) return technique;
+        }
+        return null;
+    }
+
     private void ApplyTechnique(
         TechniqueDefinition technique,
         CombatantState actor,
-        CombatantState target)
+        CombatantState target,
+        CombatLogKind logKind = CombatLogKind.TechniqueResolved)
     {
         TechniqueResolution resolution =
             _techniques.Resolve(Step, technique, actor, target, _random);
         target.ApplyResult(resolution.FinalResult);
         _log.Add(new CombatLogEntry(
             Step,
-            CombatLogKind.TechniqueResolved,
+            logKind,
             actor.Id,
             target.Id,
             technique.Id,
@@ -437,6 +499,22 @@ public sealed class CombatEncounter
 
     private void Record(CombatLogKind kind, string actorId, string? targetId, string detail) =>
         _log.Add(new CombatLogEntry(Step, kind, actorId, targetId, detail));
+
+    private void BeginIfNeeded()
+    {
+        if (_began) return;
+        _began = true;
+        Record(CombatLogKind.EncounterBegan, EncounterId, null,
+            $"{CountAlive(_party)} vs {CountAlive(_enemies)}");
+        EvaluateOutcome();
+    }
+
+    private void EndIfNeeded()
+    {
+        if (_ended || Outcome == CombatOutcome.InProgress) return;
+        _ended = true;
+        Record(CombatLogKind.EncounterEnded, EncounterId, null, Outcome.ToString());
+    }
 
     private static int CountAlive(IReadOnlyList<CombatantState> combatants)
     {

@@ -2,9 +2,10 @@
 
 **Last aligned:** 2026-08-10
 
-**Code baseline:** measured in `docs/session-state/STATE.txt`: clean build,
-1114/1115 tests (1 skipped), schema v32. The 2026-08-10 Full snapshot recorded
-a failed headless boot (`-1073741819`), so no clean-boot claim is made here.
+**Code baseline:** closure verification: clean build, 1154/1155 tests
+(1 skipped), schema v33, 1049 localization template IDs and 324 runtime keys.
+The dated measurement in `docs/session-state/STATE.txt` predates this increment;
+the Full snapshot pipeline did not complete, so that artifact was not rewritten.
 
 **Active proof:** EG-5V — Founder Spirit Trail visual vertical.
 
@@ -59,12 +60,12 @@ observed. VS-5 remains historical and does not gate the active sequence.
 | One sealed `Citizen` person entity | ✅ |
 | Visual node is representation, not persisted citizen | ✅ |
 | Semantic citizen persistence; no authoritative visual coordinates | ✅ |
-| Versioned validated snapshots and explicit migrations | ✅ v2→v19 |
+| Versioned validated snapshots and explicit migrations | ✅ v2→v33 |
 | Atomic local save with `.bak` | ✅ |
 | Dirty-aware three-minute autosave and close-save | ✅ |
 | Live/offline share domain transitions | ✅ for current loop |
 | Assigned-work catch-up batched to semantic boundaries | ⚠️ still tick-stepped |
-| UI consumes snapshots consistently | ⚠️ most surfaces; Expedition remains debt |
+| UI consumes snapshots consistently | ⚠️ most surfaces; spatial Expedition feedback remains debt |
 | Causal long-horizon persisted history | ⚠️ bounded 128-event log |
 
 ## 4. Pillar status
@@ -81,11 +82,13 @@ named workers, per-building storage and a daily Food demand. Missing depth:
 
 ### Automated expeditions
 
-⚠️ The minimal expedition seam exists: real members, supplies, destination,
-retreat policy, deterministic encounter, objective/retreat, return and causal
-outcome. A separate deterministic combat island also exists, but there is no
-`ExpeditionLiveView` and the two are not integrated. EG-5V adds only the first
-Founder encounter; broader equipment, formations and combat depth stay deferred.
+⚠️ The minimal expedition seam now connects the first Spirit Trail to a
+world-owned incremental `CombatSession` observed by `ExpeditionLiveView`.
+Basic Attack, AUTO/manual Active Skill use, cooldown, health, enemies, outcome
+and save/load replay are integrated on the single world tick. Spatial
+advance/range/knockback, the post-dawn Cache-gate exception, four-hour/no-Food
+Spirit Trail contract and full objective/return signature remain open; broader
+equipment, formations and combat depth stay deferred.
 
 ### Citizens with trajectory
 
@@ -124,8 +127,8 @@ of passive fields or generic city-builder counters.
 | Macro street-perspective city | ✅ sole runtime representation | Confirm tree-row pathfinding/gather visibility. |
 | Building detail/construction | ✅ | EG-5C agricultural consolidation and human signature. |
 | Citizens roster/debug context | ✅ | Human normal-flow signature. |
-| Expedition planning/status | ✅ first cut | Current 1–2 picker; EG-5V needs Founder-only four-slot projection. |
-| Expedition live view | ❌ | Lateral encounter → objective → return, preserving 1x/2x/4x. |
+| Expedition planning/status | ✅ first cut | Current domain picker remains 1–2; the first Spirit Trail enforces Founder-only and projects four future slots. |
+| Expedition live view | ⚠️ active | Lateral observable encounter preserves 1x/2x/4x; spatial advance and full objective/return signature remain. |
 | Policies | ✅ read-only first cut | Schedule remains provisional. |
 | Chronicle/blockers | ✅ | Long-horizon persisted history later. |
 | Camera/input | ✅ | Free default; explicit follow; UI wheel boundary. |
@@ -135,7 +138,7 @@ of passive fields or generic city-builder counters.
 
 ## 6. Persistence and offline validation
 
-Schema v32 is current. The list below describes the original v19 loop seam;
+Schema v33 is current. The list below describes the original v19 loop seam;
 later migrations are tracked in `CURRENT_STATUS.md` and `ARCHITECTURE.md`:
 
 - Citizen identity, profile, roles, competence, work order, commitment,

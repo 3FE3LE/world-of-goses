@@ -1186,18 +1186,13 @@ public sealed class HudCompositionTests
         string scene = File.ReadAllText(Path.Combine(
             root, "game", "scenes", "Components", "OctagonalSkillSlot.tscn"));
 
-        foreach (string point in new[]
-                 {
-                     "new(24, 4)", "new(72, 4)", "new(92, 24)", "new(92, 72)",
-                     "new(72, 92)", "new(24, 92)", "new(4, 72)", "new(4, 24)",
-                 })
-        {
-            Assert.Contains(point, source, StringComparison.Ordinal);
-        }
-
+        Assert.Contains("public const int SlotWidth = 104", source, StringComparison.Ordinal);
+        Assert.Contains("public const int SlotHeight = 164", source, StringComparison.Ordinal);
+        Assert.Contains("private const int CornerCut = 20", source, StringComparison.Ordinal);
+        Assert.Equal(8, Regex.Matches(source, "^        new\\(", RegexOptions.Multiline).Count);
         Assert.Contains("DrawColoredPolygon(Octagon, fill)", source, StringComparison.Ordinal);
         Assert.Contains("antialiased: false", source, StringComparison.Ordinal);
-        Assert.Contains("custom_minimum_size = Vector2(96, 104)", scene, StringComparison.Ordinal);
+        Assert.Contains("custom_minimum_size = Vector2(104, 164)", scene, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = &\"OctagonalSkillSlot\"", scene,
             StringComparison.Ordinal);
         Assert.DoesNotContain("_Process", source, StringComparison.Ordinal);
@@ -1213,8 +1208,8 @@ public sealed class HudCompositionTests
             "game", "scenes", "Components", "OctagonalSkillSlot.tscn"));
         (int X, int Y)[] positions =
         {
-            (45, 1), (79, 11), (89, 45), (79, 79),
-            (45, 89), (11, 79), (1, 45), (11, 11),
+            (49, 1), (87, 11), (97, 79), (87, 147),
+            (49, 157), (11, 147), (1, 79), (11, 11),
         };
 
         for (int i = 0; i < positions.Length; i++)
@@ -1321,6 +1316,53 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("_PhysicsProcess", stageSource, StringComparison.Ordinal);
         Assert.Contains("DrawCombatant", stageSource, StringComparison.Ordinal);
         Assert.Contains("antialiased: false", stageSource, StringComparison.Ordinal);
+        Assert.Contains("StageBounds = new(244, 0, 800, 488)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("LeftColumnBounds = new(8, 8, 228, 464)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("RightColumnBounds = new(1048, 8, 224, 464)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("SquadBounds = new(8, 480, 441, 176)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("SkillBounds = new(448, 472, 456, 180)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("CommandBounds = new(1048, 472, 224, 180)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("SetAnchorsAndOffsetsPreset(LayoutPreset.TopLeft)", liveSource,
+            StringComparison.Ordinal);
+        Assert.Contains("HasReferenceLayout", liveSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", liveSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionLiveCombat_UsesInputMapAndOneApplicationCommandPath()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string project = File.ReadAllText(Path.Combine(root, "game", "project.godot"));
+        string live = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ExpeditionLiveView.cs"));
+        string controller = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityWorldController.cs"));
+
+        for (int index = 1; index <= 4; index++)
+        {
+            Assert.Contains($"expedition_skill_{index}=", project, StringComparison.Ordinal);
+            Assert.Contains($"\"expedition_skill_{index}\"", live, StringComparison.Ordinal);
+        }
+        Assert.Contains("slot.Activated += OnSkillActivated", live, StringComparison.Ordinal);
+        Assert.Contains("TryActivateSkill(slotNumber - 1)", live, StringComparison.Ordinal);
+        Assert.Contains("TryActivateSkill(index)", live, StringComparison.Ordinal);
+        Assert.Contains("_controller.TryActivateMemberSkill(id, slotIndex)", live,
+            StringComparison.Ordinal);
+        Assert.Contains("_world.TryActivateMemberSkill(expeditionId, slotIndex)", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("if (changed) _hasUnsavedChanges = true;", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("if (accepted) _hasUnsavedChanges = true;", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("_autoButton.Toggled += OnAutoToggled", live, StringComparison.Ordinal);
+        Assert.DoesNotContain("Key1", live, StringComparison.Ordinal);
+        Assert.DoesNotContain("SpeedChoice.Paused", live + controller, StringComparison.Ordinal);
     }
 
     [Fact]

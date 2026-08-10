@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Combat;
 
 namespace WorldofGoses.Domain.Persistence;
 
@@ -340,6 +341,7 @@ public static class WorldPersistence
 
         foreach (Expedition expedition in world.Expeditions.Values)
         {
+            CombatSession? combatSession = world.GetCombatSession(expedition.Id);
             save.Expeditions.Add(new ExpeditionSave
             {
                 Id = expedition.Id.Value,
@@ -370,6 +372,16 @@ public static class WorldPersistence
                 SetbackReturn = expedition.SetbackReturn,
                 PartialReturn = expedition.PartialReturn,
                 CarryCapacity = expedition.CarryCapacity,
+                HasCombatSession = combatSession is not null,
+                CombatStepsAdvanced = combatSession?.Step ?? 0,
+                CombatCommands = combatSession?.Commands
+                    .Select(command => new CombatSessionCommandSave
+                    {
+                        BeforeStep = command.BeforeStep,
+                        Kind = command.Kind.ToString(),
+                        Value = command.Value,
+                    })
+                    .ToList() ?? new List<CombatSessionCommandSave>(),
             });
         }
 
@@ -990,6 +1002,11 @@ public static class WorldPersistence
             opportunitiesById.Add(opportunity.Id, opportunity);
         }
 
+        CitizenSave? principalFounder = save.Citizens.FirstOrDefault(citizen =>
+                citizen.Id == 1
+                && citizen.Roles.Any(role => role.Id == RoleId.Hero.Value))
+            ?? save.Citizens.FirstOrDefault(citizen =>
+                citizen.Roles.Any(role => role.Id == RoleId.Hero.Value));
         var expeditionIds = new HashSet<int>();
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
@@ -1040,11 +1057,37 @@ public static class WorldPersistence
                     && (!string.IsNullOrEmpty(expedition.ResourceOpportunityKind)
                         || expedition.SetbackReturn != 0
                         || expedition.PartialReturn != 0
-                        || expedition.CarryCapacity != 0)))
+                        || expedition.CarryCapacity != 0))
+                || expedition.CombatStepsAdvanced < 0
+                || expedition.CombatStepsAdvanced > CombatBalanceConfig.Default.MaximumEncounterSteps
+                || expedition.CombatCommands is null)
             {
                 throw new InvalidOperationException("Save contains an invalid expedition.");
             }
 
+            int previousCombatStep = -1;
+            foreach (CombatSessionCommandSave command in expedition.CombatCommands)
+            {
+                if (command is null
+                    || command.BeforeStep < previousCombatStep
+                    || command.BeforeStep > expedition.CombatStepsAdvanced
+                    || !Enum.TryParse(command.Kind, true, out CombatSessionCommandKind kind)
+                    || (kind == CombatSessionCommandKind.SetAutoSkills
+                        && command.Value is not (0 or 1))
+                    || (kind == CombatSessionCommandKind.ActivateMemberSkill
+                        && command.Value is < 0 or > 3))
+                {
+                    throw new InvalidOperationException(
+                        $"Expedition {expedition.Id} has invalid combat command history.");
+                }
+                previousCombatStep = command.BeforeStep;
+            }
+            if (!expedition.HasCombatSession
+                && (expedition.CombatStepsAdvanced != 0 || expedition.CombatCommands.Count != 0))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} stores combat state without a session.");
+            }
             _ = Enum.TryParse(expedition.Status, true, out ExpeditionStatus status);
             _ = Enum.TryParse(expedition.Phase, true, out ExpeditionPhase phase);
             _ = Enum.TryParse(
@@ -1063,6 +1106,61 @@ public static class WorldPersistence
             bool retreatTriggered =
                 retreatPosture == ExpeditionRetreatPosture.RetreatAfterSetback
                 && encounterOutcome == ExpeditionEncounterOutcome.Setback;
+            bool isSpiritTrail = string.Equals(
+                expedition.ResourceOpportunityKind,
+                ResourceOpportunityKind.SpiritTrailSearch.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+            bool isFounderOnlySpiritTrail = isSpiritTrail
+                && principalFounder is not null
+                && expedition.MemberCitizenIds.Count == 1
+                && expedition.MemberCitizenIds[0] == principalFounder.Id;
+            bool founderHasCombatWeapon = isFounderOnlySpiritTrail
+                && principalFounder!.EquipmentLoadout?.Weapon is not null;
+            bool requiresObservableWeapon = status == ExpeditionStatus.Active
+                && isFounderOnlySpiritTrail
+                && (phase == ExpeditionPhase.Outbound
+                    || (phase == ExpeditionPhase.Encounter && encounterOutcome is null)
+                    || expedition.HasCombatSession);
+            if (requiresObservableWeapon
+                && !founderHasCombatWeapon)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} Founder Spirit Trail is missing its provisional weapon.");
+            }
+            bool phaseRequiresOutcome = status == ExpeditionStatus.Active
+                && phase is ExpeditionPhase.Objective
+                    or ExpeditionPhase.Retreating
+                    or ExpeditionPhase.Returning;
+            if (phaseRequiresOutcome && encounterOutcome is null)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} phase {phase} requires an encounter outcome.");
+            }
+            if (status == ExpeditionStatus.Active
+                && phase == ExpeditionPhase.Outbound
+                && encounterOutcome.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} cannot have an encounter outcome before Encounter.");
+            }
+            bool unresolvedObservableEncounter =
+                status == ExpeditionStatus.Active
+                && phase == ExpeditionPhase.Encounter
+                && encounterOutcome is null
+                && founderHasCombatWeapon;
+            if (unresolvedObservableEncounter && !expedition.HasCombatSession)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} is missing its active combat session.");
+            }
+            if (expedition.HasCombatSession
+                && (!founderHasCombatWeapon
+                    || status != ExpeditionStatus.Active
+                    || phase is ExpeditionPhase.Outbound or ExpeditionPhase.Resolved))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} has a combat session outside an active encounter lifecycle.");
+            }
             if ((status == ExpeditionStatus.Active && phase == ExpeditionPhase.Resolved)
                 || (terminal && phase != ExpeditionPhase.Resolved)
                 || (phase == ExpeditionPhase.Retreating && !retreatTriggered)
@@ -1941,6 +2039,7 @@ public static class WorldPersistence
                 29 => MigrateV29ToV30(save),
                 30 => MigrateV30ToV31(save),
                 31 => MigrateV31ToV32(save),
+                32 => MigrateV32ToV33(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2790,6 +2889,83 @@ public static class WorldPersistence
         }
 #pragma warning restore CS0618
         save.Version = 32;
+        return save;
+    }
+
+    public static WorldSave MigrateV32ToV33(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 32)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV32ToV33 expects version 32 but found {save.Version}.");
+        }
+        CitizenSave? principalFounder = save.Citizens.FirstOrDefault(citizen =>
+                citizen.Id == 1
+                && citizen.Roles.Any(role => role.Id == RoleId.Hero.Value))
+            ?? save.Citizens.FirstOrDefault(citizen =>
+                citizen.Roles.Any(role => role.Id == RoleId.Hero.Value));
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            expedition.HasCombatSession = false;
+            expedition.CombatStepsAdvanced = 0;
+            expedition.CombatCommands = new List<CombatSessionCommandSave>();
+
+            bool isActiveFounderSpiritTrail = string.Equals(
+                    expedition.Status,
+                    ExpeditionStatus.Active.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                && string.Equals(
+                    expedition.ResourceOpportunityKind,
+                    ResourceOpportunityKind.SpiritTrailSearch.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                && principalFounder is not null
+                && expedition.MemberCitizenIds.Count == 1
+                && expedition.MemberCitizenIds[0] == principalFounder.Id
+                && (string.Equals(
+                        expedition.Phase,
+                        ExpeditionPhase.Outbound.ToString(),
+                        StringComparison.OrdinalIgnoreCase)
+                    || (string.Equals(
+                            expedition.Phase,
+                            ExpeditionPhase.Encounter.ToString(),
+                            StringComparison.OrdinalIgnoreCase)
+                        && string.IsNullOrEmpty(expedition.EncounterOutcome)));
+            if (!isActiveFounderSpiritTrail) continue;
+
+            CitizenSave? founder = principalFounder;
+            if (founder is null)
+            {
+                continue;
+            }
+            founder.EquipmentLoadout ??= new EquipmentLoadoutSave();
+            if (founder.EquipmentLoadout.Weapon is null)
+            {
+                WeaponChannelProfile weapon =
+                    ExpeditionCombatSessionFactory.ProvisionalWeaponFor(
+                        new ExpeditionId(expedition.Id),
+                        expedition.StartTick);
+                founder.EquipmentLoadout.Weapon = new WeaponChannelProfileSave
+                {
+                    Family = weapon.Family.ToString(),
+                    PhysicalTransfer = weapon.PhysicalTransfer,
+                    ElementalResonance = weapon.ElementalResonance,
+                };
+            }
+            if (string.Equals(
+                    expedition.Phase,
+                    ExpeditionPhase.Encounter.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrEmpty(expedition.EncounterOutcome))
+            {
+                // V32 resolved encounters atomically and therefore had no
+                // partial combat state to preserve. A defensively persisted
+                // unresolved boundary starts the new deterministic session
+                // at step zero instead of becoming stuck after migration.
+                expedition.HasCombatSession = true;
+            }
+        }
+        save.Version = 33;
         return save;
     }
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Combat;
 using WorldofGoses.Domain.Persistence;
 using WorldofGoses.Ui;
 using WorldofGoses.Prototypes;
@@ -1882,7 +1883,8 @@ public partial class CityPrototype : Node
         ExpeditionRailFixtureState state,
         string? locale = null,
         string? displayName = null,
-        int durationTicks = 8)
+        int durationTicks = 8,
+        bool prepareObservableCombat = false)
     {
         if (locale is not null)
         {
@@ -1911,6 +1913,13 @@ public partial class CityPrototype : Node
         if (world.Resources.Available(ResourceType.Wood) < 1)
         {
             world.Resources.DepositToCityInventory(ResourceType.Wood, 1);
+        }
+        if (prepareObservableCombat)
+        {
+            ExpeditionCombatSessionFactory.EnsureProvisionalFounderWeapon(
+                world.Hero!,
+                new ExpeditionId(1),
+                world.CurrentTick);
         }
 
         ExpeditionRequest request = ExpeditionRequest.Reconnaissance(world.Hero!.Id) with
@@ -1944,7 +1953,8 @@ public partial class CityPrototype : Node
             ExpeditionRailFixtureState.Encounter,
             locale: "es",
             displayName: "ui.expedition_live.fixture.silent_forest",
-            durationTicks: 40);
+            durationTicks: 40,
+            prepareObservableCombat: true);
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Fast);
         ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
@@ -1990,6 +2000,9 @@ public partial class CityPrototype : Node
             "GameUiShell/ScreenContent/ExpeditionLiveView");
         MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
             "GameUiShell/ScreenContent/MacroStreetLiveView");
+        CombatSessionSnapshot? combat = liveView.PresentedExpeditionId is ExpeditionId expeditionId
+            ? controller.World.GetCombatSessionSnapshot(expeditionId)
+            : null;
         bool passed = liveView.Visible
             && liveView.PresentedExpeditionId.HasValue
             && !macro.Visible
@@ -2001,16 +2014,24 @@ public partial class CityPrototype : Node
             && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Visible
             && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").SpeedButton.IsVisibleInTree()
             && GetViewport().GuiGetFocusOwner() == liveView.BackButton
+            && liveView.HasReferenceLayout
+            && combat is { Active: true, AutoSkillsEnabled: true }
+            && !liveView.AutoButton.Disabled
             && controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast;
         if (!passed)
         {
             GD.PushError(
                 $"[WOG-EXPEDITION-LIVE] routing failed; live={liveView.Visible}, "
                 + $"macro={macro.Visible}, selection={controller.CurrentSelection}, "
-                + $"speed={controller.CurrentSpeed}.");
+                + $"speed={controller.CurrentSpeed}, layout={liveView.HasReferenceLayout}, "
+                + $"combat={combat?.Outcome}, autoDisabled={liveView.AutoButton.Disabled}, "
+                + $"bounds={liveView.ReferenceLayoutReport}.");
             return;
         }
-        GD.Print("[WOG-EXPEDITION-LIVE] lateral perspective opened at global 2x.");
+        GD.Print(
+            "[WOG-EXPEDITION-LIVE] reference layout opened with active combat at global 2x; "
+            + $"step={combat!.Step}, enemies={combat.EnemyCount}, auto={combat.AutoSkillsEnabled}; "
+            + "stage=800x488, sides=228/224, squad=441, skills=456.");
         if (!_expeditionLiveEscapeFixture) return;
 
         Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });

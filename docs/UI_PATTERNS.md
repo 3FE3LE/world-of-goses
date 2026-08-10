@@ -699,15 +699,31 @@ once at `GameUiShell/ScreenContent`, participates in the existing
 the player returns to Macro. `ExpeditionRail` exposes a labelled `VER` action
 only while a real active expedition exists. The view consumes
 `ExpeditionLiveSnapshot`; absent encounter data remains explicitly unmeasured
-instead of being invented. Its route milestones distinguish successful return
+until the world creates its combat session. During the encounter it projects
+authoritative participant HP, living enemy count, Active Skill readiness and
+cooldown, AUTO state and terminal outcome. `OctagonalSkillSlot.Activated` and
+the four InputMap actions both call the controller's same zero-based
+`TryActivateMemberSkill` command. AUTO is a toggle for automatic Active Skill
+spending only: it never affects Basic Attack, world time, speed or movement.
+Fields unavailable before that seam remain unmeasured instead of being
+invented. Route milestones distinguish successful return
 from retreat: a retreat marks Objective as omitted, never as completed.
+
+Its fixed 1280x664 content composition is derived from the local geometry
+reference `art/references/Expediton HUD reference.png`: 228/224 px information
+columns frame an 800x488 battlefield; the 441 px squad strip occupies the
+lower-left, the enlarged 456x180 four-skill strip occupies the lower-centre,
+and the AUTO/RETIRADA stack occupies the lower-right. These named
+regions live in `ExpeditionLiveView.cs`; internal containers handle text and
+content pressure without turning the authored HUD into a fluid layout. The
+reference is never imported or rendered at runtime.
 
 The shell-owned `CityStatusPanel` remains visible above this perspective, so its
 world clock, resources, population, global 1x/2x/4x `SpeedButton`, Camera and
 Menu keep their existing instances. Entering, leaving and pressing ESC in the
-live view never calls `SetSimulationSpeed`. `AUTO` and `RETIRADA` are disabled
-structural commands in this increment: neither writes domain state. The stage
-draws static lateral placeholders only and has no `_Process`, movement,
+live view never calls `SetSimulationSpeed`. `AUTO` writes only the session's
+automatic-Active-Skill preference; `RETIRADA` remains disabled. The stage draws
+static lateral placeholders driven by real HP/enemy counts and has no `_Process`, movement,
 hitboxes, damage resolver, `CombatClock` or `ExpeditionClock`.
 
 ## 11. Quick reference — where things live

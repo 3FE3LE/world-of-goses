@@ -158,11 +158,13 @@ These are real rules, but the implementation is missing required behavior.
 - Offline progression: empty/idle worlds fast-forward; assigned-work worlds
   step ticks.
 - Upkeep: `Upkeep.ApplyUpkeep` is an intentional no-op.
-- Expedition presentation remains a planning/status modal; a detailed side-view
-  journey is not implemented.
+- Expedition planning/status remains a city surface; the structural lateral
+  `ExpeditionLiveView` now observes a world-owned session but its battlefield
+  still has no spatial movement.
 - `SpiritTrailSearch` still implements 180 ticks + 1 Food → Wood 4/6/8, now
-  superseded by `DEC-0020`. No `ExpeditionLiveView` exists; combat remains a
-  separate deterministic debug/domain island without spatial range or knockback.
+  superseded by `DEC-0020`. The view and incremental combat session are now
+  connected (schema v33), but spatial range/knockback and the corrected
+  Spirit Trail economy/duration remain absent.
 
 ## Prototype / placeholder
 
@@ -189,7 +191,7 @@ con ese documento. Lo que sigue siendo diagnóstico real del código:
 | ID | Título | Cómo lo cierra el proposal |
 | --- | --- | --- |
 | Food pressure sin operating-input (antiguo G1) | La Granja heredada aún produce sin receta, pero ya no es la apertura. | **Cerrado en EG-3** — primer plot con semilla, espera y `readyAtTick` 10800 ticks. |
-| Primer combate visual | Expedición temprana y combate determinista existen como islas separadas; no hay vista lateral integrada. | **Activo en EG-5V**: Founder-only, encuentro antes de ~5 min, objetivo y regreso sobre un reloj. |
+| Primer combate visual | Vista lateral + sesión determinista incremental ya están integradas; Basic Attack, AUTO/manual Skill 1, cooldown, HP, outcome y replay save/load funcionan. Falta movimiento/rango/knockback y corregir el gate/duración/coste del Spirit Trail. | **Activo en EG-5V**: completar el encuentro antes de ~5 min, objetivo y regreso sobre un reloj. |
 | Territory legible (antiguo G6) | La franja oscura era la parcela 9 bloqueada; el modelo fresco ahora expone solo tres parcelas horizontales y no renderiza frontier. | **Reabierto en EG-5C**: sobre visual objetivo 8×9 y ventana móvil de 13 calles definidos; expansión suspendida hasta diseñar borde, adquisición causal y culling/batching lateral. |
 | Wound/recovery alcanzable (antiguo G5) | Fórmula de encuentro actual sesgada a FullSuccess para citizens con competency alta. | Ya no bloquea EG-5V; profundidad posterior sigue diferida. |
 

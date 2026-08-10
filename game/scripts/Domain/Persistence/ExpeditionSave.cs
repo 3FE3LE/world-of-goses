@@ -49,4 +49,14 @@ public sealed class ExpeditionSave
     public int SetbackReturn { get; set; }
     public int PartialReturn { get; set; }
     public int CarryCapacity { get; set; }
+    public bool HasCombatSession { get; set; }
+    public int CombatStepsAdvanced { get; set; }
+    public List<CombatSessionCommandSave> CombatCommands { get; set; } = new();
+}
+
+public sealed class CombatSessionCommandSave
+{
+    public int BeforeStep { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public int Value { get; set; }
 }

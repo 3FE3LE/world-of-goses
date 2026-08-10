@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Combat;
 
 namespace WorldofGoses;
 
@@ -20,7 +21,8 @@ public sealed record ExpeditionLiveSnapshot(
     int EndTick,
     ExpeditionEncounterOutcome? EncounterOutcome,
     bool RetreatTriggered,
-    IReadOnlyList<ExpeditionLiveSnapshot.Member> Members)
+    IReadOnlyList<ExpeditionLiveSnapshot.Member> Members,
+    ExpeditionLiveSnapshot.Combat? CombatState)
 {
     public enum RouteStepState
     {
@@ -37,6 +39,21 @@ public sealed record ExpeditionLiveSnapshot(
         int CurrentStamina,
         int EffectiveMaxStamina,
         WoundSeverity? WoundSeverity);
+
+    public sealed record Skill(
+        bool Locked,
+        bool Ready,
+        int Remaining,
+        int Duration,
+        string? TechniqueId);
+
+    public sealed record Combat(
+        bool Active,
+        bool AutoSkillsEnabled,
+        int Step,
+        int EnemyCount,
+        CombatOutcome Outcome,
+        IReadOnlyList<Skill> Skills);
 
     public double Progress
     {
@@ -95,6 +112,7 @@ public sealed record ExpeditionLiveSnapshot(
             return null;
         }
 
+        CombatSessionSnapshot? combat = world.GetCombatSessionSnapshot(expeditionId);
         var members = new List<Member>(expedition.MemberIds.Count);
         var statistics = new CitizenStatisticsService();
         foreach (CitizenId memberId in expedition.MemberIds)
@@ -114,6 +132,21 @@ public sealed record ExpeditionLiveSnapshot(
                     : Math.Clamp(currentHealth / maximumHealth, 0d, 1d);
             }
 
+            if (combat is not null)
+            {
+                foreach (CombatParticipantState participant in combat.Party)
+                {
+                    if (participant.CitizenId != citizen.Id) continue;
+                    healthRatio = participant.MaxHealth <= 0
+                        ? null
+                        : Math.Clamp(
+                            participant.CurrentHealth / participant.MaxHealth,
+                            0d,
+                            1d);
+                    break;
+                }
+            }
+
             members.Add(new Member(
                 citizen.Id,
                 citizen.Name,
@@ -121,6 +154,36 @@ public sealed record ExpeditionLiveSnapshot(
                 citizen.CurrentStamina,
                 citizen.EffectiveMaxStamina,
                 citizen.Wound?.Severity));
+        }
+
+        Combat? combatProjection = null;
+        if (combat is not null)
+        {
+            var skills = new List<Skill>(4);
+            for (int index = 0; index < 4; index++)
+            {
+                if (index < combat.MemberSkills.Count)
+                {
+                    CombatSkillState skill = combat.MemberSkills[index];
+                    skills.Add(new Skill(
+                        Locked: false,
+                        skill.Ready,
+                        skill.Remaining,
+                        skill.Duration,
+                        skill.TechniqueId));
+                }
+                else
+                {
+                    skills.Add(new Skill(true, false, 0, 0, null));
+                }
+            }
+            combatProjection = new Combat(
+                combat.Active,
+                combat.AutoSkillsEnabled,
+                combat.Step,
+                combat.EnemyCount,
+                combat.Outcome,
+                skills);
         }
 
         return new ExpeditionLiveSnapshot(
@@ -133,6 +196,7 @@ public sealed record ExpeditionLiveSnapshot(
             expedition.EndTick,
             expedition.EncounterOutcome,
             expedition.RetreatTriggered,
-            members);
+            members,
+            combatProjection);
     }
 }

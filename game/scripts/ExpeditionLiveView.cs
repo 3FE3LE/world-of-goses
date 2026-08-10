@@ -12,11 +12,27 @@ namespace WorldofGoses;
 /// </summary>
 public partial class ExpeditionLiveView : Control
 {
+    // Reference-derived regions on the fixed 1280x720 canvas. The rendered
+    // CityStatusPanel currently consumes the first 56 logical pixels, leaving
+    // a 1280x664 ScreenContent; it is not repeated inside this view.
+    internal static readonly Rect2I StageBounds = new(244, 0, 800, 488);
+    internal static readonly Rect2I RouteBounds = new(360, 8, 560, 92);
+    internal static readonly Rect2I LeftColumnBounds = new(8, 8, 228, 464);
+    internal static readonly Rect2I SquadBounds = new(8, 480, 441, 176);
+    internal static readonly Rect2I RightColumnBounds = new(1048, 8, 224, 464);
+    internal static readonly Rect2I SkillBounds = new(448, 472, 456, 180);
+    internal static readonly Rect2I CommandBounds = new(1048, 472, 224, 180);
+
     [Export] public NodePath ControllerPath { get; set; } = new("../../../CityWorldController");
 
     private CityWorldController _controller = null!;
     private LocaleManager _localeManager = null!;
     private ExpeditionStage _stage = null!;
+    private PanelContainer _routeStrip = null!;
+    private VBoxContainer _leftColumn = null!;
+    private VBoxContainer _squadArea = null!;
+    private VBoxContainer _rightColumn = null!;
+    private VBoxContainer _combatCommands = null!;
     private HBoxContainer _routeSteps = null!;
     private Label _viewTitle = null!;
     private Label _expeditionHeader = null!;
@@ -41,20 +57,35 @@ public partial class ExpeditionLiveView : Control
     private Button _autoButton = null!;
     private Button _retreatButton = null!;
     private bool _fixtureShowsTwoEnemies;
+    private bool _updatingCombatControls;
+
+    private static readonly StringName[] SkillActions =
+    {
+        "expedition_skill_1",
+        "expedition_skill_2",
+        "expedition_skill_3",
+        "expedition_skill_4",
+    };
 
     public ExpeditionId? PresentedExpeditionId { get; private set; }
     public Button BackButton => _backButton;
+    public Button AutoButton => _autoButton;
 
     public override void _Ready()
     {
         _controller = GetNode<CityWorldController>(ControllerPath);
         _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
         _stage = GetNode<ExpeditionStage>("ExpeditionStage");
+        _routeStrip = GetNode<PanelContainer>("ExpeditionRouteStrip");
+        _leftColumn = GetNode<VBoxContainer>("ExpeditionHud/LeftColumn");
+        _squadArea = GetNode<VBoxContainer>("ExpeditionHud/SquadArea");
+        _rightColumn = GetNode<VBoxContainer>("ExpeditionHud/RightColumn");
+        _combatCommands = GetNode<VBoxContainer>("ExpeditionHud/CombatCommands");
         _routeSteps = GetNode<HBoxContainer>("ExpeditionRouteStrip/Content/Layout/RouteSteps");
         _viewTitle = GetNode<Label>("ExpeditionRouteStrip/Content/Layout/Header/ViewTitle");
         _expeditionHeader = GetNode<Label>("ExpeditionHud/LeftColumn/ExpeditionSummary/Content/Rows/Header");
         _citizenHeader = GetNode<Label>("ExpeditionHud/LeftColumn/CitizenDetail/Content/Rows/Header");
-        _squadHeader = GetNode<Label>("ExpeditionHud/LeftColumn/SquadHeader");
+        _squadHeader = GetNode<Label>("ExpeditionHud/SquadArea/SquadHeader");
         _encounterHeader = GetNode<Label>("ExpeditionHud/RightColumn/EncounterSummary/Content/Rows/Header");
         _expeditionName = GetNode<Label>("ExpeditionHud/LeftColumn/ExpeditionSummary/Content/Rows/Name");
         _phase = GetNode<Label>("ExpeditionHud/LeftColumn/ExpeditionSummary/Content/Rows/Phase");
@@ -68,10 +99,12 @@ public partial class ExpeditionLiveView : Control
         _enemies = GetNode<Label>("ExpeditionHud/RightColumn/EncounterSummary/Content/Rows/Enemies");
         _progress = GetNode<ProgressBar>("ExpeditionHud/RightColumn/EncounterSummary/Content/Rows/Progress");
         _progressText = GetNode<Label>("ExpeditionHud/RightColumn/EncounterSummary/Content/Rows/ProgressText");
-        _squadStrip = GetNode<ExpeditionSquadStrip>("ExpeditionHud/LeftColumn/ExpeditionSquadStrip");
+        _squadStrip = GetNode<ExpeditionSquadStrip>("ExpeditionHud/SquadArea/ExpeditionSquadStrip");
         _skillStrip = GetNode<ExpeditionSkillStrip>("ExpeditionHud/ExpeditionSkillStrip");
-        _autoButton = GetNode<Button>("ExpeditionHud/CombatCommands/Content/Actions/AutoButton");
-        _retreatButton = GetNode<Button>("ExpeditionHud/CombatCommands/Content/Actions/RetreatButton");
+        _autoButton = GetNode<Button>("ExpeditionHud/CombatCommands/AutoButton");
+        _retreatButton = GetNode<Button>("ExpeditionHud/CombatCommands/RetreatButton");
+
+        ApplyReferenceLayout();
 
         HBoxContainer header = GetNode<HBoxContainer>("ExpeditionRouteStrip/Content/Layout/Header");
         _backButton = StandardButtons.BackToCityButton();
@@ -84,6 +117,11 @@ public partial class ExpeditionLiveView : Control
         _autoButton.Disabled = true;
         _autoButton.ToggleMode = true;
         _autoButton.ButtonPressed = true;
+        _autoButton.Toggled += OnAutoToggled;
+        foreach (OctagonalSkillSlot slot in _skillStrip.Slots)
+        {
+            slot.Activated += OnSkillActivated;
+        }
         _retreatButton.Disabled = true;
 
         _controller.SelectionChanged += OnSelectionChanged;
@@ -95,9 +133,61 @@ public partial class ExpeditionLiveView : Control
         ApplySelection(_controller.CurrentSelection);
     }
 
+    internal bool HasReferenceLayout =>
+        MatchesBounds(_stage, StageBounds)
+        && MatchesBounds(_routeStrip, RouteBounds)
+        && MatchesBounds(_leftColumn, LeftColumnBounds)
+        && MatchesBounds(_squadArea, SquadBounds)
+        && MatchesBounds(_rightColumn, RightColumnBounds)
+        && MatchesBounds(_skillStrip, SkillBounds)
+        && MatchesBounds(_combatCommands, CommandBounds);
+
+    internal string ReferenceLayoutReport =>
+        $"stage={ActualBounds(_stage)}, route={ActualBounds(_routeStrip)}, "
+        + $"left={ActualBounds(_leftColumn)}, squad={ActualBounds(_squadArea)}, "
+        + $"right={ActualBounds(_rightColumn)}, skills={ActualBounds(_skillStrip)}, "
+        + $"commands={ActualBounds(_combatCommands)}";
+
+    private void ApplyReferenceLayout()
+    {
+        ApplyBounds(_stage, StageBounds);
+        ApplyBounds(_routeStrip, RouteBounds);
+        ApplyBounds(_leftColumn, LeftColumnBounds);
+        ApplyBounds(_squadArea, SquadBounds);
+        ApplyBounds(_rightColumn, RightColumnBounds);
+        ApplyBounds(_skillStrip, SkillBounds);
+        ApplyBounds(_combatCommands, CommandBounds);
+        _stage.QueueRedraw();
+    }
+
+    private static void ApplyBounds(Control control, Rect2I bounds)
+    {
+        control.SetAnchorsAndOffsetsPreset(LayoutPreset.TopLeft);
+        control.Position = bounds.Position;
+        control.Size = bounds.Size;
+    }
+
+    private static bool MatchesBounds(Control control, Rect2I bounds) =>
+        control.Position.IsEqualApprox(bounds.Position)
+        && control.Size.IsEqualApprox(bounds.Size);
+
+    private static Rect2I ActualBounds(Control control) => new(
+        Mathf.RoundToInt(control.Position.X),
+        Mathf.RoundToInt(control.Position.Y),
+        Mathf.RoundToInt(control.Size.X),
+        Mathf.RoundToInt(control.Size.Y));
+
     public override void _ExitTree()
     {
         if (_backButton is not null) _backButton.Pressed -= ReturnToCity;
+        if (_autoButton is not null) _autoButton.Toggled -= OnAutoToggled;
+        if (_skillStrip is not null)
+        {
+            foreach (OctagonalSkillSlot slot in _skillStrip.Slots)
+            {
+                slot.Activated -= OnSkillActivated;
+            }
+        }
         if (_controller is not null)
         {
             _controller.SelectionChanged -= OnSelectionChanged;
@@ -105,6 +195,18 @@ public partial class ExpeditionLiveView : Control
             _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
         }
         if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
+    }
+
+    public override void _UnhandledInput(InputEvent inputEvent)
+    {
+        if (!Visible || PresentedExpeditionId is null) return;
+        for (int index = 0; index < SkillActions.Length; index++)
+        {
+            if (!inputEvent.IsActionPressed(SkillActions[index])) continue;
+            TryActivateSkill(index);
+            GetViewport().SetInputAsHandled();
+            return;
+        }
     }
 
     internal void ShowEarlyFixture()
@@ -166,10 +268,12 @@ public partial class ExpeditionLiveView : Control
         ConfigureCitizen(snapshot);
         ConfigureSquad(snapshot);
         ConfigureEncounter(snapshot);
-        _stage.Configure(snapshot.Members.Count, _fixtureShowsTwoEnemies ? 2 : 0);
+        ConfigureCombatControls(snapshot);
+        int enemyCount = snapshot.CombatState?.EnemyCount
+            ?? (_fixtureShowsTwoEnemies ? 2 : 0);
+        _stage.Configure(snapshot.Members.Count, enemyCount);
 
         _autoButton.Text = UiText.Get("ui.expedition_live.auto");
-        _autoButton.TooltipText = UiText.Get("ui.expedition_live.auto.fixture_tooltip");
         _retreatButton.Text = UiText.Get("ui.expedition_live.retreat");
         _retreatButton.TooltipText = UiText.Get("ui.expedition_live.retreat.unavailable_tooltip");
     }
@@ -273,18 +377,71 @@ public partial class ExpeditionLiveView : Control
 
     private void ConfigureEncounter(ExpeditionLiveSnapshot snapshot)
     {
-        _encounterName.Text = snapshot.Phase == ExpeditionPhase.Encounter
-            ? UiText.Get("ui.expedition_live.encounter.current")
-            : UiText.Get("ui.expedition_live.encounter.none");
+        _encounterName.Text = snapshot.EncounterOutcome is ExpeditionEncounterOutcome outcome
+            ? UiText.Get(EncounterOutcomeKey(outcome))
+            : snapshot.Phase == ExpeditionPhase.Encounter
+                ? UiText.Get("ui.expedition_live.encounter.current")
+                : UiText.Get("ui.expedition_live.encounter.none");
         _threat.Text = UiText.Get("ui.expedition_live.threat.unmeasured");
         _objective.Text = UiText.Get(ObjectiveKey(snapshot.ObjectiveKind));
-        _enemies.Text = _fixtureShowsTwoEnemies
-            ? UiText.Format("ui.expedition_live.enemies", 2)
-            : UiText.Get("ui.expedition_live.enemies.unknown");
+        _enemies.Text = snapshot.CombatState is { } combat
+            ? UiText.Format("ui.expedition_live.enemies", combat.EnemyCount)
+            : _fixtureShowsTwoEnemies
+                ? UiText.Format("ui.expedition_live.enemies", 2)
+                : UiText.Get("ui.expedition_live.enemies.unknown");
         _progress.Value = snapshot.Progress;
         _progressText.Text = UiText.Format(
             "ui.expedition_live.progress",
             Mathf.RoundToInt(snapshot.Progress * 100));
+    }
+
+    private void ConfigureCombatControls(ExpeditionLiveSnapshot snapshot)
+    {
+        ExpeditionLiveSnapshot.Combat? combat = snapshot.CombatState;
+        _updatingCombatControls = true;
+        _autoButton.Disabled = combat?.Active != true;
+        _autoButton.ButtonPressed = combat?.AutoSkillsEnabled ?? true;
+        _autoButton.TooltipText = UiText.Get(
+            combat is null
+                ? "ui.expedition_live.auto.fixture_tooltip"
+                : "ui.expedition_live.auto");
+        _updatingCombatControls = false;
+
+        if (combat is null) return;
+        Texture2D? icon = ResourceLoader.Load<Texture2D>(IconPaths.Fire);
+        for (int index = 0; index < 4; index++)
+        {
+            ExpeditionLiveSnapshot.Skill skill = combat.Skills[index];
+            OctagonalSkillSlot.SlotState state = skill.Locked
+                ? OctagonalSkillSlot.SlotState.Locked
+                : !combat.Active
+                    ? OctagonalSkillSlot.SlotState.Disabled
+                    : skill.Ready
+                        ? OctagonalSkillSlot.SlotState.Ready
+                        : OctagonalSkillSlot.SlotState.Cooldown;
+            _skillStrip.ConfigureSlot(
+                index,
+                state,
+                skill.Locked ? null : icon,
+                skill.Remaining,
+                skill.Duration);
+        }
+    }
+
+    private void OnAutoToggled(bool enabled)
+    {
+        if (_updatingCombatControls || PresentedExpeditionId is not ExpeditionId id) return;
+        _controller.SetCombatAutoSkillsEnabled(id, enabled);
+        RefreshIfVisible();
+    }
+
+    private void OnSkillActivated(int slotNumber) => TryActivateSkill(slotNumber - 1);
+
+    private void TryActivateSkill(int slotIndex)
+    {
+        if (PresentedExpeditionId is not ExpeditionId id) return;
+        _controller.TryActivateMemberSkill(id, slotIndex);
+        RefreshIfVisible();
     }
 
     private void ReturnToCity() => _controller.ReturnToCity();
@@ -295,6 +452,13 @@ public partial class ExpeditionLiveView : Control
         ResourceOpportunityKind.NearbyFoodForage => "ui.expedition_live.objective.food",
         ResourceOpportunityKind.FallenWoodSearch => "ui.expedition_live.objective.wood",
         _ => "ui.expedition_live.objective.reconnaissance",
+    };
+
+    private static string EncounterOutcomeKey(ExpeditionEncounterOutcome outcome) => outcome switch
+    {
+        ExpeditionEncounterOutcome.FullSuccess => "event.encounter_outcome.full_success",
+        ExpeditionEncounterOutcome.PartialSuccess => "event.encounter_outcome.partial_success",
+        _ => "event.encounter_outcome.setback",
     };
 
     private static string WoundText(WoundSeverity severity) => UiText.Get(

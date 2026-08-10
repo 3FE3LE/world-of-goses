@@ -290,11 +290,20 @@ Concretely:
   worker corresponds to a real `CitizenId`. Workers that are assigned
   but exceed the visual capacity are reported as "working inside" by
   the domain; the presentation layer surfaces this number verbatim.
-- **Expedition-detail.** Not implemented yet. EG-5V will add the first lateral
-  `ExpeditionLiveView`; later expedition scenes
+- **Expedition-detail.** The first lateral `ExpeditionLiveView` is implemented
+  below `GameUiShell/ScreenContent`. It observes a domain `CombatSession` keyed
+  by `ExpeditionId`; hiding the view never owns, stops or recreates combat.
+  Each world tick advances one logical combat step and `ResolveToEnd` consumes
+  that same incremental path for tests/debug. Schema v33 persists the logical
+  step plus replayable AUTO/manual commands, then reconstructs health,
+  cooldowns, RNG and `CombatLog` from the same seed and resolvers. Later scenes
   will use fully detailed side-facing sprites authored as
   Pixelorama sprite sheets (`art/source/characters/...`) and driven by
   Godot `AnimatedSprite2D` with `AnimationPlayer` transitions.
+  This observable path is currently restricted to the Founder-only
+  `SpiritTrailSearch`; other expedition kinds keep the prior aggregate
+  encounter resolver. Quiescent offline batching is disabled while its combat
+  session is active so one world tick always means one combat step.
 
 Placeholder dimensions used by the prototype so that final art slots
 in without re-anchoring:

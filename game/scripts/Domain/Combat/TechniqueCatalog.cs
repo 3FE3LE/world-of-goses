@@ -26,6 +26,21 @@ namespace WorldofGoses.Domain.Combat;
 /// </summary>
 public static class TechniqueCatalog
 {
+    /// <summary>
+    /// Intrinsic automatic strike. It is not an Active Skill and therefore never
+    /// occupies one of the four expedition inputs. The neutral split is
+    /// provisional balance and still traverses the canonical TechniqueResolver.
+    /// </summary>
+    public static TechniqueDefinition BasicAttack { get; } = new(
+        "intrinsic.basic_attack",
+        TechniqueSource.Weapon,
+        TechniqueKind.Passive,
+        physicalCoefficient: 0.50,
+        elementalCoefficient: 0.50,
+        targetRule: TechniqueTargetRule.SingleEnemy,
+        priorityRule: TechniquePriorityRule.Sustained,
+        animationTag: "basic_attack");
+
     /// <summary>The four weapon families this slice gives content to.</summary>
     public static IReadOnlyList<WeaponFamily> SliceWeaponFamilies { get; } = new[]
     {

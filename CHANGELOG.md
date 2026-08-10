@@ -17,6 +17,52 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## El primer encuentro ya avanza como una sesión observable
+
+**2026-08-10** · schema v32 → v33 · combate/expedición
+
+El Spirit Trail del Founder crea ahora una `CombatSession` propiedad de la
+ciudad y asociada al `ExpeditionId`. Cada tick mundial avanza un paso del mismo
+motor determinista que `ResolveToEnd`; volver a la ciudad o reabrir `VER` no
+detiene ni recrea el encuentro. Basic Attack continúa automáticamente, AUTO
+gobierna solo el gasto de la Active Skill y los inputs 1–4 convergen con click y
+focus en un único comando por slot. Salud, enemigos, cooldown, AUTO y outcome
+se proyectan desde estado real; RETIRADA permanece deshabilitada y no se añadió
+movimiento, Chains ni un reloj privado.
+
+Hasta que el onboarding materialice el arma elegida, el primer Spirit Trail
+asigna al Founder desarmado una familia provisional determinista entre las
+cuatro ya soportadas y la persiste en su loadout. Schema v33 conserva el paso
+lógico y el historial reproducible de comandos AUTO/manual para reconstruir la
+misma sesión después de cargar.
+
+El alcance observable queda deliberadamente estrecho: solo
+`SpiritTrailSearch`, con Founder como único integrante. Reconocimientos y
+sorties materiales equipados conservan su resolver agregado anterior. Durante
+una sesión activa el catch-up offline usa los mismos ticks canónicos que el
+juego en vivo, y los comandos aceptados de AUTO/Skill dejan el save marcado
+para que cerrar inmediatamente tampoco los pierda.
+
+Los saves v32 también cruzan este cambio sin quedar atrapados: un Spirit Trail
+Founder-only todavía outbound —o en una frontera Encounter aún no resuelta—
+recibe la misma arma provisional determinista al migrar. Las fases posteriores
+preservan su loadout histórico; una dupla legacy no canónica no se invalida y
+termina mediante el resolver agregado anterior.
+
+Baseline medido: build 0/0, 1154 pruebas superadas y 1 omitida sobre 1155,
+36 pruebas de migración verdes, `WorldSave.CurrentVersion = 33` con la cadena
+`32 => MigrateV32ToV33` registrada y `save.Version != 32` como guarda.
+
+Regresión de rendimiento **abierta y no resuelta**: `expedition-live-early`
+mide 51–55 ms de `Performance.Monitor.TimeProcess`, por encima del presupuesto
+de pico de 40 ms, frente a 18,7 ms del mismo fixture antes de conectar la
+sesión de combate. No es ruido de máquina: en la misma tanda
+`macro-hud-default` midió 6–18 ms, así que el coste es propio de la vista en
+vivo. El fixture captura y la revisión visual pasa; el presupuesto de frame
+no. Queda registrado como deuda, no como verificación superada.
+
+---
+
 ## La expedición activa ya puede abrir una perspectiva lateral estructural
 
 **2026-08-10** · schema v32 (sin cambio) · presentación
@@ -35,9 +81,18 @@ hitboxes, daño, combate espacial ni relojes privados. Cuando el dominio no
 publica dificultad o enemigos, la UI lo declara desconocido en vez de inventar
 loot o telemetría.
 
+La convergencia de layout posterior usa la referencia local de Expedition HUD
+solo como autoridad geométrica: el battlefield ocupa el centro, las columnas
+de información enmarcan sus lados y escuadrón, cuatro Skills octogonales y
+AUTO/RETIRADA se reparten la franja inferior sin salir del canvas. Los Skills
+crecen mediante nuevas dimensiones lógicas —sin `Scale`— y sus ocho anchors de
+Trait permanecen ligados a los lados. No se añadió gameplay ni telemetría.
+
 Verificación de cierre: build limpio, familias HUD/snapshots/controller/
 expediciones verdes, catálogos EN/ES válidos y `expedition-live-early`
-capturado a 1280×720 y 1920×1080 mediante un click real sobre `VER`.
+capturado e inspeccionado sobre el canvas 1280×720; el runtime 1920×1080
+conserva esa misma composición lógica. Un click real sobre `VER` abre la vista
+y ESC vuelve a la ciudad sin modificar Speed ni resolver la expedición.
 
 ---
 

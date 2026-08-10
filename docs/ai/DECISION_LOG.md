@@ -867,6 +867,53 @@ simulation, input.
 
 ---
 
+### DEC-0021: Observable combat sessions and provisional first weapon
+
+**Status:** Accepted
+**Date:** 2026-08-10
+
+**Decision:**
+
+The first Spirit Trail encounter is an incremental `CombatSession` owned by
+`CityWorld` and keyed by `ExpeditionId`, never by `ExpeditionLiveView`. The
+single world tick advances combat. Basic Attack is intrinsic and automatic;
+AUTO only authorizes automatic spending of the member's one Active Skill, and
+manual activation uses the same technique/target/status/cooldown/log pipeline.
+Closing or reopening the view does not affect the session, speed or expedition.
+
+Until the planned astral onboarding lets the player choose one of the two
+weapons associated with their physical expression, a Founder who starts the
+first Spirit Trail unarmed receives one deterministic provisional family from
+the four already implemented (Spear, Staff, Mace or Orb). It is written to the
+existing persistent `EquipmentLoadout`. This automatic choice is temporary and
+must be replaced, not layered beside, the future onboarding choice.
+
+**Consequences:**
+
+- Schema v33 persists the active session's logical step and replayable
+  AUTO/manual command history; deterministic replay reconstructs RNG, health,
+  cooldowns and `CombatLog` through one engine.
+- V32 grandfathering equips an unarmed Founder-only Spirit Trail in Outbound,
+  or at an unresolved Encounter boundary, deterministically before its first
+  observable encounter. A post-encounter legacy expedition preserves its
+  existing loadout and outcome. A legacy Spirit
+  Trail with a non-canonical team is not invalidated or rewritten: it completes
+  through the previous aggregate encounter resolver.
+- `ResolveToEnd` remains available but consumes incremental `Advance`.
+- Observable combat is deliberately limited to the Founder-only
+  `SpiritTrailSearch` in this slice. Armed reconnaissance and material sorties
+  keep their prior aggregate resolver until a later explicit product increment.
+- Offline catch-up steps every world tick while that session is active, preserving
+  the same HP, cooldown, log and outcome as equivalent live world time.
+- `expedition_skill_1` and the octagon's `Activated` signal converge on
+  `TryActivateMemberSkill(0)`; slots 2–4 remain legal no-ops.
+- No movement, Chains, Traits, combat clock, expedition speed or manual retreat
+  is introduced.
+- The provisional neutral Basic Attack coefficient split and first weapon are
+  slice balance/content debt, not the final onboarding contract.
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

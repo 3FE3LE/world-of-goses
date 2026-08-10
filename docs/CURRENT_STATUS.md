@@ -37,14 +37,16 @@ and this section gets corrected in the same change.
   persistent person — `CombatantState` is a per-encounter working copy carrying the
   real `CitizenId`, and `CombatExpeditionService` is the only writer of
   consequences. Provisional balance is centralised in `CombatBalanceConfig`.
-  Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
-  `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
-  the two is the main technical debt of this slice.
-- `dotnet test`: 1114/1115 passing (1 omitido por brittleness del JSON snapshot en
+  The first Founder-only Spirit Trail now owns an incremental `CombatSession`
+  keyed by its real `ExpeditionId`; presentation and `combat-debug` observe the
+  same domain engine without owning it. Non-Spirit expeditions deliberately keep
+  their previous aggregate resolver during this narrow slice.
+- `dotnet test`: 1154/1155 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 32. V31→V32 renames the third cube face from
+- `WorldSave.CurrentVersion`: 33. V32→V33 persists the active Spirit Trail
+  combat step and replayable AUTO/manual command history. V31→V32 renames the third cube face from
   `Mastery` to `Domain` on disk (DEC-0019) and preserves the legacy field one
   schema bump as a nullable bridge so a v31 save loads without losing the
   founder's cube. V22→V23 rescales the obsolete 16×40 founding
@@ -65,18 +67,21 @@ and this section gets corrected in the same change.
   cell now validates, matching what the domain and the player already see; the
   JSON shape is unchanged, so this widened only the validation and needed no
   migration.
-- El snapshot Full de 2026-08-10 registró fallo del boot headless con
-  `-1073741819`; no se afirma un boot limpio hasta reproducirlo con éxito.
-- EN/ES catalogs: 1001 template IDs and 300 runtime keys validated.
+- El pipeline de snapshot Full sigue siendo intermitente y registró un fallo
+  `-1073741819`; el boot headless standalone posterior sí completó limpio. Esto
+  valida carga/runtime, no sustituye la captura visual Full pendiente.
+- EN/ES catalogs: 1049 template IDs and 324 runtime keys validated.
 - The physical expression is derived from the **Kovari Cube** — the highest face
   of the persisted `CubeProfile` — and no longer from the elemental affinity.
   The two are independent: an Ardhen founder can be Fracture with Fire,
   Paralysis with Air or Bleeding with Aether. It and the two weapon families it
   makes natural are shown on the hero profile, the founder arrival card
-  (compact, per DEC-0013) and the onboarding result card. There is no equipment
-  UI because there is no equipment: `SetEquipmentLoadout` has no production
-  caller and no weapon catalog exists, so these read as learning affinities and
-  the copy says so. The English face name `Mastery` was reserved for the
+  (compact, per DEC-0013) and the onboarding result card. There is still no
+  equipment UI or player-facing equipment economy. The first Spirit Trail now
+  has one narrow production caller that persists a deterministic provisional
+  weapon when the Founder is unarmed; the future onboarding choice must replace
+  that bridge. These profile labels still read as learning affinities. The
+  English face name `Mastery` was reserved for the
   upcoming weapon-family mastery tiers (DEC-0019) and is no longer used on
   the cube; the cube face is `Dominio` everywhere — code, JSON, UI.
 - Weapon experience follows three learning tiers (DEC-0018): `100 %` for the two
@@ -201,9 +206,9 @@ and §17 acceptance test are complete.
   implementation as product direction: the target is roughly four world hours,
   no Food cost merely for duration, narrative trail progression and an open
   material reward.
-- There is no `ExpeditionLiveView` in the HEAD. `CombatEncounter` is a
-  deterministic, non-spatial domain island and `CombatDebugPanel` is a
-  debug-only presentation; neither is wired into the first Spirit Trail.
+- `ExpeditionLiveView` observes the first Spirit Trail's world-owned incremental
+  session. `CombatDebugPanel` remains a debug-only client of the same deterministic,
+  non-spatial engine rather than becoming production UI.
 - Deterministic encounter from persisted team condition/competence/supplies.
 - Exact-once supply and reward resolution, causal Chronicle and member release.
 - Moderate wound independently persists from stamina, limits effective stamina
@@ -318,12 +323,16 @@ and §17 acceptance test are complete.
   capacity/cargo/logistics model exists.
 - Assigned-work offline catch-up still steps ticks; recovery and expedition use
   semantic boundaries.
-- Expedition presentation is planning/status UI, not a side-view journey.
-- `ExpeditionPanel` consumes `ExpeditionPlanningSnapshot`; richer journey art
-  and outcome presentation remain provisional.
-- The current picker accepts 1–2 members and has no four-slot vanguard, locked
-  Founder opening, octagonal Active Skill slots or `expedition_skill_1`–`4`
-  actions. Those belong to EG-5V.
+- Expedition planning/status remains in the city rail, while active expeditions
+  can open the structural lateral `ExpeditionLiveView` without owning their
+  runtime state. The battlefield is still static and provisional.
+- The current domain request still accepts 1–2 members, but the live view
+  projects Founder + three locked future slots and four octagonal Skills.
+  `expedition_skill_1` is functional; 2–4 are legal locked no-ops.
+- Spirit Trail combat is an incremental, deterministic `CombatSession` owned by
+  `CityWorld`, advanced from world ticks and persisted in schema v33. Basic
+  Attack is automatic; AUTO only gates the single Active Skill. Movement,
+  knockback, Chains and manual retreat remain pending.
 - Event history retains at most 128 significant events; pinned causal origins
   need scale review before mass wounds/population.
 - Workday hours and travel duration are provisional tuning; the
@@ -354,7 +363,7 @@ increments EG-*:
 | Onboarding / founder | Funcional | `AstralOnboardingView` produce un único `Citizen` persistente con rol `hero`. |
 | Commitment exclusivo | Funcional | `Citizen.Commitment` rechaza transiciones incompatibles visiblemente. |
 | Construcción / proyectos | Funcional | `ConstructionProject` + deposit + remainder; Founding Site semántico Campfire → Bedroll/Cache → Canopy, con mismo ID/parcela y progreso offline. |
-| Persistencia offline | Funcional | Schema v28; EG-2 conserva reload por módulo/fase, v23 corrige bosques heredados, v24 conserva el crop boundary, v25 migra reservas urbanas, v26 persiste posiciones unitarias, v27 oportunidades finitas/capacidad de retorno y v28 herramientas durables. |
+| Persistencia offline | Funcional | Schema v33; la sesión de combate activa conserva paso lógico e historial de comandos reproducible además de los contratos previos. |
 | Primer Cultivation Site | Funcional | Introducido en schema v24 y preservado en v25; Shelter requerido, preparación 180, semilla 1 Food, `readyAtTick` a 10.800 ticks, cosecha 5 Food y transición exacta live/offline. |
 | Citizens y asignaciones | Funcional | `CitizenRoutine` cubre work, expedition, recovery. |
 | Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código. |

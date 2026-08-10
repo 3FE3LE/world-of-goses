@@ -13,6 +13,11 @@ namespace WorldofGoses.Ui;
 [GlobalClass]
 public partial class OctagonalSkillSlot : Control
 {
+    public const int SlotWidth = 104;
+    public const int SlotHeight = 164;
+    private const int BorderInset = 4;
+    private const int CornerCut = 20;
+
     public enum SlotState
     {
         Empty,
@@ -28,14 +33,14 @@ public partial class OctagonalSkillSlot : Control
     private const string UiAcceptAction = "ui_accept";
     private static readonly Vector2[] Octagon =
     {
-        new(24, 4),
-        new(72, 4),
-        new(92, 24),
-        new(92, 72),
-        new(72, 92),
-        new(24, 92),
-        new(4, 72),
-        new(4, 24),
+        new(BorderInset + CornerCut, BorderInset),
+        new(SlotWidth - BorderInset - CornerCut, BorderInset),
+        new(SlotWidth - BorderInset, BorderInset + CornerCut),
+        new(SlotWidth - BorderInset, SlotHeight - BorderInset - CornerCut),
+        new(SlotWidth - BorderInset - CornerCut, SlotHeight - BorderInset),
+        new(BorderInset + CornerCut, SlotHeight - BorderInset),
+        new(BorderInset, SlotHeight - BorderInset - CornerCut),
+        new(BorderInset, BorderInset + CornerCut),
     };
 
     private static readonly Vector2[] ClosedOctagon =

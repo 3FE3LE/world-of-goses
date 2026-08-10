@@ -3,11 +3,11 @@
 [ext_resource type="Script" path="res://scripts/Ui/OctagonalSkillSlot.cs" id="1_slot"]
 
 [node name="OctagonalSkillSlot" type="Control"]
-custom_minimum_size = Vector2(96, 104)
+custom_minimum_size = Vector2(104, 164)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 96.0
-offset_bottom = 104.0
+offset_right = 104.0
+offset_bottom = 164.0
 focus_mode = 2
 mouse_filter = 0
 theme_type_variation = &"OctagonalSkillSlot"
@@ -27,10 +27,10 @@ vertical_alignment = 1
 
 [node name="SkillIcon" type="TextureRect" parent="."]
 layout_mode = 0
-offset_left = 36.0
-offset_top = 18.0
-offset_right = 60.0
-offset_bottom = 42.0
+offset_left = 32.0
+offset_top = 40.0
+offset_right = 72.0
+offset_bottom = 80.0
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
@@ -38,10 +38,10 @@ stretch_mode = 5
 [node name="LockIndicator" type="Label" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 32.0
-offset_top = 20.0
-offset_right = 64.0
-offset_bottom = 42.0
+offset_left = 36.0
+offset_top = 54.0
+offset_right = 68.0
+offset_bottom = 78.0
 mouse_filter = 2
 theme_type_variation = &"HudHeader"
 text = "[X]"
@@ -51,9 +51,9 @@ vertical_alignment = 1
 [node name="StateLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 4.0
-offset_top = 48.0
-offset_right = 92.0
-offset_bottom = 68.0
+offset_top = 104.0
+offset_right = 100.0
+offset_bottom = 124.0
 mouse_filter = 2
 theme_type_variation = &"HudCaption"
 horizontal_alignment = 1
@@ -63,9 +63,9 @@ vertical_alignment = 1
 visible = false
 layout_mode = 0
 offset_left = 4.0
-offset_top = 47.0
-offset_right = 92.0
-offset_bottom = 67.0
+offset_top = 103.0
+offset_right = 100.0
+offset_bottom = 123.0
 mouse_filter = 2
 theme_type_variation = &"HudCaption"
 horizontal_alignment = 1
@@ -75,9 +75,9 @@ vertical_alignment = 1
 visible = false
 layout_mode = 0
 offset_left = 18.0
-offset_top = 72.0
-offset_right = 78.0
-offset_bottom = 80.0
+offset_top = 136.0
+offset_right = 86.0
+offset_bottom = 144.0
 mouse_filter = 2
 theme_type_variation = &"HudProgress"
 max_value = 1.0
@@ -87,64 +87,64 @@ show_percentage = false
 [node name="TraitSide0" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 45.0
+offset_left = 49.0
 offset_top = 1.0
-offset_right = 51.0
+offset_right = 55.0
 offset_bottom = 7.0
 mouse_filter = 2
 
 [node name="TraitSide1" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 79.0
+offset_left = 87.0
 offset_top = 11.0
-offset_right = 85.0
+offset_right = 93.0
 offset_bottom = 17.0
 mouse_filter = 2
 
 [node name="TraitSide2" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 89.0
-offset_top = 45.0
-offset_right = 95.0
-offset_bottom = 51.0
+offset_left = 97.0
+offset_top = 79.0
+offset_right = 103.0
+offset_bottom = 85.0
 mouse_filter = 2
 
 [node name="TraitSide3" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 79.0
-offset_top = 79.0
-offset_right = 85.0
-offset_bottom = 85.0
+offset_left = 87.0
+offset_top = 147.0
+offset_right = 93.0
+offset_bottom = 153.0
 mouse_filter = 2
 
 [node name="TraitSide4" type="Control" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 45.0
-offset_top = 89.0
-offset_right = 51.0
-offset_bottom = 95.0
+offset_left = 49.0
+offset_top = 157.0
+offset_right = 55.0
+offset_bottom = 163.0
 mouse_filter = 2
 
 [node name="TraitSide5" type="Control" parent="."]
 visible = false
 layout_mode = 0
 offset_left = 11.0
-offset_top = 79.0
+offset_top = 147.0
 offset_right = 17.0
-offset_bottom = 85.0
+offset_bottom = 153.0
 mouse_filter = 2
 
 [node name="TraitSide6" type="Control" parent="."]
 visible = false
 layout_mode = 0
 offset_left = 1.0
-offset_top = 45.0
+offset_top = 79.0
 offset_right = 7.0
-offset_bottom = 51.0
+offset_bottom = 85.0
 mouse_filter = 2
 
 [node name="TraitSide7" type="Control" parent="."]

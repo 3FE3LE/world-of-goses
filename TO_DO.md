@@ -57,19 +57,20 @@ admiten:
   Primera noche jugable (H-33 + H-34) entregada sin schema bump;
   zoom-in máximo del macro view elevado a 3.0; identidad del fundador
   ya no vive en un `ScrollContainer` (ver §7 2026-08-06).
-- Save: **schema v32** (`DEC-0019`): cara del cubo `Mastery` renombrada a
+- Save: **schema v33** (`DEC-0021`): sesión incremental del Spirit Trail con
+  paso lógico e historial reproducible de AUTO/manual. v32 (`DEC-0019`) renombró la cara del cubo `Mastery` a
   `Domain` en disco, con puente nullable para que un save v31 no pierda el
   cubo del fundador. v31 primera noche autoral; v30 estadísticas derivadas
   por citizen; v29 onboarding canónico; v28 herramientas durables;
   v27 oportunidades finitas de Food y Wood y capacidad de retorno.
 - Build: **0 errores / 0 advertencias**.
-- Tests: **1114 / 1115** (1 omitido por brittleness del snapshot JSON en
+- Tests: **1154 / 1155** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
-- Localización: **1001 IDs de plantilla, 300 claves de runtime** válidas.
+- Localización: **1049 IDs de plantilla, 324 claves de runtime** válidas.
 - Agent context: **474 checks** sin fallos.
-- Arranque Godot headless: el snapshot Full de 2026-08-10 falló con
-  `-1073741819`; no se considera firmado hasta reproducir un éxito.
+- Arranque Godot headless standalone: limpio; el pipeline Full/captura sigue
+  intermitente y conserva un fallo previo `-1073741819` como deuda de harness.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
   `docs/CURRENT_STATUS.md`.
 - La implementación histórica de Parcel 9 y sus tints, conservada más abajo
@@ -155,16 +156,20 @@ Onboarding astral → primera noche
 
 ### 🔴 H-35 — EG-5V: primer Spirit Trail visual del Founder
 
-- **Estado:** En curso por decisión; gameplay todavía no implementado.
+- **Estado:** En curso; sesión de combate observable implementada, vertical
+  espacial y flujo post-dawn todavía incompletos.
 - **Prioridad:** Crítica.
 - **Afecta:** `CityWorld`, `Expedition`, `ExpeditionRequest`,
   `ResourceExpeditionRules`, `CombatEncounter`, `ExpeditionPanel`,
   `ExpeditionRail`, nueva `ExpeditionLiveView`, input map, snapshots,
   persistencia/offline y fixtures visuales.
-- **Estado real del HEAD:** no existe `ExpeditionLiveView`;
-  `SpiritTrailSearch` aún dura 180 ticks, consume 1 Food y devuelve Wood 4/6/8;
-  `ExpeditionRequest.MaxTeamSize` es 2; `CombatEncounter` no modela posición,
-  `AttackRange` ni knockback; `CombatDebugPanel` es debug-only; y
+- **Estado real del HEAD:** `ExpeditionLiveView` y sus componentes existen; una
+  `CombatSession` propiedad de `CityWorld` avanza por tick mundial, persiste
+  comandos/replay en schema v33 y conecta Basic Attack, AUTO/manual Skill 1,
+  cooldown, HP, enemigos y outcome. `SpiritTrailSearch` aún dura 180 ticks,
+  consume 1 Food y devuelve Wood 4/6/8; `ExpeditionRequest.MaxTeamSize` es 2;
+  no existen posición, `AttackRange` ni knockback; `CombatDebugPanel` sigue
+  debug-only; y
   `CityWorld.TryStartExpedition` todavía exige Campfire + Cache a toda
   oportunidad de recurso, incluido el Spirit Trail que nace con
   `SpiritDeparted`.
@@ -172,13 +177,15 @@ Onboarding astral → primera noche
   1. separar `SpiritTrailSearch` del gate genérico Campfire + Cache para que el
      flujo aprobado pueda despacharse tras `SpiritDeparted`, sin relajar el gate
      de las salidas materiales EG-4;
-  2. integrar expedición y combate sobre el único reloj de mundo;
-  3. mostrar cuatro slots de vanguardia, Founder en 1 y 2–4 bloqueados;
-  4. mostrar cuatro skills octogonales y conectar solo
+  2. **Cerrado:** integrar expedición y combate sobre el único reloj de mundo,
+     con `CombatSession` incremental y replay persistido;
+  3. **Cerrado:** mostrar cuatro slots de vanguardia, Founder en 1 y 2–4
+     bloqueados;
+  4. **Cerrado:** mostrar cuatro skills octogonales y conectar solo
      `expedition_skill_1` (`expedition_skill_2`–`4` quedan reservados);
-  5. Basic Attack automática; avance solo para entrar en `AttackRange`, sin
-     kiting; knockback con `Stability` reduciendo e `Impulse` aumentando el
-     desplazamiento posible;
+  5. Basic Attack automática ya conectada; falta avance solo para entrar en
+     `AttackRange`, sin kiting; knockback con `Stability` reduciendo e `Impulse`
+     aumentando el desplazamiento posible;
   6. continuar tras el encuentro hasta el objetivo y regresar a la ciudad;
   7. demostrar que entrar/salir de `ExpeditionLiveView` conserva 1x/2x/4x y
      que ciudad, viaje y combate avanzan en paralelo sin pausa.
@@ -186,6 +193,13 @@ Onboarding astral → primera noche
   existir; propósito narrativo; recompensa material abierta.
 - **Fuera de alcance:** Traits, Chains, carroza, `SPACE`, formación avanzada,
   Skills 2–4 funcionales, proceduralidad y profundidad amplia de combate.
+- **Deuda abierta de rendimiento:** con la sesión de combate conectada,
+  `expedition-live-early` mide 51–55 ms de `Performance.Monitor.TimeProcess`
+  contra un presupuesto de pico de 40 ms; el mismo fixture medía 18,7 ms antes
+  de conectarla y `macro-hud-default` mide 6–18 ms en la misma tanda, así que
+  el coste es propio de la vista en vivo y no ruido de máquina. Medir antes de
+  añadir movimiento, `AttackRange` o knockback: el punto 5 sólo agrega trabajo
+  por frame sobre un presupuesto ya excedido.
 - **Aceptación:** desde slot limpio, el primer encuentro visual aparece dentro
   de unos cinco minutos de gameplay; la expedición alcanza objetivo y regreso;
   save/load y live/offline conservan límites semánticos y resultados exact-once.

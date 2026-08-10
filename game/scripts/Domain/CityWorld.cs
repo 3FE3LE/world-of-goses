@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WorldofGoses.Domain.Combat;
 using WorldofGoses.Domain.Persistence;
 
 namespace WorldofGoses.Domain;
@@ -38,6 +39,7 @@ public sealed class CityWorld
     private readonly BuildingProductionSimulation _production;
     private readonly ConstructionSimulation _construction;
     private readonly Dictionary<ExpeditionId, Expedition> _expeditions = new();
+    private readonly Dictionary<ExpeditionId, CombatSession> _combatSessions = new();
     private readonly Dictionary<ResourceOpportunityId, ResourceOpportunity>
         _resourceOpportunities = new();
     private readonly HashSet<ToolKind> _tools = new();
@@ -262,6 +264,11 @@ public sealed class CityWorld
             }
             ResourceExpeditionDefinition definition =
                 ResourceExpeditionRules.Definition(resourceOpportunity.Kind);
+            if (resourceOpportunity.Kind == ResourceOpportunityKind.SpiritTrailSearch
+                && (members.Count != 1 || members[0].Id != Hero.Id))
+            {
+                return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
+            }
             if (request.ResourceOpportunityKind != resourceOpportunity.Kind
                 || request.DurationTicks != definition.DurationTicks
                 || request.SupplyResource != definition.SupplyResource
@@ -360,6 +367,15 @@ public sealed class CityWorld
             dispatched.Add(member);
         }
         _expeditions.Add(id, expedition);
+        if (resourceOpportunity?.Kind == ResourceOpportunityKind.SpiritTrailSearch
+            && members.Count == 1
+            && members[0].Id == Hero?.Id)
+        {
+            ExpeditionCombatSessionFactory.EnsureProvisionalFounderWeapon(
+                members[0],
+                id,
+                _tick);
+        }
         _metrics.RecordExpeditionDispatched(_tick);
         WorldEvent dispatchEvent = _log.Record(
             _tick,
@@ -421,6 +437,31 @@ public sealed class CityWorld
         return true;
     }
 
+    public CombatSessionSnapshot? GetCombatSessionSnapshot(ExpeditionId expeditionId) =>
+        _combatSessions.TryGetValue(expeditionId, out CombatSession? session)
+            ? session.Snapshot()
+            : null;
+
+    internal CombatSession? GetCombatSession(ExpeditionId expeditionId) =>
+        _combatSessions.TryGetValue(expeditionId, out CombatSession? session)
+            ? session
+            : null;
+
+    public bool SetCombatAutoSkillsEnabled(ExpeditionId expeditionId, bool enabled)
+    {
+        if (!_combatSessions.TryGetValue(expeditionId, out CombatSession? session)
+            || !session.IsActive)
+        {
+            return false;
+        }
+        session.SetAutoSkillsEnabled(enabled);
+        return true;
+    }
+
+    public bool TryActivateMemberSkill(ExpeditionId expeditionId, int slotIndex) =>
+        _combatSessions.TryGetValue(expeditionId, out CombatSession? session)
+        && session.TryActivateMemberSkill(slotIndex);
+
     private void CancelMemberDispatches(Expedition expedition)
     {
         foreach (CitizenId memberId in expedition.MemberIds)
@@ -437,6 +478,7 @@ public sealed class CityWorld
         Expedition expedition,
         ExpeditionEncounterOutcome outcome)
     {
+        ApplyCombatSessionConsequences(expedition);
         // EG-0: every return path — objective, retreat, failure — funnels
         // through here, so the absence is counted once no matter how the
         // sortie ended. Per member, because a two-person team costs the city
@@ -454,6 +496,31 @@ public sealed class CityWorld
         if (outcome == ExpeditionEncounterOutcome.Setback)
         {
             ApplyExpeditionWound(expedition);
+        }
+    }
+
+    private void ApplyCombatSessionConsequences(Expedition expedition)
+    {
+        if (!_combatSessions.TryGetValue(expedition.Id, out CombatSession? session)) return;
+        var statistics = StatisticsBalanceConfig.Default;
+        foreach (CombatantState combatant in session.Party)
+        {
+            if (combatant.CitizenId is not CitizenId citizenId
+                || !_citizens.TryGetValue(citizenId, out Citizen? citizen))
+            {
+                continue;
+            }
+            ConditionFactorBreakdown condition = CombatConditionFactor.Derive(
+                combatant.CurrentHealth,
+                combatant.MaxHealth,
+                combatant.Fatigue,
+                combatant.Injuries,
+                statistics,
+                CombatBalanceConfig.Default);
+            citizen.SetCurrentHealthAndCondition(new CurrentHealthAndCondition(
+                combatant.CurrentHealth,
+                condition.Value,
+                statistics));
         }
     }
 
@@ -2783,7 +2850,7 @@ public sealed class CityWorld
         ExpeditionId? completed = null;
         foreach (Expedition expedition in _expeditions.Values)
         {
-            if (expedition.Status == ExpeditionStatus.Active && expedition.IsComplete(_tick))
+            if (CanCompleteExpedition(expedition))
             {
                 completed = expedition.Id;
                 break;
@@ -2793,7 +2860,7 @@ public sealed class CityWorld
 
         foreach (Expedition expedition in _expeditions.Values)
         {
-            if (expedition.Status != ExpeditionStatus.Active || !expedition.IsComplete(_tick))
+            if (!CanCompleteExpedition(expedition))
             {
                 continue;
             }
@@ -2893,8 +2960,14 @@ public sealed class CityWorld
             ExpeditionChanged?.Invoke(
                 this,
                 new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+            _combatSessions.Remove(expedition.Id);
         }
     }
+
+    private bool CanCompleteExpedition(Expedition expedition) =>
+        expedition.Status == ExpeditionStatus.Active
+        && expedition.IsComplete(_tick)
+        && (!UsesObservableCombat(expedition) || expedition.EncounterOutcome.HasValue);
 
     private void ReleaseResourceOpportunity(Expedition expedition)
     {
@@ -2977,17 +3050,33 @@ public sealed class CityWorld
 
             if (expedition.Phase == ExpeditionPhase.Outbound && elapsed >= duration / 4)
             {
-                ExpeditionEncounterOutcome outcome = ResolveEncounterOutcome(expedition);
-                expedition.ResolveEncounter(outcome);
-                _log.Record(
-                    _tick,
-                    WorldEventKind.ExpeditionEncounterResolved,
-                    WorldEventSubject.Expedition(expedition.Id.Value, expedition.DisplayName),
-                    (int)outcome,
-                    expedition.DispatchEventId);
+                expedition.BeginEncounter();
+                if (UsesObservableCombat(expedition))
+                {
+                    _combatSessions[expedition.Id] =
+                        ExpeditionCombatSessionFactory.Create(expedition, _citizens);
+                }
+                else
+                {
+                    CompleteExpeditionEncounter(
+                        expedition,
+                        ResolveEncounterOutcome(expedition));
+                }
                 ExpeditionChanged?.Invoke(
                     this,
                     new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+            }
+            if (expedition.Phase == ExpeditionPhase.Encounter
+                && !expedition.EncounterOutcome.HasValue
+                && _combatSessions.TryGetValue(expedition.Id, out CombatSession? session))
+            {
+                CombatAdvanceResult advance = session.Advance();
+                if (advance.Outcome != CombatOutcome.InProgress)
+                {
+                    CompleteExpeditionEncounter(
+                        expedition,
+                        ToExpeditionOutcome(advance.Outcome));
+                }
             }
             if (expedition.Phase == ExpeditionPhase.Encounter
                 && expedition.RetreatTriggered)
@@ -2998,7 +3087,9 @@ public sealed class CityWorld
             {
                 expedition.TryAdvancePhase(ExpeditionPhase.Returning);
             }
-            if (expedition.Phase == ExpeditionPhase.Encounter && elapsed >= duration / 2)
+            if (expedition.Phase == ExpeditionPhase.Encounter
+                && expedition.EncounterOutcome.HasValue
+                && elapsed >= duration / 2)
             {
                 expedition.TryAdvancePhase(ExpeditionPhase.Objective);
             }
@@ -3009,6 +3100,39 @@ public sealed class CityWorld
         }
     }
 
+    private bool UsesObservableCombat(Expedition expedition) =>
+        expedition.ResourceOpportunityKind == ResourceOpportunityKind.SpiritTrailSearch
+        && expedition.MemberIds.Count == 1
+        && Hero is Citizen founder
+        && expedition.MemberIds[0] == founder.Id
+        && founder.EquipmentLoadout.Weapon is not null;
+
+    private void CompleteExpeditionEncounter(
+        Expedition expedition,
+        ExpeditionEncounterOutcome outcome)
+    {
+        if (!expedition.CompleteEncounter(outcome)) return;
+        _log.Record(
+            _tick,
+            WorldEventKind.ExpeditionEncounterResolved,
+            WorldEventSubject.Expedition(expedition.Id.Value, expedition.DisplayName),
+            (int)outcome,
+            expedition.DispatchEventId);
+        ExpeditionChanged?.Invoke(
+            this,
+            new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
+    }
+
+    private static ExpeditionEncounterOutcome ToExpeditionOutcome(CombatOutcome outcome) =>
+        outcome switch
+        {
+            CombatOutcome.PartyVictory => ExpeditionEncounterOutcome.FullSuccess,
+            CombatOutcome.Exhausted => ExpeditionEncounterOutcome.PartialSuccess,
+            CombatOutcome.PartyDefeated or CombatOutcome.PartyRetreated =>
+                ExpeditionEncounterOutcome.Setback,
+            _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null),
+        };
+
     /// <summary>
     /// The expedition's single deterministic encounter. Deterministic from
     /// purely persisted inputs — team condition (average stamina fraction),
@@ -3017,7 +3141,7 @@ public sealed class CityWorld
     /// committed, and a seed derived from the expedition's own persisted id
     /// and start tick — so re-evaluating it after a save/load reload always
     /// reaches the same result (it never actually re-evaluates: see
-    /// <see cref="Expedition.ResolveEncounter"/>, which stores it once).
+    /// <see cref="Expedition.CompleteEncounter"/>, which stores it once).
     /// A healthy, fully-rested team can never roll a Setback; a tired team
     /// can. This keeps the very first expedition from being able to punish
     /// a new player outright while still making team condition matter.
@@ -4102,6 +4226,7 @@ public sealed class CityWorld
     {
         if (maxTickCount <= 0
             || HasAnyWorkAssignment()
+            || _combatSessions.Values.Any(session => session.IsActive)
             || _citizens.Values.Any(citizen =>
                 citizen.Commitment.Kind == CitizenCommitmentKind.Recovery
                 && citizen.CurrentLocation != CitizenLocation.AtHome))
@@ -4312,6 +4437,16 @@ public sealed class CityWorld
     public void Restore(WorldSave save)
     {
         WorldPersistence.Validate(save);
+        // Replay validation depends on reconstructed citizens and combatants.
+        // Run the complete rehydration on an isolated candidate first so any
+        // deterministic mismatch fails before this live world is cleared.
+        var preflight = new CityWorld();
+        preflight.RestoreValidated(save);
+        RestoreValidated(save);
+    }
+
+    private void RestoreValidated(WorldSave save)
+    {
         // Restoring re-deposits every stored resource through the ledger.
         // Without this the load itself would be booked as gathering, and the
         // figures would grow with every relaunch — exactly the behaviour the
@@ -4839,6 +4974,7 @@ public sealed class CityWorld
         }
 
         _expeditions.Clear();
+        _combatSessions.Clear();
         _nextExpeditionId = 1;
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
@@ -4906,6 +5042,32 @@ public sealed class CityWorld
                 expedition.PartialReturn,
                 expedition.CarryCapacity);
             _expeditions.Add(restored.Id, restored);
+            if (expedition.HasCombatSession)
+            {
+                var commands = new List<CombatSessionCommand>(expedition.CombatCommands.Count);
+                foreach (CombatSessionCommandSave command in expedition.CombatCommands)
+                {
+                    _ = Enum.TryParse(command.Kind, true, out CombatSessionCommandKind kind);
+                    commands.Add(new CombatSessionCommand(command.BeforeStep, kind, command.Value));
+                }
+                CombatSession fresh = ExpeditionCombatSessionFactory.Create(restored, _citizens);
+                CombatSession restoredSession = CombatSession.Restore(
+                    session: fresh,
+                    stepsAdvanced: expedition.CombatStepsAdvanced,
+                    commands: commands);
+                CombatOutcome replayedOutcome = restoredSession.Outcome;
+                if ((encounterOutcome is null && replayedOutcome != CombatOutcome.InProgress)
+                    || (encounterOutcome.HasValue
+                        && (replayedOutcome == CombatOutcome.InProgress
+                            || ToExpeditionOutcome(replayedOutcome) != encounterOutcome.Value)))
+                {
+                    throw new InvalidOperationException(
+                        $"Expedition {expedition.Id} combat replay disagrees with its encounter outcome.");
+                }
+                _combatSessions.Add(
+                    restored.Id,
+                    restoredSession);
+            }
             if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
         }
         PendingProspect = save.PendingProspectSeed is int prospectSeed

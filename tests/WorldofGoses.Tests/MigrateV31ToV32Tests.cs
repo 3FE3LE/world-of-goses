@@ -201,7 +201,7 @@ public sealed class MigrateV31ToV32Tests
     public void MigrateToCurrent_BridgesLegacySavesEndToEnd()
     {
         // The exhaustive route: a save that comes off disk at version 31,
-        // runs through MigrateToCurrent and lands at version 32 with the
+        // runs through MigrateToCurrent and lands at the current version with the
         // cube intact. This is the test that catches a future regression
         // where someone removes the v31→v32 entry from the switch.
         WorldSave loaded = WorldPersistence.DeserializeFromJson(LegacyJsonWithMastery);
@@ -209,7 +209,7 @@ public sealed class MigrateV31ToV32Tests
 
         WorldSave migrated = WorldPersistence.MigrateToCurrent(loaded);
 
-        Assert.Equal(32, migrated.Version);
+        Assert.Equal(WorldSave.CurrentVersion, migrated.Version);
         FounderCubeProfileSave cube = migrated.Citizens[0].Profile!.CubeProfile!;
         Assert.Equal(56, cube.Domain);
 #pragma warning disable CS0618
