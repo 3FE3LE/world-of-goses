@@ -427,7 +427,9 @@ tick 0 (`00:00`) to dawn. Concretely:
    `HasRestingPlace()` is the gate. The Bedroll stops being only
    cost/work and starts being "where sleep is possible".
 
-6. **`SpiritTrailSearch` is the post-dawn expedition motive.** A
+6. **`SpiritTrailSearch` is the post-dawn expedition motive.** *(Its
+   Food-funded Wood-return implementation is superseded by DEC-0020; this
+   paragraph remains historical context.)* A
    new `ResourceOpportunityKind` value carries the same return curve
    as `FallenWoodSearch` but rewards `Wood` (fire-blackened remnants).
    The button surfaces in the expedition panel only after the
@@ -776,6 +778,92 @@ bridge), `game/scripts/Domain/Persistence/WorldPersistence.cs`
 (`MigrateV31ToV32`, four legacy capture/restore sites), `game/scripts/Ui/CitizenNatureText.cs`,
 `game/scripts/Ui/FounderCardPanel.cs`, `game/scripts/HeroProfileView.cs`,
 `game/locale/en.po` (msgstr `"Mastery"` → `"Domain"`).
+
+---
+
+## DEC-0020: The first visual combat belongs in the opening Spirit Trail
+
+**Status:** Accepted
+**Date:** 2026-08-10
+**Supersedes:** `DEC-0014` §6 only where it defines `SpiritTrailSearch` as a
+Food-funded Wood reward; the authored-night, `SpiritDeparted` gate and
+post-dawn separation remain accepted.
+
+**Decision:**
+
+The first visual combat must appear within approximately the first five minutes
+of gameplay in this end-to-end flow:
+
+```text
+Astral onboarding → first night → dawn / SpiritDeparted
+→ Spirit Trail available → Founder's first expedition
+→ first visual encounter → continuation to the objective → city return
+```
+
+The integration is constrained as follows:
+
+1. Expeditions remain automatic. There is no manual movement control.
+2. Presentation is lateral and structurally inspired by *Taskbar Hero*, without
+   copying assets, UI, characters or content.
+3. There is one world clock. City, travel and combat advance in parallel. The
+   world cannot be paused; its only current global speeds are 1x / 2x / 4x.
+   Entering or leaving `ExpeditionLiveView` never changes speed.
+4. Basic Attack is automatic. The future vanguard ceiling is four `Citizen`.
+   The first expedition uses only the Founder; slots 2–4 stay visible and
+   locked.
+5. Four octagonal Active Skill slots are visible. Only Skill 1 is initially
+   connected, through `expedition_skill_1`; the other planned actions are
+   `expedition_skill_2`, `expedition_skill_3` and `expedition_skill_4`.
+   Each octagon must preserve eight sides capable of hosting a future Trait.
+6. A ranged combatant does not kite. Combatants advance only to enter
+   `AttackRange` and do not retreat voluntarily after they can attack.
+   Knockback may displace them; `Stability` reduces displacement and `Impulse`
+   may increase the displacement produced.
+7. The first Spirit Trail lasts approximately four world hours. That duration
+   does not consume Food merely because the expedition exists.
+   `SpiritTrailSearch` follows the spirit and advances the opening narrative;
+   it no longer means `1 Food → Wood`. Its definitive material reward is open.
+8. Traits, Chains, carriage, `SPACE`, advanced formation and functional Skill
+   slots 2–4 remain explicitly out of scope for this increment.
+
+**Reason:**
+
+The existing combat domain and the existing early-game expedition are separate
+implementation islands. Waiting for the former EG-5 consolidation and EG-6
+signature before integrating them leaves the opening without its first visible
+RPG consequence. The new priority validates the project's RPG-city-builder-idle
+identity early: the player sees the Founder leave, fight automatically while
+the city keeps living, continue toward a narrative objective, and return.
+
+**Affected domains:** expeditions, citizens, city, narrative, presentation,
+simulation, input.
+
+**Consequences:**
+
+- The earlier rule that blocked combat depth until EG-5/EG-6 closed is
+  reanalysed and superseded. The exception is narrow: only the end-to-end first
+  visual encounter moves forward; broad combat depth remains deferred.
+- The current `SpiritTrailSearch` implementation (180 ticks, 1 Food, Wood
+  4/6/8) is now documented technical debt, not product canon.
+- The current 1–2-member `Expedition` and the debug-only combat run remain facts
+  of the HEAD, not the target team contract. No schema or gameplay changes are
+  made by this documentation increment.
+- Implementation must land a thin end-to-end vertical before adding Traits,
+  Chains, carriage, `SPACE`, advanced formation, more active skills, procedural
+  routes or a wider combat roster.
+
+**Documents affected:** bible/05, bible/10,
+`docs/EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md`,
+`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`,
+`docs/CURRENT_STATUS.md`, `docs/PRODUCT_DIRECTION.md`,
+`docs/VALIDATION.md`, `docs/UI_PATTERNS.md`,
+`docs/ai/CROSS_DOMAIN_INVARIANTS.md`,
+`docs/ai/CURRENT_DEVELOPMENT_STATE.md`, `TO_DO.md`.
+
+**Code affected:** none in this increment. Named future seams include
+`CityWorld`, `Expedition`, `ExpeditionRequest`, `ResourceExpeditionRules`,
+`CombatEncounter`, `ExpeditionPanel`, `ExpeditionRail` and a new
+`ExpeditionLiveView` presentation surface.
 
 ---
 

@@ -1,15 +1,16 @@
 # Validation against the design bible
 
-**Last aligned:** 2026-07-30
+**Last aligned:** 2026-08-10
 
-**Code baseline:** clean build, 586/586 tests, schema v19, successful Godot
-headless boot.
+**Code baseline:** measured in `docs/session-state/STATE.txt`: clean build,
+1114/1115 tests (1 skipped), schema v32. The 2026-08-10 Full snapshot recorded
+a failed headless boot (`-1073741819`), so no clean-boot claim is made here.
 
-**Active proof:** VS-5 player-facing signature and repetition.
+**Active proof:** EG-5V — Founder Spirit Trail visual vertical.
 
 This document is the current cross-check between the connected prototype and
 the design bible. It does not replace `CURRENT_STATUS.md` for implementation
-facts or `FIRST_PLAYABLE_LOOP_AUDIT.md` for the 17 closure criteria.
+facts or `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §17 for closure.
 
 Markers: ✅ implemented · ⚠️ partial/first cut · ❌ absent/deferred.
 
@@ -41,11 +42,14 @@ than the prototype.
 | VS-2 expedition | ✅ | Human presentation signature. |
 | VS-3 consequence/territory | ✅ | Human presentation signature. |
 | VS-4 persistence/offline | ✅ | Human relaunches at two boundaries. |
-| VS-5 signature/repetition | ⚠️ active | Full normal-UI run and second cycle without reset/debug. |
+| EG-5V Founder Spirit Trail visual | ⚠️ active | Founder-only lateral encounter within ~5 minutes, objective continuation and return on one clock. |
+| EG-5C agricultural consolidation | ⚠️ queued | Plots 2–3 and Farm after EG-5V. |
+| EG-6 signature/repetition | ⚠️ queued | Full normal-UI run and second cycle without reset/debug. |
 
 The domain already proves two expeditions with the same founder and a reload
-between cycles. This is not sufficient to close VS-5 because discoverability,
-layout, focus, copy and real relaunch behavior must also be observed.
+between cycles. This is not sufficient to close EG-5V, EG-5C or EG-6 because
+discoverability, layout, focus, copy and real relaunch behavior must also be
+observed. VS-5 remains historical and does not gate the active sequence.
 
 ## 3. Architecture compliance
 
@@ -77,10 +81,11 @@ named workers, per-building storage and a daily Food demand. Missing depth:
 
 ### Automated expeditions
 
-✅ The minimal seam exists: real members, supplies, destination, retreat policy,
-deterministic encounter, objective/retreat, return and causal outcome. Equipment,
-formations, combat abilities, multiple encounters and detailed expedition art
-are deferred.
+⚠️ The minimal expedition seam exists: real members, supplies, destination,
+retreat policy, deterministic encounter, objective/retreat, return and causal
+outcome. A separate deterministic combat island also exists, but there is no
+`ExpeditionLiveView` and the two are not integrated. EG-5V adds only the first
+Founder encounter; broader equipment, formations and combat depth stay deferred.
 
 ### Citizens with trajectory
 
@@ -117,19 +122,21 @@ of passive fields or generic city-builder counters.
 | Surface | Status | Remaining boundary |
 | --- | --- | --- |
 | Macro street-perspective city | ✅ sole runtime representation | Confirm tree-row pathfinding/gather visibility. |
-| Building detail/construction | ✅ | VS-5 multi-citizen focus/signature. |
+| Building detail/construction | ✅ | EG-5C agricultural consolidation and human signature. |
 | Citizens roster/debug context | ✅ | Human normal-flow signature. |
-| Expedition planning/status | ✅ first cut | Snapshot extraction before more dimensions. |
+| Expedition planning/status | ✅ first cut | Current 1–2 picker; EG-5V needs Founder-only four-slot projection. |
+| Expedition live view | ❌ | Lateral encounter → objective → return, preserving 1x/2x/4x. |
 | Policies | ✅ read-only first cut | Schedule remains provisional. |
 | Chronicle/blockers | ✅ | Long-horizon persisted history later. |
 | Camera/input | ✅ | Free default; explicit follow; UI wheel boundary. |
-| Visual regression | ⚠️ | VS-5 keyboard/gamepad and full-flow signature. |
+| Visual regression | ⚠️ | EG-5V/EG-5C keyboard, gamepad and full-flow signatures. |
 | Audio | ❌ | No wired buses/streams. |
 | Final system art | ⚠️ | Several buildings/expedition states remain provisional. |
 
 ## 6. Persistence and offline validation
 
-Schema v19 captures the state required by the current loop:
+Schema v32 is current. The list below describes the original v19 loop seam;
+later migrations are tracked in `CURRENT_STATUS.md` and `ARCHITECTURE.md`:
 
 - Citizen identity, profile, roles, competence, work order, commitment,
   contextual location, transit timing, stamina and wounds.
@@ -147,24 +154,17 @@ elapsed travel.
 
 ## 7. Highest-leverage remaining work
 
-Before a new product slice:
-
-1. Complete VS-5 through normal player-facing actions.
-2. Calibrate the daily Food pressure and recruitment opportunity in that run.
-3. Confirm pathfinding/visual ownership for multiple citizens and tree rows.
-4. Close the visual/focus matrix for the surfaces exercised by the loop.
-
-After VS-5, choose one bounded depth slice. Current candidates, not approvals:
-
-1. One operating input→output production chain.
-2. A snapshot boundary for expedition preparation/status before expanding it.
-3. A small competence/learning hook that experience can overcome and that does
-   not turn lineage into a permanent bonus.
-4. A second meaningful territorial choice rather than a broader empty map.
+1. Deliver EG-5V end to end: `SpiritDeparted` → Founder dispatch → first visual
+   encounter by ~5 minutes → objective → return.
+2. Keep city, travel and combat on one unpausable clock; view changes preserve
+   the selected 1x / 2x / 4x speed.
+3. Resume EG-5C agricultural consolidation.
+4. Close EG-6 calibration/signature through normal player-facing actions.
 
 ## 8. Explicit deferrals
 
-- Full combat/equipment/formations.
+- Combat beyond the bounded EG-5V encounter; equipment economy, Traits,
+  Chains, carriage, `SPACE`, advanced formation and functional Skills 2–4.
 - Deep healthcare, mortality and generations.
 - Profession trees, education and institutions.
 - Relationship, political, cultural and trade simulations.
@@ -189,6 +189,8 @@ pwsh ./scripts/Sync-AgentContext.ps1 -Apply
 pwsh ./scripts/Validate-AgentContext.ps1
 ```
 
-Also boot the main Godot scene and run the VS-5 procedure in
-`FIRST_PLAYABLE_LOOP_AUDIT.md`. Automated correctness is necessary but does not
-replace the player-facing signature.
+Also boot the main Godot scene and run the applicable EG-5V, EG-5C and EG-6
+player-facing paths against `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`
+§17. The discarded VS-5 procedure is historical and does not gate closure.
+Automated correctness is necessary but does not replace the player-facing
+signature.

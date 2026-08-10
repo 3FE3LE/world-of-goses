@@ -108,8 +108,10 @@ introduced.
 Prefer a small end-to-end expedition over a broad expedition skeleton:
 an objective, members, supplies, one configurable policy, deterministic
 causal resolution, a return, and a visible consequence for the city.
-Expand combat, equipment, routes, diplomacy, and exploration only after
-that seam is proven.
+`DEC-0020` makes the first lateral combat encounter part of proving that seam,
+not a later reward for closing it. Broader combat, equipment, routes,
+diplomacy, and exploration still wait until the end-to-end Founder Spirit
+Trail is proven.
 
 ---
 
@@ -238,17 +240,20 @@ implementation.
 
 ## 8. Current recommended next proof
 
-The active proof is **VS-5 player-facing signature and repetition**. The
-connected code now covers the founder, gathering, construction, constrained
-recruitment, named assignments, Food pressure, a configured expedition with
-return, persistent wound/treatment, territory advancement, save/load and a
-second expedition without reset. The remaining proof is a clean normal-UI run,
-plus visible relaunches during expedition and treatment, against the 17
-criteria in `FIRST_PLAYABLE_LOOP_AUDIT.md`.
+The active proof is **EG-5V — Founder Spirit Trail visual vertical**. From a
+clean slot, the player must move through astral onboarding, the authored first
+night and `SpiritDeparted`, dispatch the Founder, see the first automatic
+lateral encounter within roughly five minutes of gameplay, continue to the
+objective and return to the city.
 
-No broader product slice is approved until that signature is complete. Bugs
-found by the run may reopen the corresponding G0–G2 gap; otherwise the work is
-validation and calibration, not another architecture expansion.
+The proof keeps one unpausable world clock: city, travel and combat advance in
+parallel; switching to `ExpeditionLiveView` preserves the current 1x / 2x / 4x
+speed. It is intentionally narrow. Traits, Chains, carriage, `SPACE`, advanced
+formation and functional Active Skills 2–4 remain deferred.
+
+After EG-5V, resume **EG-5C** (plots 2–3 and Farm consolidation), then close
+**EG-6** calibration/signature. `DEC-0020` supersedes the earlier rule that no
+combat depth could open before EG-5/EG-6; it does not approve broader combat.
 
 The **current** slice status, next proof, and verification commands are
 in

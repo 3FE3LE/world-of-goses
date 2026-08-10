@@ -1,6 +1,6 @@
 # UI Audit — Current state
 
-**Last aligned:** 2026-08-08
+**Last aligned:** 2026-08-10
 
 **Baseline:** measured, never restated here. See
 [`session-state/STATE.txt`](session-state/STATE.txt).
@@ -26,7 +26,7 @@ reproducible matrix in `VISUAL_REGRESSION.md`.
 | Area | Current state |
 | --- | --- |
 | Macro world | `MacroStreetLiveView` is the only runtime macro representation. |
-| HUD | CanvasLayer-independent authored sibling surfaces. The 40 px edge-to-edge top bar carries stable brand, lineage/day/time context, a ledger-backed icon-only resource ticker (priority-ordered, deterministic 5-chip cap with a `+N` overflow affordance whose tooltip lists hidden resources and their exact amounts, compact K/M formatter for large quantities, full amounts in tooltips), truthful population/capacity, temporary save feedback, and a right-edge icon-only utility cluster (`CameraButton`, `MenuButton`). The 240 px `CitySummaryPanel` frames the left and the 236 px `ExpeditionRail` frames the right. The compact 520×60 labelled `PrimaryNavDock` owns bottom-centre primary navigation and yields that zone to the 480×72 contextual `ActionDock` during placement; bottom-right `SimulationControls` owns simulation time only — `PlayPauseButton` and `SpeedButton`. Camera mode moved to the top-bar utility cluster. Macro perspective activation owns the three macro-only summary/control surfaces; transient `ContextInspector` remains in its deterministic adjacent slot. |
+| HUD | CanvasLayer-independent authored sibling surfaces. The 40 px edge-to-edge top bar carries stable brand, lineage/day/time context, a ledger-backed icon-only resource ticker (priority-ordered, deterministic 5-chip cap with a `+N` overflow affordance whose tooltip lists hidden resources and their exact amounts, compact K/M formatter for large quantities, full amounts in tooltips), truthful population/capacity, temporary save feedback, and a right-edge utility cluster (`CameraButton`, `SpeedButton`, `MenuButton`). The 240 px `CitySummaryPanel` frames the left and the 236 px `ExpeditionRail` frames the right. The compact 520×60 labelled `PrimaryNavDock` owns bottom-centre primary navigation and yields that zone to the 480×72 contextual `ActionDock` during placement. `SimulationControls`, `PlayPauseButton` and the paused world state are gone; Speed cycles 1x/2x/4x in the top bar. Macro perspective activation owns the two macro-only side summaries; transient `ContextInspector` remains in its deterministic adjacent slot. |
 | Shelter resources | Collapsible icon-and-quantity inventory in Shelter detail; reservation detail remains available by tooltip. |
 | Founding cargo | Construction shows the founder's 6-unit load expanded before Cache, then the site's 12-unit Cache; no hidden pre-camp warehouse. |
 | Modals | `ModalHost` owns scrim, focus restoration, ESC and outside-click close. |
@@ -78,4 +78,5 @@ whatever the code does.
 | 2026-08-08 | Embedded Chronicle, 300×52 icon-only dock, Construction, Expeditions, Policies, Citizens and Pause | Signed at 1280×720 and 1920×1080. Chronicle begins on its offline summary/decisions and retains bounded scroll; promoted icons remain legible after tint normalization. |
 | 2026-08-08 | World-dialogue layering, macro arrow isolation, Construction → Hero route | Signed at 1280×720 and 1920×1080. Dialogue remains legible inside the central corridor below both rails; a physical Right arrow moves only the camera while preserving HUD focus; a real View Hero click closes Construction before the profile appears. |
 | 2026-08-09 | HUD visual convergence toward Proposal 06 — labelled `PrimaryNavDock` (520×60, five destinations: Héroe / Obra / Exp. / Norma / Gente), `SimulationControls` shrunk to time only (76×32), right-edge `UtilityCluster` inside `CityStatusPanel` carries the camera-mode toggle and menu/pause open | Captured at 1280×720 and 1920×1080. Pending human sign-off on the final docked dimensions. |
+| 2026-08-10 | No-pause HUD correction — deleted `SimulationControls` and `PlayPauseButton`, moved Speed between Camera and Menu, expanded `ExpeditionRail` through the reclaimed lower-right space | Implemented and covered structurally on HEAD; a fresh human visual signature was not produced because the Full snapshot attached to a 50×50 client. |
 | Pending | A complete normal-UI run of the current loop, plus relaunch boundaries | Not signed. |

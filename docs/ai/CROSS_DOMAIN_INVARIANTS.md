@@ -68,6 +68,13 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
   on reaching the objective; it must return or trigger emergency return.
   *(bible/05)*
 - The player prepares teams but does not manually control movement. *(bible/05)*
+- The first Spirit Trail is Founder-only, reaches its first visual encounter
+  within roughly the first five minutes of gameplay, continues to its objective,
+  and includes the return. Its purpose is narrative trail-following, not a
+  `1 Food → Wood` conversion. *(bible/05, DEC-0020)*
+- A combatant advances only to enter `AttackRange`; once able to attack, it does
+  not kite backwards. Knockback may move it; `Stability` reduces displacement
+  and `Impulse` may increase it. *(bible/05, DEC-0020)*
 - An expedition must affect the city, its citizens, or the territory.
 - Rewards cannot be limited to a timed conversion of resources.
 - Survivors return without equipment and with their wounds. The city must treat
@@ -114,6 +121,10 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
   batched events. *(bible/10)*
 - Live advancement and offline catch-up use the same domain rules.
   *(docs/PRODUCT_DIRECTION.md)*
+- There is one world clock. City, travel, and combat advance in parallel. The
+  world cannot be paused; the only current global speeds are 1x / 2x / 4x, and
+  changing to or from `ExpeditionLiveView` never changes speed. *(bible/10,
+  DEC-0020)*
 - The simulation is deterministic and reproducible from persisted state.
 - Saves are versioned; migrations are explicit; snapshots are validated before
   mutating live state. *(bible/10, docs/PRODUCT_DIRECTION.md)*

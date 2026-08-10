@@ -17,6 +17,37 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## La apertura prioriza el primer combate visual del Founder
+
+**2026-08-10** · schema v32 (sin cambio) · dirección de producto
+
+Este incremento no implementa gameplay. Realinea el siguiente vertical: tras
+onboarding, primera noche y `SpiritDeparted`, el Spirit Trail debe llevar al
+Founder a un encuentro lateral automático dentro de unos cinco minutos,
+continuar al objetivo y regresar mientras la ciudad sigue avanzando. La regla
+que bloqueaba toda profundidad de combate hasta cerrar EG-5/EG-6 queda
+superada solo para ese vertical; la consolidación agrícola se conserva como
+EG-5C y el combate amplio permanece diferido.
+
+Quedan fijados un único reloj sin pausa, velocidades 1x/2x/4x que no cambian al
+abrir la vista expedicionaria, Basic Attack automática, vanguardia futura de
+cuatro con Founder-only en la primera salida, cuatro skills octogonales con
+solo Skill 1 conectada, movimiento hasta `AttackRange` sin kiting y knockback
+modulado por Stability/Impulse. Traits, Chains, carroza, `SPACE`, formación
+avanzada y Skills 2–4 no entran todavía. Spirit Trail deja de significar
+`1 Food → Wood`; dura unas cuatro horas de mundo, no consume Food por existir y
+mantiene abierta su recompensa material.
+
+Baseline de apertura: build 0/0, 1114 pruebas superadas y 1 omitida sobre 1115,
+schema v32, 474 checks de contexto y catálogos EN/ES válidos. El boot headless
+del snapshot falló con `-1073741819` (0xC0000005) y la captura no se produjo por
+cliente 50×50; ninguno se presenta como verificación exitosa. El fallo de boot
+no reproduce: cinco ejecuciones posteriores de
+`--headless --path game --quit-after 3` salieron con código 0, así que se
+registra como caída de teardown intermitente, no como regresión.
+
+---
+
 ## El mundo ya no se puede pausar, y los controles sueltos vuelven a la barra de estado
 
 **2026-08-10** · schema v32 (sin cambio) · presentación

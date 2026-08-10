@@ -1,8 +1,8 @@
 # Current Project Status
 
-**Last aligned:** 2026-08-03
+**Last aligned:** 2026-08-10
 
-**Active increment:** EG-5 — consolidation
+**Active increment:** EG-5V — Founder Spirit Trail visual vertical
 
 **Completed stabilisation:** the fixed nine-lot parcel assumption has been
 replaced by dynamic frontage reservations. This does not
@@ -10,16 +10,13 @@ add a second gameplay loop: it preserves the existing Founding/Cultivation
 sites, makes placement continuous, protects optional corridors, and keeps the
 clearance-defined unused area of every resource or construction traversable.
 
-**Next approved work:** EG-5 añade segundo/tercer Cultivation Site y consolida
-Farm. La primera capacidad forestal real ya está conectada como hacha primitiva
-durable fabricable en el Shelter. EG-4 ya conecta oportunidades finitas de Food y Wood con la
-cadena completa de expedición. El orden
-canónico es el de `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15:
-EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6. La aperture del antiguo
-VS-5 (17 criterios) se descartó el 2026-07-31: el proyecto aún no tiene las
-capas completas que pide el proposal. Founding Site y el primer plot lifecycle
-ya están conectados; EG-5 aún debe entregar la consolidación antes de retomar
-herida/tratamiento como objetivo.
+**Next approved work:** integrar el primer Spirit Trail visual del Founder de
+extremo a extremo y hacer visible el primer combate durante los primeros cinco
+minutos aproximados. `DEC-0020` reanaliza y supera la restricción que bloqueaba
+combate hasta cerrar EG-5/EG-6. El orden vigente es
+EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → **EG-5V** → EG-5C → EG-6. La
+consolidación agrícola pendiente (segundo/tercer Cultivation Site + Farm) se
+conserva como EG-5C; no se cancela ni se considera terminada.
 
 The design bible defines what the game is. This file defines what the connected
 code does today. `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` owns the
@@ -43,7 +40,7 @@ and this section gets corrected in the same change.
   Reachable in-engine via the `combat-debug` visual fixture. The pre-existing
   `Expedition` (EG-4 resource timer) is untouched and still separate; consolidating
   the two is the main technical debt of this slice.
-- `dotnet test`: 1098/1099 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 1114/1115 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
@@ -68,8 +65,9 @@ and this section gets corrected in the same change.
   cell now validates, matching what the domain and the player already see; the
   JSON shape is unchanged, so this widened only the validation and needed no
   migration.
-- Godot headless boot loads the current scene/slot without C# or scene errors.
-- EN/ES catalogs: 999 template IDs and 307 runtime keys validated.
+- El snapshot Full de 2026-08-10 registró fallo del boot headless con
+  `-1073741819`; no se afirma un boot limpio hasta reproducirlo con éxito.
+- EN/ES catalogs: 1001 template IDs and 300 runtime keys validated.
 - The physical expression is derived from the **Kovari Cube** — the highest face
   of the persisted `CubeProfile` — and no longer from the elemental affinity.
   The two are independent: an Ardhen founder can be Fracture with Fire,
@@ -109,6 +107,15 @@ onboarding → gathering → construction → constrained recruitment
 → save/load → second cycle without reset
 ```
 
+El flujo prioritario de apertura que todavía **no** está conectado visualmente
+es:
+
+```text
+onboarding astral → primera noche → amanecer / SpiritDeparted
+→ Spirit Trail → primera expedición del Founder
+→ encuentro visual antes de ~5 min → objetivo → regreso a la ciudad
+```
+
 The clean-slot human run has signed founder creation, gathering, Shelter/Farm/
 Quarry/Town Hall construction, constrained recruitment, multi-citizen work,
 navigation/entry, production and UI wheel isolation. It also found that 60 Food
@@ -123,7 +130,7 @@ work is now sequenced under the proposal §15.
 6. 1280×720 and 1920×1080 containment plus keyboard/gamepad focus signature
    for the surfaces exercised by the loop.
 
-No broader product slice is approved until the proposal's EG-5→EG-6 sequence
+No broader product slice is approved until the proposal's EG-5V→EG-5C→EG-6 sequence
 and §17 acceptance test are complete.
 
 ## 3. Connected functionality
@@ -189,6 +196,14 @@ and §17 acceptance test are complete.
 - Campfire + Cache expose one finite Food and one finite Wood opportunity;
   dispatch reserves supply, opportunity and bounded return capacity, completion
   depletes it, and cancellation/retreat releases it.
+- `SpiritTrailSearch` is currently a third resource-opportunity variant at 180
+  ticks that consumes 1 Food and returns Wood 4/6/8. `DEC-0020` supersedes that
+  implementation as product direction: the target is roughly four world hours,
+  no Food cost merely for duration, narrative trail progression and an open
+  material reward.
+- There is no `ExpeditionLiveView` in the HEAD. `CombatEncounter` is a
+  deterministic, non-spatial domain island and `CombatDebugPanel` is a
+  debug-only presentation; neither is wired into the first Spirit Trail.
 - Deterministic encounter from persisted team condition/competence/supplies.
 - Exact-once supply and reward resolution, causal Chronicle and member release.
 - Moderate wound independently persists from stamina, limits effective stamina
@@ -249,12 +264,13 @@ and §17 acceptance test are complete.
 - HUD carries immediate time, a small read-only ticker of resources that
   actually exist in the authoritative ledger, truthful population/capacity,
   temporary save feedback, and a right-edge icon-only utility cluster
-  (`CameraButton`, `MenuButton`) inside the 40 px top bar. The compact
+  (`CameraButton`, `SpeedButton`, `MenuButton`) inside the 40 px top bar. The compact
   labelled `PrimaryNavDock` (520×60, five connected destinations — Hero,
   Build, Scout, Rules, People — each reading `[ icon ] Construir`) owns
   connected global actions at bottom-centre and yields that zone to contextual
-  `ActionDock` during placement; bottom-right `SimulationControls` owns
-  simulation time only — the existing play/pause and speed pair.
+  `ActionDock` during placement. There is no bottom-right
+  `SimulationControls`: its `PlayPauseButton` and `SpeedChoice.Paused` were
+  removed. Speed cycles only 1x / 2x / 4x in the top bar.
   The final authored macro composition measures 240 px on the left, 236 px on
   the right, and 520×60 for the labelled primary dock at the fixed 1280×720
   logical canvas. Camera mode and menu/pause access moved into the
@@ -305,6 +321,9 @@ and §17 acceptance test are complete.
 - Expedition presentation is planning/status UI, not a side-view journey.
 - `ExpeditionPanel` consumes `ExpeditionPlanningSnapshot`; richer journey art
   and outcome presentation remain provisional.
+- The current picker accepts 1–2 members and has no four-slot vanguard, locked
+  Founder opening, octagonal Active Skill slots or `expedition_skill_1`–`4`
+  actions. Those belong to EG-5V.
 - Event history retains at most 128 significant events; pinned causal origins
   need scale review before mass wounds/population.
 - Workday hours and travel duration are provisional tuning; the
@@ -338,15 +357,15 @@ increments EG-*:
 | Persistencia offline | Funcional | Schema v28; EG-2 conserva reload por módulo/fase, v23 corrige bosques heredados, v24 conserva el crop boundary, v25 migra reservas urbanas, v26 persiste posiciones unitarias, v27 oportunidades finitas/capacidad de retorno y v28 herramientas durables. |
 | Primer Cultivation Site | Funcional | Introducido en schema v24 y preservado en v25; Shelter requerido, preparación 180, semilla 1 Food, `readyAtTick` a 10.800 ticks, cosecha 5 Food y transición exacta live/offline. |
 | Citizens y asignaciones | Funcional | `CitizenRoutine` cubre work, expedition, recovery. |
-| Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código pero se difieren hasta EG-5. |
+| Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código. |
 
 Los gaps del antiguo VS-5 se reformularon dentro del proposal. La abundancia
 de Food sin receta de insumo (G1) queda cerrada por el lifecycle de EG-3; la
 expansión territorial queda suspendida sin parcela desbloqueable mientras se
 define cómo se adquiere el sobre objetivo 8×9 y su borde autoral, pero la herida persistente y el
-tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
+tratamiento ya no bloquea el primer encuentro visual acotado de EG-5V.
 
-## 7. Known debt that does not block EG-5
+## 7. Known debt that does not block EG-5V
 
 - Obtain human signature for clearance-defined obstacle rows, gather visibility,
   Primitive Axe UI and the three-parcel scattered opening. The axe's real gap was
@@ -360,7 +379,8 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 - Reconcile domain footprints/corridor vocabulary with the live street/navmesh
   model before expanding territory navigation.
 - Add one operating input→output chain before generalizing the economy.
-- Add a dedicated expedition snapshot before expanding its UI/state surface.
+- Integrate the existing expedition and combat islands before expanding either:
+  one clock, Founder-only Spirit Trail, encounter → objective → return.
 - Complete large-event feedback and overlay exclusion only where a real EG-2/EG-3
   interaction requires it.
 - Defer MultiMesh until more than 20–25 citizens are visible or profiler data
@@ -372,7 +392,8 @@ tratamiento se difieren hasta que EG-2 + EG-3 + EG-5 estén en pie.
 - Backend, database, server, API, CDN, auth, telemetry or networking.
 - Mobile, multiplayer, accounts, launcher, installer or full settings UI.
 - Second city, meta-progression, restart bonus or second gameplay loop.
-- Full combat, equipment, formations, mortality and generations.
+- Combat beyond the bounded EG-5V encounter, equipment economy, advanced
+  formations, Traits, Chains, carriage, `SPACE`, mortality and generations.
 - Deep politics, culture, environment, trade, economy and demographics.
 - Full profession/education/institution/relationship systems.
 - Large route graph and final art/audio. (Per-lineage ground biomes landed 2026-08-06 as presentation only — see DEC-0017.)

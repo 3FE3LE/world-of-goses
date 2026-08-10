@@ -2,7 +2,7 @@
 
 ## Estado del documento
 
-Versión inicial canónica para prototipo: `v0.1`.
+Versión de integración para prototipo: `v0.2`.
 
 Este documento ordena por dependencias la integración del sistema de combate automático y expediciones de **World of Goses**.
 
@@ -33,6 +33,66 @@ Citizen persistente
 
 ---
 
+## 0. Cambio de prioridad — 2026-08-10
+
+`DEC-0020` cambia el orden de aterrizaje. Las fases 0–7 de este documento ya
+produjeron una isla de dominio determinista y un panel de debug, pero no una
+expedición visual integrada. Ya no se espera a cerrar la antigua consolidación
+EG-5 y la firma EG-6 antes de mostrar combate.
+
+La nueva prueba prioritaria es **EG-5V — Founder Spirit Trail visual vertical**:
+
+```text
+Onboarding astral
+→ primera noche
+→ amanecer / SpiritDeparted
+→ Spirit Trail disponible
+→ primera expedición del Founder
+→ primer encuentro visual antes de ~5 minutos de gameplay
+→ continuación hacia el objetivo
+→ regreso a la ciudad
+```
+
+EG-5V es un solo vertical end-to-end, no permiso para abrir combate completo.
+Su orden interno de implementación es:
+
+1. **Contrato de integración y reloj.** Unir el estado expedicionario que hoy
+   vive en `Expedition` con la resolución que hoy vive aislada en
+   `Domain/Combat`, sin crear un segundo reloj. Ciudad, viaje y combate avanzan
+   en paralelo; el mundo nunca se pausa y solo usa 1x / 2x / 4x.
+2. **Preparación Founder-only.** Cuatro slots de vanguardia visibles; slot 1
+   ocupado por el Founder y slots 2–4 bloqueados. Cuatro slots octogonales de
+   Active Skills; solo Skill 1 conectada mediante `expedition_skill_1`, con
+   `expedition_skill_2`–`4` reservados.
+3. **Encuentro lateral mínimo.** Basic Attack automática, avance solo hasta
+   `AttackRange`, sin kiting, knockback permitido, `Stability` reduciendo el
+   desplazamiento e `Impulse` pudiendo aumentarlo. Presentación original con
+   inspiración estructural en *Taskbar Hero*.
+4. **Continuación y regreso.** El encuentro no resuelve la expedición: la vista
+   muestra la continuación al objetivo y el retorno, mientras la ciudad sigue
+   avanzando. Entrar o salir de `ExpeditionLiveView` conserva la velocidad.
+5. **Firma del vertical.** Slot limpio, llegada al encuentro en unos cinco
+   minutos, regreso causal, save/load y equivalencia live/offline en límites
+   semánticos.
+
+Después de EG-5V, el orden es:
+
+```text
+EG-5C — consolidación agrícola pendiente (plots 2–3 + Farm)
+→ EG-6 — calibración y firma completa de la apertura
+→ profundidad posterior de combate
+```
+
+La profundidad posterior no incluye todavía Traits, Chains, carroza, `SPACE`,
+formación avanzada ni Skills 2–4 funcionales. La vanguardia máxima futura es
+cuatro, pero EG-5V sigue siendo Founder-only.
+
+El primer Spirit Trail dura aproximadamente cuatro horas de mundo. No consume
+Food por existir y deja de ser `1 Food → Wood`; su recompensa material final
+permanece abierta.
+
+---
+
 ## 1. Principios de integración
 
 1. `Citizen` continúa siendo la única entidad persistente de persona.
@@ -50,7 +110,12 @@ Citizen persistente
 
 ---
 
-## 2. Orden de implementación
+## 2. Fundación histórica de dominio
+
+> Las fases 0–7 siguientes explican cómo se construyó la isla de combate que
+> hoy existe en `game/scripts/Domain/Combat/`. Se conservan como historial de
+> dependencias, pero ya no son el orden activo de producto. El orden activo es
+> EG-5V en §0.
 
 ### Fase 0. Validación del sistema estadístico
 
@@ -610,10 +675,21 @@ La telemetría puede ser provisional, pero el dominio debe producir los datos ne
 10. No conectar el dominio directamente a escenas, nodos o assets.
 11. No simular cada `Citizen` urbano en `_Process`.
 12. No ocultar números mágicos dentro de resolvers o escenas.
+13. No crear un reloj de combate o viaje separado del reloj de mundo.
+14. No pausar el mundo al abrir Menu o `ExpeditionLiveView`; conservar
+    1x / 2x / 4x.
+15. No añadir control manual de movimiento ni kiting ranged.
+16. No usar EG-5V para adelantar Traits, Chains, carroza, `SPACE`, formación
+    avanzada o Skills 2–4.
 
 ---
 
 ## 6. Definición de terminado del primer vertical slice
+
+> **Superada como siguiente hito por DEC-0020.** Esta definición conserva el
+> objetivo de la isla técnica original (tres Citizens, dos encuentros y ruta),
+> pero el primer vertical visual jugable ahora es Founder-only y está definido
+> en §0. Sus amplitudes futuras no deben adelantarse dentro de EG-5V.
 
 El slice se considera completo cuando:
 
@@ -627,4 +703,3 @@ El slice se considera completo cuando:
 8. El grupo alcanza el destino o regresa derrotado.
 9. El resultado actualiza el estado persistente de la ciudad.
 10. Cada cálculo relevante puede inspeccionarse mediante telemetría o pruebas.
-

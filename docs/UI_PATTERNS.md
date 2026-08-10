@@ -78,7 +78,7 @@ Use `[GlobalClass]` when:
 Current registered controls: `ModalHost`, `PanelHeader`,
 `AssignmentRow`, `SafeAreaMarginContainer`, `OnboardingChoiceButton`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
-`PrimaryNavDock`, `ContextInspector`, `ActionDock`, `SimulationControls`,
+`PrimaryNavDock`, `ContextInspector`, `ActionDock`, `SpeedButton`,
 `CitySummaryPanel`, `ExpeditionRail`, `ExpeditionCompactCard`,
 `ConstructionQueueItem`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
@@ -132,7 +132,7 @@ as far from its own buttons as the viewport allows. It is not a
 permanent toolbar: nothing shows it except a mode with an action to
 offer.
 
-`ActionDock`, `PrimaryNavDock`, and `SimulationControls` resolve or build their children
+`ActionDock`, `PrimaryNavDock`, and `CityStatusPanel` resolve or build their children
 on first access, not only in `_Ready`. Any shared surface a screen
 touches from that screen's own `_Ready` must do the same — Godot readies
 siblings in tree order, and the consumer frequently comes first.
@@ -153,21 +153,21 @@ the supplied Proposal 06 reference. Per-button width lives as a named
 `PrimaryNavDock` and `ActionDock` are mutually exclusive presentations of the
 same bottom-centre zone. Normal macro mode shows primary navigation; placement
 hides it and shows the contextual instruction/confirm/cancel tray; confirm,
-cancel and real `ui_cancel` restore primary navigation. `SimulationControls`
-is a separate bottom-right `HudDock` containing the existing `PlayPauseButton`
-and `SpeedButton` only — simulation time owns this surface. The camera-mode
-world utility lives on the right-edge `UtilityCluster` inside `CityStatusPanel`,
-which also carries the menu/pause open button; both are icon-only IconButtons
-with localized tooltips. Camera logic remains in the macro view; only its
-typed button moved. No duplicate simulation controls remain in `CityStatusPanel`.
+cancel and real `ui_cancel` restore primary navigation. There is no separate
+bottom-right simulation dock: `SimulationControls`, `PlayPauseButton` and
+`SpeedChoice.Paused` were removed. The right-edge `UtilityCluster` inside
+`CityStatusPanel` contains Camera, Speed and Menu. Speed cycles the only global
+rates (1x / 2x / 4x); Camera and Menu remain icon-only controls with localized
+tooltips. Camera logic remains in the macro view, and opening Menu never pauses
+the world.
 `ActionDock` is also a `HudDock`, with `HudHeader` instruction text and
 `HudButtonSelected`/`HudButton` actions; it no longer borrows large-screen
 `OverlayPanel` or `ButtonText` chrome.
 
 The macro perspective owns the visibility of its authored summary surfaces.
-`ActivatePerspective` reveals `CitySummaryPanel`, `ExpeditionRail` and
-`SimulationControls`; `Deactivate` hides all three together with primary
-navigation and the transient inspector. This keeps onboarding, hero profile and
+`ActivatePerspective` reveals `CitySummaryPanel` and `ExpeditionRail`;
+`Deactivate` hides both together with primary navigation and the transient
+inspector. This keeps onboarding, hero profile and
 building detail from inheriting a complete macro HUD while leaving every node
 authored under `GameUiShell/ScreenContent`. `ContextInspector` remains
 pointer-transparent and upward-growing, but uses `HudCard`/`HudHeader`/
@@ -576,9 +576,10 @@ Four rules apply to every screen:
    because it IS the persistent home. Be explicit which surface you
    are on. Macro actions (`View hero`, `Construction`) are visible only
    on the macro view; sub-screens own a local title + Back header.
-3. **`ui_cancel` (ESC) is owned by the topmost modal**, not by the
-   screen underneath. `ModalHost` captures `ui_cancel` only while the
-   modal is open. The macro view does nothing with ESC.
+3. **`ui_cancel` (ESC) closes the topmost surface first.** `ModalHost` owns it
+   while a modal is open; an open Menu closes next; hero/building subscreens
+   return to the macro view. On an unobstructed macro view ESC opens Menu.
+   None of these transitions pauses the world.
 4. **Use one selection router until nested navigation exists.** The current
    prototype has mutually-exclusive macro, building-detail, and hero-profile
    selections plus one modal layer, so `CityWorldController.Selection` and
@@ -652,6 +653,20 @@ inherit the patterns in this file:
   with a "decisions needed" anchor reachable from anywhere on the
   macro view via an icon-button factory.
 
+The first live expedition adds these stricter contracts:
+
+- `ExpeditionLiveView` is lateral presentation over the same world clock; it
+  never changes the selected 1x / 2x / 4x speed.
+- Vanguard shows four visible slots. The first Spirit Trail places the Founder
+  in slot 1 and renders slots 2–4 as locked without colour-only communication.
+- Active Skills show four **octagonal** slots. Only Skill 1 is initially wired;
+  actions are reserved as `expedition_skill_1` through
+  `expedition_skill_4`. Basic Attack remains automatic.
+- Each octagon keeps eight readable sides for a future side-associated Trait,
+  but no Trait or Chain UI is implemented in EG-5V.
+- No `SPACE` action, carriage control or advanced formation control is added in
+  the first visual encounter.
+
 ## 11. Quick reference — where things live
 
 | Concern | File |
@@ -666,6 +681,6 @@ inherit the patterns in this file:
 | Snapshot contracts | `game/scripts/*Snapshot.cs` (`CityMacroSnapshot`, `HeroProfileSnapshot`, `BuildingDetailSnapshot`, `ConstructionSnapshot`, `CityStatusSnapshot`) |
 | City world façade | `game/scripts/CityWorldController.cs` |
 | Component PackedScenes | `game/scenes/Components/` |
-| Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `MenuButton`) |
+| Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `SpeedButton`, `MenuButton`) |
 | Current audit state | `docs/UI_AUDIT.md` |
 | Status snapshot | `docs/CURRENT_STATUS.md` |

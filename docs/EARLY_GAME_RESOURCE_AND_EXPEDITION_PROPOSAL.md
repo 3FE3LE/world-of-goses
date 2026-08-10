@@ -3,8 +3,9 @@
 **Status:** approved direction; EG-A0 numbers remain provisional
 
 **Prepared:** 2026-07-29
-**Implementation gate:** finish the remaining VS-5 diagnostic, then open EG-0;
-final VS-5 signature follows the corrected early game.
+**Implementation gate:** EG-0 through EG-4 are complete. `DEC-0020` inserts the
+Founder Spirit Trail visual vertical before the remaining agricultural
+consolidation and final opening signature.
 
 ## 1. Decision summary
 
@@ -128,8 +129,9 @@ The redesigned opening should make the player decide:
 - when local tree exploitation is worth the tool, labor, and depletion cost.
 
 It should not add hunger simulation, temperature simulation, free placement,
-advanced combat, hunting, fishing, final sprites, or a generic crafting tree in
-the first implementation.
+broad combat depth, hunting, fishing, final sprites, or a generic crafting tree
+in the first implementation. The narrow exception is EG-5V: one automatic,
+lateral, Founder-only visual encounter needed to prove the opening's RPG seam.
 
 ### 3.5 Pre-opening authored night
 
@@ -137,10 +139,11 @@ The opening now enters through the authored first night
 (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, DEC-0014), not through a list
 of tutorial steps. The spirit's dialogue explains why the ground
 materials matter; the campfire and bedroll are the founding modules
-the night itself requires; `SpiritTrailSearch` is the post-dawn
-expedition that motivates the first sortie. The proposal's EG-1
-through EG-5 increments sit on top of this seam — the night closes
-before §4's recommended resources are gathered.
+the night itself requires; `SpiritTrailSearch` is the post-dawn expedition that
+motivates the first sortie by following the spirit for narrative progression,
+not by converting Food into Wood. The proposal's EG-1 through EG-5 increments
+sit on top of this seam — the night closes before §4's recommended resources
+are gathered.
 
 ## 4. Recommended starting resources: EG-A0
 
@@ -389,13 +392,18 @@ more than forcing every player onto the same calendar.
 
 ### 8.1 Unlock and participants
 
-- Unlock the first nearby sortie when Campfire and Cache are functional.
+- Unlock the first nearby **material** sortie when Campfire and Cache are
+  functional. The narrative Spirit Trail is a distinct exception: it becomes
+  available after `SpiritDeparted` and does not wait for those modules.
 - The founder is eligible because the founder is already an incorporated hero.
 - Other citizens remain ineligible until explicitly incorporated as heroes, as
   required by the design bible. Do not create a second anonymous expedition
   worker type.
-- Team size remains 1-2 and every participant takes an exclusive Expedition
-  commitment.
+- The first Spirit Trail is Founder-only. The preparation surface shows four
+  vanguard slots, with the Founder in slot 1 and slots 2–4 visible but locked.
+- The future vanguard ceiling is four real `Citizen`; every participant takes
+  an exclusive Expedition commitment. The current 1–2-member domain ceiling is
+  implementation state to migrate deliberately, not the target contract.
 
 ### 8.2 EG-A0 objectives
 
@@ -403,21 +411,21 @@ more than forcing every player onto the same calendar.
 | --- | ---: | ---: | ---: |
 | Nearby Food Forage | 120 ticks | 1 Branch | 3 / 5 / 7 Food |
 | Fallen Wood Search | 180 ticks | 1 Food | 4 / 6 / 8 Wood |
-| Spirit Trail Search | 180 ticks | 1 Food | 4 / 6 / 8 Wood |
+| Spirit Trail Search | ~4 world hours | None merely for duration | Material reward open; narrative progress is the purpose |
 
-The third objective is unlocked once `WorldEventKind.SpiritDeparted`
-has been recorded for the current city — i.e. once the first night
-has concluded. The reward is the same `Wood` curve as
-`Fallen Wood Search`; the narrative frame is the trail the spirit left
-when it departed at dawn (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
-§11–12), and the expedition panel hides the button until the event
-lands. No schema bump: `ResourceOpportunityKind.SpiritTrailSearch`
-is a new enum value that serialises as a string and is parsed by
-`Enum.TryParse` on legacy saves.
+The third objective is unlocked once `WorldEventKind.SpiritDeparted` has been
+recorded for the current city — i.e. once the first night has concluded. Its
+purpose is to follow the trail the spirit left and advance the opening
+narrative (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+§11–12). Its material reward remains open. The current implementation still
+uses 180 ticks, consumes 1 Food and returns Wood 4/6/8; `DEC-0020` supersedes
+that behavior as product direction and EG-5V must replace it rather than treat
+it as balance to preserve.
 
-At the current 1 Hz clock these last roughly 2 and 3 real minutes. They are
-short enough for the sole-founder opening; the existing four-day expeditions
-remain later operations.
+Nearby Food and Fallen Wood remain short resource sorties. Spirit Trail instead
+targets roughly four hours of world time and must reach its first visual
+encounter within approximately five minutes of gameplay. It does not consume
+Food merely because four world hours elapse.
 
 The result is not a blind random roll. It derives from a persisted opportunity
 and route, member condition and competence, supplies, carry capacity, chosen
@@ -582,7 +590,9 @@ transitions as live play and record each exact-once result.
 - tree species and forestry policy;
 - multiple crop species, fertility, water, weather, pests;
 - hunting/fishing;
-- advanced encounter content and combat;
+- combat beyond the single EG-5V visual encounter;
+- Traits, Chains, carriage, `SPACE`, advanced formation and functional Active
+  Skills 2–4;
 - free-form building modules;
 - final art and audio.
 
@@ -613,11 +623,18 @@ seams defined here. No VS-5 signature gates this sequence; each EG increment
 must instead satisfy its own end-to-end acceptance and preserve a completable
 city before the next increment begins.
 
-**Order (corrected 2026-07-31).** The binding dependency chain is
-**EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → EG-5 → EG-6**. The earlier proposal to
-skip directly from EG-0 to EG-3 was discarded with the old VS-5 audit: it would
-have introduced plots before the rudimentary-resource and Founding Site seams
-that make their opening costs and storage causal.
+**Order (reanalysed 2026-08-10).** The completed historical chain remains
+**EG-0 → EG-1 → EG-2 → EG-3 → EG-4**. `DEC-0020` supersedes the rule that
+blocked combat depth until all of EG-5/EG-6 closed. The new binding order is:
+
+```text
+EG-0 → EG-1 → EG-2 → EG-3 → EG-4
+→ EG-5V (Founder Spirit Trail visual vertical)
+→ EG-5C (plots 2–3 + Farm consolidation)
+→ EG-6 (calibration/signature)
+```
+
+This is a narrow reprioritisation, not permission for broad combat depth.
 
 The increments, in design order:
 
@@ -656,8 +673,23 @@ The increments, in design order:
    return capacity; cancellation or retreat releases the opportunity, while a
    completed objective depletes it. Live, offline and save/load resolution use
    the same persisted state.
-6. **EG-5 — consolidation.** *In progress; first correction implemented
-   2026-08-03 (schema v28).* Fresh terrain is three horizontal parcels with no
+6. **EG-5V — Founder Spirit Trail visual vertical.** *Next approved increment
+   (DEC-0020).* Preserve one world clock and 1x/2x/4x speed while city, travel
+   and combat advance in parallel. Show four vanguard slots (Founder only;
+   2–4 locked) and four octagonal Active Skill slots (only Skill 1 wired via
+   `expedition_skill_1`). Basic Attack is automatic. The lateral encounter uses
+   advance-to-`AttackRange`, no kiting, and knockback shaped by Stability and
+   Impulse. After the encounter the expedition continues to its objective and
+   returns. Traits, Chains, carriage, `SPACE`, advanced formation and Skills
+   2–4 remain absent. Spirit Trail lasts about four world hours, costs no Food
+   merely for time, and has no invented material reward while that reward is
+   open.
+   The current `CityWorld.TryStartExpedition` gate applies Campfire + Cache to
+   every resource opportunity, so this increment must exempt
+   `SpiritTrailSearch` without weakening that gate for the EG-4 material
+   sorties.
+7. **EG-5C — consolidation.** *Previously named EG-5; deferred behind EG-5V.
+   First correction implemented 2026-08-03 (schema v28).* Fresh terrain is three horizontal parcels with no
    unlockable frontier; resources use deterministic scatter and generic
    clearance-based traversal. A durable Primitive Axe (1 Branch + 1 Small
    Stone after Shelter completion) gates mature-tree Wood. Second/third plots
@@ -668,7 +700,7 @@ The increments, in design order:
    gathering a basic ground resource instead raises a transient icon and
    `+amount` above its current owner: founder before Cache, Founding Site after
    Cache, and Shelter after consolidation.
-7. **EG-6 — calibration/signature.** Run two new-city cycles with relaunches,
+8. **EG-6 — calibration/signature.** Run two new-city cycles with relaunches,
    one suboptimal-but-recoverable decision, and no debug actions. Only then
    retire the legacy founding flow.
 
@@ -691,9 +723,12 @@ replace the current new-city flow.
 8. **First harvest:** 3 in-game days after sowing.
 9. **Food before harvest:** protect 5 Food for one founder including a buffer
    and one Wood-sortie supply; start with 8.
-10. **First expedition unlock:** when Campfire and Cache are functional.
+10. **First expedition unlock:** the narrative Spirit Trail unlocks after
+    `SpiritDeparted`; Campfire + Cache continue to unlock the first material
+    sorties.
 11. **Participants:** only explicitly incorporated heroes; initially the
-    founder, later a 1-2 hero team.
+    Founder alone. The current HEAD picker supports 1–2 only as legacy
+    implementation state; the future vanguard ceiling is four Citizens.
 12. **City while away:** autonomous authorized processes continue; founder-
     dependent work pauses with a visible cause; consumption and crops continue.
 13. **First durations:** 120 ticks for Food and 180 for Wood under EG-A0.
@@ -710,6 +745,9 @@ replace the current new-city flow.
 18. **Offline behavior:** crop growth, construction phases, expeditions,
     rations, recovery, resource cooldowns, and returns resolve from persisted
     semantic state through the same domain transitions as live play.
+19. **First visual combat:** after `SpiritDeparted`, the Founder reaches a
+    lateral automatic encounter within about five minutes of gameplay,
+    continues to the objective, and returns without changing global speed.
 
 ## 17. Acceptance test for the proposal
 
@@ -722,6 +760,10 @@ playable prototype demonstrate all of the following:
 - the first crop cannot solve Food before day 3;
 - one poor but explained decision delays progress without destroying the city;
 - the first expedition creates a real absence/trade-off and includes return;
+- the first Spirit Trail reaches a visual automatic encounter within roughly
+  five minutes, continues to the objective and returns;
+- city, travel and combat advance together on one unpausable world clock, and
+  `ExpeditionLiveView` preserves the selected 1x / 2x / 4x speed;
 - local collection remains useful but cannot finance indefinite growth;
 - live and offline runs reach the same state at every semantic boundary;
 - the opening contains a meaningful action or decision during every waiting
@@ -735,6 +777,15 @@ playable prototype demonstrate all of the following:
   distinct decisions.
 - **Sole-founder downtime:** durations above 2-3 real minutes risk turning the
   first expedition into inactivity. Measure before increasing them.
+- **Five-minute miss:** onboarding/night pacing or a delayed dispatch can push
+  the first encounter past the target. Measure from a clean slot and cut
+  friction before adding combat content.
+- **Parallel-clock drift:** a view-local timer can desynchronise city, travel,
+  combat, save/load and offline catch-up. All progress must derive from the
+  single world clock.
+- **Premature combat breadth:** visible empty slots can be mistaken for a
+  promise to implement Traits, Chains, carriage, `SPACE`, formation or all four
+  skills now. Keep those states visibly reserved/locked and out of scope.
 - **Hidden safety rails:** guaranteed minima and capacity reservations must be
   visible in previews and causal explanations.
 - **Generic construction framework:** implement only the phase graph needed by

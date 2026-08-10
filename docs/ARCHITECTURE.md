@@ -173,6 +173,12 @@ progression use the same absolute-tick predicates. The additive
 `EconomicBalanceVersion` save field applies the first storage rebalance once to
 older snapshots without rewriting explicitly tuned capacities in new saves.
 
+`GameClock` / `CityWorld.CurrentTick` are the single world-time authority for
+city, expedition travel and combat. A future `ExpeditionLiveView` consumes
+that state; it does not own a timer. The controller exposes only global 1x,
+2x and 4x cadence choices. There is no paused world state, and opening Menu or
+switching presentation surfaces cannot change the selected speed.
+
 Macro workplace routing targets the front approach band rather than the
 occupied building centre. A carrier is visible while travelling, hidden on the
 macro map while the citizen works inside, and mounted into the interior worker
@@ -272,7 +278,7 @@ only the first two are implemented now.
 | ------------------ | ----------------------------------------------------------------------- | ----------------------- |
 | Macro              | Communicate city-wide activity from a distance.                         | Implemented (this slice)|
 | Building-detail    | Show workers inside a specific building; allow direct interaction.      | Implemented (this slice)|
-| Expedition-detail  | Fully detailed side-facing sprites, frame-by-frame animation.           | Future                  |
+| Expedition-detail  | Fully detailed side-facing sprites, frame-by-frame animation.           | Next approved vertical  |
 
 Concretely:
 
@@ -284,7 +290,8 @@ Concretely:
   worker corresponds to a real `CitizenId`. Workers that are assigned
   but exceed the visual capacity are reported as "working inside" by
   the domain; the presentation layer surfaces this number verbatim.
-- **Expedition-detail.** Not implemented yet. Future expedition scenes
+- **Expedition-detail.** Not implemented yet. EG-5V will add the first lateral
+  `ExpeditionLiveView`; later expedition scenes
   will use fully detailed side-facing sprites authored as
   Pixelorama sprite sheets (`art/source/characters/...`) and driven by
   Godot `AnimatedSprite2D` with `AnimationPlayer` transitions.
@@ -393,10 +400,11 @@ rate currently exists. Collapse is presentation-only and never enters
 `CitySummaryPanel` begins at the left safe margin, with transient
 `ContextInspector` immediately to its right and bottom-aligned. The fixed
 bottom-centre `PrimaryNavDock` is mutually exclusive with contextual
-`ActionDock`; the bottom-right `SimulationControls` surface owns the existing
-play/pause and speed buttons plus the camera-mode utility without moving
-simulation or camera rules into presentation. These macro-only siblings start
-hidden and are revealed/hidden by `MacroStreetLiveView`'s existing
+`ActionDock`. `SimulationControls`, `PlayPauseButton` and the paused speed state
+no longer exist. Camera, Speed and Menu share the right-edge utility cluster in
+`CityStatusPanel`; Speed cycles 1x / 2x / 4x and Menu never freezes the world.
+The macro-only summary siblings start hidden and are revealed/hidden by
+`MacroStreetLiveView`'s existing
 `ActivatePerspective`/`Deactivate` routing, so full profile/detail perspectives
 cannot retain the city rails accidentally; no global HUD manager or runtime
 surface construction is involved.

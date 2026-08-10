@@ -21,25 +21,32 @@
 
 ### Prioridad del increment
 
-> **2026-07-31 — cambio de norte.** Se descarta `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`
+> **2026-07-31 — cambio de norte histórico.** Se descarta `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`
 > (VS-5 y sus 17 criterios). El proyecto aún no tiene las dos capas de
 > complejidad (Founding Site + plot lifecycle + resource seam) que pide
 > `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` antes de hablar de herida,
 > tratamiento y territorios desbloqueables. Wound/recovery/territory loops
-> quedan diferidos hasta EG-2 + EG-3 + EG-5 estables.
+> quedaron diferidos hasta EG-2 + EG-3 + EG-5 estables.
+
+> **2026-08-10 — prioridad reanalizada por DEC-0020.** La regla anterior que
+> impedía abrir toda profundidad de combate antes de cerrar EG-5/EG-6 queda
+> **superada**. La excepción aprobada es estrecha: primero se entrega EG-5V, un
+> Spirit Trail Founder-only con encuentro visual automático, continuación al
+> objetivo y regreso. La profundidad amplia de combate sigue diferida.
 
 Hasta que la acceptance test de `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md`
 §17 no se cumpla en un slot limpio nuevo, no se abre profundidad nueva. Solo se
 admiten:
 
 1. Correcciones que un playtest de la apertura EG-A0 exponga como bloqueantes.
-2. Avance de los increments EG-1 a EG-6 en el orden de §15.
+2. Avance de los increments en el orden vigente de §15:
+   EG-5V → EG-5C → EG-6.
 3. Limpieza documental o técnica que no cambie el producto.
 
 ### Baseline vigente
 
-- Fecha de alineación: **2026-08-07**.
-- Slice activo: **EG-5 — consolidación**. EG-4 ya cerrado;
+- Fecha de alineación: **2026-08-10**.
+- Slice activo: **EG-5V — Founder Spirit Trail visual vertical**. EG-4 ya cerrado;
   `Branches/PlantFiber/SmallStone/WildFood` en `ResourceType`,
   `SeedStartingOpportunities` siembra EG-A0 en parcels libres, `GatherFromPatch`
   genérico y cap carried de 6 unidades; tests en `Eg1ResourceSeamTests`.
@@ -56,12 +63,13 @@ admiten:
   por citizen; v29 onboarding canónico; v28 herramientas durables;
   v27 oportunidades finitas de Food y Wood y capacidad de retorno.
 - Build: **0 errores / 0 advertencias**.
-- Tests: **973 / 974** (1 omitido por brittleness del snapshot JSON en
+- Tests: **1114 / 1115** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
-- Localización: **922 IDs de plantilla, 283 claves de runtime** válidas.
-- Agent context: **448 checks** sin fallos.
-- Arranque Godot headless: correcto.
+- Localización: **1001 IDs de plantilla, 300 claves de runtime** válidas.
+- Agent context: **474 checks** sin fallos.
+- Arranque Godot headless: el snapshot Full de 2026-08-10 falló con
+  `-1073741819`; no se considera firmado hasta reproducir un éxito.
 - Fuente de verdad: `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` y
   `docs/CURRENT_STATUS.md`.
 - La implementación histórica de Parcel 9 y sus tints, conservada más abajo
@@ -73,7 +81,7 @@ admiten:
 
 | Estado | Crítica | Alta | Media | Baja |
 | --- | ---: | ---: | ---: | ---: |
-| En curso | 0 | 0 | 1 | 0 |
+| En curso | 1 | 0 | 1 | 0 |
 | Pendiente | 0 | 0 | 1 | 0 |
 | Necesita reanálisis | 0 | 0 | 0 | 0 |
 | Diferido por trigger | 0 | 2 | 0 | 0 |
@@ -88,17 +96,15 @@ expresiones) cerró el 2026-08-07 vía `DEC-0019`.
 
 ## 2. Increment activo — Apertura EG-A0 (proposal §15)
 
-Flujo objetivo de la apertura temprana:
+Flujo objetivo prioritario de la apertura temprana:
 
 ```text
-Onboarding astral → manifestación sobre la marca del linaje
-→ primera noche 00:00–06:00 con el espíritu de fuego (§3, doc 19):
-   Campfire → Bedroll → sueño → amanecer sin espíritu
-→ Branches/Plant Fiber/Small Stone/Wild Food en el suelo
-→ Founding Site se completa (Cache → Canopy)
-→ Cultivation Site: preparar → sembrar → crecer 3 días → cosechar
-→ primeras expeditions de Food y Wood (2–3 min reales cada una)
-→ consolidación: 3 plots + forestry gate + Farm
+Onboarding astral → primera noche
+→ amanecer / SpiritDeparted → Spirit Trail disponible
+→ primera expedición del Founder
+→ primer encuentro visual antes de ~5 min de gameplay
+→ continuación hacia el objetivo → regreso a la ciudad
+→ consolidación: plots 2–3 + forestry gate + Farm
 → segundo ciclo sin reset
 ```
 
@@ -111,8 +117,9 @@ Onboarding astral → manifestación sobre la marca del linaje
 | EG-2 — founding site seam | Hecho | Schema v22; Founding Site estable con Campfire → Bedroll/Cache → Canopy, capacidad 6→12→24, origen persistente y equivalencia offline. |
 | EG-3 — Food horizon seam | Hecho | Schema v24; primer Cultivation Site completo, Food horizon visible y equivalencia live/offline cubierta por `Eg3CultivationSiteTests`. |
 | EG-4 — resource expedition seam | Hecho | Schema v27; oportunidades finitas de Food/Wood, cadena completa, supply/oportunidad/capacidad reservados y equivalencia live/offline. |
-| EG-5 — consolidación | En curso | Forestry gate conectado: Shelter + hacha primitiva durable (1 Branch + 1 Small Stone). **Primera noche jugable (H-33 + H-34) entregada en schema v31 sin bump**: banda de diálogo no modal en `OverlayLayers.Tutorial=50`, espíritu visual con anillo de 16 puntos, embers post-departure, `SpiritTrailSearch` con gate por `SpiritDeparted`. Apertura acotada a tres parcelas horizontales, sin frontier desbloqueable. Pendientes: firma humana del recorrido (M-14) y segundo/tercer plot + Farm consolidation. |
-| EG-6 — calibration/signature | Bloqueado | Espera EG-5. |
+| EG-5V — Founder Spirit Trail visual | En curso | Siguiente entrega: un reloj, ciudad/viaje/combate paralelos, Founder-only, cuatro slots visibles (2–4 bloqueados), cuatro skills octogonales (solo Skill 1), encuentro lateral automático, objetivo y regreso. |
+| EG-5C — consolidación | Pendiente | Forestry gate ya conectado; conserva segundo/tercer plot + Farm consolidation detrás de EG-5V. |
+| EG-6 — calibration/signature | Bloqueado | Espera EG-5V y EG-5C. |
 
 ### 🟡 M-14 — Matriz de regresión visual
 
@@ -145,6 +152,43 @@ Onboarding astral → manifestación sobre la marca del linaje
 | 17 | Repetición sin reset/debug | Automatizado; firma humana pendiente |
 
 ## 3. En curso
+
+### 🔴 H-35 — EG-5V: primer Spirit Trail visual del Founder
+
+- **Estado:** En curso por decisión; gameplay todavía no implementado.
+- **Prioridad:** Crítica.
+- **Afecta:** `CityWorld`, `Expedition`, `ExpeditionRequest`,
+  `ResourceExpeditionRules`, `CombatEncounter`, `ExpeditionPanel`,
+  `ExpeditionRail`, nueva `ExpeditionLiveView`, input map, snapshots,
+  persistencia/offline y fixtures visuales.
+- **Estado real del HEAD:** no existe `ExpeditionLiveView`;
+  `SpiritTrailSearch` aún dura 180 ticks, consume 1 Food y devuelve Wood 4/6/8;
+  `ExpeditionRequest.MaxTeamSize` es 2; `CombatEncounter` no modela posición,
+  `AttackRange` ni knockback; `CombatDebugPanel` es debug-only; y
+  `CityWorld.TryStartExpedition` todavía exige Campfire + Cache a toda
+  oportunidad de recurso, incluido el Spirit Trail que nace con
+  `SpiritDeparted`.
+- **Orden interno obligatorio:**
+  1. separar `SpiritTrailSearch` del gate genérico Campfire + Cache para que el
+     flujo aprobado pueda despacharse tras `SpiritDeparted`, sin relajar el gate
+     de las salidas materiales EG-4;
+  2. integrar expedición y combate sobre el único reloj de mundo;
+  3. mostrar cuatro slots de vanguardia, Founder en 1 y 2–4 bloqueados;
+  4. mostrar cuatro skills octogonales y conectar solo
+     `expedition_skill_1` (`expedition_skill_2`–`4` quedan reservados);
+  5. Basic Attack automática; avance solo para entrar en `AttackRange`, sin
+     kiting; knockback con `Stability` reduciendo e `Impulse` aumentando el
+     desplazamiento posible;
+  6. continuar tras el encuentro hasta el objetivo y regresar a la ciudad;
+  7. demostrar que entrar/salir de `ExpeditionLiveView` conserva 1x/2x/4x y
+     que ciudad, viaje y combate avanzan en paralelo sin pausa.
+- **Spirit Trail:** aproximadamente cuatro horas de mundo; no consume Food por
+  existir; propósito narrativo; recompensa material abierta.
+- **Fuera de alcance:** Traits, Chains, carroza, `SPACE`, formación avanzada,
+  Skills 2–4 funcionales, proceduralidad y profundidad amplia de combate.
+- **Aceptación:** desde slot limpio, el primer encuentro visual aparece dentro
+  de unos cinco minutos de gameplay; la expedición alcanza objetivo y regreso;
+  save/load y live/offline conservan límites semánticos y resultados exact-once.
 
 ### Primera noche del fundador (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`)
 
@@ -186,6 +230,9 @@ es de solo lectura.
 #### 🟠 H-34 — Fase 3: amanecer y motivo de la primera expedición
 
 - **Estado:** Hecho el 2026-08-06. Ver §7.
+- **Reanalizado:** el gate `SpiritDeparted` se conserva; la conversión
+  180 ticks + 1 Food → Wood 4/6/8 queda superada por `DEC-0020` y debe
+  reemplazarse dentro de H-35.
 - **Prioridad:** Alta.
 - **Afecta:** `Domain/ResourceOpportunityKind.cs`,
   `Domain/ResourceExpeditionRules.cs`, `ExpeditionPanel.cs` y su `.tscn`,
@@ -221,7 +268,7 @@ es de solo lectura.
   `VISUAL_REGRESSION.md` (`firstnight-strip`, `firstnight-spirit`,
   `firstnight-embers`, `firstnight-spirit-trail-button`).
 - **Pendiente (sólo firma humana):** playtest en slot limpio con el recorrido
-  descrito en M-14 → Pendiente para EG-5 / M-26. `verify-clicks-with-real-clicks`
+  descrito en M-14 → Pendiente para EG-5V / M-26. `verify-clicks-with-real-clicks`
   aplica de lleno: la banda de diálogo y el hit-rect del espíritu son
   superficies nuevas de input, y un ancestro con `MouseFilter.Stop` puede
   tragárselas sin que el código lo delate.
@@ -234,7 +281,7 @@ es de solo lectura.
   `docs/VISUAL_REGRESSION.md`, escenas/UI tocadas por cada cambio.
 - **Hecho:** harness read-only con medidas reales en 1280×720 y 1920×1080,
   manifiesto, frame-time del engine y fixtures de las superficies principales.
-- **Pendiente para EG-5:** firma humana de recolección idempotente, bloqueo por
+- **Pendiente para EG-5C:** firma humana de recolección idempotente, bloqueo por
   capacidad/hacha, layout disperso de tres parcelas y fabricación del hacha en
   el Shelter; firma del chevron de recursos y del aviso pasajero icono +
   cantidad siguiendo al fundador antes del Cache y sobre el almacén después,
@@ -710,6 +757,14 @@ superados en 2026-07-30; ver §8.)_
 - VS-2: equipo, encuentro, retirada y retorno expedicionario.
 
 ## 8. Superadas recientes
+
+### 🔴 Regla de bloqueo de combate hasta cerrar EG-5/EG-6
+
+- **Cierre:** Superada el 2026-08-10 por `DEC-0020`.
+- **Motivo:** retrasar todo combate visual dejaba desconectadas la apertura
+  narrativa, la expedición existente y la isla de combate determinista. La
+  excepción aprobada es únicamente EG-5V end-to-end; la consolidación agrícola
+  se conserva como EG-5C y la amplitud de combate continúa diferida.
 
 ### 🟠 H-29 — Terreno ortogonal de la vista plana
 

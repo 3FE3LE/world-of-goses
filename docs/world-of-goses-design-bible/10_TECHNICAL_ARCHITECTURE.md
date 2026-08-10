@@ -60,6 +60,16 @@ Representación completa
 
 ## Simulación
 
+Existe un único reloj de mundo. Ciudad, viaje y combate avanzan sobre esa misma
+línea temporal y continúan en paralelo; abrir `ExpeditionLiveView` es un cambio
+de presentación, no un cambio de simulación.
+
+El mundo no se puede pausar. Las únicas velocidades globales actuales son
+`1x`, `2x` y `4x`, y cambiar de pantalla no altera la seleccionada. Un menú o
+modal puede capturar input y cubrir la escena, pero nunca congela el dominio.
+La progresión offline usa las mismas reglas del reloj único y tampoco crea un
+reloj expedicionario separado.
+
 Evitar:
 
 - Actualización de cada ciudadano en `_Process`.
@@ -141,7 +151,8 @@ cada migración viven en `docs/ARCHITECTURE.md` §8 y en
 - Cosmología común.
 - Nombre del eje ambiental.
 - Escala temporal.
-- Elementos de combate.
+- Balance, contenido y coeficientes definitivos del combate más allá del primer
+  encuentro visual ya acotado en `05_EXPEDITIONS.md`.
 - Familias de armas.
 - Experiencia y envejecimiento.
 - Migración.
