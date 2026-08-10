@@ -926,6 +926,10 @@ public sealed class HudCompositionTests
         Assert.Contains("_expeditionSection.Visible = false", rail, StringComparison.Ordinal);
         Assert.Contains("_scroll.Visible = false", rail, StringComparison.Ordinal);
         Assert.Contains("_header.Expanded = false", rail, StringComparison.Ordinal);
+        // Closing Chronicle must restore the initial expedition protagonist.
+        // Without the symmetric branch both bodies remain hidden permanently.
+        Assert.Contains("else if (!_header.Expanded)", rail, StringComparison.Ordinal);
+        Assert.Contains("_header.Expanded = true", rail, StringComparison.Ordinal);
         // The chronicle is added as a direct child of the layout
         // (outside the rail's scroll), not inside _content. Putting it
         // inside the scroll would hide it whenever the rail collapses.
@@ -1291,6 +1295,8 @@ public sealed class HudCompositionTests
             root, "game", "scripts", "ExpeditionLiveView.cs"));
         string stageSource = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "Ui", "ExpeditionStage.cs"));
+        string combatantSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "CombatantView.cs"));
 
         Assert.Contains(
             "[node name=\"ExpeditionLiveView\" parent=\"GameUiShell/ScreenContent\"",
@@ -1311,10 +1317,14 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("PlayPauseButton", liveScene, StringComparison.Ordinal);
         Assert.DoesNotContain("CombatClock", liveScene + liveSource, StringComparison.Ordinal);
         Assert.DoesNotContain("ExpeditionClock", liveScene + liveSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("_Process", liveSource + stageSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("CombatResolver", stageSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", liveSource + stageSource + combatantSource,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("CombatResolver", stageSource + combatantSource,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("_PhysicsProcess", stageSource, StringComparison.Ordinal);
-        Assert.Contains("DrawCombatant", stageSource, StringComparison.Ordinal);
+        Assert.Contains("Instantiate<CombatantView>", stageSource, StringComparison.Ordinal);
+        Assert.Contains("ApplySnapshot", combatantSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("ApplyResult", combatantSource, StringComparison.Ordinal);
         Assert.Contains("antialiased: false", stageSource, StringComparison.Ordinal);
         Assert.Contains("StageBounds = new(244, 0, 800, 488)", liveSource,
             StringComparison.Ordinal);

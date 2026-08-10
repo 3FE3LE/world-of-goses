@@ -59,7 +59,8 @@ public static class ExpeditionCombatSessionFactory
         ArgumentNullException.ThrowIfNull(expedition);
         ArgumentNullException.ThrowIfNull(citizens);
 
-        var service = new CombatExpeditionService();
+        var balance = CombatBalanceConfig.Default;
+        var service = new CombatExpeditionService(combat: balance);
         var party = new List<CombatantState>(expedition.MemberIds.Count);
         var plans = new Dictionary<string, CombatantPlan>();
         for (int index = 0; index < expedition.MemberIds.Count; index++)
@@ -70,7 +71,9 @@ public static class ExpeditionCombatSessionFactory
                 throw new InvalidOperationException(
                     $"Expedition {expedition.Id.Value} references missing citizen {citizenId.Value}.");
             }
-            CombatantState member = service.PrepareSessionMember(citizen);
+            CombatantState member = service.PrepareSessionMember(
+                citizen,
+                positionX: balance.PartyStartingX + index * balance.PartyStartingSpacing);
             party.Add(member);
             plans[member.Id] = new CombatantPlan(
                 index,
@@ -81,10 +84,15 @@ public static class ExpeditionCombatSessionFactory
 
         var enemies = new List<CombatantState>
         {
-            EnemyCatalog.Create(EnemyArchetype.MeleeEnemy, $"expedition.{expedition.Id.Value}.enemy0"),
-            EnemyCatalog.Create(EnemyArchetype.RangedEnemy, $"expedition.{expedition.Id.Value}.enemy1"),
+            EnemyCatalog.Create(
+                EnemyArchetype.MeleeEnemy,
+                $"expedition.{expedition.Id.Value}.enemy0",
+                positionX: balance.EnemyMeleeStartingX),
+            EnemyCatalog.Create(
+                EnemyArchetype.RangedEnemy,
+                $"expedition.{expedition.Id.Value}.enemy1",
+                positionX: balance.EnemyRangedStartingX),
         };
-        var balance = CombatBalanceConfig.Default;
         var statuses = new StatusResolver(balance);
         var resolver = new TechniqueResolver(
             new DefensiveStatisticsCalculator(StatisticsBalanceConfig.Default),

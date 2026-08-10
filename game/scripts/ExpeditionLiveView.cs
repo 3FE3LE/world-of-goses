@@ -269,9 +269,24 @@ public partial class ExpeditionLiveView : Control
         ConfigureSquad(snapshot);
         ConfigureEncounter(snapshot);
         ConfigureCombatControls(snapshot);
-        int enemyCount = snapshot.CombatState?.EnemyCount
-            ?? (_fixtureShowsTwoEnemies ? 2 : 0);
-        _stage.Configure(snapshot.Members.Count, enemyCount);
+        if (snapshot.CombatState is { } combat)
+        {
+            _stage.Configure(
+                combat.Party,
+                combat.Enemies,
+                combat.Log,
+                combat.Step,
+                combat.BattlefieldMinimumX,
+                combat.BattlefieldMaximumX);
+        }
+        else if (_fixtureShowsTwoEnemies)
+        {
+            _stage.ShowEarlyFixture();
+        }
+        else
+        {
+            _stage.ClearCombatants();
+        }
 
         _autoButton.Text = UiText.Get("ui.expedition_live.auto");
         _retreatButton.Text = UiText.Get("ui.expedition_live.retreat");

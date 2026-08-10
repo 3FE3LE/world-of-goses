@@ -92,6 +92,28 @@ public sealed record CombatBalanceConfig
     /// <summary>Health ratio at or below which the retreat rule may trigger.</summary>
     public double RetreatHealthRatio { get; init; } = 0.30;
 
+    // ---- Lateral space ----------------------------------------------------
+
+    /// <summary>Authoritative one-dimensional combat envelope.</summary>
+    public double BattlefieldMinimumX { get; init; } = 0;
+    public double BattlefieldMaximumX { get; init; } = 1000;
+
+    /// <summary>Distance covered per logical step for each derived speed point.</summary>
+    public double MovementDistancePerSpeedPoint { get; init; } = 48;
+
+    /// <summary>Base displacement before attacker Impulse and defender Stability.</summary>
+    public double KnockbackBaseDistance { get; init; } = 40;
+
+    public double CitizenShortAttackRange { get; init; } = 42;
+    public double CitizenSpearAttackRange { get; init; } = 68;
+    public double CitizenRangedAttackRange { get; init; } = 230;
+    public double CitizenBodyRadius { get; init; } = 12;
+
+    public double PartyStartingX { get; init; } = 140;
+    public double PartyStartingSpacing { get; init; } = 18;
+    public double EnemyMeleeStartingX { get; init; } = 820;
+    public double EnemyRangedStartingX { get; init; } = 850;
+
     public void Validate()
     {
         if (BaseExperiencePerLevel <= 0)
@@ -114,5 +136,28 @@ public sealed record CombatBalanceConfig
             throw new InvalidOperationException("Fatigue for minimum condition must be positive.");
         if (RetreatHealthRatio is < 0 or > 1)
             throw new InvalidOperationException("Retreat health ratio must be within [0, 1].");
+        if (BattlefieldMaximumX <= BattlefieldMinimumX)
+            throw new InvalidOperationException("Battlefield maximum must exceed its minimum.");
+        if (MovementDistancePerSpeedPoint <= 0)
+            throw new InvalidOperationException("Movement distance per speed point must be positive.");
+        if (KnockbackBaseDistance < 0)
+            throw new InvalidOperationException("Knockback base distance cannot be negative.");
+        if (CitizenShortAttackRange <= 0
+            || CitizenSpearAttackRange <= 0
+            || CitizenRangedAttackRange <= 0
+            || CitizenBodyRadius <= 0)
+        {
+            throw new InvalidOperationException("Citizen spatial dimensions must be positive.");
+        }
+        if (PartyStartingSpacing < 0
+            || PartyStartingX < BattlefieldMinimumX
+            || PartyStartingX + 3 * PartyStartingSpacing > BattlefieldMaximumX
+            || EnemyMeleeStartingX < BattlefieldMinimumX
+            || EnemyMeleeStartingX > BattlefieldMaximumX
+            || EnemyRangedStartingX < BattlefieldMinimumX
+            || EnemyRangedStartingX > BattlefieldMaximumX)
+        {
+            throw new InvalidOperationException("Combat starting positions must fit the battlefield.");
+        }
     }
 }

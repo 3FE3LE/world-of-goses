@@ -17,6 +17,50 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## El combate lateral ya ocupa espacio real
+
+**2026-08-10** · schema v33 (sin cambio) · combate/presentación
+
+El encuentro observable ahora simula una línea autoritativa dentro de la misma
+`CombatSession`: Citizens y enemigos avanzan hacia su target hasta entrar en
+`AttackRange`, se plantan y atacan. No existe rama para retroceder, de modo que
+un ranged alcanzado por melee permanece en su sitio salvo que un impacto lo
+desplace. Impulse atacante y Stability defensora gobiernan un primer knockback
+determinista; velocidades, rangos y radios de cuerpo viven en dominio y el
+replay save/offline reconstruye el mismo resultado sin persistir `Node.Position`.
+
+`ExpeditionStage` dejó de dibujar combatientes estáticos y reutiliza un
+`CombatantView` por participante. Los placeholders muestran facing, HP,
+avance, Basic Attack, Skill, impacto, knockback y derrota a partir de snapshots
+y eventos; sus tweens redondean coordenadas visuales y nunca calculan daño.
+No se añadió movimiento manual, kiting, hitboxes de gameplay, Chains, Traits,
+formación, boss ni reloj/velocidad privados.
+
+El rail derecho también recupera su contenido inicial: abrir Chronicle pliega
+las expediciones y cerrarlo vuelve a mostrar cards y `VER`.
+
+Baseline medido al cierre: build 0 errores / 0 advertencias; 1168 pruebas
+superadas y 1 omitida sobre 1169, incluidas 13 de `CombatSpatialTests`; schema
+v33 sin migración; agent context 474/474 y catálogos 1049/324. El arranque
+headless conserva el fallo ambiental Windows `-1073741819` ya conocido.
+
+**Los fixtures visuales de expedición no pudieron ejecutarse en este cierre.**
+`expedition-live-early` y `expedition-rail-chronicle-roundtrip` fallan ambos
+con la misma causa raíz: `StartExpedition` no arranca en el slot cargado y
+`CityPrototype` la descarta en silencio (`if (!started.IsSuccess) return;`),
+así que no hay card, no hay `VER` y la captura escribe un PNG de la vista macro
+con `EXPEDICIONES · 0`. El save se lee con `--wog-visual-capture`, que desactiva
+escrituras, pero la progresión offline aplicada al cargar desplaza la hora del
+mundo con el tiempo real: la captura que hoy funcionó a media jornada falla a
+`Día 2 · 18:56 · Fuera de horario`, con el héroe en casa. Los fixtures no son
+herméticos y fallan de forma silenciosa —exit 0 y PNG de la pantalla
+equivocada—, que es precisamente la forma de fallo que una matriz visual no
+debe tener. El movimiento espacial queda respaldado por pruebas de dominio, no
+por firma visual, y el presupuesto de frame de la vista en vivo sigue sin
+medirse desde que se conectó la sesión.
+
+---
+
 ## El primer encuentro ya avanza como una sesión observable
 
 **2026-08-10** · schema v32 → v33 · combate/expedición

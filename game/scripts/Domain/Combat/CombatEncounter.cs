@@ -16,8 +16,10 @@ public enum CombatOutcome
 public enum CombatLogKind
 {
     EncounterBegan,
+    CombatantMoved,
     BasicAttackResolved,
     TechniqueResolved,
+    KnockbackApplied,
     StatusApplied,
     ActionPrevented,
     CombatantDefeated,
@@ -291,6 +293,8 @@ public sealed class CombatEncounter
     public IReadOnlyList<CombatLogEntry> Log => _log;
     public IReadOnlyList<CombatantState> Party => _party;
     public IReadOnlyList<CombatantState> Enemies => _enemies;
+    public double BattlefieldMinimumX => _balance.BattlefieldMinimumX;
+    public double BattlefieldMaximumX => _balance.BattlefieldMaximumX;
 
     /// <summary>
     /// Advances a bounded number of logical combat steps. World/application code
@@ -336,6 +340,9 @@ public sealed class CombatEncounter
         bool autoPartySkills,
         IReadOnlySet<string>? manuallyActivatedPartyMembers)
     {
+        foreach (CombatantState combatant in AllCombatants())
+            combatant.Spatial.BeginStep(combatant.IsDefeated);
+
         foreach (CombatantState actor in TurnOrder())
         {
             if (Outcome != CombatOutcome.InProgress) return;
@@ -360,7 +367,24 @@ public sealed class CombatEncounter
             }
 
             (IReadOnlyList<CombatantState> allies, IReadOnlyList<CombatantState> foes) = Sides(actor);
-            ApplyBasicAttack(actor, plan, allies, foes);
+            CombatantState? approachTarget = ApproachTarget(actor, plan, foes);
+            if (approachTarget is null) continue;
+            double moved = actor.Spatial.Approach(
+                approachTarget.Spatial,
+                actor.Spatial.MovementSpeed * _balance.MovementDistancePerSpeedPoint,
+                _balance.BattlefieldMinimumX,
+                _balance.BattlefieldMaximumX);
+            if (Math.Abs(moved) > double.Epsilon)
+            {
+                Record(
+                    CombatLogKind.CombatantMoved,
+                    actor.Id,
+                    approachTarget.Id,
+                    moved.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+            }
+
+            IReadOnlyList<CombatantState> actionRangeFoes = FoesWithinRange(actor, foes);
+            ApplyBasicAttack(actor, plan, allies, actionRangeFoes);
             if (CountAlive(foes) == 0) continue;
 
             bool manuallyActivated = actor.Side == CombatSide.Party
@@ -368,12 +392,14 @@ public sealed class CombatEncounter
             TechniqueDefinition? technique = manuallyActivated
                 ? FirstReadyActive(actor)
                 : actor.Side == CombatSide.Enemy || autoPartySkills
-                    ? _autoCast.Choose(actor, plan, allies, foes)
+                    ? _autoCast.Choose(actor, plan, allies, actionRangeFoes)
                     : null;
             if (technique is null) continue;
 
-            CombatantState? target =
-                _targets.Resolve(technique, actor, plan, allies, foes, _random);
+            CombatantState? target = technique.TargetRule is TechniqueTargetRule.Self
+                or TechniqueTargetRule.LowestHealthAlly
+                ? _targets.Resolve(technique, actor, plan, allies, foes, _random)
+                : _targets.Resolve(technique, actor, plan, allies, actionRangeFoes, _random);
             if (target is null) continue;
 
             actor.StartCooldown(technique);
@@ -381,7 +407,7 @@ public sealed class CombatEncounter
 
             if (technique.TargetRule == TechniqueTargetRule.AllEnemies)
             {
-                foreach (CombatantState enemy in new List<CombatantState>(foes))
+                foreach (CombatantState enemy in new List<CombatantState>(actionRangeFoes))
                 {
                     if (enemy.IsAlive) ApplyTechnique(technique, actor, enemy);
                 }
@@ -403,14 +429,20 @@ public sealed class CombatEncounter
         CombatantState actor,
         CombatantPlan plan,
         IReadOnlyList<CombatantState> allies,
-        IReadOnlyList<CombatantState> foes)
+        IReadOnlyList<CombatantState> foesInRange)
     {
         // Inert test targets carry no combat techniques. Production combatants
         // always carry at least their active tree and therefore always pulse a
         // Basic Attack, independently from the player's AUTO preference.
         if (actor.Techniques.Count == 0) return;
         TechniqueDefinition basic = TechniqueCatalog.BasicAttack;
-        CombatantState? target = _targets.Resolve(basic, actor, plan, allies, foes, _random);
+        CombatantState? target = _targets.Resolve(
+            basic,
+            actor,
+            plan,
+            allies,
+            foesInRange,
+            _random);
         if (target is null) return;
 
         actor.AddFatigue(_balance.FatiguePerAction);
@@ -435,6 +467,12 @@ public sealed class CombatEncounter
         TechniqueResolution resolution =
             _techniques.Resolve(Step, technique, actor, target, _random);
         target.ApplyResult(resolution.FinalResult);
+        actor.Spatial.MarkActivity(logKind == CombatLogKind.BasicAttackResolved
+            ? CombatSpatialActivity.BasicAttack
+            : CombatSpatialActivity.ActiveSkill);
+        target.Spatial.MarkActivity(target.IsDefeated
+            ? CombatSpatialActivity.Defeated
+            : CombatSpatialActivity.Hit);
         _log.Add(new CombatLogEntry(
             Step,
             logKind,
@@ -442,6 +480,25 @@ public sealed class CombatEncounter
             target.Id,
             technique.Id,
             resolution));
+
+        if (!target.IsDefeated && resolution.FinalResult > 0)
+        {
+            double resistance = actor.Spatial.Impulse + target.Spatial.Stability;
+            double impulseShare = resistance <= 0 ? 0 : actor.Spatial.Impulse / resistance;
+            double direction = target.Spatial.DirectionAwayFrom(actor.Spatial, target.Side);
+            double displacement = target.Spatial.ApplyKnockback(
+                direction * _balance.KnockbackBaseDistance * impulseShare,
+                _balance.BattlefieldMinimumX,
+                _balance.BattlefieldMaximumX);
+            if (Math.Abs(displacement) > double.Epsilon)
+            {
+                Record(
+                    CombatLogKind.KnockbackApplied,
+                    actor.Id,
+                    target.Id,
+                    displacement.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
 
         foreach (StatusEffectId status in resolution.AppliedStatuses)
         {
@@ -489,6 +546,50 @@ public sealed class CombatEncounter
         actor.Side == CombatSide.Party
         && plan.RetreatWhenBelowThreshold
         && actor.HealthRatio <= _balance.RetreatHealthRatio;
+
+    private CombatantState? ApproachTarget(
+        CombatantState actor,
+        CombatantPlan plan,
+        IReadOnlyList<CombatantState> foes)
+    {
+        if (plan.PreferredTargetId is not null)
+        {
+            foreach (CombatantState foe in foes)
+            {
+                if (foe.IsAlive && foe.Id == plan.PreferredTargetId) return foe;
+            }
+        }
+
+        CombatantState? nearest = null;
+        double nearestDistance = double.MaxValue;
+        foreach (CombatantState foe in foes)
+        {
+            if (!foe.IsAlive) continue;
+            double distance = actor.Spatial.EdgeDistanceTo(foe.Spatial);
+            if (distance < nearestDistance
+                || (Math.Abs(distance - nearestDistance) <= double.Epsilon
+                    && nearest is not null
+                    && string.CompareOrdinal(foe.Id, nearest.Id) < 0))
+            {
+                nearest = foe;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
+    }
+
+    private static IReadOnlyList<CombatantState> FoesWithinRange(
+        CombatantState actor,
+        IReadOnlyList<CombatantState> foes)
+    {
+        var eligible = new List<CombatantState>();
+        foreach (CombatantState foe in foes)
+        {
+            if (foe.IsAlive && actor.Spatial.IsWithinAttackRange(foe.Spatial))
+                eligible.Add(foe);
+        }
+        return eligible;
+    }
 
     private void EvaluateOutcome()
     {

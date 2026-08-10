@@ -64,7 +64,7 @@ admiten:
   por citizen; v29 onboarding canónico; v28 herramientas durables;
   v27 oportunidades finitas de Food y Wood y capacidad de retorno.
 - Build: **0 errores / 0 advertencias**.
-- Tests: **1154 / 1155** (1 omitido por brittleness del snapshot JSON en
+- Tests: **1168 / 1169** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
 - Localización: **1049 IDs de plantilla, 324 claves de runtime** válidas.
@@ -134,6 +134,17 @@ Onboarding astral → primera noche
   Fiber/Small Stone/Wild Food en macro view; firma humana de su comportamiento
   de recogida.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
+- **🔴 Fallo silencioso detectado 2026-08-10.** Los fixtures que dependen de
+  una expedición activa (`expedition-live-early`,
+  `expedition-rail-chronicle-roundtrip`) no son herméticos: dependen de la hora
+  de mundo del slot cargado, que la progresión offline desplaza con el tiempo
+  real. Fuera de horario el héroe está en casa, `StartExpedition` falla,
+  `CityPrototype` descarta el fallo en silencio
+  (`if (!started.IsSuccess) return;`) y la captura **sale con exit 0 y escribe
+  un PNG de la vista macro** con `EXPEDICIONES · 0`. Una firma visual hecha
+  sobre ese PNG aprobaría la pantalla equivocada. Arreglar antes de confiar en
+  la matriz para EG-5V: sembrar estado hermético para el fixture y convertir el
+  `return` silencioso en error explícito que aborte la captura.
 | 1 | Fundador persistente | Firma humana obtenida |
 | 2 | Gathering y tres edificios iniciales | Firma humana obtenida |
 | 3 | Reclutamiento restringido | Firma humana obtenida |
@@ -156,8 +167,8 @@ Onboarding astral → primera noche
 
 ### 🔴 H-35 — EG-5V: primer Spirit Trail visual del Founder
 
-- **Estado:** En curso; sesión de combate observable implementada, vertical
-  espacial y flujo post-dawn todavía incompletos.
+- **Estado:** En curso; sesión observable y presentación espacial lateral
+  implementadas; flujo post-dawn todavía incompleto.
 - **Prioridad:** Crítica.
 - **Afecta:** `CityWorld`, `Expedition`, `ExpeditionRequest`,
   `ResourceExpeditionRules`, `CombatEncounter`, `ExpeditionPanel`,
@@ -166,10 +177,11 @@ Onboarding astral → primera noche
 - **Estado real del HEAD:** `ExpeditionLiveView` y sus componentes existen; una
   `CombatSession` propiedad de `CityWorld` avanza por tick mundial, persiste
   comandos/replay en schema v33 y conecta Basic Attack, AUTO/manual Skill 1,
-  cooldown, HP, enemigos y outcome. `SpiritTrailSearch` aún dura 180 ticks,
+  cooldown, HP, enemigos, outcome, posición 1D, rango y knockback. El stage
+  reutiliza `CombatantView` y el rail recupera sus cards al cerrar Chronicle.
+  `SpiritTrailSearch` aún dura 180 ticks,
   consume 1 Food y devuelve Wood 4/6/8; `ExpeditionRequest.MaxTeamSize` es 2;
-  no existen posición, `AttackRange` ni knockback; `CombatDebugPanel` sigue
-  debug-only; y
+  `CombatDebugPanel` sigue debug-only; y
   `CityWorld.TryStartExpedition` todavía exige Campfire + Cache a toda
   oportunidad de recurso, incluido el Spirit Trail que nace con
   `SpiritDeparted`.
@@ -183,9 +195,9 @@ Onboarding astral → primera noche
      bloqueados;
   4. **Cerrado:** mostrar cuatro skills octogonales y conectar solo
      `expedition_skill_1` (`expedition_skill_2`–`4` quedan reservados);
-  5. Basic Attack automática ya conectada; falta avance solo para entrar en
-     `AttackRange`, sin kiting; knockback con `Stability` reduciendo e `Impulse`
-     aumentando el desplazamiento posible;
+  5. **Cerrado:** Basic Attack automática, avance solo para entrar en
+     `AttackRange` sin kiting y knockback con `Stability` reduciendo e `Impulse`
+     aumentando el desplazamiento;
   6. continuar tras el encuentro hasta el objetivo y regresar a la ciudad;
   7. demostrar que entrar/salir de `ExpeditionLiveView` conserva 1x/2x/4x y
      que ciudad, viaje y combate avanzan en paralelo sin pausa.
@@ -198,8 +210,9 @@ Onboarding astral → primera noche
   contra un presupuesto de pico de 40 ms; el mismo fixture medía 18,7 ms antes
   de conectarla y `macro-hud-default` mide 6–18 ms en la misma tanda, así que
   el coste es propio de la vista en vivo y no ruido de máquina. Medir antes de
-  añadir movimiento, `AttackRange` o knockback: el punto 5 sólo agrega trabajo
-  por frame sobre un presupuesto ya excedido.
+  el stage espacial sobre esa misma vista. La proyección no añade `_Process`
+  por actor y reutiliza vistas, pero el fixture debe volver a medirse antes de
+  cerrar EG-5V.
 - **Aceptación:** desde slot limpio, el primer encuentro visual aparece dentro
   de unos cinco minutos de gameplay; la expedición alcanza objetivo y regreso;
   save/load y live/offline conservan límites semánticos y resultados exact-once.

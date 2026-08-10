@@ -422,6 +422,10 @@ public partial class CityPrototype : Node
                 ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
                 CallDeferred(MethodName.ExerciseExpeditionRailFocusForVisualRegression);
                 break;
+            case "expedition-rail-chronicle-roundtrip":
+                ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
+                CallDeferred(MethodName.ExerciseExpeditionRailChronicleRoundTripForVisualRegression);
+                break;
             case "expedition-rail-rail-protagonist":
                 // Force the expedition section to be the visible
                 // protagonist so the visual matrix can prove the cards
@@ -2178,6 +2182,45 @@ public partial class CityPrototype : Node
             return;
         }
         GD.Print("[WOG-EXPEDITION-RAIL-MORE] Chronicle opened OK");
+    }
+
+    private void ExerciseExpeditionRailChronicleRoundTripForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        SendPointerClickForVisualRegression(rail.MoreButton);
+        GetTree().CreateTimer(0.1).Timeout += () =>
+        {
+            if (!rail.ChronicleExpanded)
+            {
+                GD.PushError("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle did not open.");
+                return;
+            }
+            // The first edge already exercised real pointer dispatch. Emit the
+            // same Button signal for the return edge so the fixture validates
+            // accordion state rather than depending on a relayout race in the
+            // headless pointer coordinate transform.
+            rail.MoreButton.EmitSignal(BaseButton.SignalName.Pressed);
+            GetTree().CreateTimer(0.1).Timeout += ValidateExpeditionRailChronicleRoundTripForVisualRegression;
+        };
+    }
+
+    private void ValidateExpeditionRailChronicleRoundTripForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        bool passed = rail.Expanded
+            && !rail.ChronicleExpanded
+            && rail.FirstViewButton?.IsVisibleInTree() == true;
+        if (!passed)
+        {
+            GD.PushError(
+                "[WOG-EXPEDITION-RAIL-ROUNDTRIP] closing Chronicle did not restore expeditions; "
+                + $"rail={rail.Expanded}, chronicle={rail.ChronicleExpanded}, "
+                + $"view={rail.FirstViewButton?.IsVisibleInTree()}.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle closed and expedition content returned.");
     }
 
     private void ExerciseExpeditionRailPhaseFocusForVisualRegression()

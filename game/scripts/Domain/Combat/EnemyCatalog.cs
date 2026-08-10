@@ -35,6 +35,12 @@ public sealed record EnemyDefinition(
     double GeneralDamageReduction,
     double CriticalChance,
     double AttackSpeed,
+    double MovementSpeed,
+    double AttackRange,
+    double BodyRadius,
+    double Stability,
+    double Impulse,
+    CombatStature Stature,
     ElementalAffinity Affinity,
     PhysicalExpression Expression);
 
@@ -47,6 +53,8 @@ public static class EnemyCatalog
             MaxHealth: 90, PhysicalChannelPower: 42, ElementalChannelPower: 10,
             PhysicalMitigation: 0.12, ElementalMitigation: 0.05,
             GeneralDamageReduction: 0.04, CriticalChance: 0.05, AttackSpeed: 1.00,
+            MovementSpeed: 1.20, AttackRange: 34, BodyRadius: 14, Stability: 62, Impulse: 66,
+            Stature: CombatStature.Tall,
             Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture),
 
         [EnemyArchetype.RangedEnemy] = new EnemyDefinition(
@@ -54,6 +62,8 @@ public static class EnemyCatalog
             MaxHealth: 60, PhysicalChannelPower: 30, ElementalChannelPower: 26,
             PhysicalMitigation: 0.04, ElementalMitigation: 0.08,
             GeneralDamageReduction: 0.02, CriticalChance: 0.10, AttackSpeed: 1.20,
+            MovementSpeed: 0.92, AttackRange: 250, BodyRadius: 11, Stability: 42, Impulse: 48,
+            Stature: CombatStature.Standard,
             Affinity: ElementalAffinity.Air, Expression: PhysicalExpression.Knockdown),
 
         [EnemyArchetype.ResistantEnemy] = new EnemyDefinition(
@@ -61,6 +71,8 @@ public static class EnemyCatalog
             MaxHealth: 140, PhysicalChannelPower: 34, ElementalChannelPower: 14,
             PhysicalMitigation: 0.35, ElementalMitigation: 0.30,
             GeneralDamageReduction: 0.12, CriticalChance: 0.05, AttackSpeed: 0.85,
+            MovementSpeed: 0.72, AttackRange: 38, BodyRadius: 16, Stability: 82, Impulse: 58,
+            Stature: CombatStature.Large,
             Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture),
 
         [EnemyArchetype.SupportEnemy] = new EnemyDefinition(
@@ -68,6 +80,8 @@ public static class EnemyCatalog
             MaxHealth: 70, PhysicalChannelPower: 16, ElementalChannelPower: 34,
             PhysicalMitigation: 0.06, ElementalMitigation: 0.16,
             GeneralDamageReduction: 0.03, CriticalChance: 0.05, AttackSpeed: 1.05,
+            MovementSpeed: 0.82, AttackRange: 210, BodyRadius: 12, Stability: 50, Impulse: 44,
+            Stature: CombatStature.Small,
             Affinity: ElementalAffinity.Water, Expression: PhysicalExpression.Paralysis),
     };
 
@@ -81,7 +95,10 @@ public static class EnemyCatalog
     /// same affinity and expression trees citizens use, so the engine exercises one
     /// resolution path rather than two.
     /// </summary>
-    public static CombatantState Create(EnemyArchetype archetype, string id)
+    public static CombatantState Create(
+        EnemyArchetype archetype,
+        string id,
+        double positionX = 0)
     {
         EnemyDefinition definition = Get(archetype);
         // The definition authors both values. Deriving the expression from the
@@ -110,6 +127,15 @@ public static class EnemyCatalog
             elementalAffinity: definition.Affinity,
             physicalExpression: nature.PhysicalExpression,
             weaponFamily: null,
-            techniques: techniques);
+            techniques: techniques,
+            spatial: new CombatSpatialState(
+                positionX,
+                definition.MovementSpeed,
+                definition.AttackRange,
+                definition.BodyRadius,
+                definition.Stability,
+                definition.Impulse,
+                CombatFacing.Left),
+            stature: definition.Stature);
     }
 }

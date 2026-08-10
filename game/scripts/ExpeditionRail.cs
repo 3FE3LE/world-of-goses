@@ -406,6 +406,12 @@ public partial class ExpeditionRail : PanelContainer
             _scroll.Visible = false;
             _header.Expanded = false;
         }
+        else if (!_header.Expanded)
+        {
+            // Symmetric accordion transition: closing Chronicle restores the
+            // expedition section instead of leaving both protagonists folded.
+            _header.Expanded = true;
+        }
         RebuildFocusables();
         if (expanded) _chronicle.ScrollToNewest();
         if (IsInsideTree()) CallDeferred(MethodName.RequestRailRelayout);

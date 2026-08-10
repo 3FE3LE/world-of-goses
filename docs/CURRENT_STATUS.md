@@ -41,7 +41,7 @@ and this section gets corrected in the same change.
   keyed by its real `ExpeditionId`; presentation and `combat-debug` observe the
   same domain engine without owning it. Non-Spirit expeditions deliberately keep
   their previous aggregate resolver during this narrow slice.
-- `dotnet test`: 1154/1155 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 1168/1169 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
@@ -297,6 +297,8 @@ and §17 acceptance test are complete.
   and `VER MÁS` expands the complete Chronicle in the same rail. Expanded mode
   includes the offline catch-up summary, grouped actionable blockers and the
   bounded compacted history; the previous separate full-log panel is gone.
+  Closing Chronicle restores the expedition cards and `VER` instead of leaving
+  both accordion bodies hidden.
 - Construction placement now renders every frontage cell with horizontal and
   vertical depth divisions, including blocked cells. Hover previews valid and
   invalid three-column windows before selection using the domain's
@@ -324,15 +326,19 @@ and §17 acceptance test are complete.
 - Assigned-work offline catch-up still steps ticks; recovery and expedition use
   semantic boundaries.
 - Expedition planning/status remains in the city rail, while active expeditions
-  can open the structural lateral `ExpeditionLiveView` without owning their
-  runtime state. The battlefield is still static and provisional.
+  can open the lateral `ExpeditionLiveView` without owning their runtime state.
+  Its provisional `CombatantView` actors project authoritative session
+  positions, facing, HP, action/hit feedback and knockback; sprites remain
+  placeholders.
 - The current domain request still accepts 1–2 members, but the live view
   projects Founder + three locked future slots and four octagonal Skills.
   `expedition_skill_1` is functional; 2–4 are legal locked no-ops.
 - Spirit Trail combat is an incremental, deterministic `CombatSession` owned by
   `CityWorld`, advanced from world ticks and persisted in schema v33. Basic
-  Attack is automatic; AUTO only gates the single Active Skill. Movement,
-  knockback, Chains and manual retreat remain pending.
+  Attack is automatic; AUTO only gates the single Active Skill. Combatants
+  approach in one dimension until `AttackRange`, never kite, and resolved hits
+  apply deterministic Impulse/Stability knockback. Chains and manual retreat
+  remain pending.
 - Event history retains at most 128 significant events; pinned causal origins
   need scale review before mass wounds/population.
 - Workday hours and travel duration are provisional tuning; the

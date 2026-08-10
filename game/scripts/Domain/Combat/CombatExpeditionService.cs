@@ -57,13 +57,15 @@ public sealed class CombatExpeditionService
     /// </summary>
     internal CombatantState PrepareSessionMember(
         Citizen citizen,
-        double citySupportFactor = 1.0)
-        => PrepareMember(citizen, citySupportFactor, oneActiveSkill: true);
+        double citySupportFactor = 1.0,
+        double positionX = 0)
+        => PrepareMember(citizen, citySupportFactor, oneActiveSkill: true, positionX);
 
     private CombatantState PrepareMember(
         Citizen citizen,
         double citySupportFactor,
-        bool oneActiveSkill)
+        bool oneActiveSkill,
+        double positionX = 0)
     {
         ArgumentNullException.ThrowIfNull(citizen);
         WeaponChannelProfile weapon = citizen.EquipmentLoadout.Weapon
@@ -85,6 +87,9 @@ public sealed class CombatExpeditionService
             new CurrentHealthAndCondition(currentHealth, condition.Value, _stats));
 
         DerivedStatistics derived = _statistics.Calculate(citizen, citySupportFactor);
+        EffectiveCubeProfile effectiveCube = EffectiveCubeProfile.From(
+            citizen.CubeProfile,
+            citizen.EquipmentLoadout.TotalGearSupport);
         int level = citizen.WeaponSkillLevel(weapon.Family);
         var techniques = new List<TechniqueDefinition>();
         bool activeAdded = false;
@@ -117,8 +122,23 @@ public sealed class CombatExpeditionService
             elementalAffinity: citizen.CombatNature.ElementalAffinity,
             physicalExpression: citizen.CombatNature.PhysicalExpression,
             weaponFamily: weapon.Family,
-            techniques: techniques);
+            techniques: techniques,
+            spatial: new CombatSpatialState(
+                positionX,
+                movementSpeed: derived.Tempo.MovementSpeed.Value,
+                attackRange: CitizenAttackRange(weapon.Family),
+                bodyRadius: _combat.CitizenBodyRadius,
+                stability: effectiveCube.Stability,
+                impulse: effectiveCube.Impulse,
+                facing: CombatFacing.Right));
     }
+
+    private double CitizenAttackRange(WeaponFamily family) => family switch
+    {
+        WeaponFamily.Staff or WeaponFamily.Orb => _combat.CitizenRangedAttackRange,
+        WeaponFamily.Spear => _combat.CitizenSpearAttackRange,
+        _ => _combat.CitizenShortAttackRange,
+    };
 
     /// <summary>Prepares, runs and returns the result without touching the citizens.</summary>
     public ExpeditionRunResult Run(

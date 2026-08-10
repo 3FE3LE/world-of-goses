@@ -36,7 +36,8 @@ internal static class CombatTestFactory
         PhysicalExpression expression = PhysicalExpression.Stunning,
         WeaponFamily? weapon = null,
         IReadOnlyList<TechniqueDefinition>? techniques = null,
-        CitizenId? citizenId = null) =>
+        CitizenId? citizenId = null,
+        CombatSpatialState? spatial = null) =>
         new(
             id,
             id,
@@ -54,7 +55,8 @@ internal static class CombatTestFactory
             affinity,
             expression,
             weapon,
-            techniques ?? Array.Empty<TechniqueDefinition>());
+            techniques ?? Array.Empty<TechniqueDefinition>(),
+            spatial: spatial);
 
     /// <summary>A single-technique attacker, so a test controls exactly what fires.</summary>
     public static CombatantState AttackerWith(

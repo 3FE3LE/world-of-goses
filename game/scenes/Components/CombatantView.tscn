@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Ui/CombatantView.cs" id="1_view"]
+
+[node name="CombatantView" type="Control"]
+custom_minimum_size = Vector2(64, 96)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 64.0
+offset_bottom = 96.0
+mouse_filter = 2
+texture_filter = 1
+script = ExtResource("1_view")
+
+[node name="Feedback" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_right = 64.0
+offset_bottom = 18.0
+mouse_filter = 2
+theme_type_variation = &"HudBadge"
+text = "-0"
+horizontal_alignment = 1

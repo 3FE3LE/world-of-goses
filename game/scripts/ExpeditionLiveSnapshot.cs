@@ -53,7 +53,12 @@ public sealed record ExpeditionLiveSnapshot(
         int Step,
         int EnemyCount,
         CombatOutcome Outcome,
-        IReadOnlyList<Skill> Skills);
+        double BattlefieldMinimumX,
+        double BattlefieldMaximumX,
+        IReadOnlyList<Skill> Skills,
+        IReadOnlyList<CombatParticipantState> Party,
+        IReadOnlyList<CombatParticipantState> Enemies,
+        IReadOnlyList<CombatLogEntry> Log);
 
     public double Progress
     {
@@ -183,7 +188,12 @@ public sealed record ExpeditionLiveSnapshot(
                 combat.Step,
                 combat.EnemyCount,
                 combat.Outcome,
-                skills);
+                combat.BattlefieldMinimumX,
+                combat.BattlefieldMaximumX,
+                skills,
+                combat.Party,
+                combat.Enemies,
+                combat.Log);
         }
 
         return new ExpeditionLiveSnapshot(

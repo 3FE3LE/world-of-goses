@@ -10,6 +10,15 @@ public enum CombatSide
     Enemy,
 }
 
+/// <summary>Semantic stature for presentation; it never expands the body radius.</summary>
+public enum CombatStature
+{
+    Small,
+    Standard,
+    Tall,
+    Large,
+}
+
 /// <summary>
 /// Injuries a citizen can carry away from an expedition. Persist independently
 /// from health: healing life does not clear an injury.
@@ -59,11 +68,14 @@ public sealed class CombatantState
         PhysicalExpression physicalExpression,
         WeaponFamily? weaponFamily,
         IReadOnlyList<TechniqueDefinition> techniques,
-        double fatigue = 0)
+        double fatigue = 0,
+        CombatSpatialState? spatial = null,
+        CombatStature stature = CombatStature.Standard)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Id is required.", nameof(id));
         if (maxHealth <= 0) throw new ArgumentOutOfRangeException(nameof(maxHealth));
         ArgumentNullException.ThrowIfNull(techniques);
+        if (!Enum.IsDefined(stature)) throw new ArgumentOutOfRangeException(nameof(stature));
 
         Id = id;
         DisplayName = displayName;
@@ -83,6 +95,9 @@ public sealed class CombatantState
         WeaponFamily = weaponFamily;
         Techniques = techniques;
         Fatigue = fatigue;
+        Spatial = spatial ?? new CombatSpatialState(
+            facing: side == CombatSide.Party ? CombatFacing.Right : CombatFacing.Left);
+        Stature = stature;
     }
 
     public string Id { get; }
@@ -106,6 +121,8 @@ public sealed class CombatantState
     public WeaponFamily? WeaponFamily { get; }
     public IReadOnlyList<TechniqueDefinition> Techniques { get; }
     public double Fatigue { get; private set; }
+    public CombatSpatialState Spatial { get; }
+    public CombatStature Stature { get; }
 
     public IReadOnlyList<StatusEffect> Statuses => _statuses;
     public IReadOnlyList<InjuryKind> Injuries => _injuries;

@@ -912,6 +912,13 @@ must be replaced, not layered beside, the future onboarding choice.
 - The provisional neutral Basic Attack coefficient split and first weapon are
   slice balance/content debt, not the final onboarding contract.
 
+**Scope clarification (2026-08-10):** the statement above about movement records
+the boundary of the observable-session increment, not a permanent prohibition on
+spatial combat. The subsequent lateral-combat increment implements the already
+accepted DEC-0020 rules for automatic approach, AttackRange, no kiting and
+Impulse/Stability knockback. It does not introduce manual movement, a separate
+clock or a combat-specific speed.
+
 ---
 
 ## Infrastructure decisions

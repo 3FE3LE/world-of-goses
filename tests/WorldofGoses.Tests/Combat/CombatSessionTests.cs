@@ -118,6 +118,8 @@ public sealed class CombatSessionTests
         Assert.Equal(expected.Step, actual.Step);
         Assert.Equal(expected.Outcome, actual.Outcome);
         Assert.Equal(expected.EnemyCount, actual.EnemyCount);
+        Assert.Equal(expected.BattlefieldMinimumX, actual.BattlefieldMinimumX);
+        Assert.Equal(expected.BattlefieldMaximumX, actual.BattlefieldMaximumX);
         Assert.Equal(expected.Party, actual.Party);
         Assert.Equal(expected.Enemies, actual.Enemies);
         Assert.Equal(expected.MemberSkills, actual.MemberSkills);
@@ -135,6 +137,42 @@ public sealed class CombatSessionTests
 
         Assert.Equal(normal.Step, fastest.Step);
         Assert.Equal(Signature(normal.Log), Signature(fastest.Log));
+    }
+
+    [Fact]
+    public void ManualSkillOrderWaitsForRangeWithoutCreatingAnotherCommand()
+    {
+        TechniqueDefinition active = CombatTestFactory.Technique(
+            "manual.range",
+            cooldown: 3);
+        CombatantState founder = CombatTestFactory.Combatant(
+            "founder",
+            CombatSide.Party,
+            maxHealth: 1000,
+            currentHealth: 1000,
+            techniques: new[] { active },
+            spatial: new CombatSpatialState(100, 1, 30, 10, 50, 50));
+        CombatantState enemy = CombatTestFactory.Combatant(
+            "enemy",
+            CombatSide.Enemy,
+            maxHealth: 100000,
+            currentHealth: 100000,
+            techniques: System.Array.Empty<TechniqueDefinition>(),
+            spatial: new CombatSpatialState(500, 0, 30, 10, 50, 50, CombatFacing.Left));
+        var session = new CombatSession(CombatTestFactory.Encounter(
+            new[] { founder },
+            new[] { enemy }));
+        session.SetAutoSkillsEnabled(false);
+
+        Assert.True(session.TryActivateMemberSkill(0));
+        session.Advance(12);
+
+        Assert.Single(session.Commands, command =>
+            command.Kind == CombatSessionCommandKind.ActivateMemberSkill);
+        Assert.Contains(session.Log, entry =>
+            entry.Kind == CombatLogKind.TechniqueResolved
+            && entry.ActorId == founder.Id
+            && entry.Detail == active.Id);
     }
 
     private static CombatSession NewSession(ulong seed = 7)

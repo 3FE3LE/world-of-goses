@@ -203,6 +203,8 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         Assert.Equal(expected.Step, actual.Step);
         Assert.Equal(expected.Outcome, actual.Outcome);
         Assert.Equal(expected.EnemyCount, actual.EnemyCount);
+        Assert.Equal(expected.BattlefieldMinimumX, actual.BattlefieldMinimumX);
+        Assert.Equal(expected.BattlefieldMaximumX, actual.BattlefieldMaximumX);
         Assert.Equal(expected.Party, actual.Party);
         Assert.Equal(expected.Enemies, actual.Enemies);
         Assert.Equal(expected.MemberSkills, actual.MemberSkills);

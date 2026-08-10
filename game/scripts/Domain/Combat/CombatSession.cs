@@ -28,7 +28,14 @@ public sealed record CombatParticipantState(
     string DisplayName,
     double CurrentHealth,
     double MaxHealth,
-    bool Defeated);
+    bool Defeated,
+    double PositionX,
+    double AttackRange,
+    double BodyRadius,
+    CombatFacing Facing,
+    CombatSpatialActivity Activity,
+    double LastDisplacement,
+    CombatStature Stature);
 
 public sealed record CombatSessionSnapshot(
     bool Active,
@@ -36,6 +43,8 @@ public sealed record CombatSessionSnapshot(
     int Step,
     CombatOutcome Outcome,
     int EnemyCount,
+    double BattlefieldMinimumX,
+    double BattlefieldMaximumX,
     IReadOnlyList<CombatParticipantState> Party,
     IReadOnlyList<CombatParticipantState> Enemies,
     IReadOnlyList<CombatSkillState> MemberSkills,
@@ -102,12 +111,34 @@ public sealed class CombatSession
         for (int index = 0; index < steps && IsActive; index++)
         {
             var manualActorIds = new HashSet<string>();
+            var requestedSlots = new List<int>(_pendingManualSlots);
             foreach (int slot in _pendingManualSlots)
             {
                 if (slot >= 0 && slot < Party.Count) manualActorIds.Add(Party[slot].Id);
             }
             _pendingManualSlots.Clear();
+            int beforeEncounterEvents = Log.Count;
             _encounter.Advance(1, AutoSkillsEnabled, manualActorIds);
+            if (IsActive)
+            {
+                foreach (int slot in requestedSlots)
+                {
+                    if (slot < 0 || slot >= Party.Count) continue;
+                    string actorId = Party[slot].Id;
+                    bool resolved = false;
+                    for (int eventIndex = beforeEncounterEvents; eventIndex < Log.Count; eventIndex++)
+                    {
+                        CombatLogEntry entry = Log[eventIndex];
+                        if (entry.Kind == CombatLogKind.TechniqueResolved
+                            && entry.ActorId == actorId)
+                        {
+                            resolved = true;
+                            break;
+                        }
+                    }
+                    if (!resolved && Party[slot].IsAlive) _pendingManualSlots.Add(slot);
+                }
+            }
         }
 
         var events = new List<CombatLogEntry>();
@@ -151,6 +182,8 @@ public sealed class CombatSession
             Step,
             Outcome,
             livingEnemies,
+            _encounter.BattlefieldMinimumX,
+            _encounter.BattlefieldMaximumX,
             party,
             enemies,
             skills,
@@ -222,7 +255,14 @@ public sealed class CombatSession
         combatant.DisplayName,
         combatant.CurrentHealth,
         combatant.MaxHealth,
-        combatant.IsDefeated);
+        combatant.IsDefeated,
+        combatant.Spatial.PositionX,
+        combatant.Spatial.AttackRange,
+        combatant.Spatial.BodyRadius,
+        combatant.Spatial.Facing,
+        combatant.Spatial.Activity,
+        combatant.Spatial.LastDisplacement,
+        combatant.Stature);
 
     private static TechniqueDefinition? PrimaryActive(CombatantState combatant)
     {

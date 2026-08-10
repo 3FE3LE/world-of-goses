@@ -427,7 +427,21 @@ compaction to `ChronicleEventProjection`, then uses the existing localized
 `WorldEventTextFormatter`. Compact and expanded states share the same rail,
 controller and scroll ownership; expansion replaces the expedition summary and
 adds offline catch-up summary, grouped blocker decisions and bounded history.
+The accordion restores the expedition summary when Chronicle closes, so neither
+surface can strand the other in an invisible state.
 There is no adjacent or duplicate Chronicle surface.
+
+The observable encounter owns a pure one-dimensional `CombatSpatialState` per
+participant inside the deterministic `CombatSession`: `PositionX`, movement
+speed, attack range, controlled body radius, facing, Stability and Impulse.
+Actors only approach a target until its body envelopes are within
+`AttackRange`; there is no reverse/preferred-range branch, so ranged actors do
+not kite. Damage remains in `TechniqueResolver`; a resolved hit may displace its
+target through centralized Impulse/Stability knockback. Session replay rebuilds
+the same spatial state from seed, steps and commands, so schema v33 needs no
+second serialized position stream. `ExpeditionStage` and `CombatantView` only
+project snapshots/events and may interpolate visual pixels; Godot positions,
+animations and missed frames never decide impact or mutate the domain.
 
 Before a Cache exists, the four rudimentary resources are a six-unit founder
 load rather than general city storage. `ConstructionSnapshot` projects that

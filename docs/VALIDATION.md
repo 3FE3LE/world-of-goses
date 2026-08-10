@@ -2,7 +2,7 @@
 
 **Last aligned:** 2026-08-10
 
-**Code baseline:** closure verification: clean build, 1154/1155 tests
+**Code baseline:** closure verification: clean build, 1168/1169 tests
 (1 skipped), schema v33, 1049 localization template IDs and 324 runtime keys.
 The dated measurement in `docs/session-state/STATE.txt` predates this increment;
 the Full snapshot pipeline did not complete, so that artifact was not rewritten.
@@ -85,10 +85,12 @@ named workers, per-building storage and a daily Food demand. Missing depth:
 ⚠️ The minimal expedition seam now connects the first Spirit Trail to a
 world-owned incremental `CombatSession` observed by `ExpeditionLiveView`.
 Basic Attack, AUTO/manual Active Skill use, cooldown, health, enemies, outcome
-and save/load replay are integrated on the single world tick. Spatial
-advance/range/knockback, the post-dawn Cache-gate exception, four-hour/no-Food
-Spirit Trail contract and full objective/return signature remain open; broader
-equipment, formations and combat depth stay deferred.
+and save/load replay are integrated on the single world tick. The same session
+now owns deterministic 1D approach-to-range with no kiting and
+Impulse/Stability knockback, projected by reusable combatant views. The
+post-dawn Cache-gate exception, four-hour/no-Food Spirit Trail contract and full
+objective/return signature remain open; broader equipment, formations and
+combat depth stay deferred.
 
 ### Citizens with trajectory
 

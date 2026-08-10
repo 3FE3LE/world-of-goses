@@ -723,8 +723,13 @@ world clock, resources, population, global 1x/2x/4x `SpeedButton`, Camera and
 Menu keep their existing instances. Entering, leaving and pressing ESC in the
 live view never calls `SetSimulationSpeed`. `AUTO` writes only the session's
 automatic-Active-Skill preference; `RETIRADA` remains disabled. The stage draws
-static lateral placeholders driven by real HP/enemy counts and has no `_Process`, movement,
-hitboxes, damage resolver, `CombatClock` or `ExpeditionClock`.
+the same authored background, then maps the session's pure one-dimensional
+`PositionX` into it and reuses one `CombatantView.tscn` per participant.
+`CombatantView` may interpolate integer presentation coordinates and render HP,
+attack/Skill/hit/knockback/downed feedback, but it never resolves damage or
+writes back to combat. There is no per-actor `_Process`, gameplay hitbox,
+`CombatClock` or `ExpeditionClock`; placeholder silhouettes can be replaced by
+sprites without changing the spatial engine.
 
 ## 11. Quick reference — where things live
 
@@ -740,7 +745,7 @@ hitboxes, damage resolver, `CombatClock` or `ExpeditionClock`.
 | Snapshot contracts | `game/scripts/*Snapshot.cs` (`CityMacroSnapshot`, `HeroProfileSnapshot`, `BuildingDetailSnapshot`, `ConstructionSnapshot`, `CityStatusSnapshot`) |
 | City world façade | `game/scripts/CityWorldController.cs` |
 | Component PackedScenes | `game/scenes/Components/` |
-| Expedition live-view building blocks | `OctagonalSkillSlot.tscn`, `ExpeditionSquadSlot.tscn`, `ExpeditionSquadStrip.tscn`, `ExpeditionSkillStrip.tscn` |
+| Expedition live-view building blocks | `OctagonalSkillSlot.tscn`, `ExpeditionSquadSlot.tscn`, `ExpeditionSquadStrip.tscn`, `ExpeditionSkillStrip.tscn`, `CombatantView.tscn` |
 | Expedition component fixture | `game/scenes/prototypes/ExpeditionHudComponentShowcase.tscn` |
 | Expedition live perspective | `game/scenes/expeditions/ExpeditionLiveView.tscn`, `game/scripts/ExpeditionLiveView.cs`, `game/scripts/ExpeditionLiveSnapshot.cs` |
 | Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `SpeedButton`, `MenuButton`) |
