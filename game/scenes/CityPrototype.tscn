@@ -28,6 +28,7 @@
 [ext_resource type="Script" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
 [ext_resource type="Script" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
 [ext_resource type="Script" uid="uid://dexpeditionrail06" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
+[ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -83,9 +84,10 @@ layout_mode = 2
 theme_type_variation = &"HudSurface"
 script = ExtResource("12_construction")
 
-[node name="ExpeditionPanel" parent="GameUiShell/ScreenContent" unique_id=1643693377 instance=ExtResource("27_expedition")]
-anchors_preset = 0
-ControllerPath = NodePath("../../../CityWorldController")
+[node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/Center" unique_id=1643693377 instance=ExtResource("27_expedition")]
+layout_mode = 2
+ControllerPath = NodePath("../../../../CityWorldController")
+ModalHostPath = NodePath("../../ModalHost")
 
 [node name="PoliciesPanel" type="Control" parent="GameUiShell/ScreenContent"]
 visible = false
@@ -98,6 +100,10 @@ ControllerPath = NodePath("../../../CityWorldController")
 [node name="MacroStreetLiveView" type="Node2D" parent="GameUiShell/ScreenContent" unique_id=1900000001]
 visible = false
 script = ExtResource("30_streetlive")
+
+[node name="ExpeditionLiveView" parent="GameUiShell/ScreenContent" instance=ExtResource("39_expedition_live")]
+layout_mode = 1
+ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent" unique_id=113990765]
 visible = false
@@ -279,7 +285,7 @@ mouse_filter = 0
 theme_type_variation = &"HudSurface"
 script = ExtResource("38_expeditionrail")
 ControllerPath = NodePath("../../../CityWorldController")
-ExpeditionPanelPath = NodePath("../ExpeditionPanel")
+ExpeditionPanelPath = NodePath("../Center/ExpeditionPanel")
 
 [node name="PrimaryNavDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 visible = false

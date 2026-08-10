@@ -2948,3 +2948,113 @@ msgstr "Resolved"
 
 msgid "Close"
 msgstr "Close"
+msgid "ui.expedition_rail.view"
+msgstr "VIEW"
+
+msgid "ui.expedition_rail.view_tooltip"
+msgstr "Open the active expedition perspective."
+
+msgid "ui.expedition_live.title"
+msgstr "EXPEDITION LIVE"
+
+msgid "ui.expedition_live.expedition_header"
+msgstr "EXPEDITION"
+
+msgid "ui.expedition_live.citizen_header"
+msgstr "CITIZEN"
+
+msgid "ui.expedition_live.squad_header"
+msgstr "SQUAD"
+
+msgid "ui.expedition_live.encounter_header"
+msgstr "ENCOUNTER"
+
+msgid "ui.expedition_live.phase"
+msgstr "Stage / phase: {0}"
+
+msgid "ui.expedition_live.route.origin"
+msgstr "City"
+
+msgid "ui.expedition_live.route.outbound"
+msgstr "Trail"
+
+msgid "ui.expedition_live.route.threat"
+msgstr "Threat"
+
+msgid "ui.expedition_live.route.objective"
+msgstr "Objective"
+
+msgid "ui.expedition_live.route.return"
+msgstr "Return"
+
+msgid "ui.expedition_live.auto"
+msgstr "AUTO"
+
+msgid "ui.expedition_live.auto.fixture_tooltip"
+msgstr "Structural fixture. Basic Attack remains automatic."
+
+msgid "ui.expedition_live.retreat"
+msgstr "RETREAT"
+
+msgid "ui.expedition_live.retreat.unavailable_tooltip"
+msgstr "Retreat commands are not connected in this structural version."
+
+msgid "ui.expedition_live.unknown"
+msgstr "Unknown"
+
+msgid "ui.expedition_live.health"
+msgstr "HP {0}%"
+
+msgid "ui.expedition_live.health.unknown"
+msgstr "HP —"
+
+msgid "ui.expedition_live.stamina"
+msgstr "Stamina {0}/{1}"
+
+msgid "ui.expedition_live.stamina.unknown"
+msgstr "Stamina —"
+
+msgid "ui.expedition_live.stamina.short"
+msgstr "ST"
+
+msgid "ui.expedition_live.condition.none"
+msgstr "Condition: stable"
+
+msgid "ui.expedition_live.condition.wounded"
+msgstr "Condition: wounded ({0})"
+
+msgid "ui.expedition_live.encounter.current"
+msgstr "Encounter in progress"
+
+msgid "ui.expedition_live.encounter.none"
+msgstr "No linked encounter record"
+
+msgid "ui.expedition_live.threat.unmeasured"
+msgstr "Threat: unmeasured"
+
+msgid "ui.expedition_live.enemies"
+msgstr "Enemies remaining: {0}"
+
+msgid "ui.expedition_live.enemies.unknown"
+msgstr "Enemies remaining: —"
+
+msgid "ui.expedition_live.progress"
+msgstr "Route progress: {0}%"
+
+msgid "ui.expedition_live.objective.spirit_trail"
+msgstr "Objective: follow the spirit trail"
+
+msgid "ui.expedition_live.objective.food"
+msgstr "Objective: nearby forage"
+
+msgid "ui.expedition_live.objective.wood"
+msgstr "Objective: fallen wood search"
+
+msgid "ui.expedition_live.objective.reconnaissance"
+msgstr "Objective: reconnaissance"
+
+msgid "ui.expedition_live.fixture.silent_forest"
+msgstr "Silent Forest"
+
+msgid "ui.expedition_live.founder_short"
+msgstr "Founder"

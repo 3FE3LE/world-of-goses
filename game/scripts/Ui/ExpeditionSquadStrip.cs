@@ -38,7 +38,7 @@ public partial class ExpeditionSquadStrip : PanelContainer
     public void ConfigureFounderFixture(
         Texture2D? portrait,
         string founderName,
-        double hpRatio,
+        double? hpRatio,
         string? secondaryName = null,
         double secondaryRatio = 0,
         string? criticalState = null)
@@ -63,7 +63,7 @@ public partial class ExpeditionSquadStrip : PanelContainer
         ExpeditionSquadSlot.SlotState state,
         Texture2D? portrait = null,
         string? shortName = null,
-        double hpRatio = 0,
+        double? hpRatio = null,
         string? secondaryName = null,
         double secondaryRatio = 0,
         string? criticalState = null)

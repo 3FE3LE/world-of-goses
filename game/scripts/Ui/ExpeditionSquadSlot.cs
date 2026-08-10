@@ -38,7 +38,7 @@ public partial class ExpeditionSquadSlot : PanelContainer
     private SlotState _state = SlotState.Empty;
     private Texture2D? _portraitTexture;
     private string _shortName = string.Empty;
-    private double _hpRatio;
+    private double? _hpRatio;
     private string _secondaryName = string.Empty;
     private double _secondaryRatio;
     private string _criticalText = string.Empty;
@@ -100,7 +100,7 @@ public partial class ExpeditionSquadSlot : PanelContainer
         SlotState state,
         Texture2D? portrait = null,
         string? shortName = null,
-        double hpRatio = 0,
+        double? hpRatio = null,
         string? secondaryName = null,
         double secondaryRatio = 0,
         string? criticalState = null)
@@ -115,7 +115,7 @@ public partial class ExpeditionSquadSlot : PanelContainer
         _state = state;
         _portraitTexture = portrait;
         _shortName = shortName ?? string.Empty;
-        _hpRatio = Mathf.Clamp(hpRatio, 0, 1);
+        _hpRatio = hpRatio.HasValue ? Mathf.Clamp(hpRatio.Value, 0, 1) : null;
         _secondaryName = secondaryName ?? string.Empty;
         _secondaryRatio = Mathf.Clamp(secondaryRatio, 0, 1);
         _criticalText = criticalState ?? string.Empty;
@@ -137,11 +137,12 @@ public partial class ExpeditionSquadSlot : PanelContainer
         _stateLabel.Text = StateText(_state);
         _lockIndicator.Visible = locked;
 
-        int hpPercent = Mathf.RoundToInt(_hpRatio * 100);
+        bool hasHealth = active && _hpRatio.HasValue;
+        int hpPercent = Mathf.RoundToInt((_hpRatio ?? 0) * 100);
         _hpLabel.Text = UiText.Format("ui.expedition_live.squad.hp", hpPercent);
-        _hpLabel.Visible = active;
-        _hpProgress.Value = _hpRatio;
-        _hpProgress.Visible = active;
+        _hpLabel.Visible = hasHealth;
+        _hpProgress.Value = _hpRatio ?? 0;
+        _hpProgress.Visible = hasHealth;
 
         int secondaryPercent = Mathf.RoundToInt(_secondaryRatio * 100);
         _secondaryLabel.Text = UiText.Format(

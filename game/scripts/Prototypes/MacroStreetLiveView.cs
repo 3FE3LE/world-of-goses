@@ -175,7 +175,7 @@ public partial class MacroStreetLiveView : Node2D
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
     [Export] public NodePath ConstructionPanelPath { get; set; } = "../Center/ConstructionPanel";
-    [Export] public NodePath ExpeditionPanelPath { get; set; } = "../ExpeditionPanel";
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = "../Center/ExpeditionPanel";
     [Export] public NodePath PoliciesPanelPath { get; set; } = "../PoliciesPanel";
     [Export] public NodePath CitizensPanelPath { get; set; } = "../MigrantPanel";
     [Export] public NodePath ModalHostPath { get; set; } = "../ModalHost";

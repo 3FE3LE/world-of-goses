@@ -17,6 +17,30 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## La expedición activa ya puede abrir una perspectiva lateral estructural
+
+**2026-08-10** · schema v32 (sin cambio) · presentación
+
+Una expedición activa ofrece ahora `VER` desde el rail de ciudad y abre una
+única `ExpeditionLiveView` dentro del `GameUiShell`. La barra global permanece
+con el mismo reloj y Speed 1x/2x/4x; la transición oculta las superficies macro
+sin reconstruirlas y Volver/ESC regresan a la ciudad sin pausar, cambiar
+velocidad ni resolver la expedición.
+
+La vista proyecta ruta lineal, fase, integrante real, salud/aguante disponibles
+y progreso. Compone cuatro puestos de escuadra y cuatro Active Skills, y reserva
+AUTO/RETIRADA como controles deshabilitados. El stage lateral es estático: el
+fixture muestra Founder y dos amenazas, pero todavía no existen movimiento,
+hitboxes, daño, combate espacial ni relojes privados. Cuando el dominio no
+publica dificultad o enemigos, la UI lo declara desconocido en vez de inventar
+loot o telemetría.
+
+Verificación de cierre: build limpio, familias HUD/snapshots/controller/
+expediciones verdes, catálogos EN/ES válidos y `expedition-live-early`
+capturado a 1280×720 y 1920×1080 mediante un click real sobre `VER`.
+
+---
+
 ## La futura expedición en vivo ya tiene componentes visuales reutilizables
 
 **2026-08-10** · schema v32 (sin cambio) · presentación

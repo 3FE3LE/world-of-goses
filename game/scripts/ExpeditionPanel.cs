@@ -184,6 +184,12 @@ public partial class ExpeditionPanel : Control
         Vector2 size = new(
             Mathf.Max(320f, Mathf.Min(PreferredSize.X, parentSize.X - ViewportInset * 2f)),
             Mathf.Max(240f, Mathf.Min(PreferredSize.Y, parentSize.Y - ViewportInset * 2f)));
+        if (GetParent() is Container)
+        {
+            CustomMinimumSize = size;
+            return;
+        }
+
         CustomMinimumSize = Vector2.Zero;
         SetAnchorsPreset(LayoutPreset.Center);
         OffsetLeft = -Mathf.Round(size.X * 0.5f);

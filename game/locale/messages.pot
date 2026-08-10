@@ -2158,6 +2158,90 @@ msgstr ""
 msgid "ui.duration.separator"
 msgstr ""
 
+msgid "ui.expedition_live.auto"
+msgstr ""
+
+msgid "ui.expedition_live.auto.fixture_tooltip"
+msgstr ""
+
+msgid "ui.expedition_live.citizen_header"
+msgstr ""
+
+msgid "ui.expedition_live.condition.none"
+msgstr ""
+
+msgid "ui.expedition_live.condition.wounded"
+msgstr ""
+
+msgid "ui.expedition_live.encounter_header"
+msgstr ""
+
+msgid "ui.expedition_live.encounter.current"
+msgstr ""
+
+msgid "ui.expedition_live.encounter.none"
+msgstr ""
+
+msgid "ui.expedition_live.enemies"
+msgstr ""
+
+msgid "ui.expedition_live.enemies.unknown"
+msgstr ""
+
+msgid "ui.expedition_live.expedition_header"
+msgstr ""
+
+msgid "ui.expedition_live.fixture.silent_forest"
+msgstr ""
+
+msgid "ui.expedition_live.founder_short"
+msgstr ""
+
+msgid "ui.expedition_live.health"
+msgstr ""
+
+msgid "ui.expedition_live.health.unknown"
+msgstr ""
+
+msgid "ui.expedition_live.objective.food"
+msgstr ""
+
+msgid "ui.expedition_live.objective.reconnaissance"
+msgstr ""
+
+msgid "ui.expedition_live.objective.spirit_trail"
+msgstr ""
+
+msgid "ui.expedition_live.objective.wood"
+msgstr ""
+
+msgid "ui.expedition_live.phase"
+msgstr ""
+
+msgid "ui.expedition_live.progress"
+msgstr ""
+
+msgid "ui.expedition_live.retreat"
+msgstr ""
+
+msgid "ui.expedition_live.retreat.unavailable_tooltip"
+msgstr ""
+
+msgid "ui.expedition_live.route.objective"
+msgstr ""
+
+msgid "ui.expedition_live.route.origin"
+msgstr ""
+
+msgid "ui.expedition_live.route.outbound"
+msgstr ""
+
+msgid "ui.expedition_live.route.return"
+msgstr ""
+
+msgid "ui.expedition_live.route.threat"
+msgstr ""
+
 msgid "ui.expedition_live.skill.cooldown"
 msgstr ""
 
@@ -2176,6 +2260,9 @@ msgstr ""
 msgid "ui.expedition_live.skill.ready"
 msgstr ""
 
+msgid "ui.expedition_live.squad_header"
+msgstr ""
+
 msgid "ui.expedition_live.squad.active"
 msgstr ""
 
@@ -2189,6 +2276,24 @@ msgid "ui.expedition_live.squad.locked"
 msgstr ""
 
 msgid "ui.expedition_live.squad.secondary"
+msgstr ""
+
+msgid "ui.expedition_live.stamina"
+msgstr ""
+
+msgid "ui.expedition_live.stamina.short"
+msgstr ""
+
+msgid "ui.expedition_live.stamina.unknown"
+msgstr ""
+
+msgid "ui.expedition_live.threat.unmeasured"
+msgstr ""
+
+msgid "ui.expedition_live.title"
+msgstr ""
+
+msgid "ui.expedition_live.unknown"
 msgstr ""
 
 msgid "ui.expedition_rail.active"
@@ -2255,6 +2360,12 @@ msgid "ui.expedition_rail.phase.returning"
 msgstr ""
 
 msgid "ui.expedition_rail.title"
+msgstr ""
+
+msgid "ui.expedition_rail.view"
+msgstr ""
+
+msgid "ui.expedition_rail.view_tooltip"
 msgstr ""
 
 msgid "ui.expedition.active_posture"
@@ -2998,10 +3109,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"

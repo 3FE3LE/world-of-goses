@@ -557,6 +557,74 @@ public sealed class UiSnapshotTests
     }
 
     [Fact]
+    public void ExpeditionLiveSnapshot_ProjectsActiveRouteAndRealFounderOnly()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        world.SeedStartingForests();
+        world.GatherWood(new BuildingId(100), 2);
+        ExpeditionStartResult started = world.StartExpedition(
+            ExpeditionRequest.Reconnaissance(world.Hero!.Id));
+
+        Assert.True(started.IsSuccess);
+        ExpeditionLiveSnapshot snapshot = Assert.IsType<ExpeditionLiveSnapshot>(
+            ExpeditionLiveSnapshot.From(world, started.ExpeditionId!.Value));
+
+        Assert.Equal(started.ExpeditionId.Value, snapshot.Id);
+        Assert.Equal("Reconnaissance", snapshot.DisplayName);
+        Assert.Equal(ExpeditionPhase.Outbound, snapshot.Phase);
+        ExpeditionLiveSnapshot.Member founder = Assert.Single(snapshot.Members);
+        Assert.Equal(world.Hero.Id, founder.Id);
+        Assert.Equal("Aster", founder.Name);
+        Assert.NotNull(founder.HealthRatio);
+        Assert.InRange(founder.HealthRatio!.Value, 0d, 1d);
+        Assert.Equal(world.Hero.CurrentStamina, founder.CurrentStamina);
+        Assert.InRange(snapshot.Progress, 0d, 1d);
+        Assert.False(snapshot.RetreatTriggered);
+        Assert.Equal(
+            new[]
+            {
+                ExpeditionLiveSnapshot.RouteStepState.Complete,
+                ExpeditionLiveSnapshot.RouteStepState.Active,
+                ExpeditionLiveSnapshot.RouteStepState.Pending,
+                ExpeditionLiveSnapshot.RouteStepState.Pending,
+                ExpeditionLiveSnapshot.RouteStepState.Pending,
+            },
+            snapshot.RouteSteps);
+
+        Assert.True(world.CancelExpedition(started.ExpeditionId.Value));
+        Assert.Null(ExpeditionLiveSnapshot.From(world, started.ExpeditionId.Value));
+    }
+
+    [Theory]
+    [InlineData(ExpeditionPhase.Outbound, false, 1, false)]
+    [InlineData(ExpeditionPhase.Encounter, false, 2, false)]
+    [InlineData(ExpeditionPhase.Objective, false, 3, false)]
+    [InlineData(ExpeditionPhase.Retreating, true, 4, true)]
+    [InlineData(ExpeditionPhase.Returning, false, 4, false)]
+    [InlineData(ExpeditionPhase.Returning, true, 4, true)]
+    public void ExpeditionLiveRoute_ProjectsSuccessAndRetreatTruthfully(
+        ExpeditionPhase phase,
+        bool retreatTriggered,
+        int activeIndex,
+        bool objectiveSkipped)
+    {
+        IReadOnlyList<ExpeditionLiveSnapshot.RouteStepState> route =
+            ExpeditionLiveSnapshot.ProjectRoute(phase, retreatTriggered);
+
+        Assert.Equal(5, route.Count);
+        Assert.Equal(ExpeditionLiveSnapshot.RouteStepState.Active, route[activeIndex]);
+        Assert.Equal(
+            objectiveSkipped
+                ? ExpeditionLiveSnapshot.RouteStepState.Skipped
+                : phase is ExpeditionPhase.Returning
+                    ? ExpeditionLiveSnapshot.RouteStepState.Complete
+                    : phase is ExpeditionPhase.Objective
+                        ? ExpeditionLiveSnapshot.RouteStepState.Active
+                        : ExpeditionLiveSnapshot.RouteStepState.Pending,
+            route[3]);
+    }
+
+    [Fact]
     public void ActivityFeed_UsesTheChroniclesMeaningfulNewestProjection()
     {
         var log = new WorldEventLog();

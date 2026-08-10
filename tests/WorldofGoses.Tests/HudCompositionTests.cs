@@ -529,7 +529,12 @@ public sealed class HudCompositionTests
         Assert.Contains("case \"macro-hud-selection\":", source, StringComparison.Ordinal);
         Assert.Contains("case \"macro-hud-active-construction\":", source, StringComparison.Ordinal);
         Assert.Contains("case \"macro-hud-expedition-active\":", source, StringComparison.Ordinal);
-        Assert.Contains("[WOG-EXPEDITION-RAIL-FOCUS] ui_down -> Cancel OK", source, StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-RAIL-FOCUS] View -> ui_down -> Details OK", source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "[WOG-EXPEDITION-RAIL-EXPAND] real header click revealed VER and the active card OK",
+            source,
+            StringComparison.Ordinal);
         Assert.Contains("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] details focus preserved OK", source, StringComparison.Ordinal);
         Assert.Contains("[WOG-EXPEDITION-RAIL-DETAILS] expedition", source, StringComparison.Ordinal);
         Assert.Contains("[WOG-EXPEDITION-RAIL-CANCEL] active expedition removed OK", source, StringComparison.Ordinal);
@@ -957,6 +962,7 @@ public sealed class HudCompositionTests
         Assert.Contains(
             "new CollapsiblePanelHeader(\n            UiText.Get(\"ui.expedition_rail.activity\"),\n            expanded: false)",
             chronicle, StringComparison.Ordinal);
+        Assert.Contains("Visible = false", chronicle, StringComparison.Ordinal);
         // The chronicle flips between ExpandFill (protagonist — body
         // visible, fills the rail column) and ShrinkBegin (collapsed —
         // just the header). When both flags are gone the chronicle
@@ -1276,6 +1282,115 @@ public sealed class HudCompositionTests
         Assert.Contains("InputEventJoypadButton", source, StringComparison.Ordinal);
         Assert.Contains("OctagonalSkillSlot/colors/fill_ready", theme, StringComparison.Ordinal);
         Assert.Contains("OctagonalSkillSlot/colors/border_ready", theme, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionLiveView_IsAScreenContentPerspectiveWithoutASecondClock()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string cityScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "CityPrototype.tscn"));
+        string liveScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "expeditions", "ExpeditionLiveView.tscn"));
+        string liveSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ExpeditionLiveView.cs"));
+        string stageSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "ExpeditionStage.cs"));
+
+        Assert.Contains(
+            "[node name=\"ExpeditionLiveView\" parent=\"GameUiShell/ScreenContent\"",
+            cityScene,
+            StringComparison.Ordinal);
+        foreach (string nodeName in new[]
+                 {
+                     "ExpeditionStage", "ExpeditionRouteStrip", "ExpeditionHud",
+                     "LeftColumn", "ExpeditionSummary", "CitizenDetail",
+                     "ExpeditionSquadStrip", "RightColumn", "EncounterSummary",
+                     "ExpeditionSkillStrip", "CombatCommands", "AutoButton", "RetreatButton",
+                 })
+        {
+            Assert.Contains($"name=\"{nodeName}\"", liveScene, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("SimulationControls", liveScene, StringComparison.Ordinal);
+        Assert.DoesNotContain("PlayPauseButton", liveScene, StringComparison.Ordinal);
+        Assert.DoesNotContain("CombatClock", liveScene + liveSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("ExpeditionClock", liveScene + liveSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", liveSource + stageSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("CombatResolver", stageSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_PhysicsProcess", stageSource, StringComparison.Ordinal);
+        Assert.Contains("DrawCombatant", stageSource, StringComparison.Ordinal);
+        Assert.Contains("antialiased: false", stageSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionLiveNavigation_UsesTheExistingSelectionRouterAndRailViewAction()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string controller = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityWorldController.cs"));
+        string rootSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "CityPrototype.cs"));
+        string rail = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ExpeditionRail.cs"));
+
+        Assert.Contains("ExpeditionLive = 3", controller, StringComparison.Ordinal);
+        Assert.Contains("SelectExpeditionLive(ExpeditionId expeditionId)", controller,
+            StringComparison.Ordinal);
+        Assert.Contains("_controller.SelectExpeditionLive(id)", rail, StringComparison.Ordinal);
+        Assert.Contains("FirstViewButton", rail, StringComparison.Ordinal);
+        Assert.Contains("ui.expedition_rail.view", rail, StringComparison.Ordinal);
+        Assert.Contains("FirstViewButton ?? FirstDetailsButton", rail, StringComparison.Ordinal);
+        Assert.Contains("default focus did not reach View", rootSource, StringComparison.Ordinal);
+        Assert.Contains("View -> ui_down -> Details OK", rootSource, StringComparison.Ordinal);
+        Assert.Contains("controller.ReturnToCity();", rootSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "controller.CurrentSelection == CityWorldController.Selection.MacroView",
+            rootSource,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("SetSimulationSpeed", rail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionPanel_IsCenteredByTheExistingScreenContainer()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string cityScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "CityPrototype.tscn"));
+        string panelSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "ExpeditionPanel.cs"));
+
+        Assert.Contains(
+            "[node name=\"ExpeditionPanel\" parent=\"GameUiShell/ScreenContent/Center\"",
+            cityScene,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "[node name=\"ExpeditionPanel\" parent=\"GameUiShell/ScreenContent\"",
+            cityScene,
+            StringComparison.Ordinal);
+        Assert.Contains("GetParent() is Container", panelSource, StringComparison.Ordinal);
+        Assert.Contains("CustomMinimumSize = size", panelSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionLiveEarlyFixture_UsesRealViewClickAndKeepsGlobalSpeed()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs"));
+
+        Assert.Contains("case \"expedition-live-early\"", source, StringComparison.Ordinal);
+        Assert.Contains("case \"expedition-live-escape\"", source, StringComparison.Ordinal);
+        Assert.Contains("SendPointerClickForVisualRegression(rail.FirstViewButton)", source,
+            StringComparison.Ordinal);
+        Assert.Contains("CityWorldController.SpeedChoice.Fast", source, StringComparison.Ordinal);
+        Assert.Contains("controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast", source,
+            StringComparison.Ordinal);
+        Assert.Contains("ShowEarlyFixture", source, StringComparison.Ordinal);
+        Assert.Contains("ui.expedition_live.founder_short", File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionLiveView.cs")),
+            StringComparison.Ordinal);
+        Assert.Contains("[WOG-EXPEDITION-LIVE-ESC] returned to city", source,
+            StringComparison.Ordinal);
     }
 
     private static string[] NodeBlock(string nodeName)

@@ -3098,3 +3098,113 @@ msgstr "En retirada"
 
 msgid "ui.expedition_rail.phase.resolved"
 msgstr "Resuelta"
+msgid "ui.expedition_rail.view"
+msgstr "VER"
+
+msgid "ui.expedition_rail.view_tooltip"
+msgstr "Abrir la perspectiva de la expedición activa."
+
+msgid "ui.expedition_live.title"
+msgstr "EXPEDICIÓN EN CURSO"
+
+msgid "ui.expedition_live.expedition_header"
+msgstr "EXPEDICIÓN"
+
+msgid "ui.expedition_live.citizen_header"
+msgstr "CIUDADANO"
+
+msgid "ui.expedition_live.squad_header"
+msgstr "ESCUADRÓN"
+
+msgid "ui.expedition_live.encounter_header"
+msgstr "ENCUENTRO"
+
+msgid "ui.expedition_live.phase"
+msgstr "Etapa / fase: {0}"
+
+msgid "ui.expedition_live.route.origin"
+msgstr "Ciudad"
+
+msgid "ui.expedition_live.route.outbound"
+msgstr "Rastro"
+
+msgid "ui.expedition_live.route.threat"
+msgstr "Amenaza"
+
+msgid "ui.expedition_live.route.objective"
+msgstr "Objetivo"
+
+msgid "ui.expedition_live.route.return"
+msgstr "Regreso"
+
+msgid "ui.expedition_live.auto"
+msgstr "AUTO"
+
+msgid "ui.expedition_live.auto.fixture_tooltip"
+msgstr "Fixture estructural. Basic Attack permanece automático."
+
+msgid "ui.expedition_live.retreat"
+msgstr "RETIRADA"
+
+msgid "ui.expedition_live.retreat.unavailable_tooltip"
+msgstr "La retirada todavía no está conectada en esta versión estructural."
+
+msgid "ui.expedition_live.unknown"
+msgstr "Desconocido"
+
+msgid "ui.expedition_live.health"
+msgstr "PV {0}%"
+
+msgid "ui.expedition_live.health.unknown"
+msgstr "PV —"
+
+msgid "ui.expedition_live.stamina"
+msgstr "Aguante {0}/{1}"
+
+msgid "ui.expedition_live.stamina.unknown"
+msgstr "Aguante —"
+
+msgid "ui.expedition_live.stamina.short"
+msgstr "AG"
+
+msgid "ui.expedition_live.condition.none"
+msgstr "Estado: estable"
+
+msgid "ui.expedition_live.condition.wounded"
+msgstr "Estado: herido ({0})"
+
+msgid "ui.expedition_live.encounter.current"
+msgstr "Encuentro en curso"
+
+msgid "ui.expedition_live.encounter.none"
+msgstr "Sin registro de encuentro conectado"
+
+msgid "ui.expedition_live.threat.unmeasured"
+msgstr "Amenaza: no medida"
+
+msgid "ui.expedition_live.enemies"
+msgstr "Enemigos restantes: {0}"
+
+msgid "ui.expedition_live.enemies.unknown"
+msgstr "Enemigos restantes: —"
+
+msgid "ui.expedition_live.progress"
+msgstr "Progreso de ruta: {0}%"
+
+msgid "ui.expedition_live.objective.spirit_trail"
+msgstr "Objetivo: seguir el rastro del espíritu"
+
+msgid "ui.expedition_live.objective.food"
+msgstr "Objetivo: forraje cercano"
+
+msgid "ui.expedition_live.objective.wood"
+msgstr "Objetivo: buscar madera caída"
+
+msgid "ui.expedition_live.objective.reconnaissance"
+msgstr "Objetivo: reconocimiento"
+
+msgid "ui.expedition_live.fixture.silent_forest"
+msgstr "Bosque Silente"
+
+msgid "ui.expedition_live.founder_short"
+msgstr "Founder"

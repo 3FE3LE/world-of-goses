@@ -33,6 +33,7 @@ public partial class CityWorldController : Node
     private bool _onboardingCompletionPending;
     private bool _suppressPersistenceWrites;
     private Selection _currentSelection = Selection.MacroView;
+    private ExpeditionId? _currentExpeditionLiveId;
 
     [Signal]
     public delegate void SelectionChangedEventHandler(int selectionState);
@@ -176,6 +177,7 @@ public partial class CityWorldController : Node
         MacroView = 0,
         BuildingDetail = 1,
         HeroProfile = 2,
+        ExpeditionLive = 3,
     }
 
     public CityWorld World => _world;
@@ -183,13 +185,19 @@ public partial class CityWorldController : Node
     public OfflineProgressionReport? LastOfflineReport { get; private set; }
 
     /// <summary>
-    /// The current top-level view selection (macro, building detail, or
-    /// hero profile). Updated by the selection transition methods and
+    /// The current top-level view selection (macro, building detail,
+    /// hero profile, or expedition live perspective). Updated by the selection transition methods and
     /// exposed so input handlers (notably the pause menu's ESC
     /// handler) can branch on whether the macro view is active without
     /// subscribing to the SelectionChanged signal.
     /// </summary>
     public Selection CurrentSelection => _currentSelection;
+
+    /// <summary>
+    /// Active expedition observed by the lateral presentation. This is
+    /// ephemeral navigation state and is never persisted or simulated.
+    /// </summary>
+    public ExpeditionId? CurrentExpeditionLiveId => _currentExpeditionLiveId;
 
     /// <summary>
     /// Toggle for the persistence layer. Enabled by default now that
@@ -473,6 +481,7 @@ public partial class CityWorldController : Node
     public bool SelectBuilding(BuildingId buildingId)
     {
         if (_world.GetBuilding(buildingId) is null) return false;
+        _currentExpeditionLiveId = null;
         _currentSelection = Selection.BuildingDetail;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.BuildingDetail);
         EmitSignal(SignalName.BuildingSelected, buildingId.Value);
@@ -482,6 +491,7 @@ public partial class CityWorldController : Node
 
     public void ReturnToCity()
     {
+        _currentExpeditionLiveId = null;
         _currentSelection = Selection.MacroView;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.MacroView);
     }
@@ -490,8 +500,27 @@ public partial class CityWorldController : Node
     {
         if (_world.Hero is null) return false;
         SelectCitizenForObservation(_world.Hero.Id);
+        _currentExpeditionLiveId = null;
         _currentSelection = Selection.HeroProfile;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.HeroProfile);
+        return true;
+    }
+
+    /// <summary>
+    /// Opens an existing active expedition as a presentation perspective.
+    /// It does not advance time, change speed or create an expedition clock.
+    /// </summary>
+    public bool SelectExpeditionLive(ExpeditionId expeditionId)
+    {
+        if (!_world.Expeditions.TryGetValue(expeditionId, out Expedition? expedition)
+            || expedition.Status != ExpeditionStatus.Active)
+        {
+            return false;
+        }
+
+        _currentExpeditionLiveId = expeditionId;
+        _currentSelection = Selection.ExpeditionLive;
+        EmitSignal(SignalName.SelectionChanged, (int)Selection.ExpeditionLive);
         return true;
     }
 
@@ -590,6 +619,9 @@ public partial class CityWorldController : Node
 
     public ExpeditionRailSnapshot GetExpeditionRailSnapshot() =>
         ExpeditionRailSnapshot.From(_world);
+
+    public ExpeditionLiveSnapshot? GetExpeditionLiveSnapshot(ExpeditionId expeditionId) =>
+        ExpeditionLiveSnapshot.From(_world, expeditionId);
 
     public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
 

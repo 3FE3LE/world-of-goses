@@ -98,6 +98,10 @@ public partial class ChroniclePanel : VBoxContainer
         _body = new ScrollContainer
         {
             Name = BodyScrollName,
+            // Match the header's initial collapsed state. Otherwise this
+            // 560 px body still occupies the shared rail while its chevron
+            // says it is folded, squeezing the expedition list out.
+            Visible = false,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             MouseFilter = MouseFilterEnum.Stop,

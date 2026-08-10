@@ -18,6 +18,7 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CityPrototype : Node
 {
+    private bool _expeditionLiveEscapeFixture;
     /// <summary>
     /// Authored macro composition target for the bottom-centre
     /// <see cref="PrimaryNavDock"/> in the labelled profile. Re-freeze only
@@ -39,12 +40,12 @@ public partial class CityPrototype : Node
     /// the macro view is active, opens itself; when hidden and the
     /// player is in a hero profile or building detail, deliberately
     /// lets the event propagate so this handler can run.</item>
-    /// <item>Hero profile / building detail — this handler at the
+    /// <item>Hero profile / building detail / expedition live view — this handler at the
     /// scene root returns to <see cref="CityWorldController.Selection.MacroView"/>
     /// via <see cref="CityWorldController.ReturnToCity"/>.</item>
     /// </list>
-    /// Without this fallback the player had no way to leave the hero
-    /// profile or building detail with the keyboard once a modal
+    /// Without this fallback the player had no way to leave a complete
+    /// non-macro perspective with the keyboard once a modal
     /// had been opened and dismissed.
     /// </summary>
     public override void _UnhandledInput(InputEvent @event)
@@ -54,7 +55,7 @@ public partial class CityPrototype : Node
         if (controller is null) return;
         // The PauseMenu only opens via ESC when the macro view is the
         // active selection. If the player is in a hero profile or
-        // building detail, PauseMenu lets the input propagate so this
+        // building detail or expedition live view, PauseMenu lets the input propagate so this
         // handler can return them to the macro view.
         if (controller.CurrentSelection == CityWorldController.Selection.MacroView) return;
         controller.ReturnToCity();
@@ -183,6 +184,12 @@ public partial class CityPrototype : Node
                 break;
             case "macro-hud-expedition-active":
                 ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveExpedition);
+                break;
+            case "expedition-live-early":
+                ShowExpeditionLiveForVisualRegression();
+                break;
+            case "expedition-live-escape":
+                ShowExpeditionLiveForVisualRegression(exitWithCancel: true);
                 break;
             case "offline-report":
                 GetNode<ExpeditionRail>(
@@ -1652,7 +1659,7 @@ public partial class CityPrototype : Node
         ModalHost host = GetNode<ModalHost>(
             "GameUiShell/ScreenContent/ModalHost");
         ExpeditionPanel expedition = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/ExpeditionPanel");
+            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
         ConstructionPanel construction = GetNode<ConstructionPanel>(
             "GameUiShell/ScreenContent/Center/ConstructionPanel");
 
@@ -1757,7 +1764,7 @@ public partial class CityPrototype : Node
             (int)WoundSeverity.Moderate);
         patient.SustainWound(WoundSeverity.Moderate, woundEvent.Id);
         controller.World.Resources.DepositToCityInventory(ResourceType.Food, 2);
-        GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/ExpeditionPanel")
+        GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/Center/ExpeditionPanel")
             .ShowWoundRecoveryForVisualRegression();
     }
 
@@ -1815,7 +1822,8 @@ public partial class CityPrototype : Node
     private void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        ExpeditionPanel panel = GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/ExpeditionPanel");
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
+            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
         if (controller.World.Hero?.CurrentAssignment is BuildingId assignment)
         {
             AssignmentResult result = controller.World.TryUnassignCitizen(assignment, controller.World.Hero.Id);
@@ -1835,19 +1843,46 @@ public partial class CityPrototype : Node
         }
         if (state == ExpeditionFixtureState.Idle)
         {
-            panel.Open();
+            OpenAndValidateExpeditionPanel(panel);
             return;
         }
         ExpeditionRequest request = ExpeditionRequest.Reconnaissance(controller.World.Hero!.Id);
         if (state == ExpeditionFixtureState.Returned) request = request with { DurationTicks = 1 };
         if (!controller.StartExpedition(request).IsSuccess) return;
         if (state == ExpeditionFixtureState.Returned) controller.World.AdvanceWorldTick();
+        OpenAndValidateExpeditionPanel(panel);
+    }
+
+    private void OpenAndValidateExpeditionPanel(ExpeditionPanel panel)
+    {
         panel.Open();
+        GetTree().CreateTimer(0.2).Timeout += ValidateExpeditionPanelContained;
+    }
+
+    private void ValidateExpeditionPanelContained()
+    {
+        Control screen = GetNode<Control>("GameUiShell/ScreenContent");
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
+            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
+        Rect2 screenRect = screen.GetGlobalRect();
+        Rect2 panelRect = panel.GetGlobalRect();
+        if (!panel.IsVisibleInTree() || !screenRect.Encloses(panelRect))
+        {
+            GD.PushError(
+                $"[WOG-EXPEDITION-PANEL] panel escaped screen; "
+                + $"visible={panel.IsVisibleInTree()}, screen={screenRect}, panel={panelRect}.");
+            return;
+        }
+        GD.Print(
+            $"[WOG-EXPEDITION-PANEL] visible and contained; "
+            + $"screen={screenRect}, rect={panelRect}.");
     }
 
     private void ShowExpeditionRailForVisualRegression(
         ExpeditionRailFixtureState state,
-        string? locale = null)
+        string? locale = null,
+        string? displayName = null,
+        int durationTicks = 8)
     {
         if (locale is not null)
         {
@@ -1880,17 +1915,18 @@ public partial class CityPrototype : Node
 
         ExpeditionRequest request = ExpeditionRequest.Reconnaissance(world.Hero!.Id) with
         {
-            DurationTicks = 8,
+            DurationTicks = durationTicks,
+            DisplayName = displayName ?? "Reconnaissance",
         };
         ExpeditionStartResult started = controller.StartExpedition(request);
         if (!started.IsSuccess) return;
 
         int ticks = state switch
         {
-            ExpeditionRailFixtureState.Encounter => 2,
-            ExpeditionRailFixtureState.Objective => 4,
-            ExpeditionRailFixtureState.Returning => 6,
-            ExpeditionRailFixtureState.Resolved => 8,
+            ExpeditionRailFixtureState.Encounter => durationTicks / 4,
+            ExpeditionRailFixtureState.Objective => durationTicks / 2,
+            ExpeditionRailFixtureState.Returning => durationTicks * 3 / 4,
+            ExpeditionRailFixtureState.Resolved => durationTicks,
             _ => 0,
         };
         for (int i = 0; i < ticks; i++) world.AdvanceWorldTick();
@@ -1899,6 +1935,109 @@ public partial class CityPrototype : Node
             controller.CancelExpedition(started.ExpeditionId!.Value);
         }
         rail.Refresh();
+    }
+
+    private void ShowExpeditionLiveForVisualRegression(bool exitWithCancel = false)
+    {
+        _expeditionLiveEscapeFixture = exitWithCancel;
+        ShowExpeditionRailForVisualRegression(
+            ExpeditionRailFixtureState.Encounter,
+            locale: "es",
+            displayName: "ui.expedition_live.fixture.silent_forest",
+            durationTicks: 40);
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Fast);
+        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
+            "GameUiShell/ScreenContent/ExpeditionLiveView");
+        liveView.ShowEarlyFixture();
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        if (exitWithCancel)
+        {
+            if (rail.FirstExpeditionId is not ExpeditionId expeditionId
+                || !controller.SelectExpeditionLive(expeditionId))
+            {
+                GD.PushError("[WOG-EXPEDITION-LIVE-ESC] could not select the prepared expedition.");
+                return;
+            }
+            GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveForVisualRegression;
+            return;
+        }
+        // Force both edges so the accordion emits even when a persisted
+        // fixture state already left the rail header logically expanded
+        // while its scroll remained folded behind Chronicle.
+        rail.SetExpandedForVisualRegression(expanded: false);
+        rail.SetExpandedForVisualRegression(expanded: true);
+        GetTree().CreateTimer(0.1).Timeout += () =>
+        {
+            if (rail.FirstViewButton is null)
+            {
+                GD.PushError("[WOG-EXPEDITION-LIVE] active card has no View action.");
+                return;
+            }
+            GD.Print(
+                $"[WOG-EXPEDITION-LIVE-TARGET] visible={rail.FirstViewButton.IsVisibleInTree()}, "
+                + $"rect={rail.FirstViewButton.GetGlobalRect()}.");
+            SendPointerClickForVisualRegression(rail.FirstViewButton);
+            GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveForVisualRegression;
+        };
+    }
+
+    private void ValidateExpeditionLiveForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
+            "GameUiShell/ScreenContent/ExpeditionLiveView");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        bool passed = liveView.Visible
+            && liveView.PresentedExpeditionId.HasValue
+            && !macro.Visible
+            && !GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel").Visible
+            && !GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRail").Visible
+            && !GetNode<PrimaryNavDock>("GameUiShell/ScreenContent/PrimaryNavDock").Visible
+            && !GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Visible
+            && !GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock").Visible
+            && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Visible
+            && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").SpeedButton.IsVisibleInTree()
+            && GetViewport().GuiGetFocusOwner() == liveView.BackButton
+            && controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast;
+        if (!passed)
+        {
+            GD.PushError(
+                $"[WOG-EXPEDITION-LIVE] routing failed; live={liveView.Visible}, "
+                + $"macro={macro.Visible}, selection={controller.CurrentSelection}, "
+                + $"speed={controller.CurrentSpeed}.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-LIVE] lateral perspective opened at global 2x.");
+        if (!_expeditionLiveEscapeFixture) return;
+
+        Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });
+        Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
+        GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveEscapeForVisualRegression;
+    }
+
+    private void ValidateExpeditionLiveEscapeForVisualRegression()
+    {
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        bool passed = controller.CurrentSelection == CityWorldController.Selection.MacroView
+            && GetNode<MacroStreetLiveView>(
+                "GameUiShell/ScreenContent/MacroStreetLiveView").Visible
+            && !GetNode<ExpeditionLiveView>(
+                "GameUiShell/ScreenContent/ExpeditionLiveView").Visible
+            && !GetNode<PauseMenu>("PauseMenu").Visible
+            && controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast
+            && controller.GetExpeditionRailSnapshot().ActiveExpeditions.Count == 1;
+        if (!passed)
+        {
+            GD.PushError(
+                $"[WOG-EXPEDITION-LIVE-ESC] failed; selection={controller.CurrentSelection}, "
+                + $"speed={controller.CurrentSpeed}, active="
+                + $"{controller.GetExpeditionRailSnapshot().ActiveExpeditions.Count}.");
+            return;
+        }
+        GD.Print("[WOG-EXPEDITION-LIVE-ESC] returned to city without menu, pause, speed change or resolution.");
     }
 
     private void ExerciseExpeditionRailPointerForVisualRegression(string action)
@@ -1914,6 +2053,7 @@ public partial class CityPrototype : Node
         Control? target = action switch
         {
             "details" => rail.FirstDetailsButton,
+            "view" => rail.FirstViewButton,
             "cancel" => rail.FirstCancelButton,
             "more" => rail.MoreButton,
             _ => null,
@@ -1943,18 +2083,24 @@ public partial class CityPrototype : Node
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
+        rail.SetExpandedForVisualRegression(expanded: false);
+        rail.SetExpandedForVisualRegression(expanded: true);
+        CallDeferred(MethodName.ExerciseExpandedExpeditionRailFocusForVisualRegression);
+    }
+
+    private void ExerciseExpandedExpeditionRailFocusForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
         rail.GrabDefaultFocus();
-        Input.ParseInputEvent(new InputEventJoypadButton
+        if (GetViewport().GuiGetFocusOwner() != rail.FirstViewButton)
         {
-            ButtonIndex = JoyButton.DpadDown,
-            Pressed = true,
-        });
-        Input.ParseInputEvent(new InputEventJoypadButton
-        {
-            ButtonIndex = JoyButton.DpadDown,
-            Pressed = false,
-        });
-        CallDeferred(MethodName.ValidateExpeditionRailFocusForVisualRegression);
+            GD.PushError("[WOG-EXPEDITION-RAIL-FOCUS] default focus did not reach View.");
+            return;
+        }
+        Input.ParseInputEvent(new InputEventAction { Action = "ui_down", Pressed = true });
+        Input.ParseInputEvent(new InputEventAction { Action = "ui_down", Pressed = false });
+        GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionRailFocusForVisualRegression;
     }
 
     private void ValidateExpeditionRailFocusForVisualRegression()
@@ -1962,18 +2108,20 @@ public partial class CityPrototype : Node
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
         Control? focused = GetViewport().GuiGetFocusOwner();
-        if (focused != rail.FirstCancelButton)
+        if (focused != rail.FirstDetailsButton)
         {
-            GD.PushError("[WOG-EXPEDITION-RAIL-FOCUS] ui_down did not reach Cancel.");
+            GD.PushError(
+                "[WOG-EXPEDITION-RAIL-FOCUS] ui_down did not reach Details; "
+                + $"focused={focused?.Name ?? "<none>"}.");
             return;
         }
-        GD.Print("[WOG-EXPEDITION-RAIL-FOCUS] ui_down -> Cancel OK");
+        GD.Print("[WOG-EXPEDITION-RAIL-FOCUS] View -> ui_down -> Details OK");
     }
 
     private void ValidateExpeditionRailDetailsForVisualRegression(int expectedId)
     {
         ExpeditionPanel panel = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/ExpeditionPanel");
+            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
         if (panel.PresentedExpeditionId?.Value != expectedId)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-DETAILS] clicked ID was not presented.");
@@ -2044,14 +2192,33 @@ public partial class CityPrototype : Node
                 rail.MoreButton.EmitSignal(Button.SignalName.Pressed);
             }
         }
-        // Now force the rail header to expanded. We do this by emitting
-        // the Pressed signal on the rail's header Button (its first
-        // named child), which fires the same path a real click does.
-        Control railHeader = rail.GetNodeOrNull<Control>("VBoxContainer/Header");
-        if (railHeader is Button railButton && !railButton.ButtonPressed)
+        // Exercise the player path, not a property setter: start folded,
+        // then send an actual pointer click to the rail header.
+        rail.SetExpandedForVisualRegression(expanded: false);
+        SendPointerClickForVisualRegression(rail.HeaderForVisualRegression);
+        GetTree().CreateTimer(0.15).Timeout +=
+            ValidateExpeditionRailProtagonistForVisualRegression;
+    }
+
+    private void ValidateExpeditionRailProtagonistForVisualRegression()
+    {
+        ExpeditionRail rail = GetNode<ExpeditionRail>(
+            "GameUiShell/ScreenContent/ExpeditionRail");
+        if (!rail.Expanded
+            || rail.FirstViewButton is null
+            || !rail.FirstViewButton.IsVisibleInTree()
+            || rail.FirstDetailsButton is null
+            || !rail.FirstDetailsButton.IsVisibleInTree())
         {
-            railButton.EmitSignal(Button.SignalName.Pressed);
+            GD.PushError(
+                "[WOG-EXPEDITION-RAIL-EXPAND] real header click did not reveal VER and the active card; "
+                + $"expanded={rail.Expanded}, railVisible={rail.IsVisibleInTree()}, "
+                + $"headerRect={rail.HeaderForVisualRegression.GetGlobalRect()}, "
+                + $"viewVisible={rail.FirstViewButton?.IsVisibleInTree()}, "
+                + $"detailsVisible={rail.FirstDetailsButton?.IsVisibleInTree()}.");
+            return;
         }
+        GD.Print("[WOG-EXPEDITION-RAIL-EXPAND] real header click revealed VER and the active card OK");
     }
 
     private void DeferExpeditionRailPhaseFocusValidation() =>

@@ -15,7 +15,7 @@ public partial class ExpeditionRail : PanelContainer
     public const int PanelWidth = 236;
 
     [Export] public NodePath ControllerPath { get; set; } = new("../../../CityWorldController");
-    [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../ExpeditionPanel");
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../Center/ExpeditionPanel");
 
     private CityWorldController _controller = null!;
     private ExpeditionPanel _expeditionPanel = null!;
@@ -32,9 +32,13 @@ public partial class ExpeditionRail : PanelContainer
     private int _pendingFocusIndex = -1;
     private bool _rebuilding;
     private bool _visualRegressionFixtureActive;
+    private IconButton? _quickViewButton;
+    private ExpeditionId? _quickViewExpeditionId;
     public IconButton? FirstDetailsButton { get; private set; }
+    public IconButton? FirstViewButton { get; private set; }
     public IconButton? FirstCancelButton { get; private set; }
     public Button MoreButton => _chronicle.Header;
+    internal Button HeaderForVisualRegression => _header;
     public bool ChronicleExpanded => _chronicle.Expanded;
     public ExpeditionId? FirstExpeditionId { get; private set; }
 
@@ -263,7 +267,19 @@ public partial class ExpeditionRail : PanelContainer
             _expeditionContent.RemoveChild(child);
             child.QueueFree();
         }
+        if (_quickViewButton is not null)
+        {
+            _quickViewButton.Pressed -= OnQuickViewPressed;
+            if (_quickViewButton.GetParent() == _expeditionSection)
+            {
+                _expeditionSection.RemoveChild(_quickViewButton);
+            }
+            _quickViewButton.QueueFree();
+            _quickViewButton = null;
+            _quickViewExpeditionId = null;
+        }
         FirstDetailsButton = null;
+        FirstViewButton = null;
         FirstCancelButton = null;
         FirstExpeditionId = null;
 
@@ -286,6 +302,22 @@ public partial class ExpeditionRail : PanelContainer
         }
         else
         {
+            ExpeditionRailSnapshot.Item first = _snapshot.ActiveExpeditions[0];
+            _quickViewExpeditionId = first.Id;
+            _quickViewButton = new IconButton
+            {
+                IconPath = IconPaths.Expand,
+                ButtonText = UiText.Get("ui.expedition_rail.view"),
+                ShowLabel = true,
+                ThemeTypeVariation = "HudButtonSelected",
+                TooltipText = UiText.Get("ui.expedition_rail.view_tooltip"),
+                FocusMode = FocusModeEnum.All,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
+            _quickViewButton.Pressed += OnQuickViewPressed;
+            _expeditionSection.AddChild(_quickViewButton);
+            FirstViewButton = _quickViewButton;
+
             foreach (ExpeditionRailSnapshot.Item item in _snapshot.ActiveExpeditions)
             {
                 var card = new ExpeditionCompactCard(item, _snapshot.CurrentTick);
@@ -306,7 +338,8 @@ public partial class ExpeditionRail : PanelContainer
         RebuildFocusables();
     }
 
-    public void GrabDefaultFocus() => (FirstDetailsButton ?? MoreButton).GrabFocus();
+    public void GrabDefaultFocus() =>
+        (FirstViewButton ?? FirstDetailsButton ?? MoreButton).GrabFocus();
 
     private static Label Caption(string text) => new()
     {
@@ -317,6 +350,13 @@ public partial class ExpeditionRail : PanelContainer
     };
 
     private void OpenDetails(ExpeditionId id) => _expeditionPanel.Open(id);
+
+    private void OpenLiveView(ExpeditionId id) => _controller.SelectExpeditionLive(id);
+
+    private void OnQuickViewPressed()
+    {
+        if (_quickViewExpeditionId is ExpeditionId id) OpenLiveView(id);
+    }
 
     private void CancelExpedition(ExpeditionId id)
     {
@@ -395,6 +435,7 @@ public partial class ExpeditionRail : PanelContainer
     private void RebuildFocusables()
     {
         _focusables.Clear();
+        if (Expanded && FirstViewButton is not null) _focusables.Add(FirstViewButton);
         if (Expanded && FirstDetailsButton is not null) _focusables.Add(FirstDetailsButton);
         if (Expanded && FirstCancelButton is not null) _focusables.Add(FirstCancelButton);
         foreach (Control control in _chronicle.Focusables) _focusables.Add(control);

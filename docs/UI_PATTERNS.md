@@ -19,7 +19,7 @@ to one of these axes:
 | **Buildings** | Detail panel, construction modal, gather/produce view | `BuildingDetailSnapshot` / `ConstructionSnapshot` |
 | **Hero** | Profile screen, lineage showcase | `Citizen`, `LineageDefinition` |
 | **Citizens roster** | List with assign / unassign actions | `CityWorldController.AvailableCitizensByPriority()` |
-| **Expeditions** *(future)* | Planning modal, dispatch view, return summary | `ExpeditionController` (TBD) |
+| **Expeditions** | Planning modal, compact rail, lateral live perspective, return summary | `CityWorldController` → `ExpeditionLiveSnapshot` / expedition signals |
 | **Chronicle / log** | Offline report, decision-needed feed | `WorldEventLog` |
 | **Game time** | Speed multiplier, day-night ribbon (no pause: the world runs while the game is closed) | `CityWorld.AdvanceWorldTick` cadence |
 
@@ -693,6 +693,23 @@ typography and the existing neutral/amber palette. Only the octagonal control
 adds theme colour roles, because a rectangular StyleBox cannot express its
 geometry.
 
+`ExpeditionLiveView.tscn` is now the first structural consumer. It is instanced
+once at `GameUiShell/ScreenContent`, participates in the existing
+`CityWorldController.Selection` router and is hidden rather than destroyed when
+the player returns to Macro. `ExpeditionRail` exposes a labelled `VER` action
+only while a real active expedition exists. The view consumes
+`ExpeditionLiveSnapshot`; absent encounter data remains explicitly unmeasured
+instead of being invented. Its route milestones distinguish successful return
+from retreat: a retreat marks Objective as omitted, never as completed.
+
+The shell-owned `CityStatusPanel` remains visible above this perspective, so its
+world clock, resources, population, global 1x/2x/4x `SpeedButton`, Camera and
+Menu keep their existing instances. Entering, leaving and pressing ESC in the
+live view never calls `SetSimulationSpeed`. `AUTO` and `RETIRADA` are disabled
+structural commands in this increment: neither writes domain state. The stage
+draws static lateral placeholders only and has no `_Process`, movement,
+hitboxes, damage resolver, `CombatClock` or `ExpeditionClock`.
+
 ## 11. Quick reference — where things live
 
 | Concern | File |
@@ -709,6 +726,7 @@ geometry.
 | Component PackedScenes | `game/scenes/Components/` |
 | Expedition live-view building blocks | `OctagonalSkillSlot.tscn`, `ExpeditionSquadSlot.tscn`, `ExpeditionSquadStrip.tscn`, `ExpeditionSkillStrip.tscn` |
 | Expedition component fixture | `game/scenes/prototypes/ExpeditionHudComponentShowcase.tscn` |
+| Expedition live perspective | `game/scenes/expeditions/ExpeditionLiveView.tscn`, `game/scripts/ExpeditionLiveView.cs`, `game/scripts/ExpeditionLiveSnapshot.cs` |
 | Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `SpeedButton`, `MenuButton`) |
 | Current audit state | `docs/UI_AUDIT.md` |
 | Status snapshot | `docs/CURRENT_STATUS.md` |
