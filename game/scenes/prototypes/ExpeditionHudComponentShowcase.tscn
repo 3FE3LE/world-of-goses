@@ -1,0 +1,93 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/Prototypes/ExpeditionHudComponentShowcase.cs" id="1_showcase"]
+[ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionSquadStrip.tscn" id="2_squad"]
+[ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionSkillStrip.tscn" id="3_skill"]
+
+[node name="ExpeditionHudComponentShowcase" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_showcase")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.025, 0.032, 0.048, 1)
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Layout" type="VBoxContainer" parent="SafeArea"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="SafeArea/Layout"]
+layout_mode = 2
+theme_type_variation = &"HudBrand"
+text = "EXPEDITION LIVE — REUSABLE COMPONENTS"
+
+[node name="Columns" type="HBoxContainer" parent="SafeArea/Layout"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Primary" type="VBoxContainer" parent="SafeArea/Layout/Columns"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SquadHeader" type="Label" parent="SafeArea/Layout/Columns/Primary"]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+text = "FOUR-SLOT VANGUARD FIXTURE"
+
+[node name="SquadStrip" parent="SafeArea/Layout/Columns/Primary" instance=ExtResource("2_squad")]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="SkillHeader" type="Label" parent="SafeArea/Layout/Columns/Primary"]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+text = "FOUR ACTIVE SKILLS — ONLY SLOT 1 READY"
+
+[node name="SkillStrip" parent="SafeArea/Layout/Columns/Primary" instance=ExtResource("3_skill")]
+layout_mode = 2
+size_flags_horizontal = 0
+
+[node name="States" type="VBoxContainer" parent="SafeArea/Layout/Columns"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SkillStatesHeader" type="Label" parent="SafeArea/Layout/Columns/States"]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+text = "OCTAGON STATES: EMPTY · LOCKED · READY · COOLDOWN · DISABLED"
+
+[node name="SkillStates" type="HBoxContainer" parent="SafeArea/Layout/Columns/States"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SquadStatesHeader" type="Label" parent="SafeArea/Layout/Columns/States"]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+text = "SQUAD STATES: ACTIVE · EMPTY · LOCKED"
+
+[node name="SquadStates" type="HBoxContainer" parent="SafeArea/Layout/Columns/States"]
+layout_mode = 2
+theme_override_constants/separation = 8

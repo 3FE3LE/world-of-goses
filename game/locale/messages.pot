@@ -1522,10 +1522,10 @@ msgstr ""
 msgid "Resources"
 msgstr ""
 
-msgid "rest"
+msgid "Rest"
 msgstr ""
 
-msgid "Rest"
+msgid "rest"
 msgstr ""
 
 msgid "Resting during the night"
@@ -1621,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
 msgid "Strength"
@@ -2156,6 +2156,39 @@ msgid "ui.duration.minute.one"
 msgstr ""
 
 msgid "ui.duration.separator"
+msgstr ""
+
+msgid "ui.expedition_live.skill.cooldown"
+msgstr ""
+
+msgid "ui.expedition_live.skill.cooldown_label"
+msgstr ""
+
+msgid "ui.expedition_live.skill.disabled"
+msgstr ""
+
+msgid "ui.expedition_live.skill.empty"
+msgstr ""
+
+msgid "ui.expedition_live.skill.locked"
+msgstr ""
+
+msgid "ui.expedition_live.skill.ready"
+msgstr ""
+
+msgid "ui.expedition_live.squad.active"
+msgstr ""
+
+msgid "ui.expedition_live.squad.empty"
+msgstr ""
+
+msgid "ui.expedition_live.squad.hp"
+msgstr ""
+
+msgid "ui.expedition_live.squad.locked"
+msgstr ""
+
+msgid "ui.expedition_live.squad.secondary"
 msgstr ""
 
 msgid "ui.expedition_rail.active"

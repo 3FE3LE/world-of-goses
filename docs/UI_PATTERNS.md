@@ -80,7 +80,8 @@ Current registered controls: `ModalHost`, `PanelHeader`,
 `GenderToggle`, `CubeAxisBar`, `FounderCardPanel`, `StatChip`,
 `PrimaryNavDock`, `ContextInspector`, `ActionDock`, `SpeedButton`,
 `CitySummaryPanel`, `ExpeditionRail`, `ExpeditionCompactCard`,
-`ConstructionQueueItem`, and the three `ActionButton` roles —
+`ConstructionQueueItem`, `OctagonalSkillSlot`, `ExpeditionSquadSlot`,
+`ExpeditionSquadStrip`, `ExpeditionSkillStrip`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
 The compact HUD adds `HudSectionHeader`, `HudMetricRow`, `HudResourceRow`,
 `HudProgressBar`, `HudBadge` and `CollapsiblePanelHeader` (§ 5.2).
@@ -667,6 +668,31 @@ The first live expedition adds these stricter contracts:
 - No `SPACE` action, carriage control or advanced formation control is added in
   the first visual encounter.
 
+The reusable presentation seam for that view is already implemented as four
+PackedScenes under `game/scenes/Components/`:
+
+- `OctagonalSkillSlot.tscn` owns the multi-child layout and a typed script draws
+  the real eight-sided silhouette from integer vertices. Its states are Empty,
+  Locked, Ready, Cooldown and Disabled. Locked combines `[X]` with text;
+  Cooldown combines remaining time with a progress track.
+- `TraitSide0` through `TraitSide7` are eight independent, invisible `Control`
+  anchors placed at the side midpoints. They have no tooltip, domain type or
+  evolution logic; no side has an invented meaning.
+- `ExpeditionSquadSlot.tscn` accepts prepared portrait/name/HP/optional secondary
+  resource/critical-state values and renders Active, Empty or Locked. It never
+  queries a `Citizen` or an `Expedition`.
+- `ExpeditionSquadStrip.tscn` and `ExpeditionSkillStrip.tscn` always author four
+  visual children and wire an explicit horizontal focus cycle. Four visible
+  slots are a presentation forecast only: they do not change
+  `ExpeditionRequest.MaxTeamSize`.
+
+`ExpeditionHudComponentShowcase.tscn` is the isolated regression surface. It is
+not `ExpeditionLiveView`, does not run combat and does not own a world clock.
+All four components reuse `HudCard`, `HudDock`, `HudProgress`, compact HUD
+typography and the existing neutral/amber palette. Only the octagonal control
+adds theme colour roles, because a rectangular StyleBox cannot express its
+geometry.
+
 ## 11. Quick reference — where things live
 
 | Concern | File |
@@ -681,6 +707,8 @@ The first live expedition adds these stricter contracts:
 | Snapshot contracts | `game/scripts/*Snapshot.cs` (`CityMacroSnapshot`, `HeroProfileSnapshot`, `BuildingDetailSnapshot`, `ConstructionSnapshot`, `CityStatusSnapshot`) |
 | City world façade | `game/scripts/CityWorldController.cs` |
 | Component PackedScenes | `game/scenes/Components/` |
+| Expedition live-view building blocks | `OctagonalSkillSlot.tscn`, `ExpeditionSquadSlot.tscn`, `ExpeditionSquadStrip.tscn`, `ExpeditionSkillStrip.tscn` |
+| Expedition component fixture | `game/scenes/prototypes/ExpeditionHudComponentShowcase.tscn` |
 | Top status panel + utility cluster | `game/scripts/CityStatusPanel.cs` (built in `BuildUtilityCluster`: `CameraButton`, `SpeedButton`, `MenuButton`) |
 | Current audit state | `docs/UI_AUDIT.md` |
 | Status snapshot | `docs/CURRENT_STATUS.md` |

@@ -1171,6 +1171,113 @@ public sealed class HudCompositionTests
         }
     }
 
+    [Fact]
+    public void OctagonalSkillSlot_IsARealEightSidedPackedComponent()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "OctagonalSkillSlot.cs"));
+        string scene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "OctagonalSkillSlot.tscn"));
+
+        foreach (string point in new[]
+                 {
+                     "new(24, 4)", "new(72, 4)", "new(92, 24)", "new(92, 72)",
+                     "new(72, 92)", "new(24, 92)", "new(4, 72)", "new(4, 24)",
+                 })
+        {
+            Assert.Contains(point, source, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("DrawColoredPolygon(Octagon, fill)", source, StringComparison.Ordinal);
+        Assert.Contains("antialiased: false", source, StringComparison.Ordinal);
+        Assert.Contains("custom_minimum_size = Vector2(96, 104)", scene, StringComparison.Ordinal);
+        Assert.Contains("theme_type_variation = &\"OctagonalSkillSlot\"", scene,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("TraitDefinition", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Tooltip", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OctagonalSkillSlot_ReservesEightInvisibleStableTraitSides()
+    {
+        string scene = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scenes", "Components", "OctagonalSkillSlot.tscn"));
+        (int X, int Y)[] positions =
+        {
+            (45, 1), (79, 11), (89, 45), (79, 79),
+            (45, 89), (11, 79), (1, 45), (11, 11),
+        };
+
+        for (int i = 0; i < positions.Length; i++)
+        {
+            string header = $"[node name=\"TraitSide{i}\" type=\"Control\" parent=\".\"]";
+            int start = scene.IndexOf(header, StringComparison.Ordinal);
+            Assert.True(start >= 0, $"Missing independent TraitSide{i} anchor.");
+            int next = scene.IndexOf("[node ", start + header.Length, StringComparison.Ordinal);
+            string block = next < 0 ? scene[start..] : scene[start..next];
+            Assert.Contains("visible = false", block, StringComparison.Ordinal);
+            Assert.Contains($"offset_left = {positions[i].X}.0", block, StringComparison.Ordinal);
+            Assert.Contains($"offset_top = {positions[i].Y}.0", block, StringComparison.Ordinal);
+            Assert.DoesNotContain("tooltip", block, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void ExpeditionStrips_AlwaysAuthorFourPresentationOnlySlots()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string skillScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "ExpeditionSkillStrip.tscn"));
+        string squadScene = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "ExpeditionSquadStrip.tscn"));
+        string skillSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "ExpeditionSkillStrip.cs"));
+        string squadSource = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Ui", "ExpeditionSquadStrip.cs"));
+
+        Assert.Equal(4, Regex.Matches(skillScene, "name=\\\"Slot[1-4]\\\"").Count);
+        Assert.Equal(4, Regex.Matches(squadScene, "name=\\\"Slot[1-4]\\\"").Count);
+        Assert.Contains("SlotState.Ready", skillSource, StringComparison.Ordinal);
+        Assert.Contains("SlotState.Locked", skillSource, StringComparison.Ordinal);
+        Assert.Contains("ConfigureFounderFixture", squadSource, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborLeft", skillSource, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", skillSource, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborLeft", squadSource, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", squadSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("using WorldofGoses.Domain", skillSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("using WorldofGoses.Domain", squadSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", skillSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("_Process", squadSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExpeditionComponentShowcase_CoversStatesCooldownAndBothFocusFixtures()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(
+            root, "game", "scripts", "Prototypes", "ExpeditionHudComponentShowcase.cs"));
+        string scenePath = Path.Combine(
+            root, "game", "scenes", "prototypes", "ExpeditionHudComponentShowcase.tscn");
+        string theme = File.ReadAllText(Path.Combine(
+            root, "game", "assets", "ui", "default_theme.tres"));
+
+        Assert.True(File.Exists(scenePath));
+        foreach (string state in new[] { "Empty", "Locked", "Ready", "Cooldown", "Disabled" })
+        {
+            Assert.Contains($"SlotState.{state}", source, StringComparison.Ordinal);
+        }
+        Assert.Contains("cooldownRemaining", source, StringComparison.Ordinal);
+        Assert.Contains("expedition-components-focus-keyboard", source, StringComparison.Ordinal);
+        Assert.Contains("expedition-components-focus-gamepad", source, StringComparison.Ordinal);
+        Assert.Contains("InputEventKey", source, StringComparison.Ordinal);
+        Assert.Contains("InputEventJoypadButton", source, StringComparison.Ordinal);
+        Assert.Contains("OctagonalSkillSlot/colors/fill_ready", theme, StringComparison.Ordinal);
+        Assert.Contains("OctagonalSkillSlot/colors/border_ready", theme, StringComparison.Ordinal);
+    }
+
     private static string[] NodeBlock(string nodeName)
     {
         string[] lines = ReadScene();

@@ -17,6 +17,33 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## La futura expedición en vivo ya tiene componentes visuales reutilizables
+
+**2026-08-10** · schema v32 (sin cambio) · presentación
+
+Todavía no existe `ExpeditionLiveView` ni se ejecuta combate. Este incremento
+construye y valida solamente su gramática reusable: cuatro puestos visuales de
+escuadra, cuatro Active Skills y un Skill Slot octogonal real con estados
+Empty/Locked/Ready/Cooldown/Disabled. El primer fixture muestra Founder + tres
+puestos bloqueados y Skill 1 lista + tres skills bloqueadas; Locked usa `[X]`
+y texto, y Cooldown muestra tiempo restante y progreso.
+
+Los ocho lados del octágono reservan anchors invisibles independientes para
+Traits futuros, sin `TraitDefinition`, tooltip ni evolución. La UI anticipa
+cuatro Citizens sin cambiar `ExpeditionRequest.MaxTeamSize`, y reutiliza la
+paleta, tipografía y cromo `Hud*` existentes. No reaparecen
+`SimulationControls`, `PlayPauseButton` ni una pausa global.
+
+Baseline medido: build 0/0, 1118 pruebas superadas y 1 omitida sobre 1119 (+4
+sobre el incremento anterior), catálogos válidos con 1012 IDs de plantilla y 301
+claves de runtime. Las tres fixtures del showcase capturan a 1280×720 y
+1920×1080; las de teclado y gamepad salen idénticas byte a byte, que es
+exactamente el ciclo de foco horizontal compartido que exige
+`VISUAL_REGRESSION.md`. Las etiquetas de andamiaje del showcase siguen en
+inglés a propósito: son texto de depuración, no superficie de jugador.
+
+---
+
 ## La apertura prioriza el primer combate visual del Founder
 
 **2026-08-10** · schema v32 (sin cambio) · dirección de producto

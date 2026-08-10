@@ -217,9 +217,9 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
 - El dock primario y las acciones contextuales comparten la misma zona, nunca
   se apilan: la colocación oculta navegación y muestra confirmar/cancelar; al
   terminar o cancelar vuelve la navegación.
-- Pausa/reanudación, velocidad y el modo de cámara —una utilidad del mundo, no
-  un destino— viven en una superficie compacta separada en la esquina inferior
-  derecha. Sus opciones reflejan únicamente capacidades realmente conectadas.
+- Cámara, velocidad y Menú viven en el `UtilityCluster` del borde derecho de
+  `CityStatusPanel`. La velocidad global ofrece únicamente 1x/2x/4x; no existe
+  pausa/reanudación ni una superficie de simulación en la esquina inferior.
 - Ratón, rueda, teclado y gamepad quedan contenidos por las superficies HUD;
   foco y estado visible no dependen solo del color.
 

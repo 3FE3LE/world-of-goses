@@ -1,0 +1,39 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Ui/ExpeditionSkillStrip.cs" id="1_strip"]
+[ext_resource type="PackedScene" path="res://scenes/Components/OctagonalSkillSlot.tscn" id="2_slot"]
+
+[node name="ExpeditionSkillStrip" type="PanelContainer"]
+custom_minimum_size = Vector2(424, 120)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 424.0
+offset_bottom = 120.0
+mouse_filter = 0
+theme_type_variation = &"HudDock"
+script = ExtResource("1_strip")
+
+[node name="Content" type="MarginContainer" parent="."]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="Slots" type="HBoxContainer" parent="Content"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Slot1" parent="Content/Slots" instance=ExtResource("2_slot")]
+layout_mode = 2
+
+[node name="Slot2" parent="Content/Slots" instance=ExtResource("2_slot")]
+layout_mode = 2
+
+[node name="Slot3" parent="Content/Slots" instance=ExtResource("2_slot")]
+layout_mode = 2
+
+[node name="Slot4" parent="Content/Slots" instance=ExtResource("2_slot")]
+layout_mode = 2

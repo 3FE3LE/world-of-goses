@@ -2649,6 +2649,39 @@ msgstr "The trail the spirit left cannot be read until the night is over."
 msgid "ui.expedition.objective.spirit"
 msgstr "Spirit Trail"
 
+msgid "ui.expedition_live.skill.empty"
+msgstr "Empty"
+
+msgid "ui.expedition_live.skill.locked"
+msgstr "Locked"
+
+msgid "ui.expedition_live.skill.ready"
+msgstr "Ready"
+
+msgid "ui.expedition_live.skill.cooldown"
+msgstr "CD {0:0.0}s"
+
+msgid "ui.expedition_live.skill.cooldown_label"
+msgstr "Cooldown"
+
+msgid "ui.expedition_live.skill.disabled"
+msgstr "Disabled"
+
+msgid "ui.expedition_live.squad.active"
+msgstr "Active"
+
+msgid "ui.expedition_live.squad.empty"
+msgstr "Empty"
+
+msgid "ui.expedition_live.squad.locked"
+msgstr "Locked"
+
+msgid "ui.expedition_live.squad.hp"
+msgstr "HP {0}%"
+
+msgid "ui.expedition_live.squad.secondary"
+msgstr "{0} {1}%"
+
 msgid "firstnight.directive.campfire"
 msgstr "The spirit points at the ground. You need {0} to raise a fire."
 

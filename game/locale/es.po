@@ -2802,6 +2802,39 @@ msgstr "El rastro que dejó el espíritu no puede leerse hasta que termine la no
 msgid "ui.expedition.objective.spirit"
 msgstr "Rastro del espíritu"
 
+msgid "ui.expedition_live.skill.empty"
+msgstr "Vacía"
+
+msgid "ui.expedition_live.skill.locked"
+msgstr "Bloqueada"
+
+msgid "ui.expedition_live.skill.ready"
+msgstr "Lista"
+
+msgid "ui.expedition_live.skill.cooldown"
+msgstr "CD {0:0.0}s"
+
+msgid "ui.expedition_live.skill.cooldown_label"
+msgstr "Recarga"
+
+msgid "ui.expedition_live.skill.disabled"
+msgstr "Inactiva"
+
+msgid "ui.expedition_live.squad.active"
+msgstr "Activo"
+
+msgid "ui.expedition_live.squad.empty"
+msgstr "Vacío"
+
+msgid "ui.expedition_live.squad.locked"
+msgstr "Bloqueado"
+
+msgid "ui.expedition_live.squad.hp"
+msgstr "PV {0}%"
+
+msgid "ui.expedition_live.squad.secondary"
+msgstr "{0} {1}%"
+
 msgid "firstnight.directive.campfire"
 msgstr "El espíritu señala el suelo. Necesitas {0} para levantar una hoguera."
 
