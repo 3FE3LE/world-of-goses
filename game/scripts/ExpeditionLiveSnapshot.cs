@@ -22,7 +22,8 @@ public sealed record ExpeditionLiveSnapshot(
     ExpeditionEncounterOutcome? EncounterOutcome,
     bool RetreatTriggered,
     IReadOnlyList<ExpeditionLiveSnapshot.Member> Members,
-    ExpeditionLiveSnapshot.Combat? CombatState)
+    ExpeditionLiveSnapshot.Combat? CombatState,
+    ExpeditionLiveSnapshot.Travel TravelState)
 {
     public enum RouteStepState
     {
@@ -59,6 +60,16 @@ public sealed record ExpeditionLiveSnapshot(
         IReadOnlyList<CombatParticipantState> Party,
         IReadOnlyList<CombatParticipantState> Enemies,
         IReadOnlyList<CombatLogEntry> Log);
+
+    public sealed record Travel(
+        double PositionX,
+        CombatFacing Facing,
+        CombatSpatialActivity Activity,
+        double BattlefieldMinimumX,
+        double BattlefieldMaximumX,
+        double ObjectivePositionX,
+        bool ObjectiveVisible,
+        bool ObjectiveReached);
 
     public double Progress
     {
@@ -162,7 +173,7 @@ public sealed record ExpeditionLiveSnapshot(
         }
 
         Combat? combatProjection = null;
-        if (combat is not null)
+        if (combat is not null && expedition.Phase == ExpeditionPhase.Encounter)
         {
             var skills = new List<Skill>(4);
             for (int index = 0; index < 4; index++)
@@ -207,6 +218,21 @@ public sealed record ExpeditionLiveSnapshot(
             expedition.EncounterOutcome,
             expedition.RetreatTriggered,
             members,
-            combatProjection);
+            combatProjection,
+            new Travel(
+                ExpeditionTiming.TravelPositionX(expedition, world.CurrentTick),
+                expedition.Phase is ExpeditionPhase.Returning or ExpeditionPhase.Retreating
+                    ? CombatFacing.Left
+                    : CombatFacing.Right,
+                expedition.Phase == ExpeditionPhase.Resolved
+                    ? CombatSpatialActivity.Idle
+                    : CombatSpatialActivity.Approaching,
+                ExpeditionTiming.RouteMinimumX,
+                ExpeditionTiming.RouteMaximumX,
+                ExpeditionTiming.SpiritTrailObjectivePositionX,
+                expedition.ResourceOpportunityKind == ResourceOpportunityKind.SpiritTrailSearch
+                    && expedition.Phase is ExpeditionPhase.Objective
+                        or ExpeditionPhase.Returning,
+                expedition.ObjectiveReachedAtTick.HasValue));
     }
 }

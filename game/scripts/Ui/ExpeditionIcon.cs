@@ -49,7 +49,9 @@ public static class ExpeditionIcon
     /// </remarks>
     public static Control Leading(ExpeditionRailSnapshot.Item item)
     {
-        return ResourceIconCell(item.SupplyResource);
+        return item.SupplyResource is ResourceType resource
+            ? ResourceIconCell(resource)
+            : TextureIconCell(IconPaths.Backpack);
     }
 
     private static Control ResourceIconCell(ResourceType resourceType) => new ResourceIcon(resourceType)

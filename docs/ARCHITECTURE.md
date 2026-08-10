@@ -296,14 +296,21 @@ Concretely:
   Each world tick advances one logical combat step and `ResolveToEnd` consumes
   that same incremental path for tests/debug. Schema v33 persists the logical
   step plus replayable AUTO/manual commands, then reconstructs health,
-  cooldowns, RNG and `CombatLog` from the same seed and resolvers. Later scenes
+  cooldowns, RNG and `CombatLog` from the same seed and resolvers. Schema v34
+  adds per-expedition combat-rules versioning: a v33 session replays its legacy
+  balance, while a newly dispatched opening trail uses the non-persistent
+  tutorial baseline. Later scenes
   will use fully detailed side-facing sprites authored as
   Pixelorama sprite sheets (`art/source/characters/...`) and driven by
   Godot `AnimatedSprite2D` with `AnimationPlayer` transitions.
   This observable path is currently restricted to the Founder-only
   `SpiritTrailSearch`; other expedition kinds keep the prior aggregate
   encounter resolver. Quiescent offline batching is disabled while its combat
-  session is active so one world tick always means one combat step.
+  session is active so one world tick always means one combat step. The named
+  `ExpeditionTiming` milestones drive the four-hour route: half-hour Encounter,
+  post-combat Objective travel, physical objective arrival and visible Return.
+  `SupplyRequirement.None` and `ExpeditionReward.Discovery` keep this narrative
+  route outside the material reservation ledger.
 
 Placeholder dimensions used by the prototype so that final art slots
 in without re-anchoring:
@@ -438,7 +445,7 @@ Actors only approach a target until its body envelopes are within
 `AttackRange`; there is no reverse/preferred-range branch, so ranged actors do
 not kite. Damage remains in `TechniqueResolver`; a resolved hit may displace its
 target through centralized Impulse/Stability knockback. Session replay rebuilds
-the same spatial state from seed, steps and commands, so schema v33 needs no
+the same spatial state from seed, steps and commands, so schema v34 needs no
 second serialized position stream. `ExpeditionStage` and `CombatantView` only
 project snapshots/events and may interpolate visual pixels; Godot positions,
 animations and missed frames never decide impact or mutate the domain.

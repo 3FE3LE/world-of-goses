@@ -2482,6 +2482,9 @@ msgstr ""
 msgid "ui.expedition.spirit_trail_locked"
 msgstr ""
 
+msgid "ui.expedition.spirit_trail_summary"
+msgstr ""
+
 msgid "ui.expedition.team_hint"
 msgstr ""
 
@@ -3109,10 +3112,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
 msgid "Wood remains"

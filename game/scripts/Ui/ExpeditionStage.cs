@@ -24,6 +24,9 @@ public partial class ExpeditionStage : Control
     private int _lastPresentedStep = -1;
     private double _domainMinimumX;
     private double _domainMaximumX = 1000;
+    private bool _objectiveVisible;
+    private bool _objectiveReached;
+    private double _objectivePositionX;
 
     public override void _Ready()
     {
@@ -49,12 +52,50 @@ public partial class ExpeditionStage : Control
             throw new ArgumentOutOfRangeException(nameof(domainMaximumX));
         _domainMinimumX = domainMinimumX;
         _domainMaximumX = domainMaximumX;
+        _objectiveVisible = false;
+        _objectiveReached = false;
 
         var activeIds = new HashSet<string>(StringComparer.Ordinal);
         ApplyParticipants(party, CombatSide.Party, activeIds, log, step);
         ApplyParticipants(enemies, CombatSide.Enemy, activeIds, log, step);
         RemoveMissing(activeIds);
         _lastPresentedStep = Math.Max(_lastPresentedStep, step);
+        QueueRedraw();
+    }
+
+    public void ConfigureTravel(
+        ExpeditionLiveSnapshot.Travel travel,
+        string displayName,
+        double? healthRatio,
+        int worldTick)
+    {
+        double maximumHealth = 100;
+        double currentHealth = maximumHealth * Math.Clamp(healthRatio ?? 1, 0, 1);
+        var founder = new CombatParticipantState(
+            "travel.founder",
+            null,
+            displayName,
+            currentHealth,
+            maximumHealth,
+            false,
+            travel.PositionX,
+            0,
+            12,
+            travel.Facing,
+            travel.Activity,
+            0,
+            CombatStature.Standard);
+        Configure(
+            [founder],
+            Array.Empty<CombatParticipantState>(),
+            Array.Empty<CombatLogEntry>(),
+            worldTick,
+            travel.BattlefieldMinimumX,
+            travel.BattlefieldMaximumX);
+        _objectiveVisible = travel.ObjectiveVisible;
+        _objectiveReached = travel.ObjectiveReached;
+        _objectivePositionX = travel.ObjectivePositionX;
+        QueueRedraw();
     }
 
     internal void ShowEarlyFixture()
@@ -77,6 +118,9 @@ public partial class ExpeditionStage : Control
         foreach (CombatantView view in _views.Values) view.QueueFree();
         _views.Clear();
         _lastPresentedStep = -1;
+        _objectiveVisible = false;
+        _objectiveReached = false;
+        QueueRedraw();
     }
 
     public override void _Draw()
@@ -93,6 +137,7 @@ public partial class ExpeditionStage : Control
         DrawRect(new Rect2I(0, horizon - 48, logicalSize.X, 48), distance);
         DrawRect(new Rect2I(0, horizon, logicalSize.X, logicalSize.Y - horizon), ground);
         DrawLandscapeSilhouette(logicalSize, horizon, outline);
+        if (_objectiveVisible) DrawSpiritTrailManifestation(horizon);
     }
 
     private void ApplyParticipants(
@@ -182,6 +227,41 @@ public partial class ExpeditionStage : Control
             new Vector2I(0, horizon),
             new Vector2I(logicalSize.X, horizon),
             color,
+            width: 2,
+            antialiased: false);
+    }
+
+    private void DrawSpiritTrailManifestation(int horizon)
+    {
+        int centerX = ProjectPosition(_objectivePositionX);
+        int centerY = horizon - 54;
+        Color border = GetThemeColor(_objectiveReached ? "border_ready" : "border_locked");
+        var octagon = new Vector2[]
+        {
+            new(centerX - 12, centerY - 20),
+            new(centerX + 12, centerY - 20),
+            new(centerX + 20, centerY - 12),
+            new(centerX + 20, centerY + 12),
+            new(centerX + 12, centerY + 20),
+            new(centerX - 12, centerY + 20),
+            new(centerX - 20, centerY + 12),
+            new(centerX - 20, centerY - 12),
+        };
+        DrawPolyline(
+            [.. octagon, octagon[0]],
+            border,
+            width: 2,
+            antialiased: false);
+        DrawLine(
+            new Vector2I(centerX - 8, centerY + 7),
+            new Vector2I(centerX + 8, centerY - 7),
+            border,
+            width: 2,
+            antialiased: false);
+        DrawLine(
+            new Vector2I(centerX - 4, centerY - 8),
+            new Vector2I(centerX + 7, centerY + 3),
+            border,
             width: 2,
             antialiased: false);
     }

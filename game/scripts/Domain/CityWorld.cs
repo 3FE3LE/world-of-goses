@@ -235,10 +235,7 @@ public sealed class CityWorld
         }
 
         if (request.DurationTicks <= 0
-            || request.SupplyAmount <= 0
             || !Enum.IsDefined(request.RetreatPosture)
-            || (request.RewardKind == ExpeditionRewardKind.Supplies
-                && request.RewardAmount <= 0)
             || string.IsNullOrWhiteSpace(request.DisplayName))
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
@@ -248,15 +245,18 @@ public sealed class CityWorld
         int carryCapacity = 0;
         if (request.ResourceOpportunityId is ResourceOpportunityId opportunityId)
         {
-            if (!HasFoundingSiteModule(FoundingSiteModule.Campfire)
-                || !HasFoundingSiteModule(FoundingSiteModule.Cache))
-            {
-                return ExpeditionStartResult.Fail(
-                    ExpeditionStartOutcome.ResourceSortiesUnavailable);
-            }
             if (!_resourceOpportunities.TryGetValue(opportunityId, out resourceOpportunity))
             {
                 return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityNotFound);
+            }
+            bool isSpiritTrail = resourceOpportunity.Kind ==
+                ResourceOpportunityKind.SpiritTrailSearch;
+            if (!isSpiritTrail
+                && (!HasFoundingSiteModule(FoundingSiteModule.Campfire)
+                    || !HasFoundingSiteModule(FoundingSiteModule.Cache)))
+            {
+                return ExpeditionStartResult.Fail(
+                    ExpeditionStartOutcome.ResourceSortiesUnavailable);
             }
             if (resourceOpportunity.State != ResourceOpportunityState.Available)
             {
@@ -271,22 +271,25 @@ public sealed class CityWorld
             }
             if (request.ResourceOpportunityKind != resourceOpportunity.Kind
                 || request.DurationTicks != definition.DurationTicks
-                || request.SupplyResource != definition.SupplyResource
-                || request.SupplyAmount != definition.SupplyAmount
-                || request.RewardResource != definition.RewardResource
+                || request.SupplyRequirement != definition.SupplyRequirement
+                || request.Reward != definition.Reward
                 || request.SetbackReturn != definition.SetbackReturn
                 || request.PartialReturn != definition.PartialReturn
                 || request.RewardAmount != definition.FullReturn)
             {
                 return ExpeditionStartResult.Fail(ExpeditionStartOutcome.InvalidRequest);
             }
-            int returnHeadroom = AvailableFoundingStorageCapacity();
-            if (returnHeadroom < definition.SetbackReturn)
+            int returnHeadroom = definition.Reward.IsMaterial
+                ? AvailableFoundingStorageCapacity()
+                : 0;
+            if (definition.Reward.IsMaterial && returnHeadroom < definition.SetbackReturn)
             {
                 return ExpeditionStartResult.Fail(
                     ExpeditionStartOutcome.InsufficientReturnCapacity);
             }
-            carryCapacity = Math.Min(definition.FullReturn, returnHeadroom);
+            carryCapacity = definition.Reward.IsMaterial
+                ? Math.Min(definition.FullReturn, returnHeadroom)
+                : 0;
         }
         else if (request.ResourceOpportunityKind.HasValue
             || request.SetbackReturn != 0
@@ -303,20 +306,22 @@ public sealed class CityWorld
         }
 
         var id = new ExpeditionId(_nextExpeditionId++);
-        if (!_resources.TryReserve(
-                request.SupplyResource,
-                request.SupplyAmount,
-                new ResourceReservationOwner(
-                    ResourceReservationOwnerKind.Expedition,
-                    id.Value),
-                out ResourceReservation? reservation)
-            || reservation is null)
+        ResourceReservation? reservation = null;
+        if (!request.SupplyRequirement.IsNone
+            && (!_resources.TryReserve(
+                    request.SupplyRequirement.Resource!.Value,
+                    request.SupplyRequirement.Amount,
+                    new ResourceReservationOwner(
+                        ResourceReservationOwnerKind.Expedition,
+                        id.Value),
+                    out reservation)
+                || reservation is null))
         {
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.MissingSupplies);
         }
         if (resourceOpportunity is not null && !resourceOpportunity.TryReserve(id))
         {
-            _resources.Release(reservation.Id);
+            if (reservation is not null) _resources.Release(reservation.Id);
             return ExpeditionStartResult.Fail(ExpeditionStartOutcome.OpportunityUnavailable);
         }
 
@@ -326,12 +331,9 @@ public sealed class CityWorld
             memberIds,
             _tick,
             checked(_tick + request.DurationTicks),
-            request.SupplyResource,
-            request.SupplyAmount,
-            request.RewardResource,
-            request.RewardAmount,
-            request.RewardKind,
-            reservation.Id,
+            request.SupplyRequirement,
+            request.Reward,
+            reservation?.Id,
             retreatPosture: request.RetreatPosture,
             targetParcelId: request.RewardKind == ExpeditionRewardKind.Supplies
                 && resourceOpportunity is null
@@ -358,7 +360,7 @@ public sealed class CityWorld
                 {
                     toRollBack.CancelExpeditionDispatch(id);
                 }
-                _resources.Release(reservation.Id);
+                if (reservation is not null) _resources.Release(reservation.Id);
                 resourceOpportunity?.Release(id);
                 return ExpeditionStartResult.Fail(
                     ExpeditionStartOutcome.MemberUnavailable,
@@ -367,15 +369,6 @@ public sealed class CityWorld
             dispatched.Add(member);
         }
         _expeditions.Add(id, expedition);
-        if (resourceOpportunity?.Kind == ResourceOpportunityKind.SpiritTrailSearch
-            && members.Count == 1
-            && members[0].Id == Hero?.Id)
-        {
-            ExpeditionCombatSessionFactory.EnsureProvisionalFounderWeapon(
-                members[0],
-                id,
-                _tick);
-        }
         _metrics.RecordExpeditionDispatched(_tick);
         WorldEvent dispatchEvent = _log.Record(
             _tick,
@@ -422,7 +415,8 @@ public sealed class CityWorld
         {
             return false;
         }
-        _resources.Release(expedition.ReservationId);
+        if (expedition.ReservationId is ResourceReservationId reservationId)
+            _resources.Release(reservationId);
         ReleaseResourceOpportunity(expedition);
         expedition.MarkCancelled();
         CancelMemberDispatches(expedition);
@@ -2866,7 +2860,8 @@ public sealed class CityWorld
             }
             ExpeditionEncounterOutcome outcome =
                 expedition.EncounterOutcome ?? ExpeditionEncounterOutcome.Setback;
-            bool committed = _resources.Commit(expedition.ReservationId);
+            bool committed = expedition.ReservationId is not ResourceReservationId reservationId
+                || _resources.Commit(reservationId);
             if (committed)
             {
                 // The encounter always resolves before completion (see
@@ -2917,6 +2912,20 @@ public sealed class CityWorld
                             causeEventId: expedition.DispatchEventId);
                     }
                 }
+                else if (expedition.RewardKind == ExpeditionRewardKind.Discovery)
+                {
+                    DepleteResourceOpportunity(expedition);
+                    expedition.MarkReturnedDiscovery();
+                    ReturnMembersFromExpedition(expedition, outcome);
+                    _log.Record(
+                        _tick,
+                        WorldEventKind.ExpeditionReturned,
+                        WorldEventSubject.Expedition(
+                            expedition.Id.Value,
+                            expedition.DisplayName),
+                        0,
+                        expedition.DispatchEventId);
+                }
                 else
                 {
                     int reward = expedition.ReturnFor(outcome);
@@ -2924,11 +2933,11 @@ public sealed class CityWorld
                     {
                         reward = expedition.ResourceOpportunityId.HasValue
                             ? DepositToFoundingStorage(
-                                expedition.RewardResource,
+                                expedition.RewardResource!.Value,
                                 reward,
                                 expedition.Id)
                             : _resources.DepositToCityInventory(
-                                expedition.RewardResource,
+                                expedition.RewardResource!.Value,
                                 reward);
                     }
                     DepleteResourceOpportunity(expedition);
@@ -2947,7 +2956,8 @@ public sealed class CityWorld
             }
             else
             {
-                _resources.Release(expedition.ReservationId);
+                if (expedition.ReservationId is ResourceReservationId failedReservationId)
+                    _resources.Release(failedReservationId);
                 ReleaseResourceOpportunity(expedition);
                 expedition.MarkFailed();
                 ReturnMembersFromExpedition(expedition, outcome);
@@ -3048,7 +3058,8 @@ public sealed class CityWorld
             if (duration <= 0) continue;
             int elapsed = _tick - expedition.StartTick;
 
-            if (expedition.Phase == ExpeditionPhase.Outbound && elapsed >= duration / 4)
+            if (expedition.Phase == ExpeditionPhase.Outbound
+                && elapsed >= ExpeditionTiming.EncounterOffsetTicks(expedition))
             {
                 expedition.BeginEncounter();
                 if (UsesObservableCombat(expedition))
@@ -3089,13 +3100,14 @@ public sealed class CityWorld
             }
             if (expedition.Phase == ExpeditionPhase.Encounter
                 && expedition.EncounterOutcome.HasValue
-                && elapsed >= duration / 2)
+                && (ExpeditionTiming.IsSpiritTrail(expedition) || elapsed >= duration / 2))
             {
                 expedition.TryAdvancePhase(ExpeditionPhase.Objective);
             }
-            if (expedition.Phase == ExpeditionPhase.Objective && elapsed >= duration * 3 / 4)
+            if (expedition.Phase == ExpeditionPhase.Objective
+                && elapsed >= ExpeditionTiming.ObjectiveOffsetTicks(expedition))
             {
-                expedition.TryAdvancePhase(ExpeditionPhase.Returning);
+                expedition.ReachObjectiveAndBeginReturn(_tick);
             }
         }
     }
@@ -3104,8 +3116,7 @@ public sealed class CityWorld
         expedition.ResourceOpportunityKind == ResourceOpportunityKind.SpiritTrailSearch
         && expedition.MemberIds.Count == 1
         && Hero is Citizen founder
-        && expedition.MemberIds[0] == founder.Id
-        && founder.EquipmentLoadout.Weapon is not null;
+        && expedition.MemberIds[0] == founder.Id;
 
     private void CompleteExpeditionEncounter(
         Expedition expedition,
@@ -4337,10 +4348,12 @@ public sealed class CityWorld
         int duration = expedition.EndTick - expedition.StartTick;
         int boundaryTick = expedition.Phase switch
         {
-            ExpeditionPhase.Outbound => expedition.StartTick + duration / 4,
+            ExpeditionPhase.Outbound => expedition.StartTick
+                + ExpeditionTiming.EncounterOffsetTicks(expedition),
             ExpeditionPhase.Encounter or ExpeditionPhase.Retreating =>
                 expedition.StartTick + duration / 2,
-            ExpeditionPhase.Objective => expedition.StartTick + duration * 3 / 4,
+            ExpeditionPhase.Objective => expedition.StartTick
+                + ExpeditionTiming.ObjectiveOffsetTicks(expedition),
             ExpeditionPhase.Returning => expedition.EndTick,
             _ => _tick,
         };
@@ -4978,8 +4991,11 @@ public sealed class CityWorld
         _nextExpeditionId = 1;
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
-            _ = Enum.TryParse(expedition.SupplyResource, true, out ResourceType supply);
-            _ = Enum.TryParse(expedition.RewardResource, true, out ResourceType reward);
+            ExpeditionSupplyRequirement supplyRequirement =
+                expedition.SupplyAmount > 0
+                && Enum.TryParse(expedition.SupplyResource, true, out ResourceType supply)
+                    ? ExpeditionSupplyRequirement.Required(supply, expedition.SupplyAmount)
+                    : ExpeditionSupplyRequirement.None;
             _ = Enum.TryParse(expedition.Status, true, out ExpeditionStatus status);
             _ = Enum.TryParse(
                 string.IsNullOrEmpty(expedition.RewardKind)
@@ -4987,6 +5003,17 @@ public sealed class CityWorld
                     : expedition.RewardKind,
                 true,
                 out ExpeditionRewardKind rewardKind);
+            ExpeditionReward reward = rewardKind switch
+            {
+                ExpeditionRewardKind.Supplies
+                    when Enum.TryParse(
+                        expedition.RewardResource,
+                        true,
+                        out ResourceType rewardResource) =>
+                    ExpeditionReward.Supplies(rewardResource, expedition.RewardAmount),
+                ExpeditionRewardKind.Migrant => ExpeditionReward.Migrant,
+                _ => ExpeditionReward.Discovery,
+            };
             if (!Enum.TryParse(expedition.Phase, true, out ExpeditionPhase phase))
             {
                 phase = ExpeditionPhase.Outbound;
@@ -5011,12 +5038,11 @@ public sealed class CityWorld
                 expedition.MemberCitizenIds.Select(id => new CitizenId(id)).ToArray(),
                 expedition.StartTick,
                 expedition.EndTick,
-                supply,
-                expedition.SupplyAmount,
+                supplyRequirement,
                 reward,
-                expedition.RewardAmount,
-                rewardKind,
-                new ResourceReservationId(expedition.ReservationId),
+                expedition.ReservationId is int reservationId
+                    ? new ResourceReservationId(reservationId)
+                    : null,
                 status,
                 phase,
                 encounterOutcome,
@@ -5040,7 +5066,9 @@ public sealed class CityWorld
                         : null,
                 expedition.SetbackReturn,
                 expedition.PartialReturn,
-                expedition.CarryCapacity);
+                expedition.CarryCapacity,
+                expedition.ObjectiveReachedAtTick,
+                expedition.CombatRulesVersion);
             _expeditions.Add(restored.Id, restored);
             if (expedition.HasCombatSession)
             {

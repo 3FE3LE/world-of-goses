@@ -10,34 +10,21 @@ namespace WorldofGoses.Domain.Combat;
 /// </summary>
 public static class ExpeditionCombatSessionFactory
 {
+    public const int LegacyRulesVersion = 1;
+    public const int CurrentRulesVersion = 2;
     private const double ProvisionalPhysicalTransfer = 1.0;
     private const double ProvisionalElementalResonance = 1.0;
+    private static readonly EnemyCatalog.EncounterTuning OpeningEncounterTuning = new(
+        HealthFactor: 0.75,
+        PowerFactor: 0.08);
 
     /// <summary>
-    /// Temporary bridge until the astral onboarding materialises the chosen
-    /// weapon. It only fills an empty loadout and persists through the existing
-    /// Citizen equipment contract.
+    /// Deterministic, non-persistent opening baseline used only when the Founder
+    /// has no real weapon. It reproduces from expedition identity for save replay
+    /// but never mutates or masquerades as the Citizen's equipment loadout.
+    /// A real equipped weapon takes precedence in <see cref="Create"/>.
     /// </summary>
-    public static bool EnsureProvisionalFounderWeapon(
-        Citizen founder,
-        ExpeditionId expeditionId,
-        int startTick)
-    {
-        ArgumentNullException.ThrowIfNull(founder);
-        if (founder.EquipmentLoadout.Weapon is not null) return false;
-
-        EquipmentLoadout current = founder.EquipmentLoadout;
-        founder.SetEquipmentLoadout(new EquipmentLoadout(
-            ProvisionalWeaponFor(expeditionId, startTick),
-            current.Helmet,
-            current.Chest,
-            current.Legs,
-            current.Boots,
-            current.Gloves));
-        return true;
-    }
-
-    internal static WeaponChannelProfile ProvisionalWeaponFor(
+    internal static WeaponChannelProfile OpeningBaselineFor(
         ExpeditionId expeditionId,
         int startTick)
     {
@@ -73,6 +60,12 @@ public static class ExpeditionCombatSessionFactory
             }
             CombatantState member = service.PrepareSessionMember(
                 citizen,
+                openingBaseline: citizen.EquipmentLoadout.Weapon is null
+                    ? OpeningBaselineFor(expedition.Id, expedition.StartTick)
+                    : null,
+                applyOpeningTutorialBaseline:
+                    citizen.EquipmentLoadout.Weapon is null
+                    && expedition.CombatRulesVersion >= CurrentRulesVersion,
                 positionX: balance.PartyStartingX + index * balance.PartyStartingSpacing);
             party.Add(member);
             plans[member.Id] = new CombatantPlan(
@@ -82,16 +75,21 @@ public static class ExpeditionCombatSessionFactory
                 RetreatWhenBelowThreshold: false);
         }
 
+        EnemyCatalog.EncounterTuning tuning = expedition.CombatRulesVersion >= CurrentRulesVersion
+            ? OpeningEncounterTuning
+            : EnemyCatalog.EncounterTuning.Standard;
         var enemies = new List<CombatantState>
         {
             EnemyCatalog.Create(
                 EnemyArchetype.MeleeEnemy,
                 $"expedition.{expedition.Id.Value}.enemy0",
-                positionX: balance.EnemyMeleeStartingX),
+                positionX: balance.EnemyMeleeStartingX,
+                tuning: tuning),
             EnemyCatalog.Create(
                 EnemyArchetype.RangedEnemy,
                 $"expedition.{expedition.Id.Value}.enemy1",
-                positionX: balance.EnemyRangedStartingX),
+                positionX: balance.EnemyRangedStartingX,
+                tuning: tuning),
         };
         var statuses = new StatusResolver(balance);
         var resolver = new TechniqueResolver(

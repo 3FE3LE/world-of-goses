@@ -15,9 +15,9 @@ public sealed record ExpeditionPlanningSnapshot(
     /// objective is meaningful — the trail cannot be read while the
     /// spirit is still present
     /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). The
-    /// underlying gate is the same as the other resource sorties
-    /// (Campfire + Cache), but the spirit gate is independent and
-    /// must be false until the night concludes.
+    /// Spirit Trail is a narrative objective and therefore does not share the
+    /// Campfire + Cache gate used by material sorties. This gate must remain
+    /// false until the night concludes.
     /// </summary>
     bool SpiritTrailUnlocked,
     int AvailableReturnCapacity,
@@ -28,23 +28,29 @@ public sealed record ExpeditionPlanningSnapshot(
         ResourceOpportunityKind Kind,
         ResourceOpportunityState State,
         int DurationTicks,
-        ResourceType SupplyResource,
-        int SupplyAmount,
-        ResourceType RewardResource,
+        ExpeditionSupplyRequirement SupplyRequirement,
+        ExpeditionReward Reward,
         int MinimumReturn,
         int PartialReturn,
         int MaximumReturn,
         int CarryCapacity,
-        string DisplayName)
+        string DisplayName,
+        bool AccessUnlocked)
     {
+        public ResourceType? SupplyResource => SupplyRequirement.Resource;
+        public int SupplyAmount => SupplyRequirement.Amount;
+        public ResourceType? RewardResource => Reward.Resource;
         public bool CanDispatch => State == ResourceOpportunityState.Available
-            && CarryCapacity >= MinimumReturn;
+            && AccessUnlocked
+            && (!Reward.IsMaterial || CarryCapacity >= MinimumReturn);
     }
 
     public static ExpeditionPlanningSnapshot From(CityWorld world)
     {
         bool unlocked = world.HasFoundingSiteModule(FoundingSiteModule.Campfire)
             && world.HasFoundingSiteModule(FoundingSiteModule.Cache);
+        bool spiritTrailUnlocked = world.Log.Events.Any(
+            evt => evt.Kind == WorldEventKind.SpiritDeparted);
         int capacity = world.AvailableFoundingStorageCapacity();
         var opportunities = new List<OpportunityItem>();
         foreach (ResourceOpportunity opportunity in world.ResourceOpportunities.Values)
@@ -56,17 +62,19 @@ public sealed record ExpeditionPlanningSnapshot(
                 opportunity.Kind,
                 opportunity.State,
                 definition.DurationTicks,
-                definition.SupplyResource,
-                definition.SupplyAmount,
-                definition.RewardResource,
+                definition.SupplyRequirement,
+                definition.Reward,
                 definition.SetbackReturn,
                 definition.PartialReturn,
                 definition.FullReturn,
-                unlocked ? System.Math.Min(definition.FullReturn, capacity) : 0,
-                definition.DisplayName));
+                unlocked && definition.Reward.IsMaterial
+                    ? System.Math.Min(definition.FullReturn, capacity)
+                    : 0,
+                definition.DisplayName,
+                opportunity.Kind == ResourceOpportunityKind.SpiritTrailSearch
+                    ? spiritTrailUnlocked
+                    : unlocked));
         }
-        bool spiritTrailUnlocked = world.Log.Events.Any(
-            evt => evt.Kind == WorldEventKind.SpiritDeparted);
         return new ExpeditionPlanningSnapshot(unlocked, spiritTrailUnlocked, capacity, opportunities);
     }
 }

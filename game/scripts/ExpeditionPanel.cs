@@ -233,7 +233,7 @@ public partial class ExpeditionPanel : Control
 
     private static string DescribeDispatchFailure(
         ExpeditionStartResult result,
-        ResourceType supplyResource)
+        ResourceType? supplyResource)
     {
         // The dispatch outcome does not always carry the actionable
         // context (e.g. MissingSupplies doesn't say WHICH supply is
@@ -242,10 +242,10 @@ public partial class ExpeditionPanel : Control
         // through code to understand what is missing.
         return result.Outcome switch
         {
-            ExpeditionStartOutcome.MissingSupplies =>
+            ExpeditionStartOutcome.MissingSupplies when supplyResource.HasValue =>
                 UiText.Format(
                     "ui.expedition.dispatch_missing_supplies",
-                    UiText.Get(supplyResource.ToString())),
+                    UiText.Get(supplyResource.Value.ToString())),
             ExpeditionStartOutcome.AlreadyActive =>
                 UiText.Get("ui.expedition.dispatch_active_hint"),
             ExpeditionStartOutcome.MemberUnavailable =>
@@ -447,27 +447,34 @@ public partial class ExpeditionPanel : Control
 
         ExpeditionPlanningSnapshot.OpportunityItem? selected = snapshot.Opportunities
             .FirstOrDefault(item => item.Id == _selectedOpportunityId);
-        if (!snapshot.ResourceSortiesUnlocked)
-        {
-            _objectiveSummary.Text = UiText.Get("ui.expedition.resource_unlock_hint");
-            return;
-        }
         if (selected is null)
         {
             _objectiveSummary.Text = UiText.Get("ui.expedition.opportunity_unavailable");
             return;
         }
+        if (!selected.AccessUnlocked)
+        {
+            _objectiveSummary.Text = UiText.Get(
+                selected.Kind == ResourceOpportunityKind.SpiritTrailSearch
+                    ? "ui.expedition.spirit_trail_locked"
+                    : "ui.expedition.resource_unlock_hint");
+            return;
+        }
         _objectiveSummary.Text = selected.State == ResourceOpportunityState.Depleted
             ? UiText.Get("ui.expedition.opportunity_depleted")
-            : UiText.Format(
+            : selected.Reward.Kind == ExpeditionRewardKind.Discovery
+                ? UiText.Format(
+                    "ui.expedition.spirit_trail_summary",
+                    SimulationTimeText.FormatDurationLocalized(selected.DurationTicks))
+                : UiText.Format(
                 "ui.expedition.objective_summary",
                 SimulationTimeText.FormatDurationLocalized(selected.DurationTicks),
                 selected.SupplyAmount,
-                UiText.Get(selected.SupplyResource.ToString()),
+                UiText.Get(selected.SupplyResource!.Value.ToString()),
                 selected.MinimumReturn,
                 selected.PartialReturn,
                 selected.MaximumReturn,
-                UiText.Get(selected.RewardResource.ToString()),
+                UiText.Get(selected.RewardResource!.Value.ToString()),
                 selected.CarryCapacity);
     }
 
@@ -483,9 +490,11 @@ public partial class ExpeditionPanel : Control
         button.Text = $"[{(selected ? "X" : " ")}] {label}";
         button.ThemeTypeVariation = selected ? "HudButtonSelected" : "HudButton";
         button.ButtonPressed = selected;
-        button.Disabled = !snapshot.ResourceSortiesUnlocked || item is not { CanDispatch: true };
-        button.TooltipText = !snapshot.ResourceSortiesUnlocked
-            ? UiText.Get("ui.expedition.resource_unlock_hint")
+        button.Disabled = item is not { CanDispatch: true };
+        button.TooltipText = item is { AccessUnlocked: false }
+            ? UiText.Get(kind == ResourceOpportunityKind.SpiritTrailSearch
+                ? "ui.expedition.spirit_trail_locked"
+                : "ui.expedition.resource_unlock_hint")
             : item?.State == ResourceOpportunityState.Depleted
                 ? UiText.Get("ui.expedition.opportunity_depleted")
                 : item is { CanDispatch: false }

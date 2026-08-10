@@ -20,6 +20,7 @@ namespace WorldofGoses;
 public partial class CityPrototype : Node
 {
     private bool _expeditionLiveEscapeFixture;
+    private ExpeditionLiveFixtureState _expeditionLiveFixtureState;
     /// <summary>
     /// Authored macro composition target for the bottom-centre
     /// <see cref="PrimaryNavDock"/> in the labelled profile. Re-freeze only
@@ -187,10 +188,45 @@ public partial class CityPrototype : Node
                 ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveExpedition);
                 break;
             case "expedition-live-early":
-                ShowExpeditionLiveForVisualRegression();
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Encounter);
                 break;
             case "expedition-live-escape":
-                ShowExpeditionLiveForVisualRegression(exitWithCancel: true);
+                ShowExpeditionLiveForVisualRegression(
+                    ExpeditionLiveFixtureState.Encounter,
+                    exitWithCancel: true);
+                break;
+            case "expedition-live-travel":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Travel);
+                break;
+            case "expedition-live-encounter":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Encounter);
+                break;
+            case "expedition-live-basic-attack":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.BasicAttack);
+                break;
+            case "expedition-live-skill-ready":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.SkillReady);
+                break;
+            case "expedition-live-skill-cooldown":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.SkillCooldown);
+                break;
+            case "expedition-live-auto-on":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.AutoOn);
+                break;
+            case "expedition-live-auto-off":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.AutoOff);
+                break;
+            case "expedition-live-ranged":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Ranged);
+                break;
+            case "expedition-live-knockback":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Knockback);
+                break;
+            case "expedition-live-objective":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Objective);
+                break;
+            case "expedition-live-return":
+                ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Return);
                 break;
             case "offline-report":
                 GetNode<ExpeditionRail>(
@@ -1734,6 +1770,21 @@ public partial class CityPrototype : Node
         Cancelled,
     }
 
+    private enum ExpeditionLiveFixtureState
+    {
+        Travel,
+        Encounter,
+        BasicAttack,
+        SkillReady,
+        SkillCooldown,
+        AutoOn,
+        AutoOff,
+        Ranged,
+        Knockback,
+        Objective,
+        Return,
+    }
+
     private void ShowHeroIncorporationForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
@@ -1918,13 +1969,7 @@ public partial class CityPrototype : Node
         {
             world.Resources.DepositToCityInventory(ResourceType.Wood, 1);
         }
-        if (prepareObservableCombat)
-        {
-            ExpeditionCombatSessionFactory.EnsureProvisionalFounderWeapon(
-                world.Hero!,
-                new ExpeditionId(1),
-                world.CurrentTick);
-        }
+        _ = prepareObservableCombat;
 
         ExpeditionRequest request = ExpeditionRequest.Reconnaissance(world.Hero!.Id) with
         {
@@ -1950,51 +1995,160 @@ public partial class CityPrototype : Node
         rail.Refresh();
     }
 
-    private void ShowExpeditionLiveForVisualRegression(bool exitWithCancel = false)
+    private void ShowExpeditionLiveForVisualRegression(
+        ExpeditionLiveFixtureState state,
+        bool exitWithCancel = false)
     {
         _expeditionLiveEscapeFixture = exitWithCancel;
-        ShowExpeditionRailForVisualRegression(
-            ExpeditionRailFixtureState.Encounter,
-            locale: "es",
-            displayName: "ui.expedition_live.fixture.silent_forest",
-            durationTicks: 40,
-            prepareObservableCombat: true);
+        _expeditionLiveFixtureState = state;
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        if (!PrepareSpiritTrailVisualFixture(controller, out ExpeditionId expeditionId)) return;
+        AdvanceSpiritTrailVisualFixture(controller.World, expeditionId, state);
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Fast);
         ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
             "GameUiShell/ScreenContent/ExpeditionLiveView");
-        liveView.ShowEarlyFixture();
+        liveView.UseStableFounderLabelForVisualRegression();
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
+        rail.Refresh();
         if (exitWithCancel)
         {
-            if (rail.FirstExpeditionId is not ExpeditionId expeditionId
-                || !controller.SelectExpeditionLive(expeditionId))
+            if (!controller.SelectExpeditionLive(expeditionId))
             {
-                GD.PushError("[WOG-EXPEDITION-LIVE-ESC] could not select the prepared expedition.");
+                GD.PushError("[WOG-EXPEDITION-LIVE-ESC] could not select the prepared Spirit Trail.");
                 return;
             }
             GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveForVisualRegression;
             return;
         }
-        // Force both edges so the accordion emits even when a persisted
-        // fixture state already left the rail header logically expanded
-        // while its scroll remained folded behind Chronicle.
         rail.SetExpandedForVisualRegression(expanded: false);
         rail.SetExpandedForVisualRegression(expanded: true);
         GetTree().CreateTimer(0.1).Timeout += () =>
         {
             if (rail.FirstViewButton is null)
             {
-                GD.PushError("[WOG-EXPEDITION-LIVE] active card has no View action.");
+                GD.PushError("[WOG-EXPEDITION-LIVE] active Spirit Trail has no View action.");
                 return;
             }
-            GD.Print(
-                $"[WOG-EXPEDITION-LIVE-TARGET] visible={rail.FirstViewButton.IsVisibleInTree()}, "
-                + $"rect={rail.FirstViewButton.GetGlobalRect()}.");
             SendPointerClickForVisualRegression(rail.FirstViewButton);
             GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveForVisualRegression;
         };
+    }
+
+    private static bool PrepareSpiritTrailVisualFixture(
+        CityWorldController controller,
+        out ExpeditionId expeditionId)
+    {
+        expeditionId = default;
+        CitizenProfile profile = NewFounderProfile(LineageId.Kovari);
+        var fixture = new CityWorld();
+        HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
+            "Aster",
+            profile,
+            profile.Gender));
+        if (!heroResult.IsSuccess)
+        {
+            GD.PushError($"Spirit Trail fixture could not create Founder: {heroResult.Outcome}.");
+            return false;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        if (!DriveFirstNightToDawnForVisualFixture(fixture)) return false;
+        ResourceOpportunity? opportunity = fixture.ResourceOpportunities.Values.FirstOrDefault(item =>
+            item.Kind == ResourceOpportunityKind.SpiritTrailSearch);
+        if (opportunity is null)
+        {
+            GD.PushError("Spirit Trail fixture did not surface its opportunity at dawn.");
+            return false;
+        }
+        ExpeditionStartResult started = fixture.StartResourceExpedition(
+            opportunity.Id,
+            [fixture.Hero!.Id],
+            ExpeditionRetreatPosture.ContinueAfterSetback);
+        if (!started.IsSuccess || started.ExpeditionId is not ExpeditionId startedId)
+        {
+            GD.PushError($"Spirit Trail fixture could not dispatch: {started.Outcome}.");
+            return false;
+        }
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+        expeditionId = startedId;
+        return true;
+    }
+
+    private static bool DriveFirstNightToDawnForVisualFixture(CityWorld world)
+    {
+        FirstNightState night = world.FirstNight!;
+        ConstructionProject? project = null;
+        int safety = 32;
+        while (night.Stage < FirstNightStage.Sleeping && safety-- > 0)
+        {
+            if (FirstNightRules.WaitsForModule(night.Stage))
+            {
+                FoundingSiteModule module = FirstNightRules.ModuleFor(night.Stage);
+                foreach (RecipeInput input in FoundingSiteRules.InputsFor(module))
+                {
+                    world.Resources.DepositToCityInventory(input.Resource, input.Amount);
+                }
+                ConstructionAuthorizationResult authorization = project is null
+                    ? world.TryAuthorizeConstruction(ConstructionKind.FoundingSite)
+                    : world.TryAuthorizeFoundingSiteModule(project.Id, module);
+                if (!authorization.IsSuccess)
+                {
+                    GD.PushError($"Spirit Trail fixture stalled at {night.Stage}: {authorization.Outcome}.");
+                    return false;
+                }
+                project ??= world.Projects.Values.Single();
+                project.Progress = project.RequiredWork;
+                world.AdvanceWorldTick();
+            }
+            else if (!world.TryCloseFirstNightDialogue())
+            {
+                GD.PushError($"Spirit Trail fixture dialogue stalled at {night.Stage}.");
+                return false;
+            }
+        }
+        return night.Stage == FirstNightStage.Sleeping && world.TryCloseFirstNightDialogue();
+    }
+
+    private static void AdvanceSpiritTrailVisualFixture(
+        CityWorld world,
+        ExpeditionId expeditionId,
+        ExpeditionLiveFixtureState state)
+    {
+        Expedition expedition = world.Expeditions[expeditionId];
+        if (state == ExpeditionLiveFixtureState.Travel) return;
+        AdvanceUntilVisualFixture(world, () => world.GetCombatSessionSnapshot(expeditionId) is not null);
+        if (state == ExpeditionLiveFixtureState.AutoOff)
+            world.SetCombatAutoSkillsEnabled(expeditionId, false);
+        if (state == ExpeditionLiveFixtureState.SkillCooldown)
+        {
+            world.SetCombatAutoSkillsEnabled(expeditionId, false);
+            world.TryActivateMemberSkill(expeditionId, 0);
+            AdvanceUntilVisualFixture(world, () => world.GetCombatSessionSnapshot(expeditionId)!
+                .MemberSkills.Any(skill => skill.Remaining > 0));
+        }
+        if (state == ExpeditionLiveFixtureState.BasicAttack)
+        {
+            world.SetCombatAutoSkillsEnabled(expeditionId, false);
+            AdvanceUntilVisualFixture(world, () => world.GetCombatSessionSnapshot(expeditionId)!
+                .Log.Any(entry => entry.Kind == CombatLogKind.BasicAttackResolved));
+        }
+        if (state == ExpeditionLiveFixtureState.Knockback)
+        {
+            AdvanceUntilVisualFixture(world, () => world.GetCombatSessionSnapshot(expeditionId)!
+                .Log.Any(entry => entry.Kind == CombatLogKind.KnockbackApplied));
+        }
+        if (state is ExpeditionLiveFixtureState.Objective or ExpeditionLiveFixtureState.Return)
+            AdvanceUntilVisualFixture(world, () => expedition.EncounterOutcome.HasValue);
+        if (state == ExpeditionLiveFixtureState.Return)
+            AdvanceUntilVisualFixture(world, () => expedition.Phase == ExpeditionPhase.Returning);
+    }
+
+    private static void AdvanceUntilVisualFixture(CityWorld world, Func<bool> condition)
+    {
+        int safety = ExpeditionTiming.SpiritTrailDurationTicks;
+        while (!condition() && safety-- > 0) world.AdvanceWorldTick();
+        if (safety <= 0) GD.PushError("Spirit Trail visual fixture missed its requested state.");
     }
 
     private void ValidateExpeditionLiveForVisualRegression()
@@ -2007,6 +2161,12 @@ public partial class CityPrototype : Node
         CombatSessionSnapshot? combat = liveView.PresentedExpeditionId is ExpeditionId expeditionId
             ? controller.World.GetCombatSessionSnapshot(expeditionId)
             : null;
+        bool expectsCombat = _expeditionLiveFixtureState is not ExpeditionLiveFixtureState.Travel
+            and not ExpeditionLiveFixtureState.Objective
+            and not ExpeditionLiveFixtureState.Return;
+        bool expectsAuto = _expeditionLiveFixtureState is not ExpeditionLiveFixtureState.AutoOff
+            and not ExpeditionLiveFixtureState.BasicAttack
+            and not ExpeditionLiveFixtureState.SkillCooldown;
         bool passed = liveView.Visible
             && liveView.PresentedExpeditionId.HasValue
             && !macro.Visible
@@ -2019,8 +2179,11 @@ public partial class CityPrototype : Node
             && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").SpeedButton.IsVisibleInTree()
             && GetViewport().GuiGetFocusOwner() == liveView.BackButton
             && liveView.HasReferenceLayout
-            && combat is { Active: true, AutoSkillsEnabled: true }
-            && !liveView.AutoButton.Disabled
+            && (expectsCombat
+                ? combat is { Active: true }
+                    && combat.AutoSkillsEnabled == expectsAuto
+                    && !liveView.AutoButton.Disabled
+                : (combat is null || !combat.Active) && liveView.AutoButton.Disabled)
             && controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast;
         if (!passed)
         {
@@ -2028,13 +2191,16 @@ public partial class CityPrototype : Node
                 $"[WOG-EXPEDITION-LIVE] routing failed; live={liveView.Visible}, "
                 + $"macro={macro.Visible}, selection={controller.CurrentSelection}, "
                 + $"speed={controller.CurrentSpeed}, layout={liveView.HasReferenceLayout}, "
-                + $"combat={combat?.Outcome}, autoDisabled={liveView.AutoButton.Disabled}, "
+                + $"combat={combat?.Outcome}, active={combat?.Active}, auto={combat?.AutoSkillsEnabled}, "
+                + $"expectedCombat={expectsCombat}, expectedAuto={expectsAuto}, "
+                + $"focus={GetViewport().GuiGetFocusOwner()?.Name}, "
+                + $"autoDisabled={liveView.AutoButton.Disabled}, "
                 + $"bounds={liveView.ReferenceLayoutReport}.");
             return;
         }
         GD.Print(
-            "[WOG-EXPEDITION-LIVE] reference layout opened with active combat at global 2x; "
-            + $"step={combat!.Step}, enemies={combat.EnemyCount}, auto={combat.AutoSkillsEnabled}; "
+            $"[WOG-EXPEDITION-LIVE] real Spirit Trail {_expeditionLiveFixtureState} at global 2x; "
+            + $"step={combat?.Step}, enemies={combat?.EnemyCount}, auto={combat?.AutoSkillsEnabled}; "
             + "stage=800x488, sides=228/224, squad=441, skills=456.");
         if (!_expeditionLiveEscapeFixture) return;
 

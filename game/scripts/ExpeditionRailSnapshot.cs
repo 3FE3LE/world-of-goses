@@ -16,7 +16,7 @@ public sealed record ExpeditionRailSnapshot(
         string DisplayName,
         ExpeditionPhase Phase,
         IReadOnlyList<string> MemberNames,
-        ResourceType SupplyResource,
+        ResourceType? SupplyResource,
         int SupplyAmount,
         int StartTick,
         int EndTick,

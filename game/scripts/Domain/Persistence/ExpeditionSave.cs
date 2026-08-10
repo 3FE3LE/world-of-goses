@@ -20,11 +20,11 @@ public sealed class ExpeditionSave
     public int LeadCitizenId { get; set; }
     public int StartTick { get; set; }
     public int EndTick { get; set; }
-    public string SupplyResource { get; set; } = string.Empty;
+    public string? SupplyResource { get; set; }
     public int SupplyAmount { get; set; }
-    public string RewardResource { get; set; } = string.Empty;
+    public string? RewardResource { get; set; }
     public int RewardAmount { get; set; }
-    public int ReservationId { get; set; }
+    public int? ReservationId { get; set; }
     public string Status { get; set; } = string.Empty;
     public int? ReturnedAmount { get; set; }
     public string RewardKind { get; set; } = string.Empty;
@@ -49,6 +49,8 @@ public sealed class ExpeditionSave
     public int SetbackReturn { get; set; }
     public int PartialReturn { get; set; }
     public int CarryCapacity { get; set; }
+    public int? ObjectiveReachedAtTick { get; set; }
+    public int CombatRulesVersion { get; set; }
     public bool HasCombatSession { get; set; }
     public int CombatStepsAdvanced { get; set; }
     public List<CombatSessionCommandSave> CombatCommands { get; set; } = new();

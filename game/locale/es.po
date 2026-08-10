@@ -819,6 +819,9 @@ msgstr "Libera espacio en el Almacén para al menos el retorno mínimo."
 msgid "ui.expedition.objective_summary"
 msgstr "{0}; cuesta {1} de {2}; retorna {3}/{4}/{5} de {6}; capacidad reservada {7}."
 
+msgid "ui.expedition.spirit_trail_summary"
+msgstr "{0}; no requiere provisiones; sigue el rastro del espíritu hasta su objetivo."
+
 msgid "Nearby Food Forage"
 msgstr "Recolección de comida cercana"
 

@@ -46,6 +46,17 @@ public sealed record EnemyDefinition(
 
 public static class EnemyCatalog
 {
+    public sealed record EncounterTuning(double HealthFactor, double PowerFactor)
+    {
+        public static EncounterTuning Standard { get; } = new(1, 1);
+
+        public void Validate()
+        {
+            if (HealthFactor <= 0) throw new ArgumentOutOfRangeException(nameof(HealthFactor));
+            if (PowerFactor <= 0) throw new ArgumentOutOfRangeException(nameof(PowerFactor));
+        }
+    }
+
     private static readonly Dictionary<EnemyArchetype, EnemyDefinition> Definitions = new()
     {
         [EnemyArchetype.MeleeEnemy] = new EnemyDefinition(
@@ -98,9 +109,12 @@ public static class EnemyCatalog
     public static CombatantState Create(
         EnemyArchetype archetype,
         string id,
-        double positionX = 0)
+        double positionX = 0,
+        EncounterTuning? tuning = null)
     {
         EnemyDefinition definition = Get(archetype);
+        tuning ??= EncounterTuning.Standard;
+        tuning.Validate();
         // The definition authors both values. Deriving the expression from the
         // affinity instead, as this did, silently discarded a definition whose
         // two fields disagreed: the techniques came from `Expression` while the
@@ -115,10 +129,10 @@ public static class EnemyCatalog
             definition.DisplayName,
             CombatSide.Enemy,
             citizenId: null,
-            maxHealth: definition.MaxHealth,
-            currentHealth: definition.MaxHealth,
-            physicalChannelPower: definition.PhysicalChannelPower,
-            elementalChannelPower: definition.ElementalChannelPower,
+            maxHealth: definition.MaxHealth * tuning.HealthFactor,
+            currentHealth: definition.MaxHealth * tuning.HealthFactor,
+            physicalChannelPower: definition.PhysicalChannelPower * tuning.PowerFactor,
+            elementalChannelPower: definition.ElementalChannelPower * tuning.PowerFactor,
             physicalMitigation: definition.PhysicalMitigation,
             elementalMitigation: definition.ElementalMitigation,
             generalDamageReduction: definition.GeneralDamageReduction,

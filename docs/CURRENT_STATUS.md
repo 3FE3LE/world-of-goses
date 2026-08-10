@@ -10,9 +10,9 @@ add a second gameplay loop: it preserves the existing Founding/Cultivation
 sites, makes placement continuous, protects optional corridors, and keeps the
 clearance-defined unused area of every resource or construction traversable.
 
-**Next approved work:** integrar el primer Spirit Trail visual del Founder de
-extremo a extremo y hacer visible el primer combate durante los primeros cinco
-minutos aproximados. `DEC-0020` reanaliza y supera la restricción que bloqueaba
+**Next approved work:** validar y pulir el primer Spirit Trail visual del Founder,
+ya conectado de extremo a extremo con combate temprano, objetivo y regreso.
+`DEC-0020` reanaliza y supera la restricción que bloqueaba
 combate hasta cerrar EG-5/EG-6. El orden vigente es
 EG-0 → EG-1 → EG-2 → EG-3 → EG-4 → **EG-5V** → EG-5C → EG-6. La
 consolidación agrícola pendiente (segundo/tercer Cultivation Site + Farm) se
@@ -41,11 +41,13 @@ and this section gets corrected in the same change.
   keyed by its real `ExpeditionId`; presentation and `combat-debug` observe the
   same domain engine without owning it. Non-Spirit expeditions deliberately keep
   their previous aggregate resolver during this narrow slice.
-- `dotnet test`: 1168/1169 passing (1 omitido por brittleness del JSON snapshot en
+- `dotnet test`: 1185/1186 passing (1 omitido por brittleness del JSON snapshot en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
   cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
   workday se desplazó a 08:00).
-- `WorldSave.CurrentVersion`: 33. V32→V33 persists the active Spirit Trail
+- `WorldSave.CurrentVersion`: 34. V33→V34 converts the opening Spirit Trail to
+  no supply + Discovery, removes the exact synthetic weapon and versions combat
+  rules so an in-flight legacy replay is not rerolled. V32→V33 persists the active Spirit Trail
   combat step and replayable AUTO/manual command history. V31→V32 renames the third cube face from
   `Mastery` to `Domain` on disk (DEC-0019) and preserves the legacy field one
   schema bump as a nullable bridge so a v31 save loads without losing the
@@ -67,20 +69,21 @@ and this section gets corrected in the same change.
   cell now validates, matching what the domain and the player already see; the
   JSON shape is unchanged, so this widened only the validation and needed no
   migration.
-- El pipeline de snapshot Full sigue siendo intermitente y registró un fallo
-  `-1073741819`; el boot headless standalone posterior sí completó limpio. Esto
-  valida carga/runtime, no sustituye la captura visual Full pendiente.
-- EN/ES catalogs: 1049 template IDs and 324 runtime keys validated.
+- El snapshot Full registró otra vez el fallo headless intermitente
+  `-1073741819`; la matriz Godot separada completó 22 capturas y logs limpios.
+  El boot headless standalone inmediato salió con 0. La evidencia visual y de
+  carga existe, pero el crash del harness Full sigue abierto.
+- EN/ES catalogs: 1050 template IDs and 324 runtime keys validated.
 - The physical expression is derived from the **Kovari Cube** — the highest face
   of the persisted `CubeProfile` — and no longer from the elemental affinity.
   The two are independent: an Ardhen founder can be Fracture with Fire,
   Paralysis with Air or Bleeding with Aether. It and the two weapon families it
   makes natural are shown on the hero profile, the founder arrival card
   (compact, per DEC-0013) and the onboarding result card. There is still no
-  equipment UI or player-facing equipment economy. The first Spirit Trail now
-  has one narrow production caller that persists a deterministic provisional
-  weapon when the Founder is unarmed; the future onboarding choice must replace
-  that bridge. These profile labels still read as learning affinities. The
+  equipment UI or player-facing equipment economy. An unarmed Founder instead
+  receives a deterministic, session-only opening baseline; it never mutates the
+  loadout and a future onboarding weapon naturally takes precedence. These
+  profile labels still read as learning affinities. The
   English face name `Mastery` was reserved for the
   upcoming weapon-family mastery tiers (DEC-0019) and is no longer used on
   the cube; the cube face is `Dominio` everywhere — code, JSON, UI.
@@ -201,11 +204,10 @@ and §17 acceptance test are complete.
 - Campfire + Cache expose one finite Food and one finite Wood opportunity;
   dispatch reserves supply, opportunity and bounded return capacity, completion
   depletes it, and cancellation/retreat releases it.
-- `SpiritTrailSearch` is currently a third resource-opportunity variant at 180
-  ticks that consumes 1 Food and returns Wood 4/6/8. `DEC-0020` supersedes that
-  implementation as product direction: the target is roughly four world hours,
-  no Food cost merely for duration, narrative trail progression and an open
-  material reward.
+- `SpiritTrailSearch` is a four-world-hour Founder-only route. It requires no
+  Food, reserves no supply, yields `Discovery` rather than a material resource,
+  triggers its encounter after half a world hour, continues to a visible spirit
+  trace, then returns visibly to the city.
 - `ExpeditionLiveView` observes the first Spirit Trail's world-owned incremental
   session. `CombatDebugPanel` remains a debug-only client of the same deterministic,
   non-spatial engine rather than becoming production UI.
@@ -334,7 +336,7 @@ and §17 acceptance test are complete.
   projects Founder + three locked future slots and four octagonal Skills.
   `expedition_skill_1` is functional; 2–4 are legal locked no-ops.
 - Spirit Trail combat is an incremental, deterministic `CombatSession` owned by
-  `CityWorld`, advanced from world ticks and persisted in schema v33. Basic
+  `CityWorld`, advanced from world ticks and persisted in schema v34. Basic
   Attack is automatic; AUTO only gates the single Active Skill. Combatants
   approach in one dimension until `AttackRange`, never kite, and resolved hits
   apply deterministic Impulse/Stability knockback. Chains and manual retreat
@@ -369,7 +371,7 @@ increments EG-*:
 | Onboarding / founder | Funcional | `AstralOnboardingView` produce un único `Citizen` persistente con rol `hero`. |
 | Commitment exclusivo | Funcional | `Citizen.Commitment` rechaza transiciones incompatibles visiblemente. |
 | Construcción / proyectos | Funcional | `ConstructionProject` + deposit + remainder; Founding Site semántico Campfire → Bedroll/Cache → Canopy, con mismo ID/parcela y progreso offline. |
-| Persistencia offline | Funcional | Schema v33; la sesión de combate activa conserva paso lógico e historial de comandos reproducible además de los contratos previos. |
+| Persistencia offline | Funcional | Schema v34; la sesión activa conserva reglas versionadas, paso lógico e historial de comandos reproducible, además de objetivo/regreso exact-once. |
 | Primer Cultivation Site | Funcional | Introducido en schema v24 y preservado en v25; Shelter requerido, preparación 180, semilla 1 Food, `readyAtTick` a 10.800 ticks, cosecha 5 Food y transición exacta live/offline. |
 | Citizens y asignaciones | Funcional | `CitizenRoutine` cubre work, expedition, recovery. |
 | Recruitment | Funcional | Town Hall + prospect + vivienda. Wound/territory del VS-3 se conservan en código. |

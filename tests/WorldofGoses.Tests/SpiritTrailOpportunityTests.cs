@@ -8,38 +8,35 @@ namespace WorldofGoses.Tests;
 /// The <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
 /// opportunity is the post-dawn motivation that
 /// <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §12 promises: the
-/// trail the spirit left leads to fire-blackened wood. These tests
-/// assert the definition fits the existing
-/// <see cref="ResourceExpeditionDefinition"/> shape without
-/// introducing a new field, and that the kind round-trips through
-/// the string-serialised opportunity log.
+/// trail the spirit left becomes the first narrative expedition objective,
+/// not a resource conversion. The kind still round-trips through the
+/// string-serialised opportunity log.
 /// </summary>
 public sealed class SpiritTrailOpportunityTests
 {
     [Fact]
-    public void Definition_ProducesWoodReward()
+    public void Definition_RequiresNoSupplyAndProducesDiscovery()
     {
         ResourceExpeditionDefinition definition =
             ResourceExpeditionRules.Definition(ResourceOpportunityKind.SpiritTrailSearch);
 
-        Assert.Equal(ResourceType.Wood, definition.RewardResource);
-        Assert.Equal(ResourceType.Food, definition.SupplyResource);
-        Assert.Equal(1, definition.SupplyAmount);
+        Assert.Equal(ExpeditionSupplyRequirement.None, definition.SupplyRequirement);
+        Assert.Equal(ExpeditionReward.Discovery, definition.Reward);
+        Assert.Null(definition.SupplyResource);
+        Assert.Null(definition.RewardResource);
     }
 
     [Fact]
-    public void Definition_MatchesFallenWoodReturnCurve()
+    public void Definition_UsesNamedFourHourRouteWithoutMaterialReturnCurve()
     {
-        // The trail mirrors FallenWoodSearch's return curve: the only
-        // thing that differs between the two opportunities is the
-        // narrative framing, so a player who learnt one learns the other.
         ResourceExpeditionDefinition definition =
             ResourceExpeditionRules.Definition(ResourceOpportunityKind.SpiritTrailSearch);
 
-        Assert.Equal(180, definition.DurationTicks);
-        Assert.Equal(4, definition.SetbackReturn);
-        Assert.Equal(6, definition.PartialReturn);
-        Assert.Equal(8, definition.FullReturn);
+        Assert.Equal(4 * GameClock.TicksPerInGameHour, definition.DurationTicks);
+        Assert.Equal(ExpeditionTiming.SpiritTrailDurationTicks, definition.DurationTicks);
+        Assert.Equal(0, definition.SetbackReturn);
+        Assert.Equal(0, definition.PartialReturn);
+        Assert.Equal(0, definition.FullReturn);
     }
 
     [Fact]

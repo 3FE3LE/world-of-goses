@@ -919,6 +919,49 @@ accepted DEC-0020 rules for automatic approach, AttackRange, no kiting and
 Impulse/Stability knockback. It does not introduce manual movement, a separate
 clock or a combat-specific speed.
 
+**Superseded in part by DEC-0022:** the persistent provisional weapon and its
+v32→v33 grant are historical implementation. The session ownership, one-clock,
+Basic Attack, AUTO/manual command and replay decisions remain canonical.
+
+---
+
+### DEC-0022: Spirit Trail is the opening objective, not a resource conversion
+
+**Status:** Accepted
+**Date:** 2026-08-10
+**Supersedes:** DEC-0021 only where it persisted a provisional first weapon;
+DEC-0014/legacy implementation only where Spirit Trail meant `1 Food → Wood`.
+
+**Decision:**
+
+The first `SpiritTrailSearch` is a Founder-only, four-world-hour narrative
+route with no supply requirement and a non-material `Discovery` result. Its
+encounter begins at the named half-hour route milestone, uses one melee and one
+ranged enemy, and must resolve through the same observable/background session.
+Victory continues to a physical trail manifestation; reaching it begins a
+visible return, and only arrival in the city completes the expedition.
+
+An unarmed Founder receives an explicit, deterministic, non-persistent opening
+combat baseline for Basic Attack and Active Skill 1. It never writes a weapon
+to `EquipmentLoadout`; a later onboarding weapon replaces this baseline simply
+by being real equipment. Schema v34 removes the exact synthetic v33 weapon,
+releases the obsolete Food reservation, records no material reward and versions
+combat balance per expedition so an already-running v33 replay keeps its old
+rules while new Spirit Trails use the tutorial baseline.
+
+**Consequences:**
+
+- `SupplyRequirement.None` and `ExpeditionReward.Discovery` are real contracts,
+  not zero-value or sentinel resources.
+- World time alone triggers Encounter, Objective and Return. The UI projects
+  those facts and never hardcodes phase changes.
+- Current rules guarantee the bounded tutorial encounter for every Founder
+  lineage without granting equipment or weapon experience.
+- Save/load and offline advancement preserve commands, cooldowns, logical
+  positions, outcome, objective arrival and exact-once return effects.
+- Traits, Chains, four real members, formation, carriage, `SPACE`, bosses and a
+  complete bestiary remain outside this decision.
+
 ---
 
 ## Infrastructure decisions

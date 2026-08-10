@@ -673,8 +673,8 @@ The increments, in design order:
    return capacity; cancellation or retreat releases the opportunity, while a
    completed objective depletes it. Live, offline and save/load resolution use
    the same persisted state.
-6. **EG-5V — Founder Spirit Trail visual vertical.** *Next approved increment
-   (DEC-0020).* Preserve one world clock and 1x/2x/4x speed while city, travel
+6. **EG-5V — Founder Spirit Trail visual vertical.** *Connected 2026-08-10
+   (DEC-0020/DEC-0022); human clean-slot signature pending.* Preserve one world clock and 1x/2x/4x speed while city, travel
    and combat advance in parallel. Show four vanguard slots (Founder only;
    2–4 locked) and four octagonal Active Skill slots (only Skill 1 wired via
    `expedition_skill_1`). Basic Attack is automatic. The lateral encounter uses
@@ -684,10 +684,8 @@ The increments, in design order:
    2–4 remain absent. Spirit Trail lasts about four world hours, costs no Food
    merely for time, and has no invented material reward while that reward is
    open.
-   The current `CityWorld.TryStartExpedition` gate applies Campfire + Cache to
-   every resource opportunity, so this increment must exempt
-   `SpiritTrailSearch` without weakening that gate for the EG-4 material
-   sorties.
+   `SpiritTrailSearch` is exempt from the Campfire + Cache material-sortie gate;
+   the EG-4 Food/Wood opportunities retain it.
 7. **EG-5C — consolidation.** *Previously named EG-5; deferred behind EG-5V.
    First correction implemented 2026-08-03 (schema v28).* Fresh terrain is three horizontal parcels with no
    unlockable frontier; resources use deterministic scatter and generic

@@ -6,16 +6,14 @@ public enum ExpeditionRewardKind
 {
     Supplies = 0,
     Migrant = 1,
+    Discovery = 2,
 }
 
 public readonly record struct ExpeditionRequest(
     IReadOnlyList<CitizenId> MemberIds,
     int DurationTicks,
-    ResourceType SupplyResource,
-    int SupplyAmount,
-    ResourceType RewardResource,
-    int RewardAmount,
-    ExpeditionRewardKind RewardKind,
+    ExpeditionSupplyRequirement SupplyRequirement,
+    ExpeditionReward Reward,
     string DisplayName,
     ExpeditionRetreatPosture RetreatPosture = ExpeditionRetreatPosture.ContinueAfterSetback,
     ResourceOpportunityId? ResourceOpportunityId = null,
@@ -37,7 +35,13 @@ public readonly record struct ExpeditionRequest(
     /// practical: ten real minutes at 1x or two and a half at 4x.
     /// Later expeditions may define longer durations from route distance.
     /// </summary>
-    public const int FirstLoopDurationTicks = GameClock.TicksPerInGameDay / 6;
+    public const int FirstLoopDurationTicks = ExpeditionTiming.SpiritTrailDurationTicks;
+
+    public ResourceType? SupplyResource => SupplyRequirement.Resource;
+    public int SupplyAmount => SupplyRequirement.Amount;
+    public ResourceType? RewardResource => Reward.Resource;
+    public int RewardAmount => Reward.Amount;
+    public ExpeditionRewardKind RewardKind => Reward.Kind;
 
     public static ExpeditionRequest Reconnaissance(
         CitizenId soleMemberId,
@@ -50,11 +54,8 @@ public readonly record struct ExpeditionRequest(
         new(
             memberIds,
             DurationTicks: FirstLoopDurationTicks,
-            SupplyResource: ResourceType.Wood,
-            SupplyAmount: 1,
-            RewardResource: ResourceType.Stone,
-            RewardAmount: 1,
-            RewardKind: ExpeditionRewardKind.Supplies,
+            SupplyRequirement: ExpeditionSupplyRequirement.Required(ResourceType.Wood, 1),
+            Reward: ExpeditionReward.Supplies(ResourceType.Stone, 1),
             DisplayName: "Reconnaissance",
             RetreatPosture: retreatPosture);
 
@@ -69,11 +70,8 @@ public readonly record struct ExpeditionRequest(
         new(
             memberIds,
             DurationTicks: FirstLoopDurationTicks,
-            SupplyResource: ResourceType.Food,
-            SupplyAmount: 2,
-            RewardResource: ResourceType.Food,
-            RewardAmount: 0,
-            RewardKind: ExpeditionRewardKind.Migrant,
+            SupplyRequirement: ExpeditionSupplyRequirement.Required(ResourceType.Food, 2),
+            Reward: ExpeditionReward.Migrant,
             DisplayName: "Community contact",
             RetreatPosture: retreatPosture);
 
@@ -87,11 +85,8 @@ public readonly record struct ExpeditionRequest(
         return new ExpeditionRequest(
             memberIds,
             definition.DurationTicks,
-            definition.SupplyResource,
-            definition.SupplyAmount,
-            definition.RewardResource,
-            definition.FullReturn,
-            ExpeditionRewardKind.Supplies,
+            definition.SupplyRequirement,
+            definition.Reward,
             definition.DisplayName,
             retreatPosture,
             opportunity.Id,

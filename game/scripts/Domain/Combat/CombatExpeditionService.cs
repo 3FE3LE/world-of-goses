@@ -44,9 +44,10 @@ public sealed class CombatExpeditionService
     }
 
     /// <summary>
-    /// Snapshots a citizen into an encounter-ready combatant. Requires an equipped
-    /// weapon: offensive channel power is meaningless without one, and the slice's
-    /// preparation step is where the player equips Spear, Staff, Mace or Orb.
+    /// Snapshots a citizen into an encounter-ready combatant. General combat
+    /// preparation requires a real equipped weapon; the opening Spirit Trail uses
+    /// <see cref="PrepareSessionMember"/>'s explicit, non-persistent baseline until
+    /// onboarding owns the first real weapon choice.
     /// </summary>
     public CombatantState PrepareMember(Citizen citizen, double citySupportFactor = 1.0)
         => PrepareMember(citizen, citySupportFactor, oneActiveSkill: false);
@@ -57,20 +58,41 @@ public sealed class CombatExpeditionService
     /// </summary>
     internal CombatantState PrepareSessionMember(
         Citizen citizen,
+        WeaponChannelProfile? openingBaseline = null,
+        bool applyOpeningTutorialBaseline = false,
         double citySupportFactor = 1.0,
         double positionX = 0)
-        => PrepareMember(citizen, citySupportFactor, oneActiveSkill: true, positionX);
+        => PrepareMember(
+            citizen,
+            citySupportFactor,
+            oneActiveSkill: true,
+            positionX,
+            openingBaseline,
+            applyOpeningTutorialBaseline);
 
     private CombatantState PrepareMember(
         Citizen citizen,
         double citySupportFactor,
         bool oneActiveSkill,
-        double positionX = 0)
+        double positionX = 0,
+        WeaponChannelProfile? openingBaseline = null,
+        bool applyOpeningTutorialBaseline = false)
     {
         ArgumentNullException.ThrowIfNull(citizen);
         WeaponChannelProfile weapon = citizen.EquipmentLoadout.Weapon
+            ?? openingBaseline
             ?? throw new InvalidOperationException(
                 $"Citizen {citizen.Id.Value} needs an equipped weapon before departing.");
+        bool usesOpeningBaseline = citizen.EquipmentLoadout.Weapon is null;
+        EquipmentLoadout combatLoadout = usesOpeningBaseline
+            ? new EquipmentLoadout(
+                weapon,
+                citizen.EquipmentLoadout.Helmet,
+                citizen.EquipmentLoadout.Chest,
+                citizen.EquipmentLoadout.Legs,
+                citizen.EquipmentLoadout.Boots,
+                citizen.EquipmentLoadout.Gloves)
+            : citizen.EquipmentLoadout;
 
         // Resolve condition from persistent causes so the statistics context is
         // derived, never assigned arbitrarily.
@@ -86,10 +108,19 @@ public sealed class CombatExpeditionService
         citizen.SetCurrentHealthAndCondition(
             new CurrentHealthAndCondition(currentHealth, condition.Value, _stats));
 
-        DerivedStatistics derived = _statistics.Calculate(citizen, citySupportFactor);
+        DerivedStatistics derived = usesOpeningBaseline
+            ? new StatisticsCalculator(_stats).Calculate(
+                citizen.CubeProfile,
+                combatLoadout,
+                new StatCalculationContext(
+                    citizen.WeaponSkillLevel(weapon.Family),
+                    condition.Value,
+                    citySupportFactor,
+                    _stats))
+            : _statistics.Calculate(citizen, citySupportFactor);
         EffectiveCubeProfile effectiveCube = EffectiveCubeProfile.From(
             citizen.CubeProfile,
-            citizen.EquipmentLoadout.TotalGearSupport);
+            combatLoadout.TotalGearSupport);
         int level = citizen.WeaponSkillLevel(weapon.Family);
         var techniques = new List<TechniqueDefinition>();
         bool activeAdded = false;
@@ -105,32 +136,65 @@ public sealed class CombatExpeditionService
             techniques.Add(technique.AtLevel(level, _combat));
         }
 
+        double combatMaxHealth = applyOpeningTutorialBaseline
+            ? Math.Max(OpeningCombatBaseline.MaxHealth, derived.Defense.MaxHealth.Value)
+            : derived.Defense.MaxHealth.Value;
+        double combatCurrentHealth = applyOpeningTutorialBaseline
+            ? combatMaxHealth * Math.Clamp(currentHealth / maxHealth, 0, 1)
+            : Math.Min(currentHealth, combatMaxHealth);
         return new CombatantState(
             id: $"citizen.{citizen.Id.Value}",
             displayName: citizen.Name,
             side: CombatSide.Party,
             citizenId: citizen.Id,
-            maxHealth: derived.Defense.MaxHealth.Value,
-            currentHealth: Math.Min(currentHealth, derived.Defense.MaxHealth.Value),
-            physicalChannelPower: derived.Offense.PhysicalChannelPower.Value,
-            elementalChannelPower: derived.Offense.ElementalChannelPower.Value,
-            physicalMitigation: derived.Defense.PhysicalMitigation.Value,
-            elementalMitigation: derived.Defense.ElementalMitigation.Value,
-            generalDamageReduction: derived.Defense.GeneralDamageReduction.Value,
-            criticalChance: derived.Tempo.CriticalChance.Value,
-            attackSpeed: derived.Tempo.AttackSpeed.Value,
+            maxHealth: combatMaxHealth,
+            currentHealth: combatCurrentHealth,
+            physicalChannelPower: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.ChannelPower, derived.Offense.PhysicalChannelPower.Value)
+                : derived.Offense.PhysicalChannelPower.Value,
+            elementalChannelPower: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.ChannelPower, derived.Offense.ElementalChannelPower.Value)
+                : derived.Offense.ElementalChannelPower.Value,
+            physicalMitigation: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.Mitigation, derived.Defense.PhysicalMitigation.Value)
+                : derived.Defense.PhysicalMitigation.Value,
+            elementalMitigation: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.Mitigation, derived.Defense.ElementalMitigation.Value)
+                : derived.Defense.ElementalMitigation.Value,
+            generalDamageReduction: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.DamageReduction, derived.Defense.GeneralDamageReduction.Value)
+                : derived.Defense.GeneralDamageReduction.Value,
+            criticalChance: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.CriticalChance, derived.Tempo.CriticalChance.Value)
+                : derived.Tempo.CriticalChance.Value,
+            attackSpeed: applyOpeningTutorialBaseline
+                ? Math.Max(OpeningCombatBaseline.AttackSpeed, derived.Tempo.AttackSpeed.Value)
+                : derived.Tempo.AttackSpeed.Value,
             elementalAffinity: citizen.CombatNature.ElementalAffinity,
             physicalExpression: citizen.CombatNature.PhysicalExpression,
-            weaponFamily: weapon.Family,
+            weaponFamily: usesOpeningBaseline ? null : weapon.Family,
             techniques: techniques,
             spatial: new CombatSpatialState(
                 positionX,
-                movementSpeed: derived.Tempo.MovementSpeed.Value,
+                movementSpeed: applyOpeningTutorialBaseline
+                    ? Math.Max(OpeningCombatBaseline.MovementSpeed, derived.Tempo.MovementSpeed.Value)
+                    : derived.Tempo.MovementSpeed.Value,
                 attackRange: CitizenAttackRange(weapon.Family),
                 bodyRadius: _combat.CitizenBodyRadius,
                 stability: effectiveCube.Stability,
                 impulse: effectiveCube.Impulse,
                 facing: CombatFacing.Right));
+    }
+
+    private static class OpeningCombatBaseline
+    {
+        public const double MaxHealth = 300;
+        public const double ChannelPower = 50;
+        public const double Mitigation = 0.12;
+        public const double DamageReduction = 0.04;
+        public const double CriticalChance = 0.05;
+        public const double AttackSpeed = 1.0;
+        public const double MovementSpeed = 1.5;
     }
 
     private double CitizenAttackRange(WeaponFamily family) => family switch
@@ -177,15 +241,19 @@ public sealed class CombatExpeditionService
         {
             if (!byId.TryGetValue(member.CitizenId.Value, out Citizen? citizen)) continue;
 
+            double persistentMaxHealth = MaxHealthOf(citizen, citySupportFactor: 1.0);
+            double remainingHealth = member.MaxHealth <= 0
+                ? 0
+                : persistentMaxHealth * Math.Clamp(member.RemainingHealth / member.MaxHealth, 0, 1);
             ConditionFactorBreakdown condition = CombatConditionFactor.Derive(
-                member.RemainingHealth,
-                member.MaxHealth,
+                remainingHealth,
+                persistentMaxHealth,
                 member.Fatigue,
                 member.Injuries,
                 _stats,
                 _combat);
             citizen.SetCurrentHealthAndCondition(new CurrentHealthAndCondition(
-                member.RemainingHealth,
+                remainingHealth,
                 condition.Value,
                 _stats));
 

@@ -17,6 +17,47 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## El Spirit Trail ya es la primera expedición completa
+
+**2026-08-10** · schema v33 → v34 · expedición/combate/apertura
+
+Tras `SpiritDeparted`, el Founder puede partir inmediatamente sin Cache ni
+Food. El Spirit Trail dura cuatro horas de mundo, inicia su encuentro tras
+media hora, enfrenta al mismo CombatSession melee+ranged visible o en segundo
+plano, continúa después de la victoria hasta una manifestación física del
+rastro y muestra el regreso antes de devolver al Citizen a la ciudad. No entrega
+Wood ni otra recompensa inventada: el resultado actual es `Discovery`.
+
+El Founder desarmado usa Basic Attack y Skill 1 mediante un baseline de sesión
+explícito que no crea equipo ni experiencia de arma. Un arma real futura toma
+precedencia. Schema v34 elimina el arma sintética y la reserva Food exactas de
+v33, y guarda la versión de reglas del encuentro para que un combate legacy en
+curso no cambie al cargar. Save/load y offline preservan cooldown, comandos,
+posición lógica, outcome, llegada al objetivo y consecuencias exact-once.
+
+Baseline al cierre: build 0/0; 1185 pruebas superadas y 1 omitida sobre 1186;
+catálogos válidos con 1050 IDs de plantilla y 324 claves de runtime; cadena de
+migración `33 => MigrateV33ToV34` registrada.
+
+Los once fixtures de viaje/combate/objetivo/regreso produjeron 22 frames
+locales a 1280×720 y 1920×1080 **contra el slot 0 que existía en esa máquina en
+ese momento**; capturas, logs y frame-time quedan fuera de Git. Esa firma no es
+reproducible bajo demanda: revalidados aquí sobre un slot 0 más temprano
+(tick 11509), `expedition-live-early` y `expedition-live-travel` fallan, y
+`expedition-rail-chronicle-roundtrip` sigue fallando, mientras que los fixtures
+que no dependen de una expedición activa —`expedition-rail-empty`,
+`expedition-components-default`— pasan limpios. La causa sigue siendo la
+registrada en M-14: `StartExpedition` no arranca y `CityPrototype` descarta el
+fallo en silencio (`if (!started.IsSuccess) return;`), de modo que la captura
+sale con exit 0 y escribe la pantalla equivocada. El diagnóstico anterior de
+«fuera de horario» era incompleto: esta tanda falló a hora laboral
+(tick 13043 → 2243 dentro de la ventana 1200–2400), así que el disparador es el
+estado del save, no sólo la hora. Mientras el fixture no siembre su propio
+estado, ninguna firma visual de expedición debe darse por vigente en otra
+máquina o en otro slot.
+
+---
+
 ## El combate lateral ya ocupa espacio real
 
 **2026-08-10** · schema v33 (sin cambio) · combate/presentación

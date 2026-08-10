@@ -350,11 +350,11 @@ public static class WorldPersistence
                 LeadCitizenId = expedition.LeadCitizenId.Value,
                 StartTick = expedition.StartTick,
                 EndTick = expedition.EndTick,
-                SupplyResource = expedition.SupplyResource.ToString(),
+                SupplyResource = expedition.SupplyResource?.ToString(),
                 SupplyAmount = expedition.SupplyAmount,
-                RewardResource = expedition.RewardResource.ToString(),
+                RewardResource = expedition.RewardResource?.ToString(),
                 RewardAmount = expedition.RewardAmount,
-                ReservationId = expedition.ReservationId.Value,
+                ReservationId = expedition.ReservationId?.Value,
                 Status = expedition.Status.ToString(),
                 ReturnedAmount = expedition.ReturnedAmount,
                 RewardKind = expedition.RewardKind.ToString(),
@@ -372,6 +372,8 @@ public static class WorldPersistence
                 SetbackReturn = expedition.SetbackReturn,
                 PartialReturn = expedition.PartialReturn,
                 CarryCapacity = expedition.CarryCapacity,
+                ObjectiveReachedAtTick = expedition.ObjectiveReachedAtTick,
+                CombatRulesVersion = expedition.CombatRulesVersion,
                 HasCombatSession = combatSession is not null,
                 CombatStepsAdvanced = combatSession?.Step ?? 0,
                 CombatCommands = combatSession?.Commands
@@ -1010,8 +1012,49 @@ public static class WorldPersistence
         var expeditionIds = new HashSet<int>();
         foreach (ExpeditionSave expedition in save.Expeditions)
         {
-            if (expedition is null
-                || expedition.Id <= 0
+            if (expedition is null)
+            {
+                throw new InvalidOperationException("Save contains an invalid expedition.");
+            }
+            bool rewardKindParsed = Enum.TryParse(
+                string.IsNullOrEmpty(expedition.RewardKind)
+                    ? ExpeditionRewardKind.Supplies.ToString()
+                    : expedition.RewardKind,
+                true,
+                out ExpeditionRewardKind savedRewardKind);
+            bool supplyValid = expedition.SupplyAmount switch
+            {
+                0 => string.IsNullOrEmpty(expedition.SupplyResource)
+                    && !expedition.ReservationId.HasValue,
+                > 0 => expedition.ReservationId is > 0
+                    && Enum.TryParse(
+                        expedition.SupplyResource,
+                        true,
+                        out ResourceType _),
+                _ => false,
+            };
+            bool rewardValid = rewardKindParsed && savedRewardKind switch
+            {
+                ExpeditionRewardKind.Supplies => expedition.RewardAmount > 0
+                    && Enum.TryParse(
+                        expedition.RewardResource,
+                        true,
+                        out ResourceType _),
+                ExpeditionRewardKind.Migrant or ExpeditionRewardKind.Discovery =>
+                    expedition.RewardAmount == 0
+                    && string.IsNullOrEmpty(expedition.RewardResource),
+                _ => false,
+            };
+            bool resourceReturnValid = savedRewardKind == ExpeditionRewardKind.Supplies
+                ? expedition.SetbackReturn > 0
+                    && expedition.PartialReturn >= expedition.SetbackReturn
+                    && expedition.RewardAmount >= expedition.PartialReturn
+                    && expedition.CarryCapacity >= expedition.SetbackReturn
+                    && expedition.CarryCapacity <= expedition.RewardAmount
+                : expedition.SetbackReturn == 0
+                    && expedition.PartialReturn == 0
+                    && expedition.CarryCapacity == 0;
+            if (expedition.Id <= 0
                 || !expeditionIds.Add(expedition.Id)
                 || expedition.LeadCitizenId <= 0
                 || expedition.MemberCitizenIds is null
@@ -1021,38 +1064,22 @@ public static class WorldPersistence
                 || expedition.MemberCitizenIds.Distinct().Count() != expedition.MemberCitizenIds.Count
                 || expedition.StartTick < 0
                 || expedition.EndTick < expedition.StartTick
-                || expedition.SupplyAmount <= 0
+                || !supplyValid
+                || !rewardValid
                 || (expedition.TargetParcelId.HasValue
                     && !parcelIds.Contains(expedition.TargetParcelId.Value))
-                || !Enum.TryParse(expedition.SupplyResource, true, out ResourceType _)
-                || !Enum.TryParse(expedition.RewardResource, true, out ResourceType _)
                 || !Enum.TryParse(expedition.Status, true, out ExpeditionStatus _)
                 || !Enum.TryParse(expedition.Phase, true, out ExpeditionPhase _)
                 || !Enum.TryParse(expedition.RetreatPosture, true, out ExpeditionRetreatPosture _)
                 || (!string.IsNullOrEmpty(expedition.EncounterOutcome)
                     && !Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome _))
-                || !Enum.TryParse(
-                    string.IsNullOrEmpty(expedition.RewardKind)
-                        ? ExpeditionRewardKind.Supplies.ToString()
-                        : expedition.RewardKind,
-                    true,
-                    out ExpeditionRewardKind _)
-                || (string.Equals(
-                    expedition.RewardKind,
-                    ExpeditionRewardKind.Supplies.ToString(),
-                    StringComparison.OrdinalIgnoreCase)
-                    && expedition.RewardAmount <= 0)
                 || (expedition.ResourceOpportunityId.HasValue
                     && (!opportunitiesById.ContainsKey(expedition.ResourceOpportunityId.Value)
                         || !Enum.TryParse(
                             expedition.ResourceOpportunityKind,
                             true,
                             out ResourceOpportunityKind _)
-                        || expedition.SetbackReturn <= 0
-                        || expedition.PartialReturn < expedition.SetbackReturn
-                        || expedition.RewardAmount < expedition.PartialReturn
-                        || expedition.CarryCapacity < expedition.SetbackReturn
-                        || expedition.CarryCapacity > expedition.RewardAmount))
+                        || !resourceReturnValid))
                 || (!expedition.ResourceOpportunityId.HasValue
                     && (!string.IsNullOrEmpty(expedition.ResourceOpportunityKind)
                         || expedition.SetbackReturn != 0
@@ -1060,6 +1087,8 @@ public static class WorldPersistence
                         || expedition.CarryCapacity != 0))
                 || expedition.CombatStepsAdvanced < 0
                 || expedition.CombatStepsAdvanced > CombatBalanceConfig.Default.MaximumEncounterSteps
+                || expedition.CombatRulesVersion < ExpeditionCombatSessionFactory.LegacyRulesVersion
+                || expedition.CombatRulesVersion > ExpeditionCombatSessionFactory.CurrentRulesVersion
                 || expedition.CombatCommands is null)
             {
                 throw new InvalidOperationException("Save contains an invalid expedition.");
@@ -1114,18 +1143,16 @@ public static class WorldPersistence
                 && principalFounder is not null
                 && expedition.MemberCitizenIds.Count == 1
                 && expedition.MemberCitizenIds[0] == principalFounder.Id;
-            bool founderHasCombatWeapon = isFounderOnlySpiritTrail
-                && principalFounder!.EquipmentLoadout?.Weapon is not null;
-            bool requiresObservableWeapon = status == ExpeditionStatus.Active
+            if (status == ExpeditionStatus.Active
                 && isFounderOnlySpiritTrail
-                && (phase == ExpeditionPhase.Outbound
-                    || (phase == ExpeditionPhase.Encounter && encounterOutcome is null)
-                    || expedition.HasCombatSession);
-            if (requiresObservableWeapon
-                && !founderHasCombatWeapon)
+                && (expedition.SupplyAmount != 0
+                    || expedition.ReservationId.HasValue
+                    || savedRewardKind != ExpeditionRewardKind.Discovery
+                    || expedition.EndTick - expedition.StartTick
+                        != ExpeditionTiming.SpiritTrailDurationTicks))
             {
                 throw new InvalidOperationException(
-                    $"Expedition {expedition.Id} Founder Spirit Trail is missing its provisional weapon.");
+                    $"Expedition {expedition.Id} has an invalid active Spirit Trail contract.");
             }
             bool phaseRequiresOutcome = status == ExpeditionStatus.Active
                 && phase is ExpeditionPhase.Objective
@@ -1147,14 +1174,14 @@ public static class WorldPersistence
                 status == ExpeditionStatus.Active
                 && phase == ExpeditionPhase.Encounter
                 && encounterOutcome is null
-                && founderHasCombatWeapon;
+                && isFounderOnlySpiritTrail;
             if (unresolvedObservableEncounter && !expedition.HasCombatSession)
             {
                 throw new InvalidOperationException(
                     $"Expedition {expedition.Id} is missing its active combat session.");
             }
             if (expedition.HasCombatSession
-                && (!founderHasCombatWeapon
+                && (!isFounderOnlySpiritTrail
                     || status != ExpeditionStatus.Active
                     || phase is ExpeditionPhase.Outbound or ExpeditionPhase.Resolved))
             {
@@ -1169,6 +1196,23 @@ public static class WorldPersistence
             {
                 throw new InvalidOperationException(
                     $"Expedition {expedition.Id} has an incoherent status, phase, or retreat result.");
+            }
+            if (expedition.ObjectiveReachedAtTick is int objectiveTick
+                && (objectiveTick < expedition.StartTick
+                    || objectiveTick > expedition.EndTick
+                    || retreatTriggered
+                    || phase is not (ExpeditionPhase.Returning or ExpeditionPhase.Resolved)))
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} has an invalid objective arrival.");
+            }
+            if (status == ExpeditionStatus.Active
+                && phase == ExpeditionPhase.Returning
+                && !retreatTriggered
+                && !expedition.ObjectiveReachedAtTick.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"Expedition {expedition.Id} is returning before reaching its objective.");
             }
             if (expedition.DispatchEventId is int dispatchEventId
                 && !eventIds.Contains(dispatchEventId))
@@ -2040,6 +2084,7 @@ public static class WorldPersistence
                 30 => MigrateV30ToV31(save),
                 31 => MigrateV31ToV32(save),
                 32 => MigrateV32ToV33(save),
+                33 => MigrateV33ToV34(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -2942,7 +2987,7 @@ public static class WorldPersistence
             if (founder.EquipmentLoadout.Weapon is null)
             {
                 WeaponChannelProfile weapon =
-                    ExpeditionCombatSessionFactory.ProvisionalWeaponFor(
+                    ExpeditionCombatSessionFactory.OpeningBaselineFor(
                         new ExpeditionId(expedition.Id),
                         expedition.StartTick);
                 founder.EquipmentLoadout.Weapon = new WeaponChannelProfileSave
@@ -2966,6 +3011,113 @@ public static class WorldPersistence
             }
         }
         save.Version = 33;
+        return save;
+    }
+
+    /// <summary>
+    /// Replaces the active opening trail's legacy resource conversion with the
+    /// v34 causal route. Reservations only reduced availability, so removing the
+    /// matching reservation restores access without depositing or consuming any
+    /// resource. The deterministic combat baseline reproduces from expedition
+    /// identity after the synthetic weapon is removed from the Founder loadout.
+    /// Completed v33 trails remain historical facts: already deposited resources
+    /// cannot be inferred and clawed back safely.
+    /// </summary>
+    public static WorldSave MigrateV33ToV34(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 33)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV33ToV34 expects version 33 but found {save.Version}.");
+        }
+
+        CitizenSave? principalFounder = save.Citizens.FirstOrDefault(citizen =>
+                citizen.Id == 1
+                && citizen.Roles.Any(role => role.Id == RoleId.Hero.Value))
+            ?? save.Citizens.FirstOrDefault(citizen =>
+                citizen.Roles.Any(role => role.Id == RoleId.Hero.Value));
+
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            expedition.CombatRulesVersion = expedition.HasCombatSession
+                ? ExpeditionCombatSessionFactory.LegacyRulesVersion
+                : ExpeditionCombatSessionFactory.CurrentRulesVersion;
+            bool isSpiritTrail = string.Equals(
+                expedition.ResourceOpportunityKind,
+                ResourceOpportunityKind.SpiritTrailSearch.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+            if (!isSpiritTrail) continue;
+
+            if (principalFounder?.EquipmentLoadout?.Weapon is { } savedWeapon)
+            {
+                WeaponChannelProfile baseline =
+                    ExpeditionCombatSessionFactory.OpeningBaselineFor(
+                        new ExpeditionId(expedition.Id),
+                        expedition.StartTick);
+                if (string.Equals(
+                        savedWeapon.Family,
+                        baseline.Family.ToString(),
+                        StringComparison.OrdinalIgnoreCase)
+                    && savedWeapon.PhysicalTransfer == baseline.PhysicalTransfer
+                    && savedWeapon.ElementalResonance == baseline.ElementalResonance)
+                {
+                    principalFounder.EquipmentLoadout.Weapon = null;
+                }
+            }
+
+            if (!string.Equals(
+                expedition.Status,
+                ExpeditionStatus.Active.ToString(),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (expedition.ReservationId is int reservationId)
+            {
+                save.ResourceReservations.RemoveAll(reservation =>
+                    reservation.Id == reservationId
+                    && string.Equals(
+                        reservation.OwnerKind,
+                        ResourceReservationOwnerKind.Expedition.ToString(),
+                        StringComparison.OrdinalIgnoreCase)
+                    && reservation.OwnerEntityId == expedition.Id);
+            }
+            expedition.SupplyResource = null;
+            expedition.SupplyAmount = 0;
+            expedition.ReservationId = null;
+            expedition.RewardKind = ExpeditionRewardKind.Discovery.ToString();
+            expedition.RewardResource = null;
+            expedition.RewardAmount = 0;
+            expedition.SetbackReturn = 0;
+            expedition.PartialReturn = 0;
+            expedition.CarryCapacity = 0;
+            expedition.EndTick = checked(
+                expedition.StartTick + ExpeditionTiming.SpiritTrailDurationTicks);
+
+            bool retreatTriggered = string.Equals(
+                    expedition.RetreatPosture,
+                    ExpeditionRetreatPosture.RetreatAfterSetback.ToString(),
+                    StringComparison.OrdinalIgnoreCase)
+                && string.Equals(
+                    expedition.EncounterOutcome,
+                    ExpeditionEncounterOutcome.Setback.ToString(),
+                    StringComparison.OrdinalIgnoreCase);
+            if (!retreatTriggered
+                && string.Equals(
+                    expedition.Phase,
+                    ExpeditionPhase.Returning.ToString(),
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                expedition.ObjectiveReachedAtTick = Math.Clamp(
+                    save.CurrentTick,
+                    expedition.StartTick,
+                    expedition.EndTick);
+            }
+        }
+
+        save.Version = 34;
         return save;
     }
 

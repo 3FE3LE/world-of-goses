@@ -1437,7 +1437,8 @@ public sealed class HudCompositionTests
         Assert.Contains("CityWorldController.SpeedChoice.Fast", source, StringComparison.Ordinal);
         Assert.Contains("controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast", source,
             StringComparison.Ordinal);
-        Assert.Contains("ShowEarlyFixture", source, StringComparison.Ordinal);
+        Assert.Contains("PrepareSpiritTrailVisualFixture", source, StringComparison.Ordinal);
+        Assert.Contains("UseStableFounderLabelForVisualRegression", source, StringComparison.Ordinal);
         Assert.Contains("ui.expedition_live.founder_short", File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionLiveView.cs")),
             StringComparison.Ordinal);

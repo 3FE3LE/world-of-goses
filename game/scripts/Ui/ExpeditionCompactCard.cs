@@ -68,7 +68,8 @@ public partial class ExpeditionCompactCard : PanelContainer
         facts.AddChild(StatChip.HudIconValue(
             IconPaths.Clock,
             SimulationTimeText.FormatDurationLocalized(item.RemainingTicks(currentTick))));
-        facts.AddChild(StatChip.HudIconValue(item.SupplyResource, item.SupplyAmount.ToString()));
+        if (item.SupplyResource is ResourceType supplyResource)
+            facts.AddChild(StatChip.HudIconValue(supplyResource, item.SupplyAmount.ToString()));
         content.AddChild(facts);
 
         content.AddChild(new HudStateBadge(

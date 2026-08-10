@@ -10,15 +10,14 @@ namespace WorldofGoses.Tests.Combat;
 public sealed class ExpeditionCombatSessionIntegrationTests
 {
     [Fact]
-    public void SpiritTrailDispatch_PersistsOneProvisionalFounderWeapon()
+    public void SpiritTrailDispatch_LeavesFounderUnarmedAcrossRoundTrip()
     {
         (CityWorld world, ExpeditionId expeditionId) = StartSpiritTrail();
-        WeaponChannelProfile weapon = Assert.IsType<WeaponChannelProfile>(
-            world.Hero!.EquipmentLoadout.Weapon);
+        Assert.Null(world.Hero!.EquipmentLoadout.Weapon);
 
         CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
 
-        Assert.Equal(weapon, restored.Hero!.EquipmentLoadout.Weapon);
+        Assert.Null(restored.Hero!.EquipmentLoadout.Weapon);
         Assert.Equal(expeditionId, Assert.Single(restored.Expeditions).Key);
     }
 
@@ -131,10 +130,13 @@ public sealed class ExpeditionCombatSessionIntegrationTests
     {
         CityWorld world = TestHelpers.NewHeroWorld();
         world.Resources.DepositToCityInventory(ResourceType.Wood, 2);
-        ExpeditionCombatSessionFactory.EnsureProvisionalFounderWeapon(
-            world.Hero!,
-            new ExpeditionId(77),
-            world.CurrentTick);
+        world.Hero!.SetEquipmentLoadout(new EquipmentLoadout(
+            new WeaponChannelProfile(WeaponFamily.Spear, 1, 1),
+            world.Hero.EquipmentLoadout.Helmet,
+            world.Hero.EquipmentLoadout.Chest,
+            world.Hero.EquipmentLoadout.Legs,
+            world.Hero.EquipmentLoadout.Boots,
+            world.Hero.EquipmentLoadout.Gloves));
         Citizen founder = world.Hero!;
         ExpeditionStartResult started = world.StartExpedition(
             ExpeditionRequest.Reconnaissance(founder.Id));
@@ -149,13 +151,13 @@ public sealed class ExpeditionCombatSessionIntegrationTests
     }
 
     [Fact]
-    public void CurrentFounderSpiritTrailSave_RejectsMissingWeaponAndOutcomeLessReturn()
+    public void CurrentFounderSpiritTrailSave_AllowsUnarmedBaselineAndRejectsOutcomeLessReturn()
     {
         (CityWorld world, _) = StartSpiritTrail();
-        WorldSave missingWeapon = WorldPersistence.Capture(world);
-        missingWeapon.Citizens.Single(citizen => citizen.Id == world.Hero!.Id.Value)
+        WorldSave unarmed = WorldPersistence.Capture(world);
+        unarmed.Citizens.Single(citizen => citizen.Id == world.Hero!.Id.Value)
             .EquipmentLoadout!.Weapon = null;
-        Assert.Throws<InvalidOperationException>(() => WorldPersistence.Validate(missingWeapon));
+        WorldPersistence.Validate(unarmed);
 
         WorldSave invalidPhase = WorldPersistence.Capture(world);
         ExpeditionSave expedition = Assert.Single(invalidPhase.Expeditions);
@@ -244,14 +246,12 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         world.SeedStartingForests();
         world.SeedStartingOpportunities();
         DriveNightToDawn(world);
-        CompleteCache(world);
-        world.Resources.DepositToCityInventory(ResourceType.Food, 4);
         ResourceOpportunity opportunity = world.ResourceOpportunities.Values.Single(
             item => item.Kind == ResourceOpportunityKind.SpiritTrailSearch);
         return (world, opportunity);
     }
 
-    private static void DriveNightToDawn(CityWorld world)
+    internal static void DriveNightToDawn(CityWorld world)
     {
         FirstNightState night = world.FirstNight!;
         ConstructionProject? project = null;
@@ -285,17 +285,6 @@ public sealed class ExpeditionCombatSessionIntegrationTests
             }
         }
         Assert.True(world.TryCloseFirstNightDialogue());
-    }
-
-    private static void CompleteCache(CityWorld world)
-    {
-        ConstructionProject project = world.Projects.Values.Single();
-        DepositCost(world, FoundingSiteModule.Cache);
-        ConstructionAuthorizationResult authorized =
-            world.TryAuthorizeFoundingSiteModule(project.Id, FoundingSiteModule.Cache);
-        Assert.True(authorized.IsSuccess, authorized.Outcome.ToString());
-        project.Progress = project.RequiredWork;
-        world.AdvanceWorldTick();
     }
 
     private static void DepositCost(CityWorld world, FoundingSiteModule module)

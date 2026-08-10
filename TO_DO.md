@@ -57,17 +57,19 @@ admiten:
   Primera noche jugable (H-33 + H-34) entregada sin schema bump;
   zoom-in máximo del macro view elevado a 3.0; identidad del fundador
   ya no vive en un `ScrollContainer` (ver §7 2026-08-06).
-- Save: **schema v33** (`DEC-0021`): sesión incremental del Spirit Trail con
+- Save: **schema v34** (`DEC-0022`): Spirit Trail sin provisión, resultado
+  `Discovery`, baseline sin arma persistente y reglas de combate versionadas;
+  v33 (`DEC-0021`) introdujo la sesión incremental con
   paso lógico e historial reproducible de AUTO/manual. v32 (`DEC-0019`) renombró la cara del cubo `Mastery` a
   `Domain` en disco, con puente nullable para que un save v31 no pierda el
   cubo del fundador. v31 primera noche autoral; v30 estadísticas derivadas
   por citizen; v29 onboarding canónico; v28 herramientas durables;
   v27 oportunidades finitas de Food y Wood y capacidad de retorno.
 - Build: **0 errores / 0 advertencias**.
-- Tests: **1168 / 1169** (1 omitido por brittleness del snapshot JSON en
+- Tests: **1185 / 1186** (1 omitido por brittleness del snapshot JSON en
   `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento
   no cambió, sólo los IDs auto-incrementados de eventos).
-- Localización: **1049 IDs de plantilla, 324 claves de runtime** válidas.
+- Localización: **1050 IDs de plantilla, 324 claves de runtime** válidas.
 - Agent context: **474 checks** sin fallos.
 - Arranque Godot headless standalone: limpio; el pipeline Full/captura sigue
   intermitente y conserva un fallo previo `-1073741819` como deuda de harness.
@@ -135,16 +137,25 @@ Onboarding astral → primera noche
   de recogida.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
 - **🔴 Fallo silencioso detectado 2026-08-10.** Los fixtures que dependen de
-  una expedición activa (`expedition-live-early`,
-  `expedition-rail-chronicle-roundtrip`) no son herméticos: dependen de la hora
-  de mundo del slot cargado, que la progresión offline desplaza con el tiempo
-  real. Fuera de horario el héroe está en casa, `StartExpedition` falla,
+  una expedición activa (`expedition-live-early`, `expedition-live-travel`,
+  `expedition-rail-chronicle-roundtrip`) no son herméticos: dependen del estado
+  del slot 0 que exista en la máquina. `StartExpedition` falla,
   `CityPrototype` descarta el fallo en silencio
   (`if (!started.IsSuccess) return;`) y la captura **sale con exit 0 y escribe
-  un PNG de la vista macro** con `EXPEDICIONES · 0`. Una firma visual hecha
-  sobre ese PNG aprobaría la pantalla equivocada. Arreglar antes de confiar en
-  la matriz para EG-5V: sembrar estado hermético para el fixture y convertir el
-  `return` silencioso en error explícito que aborte la captura.
+  un PNG de la pantalla equivocada**. Una firma visual hecha sobre ese PNG
+  aprobaría lo que no es. Los fixtures que no necesitan expedición activa
+  (`expedition-rail-empty`, `expedition-components-default`) pasan limpios, lo
+  que acota la causa.
+  **Corrección del diagnóstico inicial:** se atribuyó primero a la hora de
+  mundo («fuera de horario, héroe en casa»). Es insuficiente: la revalidación
+  del 2026-08-10 falló en hora laboral (tick 13043 → 2243, dentro de
+  1200–2400). El disparador es la madurez/estado del save —un slot maduro
+  arrancaba la expedición y uno temprano no—, no sólo el reloj. La causa exacta
+  del rechazo sigue sin identificar; `StartExpedition` tiene varias salidas de
+  fallo y el fixture descarta cuál fue.
+  **Arreglar antes de confiar en la matriz para EG-5V:** sembrar estado
+  hermético para el fixture y convertir el `return` silencioso en un error
+  explícito que registre el `ExpeditionStartOutcome` y aborte la captura.
 | 1 | Fundador persistente | Firma humana obtenida |
 | 2 | Gathering y tres edificios iniciales | Firma humana obtenida |
 | 3 | Reclutamiento restringido | Firma humana obtenida |
@@ -167,8 +178,8 @@ Onboarding astral → primera noche
 
 ### 🔴 H-35 — EG-5V: primer Spirit Trail visual del Founder
 
-- **Estado:** En curso; sesión observable y presentación espacial lateral
-  implementadas; flujo post-dawn todavía incompleto.
+- **Estado:** En curso; vertical conectado y automatizado; falta firma humana
+  completa desde slot limpio y cierre de la deuda de rendimiento.
 - **Prioridad:** Crítica.
 - **Afecta:** `CityWorld`, `Expedition`, `ExpeditionRequest`,
   `ResourceExpeditionRules`, `CombatEncounter`, `ExpeditionPanel`,
@@ -176,17 +187,15 @@ Onboarding astral → primera noche
   persistencia/offline y fixtures visuales.
 - **Estado real del HEAD:** `ExpeditionLiveView` y sus componentes existen; una
   `CombatSession` propiedad de `CityWorld` avanza por tick mundial, persiste
-  comandos/replay en schema v33 y conecta Basic Attack, AUTO/manual Skill 1,
+  comandos/replay en schema v34 y conecta Basic Attack, AUTO/manual Skill 1,
   cooldown, HP, enemigos, outcome, posición 1D, rango y knockback. El stage
   reutiliza `CombatantView` y el rail recupera sus cards al cerrar Chronicle.
-  `SpiritTrailSearch` aún dura 180 ticks,
-  consume 1 Food y devuelve Wood 4/6/8; `ExpeditionRequest.MaxTeamSize` es 2;
-  `CombatDebugPanel` sigue debug-only; y
-  `CityWorld.TryStartExpedition` todavía exige Campfire + Cache a toda
-  oportunidad de recurso, incluido el Spirit Trail que nace con
-  `SpiritDeparted`.
+  `SpiritTrailSearch` dura cuatro horas, no reserva Food, produce `Discovery`,
+  dispara combate tras media hora, continúa a un objetivo físico y regresa;
+  `ExpeditionRequest.MaxTeamSize` sigue siendo 2 y `CombatDebugPanel` sigue
+  debug-only.
 - **Orden interno obligatorio:**
-  1. separar `SpiritTrailSearch` del gate genérico Campfire + Cache para que el
+  1. **Cerrado:** separar `SpiritTrailSearch` del gate genérico Campfire + Cache para que el
      flujo aprobado pueda despacharse tras `SpiritDeparted`, sin relajar el gate
      de las salidas materiales EG-4;
   2. **Cerrado:** integrar expedición y combate sobre el único reloj de mundo,
@@ -198,21 +207,17 @@ Onboarding astral → primera noche
   5. **Cerrado:** Basic Attack automática, avance solo para entrar en
      `AttackRange` sin kiting y knockback con `Stability` reduciendo e `Impulse`
      aumentando el desplazamiento;
-  6. continuar tras el encuentro hasta el objetivo y regresar a la ciudad;
-  7. demostrar que entrar/salir de `ExpeditionLiveView` conserva 1x/2x/4x y
+  6. **Cerrado:** continuar tras el encuentro hasta el objetivo y regresar a la ciudad;
+  7. **Cerrado automatizado / firma humana pendiente:** demostrar que entrar/salir de `ExpeditionLiveView` conserva 1x/2x/4x y
      que ciudad, viaje y combate avanzan en paralelo sin pausa.
 - **Spirit Trail:** aproximadamente cuatro horas de mundo; no consume Food por
   existir; propósito narrativo; recompensa material abierta.
 - **Fuera de alcance:** Traits, Chains, carroza, `SPACE`, formación avanzada,
   Skills 2–4 funcionales, proceduralidad y profundidad amplia de combate.
-- **Deuda abierta de rendimiento:** con la sesión de combate conectada,
-  `expedition-live-early` mide 51–55 ms de `Performance.Monitor.TimeProcess`
-  contra un presupuesto de pico de 40 ms; el mismo fixture medía 18,7 ms antes
-  de conectarla y `macro-hud-default` mide 6–18 ms en la misma tanda, así que
-  el coste es propio de la vista en vivo y no ruido de máquina. Medir antes de
-  el stage espacial sobre esa misma vista. La proyección no añade `_Process`
-  por actor y reutiliza vistas, pero el fixture debe volver a medirse antes de
-  cerrar EG-5V.
+- **Rendimiento revalidado:** la matriz final de once estados y 22 frames midió
+  un pico de 12,824 ms en `Performance.Monitor.TimeProcess`, bajo el presupuesto
+  de 40 ms. La firma previa de 51–55 ms queda como medición histórica, no deuda
+  vigente; la proyección sigue sin `_Process` por actor y reutiliza vistas.
 - **Aceptación:** desde slot limpio, el primer encuentro visual aparece dentro
   de unos cinco minutos de gameplay; la expedición alcanza objetivo y regreso;
   save/load y live/offline conservan límites semánticos y resultados exact-once.

@@ -19,6 +19,9 @@ public static class GameClock
     /// <summary>Total ticks in one in-game day. 3600 = 1 hour at 1 Hz.</summary>
     public const int TicksPerInGameDay = 3600;
 
+    /// <summary>One twenty-fourth of the single world day.</summary>
+    public const int TicksPerInGameHour = TicksPerInGameDay / 24;
+
     /// <summary>
     /// Provisional start of the configured workday, expressed as a tick within
     /// the in-game day. Kept explicit so presentation and routine scheduling do

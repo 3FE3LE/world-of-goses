@@ -57,6 +57,7 @@ public partial class ExpeditionLiveView : Control
     private Button _autoButton = null!;
     private Button _retreatButton = null!;
     private bool _fixtureShowsTwoEnemies;
+    private bool _fixtureUsesStableFounderLabel;
     private bool _updatingCombatControls;
 
     private static readonly StringName[] SkillActions =
@@ -216,6 +217,13 @@ public partial class ExpeditionLiveView : Control
         if (Visible) Refresh();
     }
 
+    internal void UseStableFounderLabelForVisualRegression()
+    {
+        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        _fixtureUsesStableFounderLabel = true;
+        if (Visible) Refresh();
+    }
+
     private void OnSelectionChanged(int selectionState) =>
         ApplySelection((CityWorldController.Selection)selectionState);
 
@@ -278,6 +286,17 @@ public partial class ExpeditionLiveView : Control
                 combat.Step,
                 combat.BattlefieldMinimumX,
                 combat.BattlefieldMaximumX);
+        }
+        else if (snapshot.Members.Count > 0)
+        {
+            ExpeditionLiveSnapshot.Member founder = snapshot.Members[0];
+            _stage.ConfigureTravel(
+                snapshot.TravelState,
+                _fixtureShowsTwoEnemies || _fixtureUsesStableFounderLabel
+                    ? UiText.Get("ui.expedition_live.founder_short")
+                    : founder.Name,
+                founder.HealthRatio,
+                snapshot.CurrentTick);
         }
         else if (_fixtureShowsTwoEnemies)
         {
@@ -345,7 +364,7 @@ public partial class ExpeditionLiveView : Control
             return;
         }
 
-        _citizenName.Text = _fixtureShowsTwoEnemies
+        _citizenName.Text = _fixtureShowsTwoEnemies || _fixtureUsesStableFounderLabel
             ? UiText.Get("ui.expedition_live.founder_short")
             : lead.Name;
         _citizenHealth.Text = lead.HealthRatio is double healthRatio
@@ -375,7 +394,7 @@ public partial class ExpeditionLiveView : Control
                     i,
                     ExpeditionSquadSlot.SlotState.Active,
                     portrait,
-                    _fixtureShowsTwoEnemies && i == 0
+                    (_fixtureShowsTwoEnemies || _fixtureUsesStableFounderLabel) && i == 0
                         ? UiText.Get("ui.expedition_live.founder_short")
                         : member.Name,
                     member.HealthRatio,
@@ -401,6 +420,8 @@ public partial class ExpeditionLiveView : Control
         _objective.Text = UiText.Get(ObjectiveKey(snapshot.ObjectiveKind));
         _enemies.Text = snapshot.CombatState is { } combat
             ? UiText.Format("ui.expedition_live.enemies", combat.EnemyCount)
+            : snapshot.EncounterOutcome == ExpeditionEncounterOutcome.FullSuccess
+                ? UiText.Format("ui.expedition_live.enemies", 0)
             : _fixtureShowsTwoEnemies
                 ? UiText.Format("ui.expedition_live.enemies", 2)
                 : UiText.Get("ui.expedition_live.enemies.unknown");
