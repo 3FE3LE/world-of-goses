@@ -84,7 +84,12 @@ Current registered controls: `ModalHost`, `PanelHeader`,
 `ExpeditionSquadStrip`, `ExpeditionSkillStrip`, and the three `ActionButton` roles —
 `PrimaryActionButton`, `SecondaryActionButton`, `DangerActionButton`.
 The compact HUD adds `HudSectionHeader`, `HudMetricRow`, `HudResourceRow`,
-`HudProgressBar`, `HudBadge` and `CollapsiblePanelHeader` (§ 5.2).
+`HudProgressBar`, `HudBadge` and `CollapsiblePanelHeader` (§ 5.2). `AccordionHost`
+is the reusable "several bodies, one shared stretch of space, exactly one
+visible" host: register each body, call `ShowOnly` from whatever affordance owns
+the choice, and keep the headers outside the host so they stay on screen. Use it
+instead of giving two bodies `ExpandFill` in the same container and then trying
+to re-measure the result.
 Future targets must compose these controls rather than introduce a second
 expedition frame grammar.
 
@@ -121,7 +126,11 @@ at scroll limits, and its vertical focus chain reaches details, valid cancel and
 the embedded Chronicle toggle. `ChroniclePanel` has one data/rendering path:
 compact mode shows four meaningful rows; expanded mode replaces the expedition
 summary inside the same rail and adds the offline summary, grouped actionable
-blockers and up to 80 compacted events. `ChronicleEventProjection` remains the
+blockers and up to 80 compacted events. Both section headers are mounted on the
+rail's column and stay visible; the expedition scroll and the chronicle scroll
+share one `AccordionHost` that shows exactly one of them, so the rail has a
+single vertically expanding child and no body can be starved by the other.
+`ChronicleEventProjection` remains the
 single filtering/compaction rule. Do not recreate a second full-log surface.
 
 `ActionDock` is the bottom-centre contextual tray. It replaced placement

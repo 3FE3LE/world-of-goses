@@ -1947,6 +1947,7 @@ public partial class CityPrototype : Node
                 .SetLocaleForVisualRegression(locale);
         }
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        SeedHermeticFounderForExpeditionRailFixture(controller);
         CityWorld world = controller.World;
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
@@ -1977,7 +1978,21 @@ public partial class CityPrototype : Node
             DisplayName = displayName ?? "Reconnaissance",
         };
         ExpeditionStartResult started = controller.StartExpedition(request);
-        if (!started.IsSuccess) return;
+        if (!started.IsSuccess)
+        {
+            // Never return silently here. A fixture that cannot seed its
+            // expedition still renders a perfectly valid-looking frame — of
+            // the macro view, with no cards and no VER — and the capture
+            // harness exits 0 and writes it. A human signing off that PNG
+            // approves the wrong screen. Naming the outcome turns an
+            // invisible failure into a one-line diagnosis.
+            GD.PushError(
+                "[WOG-EXPEDITION-RAIL-FIXTURE] StartExpedition failed: "
+                + $"outcome={started.Outcome}, "
+                + $"unavailableReason={started.UnavailableReason}, "
+                + $"tick={controller.World.CurrentTick}.");
+            return;
+        }
 
         int ticks = state switch
         {
@@ -2231,6 +2246,46 @@ public partial class CityPrototype : Node
         GD.Print("[WOG-EXPEDITION-LIVE-ESC] returned to city without menu, pause, speed change or resolution.");
     }
 
+    /// <summary>
+    /// Replaces the loaded slot with a deterministic city whose founder is
+    /// fresh, unwounded and uncommitted, so every expedition-rail fixture
+    /// starts from the same state.
+    /// </summary>
+    /// <remarks>
+    /// These fixtures used to seed themselves on top of whatever save slot 0
+    /// happened to contain, which made them a coin flip. They failed for four
+    /// sessions running with no diagnosable reason, and the reason turned out
+    /// to be <c>MemberUnavailable / Wounded</c>: the combat vertical now
+    /// really does hurt the Founder, so a slot where he had fought could not
+    /// dispatch him again. World maturity, time of day, resources and injuries
+    /// all fed the same coin flip. Reusing the fresh-world pattern the biome
+    /// and early-game fixtures already use removes every one of those inputs.
+    /// </remarks>
+    private static void SeedHermeticFounderForExpeditionRailFixture(
+        CityWorldController controller)
+    {
+        CitizenProfile profile = NewFounderProfile(LineageId.Ardhen);
+        var fixture = new CityWorld();
+        HeroCreationResult hero = fixture.TryCreateHero(
+            new HeroCreationRequest("Aster", profile, profile.Gender));
+        if (!hero.IsSuccess)
+        {
+            GD.PushError(
+                "[WOG-EXPEDITION-RAIL-FIXTURE] could not create the fixture "
+                + $"founder: {hero.Outcome}.");
+            return;
+        }
+        fixture.SeedStartingForests();
+        fixture.SeedStartingOpportunities();
+        // Past the authored first night. A fresh world opens on it, and its
+        // dialogue is a real modal that swallows the injected pointer clicks
+        // these fixtures depend on — the rail rendered correctly underneath
+        // while the click never reached the chronicle header. These fixtures
+        // are about the rail, not the opening narrative.
+        fixture.ConcludeFirstNightForFixtures();
+        controller.World.Restore(WorldPersistence.Capture(fixture));
+    }
+
     private void ExerciseExpeditionRailPointerForVisualRegression(string action)
     {
         ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
@@ -2354,20 +2409,31 @@ public partial class CityPrototype : Node
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
-        SendPointerClickForVisualRegression(rail.MoreButton);
+        // Wait a frame before the first click. The fixture has just reseeded
+        // the world, so the rail rebuilt its cards this frame and its children
+        // have not been sorted yet; clicking immediately dispatches at a
+        // pre-layout rect. In a real window that stale coordinate landed on
+        // VER instead of the chronicle header and opened the live view, which
+        // then reported as "Chronicle did not restore expeditions" — a
+        // misdirected click wearing the costume of a layout bug.
         GetTree().CreateTimer(0.1).Timeout += () =>
         {
-            if (!rail.ChronicleExpanded)
+            SendPointerClickForVisualRegression(rail.MoreButton);
+            GetTree().CreateTimer(0.1).Timeout += () =>
             {
-                GD.PushError("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle did not open.");
-                return;
-            }
-            // The first edge already exercised real pointer dispatch. Emit the
-            // same Button signal for the return edge so the fixture validates
-            // accordion state rather than depending on a relayout race in the
-            // headless pointer coordinate transform.
-            rail.MoreButton.EmitSignal(BaseButton.SignalName.Pressed);
-            GetTree().CreateTimer(0.1).Timeout += ValidateExpeditionRailChronicleRoundTripForVisualRegression;
+                if (!rail.ChronicleExpanded)
+                {
+                    GD.PushError("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle did not open.");
+                    return;
+                }
+                // The first edge already exercised real pointer dispatch. Emit the
+                // same Button signal for the return edge so the fixture validates
+                // accordion state rather than depending on a relayout race in the
+                // headless pointer coordinate transform.
+                rail.MoreButton.EmitSignal(BaseButton.SignalName.Pressed);
+                GetTree().CreateTimer(0.1).Timeout +=
+                    ValidateExpeditionRailChronicleRoundTripForVisualRegression;
+            };
         };
     }
 
@@ -2375,18 +2441,30 @@ public partial class CityPrototype : Node
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
+        // Height, not visibility, and a threshold with meaning. The bug this
+        // fixture exists to catch left the cards Visible with their own 25 px
+        // height while the body around them was squeezed to 2 px: laid out
+        // nowhere, drawn not at all. `> 0` would have called that a pass. The
+        // body must be tall enough to actually show its first card.
+        Rect2 body = rail.ExpeditionBodyRectForVisualRegression;
+        float cardHeight = rail.FirstDetailsButton?.GetGlobalRect().Size.Y ?? 0f;
         bool passed = rail.Expanded
             && !rail.ChronicleExpanded
-            && rail.FirstViewButton?.IsVisibleInTree() == true;
+            && rail.FirstViewButton?.IsVisibleInTree() == true
+            && cardHeight > 0f
+            && body.Size.Y >= cardHeight;
         if (!passed)
         {
             GD.PushError(
                 "[WOG-EXPEDITION-RAIL-ROUNDTRIP] closing Chronicle did not restore expeditions; "
                 + $"rail={rail.Expanded}, chronicle={rail.ChronicleExpanded}, "
-                + $"view={rail.FirstViewButton?.IsVisibleInTree()}.");
+                + $"view={rail.FirstViewButton?.IsVisibleInTree()}, "
+                + $"bodyRect={body}, cardHeight={cardHeight}.");
             return;
         }
-        GD.Print("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle closed and expedition content returned.");
+        GD.Print(
+            "[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle closed and expedition content returned; "
+            + $"bodyHeight={body.Size.Y}, cardHeight={cardHeight}.");
     }
 
     private void ExerciseExpeditionRailPhaseFocusForVisualRegression()

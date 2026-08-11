@@ -17,6 +17,64 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## El rail deja de negociar su columna: un solo cuerpo visible
+
+**2026-08-10** · schema v34 (sin cambio) · presentación
+
+Lo que se nota: abrir y cerrar el Registro ya no vacía la lista de
+expediciones. `VER` y las tarjetas vuelven juntos, porque ya no hay dos
+hermanos peleando por la misma columna.
+
+El defecto era estructural, no un fallo de refresco. `_scroll` y
+`ChroniclePanel` eran hermanos `ExpandFill` del mismo `VBoxContainer`, y Godot
+tenía que repartir una altura entre dos aspirantes cuyos mínimos cambiaban al
+plegarse. `VER` sobrevivía por estar en un hermano `ShrinkBegin` con mínimo
+natural; la lista de tarjetas, el único nodo negociable, no. Medido: el cuerpo
+quedaba en **2 px** con tarjetas de 25 px — visibles, maquetadas en ninguna
+parte, dibujadas nunca. El código lo compensaba invalidando y reordenando tres
+ancestros (`UpdateMinimumSize`, `QueueSort`, `ResetSize`) tras cada toggle.
+
+Ahora existe `AccordionHost`, reutilizable y ajeno a expediciones y crónica:
+varios cuerpos, un único hueco compartido, exactamente uno visible. Los dos
+headers viven en la columna del rail y siguen siempre a la vista; los cuerpos
+se intercambian debajo. Como un `Container` de Godot excluye del mínimo a los
+hijos invisibles, no queda reparto que perder: desaparecen `RequestRailRelayout`
+y las tres llamadas de invalidación, y el `MaxHeight` de 360 px del cuerpo de la
+crónica —piso y techo a la vez, y la causa directa del ahogo— se elimina.
+
+Las pruebas que fijaban el parche como contrato se reescribieron para custodiar
+el invariante nuevo: un solo `ExpandFill`, ambos headers fuera del host, un solo
+cuerpo visible, y ausencia de `QueueSort`/`ResetSize`/`UpdateMinimumSize` en el
+rail. Su reaparición es la señal de que la guerra civil volvió.
+
+**Cuatro sesiones de fixtures rojos tenían una causa concreta.** El montaje
+descartaba en silencio el fallo de `StartExpedition`, así que la captura salía
+con código 0 y escribía un PNG de la pantalla equivocada. Al hacerlo hablar:
+`outcome=MemberUnavailable, unavailableReason=Wounded`. El Founder estaba
+**herido** por el combate que entregamos dos commits antes. Los diagnósticos
+anteriores —«fuera de horario», «madurez del save»— eran incorrectos y quedan
+corregidos. Los fixtures del rail siembran ahora un mundo propio, ya pasada la
+primera noche, así que no dependen del slot 0.
+
+El fixture del round-trip tampoco sabía ver este bug: comprobaba
+`IsVisibleInTree()`, que es exactamente lo que el defecto dejaba intacto. Ahora
+exige que el cuerpo mida al menos lo que mide su primera tarjeta. Verificado por
+A/B: **1102 px** con la estructura nueva, **2 px** con la anterior.
+
+Baseline: build 0/0; 1185 pruebas superadas y 1 omitida sobre 1186, sin cambio
+de recuento; catálogos y schema v34 intactos.
+
+**Deuda que sigue abierta**, registrada en M-14 y no presentada como resuelta:
+`expedition-rail-rail-protagonist` y `expedition-rail-phase-focus` fallan
+también con la estructura anterior (A/B hecho), así que son previos y no
+regresiones. Y las fixtures de click en ventana siguen sin ser fiables: el
+helper escala la posición por `DisplayServer.WindowGetSize()`, de modo que la
+ventana bootstrap de 50×50 documentada manda el click lejos del objetivo. La
+vía fiable es headless; el frame en ventana sí confirma visualmente tarjetas y
+`VER` juntos.
+
+---
+
 ## El Spirit Trail ya es la primera expedición completa
 
 **2026-08-10** · schema v33 → v34 · expedición/combate/apertura

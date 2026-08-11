@@ -136,26 +136,34 @@ Onboarding astral → primera noche
   Fiber/Small Stone/Wild Food en macro view; firma humana de su comportamiento
   de recogida.
 - **Aceptación:** ningún cambio de UI se cierra solo con boot headless.
-- **🔴 Fallo silencioso detectado 2026-08-10.** Los fixtures que dependen de
-  una expedición activa (`expedition-live-early`, `expedition-live-travel`,
-  `expedition-rail-chronicle-roundtrip`) no son herméticos: dependen del estado
-  del slot 0 que exista en la máquina. `StartExpedition` falla,
-  `CityPrototype` descarta el fallo en silencio
-  (`if (!started.IsSuccess) return;`) y la captura **sale con exit 0 y escribe
-  un PNG de la pantalla equivocada**. Una firma visual hecha sobre ese PNG
-  aprobaría lo que no es. Los fixtures que no necesitan expedición activa
-  (`expedition-rail-empty`, `expedition-components-default`) pasan limpios, lo
-  que acota la causa.
-  **Corrección del diagnóstico inicial:** se atribuyó primero a la hora de
-  mundo («fuera de horario, héroe en casa»). Es insuficiente: la revalidación
-  del 2026-08-10 falló en hora laboral (tick 13043 → 2243, dentro de
-  1200–2400). El disparador es la madurez/estado del save —un slot maduro
-  arrancaba la expedición y uno temprano no—, no sólo el reloj. La causa exacta
-  del rechazo sigue sin identificar; `StartExpedition` tiene varias salidas de
-  fallo y el fixture descarta cuál fue.
-  **Arreglar antes de confiar en la matriz para EG-5V:** sembrar estado
-  hermético para el fixture y convertir el `return` silencioso en un error
-  explícito que registre el `ExpeditionStartOutcome` y aborte la captura.
+- **🔴 Fallo silencioso — causa raíz encontrada 2026-08-10.** Los fixtures del
+  rail descartaban en silencio el fallo de `StartExpedition`
+  (`if (!started.IsSuccess) return;`), así que la captura **salía con exit 0 y
+  escribía un PNG de la pantalla equivocada** y una firma visual sobre ese PNG
+  aprobaba lo que no era. Al convertirlo en error explícito la causa apareció
+  de inmediato: `outcome=MemberUnavailable, unavailableReason=Wounded` — el
+  Founder estaba herido por el combate entregado en `DEC-0021`/v34. Los dos
+  diagnósticos anteriores («fuera de horario», «madurez del save») eran
+  **incorrectos**. **Cerrado:** los fixtures del rail siembran su propio mundo
+  (`SeedHermeticFounderForExpeditionRailFixture`), ya pasada la primera noche,
+  y el fallo de arranque se registra con su `ExpeditionStartOutcome`.
+- **🔴 Un fixture verde no era prueba.** `expedition-rail-chronicle-roundtrip`
+  comprobaba `IsVisibleInTree()`, exactamente lo que el defecto de layout
+  dejaba intacto: pasaba con el cuerpo ahogado a 2 px y tarjetas de 25 px.
+  **Cerrado:** ahora exige `bodyHeight >= cardHeight`, y el A/B lo demuestra
+  (1102 px con la estructura nueva, 2 px con la anterior). Lección aplicable al
+  resto de la matriz: **la visibilidad no es geometría**; cualquier fixture que
+  custodie «el contenido volvió» debe medir rect, no flags.
+- **🟠 Pendiente — clicks inyectados en ventana no son fiables.**
+  `SendPointerClickForVisualRegression` escala la posición por
+  `DisplayServer.WindowGetSize()`, así que con la ventana bootstrap de 50×50
+  ya documentada el click aterriza lejos del objetivo (se observó abriendo la
+  vista en vivo en lugar de plegar la crónica). Headless es la vía fiable
+  mientras no se espere el tamaño real de ventana antes de despachar.
+- **🟠 Pendiente — previos, no regresiones.**
+  `expedition-rail-rail-protagonist` y `expedition-rail-phase-focus` fallan
+  igual con la estructura anterior (A/B con los ficheros de UI revertidos), así
+  que no los introdujo el `AccordionHost`. Sin diagnosticar todavía.
 | 1 | Fundador persistente | Firma humana obtenida |
 | 2 | Gathering y tres edificios iniciales | Firma humana obtenida |
 | 3 | Reclutamiento restringido | Firma humana obtenida |

@@ -25,15 +25,6 @@ public partial class ChroniclePanel : VBoxContainer
     private const int IconSize = 16;
 
     /// <summary>
-    /// Hard ceiling on the chronicle's own body height so a long event
-    /// history cannot push the rest of the HUD off-screen. The body
-    /// holds every scrollable child (caption, decisions, rows) inside
-    /// this single cap, so the chronicle's overall height stays fixed
-    /// regardless of how many meaningful events accumulate.
-    /// </summary>
-    private const int MaxHeight = 360;
-
-    /// <summary>
     /// Locked width matching <c>ExpeditionRail.PanelWidth</c>. Without
     /// this minimum, the chronicle's combined-minimum width falls to
     /// the chevron+title strip the moment the body hides and never
@@ -59,16 +50,19 @@ public partial class ChroniclePanel : VBoxContainer
     public IReadOnlyList<Control> Focusables => _focusables;
     public CollapsiblePanelHeader Header => _header;
 
+    /// <summary>
+    /// The scrollable body, exposed because it no longer lives under this
+    /// node: <see cref="ExpeditionRail"/> registers it with an
+    /// <see cref="AccordionHost"/> so it shares one stretch of column with
+    /// the expedition list instead of competing with it for height. This
+    /// panel still builds and fills the body; it just does not parent it.
+    /// </summary>
+    public ScrollContainer Body => _body;
+
     public ChroniclePanel()
     {
         Name = "ChroniclePanel";
         SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        // Start collapsed: just the header counts toward the layout;
-        // the rail expedition section is the initial protagonist and
-        // gets the full rail column. SizeFlagsVertical flips to
-        // ExpandFill only when the chronicle becomes the protagonist,
-        // so it never competes with the expedition scroll for height.
-        SizeFlagsVertical = SizeFlags.ShrinkBegin;
         // The locked width keeps the chronicle from collapsing to the
         // chevron+title strip when the body hides. Without it the
         // combined-minimum shrinks to header-only and the layout never
@@ -86,32 +80,26 @@ public partial class ChroniclePanel : VBoxContainer
             UiText.Get("ui.expedition_rail.activity"),
             expanded: false);
         _header.ExpandedChanged += OnHeaderExpandedChanged;
-        AddChild(_header);
 
         // One ScrollContainer wraps everything below the header. The
         // single-scroll design (caption + decisions + rows together)
-        // matches CitySummaryPanel's body and bounds the chronicle's
-        // own height. The chronicle fills the available rail column
-        // when it is the accordion protagonist, so when the player
-        // deploys the chronicle the body uses the full height of the
-        // rail instead of a fixed MaxHeight strip.
+        // matches CitySummaryPanel's body.
+        //
+        // Neither the header nor the body is added here. The rail mounts
+        // the header above the shared AccordionHost and registers the body
+        // inside it, so both headers stay on screen while only one body
+        // does. The height comes from the host's rect; there is no fixed
+        // strip and no vertical size flag to flip, because nothing competes
+        // for the column any more.
         _body = new ScrollContainer
         {
             Name = BodyScrollName,
-            // Match the header's initial collapsed state. Otherwise this
-            // 560 px body still occupies the shared rail while its chevron
-            // says it is folded, squeezing the expedition list out.
-            Visible = false,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             MouseFilter = MouseFilterEnum.Stop,
             SizeFlagsVertical = SizeFlags.ExpandFill,
         };
-        _body.SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide);
-        _body.CustomMinimumSize = new Vector2(0, MaxHeight);
-        _body.OffsetBottom = MaxHeight;
         _body.GuiInput += OnChronicleScrollGuiInput;
-        AddChild(_body);
     }
 
     /// <summary>
@@ -174,37 +162,15 @@ public partial class ChroniclePanel : VBoxContainer
 
     private void OnHeaderExpandedChanged(bool expanded)
     {
-        _body.Visible = expanded;
-        // Flip the vertical size flag with the body. ExpandFill when
-        // the chronicle is the accordion protagonist so the body
-        // owns the full rail column; ShrinkBegin when the body hides
-        // so the chronicle collapses to header-only and gives the
-        // expedition scroll every remaining pixel.
-        SizeFlagsVertical = expanded
-            ? SizeFlags.ExpandFill
-            : SizeFlags.ShrinkBegin;
-        // The body becoming invisible changes the chronicle's minimum
-        // size; the parent VBoxContainer needs to re-measure on the
-        // next frame or the chronicle keeps its old (expanded) height
-        // and the body remains on screen even though Visible = false.
-        CallDeferred(MethodName.NotifyChronicleCollapseLayout);
+        // Visibility is no longer this panel's business. The body lives in
+        // the rail's AccordionHost, which shows exactly one body; this panel
+        // only reports the intent and keeps its own contents coherent.
         ExpandedChanged?.Invoke(expanded);
         if (expanded) ScrollToNewest();
         // The decision buttons are reachable only when the body is
         // unfolded; rebuild the focusable list so the rail's focus
         // chain does not contain buttons that are not on screen.
         RebuildFocusables();
-    }
-
-    /// <summary>
-    /// Deferred hook fired right after the body toggles its visibility.
-    /// The chronicle asks its parent for a re-measure so it collapses
-    /// to header-only the moment the body becomes invisible, matching
-    /// <see cref="CitySummaryPanel"/>'s fold behaviour.
-    /// </summary>
-    private void NotifyChronicleCollapseLayout()
-    {
-        if (IsInsideTree()) ResetSize();
     }
 
     private void RebuildBody()
@@ -226,11 +192,9 @@ public partial class ChroniclePanel : VBoxContainer
         // own header uses.
         _header.Text = $"{UiText.Get("ui.expedition_rail.activity")} · {compacted.Count}";
 
-        // Single VBoxContainer inside the body's scroll. Every
-        // scrollable element (caption, decisions, rows) lives in this
-        // one VBox so the body's anchor cap holds the chronicle at
-        // exactly MaxHeight regardless of how many rows or decisions
-        // accumulate.
+        // Single VBoxContainer inside the body's scroll. Every scrollable
+        // element (caption, decisions, rows) lives in this one VBox, so the
+        // body scrolls as a whole however many rows or decisions accumulate.
         var content = new VBoxContainer
         {
             SizeFlagsHorizontal = SizeFlags.ExpandFill,

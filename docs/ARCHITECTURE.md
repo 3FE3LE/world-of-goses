@@ -431,11 +431,21 @@ active domain expeditions, their real members, persisted phase, committed
 supplies and authoritative tick interval; it introduces no queue or dispatch
 rules. Its embedded `ChroniclePanel` delegates meaningful-event filtering and
 compaction to `ChronicleEventProjection`, then uses the existing localized
-`WorldEventTextFormatter`. Compact and expanded states share the same rail,
-controller and scroll ownership; expansion replaces the expedition summary and
-adds offline catch-up summary, grouped blocker decisions and bounded history.
-The accordion restores the expedition summary when Chronicle closes, so neither
-surface can strand the other in an invisible state.
+`WorldEventTextFormatter`. Compact and expanded states share the same rail and
+controller. Both section headers stay mounted on the rail's own column at all
+times; their two bodies — the expedition scroll and the chronicle scroll —
+share a single `AccordionHost`, which keeps exactly one of them visible. That
+host is the rail's only vertically expanding child. The arrangement is
+deliberate: two `ExpandFill` siblings previously divided one column between
+claimants whose minimum sizes moved as their contents folded, and the loser was
+squeezed to a near-zero rect while its children stayed `Visible` and undrawn —
+measured at 2 px against a 25 px card. Because a Godot `Container` excludes
+invisible children from its minimum size, one visible body means there is no
+division to lose, and no ancestor needs `QueueSort`, `ResetSize` or
+`UpdateMinimumSize` after a toggle. Expansion replaces the expedition summary
+and adds offline catch-up summary, grouped blocker decisions and bounded
+history. The accordion restores the expedition summary when Chronicle closes,
+so neither surface can strand the other in an invisible state.
 There is no adjacent or duplicate Chronicle surface.
 
 The observable encounter owns a pure one-dimensional `CombatSpatialState` per

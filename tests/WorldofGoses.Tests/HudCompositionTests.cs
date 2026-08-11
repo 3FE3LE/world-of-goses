@@ -899,66 +899,82 @@ public sealed class HudCompositionTests
     [Fact]
     public void ExpeditionRail_CollapsibleHeaderFoldsToSlimResumeOfTheToggles()
     {
-        // The rail's CollapsiblePanelHeader governs the whole body:
-        // collapsing the rail hides the expedition section AND the
-        // scroll AND collapses the chronicle, so only the rail header
-        // and the chronicle header stay visible — a slim resume of the
-        // toggles that still make sense while the rail is folded.
+        // The rail's two headers stay visible at all times; only the bodies
+        // swap beneath them, inside one shared AccordionHost. Collapsing
+        // everything leaves the two headers as a slim resume of the toggles
+        // that still make sense while the rail is folded.
         string rail = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "ExpeditionRail.cs"));
         string chronicle = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
+        string host = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "AccordionHost.cs"));
 
         Assert.Contains("new CollapsiblePanelHeader", rail, StringComparison.Ordinal);
         Assert.Contains("ExpandedChanged", rail, StringComparison.Ordinal);
-        Assert.Contains(
-            "_expeditionSection.Visible = expanded", rail, StringComparison.Ordinal);
-        Assert.Contains("_scroll.Visible = expanded", rail, StringComparison.Ordinal);
         Assert.Contains("public bool Expanded =>", rail, StringComparison.Ordinal);
-        // Accordion: when either header expands, the other surface
-        // folds out so only one occupies the rail's column at a time.
-        // Expanding the rail collapses the chronicle body; expanding
-        // the chronicle hides the expedition scroll. This is the only
-        // way to keep both surfaces fitting without overlap given the
-        // shared column.
-        Assert.Contains("if (expanded)", rail, StringComparison.Ordinal);
+
+        // THE invariant this whole structure exists for. Two vertically
+        // greedy siblings in one VBoxContainer is what broke the rail: the
+        // engine had to divide one column between two claimants whose
+        // minimums moved as their contents folded, and the loser collapsed to
+        // a zero-height rect while its children stayed alive and unrendered.
+        // VER survived because it sat in a ShrinkBegin sibling with a natural
+        // minimum; the card list, the only negotiable node, did not.
+        //
+        // Exactly two ExpandFill declarations may remain, and they are a
+        // parent/child chain rather than siblings: the rail PanelContainer
+        // itself, and the layout VBox inside it. A third would mean a new
+        // claimant sibling and the division is back. The bodies must NOT
+        // declare their own — AccordionHost sets that on whatever it adopts.
+        Assert.Equal(
+            2,
+            Regex.Matches(rail, @"SizeFlagsVertical = SizeFlags\.ExpandFill").Count);
+        Assert.Contains(
+            "SizeFlagsVertical = SizeFlags.ExpandFill", host, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost = new AccordionHost()", rail, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost.Register(_scroll)", rail, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost.Register(_chronicle.Body)", rail, StringComparison.Ordinal);
+
+        // Both headers are mounted on the rail's own column, OUTSIDE the body
+        // host, so neither disappears when its body folds.
+        Assert.Contains("_layout.AddChild(_chronicle.Header)", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
+
+        // Accordion: expanding either surface shows exactly that body.
         Assert.Contains("_chronicle.Expanded = false", rail, StringComparison.Ordinal);
-        Assert.Contains("_expeditionSection.Visible = false", rail, StringComparison.Ordinal);
-        Assert.Contains("_scroll.Visible = false", rail, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost.ShowOnly(_scroll)", rail, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost.ShowOnly(_chronicle.Body)", rail, StringComparison.Ordinal);
         Assert.Contains("_header.Expanded = false", rail, StringComparison.Ordinal);
         // Closing Chronicle must restore the initial expedition protagonist.
         // Without the symmetric branch both bodies remain hidden permanently.
         Assert.Contains("else if (!_header.Expanded)", rail, StringComparison.Ordinal);
         Assert.Contains("_header.Expanded = true", rail, StringComparison.Ordinal);
-        // The chronicle is added as a direct child of the layout
-        // (outside the rail's scroll), not inside _content. Putting it
-        // inside the scroll would hide it whenever the rail collapses.
-        Assert.Contains("layout.AddChild(_chronicle)", rail, StringComparison.Ordinal);
-        Assert.Contains("_layout.AddChild(_chronicle)", rail, StringComparison.Ordinal);
-        Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
-        // The rail's layout must re-sort on the next frame so the body
-        // actually shrinks when the chronicle hides — without this
-        // deferred QueueSort, the rail would stay at its expanded
-        // rect with the body simply hidden underneath, and re-expanding
-        // the chronicle would overflow the rail and overlap the scroll.
-        Assert.Contains("_layout.QueueSort", rail, StringComparison.Ordinal);
-        Assert.Contains("_layout.UpdateMinimumSize", rail, StringComparison.Ordinal);
-        Assert.Contains("_scroll.ResetSize", rail, StringComparison.Ordinal);
-        Assert.Contains("_chronicle.QueueSort", rail, StringComparison.Ordinal);
-        // Both header sources must trigger the same layout refresh:
-        // rail header for the slim-resume cycle, chronicle header for
-        // folding just the chronicle body while the rail stays open.
-        Assert.Contains(
-            "OnChronicleExpanded(bool expanded)",
-            rail, StringComparison.Ordinal);
-        Assert.Contains(
-            "RequestRailRelayout",
-            rail, StringComparison.Ordinal);
+
+        // The relayout incantations are gone and must stay gone. Their return
+        // is the signal that the two-claimant fight restarted: nothing needs
+        // to invalidate or re-sort an ancestor when only one child is ever
+        // measured. Godot excludes invisible children from a Container's
+        // minimum size on its own.
+        Assert.DoesNotContain("RequestRailRelayout", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("QueueSort", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("ResetSize", rail, StringComparison.Ordinal);
+        Assert.DoesNotContain("UpdateMinimumSize", rail, StringComparison.Ordinal);
+
+        // The host must stay reusable: it knows about bodies, never about
+        // expeditions or the chronicle.
+        Assert.Contains("public void ShowOnly(Control? body)", host, StringComparison.Ordinal);
+        Assert.Contains("public void Register(Control body)", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Expedition", host, StringComparison.Ordinal);
+        Assert.DoesNotContain("Chronicle", host, StringComparison.Ordinal);
+
         // Chronicle folds with the rail. The chronicle is exposed via
         // its own collapsible header so the rail-level "more" button
         // falls back to that header — clicking it expands the
         // chronicle body exactly like CitySummaryPanel's header.
         Assert.Contains("public CollapsiblePanelHeader Header => _header;",
+            chronicle, StringComparison.Ordinal);
+        Assert.Contains("public ScrollContainer Body => _body;",
             chronicle, StringComparison.Ordinal);
         Assert.Contains("MoreButton => _chronicle.Header", rail, StringComparison.Ordinal);
         // Accordion initial state: the chronicle starts collapsed so
@@ -966,16 +982,19 @@ public sealed class HudCompositionTests
         Assert.Contains(
             "new CollapsiblePanelHeader(\n            UiText.Get(\"ui.expedition_rail.activity\"),\n            expanded: false)",
             chronicle, StringComparison.Ordinal);
-        Assert.Contains("Visible = false", chronicle, StringComparison.Ordinal);
-        // The chronicle flips between ExpandFill (protagonist — body
-        // visible, fills the rail column) and ShrinkBegin (collapsed —
-        // just the header). When both flags are gone the chronicle
-        // stays stuck at the wrong vertical size on toggle.
-        Assert.Contains("SizeFlagsVertical = SizeFlags.ShrinkBegin;",
-            chronicle, StringComparison.Ordinal);
-        Assert.Contains(
-            "SizeFlagsVertical = expanded\n            ? SizeFlags.ExpandFill\n            : SizeFlags.ShrinkBegin;",
-            chronicle, StringComparison.Ordinal);
+
+        // The chronicle no longer negotiates its own height: no size-flag
+        // flip, and no 360 px floor/ceiling. Both existed only to survive the
+        // sibling fight, and the floor is what starved the expedition scroll.
+        Assert.DoesNotContain("MaxHeight", chronicle, StringComparison.Ordinal);
+        Assert.DoesNotContain("OffsetBottom", chronicle, StringComparison.Ordinal);
+        Assert.DoesNotContain("LayoutPreset.TopWide", chronicle, StringComparison.Ordinal);
+        // The panel must not flip its OWN vertical size flag any more. Inner
+        // ShrinkBegin uses are fine and expected — those are content hugging
+        // its height inside a scroll, not a sibling bidding for the column.
+        Assert.DoesNotContain(
+            "SizeFlagsVertical = expanded", chronicle, StringComparison.Ordinal);
+
         // The rail header counts ONLY active expeditions, never falls
         // back to chronicle events. The two badges must not share a
         // counter or the user confuses which surface they are reading.
@@ -985,26 +1004,13 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain(
             "ChronicleEventProjection.MeaningfulEvents(_snapshot.Events).Count",
             rail, StringComparison.Ordinal);
-        // The chronicle must collapse the moment its own header
-        // toggles, so the body is hidden via _body.Visible — the
-        // same affordance CitySummaryPanel uses.
-        Assert.Contains("_body.Visible = expanded", chronicle, StringComparison.Ordinal);
-        // The chronicle's own scroll lives outside the rail scroll, so
-        // the rail's _Input must not steal wheel events that land over
-        // it — otherwise the rail would scroll the expedition section
-        // instead of the chronicle rows the pointer is over.
+        // The chronicle's own scroll shares the host with the expedition
+        // scroll, so the rail's _Input must not steal wheel events that land
+        // over it. The test is against the body, because the panel itself is
+        // now an empty hidden logic owner with no meaningful rect.
         Assert.Contains(
-            "_chronicle.GetGlobalRect().HasPoint(mouse.GlobalPosition)",
+            "_chronicle.Body.GetGlobalRect().HasPoint(mouse.GlobalPosition)",
             rail, StringComparison.Ordinal);
-        // The body must cap at MaxHeight so a long event history
-        // actually scrolls instead of growing the chronicle off-screen.
-        // Anchoring top and bottom of the body to the same value with
-        // offset_bottom = cap pins the rect — CustomMinimumSize alone
-        // is a floor, not a ceiling. Single scroll, not nested.
-        Assert.Contains("SetAnchorsAndOffsetsPreset(LayoutPreset.TopWide)",
-            chronicle, StringComparison.Ordinal);
-        Assert.Contains("_body.OffsetBottom = MaxHeight",
-            chronicle, StringComparison.Ordinal);
         Assert.DoesNotContain("_rowsScroll", chronicle, StringComparison.Ordinal);
         // The chronicle must drive the VScrollBar on wheel input —
         // ScrollContainer does not auto-scroll, so the chronicle needs

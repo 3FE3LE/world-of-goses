@@ -24,6 +24,7 @@ public partial class ExpeditionRail : PanelContainer
     private VBoxContainer _layout = null!;
     private VBoxContainer _expeditionSection = null!;
     private ScrollContainer _scroll = null!;
+    private AccordionHost _bodyHost = null!;
     private VBoxContainer _content = null!;
     private VBoxContainer _expeditionContent = null!;
     private ChroniclePanel _chronicle = null!;
@@ -39,6 +40,22 @@ public partial class ExpeditionRail : PanelContainer
     public IconButton? FirstCancelButton { get; private set; }
     public Button MoreButton => _chronicle.Header;
     internal Button HeaderForVisualRegression => _header;
+
+    /// <summary>
+    /// Global rect of the expedition body, for fixtures that must prove the
+    /// card list actually occupies space.
+    /// </summary>
+    /// <remarks>
+    /// Visibility is not enough and never was. The defect this rail was
+    /// restructured to remove left the cards with <c>Visible == true</c> while
+    /// their host was squeezed to a zero-height rect — alive, laid out
+    /// nowhere, drawn not at all. A fixture asserting
+    /// <c>IsVisibleInTree()</c> passes straight through that state, which is
+    /// why the accordion round trip reported green for a rail the player
+    /// could see was empty. Height is the only witness that distinguishes
+    /// them.
+    /// </remarks>
+    internal Rect2 ExpeditionBodyRectForVisualRegression => _scroll.GetGlobalRect();
     public bool ChronicleExpanded => _chronicle.Expanded;
     public ExpeditionId? FirstExpeditionId { get; private set; }
 
@@ -90,7 +107,7 @@ public partial class ExpeditionRail : PanelContainer
 
         _expeditionSection = new VBoxContainer
         {
-            Name = "ExpeditionSection",
+            Name = "ExpeditionQuickActions",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Pass,
         };
@@ -98,16 +115,31 @@ public partial class ExpeditionRail : PanelContainer
         _layout.AddChild(_expeditionSection);
         _header.ExpandedChanged += OnHeaderExpandedChanged;
 
+        // The chronicle's header is a sibling of the expedition header, not
+        // a child of the body host: both headers stay on screen at all times
+        // and only the bodies beneath them swap.
+        _chronicle = new ChroniclePanel();
+        _chronicle.SetController(_controller);
+        _chronicle.ExpandedChanged += OnChronicleExpanded;
+        _chronicle.FocusablesChanged += OnChronicleFocusablesChanged;
+        _layout.AddChild(_chronicle.Header);
+
+        // One host, one ExpandFill, one visible body. Registering both
+        // bodies here is what removes the old two-claimant negotiation: the
+        // expedition list and the chronicle can no longer starve each other,
+        // because only one of them is ever measured.
+        _bodyHost = new AccordionHost();
+        _layout.AddChild(_bodyHost);
+
         _scroll = new ScrollContainer
         {
+            Name = "ExpeditionScroll",
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             MouseFilter = MouseFilterEnum.Stop,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
         };
         _scroll.GuiInput += OnScrollGuiInput;
-        _layout.AddChild(_scroll);
+        _bodyHost.Register(_scroll);
 
         _content = new VBoxContainer
         {
@@ -127,16 +159,16 @@ public partial class ExpeditionRail : PanelContainer
         _expeditionContent.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         _content.AddChild(_expeditionContent);
 
-        // Chronicle sits as a direct child of the layout, below the
-        // rail-level scroll, so its own bounded rows scroll stays
-        // independent of the expedition section's overflow. Its own
-        // collapsible header governs the body exactly the way
-        // CitySummaryPanel governs its body — the player can fold the
-        // chronicle even when the rail is open.
-        _chronicle = new ChroniclePanel();
-        _chronicle.SetController(_controller);
-        _chronicle.ExpandedChanged += OnChronicleExpanded;
-        _chronicle.FocusablesChanged += OnChronicleFocusablesChanged;
+        _bodyHost.Register(_chronicle.Body);
+        _bodyHost.CurrentBodyChanged += OnBodyHostChanged;
+        // The expedition list is the opening protagonist.
+        _bodyHost.ShowOnly(_scroll);
+
+        // ChroniclePanel keeps owning the chronicle's rows, projection and
+        // offline report, but it no longer parents either of its own parts.
+        // It stays in the tree, hidden and empty, purely so its lifetime is
+        // managed with the rail's; nothing renders through it.
+        _chronicle.Visible = false;
         _layout.AddChild(_chronicle);
 
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
@@ -189,13 +221,15 @@ public partial class ExpeditionRail : PanelContainer
         {
             return;
         }
-        // The chronicle sits below the rail-level scroll and owns its
-        // own bounded rows scroll. Letting the rail intercept the wheel
-        // here would scroll the wrong surface — the expedition cards
-        // instead of the chronicle the pointer is actually over.
+        // The chronicle body shares the body host with the expedition
+        // scroll and owns its own bounded rows scroll. Letting the rail
+        // intercept the wheel here would scroll the wrong surface — the
+        // expedition cards instead of the chronicle the pointer is over.
+        // Test against the body, not the panel: the panel is an empty,
+        // hidden logic owner and has no meaningful rect.
         if (_chronicle is not null
-            && _chronicle.Visible
-            && _chronicle.GetGlobalRect().HasPoint(mouse.GlobalPosition))
+            && _chronicle.Body.Visible
+            && _chronicle.Body.GetGlobalRect().HasPoint(mouse.GlobalPosition))
         {
             return;
         }
@@ -378,20 +412,22 @@ public partial class ExpeditionRail : PanelContainer
         {
             // Accordion: when expedition expands, chronicle folds.
             _chronicle.Expanded = false;
+            _bodyHost.ShowOnly(_scroll);
+        }
+        else if (!_chronicle.Expanded)
+        {
+            // Both folded: the host shows nothing and the rail collapses to
+            // its two headers.
+            _bodyHost.ShowOnly(null);
         }
         _expeditionSection.Visible = expanded;
-        _scroll.Visible = expanded;
-        // The Container caches its children's minimum sizes; the next
-        // frame's QueueSort re-measures so the body actually collapses
-        // to header-only instead of staying at its expanded rect.
-        if (IsInsideTree()) CallDeferred(MethodName.RequestRailRelayout);
         RebuildFocusables();
     }
 
     /// <summary>
     /// The chronicle header is the other half of the accordion. When
-    /// it expands, the expedition section folds out so the chronicle
-    /// takes the whole rail column — no overlap, no fighting for
+    /// it expands, the expedition body folds out so the chronicle
+    /// takes the whole body host — no overlap, no fighting for
     /// pixels, no need to re-distribute a vertical layout that was
     /// trying to fit both at once.
     /// </summary>
@@ -401,37 +437,28 @@ public partial class ExpeditionRail : PanelContainer
         {
             // Accordion: when chronicle expands, expedition folds.
             // Also collapse the rail header so its chevron matches
-            // the now-hidden scroll.
+            // the now-hidden expedition body.
             _expeditionSection.Visible = false;
-            _scroll.Visible = false;
             _header.Expanded = false;
+            _bodyHost.ShowOnly(_chronicle.Body);
         }
         else if (!_header.Expanded)
         {
             // Symmetric accordion transition: closing Chronicle restores the
             // expedition section instead of leaving both protagonists folded.
+            // Setting the header re-enters OnHeaderExpandedChanged, which
+            // shows the expedition body.
             _header.Expanded = true;
         }
         RebuildFocusables();
         if (expanded) _chronicle.ScrollToNewest();
-        if (IsInsideTree()) CallDeferred(MethodName.RequestRailRelayout);
     }
 
-    private void RequestRailRelayout()
-    {
-        if (_layout is null || !IsInsideTree()) return;
-        // Invalidate cached minimum sizes so the layout does not hand
-        // children back their pre-toggle rect. QueueSort then re-sorts
-        // and ResetSize forces each Container to re-ask its parent for
-        // a rect based on the new minimum.
-        _layout.UpdateMinimumSize();
-        if (_chronicle is not null) _chronicle.UpdateMinimumSize();
-        _layout.QueueSort();
-        if (_chronicle is not null) _chronicle.QueueSort();
-        ResetSize();
-        if (_scroll is not null) _scroll.ResetSize();
-        if (_chronicle is not null) _chronicle.ResetSize();
-    }
+    /// <summary>
+    /// The host swapped bodies, so the focus chain must be rebuilt: the
+    /// hidden body's controls are off screen and must not stay reachable.
+    /// </summary>
+    private void OnBodyHostChanged() => RebuildFocusables();
 
     private void OnChronicleFocusablesChanged()
     {
