@@ -54,6 +54,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | `VISUAL_REGRESSION.md` | Reproducible capture harness, required UI-state matrix, and human sign-off contract. |
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
 | `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |
+| `HUD_REVIEW_2026-08-10.md` | **Dated findings report, not a contract.** Static review of the in-game HUD: what to keep, nine ranked problems (P1–P9), low-risk improvements and three radical options. Owns no backlog — `TO_DO.md` remains the actionable queue. Its §1.8 and P8 carry corrections from the `AccordionHost` restructure landed the same day. |
 | `VALIDATION.md` | Honest cross-check of the current slice against the bible's vision and pillars, ranked gaps. |
 | `PERFORMANCE_BUDGETS.md` | Frame-time targets per scenario, how they are measured, and what the capture harness does when one is exceeded. |
 | `EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` | **Approved direction.** The three resource horizons, the founding camp, and the first expeditions. EG-A0 numbers remain provisional. Cited by several `CONTEXT_MAP.md` routes. |
