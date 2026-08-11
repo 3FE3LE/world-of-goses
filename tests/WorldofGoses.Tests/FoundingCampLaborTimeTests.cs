@@ -44,9 +44,11 @@ public sealed class FoundingCampLaborTimeTests
         ConstructionProject project = AuthorizeFoundingSite(world);
         Citizen founder = world.Hero!;
 
-        // Drive the visible-route path the macro view uses.
+        // It is the middle of the night, but the founding camp works at any
+        // hour, so the journey must land at the worksite rather than being
+        // reversed at a workday boundary that does not apply yet.
         Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(founder.Id, project.Id));
+        TestHelpers.SettleTravel(world);
         Assert.Equal(CitizenLocation.AtWork, founder.CurrentLocation);
     }
 
@@ -191,15 +193,14 @@ public sealed class FoundingCampLaborTimeTests
     }
 
     /// <summary>
-    /// Completes the visible route the way MacroStreetLiveView does when the
-    /// walking citizen reaches the worksite. The stepped world tick deliberately
-    /// does not finish visible travel on its own.
+    /// Runs the clock until the journey to the worksite comes due. Travel is
+    /// finished by world time alone (DEC-0023), so arriving is a matter of
+    /// waiting rather than of anything reporting an arrival.
     /// </summary>
     private static void Arrive(CityWorld world, Citizen citizen, ConstructionProject project)
     {
-        Assert.True(
-            world.ConfirmCitizenArrivedAtAssignment(citizen.Id, project.Id),
-            "Arrival at the worksite was refused.");
+        TestHelpers.SettleTravel(world);
+        Assert.Equal(CitizenLocation.AtWork, citizen.CurrentLocation);
     }
 
     private static void AdvanceUntilProgress(CityWorld world, ConstructionProject project)

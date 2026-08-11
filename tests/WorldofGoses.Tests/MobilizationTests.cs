@@ -41,7 +41,7 @@ public class MobilizationTests
         // Skip to sunset (tick DayTicks = first night tick).
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         // After sunset, all citizens are at home regardless of assignment.
@@ -58,12 +58,12 @@ public class MobilizationTests
         // First go to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         // Then to next sunrise.
         for (int t = 0; t < GameClock.NightTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.Equal(CitizenLocation.AtHome, world.GetCitizen(new CitizenId(1))!.CurrentLocation);
@@ -84,7 +84,7 @@ public class MobilizationTests
 
         for (int t = 0; t < GameClock.DayTicks + GameClock.NightTicks + 5; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.Equal(initialAssignment, bran.CurrentAssignment);
@@ -120,7 +120,7 @@ public class MobilizationTests
         Assert.Equal(stockBefore, farm.Stock);
         Assert.Equal(ProductionStopCause.WorkersInTransit, farm.StopCause);
 
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(citizen.Id, farm.Id));
+        TestHelpers.SettleTravel(world);
         Assert.Equal(CitizenLocation.AtWork, citizen.CurrentLocation);
         Assert.True(world.CurrentProductionRate(farm.Id) > rateBefore);
         TestHelpers.AdvanceToNextProductionCycle(world);
@@ -139,7 +139,7 @@ public class MobilizationTests
 
         Assert.True(world.TryAssignCitizen(quarry.Id, founder.Id).IsSuccess);
         Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(founder.Id, quarry.Id));
+        TestHelpers.SettleTravel(world);
 
         Assert.Equal(CitizenLocation.AtWork, founder.CurrentLocation);
         Assert.Contains(founder.Id, world.GetCurrentlyVisibleOccupants(quarry));
@@ -153,14 +153,19 @@ public class MobilizationTests
         world.RegisterBuilding(quarry);
         Citizen founder = world.Hero!;
 
+        // Leave less of the workday than the journey needs, so the founder is
+        // still walking when 16:00 arrives. The post-2026-07-30 workday runs
+        // 08:00–16:00 (ticks 1200–2400).
+        while (world.CurrentTick < GameClock.WorkdayEndTick - CityEconomyRules.AbstractTravelTicks / 2)
+        {
+            world.AdvanceWorldTick();
+        }
         Assert.True(world.TryAssignCitizen(quarry.Id, founder.Id).IsSuccess);
-        // Advance past the workday end (16:00) so the arrival is
-        // tested against the off-hours boundary. The post-2026-07-30
-        // workday runs 08:00–16:00 (ticks 1200–2400), so this loop
-        // walks to just past tick 2400.
-        while (world.CurrentTick < GameClock.WorkdayEndTick) world.AdvanceWorldTick();
+        Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
 
-        Assert.False(world.ConfirmCitizenArrivedAtAssignment(founder.Id, quarry.Id));
+        // Cross the boundary mid-journey.
+        while (world.CurrentTick <= GameClock.WorkdayEndTick) world.AdvanceWorldTick();
+
         Assert.Equal(quarry.Id, founder.CurrentAssignment);
         Assert.Equal(CitizenLocation.InTransit, founder.CurrentLocation);
         Assert.True(founder.IsReturningHome);
@@ -208,7 +213,7 @@ public class MobilizationTests
     {
         var world = new CityWorld();
         // Advance to the configured workday so the arrival check in
-        // ConfirmCitizenArrivedAtAssignment does not reverse the
+        // CityWorld.CompleteDueTravel does not reverse the
         // journey. Tests that build worlds ad-hoc instead of going
         // through TestHelpers.NewProductionWorld must do this too
         // since the 2026-07-30 workday change moved the dawn to
@@ -233,7 +238,7 @@ public class MobilizationTests
         world.RegisterBuilding(farm);
 
         Assert.True(world.TryAssignCitizen(farm.Id, arrived.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(arrived.Id, farm.Id));
+        TestHelpers.PlaceAtAssignment(world, arrived.Id);
         farm.AddStock(farm.MaxStock);
         Assert.True(world.TryAssignCitizen(farm.Id, travelling.Id).IsSuccess);
 
@@ -259,7 +264,7 @@ public class MobilizationTests
 
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         var visible = world.GetCurrentlyVisibleOccupants(quarry);
@@ -287,7 +292,7 @@ public class MobilizationTests
 
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         var visible = world.GetCurrentlyVisibleOccupants(home);

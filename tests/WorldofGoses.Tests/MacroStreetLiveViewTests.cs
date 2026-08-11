@@ -340,6 +340,76 @@ public class MacroStreetLiveViewTests
         Assert.False(position.Street == 0 && position.Lateral == 0f);
     }
 
+    /// <summary>
+    /// The pacing rule that replaced "one step per render frame" (DEC-0023).
+    /// A route is spread across the domain's own journey window, which is what
+    /// makes the drawn arrival land on the tick the domain already chose.
+    /// </summary>
+    [Fact]
+    public void PacedRoute_SpendsItsStepsAcrossTheJourneyWindow()
+    {
+        const int totalSteps = 40;
+        const int duration = 30;
+
+        // Nothing walked before the journey starts, and the route is never
+        // finished early — that was the failure mode of letting the render
+        // cadence decide, on a route short enough to run out before the tick.
+        Assert.Equal(0, MacroStreetLiveView.PacedRouteSteps(totalSteps, 0, 0d, duration));
+        Assert.True(MacroStreetLiveView.PacedRouteSteps(totalSteps, duration - 1, 0d, duration) < totalSteps);
+
+        // Halfway through the window, halfway along the route.
+        Assert.Equal(
+            totalSteps / 2,
+            MacroStreetLiveView.PacedRouteSteps(totalSteps, duration / 2, 0d, duration));
+
+        // The last step is spent exactly when the domain completes the journey,
+        // and no later: overshooting the window cannot walk past the end.
+        Assert.Equal(totalSteps, MacroStreetLiveView.PacedRouteSteps(totalSteps, duration, 0d, duration));
+        Assert.Equal(totalSteps, MacroStreetLiveView.PacedRouteSteps(totalSteps, duration * 5, 0d, duration));
+    }
+
+    /// <summary>
+    /// The sub-tick phase only smooths motion between one-second world ticks;
+    /// it can never move the citizen beyond the next whole tick's position.
+    /// </summary>
+    [Fact]
+    public void PacedRoute_TickPhaseOnlySmoothsWithinOneTick()
+    {
+        const int totalSteps = 60;
+        const int duration = 30;
+
+        int atTick = MacroStreetLiveView.PacedRouteSteps(totalSteps, 10, 0d, duration);
+        int midTick = MacroStreetLiveView.PacedRouteSteps(totalSteps, 10, 0.5d, duration);
+        int nextTick = MacroStreetLiveView.PacedRouteSteps(totalSteps, 11, 0d, duration);
+
+        Assert.True(midTick >= atTick);
+        Assert.True(midTick <= nextTick);
+        // An out-of-range phase cannot be used to run ahead of the domain.
+        Assert.Equal(nextTick, MacroStreetLiveView.PacedRouteSteps(totalSteps, 10, 99d, duration));
+    }
+
+    /// <summary>
+    /// A journey reversed at the workday boundary used to reach the view as a
+    /// refused arrival. With arrivals no longer the view's to claim, the route
+    /// pointing the wrong way is the only signal left that it must be re-planned.
+    /// </summary>
+    [Fact]
+    public void RouteContradictsDomain_DetectsAJourneyReversedUnderneathIt()
+    {
+        // Domain turned the citizen around; the drawn route still aims at work.
+        Assert.True(MacroStreetLiveView.RouteContradictsDomain(
+            isReturningHome: true, routeTargetsAssignment: true, routeTargetsHome: false));
+        // Domain sent them back out; the drawn route still aims home.
+        Assert.True(MacroStreetLiveView.RouteContradictsDomain(
+            isReturningHome: false, routeTargetsAssignment: false, routeTargetsHome: true));
+
+        // Agreement in both directions must not throw away a valid route.
+        Assert.False(MacroStreetLiveView.RouteContradictsDomain(
+            isReturningHome: true, routeTargetsAssignment: false, routeTargetsHome: true));
+        Assert.False(MacroStreetLiveView.RouteContradictsDomain(
+            isReturningHome: false, routeTargetsAssignment: true, routeTargetsHome: false));
+    }
+
     [Fact]
     public void FreshTransit_StillStartsAtSemanticOrigin()
     {
@@ -468,7 +538,7 @@ public class MacroStreetLiveViewTests
         Citizen hero = world.Hero!;
         if (hero.CurrentLocation == CitizenLocation.InTransit && hero.IsReturningHome)
         {
-            Assert.True(world.ConfirmCitizenArrivedHome(hero.Id));
+            TestHelpers.SettleTravel(world);
         }
         hero.MarkFoodBlocked();
 

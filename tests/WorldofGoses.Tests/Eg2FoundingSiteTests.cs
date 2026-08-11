@@ -128,8 +128,8 @@ public sealed class Eg2FoundingSiteTests
         CityWorld offline = AuthorizeFoundingSite();
         ConstructionProject liveProject = live.Projects.Values.Single();
         ConstructionProject offlineProject = offline.Projects.Values.Single();
-        Assert.True(live.ConfirmCitizenArrivedAtAssignment(live.Hero!.Id, liveProject.Id));
-        Assert.True(offline.ConfirmCitizenArrivedAtAssignment(offline.Hero!.Id, offlineProject.Id));
+        TestHelpers.PlaceAtAssignment(live, live.Hero!.Id);
+        TestHelpers.PlaceAtAssignment(offline, offline.Hero!.Id);
 
         for (int tick = 0; tick < 600; tick++) live.AdvanceWorldTick();
         OfflineProgression.ApplyAll(offline, 600);

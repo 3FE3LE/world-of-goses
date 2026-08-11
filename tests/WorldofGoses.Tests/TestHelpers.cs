@@ -187,7 +187,7 @@ internal static class TestHelpers
         if (!result.IsSuccess) throw new System.InvalidOperationException(result.Outcome.ToString());
         if (result.ProjectId is BuildingId projectId)
         {
-            world.ConfirmCitizenArrivedAtAssignment(world.Hero!.Id, projectId);
+            TestHelpers.PlaceAtAssignment(world, world.Hero!.Id);
         }
         for (int i = 0; i < extraCitizens; i++)
         {
@@ -367,7 +367,7 @@ internal static class TestHelpers
         {
             world.TryAssignToProject(projectId, citizen.Id);
         }
-        world.ConfirmCitizenArrivedAtAssignment(citizen.Id, projectId);
+        TestHelpers.PlaceAtAssignment(world, citizen.Id);
         int safety = 1000;
         while (project.Progress < project.RequiredWork && safety-- > 0)
         {
@@ -380,5 +380,27 @@ internal static class TestHelpers
                 $"Project {projectId.Value} did not complete within the safety budget.");
         }
         return building;
+    }
+
+    /// <summary>
+    /// Puts an already-assigned citizen at their post without spending world
+    /// time. Travel now ends on the clock (<c>DEC-0023</c>), so a test whose
+    /// subject is not travel states its starting position outright instead of
+    /// ticking thirty times and absorbing thirty ticks of unrelated economy.
+    /// </summary>
+    public static void PlaceAtAssignment(CityWorld world, CitizenId citizenId) =>
+        world.GetCitizen(citizenId)!.SetLocation(CitizenLocation.AtWork);
+
+    /// <summary>
+    /// Runs the clock until every journey in flight has come due. Use this when
+    /// the arrival itself is what the test is about; use
+    /// <see cref="PlaceAtAssignment"/> when it merely needs someone at work.
+    /// </summary>
+    public static void SettleTravel(CityWorld world)
+    {
+        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
+        {
+            world.AdvanceWorldTick();
+        }
     }
 }

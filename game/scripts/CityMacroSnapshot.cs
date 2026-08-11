@@ -49,6 +49,10 @@ public sealed record CityMacroSnapshot(
         CitizenLocation Location,
         bool IsReturningHome,
         int? TransitStartedAtTick,
+        // The tick the domain will end this journey on. The view paces its
+        // route against this pair so the drawn arrival and the fact coincide;
+        // it never decides either of them.
+        int? TransitArrivalTick,
         CitizenRoutineActivity Activity,
         CitizenRoutineBlockReason BlockReason,
         WoundSeverity? WoundSeverity,
@@ -311,6 +315,7 @@ public sealed record CityMacroSnapshot(
                 resident.CurrentLocation,
                 resident.IsReturningHome,
                 resident.TransitStartedAtTick,
+                resident.TravelArrivalTick,
                 routine.Activity,
                 routine.BlockReason,
                 resident.Wound?.Severity,

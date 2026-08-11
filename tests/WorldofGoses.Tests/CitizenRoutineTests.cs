@@ -65,7 +65,7 @@ public sealed class CitizenRoutineTests
 
         Assert.Equal(CitizenRoutineActivity.Leisure, world.GetCitizenRoutine(citizen.Id)!.Activity);
 
-        while (GameClock.IsWorkday(world.CurrentTick)) world.AdvanceOfflineWorldTick();
+        while (GameClock.IsWorkday(world.CurrentTick)) world.AdvanceWorldTick();
 
         CitizenRoutineSnapshot night = world.GetCitizenRoutine(citizen.Id)!;
         Assert.Equal(CitizenRoutineActivity.Resting, night.Activity);

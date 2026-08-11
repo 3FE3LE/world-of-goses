@@ -316,8 +316,8 @@ public class ForestTests
         world.GatherWood(forest.Id, CityWorld.StartingForestWoodReserve);
         Assert.True(world.TryAssignCitizen(forest.Id, world.Hero!.Id).IsSuccess);
         Assert.True(world.TryAssignCitizen(forest.Id, second.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(world.Hero.Id, forest.Id));
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(second.Id, forest.Id));
+        TestHelpers.PlaceAtAssignment(world, world.Hero.Id);
+        TestHelpers.PlaceAtAssignment(world, second.Id);
         int staminaBefore = world.Hero.CurrentStamina;
 
         world.AdvanceWorldTick();

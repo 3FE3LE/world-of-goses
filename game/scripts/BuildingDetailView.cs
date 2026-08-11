@@ -214,7 +214,9 @@ public partial class BuildingDetailView : Control
 	private void RefreshTownHall()
 	{
 		EnsureTownHallPanel();
-		CitizenProspect? prospect = _controller.World.PendingProspect;
+		BuildingDetailSnapshot? buildingSnapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
+		BuildingDetailSnapshot.PendingProspectItem? prospect =
+			buildingSnapshot?.PendingProspect;
 		if (prospect is null)
 		{
 			_slots.Render(_currentBuilding, System.Array.Empty<BuildingDetailSnapshot.CitizenItem>());
@@ -225,29 +227,28 @@ public partial class BuildingDetailView : Control
 			return;
 		}
 
-		CitizenProfile profile = prospect.Profile;
 		_slots.RenderIdle(
 			_currentBuilding,
 			new[]
 			{
 				new BuildingDetailSnapshot.CitizenItem(
-					new CitizenId(prospect.Seed),
+					prospect.Seed,
 					prospect.Name,
-					profile.Lineage,
-					profile.Gender,
-					AppearanceVariantId.Standard),
+					prospect.Lineage,
+					prospect.Gender,
+					prospect.Appearance),
 			});
 		_slots.Visible = true;
 		_prospectLabel!.Text = UiText.Format(
 			"ui.town_hall.prospect_detail",
 			prospect.Name,
-			UiText.Get(ProfileCatalog.Get(profile.Lineage).DisplayName),
+			UiText.Get(ProfileCatalog.Get(prospect.Lineage).DisplayName),
 			CitizenNatureText.FormatLocalized(
-				profile.CubeProfile,
-				profile.Lineage,
-				profile.CombatNature));
+				prospect.CubeProfile,
+				prospect.Lineage,
+				prospect.CombatNature));
 		_acceptProspectButton!.Visible = true;
-		_acceptProspectButton.Disabled = _controller.World.AvailableHousing == 0;
+		_acceptProspectButton.Disabled = buildingSnapshot?.IsHousingFull ?? false;
 		_acceptProspectButton.TooltipText = UiText.Get(
 			_acceptProspectButton.Disabled
 				? "ui.town_hall.no_housing"

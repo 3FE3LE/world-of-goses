@@ -101,7 +101,7 @@ public sealed class VerticalLoopPersistenceTests
     {
         for (int tick = 0; tick < tickCount; tick++)
         {
-            if (offline) world.AdvanceOfflineWorldTick();
+            if (offline) world.AdvanceWorldTick();
             else world.AdvanceWorldTick();
         }
     }

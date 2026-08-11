@@ -178,9 +178,16 @@ public sealed class CityResourceLedger
         return true;
     }
 
-    public bool Release(ResourceReservationId id) => _reservations.Remove(id);
+    /// <summary>
+    /// Reservation lifecycle mutations are owned by the aggregate root
+    /// (<see cref="CityWorld"/>); the ledger's reservation API is
+    /// <c>internal</c> so no caller outside <c>WorldofGoses.Domain</c>
+    /// can mutate the reservation set without going through
+    /// <see cref="CityWorld"/>.
+    /// </summary>
+    internal bool Release(ResourceReservationId id) => _reservations.Remove(id);
 
-    public bool TransferReservation(
+    internal bool TransferReservation(
         ResourceReservationId id,
         ResourceReservationOwner newOwner)
     {
@@ -189,7 +196,7 @@ public sealed class CityResourceLedger
         return true;
     }
 
-    public bool Commit(ResourceReservationId id)
+    internal bool Commit(ResourceReservationId id)
     {
         if (!_reservations.Remove(id, out ResourceReservation? reservation)) return false;
         if (Total(reservation.Resource) < reservation.Amount)

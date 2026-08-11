@@ -90,15 +90,22 @@ read JSON → migrate to current schema → validate → restore CityWorld
 ```
 
 The controller loads and catches up before later scene siblings initialize.
-Offline travel may complete after the existing abstract 30-tick duration; live
-travel still requires the macro route to reach its final anchor. Production,
-stamina, experience, recovery, and stock do not call sprites, animation,
-pathfinding, rendering, or `_Process` during catch-up.
+Both live and offline travel complete after the abstract 30-tick duration, on
+the same tick, through the same code. Production, stamina, experience, recovery,
+and stock do not call sprites, animation, pathfinding, rendering, or `_Process`
+during catch-up.
+
+> **Superseded 2026-08-11 (A2 / DEC-0023).** This pass left live travel waiting
+> for the macro route to reach its final anchor while offline travel completed on
+> elapsed ticks. That split is gone: the domain now ends every journey on world
+> time, and the view paces its route to match. The paragraph above records the
+> current rule; the sentence it replaced described the two-authority design.
 
 When catch-up ends during a transit, the view derives elapsed fraction from
 `TransitStartedAtTick`, plans the current map route, and advances an ephemeral
 route cursor to the corresponding point. That calculated pixel position is
-never written to the citizen or save.
+never written to the citizen or save. Since A2 the same calculation also paces
+live walking, so there is one rule rather than a restore special case.
 
 ## Visual reconstruction and routines
 
@@ -115,12 +122,17 @@ without invalidating the save.
   location and is immediately interrupted by a domain transit.
 - citizens waiting for storage retain their work order. Worker capacity alone
   controls whether another assignment is accepted.
-- arrival rejection and travel logs now include activity, context, blocker,
-  start, expected arrival, and next transition.
+- travel logs include activity, context, blocker, start, expected arrival, and
+  next transition. (The arrival-*rejection* log is gone with A2: there is no
+  arrival command left for the domain to refuse.)
 
-The provisional workday is now explicitly centralized as 00:00–16:00. This is
-the behavior the former `DayTicks = 2400` already implemented, not a new design
-decision. The read-only Policies panel labels it provisional.
+The provisional workday is explicitly centralized in `GameClock`. This pass
+recorded it as 00:00–16:00, the behavior the former `DayTicks = 2400` already
+implemented, not a new design decision. It was later moved to **08:00–16:00**
+(`WorkdayStartTick = 1200`, `WorkdayEndTick = 2400`), which is what the code and
+`docs/CURRENT_STATUS.md` describe today; the old figure is left here as the
+record of what this pass measured. The read-only Policies panel labels it
+provisional.
 
 ## UI, saving, and camera
 

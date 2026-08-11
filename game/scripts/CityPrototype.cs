@@ -404,6 +404,9 @@ public partial class CityPrototype : Node
             case "cultivation-prepared":
                 ShowCultivationForVisualRegression();
                 break;
+            case "citizen-in-transit":
+                ShowCitizenInTransitForVisualRegression();
+                break;
             case "expedition-idle":
                 ShowExpeditionForVisualRegression(ExpeditionFixtureState.Idle);
                 break;
@@ -850,7 +853,7 @@ public partial class CityPrototype : Node
     private void ShowLongTerrariumForVisualRegression(int additionalRows)
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        Citizen? loadedFounder = controller.World.Hero;
+        Citizen? loadedFounder = controller.GetFixtureHero();
         var fixture = new CityWorld();
         if (loadedFounder is not null)
         {
@@ -869,7 +872,7 @@ public partial class CityPrototype : Node
 
         WorldSave save = WorldPersistence.Capture(fixture);
         AddTerrariumRowsForVisualRegression(save, additionalRows);
-        controller.World.Restore(save);
+        controller.RestoreFixtureWorld(save);
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowLongTerrariumForVisualRegression();
     }
@@ -877,7 +880,7 @@ public partial class CityPrototype : Node
     private void ShowTerrariumWindowForVisualRegression(int rows, int columns)
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        Citizen? loadedFounder = controller.World.Hero;
+        Citizen? loadedFounder = controller.GetFixtureHero();
         var fixture = new CityWorld();
         if (loadedFounder is not null)
         {
@@ -896,7 +899,7 @@ public partial class CityPrototype : Node
 
         WorldSave save = WorldPersistence.Capture(fixture);
         ResizeTerrariumForVisualRegression(save, rows, columns);
-        controller.World.Restore(save);
+        controller.RestoreFixtureWorld(save);
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowLongTerrariumForVisualRegression();
     }
@@ -1018,7 +1021,7 @@ public partial class CityPrototype : Node
     private void ShowFoundingSiteForVisualRegression(bool moduleChoice, bool blockedCargo)
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        Citizen? loadedFounder = controller.World.Hero;
+        Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
             GD.PushError("Founding Site visual fixture requires a loaded founder profile.");
@@ -1066,7 +1069,7 @@ public partial class CityPrototype : Node
             }
         }
 
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowConstructionForVisualRegression(placement: false);
     }
@@ -1096,7 +1099,7 @@ public partial class CityPrototype : Node
         }
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
     }
 
@@ -1165,7 +1168,7 @@ public partial class CityPrototype : Node
         }
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
     }
 
@@ -1203,7 +1206,7 @@ public partial class CityPrototype : Node
         }
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowEarlyGameResourcesForVisualRegression();
@@ -1222,7 +1225,7 @@ public partial class CityPrototype : Node
     private void ShowMigrantCubeForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        if (controller.World.Hero is not Citizen loadedFounder)
+        if (controller.GetFixtureHero() is not Citizen loadedFounder)
         {
             GD.PushError("Migrant cube fixture requires a loaded founder profile.");
             return;
@@ -1266,7 +1269,7 @@ public partial class CityPrototype : Node
             return;
         }
 
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
             .ShowMigrantCubeForVisualRegression(migrantId);
@@ -1297,15 +1300,29 @@ public partial class CityPrototype : Node
         ConstructionProject project = fixture.GetProject(projectId)!;
         project.Progress = project.RequiredWork;
         fixture.AdvanceWorldTick();
-        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        SettleFixtureTravel(fixture);
         error = string.Empty;
         return true;
+    }
+
+    /// <summary>
+    /// Dev fixture helper: lets every journey in flight reach its arrival tick.
+    /// Completing a project sends its contributors home, and travel is now
+    /// finished by world time alone — so a fixture that needs the founder
+    /// settled indoors advances the clock instead of asserting an arrival.
+    /// </summary>
+    private static void SettleFixtureTravel(CityWorld fixture)
+    {
+        for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
+        {
+            fixture.AdvanceWorldTick();
+        }
     }
 
     private void ShowShelterResourcesForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        Citizen? loadedFounder = controller.World.Hero;
+        Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
             GD.PushError("Shelter resources visual fixture requires a loaded founder profile.");
@@ -1335,13 +1352,13 @@ public partial class CityPrototype : Node
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
         shelterProject.Progress = shelterProject.RequiredWork;
         fixture.AdvanceWorldTick();
-        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        SettleFixtureTravel(fixture);
         fixture.Resources.DepositToCityInventory(ResourceType.Branches, 3);
         fixture.Resources.DepositToCityInventory(ResourceType.PlantFiber, 2);
         fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 2);
         fixture.Resources.DepositToCityInventory(ResourceType.WildFood, 4);
 
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         controller.SelectBuilding(shelterId);
         GetNode<BuildingDetailView>("GameUiShell/ScreenContent/BuildingDetailView")
@@ -1381,7 +1398,7 @@ public partial class CityPrototype : Node
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
         shelterProject.Progress = shelterProject.RequiredWork;
         fixture.AdvanceWorldTick();
-        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        SettleFixtureTravel(fixture);
 
         fixture.Resources.DepositToCityInventory(ResourceType.Food, 6);
         fixture.Resources.DepositToCityInventory(ResourceType.Wood, 4);
@@ -1401,12 +1418,43 @@ public partial class CityPrototype : Node
         WorldSave save = WorldPersistence.Capture(fixture);
         save.CurrentTick = (123 - 1) * GameClock.TicksPerInGameDay
             + GameClock.TicksPerInGameDay / 2;
-        controller.World.Restore(save);
+        controller.RestoreFixtureWorld(save);
         LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(profile.Lineage);
         GetNode<LocaleManager>("/root/LocaleManager")
             .SetLocaleForVisualRegression(locale);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+    }
+
+    /// <summary>
+    /// Leaves the founder mid-journey to a worksite, at midday and with the
+    /// clock running. It is the one state A2 (DEC-0023) changed the meaning of:
+    /// the walk is paced across the domain's arrival window, so capturing this
+    /// fixture at two different startup delays shows the founder further along
+    /// the same route, and the arrival lands on the domain's tick rather than
+    /// whenever the animation happens to finish.
+    /// </summary>
+    private void ShowCitizenInTransitForVisualRegression()
+    {
+        ShowTopStatusForVisualRegression("en");
+        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        ConstructionAuthorizationResult authorization =
+            controller.TryAuthorizeConstruction(ConstructionKind.Farm);
+        if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
+        {
+            GD.PushError(
+                $"In-transit fixture could not authorize farm: {authorization.Outcome}.");
+            return;
+        }
+        if (controller.GetFixtureHero() is not Citizen founder)
+        {
+            GD.PushError("In-transit fixture found no founder to send walking.");
+            return;
+        }
+
+        controller.TryAssignCitizenToProject(projectId, founder.Id);
+        // Deliberately no tick advance: the point of this fixture is the
+        // journey itself, drawn while it is still in flight.
     }
 
     /// <summary>
@@ -1426,13 +1474,18 @@ public partial class CityPrototype : Node
             return;
         }
 
-        ConstructionProject project = controller.World.GetProject(projectId)!;
+        ConstructionProject project = controller.GetProjectForFixture(projectId)!;
         project.Progress = project.RequiredWork / 3;
-        if (!blocked && controller.World.Hero is Citizen founder)
+        if (!blocked && controller.GetFixtureHero() is Citizen founder)
         {
             controller.TryAssignCitizenToProject(projectId, founder.Id);
-            controller.World.ConfirmCitizenArrivedAtAssignment(founder.Id, projectId);
-            controller.World.AdvanceWorldTick();
+            // The founder now walks there on world time. This fixture sits at
+            // 12:30, well inside the workday, so the journey lands at the
+            // worksite instead of being reversed at the boundary.
+            for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
+            {
+                controller.AdvanceWorldTickForFixture();
+            }
         }
 
         GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector")
@@ -1579,7 +1632,7 @@ public partial class CityPrototype : Node
     private void ShowCultivationForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        Citizen? loadedFounder = controller.World.Hero;
+        Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
             GD.PushError("Cultivation visual fixture requires a loaded founder profile.");
@@ -1610,7 +1663,7 @@ public partial class CityPrototype : Node
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
         shelterProject.Progress = shelterProject.RequiredWork;
         fixture.AdvanceWorldTick();
-        fixture.ConfirmCitizenArrivedHome(fixture.Hero!.Id);
+        SettleFixtureTravel(fixture);
 
         fixture.Resources.DepositToCityInventory(ResourceType.Branches, 1);
         fixture.Resources.DepositToCityInventory(ResourceType.SmallStone, 1);
@@ -1628,7 +1681,7 @@ public partial class CityPrototype : Node
         fixture.AdvanceWorldTick();
         while (!GameClock.IsDaytime(fixture.CurrentTick)) fixture.AdvanceWorldTick();
 
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
@@ -1751,7 +1804,7 @@ public partial class CityPrototype : Node
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
             "GameUiShell/ScreenContent/MacroStreetLiveView");
-        if (controller.World.Hero is not Citizen founder) return;
+        if (controller.GetFixtureHero() is not Citizen founder) return;
         city.PrepareFounderArrival();
         var arrival = new FounderArrivalSequence();
         AddChild(arrival);
@@ -1788,11 +1841,11 @@ public partial class CityPrototype : Node
     private void ShowHeroIncorporationForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        if (controller.World.Hero is not Citizen founder) return;
-        if (controller.World.Citizens.Values.All(citizen => citizen.IsHero))
+        if (controller.GetFixtureHero() is not Citizen founder) return;
+        if (controller.GetRosterSnapshot().Entries.All(entry => entry.IsHero))
         {
-            int nextId = controller.World.Citizens.Keys.Max(id => id.Value) + 1;
-            controller.World.RegisterCitizen(new Citizen(
+            int nextId = controller.NextFixtureCitizenIdByMax();
+            controller.RegisterFixtureCitizen(new Citizen(
                 new CitizenId(nextId),
                 "Expedition candidate",
                 appearanceSeed: nextId * 11,
@@ -1804,22 +1857,22 @@ public partial class CityPrototype : Node
     private void ShowWoundRecoveryForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        if (controller.World.Hero is not Citizen founder) return;
-        int nextId = controller.World.Citizens.Keys.Max(id => id.Value) + 1;
+        if (controller.GetFixtureHero() is not Citizen founder) return;
+        int nextId = controller.NextFixtureCitizenIdByMax();
         var patient = new Citizen(
             new CitizenId(nextId),
             "Tamara",
             appearanceSeed: nextId * 11,
             profile: founder.Profile);
-        controller.World.RegisterCitizen(patient);
-        controller.World.TryIncorporateHero(patient.Id);
-        WorldEvent woundEvent = controller.World.Log.Record(
-            controller.World.CurrentTick,
+        controller.RegisterFixtureCitizen(patient);
+        controller.TryIncorporateHero(patient.Id);
+        WorldEvent woundEvent = controller.RecordFixtureLogEvent(
+            controller.CurrentTick,
             WorldEventKind.WoundSustained,
             WorldEventSubject.Citizen(patient.Id, patient.Name),
             (int)WoundSeverity.Moderate);
         patient.SustainWound(WoundSeverity.Moderate, woundEvent.Id);
-        controller.World.Resources.DepositToCityInventory(ResourceType.Food, 2);
+        controller.DepositToFixtureInventory(ResourceType.Food, 2);
         GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/Center/ExpeditionPanel")
             .ShowWoundRecoveryForVisualRegression();
     }
@@ -1880,32 +1933,26 @@ public partial class CityPrototype : Node
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         ExpeditionPanel panel = GetNode<ExpeditionPanel>(
             "GameUiShell/ScreenContent/Center/ExpeditionPanel");
-        if (controller.World.Hero?.CurrentAssignment is BuildingId assignment)
+        if (controller.GetFixtureHero()?.CurrentAssignment is BuildingId assignment)
         {
-            AssignmentResult result = controller.World.TryUnassignCitizen(assignment, controller.World.Hero.Id);
-            if (!result.IsSuccess) controller.World.TryUnassignFromProject(assignment, controller.World.Hero.Id);
+            CitizenId heroId = controller.GetFixtureHero()!.Id;
+            AssignmentResult result = controller.TryUnassignCitizen(assignment, heroId);
+            if (!result.IsSuccess) controller.TryUnassignCitizenFromProject(assignment, heroId);
         }
-        if (controller.World.Resources.Available(ResourceType.Wood) < 1)
+        if (controller.GetFixtureResourceAvailable(ResourceType.Wood) < 1)
         {
-            controller.World.Resources.DepositToCityInventory(ResourceType.Wood, 1);
+            controller.DepositToFixtureInventory(ResourceType.Wood, 1);
         }
-        foreach (Expedition expedition in controller.World.Expeditions.Values)
-        {
-            if (expedition.Status == ExpeditionStatus.Active)
-            {
-                controller.CancelExpedition(expedition.Id);
-                break;
-            }
-        }
+        controller.CancelFirstActiveExpeditionForFixture();
         if (state == ExpeditionFixtureState.Idle)
         {
             OpenAndValidateExpeditionPanel(panel);
             return;
         }
-        ExpeditionRequest request = ExpeditionRequest.Reconnaissance(controller.World.Hero!.Id);
+        ExpeditionRequest request = ExpeditionRequest.Reconnaissance(controller.GetFixtureHero()!.Id);
         if (state == ExpeditionFixtureState.Returned) request = request with { DurationTicks = 1 };
         if (!controller.StartExpedition(request).IsSuccess) return;
-        if (state == ExpeditionFixtureState.Returned) controller.World.AdvanceWorldTick();
+        if (state == ExpeditionFixtureState.Returned) controller.AdvanceWorldTickForFixture();
         OpenAndValidateExpeditionPanel(panel);
     }
 
@@ -1990,7 +2037,7 @@ public partial class CityPrototype : Node
                 "[WOG-EXPEDITION-RAIL-FIXTURE] StartExpedition failed: "
                 + $"outcome={started.Outcome}, "
                 + $"unavailableReason={started.UnavailableReason}, "
-                + $"tick={controller.World.CurrentTick}.");
+                + $"tick={controller.CurrentTick}.");
             return;
         }
 
@@ -2085,7 +2132,7 @@ public partial class CityPrototype : Node
             GD.PushError($"Spirit Trail fixture could not dispatch: {started.Outcome}.");
             return false;
         }
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
         expeditionId = startedId;
         return true;
     }
@@ -2174,7 +2221,7 @@ public partial class CityPrototype : Node
         MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
             "GameUiShell/ScreenContent/MacroStreetLiveView");
         CombatSessionSnapshot? combat = liveView.PresentedExpeditionId is ExpeditionId expeditionId
-            ? controller.World.GetCombatSessionSnapshot(expeditionId)
+            ? controller.GetCombatSessionSnapshot(expeditionId)
             : null;
         bool expectsCombat = _expeditionLiveFixtureState is not ExpeditionLiveFixtureState.Travel
             and not ExpeditionLiveFixtureState.Objective
@@ -2283,7 +2330,7 @@ public partial class CityPrototype : Node
         // while the click never reached the chronicle header. These fixtures
         // are about the rail, not the opening narrative.
         fixture.ConcludeFirstNightForFixtures();
-        controller.World.Restore(WorldPersistence.Capture(fixture));
+        controller.SeedFixtureWorld(fixture);
     }
 
     private void ExerciseExpeditionRailPointerForVisualRegression(string action)

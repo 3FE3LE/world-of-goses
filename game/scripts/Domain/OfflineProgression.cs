@@ -117,7 +117,7 @@ public static class OfflineProgression
         int ticksApplied = 0;
         for (int t = 0; t < ticksToApply; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
             int produced = building.LastTickProduction;
             if (produced > 0)
             {

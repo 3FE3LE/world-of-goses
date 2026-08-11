@@ -262,7 +262,7 @@ public class ConstructionTickTests
             $"Authorization for {kind} failed: {auth.Outcome}");
         var project = FirstProject(world);
         Assert.True(world.TryAssignToProject(project.Id, workerId).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(workerId, project.Id));
+        TestHelpers.PlaceAtAssignment(world, workerId);
         return project;
     }
 
@@ -282,7 +282,7 @@ public class ConstructionTickTests
         if (hero.CurrentLocation == CitizenLocation.InTransit)
         {
             Assert.True(hero.IsReturningHome);
-            Assert.True(world.ConfirmCitizenArrivedHome(hero.Id));
+            TestHelpers.SettleTravel(world);
         }
         Assert.Equal(CitizenLocation.AtHome, hero.CurrentLocation);
     }
@@ -348,7 +348,7 @@ public class ConstructionTickTests
             "Test precondition: no Basic Shelter exists yet.");
 
         // First midnight tick: project must not be gated as Night.
-        world.AdvanceOfflineWorldTick();
+        world.AdvanceWorldTick();
         Assert.NotEqual(ConstructionStopCause.Night, project.StopCause);
 
         // Across enough offline ticks to cross at least one work
@@ -360,7 +360,7 @@ public class ConstructionTickTests
         int progressBefore = project.Progress;
         for (int i = 0; i < GameClock.WorkdayStartTick - 5; i++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         Assert.True(project.Progress > progressBefore,
             $"Pre-shelter construction must make progress at midnight (before={progressBefore}, after={project.Progress}).");
@@ -380,10 +380,10 @@ public class ConstructionTickTests
         // placeholder Farm so the next authorization is not blocked by
         // HomeRequired. We deposit enough Wood for a Farm recipe,
         // authorise, assign and confirm arrival at the worksite during
-        // the configured workday (because ConfirmCitizenArrivedAtAssignment
-        // refuses to move a citizen from InTransit to AtWork outside
-        // the day window — a deliberate guard for live play, not for
-        // this test). Only then do we rewind the clock to tick 0 and
+        // the configured workday (because CompleteDueTravel reverses a
+        // journey that comes due outside the day window rather than
+        // parking the citizen at the threshold). Only then do we rewind
+        // the clock to tick 0 and
         // assert the Night gate at midnight.
         var world = TestHelpers.WorldWithHome();
         Assert.True(world.HasCompletedFirstShelter(),
@@ -396,13 +396,13 @@ public class ConstructionTickTests
         Assert.True(auth.IsSuccess, $"authorization failed with {auth.Outcome}");
         var project = FirstProject(world);
         Assert.True(world.TryAssignToProject(project.Id, world.Hero!.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(world.Hero!.Id, project.Id));
+        TestHelpers.PlaceAtAssignment(world, world.Hero!.Id);
         Assert.Equal(CitizenLocation.AtWork, world.Hero!.CurrentLocation);
 
         TestHelpers.SetTick(world, 0);
         Assert.False(GameClock.IsDaytime(0));
 
-        world.AdvanceOfflineWorldTick();
+        world.AdvanceWorldTick();
         Assert.Equal(ConstructionStopCause.Night, project.StopCause);
         Assert.Equal(0, project.LastTickProgressAdded);
     }

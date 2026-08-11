@@ -156,14 +156,23 @@ snapshots; restore infers a missing standing order from `CurrentAssignment`.
 
 Daytime assignment commits the citizen immediately but places their physical
 location in `InTransit`. Production and construction simulations count only
-assigned citizens whose location is `AtWork`. During live play, only Godot's
-physical route completion confirms arrival. Offline catch-up alone may complete
-the abstract 30-tick journey because no sprite callback exists while the game is
-closed. This separation prevents elapsed live ticks from hiding a carrier or
-starting production before its visible arrival. Neither path stores pixel
-coordinates. Recovery exposes `WorkersRecovering` or
+assigned citizens whose location is `AtWork`. **World time is the only authority
+that ends a journey.** `Citizen.TransitStartedAtTick` and `IsReturningHome` are
+the durable facts; `Citizen.TravelArrivalTick` derives the deadline from them,
+and `CityWorld.CompleteDueTravel` — reached from the single `AdvanceWorldTick`
+that live play and offline catch-up share — is the only code that ends a trip.
+A journey coming due outside labour hours reverses toward Home rather than
+parking the citizen at a closed worksite, preserving the standing order. Neither
+path stores pixel coordinates. Recovery exposes `WorkersRecovering` or
 `WorkersBlockedNoFood`; once fed and above the resume threshold, the same
 standing order is re-evaluated and travelled again.
+
+Until A2 (`DEC-0023`) this worked the other way: live play could only end a
+journey when `MacroStreetLiveView` reported its sprite had reached an anchor,
+while offline catch-up ended the same journey on elapsed ticks. That was two
+semantic authorities for one fact, and it meant an animation that never ran — a
+hidden view, an unsolvable route — could hold a citizen in transit indefinitely
+and keep their workplace on `WorkersInTransit` forever.
 
 `CityEconomyRules` separates the one-second clock resolution from economic
 events. Productive buildings resolve deterministic batches every ten ticks;
@@ -185,14 +194,25 @@ macro map while the citizen works inside, and mounted into the interior worker
 slot when building detail is open. This remains presentation state; the domain
 stores only `InTransit` or `AtWork`, never pixel coordinates.
 
-`MacroStreetLiveView` is the sole live-arrival authority. The founding hero and
-every other citizen use the same `StreetRoutePlanner`, obstacle topology and
-12 Hz quantized cadence; the founder keeps a dedicated carrier path only for
+`MacroStreetLiveView` draws journeys; it does not end them. The founding hero
+and every other citizen use the same `StreetRoutePlanner`, obstacle topology and
+quantized cadence; the founder keeps a dedicated carrier path only for
 founder-specific actions such as gathering. `BuildingDetailView` renders only
-citizens already at `AtWork` and never confirms an arrival. A route finishing
-after the workday reverses toward Home while preserving the standing order,
-and rejected or unresolved arrivals emit `[CitizenTravel]` diagnostics instead
-of leaving a silent carrier at the threshold.
+citizens already at `AtWork`.
+
+A drawn route is paced against the domain's own window rather than against the
+render cadence: `PacedRouteSteps` spreads the route's steps across
+`TransitStartedAtTick → TravelArrivalTick`, so the walk finishes on the tick the
+domain has already chosen, 2x/4x accelerate it for free, and a dropped frame
+merely catches up on the next one. Steps stay discrete — the pacing changes only
+their timing, never the cadence grammar. The same `ReconstructRouteProgress` that
+resumes a part-elapsed journey after a load is what advances a fresh one, so
+restore and live play are one code path instead of two.
+
+Routes with no domain journey behind them — gathering, ambient wandering — have
+no arrival tick to be paced against and keep the plain cadence gait.
+`ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival` keeps the
+old authority from returning, with an allowlist that is empty by construction.
 
 The macro camera is free by default. Selection changes information and action
 context only; following the selected citizen requires the explicit camera toggle. WASD
@@ -747,8 +767,13 @@ also batches all ticks that stay within the current day/night phase: upkeep,
 WellFed expiry, stop causes, and the clock are applied arithmetically, while
 sunrise/sunset remain canonical stepped ticks. Completed projects, forests due
 for demolition, and assigned workers force the canonical
-`CityWorld.AdvanceWorldTick` path. Snapshot JSON and the full causal-event
-sequence are tested for equivalence over multiple days. New strategies belong
+`CityWorld.AdvanceWorldTick` path — which since A2 is the *only* tick method, so
+"catch-up" now differs from live play in batching strategy alone, never in
+rules. A citizen in transit clamps the batch to one tick before their arrival,
+so the arrival itself is always reached by a stepped tick; batching onto it
+would advance the clock past a scheduled state change without running it.
+Snapshot JSON and the full causal-event sequence are tested for equivalence over
+multiple days. New strategies belong
 behind this seam and need the same proof before replacing per-tick execution.
 Offline reports capture a log cursor before the batch, so new event kinds do
 not require category-specific counters and cannot replay older events.

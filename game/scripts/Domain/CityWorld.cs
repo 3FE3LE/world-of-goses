@@ -2698,23 +2698,14 @@ public sealed class CityWorld
     /// building-driven demand exists. Project completion is deferred
     /// to the end of the tick so the project dictionary is not
     /// mutated while iterating.
+    ///
+    /// <para>
+    /// There is exactly one tick. Live play and offline catch-up run this same
+    /// method, so a journey ends because world time says so and never because a
+    /// sprite did or did not reach an anchor. See <c>DEC-0023</c>.
+    /// </para>
     /// </summary>
     public void AdvanceWorldTick()
-    {
-        AdvanceWorldTick(completeAbstractTravel: false);
-    }
-
-    /// <summary>
-    /// Advances one catch-up tick while no Godot representation exists to
-    /// confirm route completion. Live play must use <see cref="AdvanceWorldTick"/>
-    /// so elapsed simulation time cannot make a visible citizen arrive early.
-    /// </summary>
-    internal void AdvanceOfflineWorldTick()
-    {
-        AdvanceWorldTick(completeAbstractTravel: true);
-    }
-
-    private void AdvanceWorldTick(bool completeAbstractTravel)
     {
         int previousTick = _tick;
         _tick++;
@@ -2734,7 +2725,7 @@ public sealed class CityWorld
             }
             else _log.Record(_tick, WorldEventKind.NightBegan, WorldEventSubject.World("Sun"));
         }
-        ProcessCitizenNeedsAndStandingOrders(completeAbstractTravel);
+        ProcessCitizenNeedsAndStandingOrders();
         AdvanceWoundRecoveries();
         bool isLaborTime = IsLaborTime();
         foreach (var building in _buildings.Values)
@@ -3649,21 +3640,12 @@ public sealed class CityWorld
         }
     }
 
-    private void ProcessCitizenNeedsAndStandingOrders(bool completeAbstractTravel)
+    private void ProcessCitizenNeedsAndStandingOrders()
     {
         bool isDaytime = GameClock.IsDaytime(_tick);
         foreach (Citizen citizen in _citizens.Values)
         {
-            if (completeAbstractTravel
-                && citizen.Commitment.Kind is (CitizenCommitmentKind.BuildingWork
-                    or CitizenCommitmentKind.Construction
-                    or CitizenCommitmentKind.Recovery)
-                && citizen.AbstractTravelHasCompleted(_tick))
-            {
-                citizen.SetLocation(citizen.IsReturningHome
-                    ? CitizenLocation.AtHome
-                    : CitizenLocation.AtWork);
-            }
+            CompleteDueTravel(citizen);
             if (citizen.CurrentLocation == CitizenLocation.AtHome)
             {
                 if (citizen.VitalStatus != CitizenVitalStatus.Stable)
@@ -3802,41 +3784,62 @@ public sealed class CityWorld
         return ids;
     }
 
-    public bool ConfirmCitizenArrivedAtAssignment(CitizenId citizenId, BuildingId assignmentId)
+    /// <summary>
+    /// Ends a journey whose arrival tick has passed. This is the only place a
+    /// citizen stops being <see cref="CitizenLocation.InTransit"/> by travelling,
+    /// and it runs inside the one canonical tick — so live play and offline
+    /// catch-up reach the same state from the same world time. Presentation
+    /// draws the journey and has no vote (<c>DEC-0023</c>).
+    ///
+    /// <para>
+    /// Expedition travel is excluded for free: <see cref="Citizen.DispatchOnExpedition"/>
+    /// enters <c>InTransit</c> without a start tick, so it has no arrival tick to
+    /// be due. Every other in-transit citizen qualifies, including one with no
+    /// commitment left — the previous commitment whitelist stranded exactly those
+    /// citizens forever once <see cref="MobiliseForNight"/> had sent them home.
+    /// </para>
+    /// </summary>
+    private void CompleteDueTravel(Citizen citizen)
     {
-        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)
-            || citizen.CurrentAssignment != assignmentId
-            || citizen.CurrentLocation != CitizenLocation.InTransit)
+        if (!citizen.AbstractTravelHasCompleted(_tick)) return;
+
+        if (citizen.IsReturningHome)
         {
-            return false;
+            citizen.SetLocation(CitizenLocation.AtHome);
+            return;
         }
+
+        BuildingId? assignmentId = citizen.CurrentAssignment;
+        if (assignmentId is null)
+        {
+            // Travelling to work with no standing order left to arrive at. Settle
+            // at home rather than leaving an unreachable destination in transit.
+            citizen.SetLocation(CitizenLocation.AtHome);
+            return;
+        }
+
         if (!IsLaborTime())
         {
-            // A visible route can finish just after the workday boundary.
-            // Do not leave the citizen indefinitely idle at the threshold:
-            // preserve the standing order and reverse the physical journey.
+            // A journey can come due just after the workday boundary. Do not
+            // leave the citizen idle at the threshold: preserve the standing
+            // order and reverse the physical journey.
             citizen.BeginTravelHome(_tick);
-            if (_buildings.ContainsKey(assignmentId)) RaiseBuildingChanged(assignmentId);
-            else if (_projects.ContainsKey(assignmentId)) RaiseProjectChanged(assignmentId);
-            return false;
+            RaiseAssignmentChanged(assignmentId.Value);
+            return;
         }
 
         citizen.SetLocation(CitizenLocation.AtWork);
-        if (_buildings.ContainsKey(assignmentId)) RaiseBuildingChanged(assignmentId);
-        else if (_projects.ContainsKey(assignmentId)) RaiseProjectChanged(assignmentId);
-        return true;
+        RaiseAssignmentChanged(assignmentId.Value);
     }
 
-    public bool ConfirmCitizenArrivedHome(CitizenId citizenId)
+    /// <summary>
+    /// An assignment target is either a building or a construction project;
+    /// arrival changes what the corresponding panel shows either way.
+    /// </summary>
+    private void RaiseAssignmentChanged(BuildingId assignmentId)
     {
-        if (!_citizens.TryGetValue(citizenId, out Citizen? citizen)
-            || citizen.CurrentLocation != CitizenLocation.InTransit
-            || !citizen.IsReturningHome)
-        {
-            return false;
-        }
-        citizen.SetLocation(CitizenLocation.AtHome);
-        return true;
+        if (_buildings.ContainsKey(assignmentId)) RaiseBuildingChanged(assignmentId);
+        else if (_projects.ContainsKey(assignmentId)) RaiseProjectChanged(assignmentId);
     }
 
     private bool HasWorkerAtBuilding(Building building)
@@ -4301,6 +4304,25 @@ public sealed class CityWorld
             .DefaultIfEmpty(int.MaxValue)
             .Min();
         tickCount = Math.Min(tickCount, cropBoundary);
+        // A journey in flight is a scheduled state change like any other. The
+        // guards above (no work assignment, no travelling patient) cover most
+        // travellers, but not one who was sent home after losing their
+        // commitment — batching straight over their arrival tick would leave
+        // them InTransit for the whole catch-up.
+        //
+        // Stops one tick *short* of the arrival, unlike the boundaries above:
+        // batching moves the clock without running the per-tick rules, so the
+        // arrival tick itself has to be reached by a canonical stepped tick or
+        // nothing would complete the journey. Landing the batch exactly on the
+        // arrival would consume it silently and leave the citizen walking.
+        int travelBoundary = int.MaxValue;
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (citizen.TravelArrivalTick is not int arrivesAt) continue;
+            travelBoundary = Math.Min(travelBoundary, arrivesAt - _tick - 1);
+        }
+        if (travelBoundary <= 0) return 0;
+        tickCount = Math.Min(tickCount, travelBoundary);
         if (tickCount <= 0) return 0;
 
         ApplyUpkeepBatch(tickCount);

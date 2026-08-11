@@ -124,7 +124,7 @@ public sealed class FirstRunRegressionTests
         Assert.True(recruited.IsSuccess);
         CitizenId migrantId = recruited.MigrantId!.Value;
         Assert.True(live.TryAssignCitizen(farmId, migrantId).IsSuccess);
-        Assert.True(live.ConfirmCitizenArrivedAtAssignment(migrantId, farmId));
+        TestHelpers.PlaceAtAssignment(live, migrantId);
         Assert.True(live.CurrentProductionRate(farmId) > rateBeforeMigrant);
 
         string json = WorldPersistence.SerializeToJson(

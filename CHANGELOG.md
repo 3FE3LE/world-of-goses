@@ -17,6 +17,73 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## A2: el viaje de un ciudadano lo termina el reloj, no el sprite
+
+**2026-08-11** · arquitectura · schema v34 (sin cambio) · 1206 pruebas superadas
+y 1 omitida sobre 1207
+
+Lo que se nota: un ciudadano llega a su puesto porque ha pasado el tiempo, no
+porque una animación lo haya dicho. Cerrar la vista macro, un tirón de frames o
+una ruta que el planificador no sabe resolver ya no pueden dejar a nadie
+caminando para siempre ni congelar un edificio en `WorkersInTransit`.
+
+Había dos autoridades para un mismo hecho. En vivo, el viaje solo terminaba
+cuando `MacroStreetLiveView` avisaba de que su sprite había llegado; sin el
+juego abierto, el mismo viaje terminaba por ticks transcurridos. Era una
+decisión consciente y documentada — evitaba que el tiempo simulado escondiera a
+un caminante o arrancara la producción antes de su llegada visible — pero
+contradice tres reglas que están por encima de una nota de arquitectura: *live y
+offline usan las mismas reglas de dominio*, *las escenas no deciden reglas*, y
+*el dominio gana sobre su representación visual*.
+
+Ahora existe **un solo tick**. `AdvanceOfflineWorldTick` desaparece, y
+`CompleteDueTravel` dentro de `AdvanceWorldTick` es el único sitio donde un
+viaje acaba: cuando el reloj alcanza `TravelArrivalTick`. Los comandos
+`ConfirmCitizenArrivedAtAssignment` y `ConfirmCitizenArrivedHome` se eliminan
+del dominio y del controller, y una prueba de límite con lista vacía impide que
+vuelvan.
+
+**Sin migración.** Todo lo que el contrato necesita se persiste desde v19:
+localización lógica, tick de salida, dirección, compromiso y orden permanente.
+El tick de llegada se deriva, no se guarda, para que la duración siga siendo una
+regla y no un valor que pueda desviarse de ella. Una partida guardada con
+alguien atascado `InTransit` se cura sola en el primer tick tras cargar.
+
+La vista sigue dibujando el viaje, pero ahora lo reparte sobre la ventana del
+dominio con el mismo cálculo que ya usaba para reanudar un viaje a medias tras
+cargar: llegada dibujada y hecho coinciden, 2x y 4x aceleran solos, y restaurar
+y caminar dejan de ser dos caminos de código. El paso sigue siendo discreto;
+solo cambia su ritmo, que pasa a salir de `AbstractTravelTicks` (30) en vez de
+la cadencia de render.
+
+Tres defectos latentes caen de paso: la lista blanca de compromisos excluía
+`None`, así que quien volvía a casa tras perder su compromiso no llegaba nunca;
+el batching offline no tenía término de viaje y podía saltarse una llegada; y el
+camino offline nunca emitía `BuildingChanged` al llegar, cosa que el comando
+borrado sí hacía.
+
+Desviación de comportamiento a la vista: quien llega a casa con una orden
+permanente vuelve a salir en el mismo tick — visible ahora que los viajes
+terminan de verdad. Y un fundador que llega al refugio cena, cosa que antes no
+ocurría porque se quedaba congelado en mitad de la calle.
+
+---
+
+## A1: la frontera Presentation → Domain queda cerrada por el controller
+
+**2026-08-11** · arquitectura · sin cambio de schema
+
+Lo que se nota: ningún nodo de presentación toca ya `CityWorld` ni sostiene
+una entidad viva del dominio. El controller expone solo *snapshots* y
+*queries* inmutables; los mutadores del agregado (`Ledger`, `Patch`)
+viven ahora `internal`, de modo que solo `CityWorld` puede ejecutarlos.
+Las pruebas del límite pasan; los únicos accesos directos que quedan en
+`Presentation` son tres ficheros documentados como deuda A2 (la animación
+de llegada del fundador, el panel de debug de combate, y el guion de
+fixtures visuales). Behaviour y UX idénticos.
+
+---
+
 ## El rail deja de negociar su columna: un solo cuerpo visible
 
 **2026-08-10** · schema v34 (sin cambio) · presentación

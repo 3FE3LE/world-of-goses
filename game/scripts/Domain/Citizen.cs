@@ -360,8 +360,6 @@ public sealed class Citizen
         IsReturningHome = false;
         TransitStartedAtTick = currentTick;
         SetLocation(CitizenLocation.InTransit);
-        IsReturningHome = false;
-        TransitStartedAtTick = currentTick;
     }
 
     internal void BeginTravelHome(int currentTick)
@@ -369,14 +367,29 @@ public sealed class Citizen
         IsReturningHome = true;
         TransitStartedAtTick = currentTick;
         SetLocation(CitizenLocation.InTransit);
-        IsReturningHome = true;
-        TransitStartedAtTick = currentTick;
     }
 
+    /// <summary>
+    /// World tick at which the current journey is due to end, or null when the
+    /// citizen is not travelling on a timed journey. This is the single number
+    /// that defines a trip's length: the domain completes the journey when the
+    /// clock reaches it, and presentation paces its route against it so the
+    /// drawn walk and the fact land together (<c>DEC-0023</c>).
+    ///
+    /// <para>
+    /// Derived, never persisted. <see cref="TransitStartedAtTick"/> and
+    /// <see cref="IsReturningHome"/> are the durable facts; recomputing the
+    /// arrival keeps the duration a rule rather than a saved value that could
+    /// drift from it.
+    /// </para>
+    /// </summary>
+    public int? TravelArrivalTick =>
+        CurrentLocation == CitizenLocation.InTransit && TransitStartedAtTick is int startedAt
+            ? startedAt + CityEconomyRules.AbstractTravelTicks
+            : null;
+
     internal bool AbstractTravelHasCompleted(int currentTick) =>
-        CurrentLocation == CitizenLocation.InTransit
-        && TransitStartedAtTick is int startedAt
-        && currentTick - startedAt >= CityEconomyRules.AbstractTravelTicks;
+        TravelArrivalTick is int arrivesAt && currentTick >= arrivesAt;
 
     /// <summary>
     /// Drives the two expedition-dispatch transitions (S-1.5 follow-up)

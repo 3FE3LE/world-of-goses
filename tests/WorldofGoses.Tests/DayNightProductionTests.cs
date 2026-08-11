@@ -27,7 +27,7 @@ public class DayNightProductionTests
         // Skip to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.Equal(ProductionStopCause.Night, quarry.StopCause);
@@ -47,7 +47,7 @@ public class DayNightProductionTests
         // Skip to mid-night.
         for (int t = 0; t < GameClock.DayTicks + 10; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.True(bran.CurrentStamina > branBefore,
@@ -73,14 +73,14 @@ public class DayNightProductionTests
         // Skip to night.
         for (int t = 0; t < GameClock.DayTicks; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         int atNightStart = bran.CurrentStamina;
 
         // 100 night ticks of regen → +100, capped at MaxStamina.
         for (int t = 0; t < 100; t++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.Equal(100, bran.CurrentStamina);

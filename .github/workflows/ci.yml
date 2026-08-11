@@ -1,0 +1,76 @@
+# CI for World of Goses — Architecture Hardening A0 guardrails.
+#
+# Runs the official build, the full xUnit suite, and the repo-local
+# validators that AGENTS.md §5 marks as path-gated or core checks.
+# Wired deliberately small: no visual matrix, no full snapshot, no
+# docs scripts. Those belong to later CI increments.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref so fast-follow pushes do not
+# pile up queued runners.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: build + test + validators
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # .NET 8.0 is the project pin (game/ targets net8.0; tests use
+      # RollForward=LatestMajor so any newer SDK also works). Pinned
+      # here so CI does not silently upgrade between runs.
+      - name: Setup .NET 8.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      # Godot 4.7.1 mono is required because game/ uses
+      # Godot.NET.Sdk/4.7.1 and the test project's ProjectReference
+      # pulls the game project in. CI installs Godot fresh on every
+      # run; the local machine keeps its own copy under C:\Tools\Godot\.
+      - name: Setup Godot 4.7.1 (mono)
+        uses: chickensoft-games/setup-godot@v1
+        with:
+          version: 4.7.1
+          mono: enabled
+          include-export-templates: false
+          include-dotnet: false
+
+      # AGENTS.md §5 path-gated check for any diff touching the agent
+      # context layer. Cheap (sub-second) when nothing drifted; runs
+      # unconditionally for a first CI.
+      - name: Sync agent context
+        shell: pwsh
+        run: pwsh ./scripts/Sync-AgentContext.ps1 -Apply
+
+      - name: Validate agent context
+        shell: pwsh
+        run: pwsh ./scripts/Validate-AgentContext.ps1
+
+      # AGENTS.md §5 core check: build the Godot .NET project.
+      - name: Build game project
+        working-directory: game
+        run: dotnet build --configuration Debug
+
+      # AGENTS.md §5 core check: run the xUnit domain/persistence suite.
+      # --no-build because the previous step already produced binaries.
+      - name: Run xUnit tests
+        working-directory: tests/WorldofGoses.Tests
+        run: dotnet test --no-build --configuration Debug
+
+      # AGENTS.md §5 path-gated check for any diff touching locale.
+      # Sub-second; cheap enough to run unconditionally.
+      - name: Validate localization catalog
+        shell: pwsh
+        run: pwsh ./tools/Test-LocalizationCatalog.ps1

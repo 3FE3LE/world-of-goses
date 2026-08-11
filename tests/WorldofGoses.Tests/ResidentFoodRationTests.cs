@@ -25,7 +25,13 @@ public class ResidentFoodRationTests
 
         TestHelpers.AdvanceToNextDawn(world);
 
-        Assert.Equal(foodBefore - 1, world.TotalStockOf(ResourceType.Food));
+        // Two units, one cause each: the dawn ration, plus the founder's night
+        // meal. The meal is new since DEC-0023 — the shelter's completion sends
+        // the founder home, and before A2 that journey never ended during live
+        // play, so a founder frozen mid-street was never home to eat. The
+        // ration itself is still exactly one per resident, which is what the
+        // absent shortfall event below confirms.
+        Assert.Equal(foodBefore - 2, world.TotalStockOf(ResourceType.Food));
         Assert.DoesNotContain(world.Log.Events, evt => evt.Kind == WorldEventKind.FoodRationShortfall);
     }
 
@@ -55,7 +61,10 @@ public class ResidentFoodRationTests
 
         TestHelpers.AdvanceToNextDawn(world);
 
-        Assert.Equal(foodBefore - 3, world.TotalStockOf(ResourceType.Food));
+        // Three residents ration one Food each, and the founder — home again
+        // now that journeys end on the clock — takes their night meal on top.
+        // The two extra citizens never travelled, so they add ration only.
+        Assert.Equal(foodBefore - 4, world.TotalStockOf(ResourceType.Food));
     }
 
     [Fact]

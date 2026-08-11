@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Domain.Combat;
 using WorldofGoses.Domain.Persistence;
 
 namespace WorldofGoses;
@@ -129,6 +130,22 @@ public partial class CityWorldController : Node
     public double SimulationTickIntervalSeconds { get; set; } = 1.0;
 
     /// <summary>
+    /// How far the renderer currently is into the world tick in progress, in
+    /// <c>[0, 1)</c>. Presentation timing, not world state: it lets a view
+    /// interpolate between one-second ticks without inventing a second clock,
+    /// so a walk paced by domain ticks still moves every frame.
+    ///
+    /// <para>
+    /// Nothing in the domain reads this, and no decision may depend on it — it
+    /// only smooths what is already decided.
+    /// </para>
+    /// </summary>
+    public double CurrentTickPhase =>
+        SimulationTickIntervalSeconds > 0
+            ? Math.Clamp(_simulationTimer / SimulationTickIntervalSeconds, 0.0, 1.0)
+            : 0.0;
+
+    /// <summary>
     /// Discrete speed choices the player can pick from the status
     /// panel. The numeric value is the multiplier applied to the
     /// default tick interval (1.0 s). The world always runs; the
@@ -180,7 +197,13 @@ public partial class CityWorldController : Node
         ExpeditionLive = 3,
     }
 
-    public CityWorld World => _world;
+    /// <summary>
+    /// The aggregate facade. Exposed only to the controller and to the
+    /// tests seam (<c>[assembly: InternalsVisibleTo("WorldofGoses.Tests")]</c>);
+    /// Presentation never reaches it. A1 closes the public getter that
+    /// the original prototype leaked.
+    /// </summary>
+    internal CityWorld World => _world;
 
     public OfflineProgressionReport? LastOfflineReport { get; private set; }
 
@@ -322,6 +345,167 @@ public partial class CityWorldController : Node
         if (!IsVisualCaptureMode) return;
         _world.AdvanceWorldTick();
         EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+    }
+
+    /// <summary>
+    /// Fixture command: replaces the live world with the contents of
+    /// <paramref name="fixture"/>. Used by <c>CityPrototype</c>'s dev-only
+    /// scene builders, which need to seed a deterministic city without
+    /// reaching into <see cref="World"/>. <c>internal</c> so Presentation
+    /// cannot bypass the boundary for ordinary gameplay; only fixtures and
+    /// the test seam reach it.
+    /// </summary>
+    internal void SeedFixtureWorld(CityWorld fixture)
+    {
+        _world.Restore(WorldPersistence.Capture(fixture));
+    }
+
+    /// <summary>
+    /// Fixture command: replaces the live world with an already-prepared
+    /// <see cref="WorldSave"/>. Used by fixtures that mutate the save
+    /// (e.g. <c>AddTerrariumRowsForVisualRegression</c>) before restoring.
+    /// </summary>
+    internal void RestoreFixtureWorld(WorldSave save)
+    {
+        _world.Restore(save);
+    }
+
+    /// <summary>
+    /// Fixture command: advances the world by one tick. Same effect as
+    /// <see cref="AdvanceWorldTickForVisualRegression"/> but unconditional,
+    /// since the fixtures that use it run their own gating.
+    /// </summary>
+    internal void AdvanceWorldTickForFixture()
+    {
+        _world.AdvanceWorldTick();
+        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+    }
+
+    /// <summary>
+    /// Fixture command: records a wound event on the world log and
+    /// applies the wound to the named citizen. Replaces direct
+    /// <c>controller.World.Log.Record(...)</c> +
+    /// <c>patient.SustainWound(...)</c> calls in the fixtures.
+    /// </summary>
+    internal void RecordFixtureWoundEvent(CitizenId id, WoundSeverity severity)
+    {
+        Citizen? citizen = _world.GetCitizen(id);
+        if (citizen is null) return;
+        WorldEvent woundEvent = _world.Log.Record(
+            _world.CurrentTick,
+            WorldEventKind.WoundSustained,
+            WorldEventSubject.Citizen(citizen.Id, citizen.Name),
+            (int)severity);
+        citizen.SustainWound(severity, woundEvent.Id);
+    }
+
+    /// <summary>
+    /// Fixture command: fast-forwards a construction project's progress
+    /// by the given amount of work. Replaces direct
+    /// <c>controller.World.GetProject(...).Progress = ...</c> writes in
+    /// the fixtures. Negative or excessive values are clamped.
+    /// </summary>
+    internal void SeedProjectProgressForFixture(BuildingId projectId, int work)
+    {
+        ConstructionProject? project = _world.GetProject(projectId);
+        if (project is null) return;
+        int target = System.Math.Clamp(work, 0, project.RequiredWork);
+        project.Progress = target;
+    }
+
+    /// <summary>
+    /// Fixture command: registers a citizen directly into the world.
+    /// Replaces <c>controller.World.RegisterCitizen(...)</c> writes in
+    /// the fixtures. Bypasses the regular onboarding because the
+    /// fixture builders need to seed named, deterministic citizens
+    /// without driving them through the UI.
+    /// </summary>
+    internal void RegisterFixtureCitizen(Citizen citizen)
+    {
+        _world.RegisterCitizen(citizen);
+    }
+
+    /// <summary>
+    /// Fixture command: returns the next citizen id to allocate for a
+    /// fixture citizen. Mirrors <c>CityWorld.NextCitizenId()</c> without
+    /// exposing the aggregate.
+    /// </summary>
+    internal int NextFixtureCitizenId()
+    {
+        int nextId = 2;
+        while (_world.GetCitizen(new CitizenId(nextId)) is not null) nextId++;
+        return nextId;
+    }
+
+    /// <summary>
+    /// Fixture command: returns the maximum citizen id currently allocated
+    /// plus one (matches the previous <c>citizens.Keys.Max(...)+1</c>
+    /// pattern used by the fixtures).
+    /// </summary>
+    internal int NextFixtureCitizenIdByMax()
+    {
+        int max = 1;
+        foreach (CitizenId id in _world.Citizens.Keys)
+        {
+            if (id.Value > max) max = id.Value;
+        }
+        return max + 1;
+    }
+
+    /// <summary>
+    /// Fixture command: writes a custom domain event into the world log.
+    /// Replaces direct <c>controller.World.Log.Record(...)</c> writes
+    /// in the fixtures. Takes the tick explicitly so the fixture can
+    /// choose when the event fires.
+    /// </summary>
+    internal WorldEvent RecordFixtureLogEvent(int tick, WorldEventKind kind, WorldEventSubject subject, int amount, WorldEventId? causeEventId = null)
+    {
+        return _world.Log.Record(tick, kind, subject, amount, causeEventId);
+    }
+
+    /// <summary>
+    /// Fixture command: returns the available amount of a resource
+    /// without exposing the ledger. Used by fixture setups that need
+    /// to gate operations on inventory.
+    /// </summary>
+    internal int GetFixtureResourceAvailable(ResourceType resource) =>
+        _world.Resources.Available(resource);
+
+    /// <summary>
+    /// Fixture command: deposits a resource into the city inventory
+    /// through the ledger. Used by fixture setups that need to seed
+    /// inventory without going through a real gathering action.
+    /// </summary>
+    internal int DepositToFixtureInventory(ResourceType resource, int amount) =>
+        _world.Resources.DepositToCityInventory(resource, amount);
+
+    /// <summary>
+    /// Fixture command: returns the founding hero's profile, used by
+    /// fixture code that needs to clone the founder into a fresh world.
+    /// </summary>
+    internal CitizenProfile? GetFixtureHeroProfile() => _world.Hero?.Profile;
+
+    /// <summary>
+    /// Fixture command: returns the founding hero as a live
+    /// <see cref="Citizen"/>. Used by fixtures that hand the founder to
+    /// a transient animation (e.g. <c>FounderArrivalSequence.Begin</c>).
+    /// </summary>
+    internal Citizen? GetFixtureHero() => _world.Hero;
+
+    /// <summary>
+    /// Fixture command: cancels the first active expedition. Returns
+    /// <c>true</c> when one was cancelled.
+    /// </summary>
+    internal bool CancelFirstActiveExpeditionForFixture()
+    {
+        foreach (Expedition expedition in _world.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active)
+            {
+                return CancelExpedition(expedition.Id);
+            }
+        }
+        return false;
     }
 
     private static bool IsVisualCaptureMode =>
@@ -542,8 +726,6 @@ public partial class CityWorldController : Node
 
     public bool HasHero() => _world.Hero is not null;
 
-    public Citizen? HeroOrNull() => _world.Hero;
-
     public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
     {
         if (_onboardingCompletionPending && _world.Hero is Citizen pendingHero)
@@ -583,24 +765,7 @@ public partial class CityWorldController : Node
         return result;
     }
 
-    public Building PrimaryBuilding() => _world.PrimaryBuilding;
-
-    /// <summary>
-    /// Same as <see cref="PrimaryBuilding"/> but returns <c>null</c>
-    /// when the world has no buildings. Use this from presentation
-    /// code that should degrade gracefully (show a fallback label)
-    /// rather than crash. Tests and code that asserts non-emptiness
-    /// should use the strict <see cref="PrimaryBuilding"/> version.
-    /// </summary>
-    public Building? PrimaryBuildingOrNull()
-    {
-        foreach (var b in _world.Buildings.Values) return b;
-        return null;
-    }
-
-    public IReadOnlyDictionary<CitizenId, Citizen> Citizens() => _world.Citizens;
-
-    public Building? GetBuilding(BuildingId buildingId) => _world.GetBuilding(buildingId);
+    internal Building? GetBuildingForFixture(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
     public CityStatusSnapshot GetCityStatusSnapshot() => CityStatusSnapshot.From(_world);
 
@@ -656,6 +821,183 @@ public partial class CityWorldController : Node
 
     public HeroProfileSnapshot? GetHeroProfileSnapshot() => HeroProfileSnapshot.From(_world);
 
+    // -- A1 boundary queries: replace the entity-returning wrappers that
+    // the A0 allowlist named as legacy debt. Every method below returns
+    // a value type or an immutable snapshot — never a domain entity.
+
+    /// <summary>The current world tick as projected by <see cref="CityStatusSnapshot"/>.</summary>
+    public int CurrentTick => _world.CurrentTick;
+
+    /// <summary>
+    /// Tick projected through <see cref="Domain.FirstNightState.DisplayedTick"/>
+    /// so the held first-night clock returns its frozen value rather than the
+    /// advancing world tick. Mirrors the value
+    /// <see cref="CityStatusSnapshot.From"/> projects.
+    /// </summary>
+    public int? GetDisplayedTick() => _world.FirstNight?.DisplayedTick(_world.CurrentTick);
+
+    /// <summary>The hero's id, or <c>null</c> when no hero exists.</summary>
+    public CitizenId? GetHeroId() => _world.Hero?.Id;
+
+    /// <summary>The hero's lineage id, used by <see cref="FirstNightScene"/> to swap the theme palette.</summary>
+    public LineageId? GetHeroLineageId() => _world.Hero?.Profile.Lineage;
+
+    /// <summary>The id of the building that grew out of the founding site, or <c>null</c> while it is still a project.</summary>
+    public int? GetFoundingSiteBuildingId() => _world.FoundingSiteBuildingId();
+
+    /// <summary>The first completed Home's id, or <c>null</c>.</summary>
+    public BuildingId? GetPrimaryHomeId() => _world.PrimaryHome?.Id;
+
+    /// <summary>Edible food horizon: stored Food plus gathered Wild Food.</summary>
+    public int GetFoodStock() => _world.FoodStock;
+
+    /// <summary>True when at least one Cultivation Site exists.</summary>
+    public bool HasCultivationSite() => _world.CultivationSites.Count > 0;
+
+    /// <summary>True when at least one Town Hall building exists.</summary>
+    public bool HasTownHall()
+    {
+        foreach (var building in _world.Buildings.Values)
+        {
+            if (building.Kind == BuildingKind.TownHall) return true;
+        }
+        return false;
+    }
+
+    /// <summary>True when the next migrant cannot be housed.</summary>
+    public bool IsHousingFull() => _world.AvailableHousing == 0;
+
+    /// <summary>True when a Town Hall is awaiting an accepted prospect.</summary>
+    public bool HasPendingProspect() => _world.PendingProspect is not null;
+
+    /// <summary>Read-only projection of one Cultivation Site's lifecycle.</summary>
+    public CultivationSiteSnapshot? GetCultivationSiteSnapshot(BuildingId siteId) =>
+        CultivationSiteSnapshot.From(_world, siteId);
+
+    /// <summary>Read-only projection of a citizen's current routine (wraps <see cref="CityWorld.GetCitizenRoutine"/>).</summary>
+    public CitizenRoutineSnapshot? GetCitizenRoutineSnapshot(CitizenId id) =>
+        _world.GetCitizenRoutine(id);
+
+    /// <summary>Bundled projection used by <see cref="Prototypes.MacroStreetLiveView"/>.</summary>
+    public MacroStreetLiveViewState GetMacroStreetViewState() =>
+        MacroStreetLiveViewState.From(_world);
+
+    /// <summary>Read-only projection of one combat session (wraps <see cref="CityWorld.GetCombatSessionSnapshot"/>).</summary>
+    public CombatSessionSnapshot? GetCombatSessionSnapshot(ExpeditionId expeditionId) =>
+        _world.GetCombatSessionSnapshot(expeditionId);
+
+    /// <summary>Bundled projection used by the expedition planning panel.</summary>
+    public ExpeditionPanelState GetExpeditionPanelState() =>
+        ExpeditionPanelState.From(_world);
+
+    /// <summary>Roster snapshot used by <c>MigrantPanel</c>.</summary>
+    public RosterSnapshot GetRosterSnapshot() => RosterSnapshot.From(_world);
+
+    /// <summary>Compact citizen projection used by the macro view for routing state lookups.</summary>
+    public MacroCitizenSnapshot? TryGetMacroCitizenSnapshot(CitizenId id) =>
+        MacroCitizenSnapshot.From(_world, id);
+
+    /// <summary>The id of the building that grew out of the founding site (alias of <see cref="GetFoundingSiteBuildingId"/>).</summary>
+    public BuildingId? GetFoundingStorageBuildingId()
+    {
+        int? id = _world.FoundingSiteBuildingId();
+        return id.HasValue ? new BuildingId(id.Value) : null;
+    }
+
+    /// <summary>Resolves a citizen's display name without exposing the live entity.</summary>
+    public bool TryGetCitizenDisplayName(CitizenId id, out string? name)
+    {
+        Citizen? citizen = _world.GetCitizen(id);
+        name = citizen?.Name;
+        return citizen is not null;
+    }
+
+    /// <summary>Resolves a building's display name without exposing the live entity.</summary>
+    public bool TryGetBuildingDisplayName(BuildingId id, out string? name)
+    {
+        Building? building = _world.GetBuilding(id);
+        name = building?.DisplayName;
+        return building is not null;
+    }
+
+    /// <summary>Resolves a project's display name without exposing the live entity.</summary>
+    public bool TryGetProjectDisplayName(BuildingId id, out string? name)
+    {
+        ConstructionProject? project = _world.GetProject(id);
+        name = project?.DisplayName;
+        return project is not null;
+    }
+
+    /// <summary>Returns the start tick of an expedition (the cancel-button gate compares to this).</summary>
+    public int GetExpeditionStartTick(ExpeditionId id)
+    {
+        return _world.Expeditions.TryGetValue(id, out Expedition? expedition)
+            ? expedition.StartTick
+            : 0;
+    }
+
+    /// <summary>Picks the first active expedition in deterministic order. Returns false when none are active.</summary>
+    public bool TryGetActiveExpeditionId(out ExpeditionId id)
+    {
+        foreach (Expedition expedition in _world.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active)
+            {
+                id = expedition.Id;
+                return true;
+            }
+        }
+        id = default;
+        return false;
+    }
+
+    /// <summary>Returns the display names of an expedition's members, or null when the expedition is unknown.</summary>
+    public bool TryGetExpeditionMemberDisplayNames(ExpeditionId id, out IReadOnlyList<string>? names)
+    {
+        if (!_world.Expeditions.TryGetValue(id, out Expedition? expedition))
+        {
+            names = null;
+            return false;
+        }
+        var resolved = new List<string>(expedition.MemberIds.Count);
+        foreach (CitizenId memberId in expedition.MemberIds)
+        {
+            Citizen? citizen = _world.GetCitizen(memberId);
+            resolved.Add(citizen?.Name ?? "?");
+        }
+        names = resolved;
+        return true;
+    }
+
+    /// <summary>Returns the id of the next territory target parcel, or null when none.</summary>
+    public bool TryGetNextTerritoryParcelId(out int? parcelId)
+    {
+        CityParcel? target = _world.NextTerritoryTarget;
+        parcelId = target?.Id.Value;
+        return target is not null;
+    }
+
+    /// <summary>True while the authored first night is still running.</summary>
+    public bool IsFirstNightActive() => _world.IsFirstNightActive;
+
+    /// <summary>Current authored first-night stage, or null when no night is staged.</summary>
+    public FirstNightStage? GetFirstNightStage() =>
+        _world.FirstNight is { } night ? night.Stage : null;
+
+    /// <summary>True when the world has the named Founding Site module active or completed.</summary>
+    public bool HasFoundingSiteModule(FoundingSiteModule module) =>
+        _world.HasFoundingSiteModule(module);
+
+    /// <summary>True when the world has logged a Spirit Departed event (used by the first-night embers fade).</summary>
+    public bool HasSpiritDepartedEvent()
+    {
+        foreach (WorldEvent evt in _world.Log.Events)
+        {
+            if (evt.Kind == WorldEventKind.SpiritDeparted) return true;
+        }
+        return false;
+    }
+
     public int CurrentProductionRate(BuildingId buildingId) => _world.CurrentProductionRate(buildingId);
 
     // The two GatherWood wrappers are gone. They forwarded to a domain method
@@ -699,10 +1041,6 @@ public partial class CityWorldController : Node
         return result;
     }
 
-    public IReadOnlyList<Citizen> AvailableCitizens() => _world.AvailableCitizens();
-
-    public IReadOnlyList<Citizen> AvailableCitizensByPriority() => _world.AvailableCitizensByPriority();
-
     public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
         var result = _world.TryAssignCitizen(buildingId, citizenId);
@@ -710,12 +1048,6 @@ public partial class CityWorldController : Node
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
     }
-
-    public bool ConfirmCitizenArrivedAtAssignment(BuildingId buildingId, CitizenId citizenId) =>
-        _world.ConfirmCitizenArrivedAtAssignment(citizenId, buildingId);
-
-    public bool ConfirmCitizenArrivedHome(CitizenId citizenId) =>
-        _world.ConfirmCitizenArrivedHome(citizenId);
 
     public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
@@ -822,7 +1154,7 @@ public partial class CityWorldController : Node
         EmitSignal(SignalName.FirstNightStageChanged, currentStage);
     }
 
-    public IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
+    internal IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
         _world.AvailableConstructionLots();
 
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
@@ -830,9 +1162,7 @@ public partial class CityWorldController : Node
 
     public bool CancelProject(BuildingId projectId) => _world.CancelProject(projectId);
 
-    public ConstructionProject? GetProject(BuildingId projectId) => _world.GetProject(projectId);
-
-    public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects() => _world.Projects;
+    internal ConstructionProject? GetProjectForFixture(BuildingId projectId) => _world.GetProject(projectId);
 
     public int AdvanceProduction(BuildingId buildingId) => _world.AdvanceProduction(buildingId);
 

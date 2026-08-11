@@ -425,7 +425,7 @@ public sealed class UiSnapshotTests
         Citizen hero = world.Hero!;
         if (hero.CurrentLocation == CitizenLocation.InTransit && hero.IsReturningHome)
         {
-            Assert.True(world.ConfirmCitizenArrivedHome(hero.Id));
+            TestHelpers.SettleTravel(world);
         }
         hero.MarkFoodBlocked();
 

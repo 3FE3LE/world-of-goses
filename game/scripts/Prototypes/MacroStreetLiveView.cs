@@ -347,6 +347,13 @@ public partial class MacroStreetLiveView : Node2D
         public bool Walking { get; set; }
         public bool IsAmbient { get; set; }
         public int NextAmbientDecisionTick { get; set; }
+
+        // Pacing window of the domain journey this route draws. Null for an
+        // ambient wander, which answers to no domain fact and keeps the plain
+        // cadence gait.
+        public int? PacingStartTick { get; set; }
+        public int TotalSteps { get; set; }
+        public int StepsApplied { get; set; }
     }
 
     // Every non-founder citizen uses the same street route planner and cadence
@@ -356,7 +363,8 @@ public partial class MacroStreetLiveView : Node2D
     internal readonly record struct ReconstructedRoutePosition(
         int Street,
         float Lateral,
-        int RouteIndex);
+        int RouteIndex,
+        int StepsApplied);
     private StreetNavigationServerPlanner? _navmeshPlanner;
     private List<StreetRoutePlanner.Waypoint>? _route;
     private int _routeIndex;
@@ -369,6 +377,12 @@ public partial class MacroStreetLiveView : Node2D
     private bool _heroIsGatheringOutsideHome;
     private bool _heroAmbientRoute;
     private int _heroNextAmbientDecisionTick;
+    // Pacing anchor for the founder's current route. Set only for a real
+    // domain journey; a gather or ambient wander has no arrival tick to be
+    // paced against and keeps the plain one-step-per-cadence gait.
+    private int? _routePacingStartTick;
+    private int _routeTotalSteps;
+    private int _routeStepsApplied;
 
     internal float CameraLateralForVisualRegression => _freeCameraLateral;
     // Tracks the domain's own hero.CurrentAssignment so a route to the
@@ -382,6 +396,13 @@ public partial class MacroStreetLiveView : Node2D
     private CitizenLocation? _lastKnownHeroLocation;
     private bool _treeHovered;
     private ResourceType _hoveredResource = ResourceType.Wood;
+
+    // A1 boundary closure: cached read-only projection of the aggregate
+    // facts this view reads every frame. Rebuilt on WorldTickAdvanced and
+    // on demand by RefreshMacroViewState(). Replaces 30+ direct
+    // `_controller.World.X` reads without holding the live aggregate.
+    private MacroStreetLiveViewState _macroState = default!;
+    private bool _macroStateInitialized;
 
     private readonly record struct PlotBox(
         int Street,
@@ -572,9 +593,30 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnWorldTickAdvanced(int _)
     {
+        RefreshMacroViewState();
         _statusPanel.Refresh(_controller);
         RefreshPlots();
         RefreshConstructionPanelIfOpen();
+    }
+
+    /// <summary>
+    /// Rebuilds the cached <see cref="MacroStreetLiveViewState"/> from the
+    /// controller's projection. Called on every world tick and on demand
+    /// before any read that needs fresh values.
+    /// </summary>
+    private void RefreshMacroViewState()
+    {
+        _macroState = _controller.GetMacroStreetViewState();
+        _macroStateInitialized = true;
+    }
+
+    private MacroStreetLiveViewState MacroState
+    {
+        get
+        {
+            if (!_macroStateInitialized) RefreshMacroViewState();
+            return _macroState;
+        }
     }
 
     /// <summary>
@@ -1866,7 +1908,7 @@ public partial class MacroStreetLiveView : Node2D
     private bool TryGetObservedCitizenAnchor(out float depth, out float lateral)
     {
         CitizenId? observedId = _controller.ObservedCitizenId;
-        CitizenId? founderId = _controller.World.Hero?.Id;
+        CitizenId? founderId = _controller.GetHeroId();
         if (observedId is null || observedId == founderId)
         {
             depth = _depthAnchor;
@@ -1880,7 +1922,7 @@ public partial class MacroStreetLiveView : Node2D
             return true;
         }
 
-        CitizenRoutineSnapshot? routine = _controller.World.GetCitizenRoutine(observedId.Value);
+        CitizenRoutineSnapshot? routine = _controller.GetCitizenRoutineSnapshot(observedId.Value);
         if (routine?.ContextBuildingId is BuildingId buildingId
             && FindPlot(buildingId) is PlotBox plot)
         {
@@ -2075,7 +2117,7 @@ public partial class MacroStreetLiveView : Node2D
         if (state == CultivationPlotState.Growing
             && plot.ReadyAtTick is int readyAtTick)
         {
-            int remaining = Mathf.Max(0, readyAtTick - _controller.World.CurrentTick);
+            int remaining = Mathf.Max(0, readyAtTick - _controller.CurrentTick);
             int days = (int)System.Math.Ceiling(
                 remaining / (double)GameClock.TicksPerInGameDay);
             return UiText.Format("ui.cultivation.growing", days);
@@ -2096,15 +2138,15 @@ public partial class MacroStreetLiveView : Node2D
         CultivationPlotState state,
         Rect2 rect)
     {
-        Citizen? founder = _controller.World.Hero;
-        bool founderAvailable = founder?.IsAvailable == true;
+        CitizenId? founderId = _controller.GetHeroId();
+        bool founderAvailable = founderId.HasValue && MacroState.HeroIsAvailable;
         bool canAct = founderAvailable
             && state is (CultivationPlotState.Prepared or CultivationPlotState.Ready);
         string tooltip = !founderAvailable
             ? UiText.Get("ui.cultivation.founder_unavailable")
             : state switch
         {
-            CultivationPlotState.Prepared => _controller.World.FoodStock
+            CultivationPlotState.Prepared => _controller.GetFoodStock()
                 >= CultivationRules.SeedFoodCost
                     ? UiText.Get("ui.cultivation.sow_action")
                     : UiText.Get("ui.cultivation.missing_seed_food"),
@@ -2114,7 +2156,7 @@ public partial class MacroStreetLiveView : Node2D
             _ => UiText.Get("ui.cultivation.spent"),
         };
         if (state == CultivationPlotState.Prepared
-            && _controller.World.FoodStock < CultivationRules.SeedFoodCost)
+            && _controller.GetFoodStock() < CultivationRules.SeedFoodCost)
         {
             canAct = false;
         }
@@ -2131,7 +2173,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnCultivationRequested(int siteId)
     {
-        CultivationSite? site = _controller.World.GetCultivationSite(new BuildingId(siteId));
+        CultivationSiteSnapshot? site = _controller.GetCultivationSiteSnapshot(new BuildingId(siteId));
         if (site is null) return;
         CultivationActionResult result = site.State == CultivationPlotState.Prepared
             ? _controller.TrySowCultivationSite(site.Id)
@@ -2480,6 +2522,9 @@ public partial class MacroStreetLiveView : Node2D
         _pendingGather = (forestId, unitId);
         _route = PlanCitizenRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
         _routeIndex = 0;
+        // Gathering is not a work assignment, so the domain holds no journey to
+        // pace this against. Keep the plain cadence gait.
+        AnchorHeroRoutePacing(null);
     }
 
     internal static bool IsDuplicateGatherRequest(
@@ -2509,6 +2554,70 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     private void AdvanceRouteTick()
+    {
+        if (_route is null)
+        {
+            CompleteRoute();
+            return;
+        }
+        if (_routePacingStartTick is int startedAt)
+        {
+            // A domain journey: walk to wherever the world clock says we should
+            // be. The route cannot finish early, cannot finish late, and cannot
+            // decide anything — the domain already owns the arrival.
+            AdvanceHeroRouteToStep(PacedRouteSteps(
+                _routeTotalSteps,
+                _controller.CurrentTick - startedAt,
+                _controller.CurrentTickPhase,
+                CityEconomyRules.AbstractTravelTicks));
+            return;
+        }
+        AdvanceHeroRouteOneStep();
+    }
+
+    /// <summary>
+    /// Walks the founder forward until the paced step budget is spent. Steps are
+    /// still discrete 4 px / one-street moves; only their timing now comes from
+    /// the world clock rather than from the render cadence.
+    /// </summary>
+    private void AdvanceHeroRouteToStep(int targetSteps)
+    {
+        if (_route is null) return;
+        bool moved = false;
+        while (_routeStepsApplied < targetSteps && _routeIndex < _route.Count)
+        {
+            int previousStreet = _heroStreet;
+            float previousLateral = _heroLateral;
+            AdvanceReconstructedRouteStep(_route, ref _heroStreet, ref _heroLateral, ref _routeIndex);
+            _routeStepsApplied++;
+            if (_heroStreet != previousStreet)
+            {
+                _heroCarrier?.Walk(_heroStreet > previousStreet ? Vector2.Up : Vector2.Down);
+                _heroWalking = true;
+                _depthTarget = _heroStreet;
+                moved = true;
+            }
+            else if (!Mathf.IsEqualApprox(_heroLateral, previousLateral))
+            {
+                _heroCarrier?.Walk(_heroLateral > previousLateral ? Vector2.Right : Vector2.Left);
+                _heroWalking = true;
+                moved = true;
+            }
+        }
+        if (moved)
+        {
+            TrampleHeroTile();
+            QueueRedraw();
+        }
+        if (_routeIndex >= _route.Count) CompleteRoute();
+    }
+
+    /// <summary>
+    /// The original cadence gait, kept for routes that are not domain journeys:
+    /// the gather walk and ambient wandering, neither of which has an arrival
+    /// tick to be paced against.
+    /// </summary>
+    private void AdvanceHeroRouteOneStep()
     {
         if (_depthTarget.HasValue) return; // mid street transition
         if (_route is null || _routeIndex >= _route.Count)
@@ -2550,53 +2659,35 @@ public partial class MacroStreetLiveView : Node2D
             _route = null;
             _routeIndex = 0;
             _heroWalking = false;
-            _heroNextAmbientDecisionTick = _controller.World.CurrentTick + 30;
+            _heroNextAmbientDecisionTick = _controller.CurrentTick + 30;
             _heroCarrier?.Idle(Vector2.Down);
             return;
         }
         _route = null;
         _routeIndex = 0;
         _heroWalking = false;
+        _routePacingStartTick = null;
         if (_pendingReturnHome)
         {
             _pendingReturnHome = false;
-            CitizenId founderId = _controller.World.Hero!.Id;
-            BuildingId? homeId = _controller.World.PrimaryHome?.Id;
-            bool arrivedHome = _controller.ConfirmCitizenArrivedHome(founderId);
-            if (!arrivedHome)
-            {
-                LogRejectedArrival(founderId, homeId, returningHome: true);
-                _heroCarrier?.Idle(Vector2.Down);
-                Callable.From(RefreshPlots).CallDeferred();
-                return;
-            }
+            CitizenId founderId = _controller.GetHeroId()!.Value;
+            BuildingId? homeId = _controller.GetPrimaryHomeId();
             LogCitizenTravel("arrived", founderId, homeId, returningHome: true);
             // Arrival means the citizen crossed the threshold. The macro
             // carrier disappears inside; a later order remounts the same
-            // flyweight before planning its next route.
+            // flyweight before planning its next route. The domain already
+            // recorded the arrival on the tick this route was paced to end on.
             _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             return;
         }
         if (_pendingAssignment is BuildingId workplace)
         {
-            bool arrived = _controller.ConfirmCitizenArrivedAtAssignment(
+            LogCitizenTravel(
+                "arrived",
+                _controller.GetHeroId()!.Value,
                 workplace,
-                _controller.World.Hero!.Id);
-            if (!arrived)
-            {
-                LogRejectedArrival(_controller.World.Hero.Id, workplace, returningHome: false);
-                _pendingAssignment = null;
-                Callable.From(RefreshPlots).CallDeferred();
-            }
-            else
-            {
-                LogCitizenTravel(
-                    "arrived",
-                    _controller.World.Hero.Id,
-                    workplace,
-                    returningHome: false);
-                _pendingAssignment = null;
-            }
+                returningHome: false);
+            _pendingAssignment = null;
             // Facing "into" the workplace (deeper on this row), matching
             // the gather pose's own orientation once arrived.
             _heroCarrier?.Idle(Vector2.Up);
@@ -2670,21 +2761,13 @@ public partial class MacroStreetLiveView : Node2D
                 break;
             }
         }
-        if (storagePlot is null)
+        if (storagePlot is null
+            && _controller.GetFoundingStorageBuildingId() is BuildingId foundingBuildingId)
         {
-            foreach (ConstructionProject project in _controller.World.Projects.Values)
+            foreach (PlotBox plot in _plots)
             {
-                if (project.Kind != ConstructionKind.FoundingSite
-                    || !project.HasCompletedFoundingModule(FoundingSiteModule.Cache))
-                {
-                    continue;
-                }
-                foreach (PlotBox plot in _plots)
-                {
-                    if (plot.BuildingId != project.Id.Value) continue;
-                    storagePlot = plot;
-                    break;
-                }
+                if (plot.BuildingId != foundingBuildingId.Value) continue;
+                storagePlot = plot;
                 break;
             }
         }
@@ -3086,6 +3169,30 @@ public partial class MacroStreetLiveView : Node2D
         {
             _lastKnownAssignment = currentAssignment;
         }
+        // The domain can reverse a journey underneath the drawn route: a trip
+        // that comes due after the workday turns back toward Home, keeping the
+        // standing order. Before A2 the view learned this by having its arrival
+        // refused; now that arrivals are not the view's to claim, it has to
+        // notice that the route it is drawing points the wrong way and drop it,
+        // so the branches below can plan the journey the domain actually has.
+        if (heroLocation == CitizenLocation.InTransit
+            && _route is not null
+            && !_heroAmbientRoute
+            && _pendingGather is null
+            && RouteContradictsDomain(
+                heroState.IsReturningHome,
+                routeTargetsAssignment: _pendingAssignment is not null,
+                routeTargetsHome: _pendingReturnHome))
+        {
+            _route = null;
+            _routeIndex = 0;
+            _routePacingStartTick = null;
+            _routeStepsApplied = 0;
+            _pendingAssignment = null;
+            _pendingReturnHome = false;
+            _heroWalking = false;
+        }
+
         if (currentAssignment.HasValue
             && heroLocation == CitizenLocation.InTransit
             && heroState.IsReturningHome
@@ -3122,6 +3229,18 @@ public partial class MacroStreetLiveView : Node2D
                 && !hasRoute
                 && !pendingReturnHome);
     }
+
+    /// <summary>
+    /// True when the route currently being drawn heads the opposite way from
+    /// the journey the domain says the citizen is on. The drawn route is a
+    /// projection, so when the two disagree the drawing is what is wrong.
+    /// </summary>
+    internal static bool RouteContradictsDomain(
+        bool isReturningHome,
+        bool routeTargetsAssignment,
+        bool routeTargetsHome) =>
+        (isReturningHome && routeTargetsAssignment)
+        || (!isReturningHome && routeTargetsHome);
 
     internal static bool ShouldBeginWorkRoute(
         BuildingId? currentAssignment,
@@ -3265,10 +3384,10 @@ public partial class MacroStreetLiveView : Node2D
             if (CanWander(citizen.Activity))
             {
                 if (journey.Route is null
-                    && _controller.World.CurrentTick >= journey.NextAmbientDecisionTick
+                    && _controller.CurrentTick >= journey.NextAmbientDecisionTick
                     && homePlot is { } ambientAnchor)
                 {
-                    StartAmbientJourney(journey, ambientAnchor, _controller.World.CurrentTick);
+                    StartAmbientJourney(journey, ambientAnchor, _controller.CurrentTick);
                 }
                 ShowJourneyCarrier(journey, Vector2.Up);
                 return;
@@ -3304,7 +3423,7 @@ public partial class MacroStreetLiveView : Node2D
         {
             GD.PushWarning(
                 $"Citizen travel unresolved: citizen={citizen.Id.Value}, assignment={citizen.CurrentAssignment?.Value}, " +
-                $"returningHome={citizen.IsReturningHome}, tick={_controller.World.CurrentTick}.");
+                $"returningHome={citizen.IsReturningHome}, tick={_controller.CurrentTick}.");
             journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             return;
         }
@@ -3320,7 +3439,7 @@ public partial class MacroStreetLiveView : Node2D
                 target,
                 citizen.IsReturningHome,
                 citizen.TransitStartedAtTick,
-                _controller.World.CurrentTick);
+                _controller.CurrentTick);
         }
         ShowJourneyCarrier(journey, Vector2.Up);
     }
@@ -3367,6 +3486,9 @@ public partial class MacroStreetLiveView : Node2D
             anchors.Entrance.Lateral);
         journey.RouteIndex = 0;
         journey.Walking = false;
+        journey.PacingStartTick = transitStartedAtTick;
+        journey.TotalSteps = CountRouteSteps(journey.Route, journey.Street, journey.Lateral);
+        journey.StepsApplied = 0;
         if (transitStartedAtTick is int startedAt && currentTick > startedAt)
         {
             ReconstructedRoutePosition reconstructed = ReconstructRouteProgress(
@@ -3379,6 +3501,7 @@ public partial class MacroStreetLiveView : Node2D
             journey.Lateral = reconstructed.Lateral;
             journey.DepthAnchor = reconstructed.Street;
             journey.RouteIndex = reconstructed.RouteIndex;
+            journey.StepsApplied = reconstructed.StepsApplied;
         }
         LogCitizenTravel("started", journey.CitizenId, destination, returningHome);
     }
@@ -3387,6 +3510,13 @@ public partial class MacroStreetLiveView : Node2D
     /// Rebuilds a presentation position from semantic transit timing. The
     /// result is ephemeral and never enters WorldSave; it only prevents a load
     /// or view re-entry from replaying the already elapsed part of a journey.
+    ///
+    /// <para>
+    /// This is also the live pacing rule, not only the restore rule: a route is
+    /// walked by asking where the world clock says the citizen should be, so
+    /// resuming a saved journey and walking a fresh one are the same
+    /// calculation. See <see cref="PacedRouteSteps"/>.
+    /// </para>
     /// </summary>
     internal static ReconstructedRoutePosition ReconstructRouteProgress(
         IReadOnlyList<StreetRoutePlanner.Waypoint> route,
@@ -3397,21 +3527,51 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (route.Count == 0 || elapsedTicks <= 0 || expectedDurationTicks <= 0)
         {
-            return new ReconstructedRoutePosition(startStreet, startLateral, 0);
+            return new ReconstructedRoutePosition(startStreet, startLateral, 0, 0);
         }
 
         int totalSteps = CountRouteSteps(route, startStreet, startLateral);
+        // Reconstruction stops one step short on purpose: re-entering the view
+        // must never be what finishes a journey. Completion belongs to the
+        // clock, and the clock is read every frame by the pacing path.
         int stepsToApply = Math.Min(
             Math.Max(0, totalSteps - 1),
-            (int)Math.Floor(totalSteps * Math.Min(1d, (double)elapsedTicks / expectedDurationTicks)));
+            PacedRouteSteps(totalSteps, elapsedTicks, tickPhase: 0d, expectedDurationTicks));
         int street = startStreet;
         float lateral = startLateral;
         int routeIndex = 0;
+        int applied = 0;
         for (int step = 0; step < stepsToApply && routeIndex < route.Count; step++)
         {
             AdvanceReconstructedRouteStep(route, ref street, ref lateral, ref routeIndex);
+            applied++;
         }
-        return new ReconstructedRoutePosition(street, lateral, routeIndex);
+        return new ReconstructedRoutePosition(street, lateral, routeIndex, applied);
+    }
+
+    /// <summary>
+    /// How many route steps should have been walked by now, given the domain's
+    /// own journey window. This is what makes the drawn walk a projection of
+    /// world time rather than a second opinion about it: the route is spread
+    /// across <paramref name="expectedDurationTicks"/> world ticks, so 2x and 4x
+    /// speed it up for free and a dropped frame merely catches up next frame.
+    /// </summary>
+    /// <param name="tickPhase">
+    /// Fraction of the current world tick already elapsed, so motion stays
+    /// smooth between one-second ticks. Purely cosmetic; it can only move the
+    /// citizen within a step of where whole ticks already put them.
+    /// </param>
+    internal static int PacedRouteSteps(
+        int totalSteps,
+        int elapsedTicks,
+        double tickPhase,
+        int expectedDurationTicks)
+    {
+        if (totalSteps <= 0) return 0;
+        if (expectedDurationTicks <= 0) return totalSteps;
+        double progress = Math.Clamp(
+            (elapsedTicks + Math.Clamp(tickPhase, 0d, 1d)) / expectedDurationTicks, 0d, 1d);
+        return Math.Min(totalSteps, (int)Math.Floor(totalSteps * progress));
     }
 
     private static int CountRouteSteps(
@@ -3454,45 +3614,109 @@ public partial class MacroStreetLiveView : Node2D
     private void AdvanceCitizenJourneysTick()
     {
         bool advancedAnyJourney = false;
+        int currentTick = _controller.CurrentTick;
+        double tickPhase = _controller.CurrentTickPhase;
         foreach ((int citizenId, CitizenJourney journey) in _citizenJourneys.ToArray())
         {
-            if (journey.Route is null || journey.DepthTarget.HasValue) continue;
+            if (journey.Route is null) continue;
+            if (journey.PacingStartTick is int startedAt)
+            {
+                advancedAnyJourney = true;
+                AdvanceJourneyToStep(
+                    new CitizenId(citizenId),
+                    journey,
+                    PacedRouteSteps(
+                        journey.TotalSteps,
+                        currentTick - startedAt,
+                        tickPhase,
+                        CityEconomyRules.AbstractTravelTicks));
+                continue;
+            }
+            if (journey.DepthTarget.HasValue) continue;
             advancedAnyJourney = true;
-            if (journey.RouteIndex >= journey.Route.Count)
-            {
-                if (journey.IsAmbient) CompleteAmbientJourney(journey);
-                else CompleteCitizenJourney(new CitizenId(citizenId), journey);
-                continue;
-            }
-            StreetRoutePlanner.Waypoint waypoint = journey.Route[journey.RouteIndex];
-            if (waypoint.Street != journey.Street)
-            {
-                int direction = Math.Sign(waypoint.Street - journey.Street);
-                journey.Carrier.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
-                journey.Walking = true;
-                journey.Street += direction;
-                journey.DepthTarget = journey.Street;
-                continue;
-            }
-            if (Mathf.Abs(waypoint.Lateral - journey.Lateral) >= 1f)
-            {
-                float direction = Mathf.Sign(waypoint.Lateral - journey.Lateral);
-                journey.Carrier.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
-                journey.Walking = true;
-                journey.Lateral = Mathf.MoveToward(
-                    journey.Lateral,
-                    waypoint.Lateral,
-                    PixelMotion.StepPixels);
-                continue;
-            }
-            journey.RouteIndex++;
-            if (journey.RouteIndex >= journey.Route.Count)
-            {
-                if (journey.IsAmbient) CompleteAmbientJourney(journey);
-                else CompleteCitizenJourney(new CitizenId(citizenId), journey);
-            }
+            AdvanceAmbientJourneyOneStep(new CitizenId(citizenId), journey);
         }
         if (advancedAnyJourney) QueueRedraw();
+    }
+
+    /// <summary>
+    /// Walks one citizen forward until the paced step budget is spent. The
+    /// budget comes from the domain's journey window, so the drawn arrival
+    /// lands on the tick the domain already chose.
+    /// </summary>
+    private void AdvanceJourneyToStep(CitizenId citizenId, CitizenJourney journey, int targetSteps)
+    {
+        if (journey.Route is null) return;
+        while (journey.StepsApplied < targetSteps && journey.RouteIndex < journey.Route.Count)
+        {
+            int previousStreet = journey.Street;
+            float previousLateral = journey.Lateral;
+            int street = journey.Street;
+            float lateral = journey.Lateral;
+            int routeIndex = journey.RouteIndex;
+            AdvanceReconstructedRouteStep(journey.Route, ref street, ref lateral, ref routeIndex);
+            journey.Street = street;
+            journey.Lateral = lateral;
+            journey.RouteIndex = routeIndex;
+            journey.StepsApplied++;
+            if (journey.Street != previousStreet)
+            {
+                journey.Carrier.Walk(journey.Street > previousStreet ? Vector2.Up : Vector2.Down);
+                journey.Walking = true;
+                journey.DepthTarget = journey.Street;
+            }
+            else if (!Mathf.IsEqualApprox(journey.Lateral, previousLateral))
+            {
+                journey.Carrier.Walk(journey.Lateral > previousLateral ? Vector2.Right : Vector2.Left);
+                journey.Walking = true;
+            }
+        }
+        if (journey.RouteIndex >= journey.Route.Count)
+        {
+            CompleteCitizenJourney(citizenId, journey);
+        }
+    }
+
+    /// <summary>
+    /// The original cadence gait, kept for ambient wandering — it draws no
+    /// domain journey and therefore has no arrival tick to be paced against.
+    /// </summary>
+    private void AdvanceAmbientJourneyOneStep(CitizenId citizenId, CitizenJourney journey)
+    {
+        if (journey.Route is null) return;
+        if (journey.RouteIndex >= journey.Route.Count)
+        {
+            if (journey.IsAmbient) CompleteAmbientJourney(journey);
+            else CompleteCitizenJourney(citizenId, journey);
+            return;
+        }
+        StreetRoutePlanner.Waypoint waypoint = journey.Route[journey.RouteIndex];
+        if (waypoint.Street != journey.Street)
+        {
+            int direction = Math.Sign(waypoint.Street - journey.Street);
+            journey.Carrier.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
+            journey.Walking = true;
+            journey.Street += direction;
+            journey.DepthTarget = journey.Street;
+            return;
+        }
+        if (Mathf.Abs(waypoint.Lateral - journey.Lateral) >= 1f)
+        {
+            float direction = Mathf.Sign(waypoint.Lateral - journey.Lateral);
+            journey.Carrier.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
+            journey.Walking = true;
+            journey.Lateral = Mathf.MoveToward(
+                journey.Lateral,
+                waypoint.Lateral,
+                PixelMotion.StepPixels);
+            return;
+        }
+        journey.RouteIndex++;
+        if (journey.RouteIndex >= journey.Route.Count)
+        {
+            if (journey.IsAmbient) CompleteAmbientJourney(journey);
+            else CompleteCitizenJourney(citizenId, journey);
+        }
     }
 
     private void CompleteCitizenJourney(CitizenId citizenId, CitizenJourney journey)
@@ -3500,16 +3724,8 @@ public partial class MacroStreetLiveView : Node2D
         BuildingId? destination = journey.Destination;
         bool returningHome = journey.ReturningHome;
         StopJourney(journey);
-        bool confirmed = returningHome
-            ? _controller.ConfirmCitizenArrivedHome(citizenId)
-            : destination is BuildingId assignment
-                && _controller.ConfirmCitizenArrivedAtAssignment(assignment, citizenId);
-        if (!confirmed)
-        {
-            LogRejectedArrival(citizenId, destination, returningHome);
-            ReconcileRejectedArrival(citizenId, journey);
-            return;
-        }
+        // The domain recorded this arrival on the tick the route was paced to
+        // end on. Nothing here can confirm, delay or deny it — only draw it.
         LogCitizenTravel("arrived", citizenId, destination, returningHome);
         if (returningHome)
         {
@@ -3544,6 +3760,10 @@ public partial class MacroStreetLiveView : Node2D
         journey.ReturningHome = false;
         journey.IsAmbient = true;
         journey.Walking = false;
+        // Wandering draws no domain journey, so it has no window to be paced to.
+        journey.PacingStartTick = null;
+        journey.TotalSteps = 0;
+        journey.StepsApplied = 0;
         journey.NextAmbientDecisionTick = currentTick + 20 + phase % 31;
     }
 
@@ -3554,19 +3774,9 @@ public partial class MacroStreetLiveView : Node2D
         journey.IsAmbient = false;
         journey.Walking = false;
         journey.DepthTarget = null;
-        journey.NextAmbientDecisionTick = _controller.World.CurrentTick + 30;
+        journey.PacingStartTick = null;
+        journey.NextAmbientDecisionTick = _controller.CurrentTick + 30;
         journey.Carrier.Idle(Vector2.Down);
-    }
-
-    private void ReconcileRejectedArrival(CitizenId citizenId, CitizenJourney journey)
-    {
-        Citizen? citizen = _controller.World.GetCitizen(citizenId);
-        if (citizen is null)
-        {
-            journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
-            return;
-        }
-        Callable.From(RefreshPlots).CallDeferred();
     }
 
     private void AdvanceJourneyTransition(CitizenJourney journey, double delta)
@@ -3642,6 +3852,9 @@ public partial class MacroStreetLiveView : Node2D
         journey.IsAmbient = false;
         journey.DepthTarget = null;
         journey.Walking = false;
+        journey.PacingStartTick = null;
+        journey.TotalSteps = 0;
+        journey.StepsApplied = 0;
         journey.Carrier.CancelMotion();
     }
 
@@ -3686,23 +3899,6 @@ public partial class MacroStreetLiveView : Node2D
             _lateralHalfWidthPx,
             PixelMotion.StepPixels);
 
-    private void LogRejectedArrival(
-        CitizenId citizenId,
-        BuildingId? destination,
-        bool returningHome)
-    {
-        Citizen? citizen = _controller.World.GetCitizen(citizenId);
-        CitizenDebugSnapshot? debug = _controller.GetCitizenDebugSnapshot(citizenId);
-        GD.PushWarning(
-            $"Citizen arrival rejected: citizen={citizenId.Value}, destination={destination?.Value}, " +
-            $"returningHome={returningHome}, tick={_controller.World.CurrentTick}, " +
-            $"daytime={GameClock.IsDaytime(_controller.World.CurrentTick)}, " +
-            $"location={citizen?.CurrentLocation}, assignment={citizen?.CurrentAssignment?.Value}, " +
-            $"activity={debug?.Routine.Activity}, blocker={debug?.Routine.BlockReason}, " +
-            $"started={debug?.Routine.ActivityStartedAtTick}, expected={debug?.Routine.ExpectedCompletionTick}, " +
-            $"next={debug?.Routine.NextTransitionTick}.");
-    }
-
     private void LogCitizenTravel(
         string phase,
         CitizenId citizenId,
@@ -3713,7 +3909,7 @@ public partial class MacroStreetLiveView : Node2D
         CitizenDebugSnapshot? debug = _controller.GetCitizenDebugSnapshot(citizenId);
         GD.Print(
             $"[CitizenTravel] {phase}: citizen={citizenId.Value}, destination={destination?.Value}, " +
-            $"returningHome={returningHome}, tick={_controller.World.CurrentTick}, " +
+            $"returningHome={returningHome}, tick={_controller.CurrentTick}, " +
             $"activity={debug?.Routine.Activity}, context={debug?.Routine.ContextLocation}, " +
             $"blocker={debug?.Routine.BlockReason}, started={debug?.Routine.ActivityStartedAtTick}, " +
             $"expected={debug?.Routine.ExpectedCompletionTick}, next={debug?.Routine.NextTransitionTick}.");
@@ -3746,8 +3942,8 @@ public partial class MacroStreetLiveView : Node2D
         if (target is null)
         {
             GD.PushWarning(
-                $"Citizen route target missing: citizen={_controller.World.Hero!.Id.Value}, " +
-                $"assignment={workplace.Value}, tick={_controller.World.CurrentTick}.");
+                $"Citizen route target missing: citizen={_controller.GetHeroId()!.Value.Value}, " +
+                $"assignment={workplace.Value}, tick={_controller.CurrentTick}.");
             return;
         }
         _pendingGather = null;
@@ -3756,10 +3952,10 @@ public partial class MacroStreetLiveView : Node2D
         int entranceStreet = WorkplaceEntranceStreet(target.Value.Street);
         _route = PlanCitizenRoute(_heroStreet, _heroLateral, entranceStreet, target.Value.LateralOffset);
         _routeIndex = 0;
-        ReconstructHeroRouteIfElapsed(transitStartedAtTick);
+        AnchorHeroRoutePacing(transitStartedAtTick);
         LogCitizenTravel(
             "started",
-            _controller.World.Hero!.Id,
+            _controller.GetHeroId()!.Value,
             workplace,
             returningHome: false);
     }
@@ -3795,8 +3991,8 @@ public partial class MacroStreetLiveView : Node2D
             _route = null;
             _heroCarrier?.Idle(Vector2.Down);
             GD.PushWarning(
-                $"Citizen return route unresolved: citizen={_controller.World.Hero!.Id.Value}, " +
-                $"tick={_controller.World.CurrentTick}, reason=no completed Shelter.");
+                $"Citizen return route unresolved: citizen={_controller.GetHeroId()!.Value.Value}, " +
+                $"tick={_controller.CurrentTick}, reason=no completed Shelter.");
             return;
         }
 
@@ -3807,40 +4003,50 @@ public partial class MacroStreetLiveView : Node2D
             _heroLateral,
             entranceStreet,
             shelter.Value.LateralOffset);
-        ReconstructHeroRouteIfElapsed(transitStartedAtTick);
+        AnchorHeroRoutePacing(transitStartedAtTick);
         LogCitizenTravel(
             "started",
-            _controller.World.Hero!.Id,
+            _controller.GetHeroId()!.Value,
             new BuildingId(shelter.Value.BuildingId),
             returningHome: true);
     }
 
-    private void ReconstructHeroRouteIfElapsed(int? transitStartedAtTick)
+    /// <summary>
+    /// Binds a freshly planned founder route to the domain journey that caused
+    /// it: records the pacing window, counts the route, and — when the journey
+    /// is already part-elapsed (a load, or re-entering the view) — skips ahead
+    /// to where the clock says the founder already is.
+    /// </summary>
+    private void AnchorHeroRoutePacing(int? transitStartedAtTick)
     {
-        if (_route is null
-            || transitStartedAtTick is not int startedAt
-            || _controller.World.CurrentTick <= startedAt)
-        {
-            return;
-        }
+        _routePacingStartTick = null;
+        _routeTotalSteps = 0;
+        _routeStepsApplied = 0;
+        if (_route is null || transitStartedAtTick is not int startedAt) return;
+
+        _routePacingStartTick = startedAt;
+        _routeTotalSteps = CountRouteSteps(_route, _heroStreet, _heroLateral);
+        if (_controller.CurrentTick <= startedAt) return;
+
         ReconstructedRoutePosition reconstructed = ReconstructRouteProgress(
             _route,
             _heroStreet,
             _heroLateral,
-            _controller.World.CurrentTick - startedAt,
+            _controller.CurrentTick - startedAt,
             CityEconomyRules.AbstractTravelTicks);
         _heroStreet = reconstructed.Street;
         _heroLateral = reconstructed.Lateral;
         _depthAnchor = reconstructed.Street;
         _depthTarget = null;
         _routeIndex = reconstructed.RouteIndex;
+        _routeStepsApplied = reconstructed.StepsApplied;
     }
 
     private void TryStartHeroAmbientRoute(PlotBox anchor)
     {
-        int currentTick = _controller.World.CurrentTick;
+        int currentTick = _controller.CurrentTick;
         if (_route is not null || currentTick < _heroNextAmbientDecisionTick) return;
-        int founderId = _controller.World.Hero?.Id.Value ?? 1;
+        int founderId = _controller.GetHeroId()?.Value ?? 1;
         int phase = Math.Abs(founderId * 37 + currentTick / 30);
         int targetStreet = Mathf.Clamp(
             WorkplaceEntranceStreet(anchor.Street) + phase % 3 - 1,
@@ -3858,6 +4064,8 @@ public partial class MacroStreetLiveView : Node2D
             targetLateral);
         _routeIndex = 0;
         _heroAmbientRoute = true;
+        // Wandering answers to nothing in the domain; it keeps the cadence gait.
+        AnchorHeroRoutePacing(null);
         _heroNextAmbientDecisionTick = currentTick + 20 + phase % 31;
     }
 

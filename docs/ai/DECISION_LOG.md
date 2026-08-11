@@ -964,6 +964,82 @@ rules while new Spirit Trails use the tutorial baseline.
 
 ---
 
+### DEC-0023: World time is the only authority that ends a citizen journey
+
+**Status:** Accepted
+**Date:** 2026-08-11
+**Supersedes:** `docs/ARCHITECTURE.md` §5's live/offline arrival split and the
+corresponding paragraph in `docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md`.
+
+**Decision:**
+
+A citizen's journey ends when `CityWorld.CurrentTick` reaches
+`Citizen.TravelArrivalTick`, and at no other moment. There is one tick method,
+`CityWorld.AdvanceWorldTick`, used identically by live play and offline
+catch-up; `CompleteDueTravel` inside it is the only code that moves a citizen
+out of `InTransit` by travelling. `ConfirmCitizenArrivedAtAssignment` and
+`ConfirmCitizenArrivedHome` are removed from the domain and the controller.
+
+Presentation draws the journey and has no vote. `MacroStreetLiveView` paces a
+route across the domain's own window (`PacedRouteSteps`), reusing the
+`ReconstructRouteProgress` calculation that already resumed part-elapsed
+journeys after a load — so the drawn arrival lands on the tick the domain
+chose, 1x/2x/4x scale it for free, and a dropped frame catches up on the next.
+
+**Reason:**
+
+The previous design was deliberate and documented: live play required Godot's
+route completion so elapsed ticks could not "hide a carrier or start production
+before its visible arrival", while offline catch-up completed the same journey
+on elapsed ticks because no sprite existed. That is two semantic authorities for
+one fact. It contradicts three standing rules that outrank an architecture note
+— `CROSS_DOMAIN_INVARIANTS.md`: *"Live advancement and offline catch-up use the
+same domain rules"* and *"Scenes do not decide rules"*, and `AGENTS.md` §6 rule
+3: *"The domain wins over its visual representation."* Concretely it meant an
+animation that never ran could hold a citizen in transit indefinitely and keep
+their workplace reporting `WorkersInTransit` forever.
+
+**Affected domains:** citizens, city, simulation, presentation, persistence.
+
+**Consequences:**
+
+- **No schema change.** `WorldSave.CurrentVersion` stays **34**. Every fact the
+  contract needs — `CurrentLocation`, `TransitStartedAtTick`, `IsReturningHome`,
+  the commitment and standing order — has been persisted since v19.
+  `TravelArrivalTick` is derived, never stored, so the duration stays a rule
+  rather than a saved value that could drift from it.
+- **Existing saves self-heal.** A citizen left stuck `InTransit` because the
+  view never confirmed their arrival completes it on the first tick after load.
+- Three latent defects are closed by construction: the old completion path's
+  commitment whitelist excluded `CitizenCommitmentKind.None`, so a citizen sent
+  home after losing their commitment could never arrive; quiescent offline
+  batching had no travel term and could advance past an arrival; and the offline
+  path never raised `BuildingChanged` on arrival, which the removed command did.
+- The workday-boundary reversal (a journey coming due after 16:00 turns toward
+  Home with its standing order intact) moves from the deleted command into
+  `CompleteDueTravel`, and is now also reachable from a save restored at night.
+- A citizen who arrives home under a live standing order is re-dispatched on the
+  same tick — visible now that journeys actually end.
+- `ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival` fails the
+  build if any presentation file regains an arrival command. Its allowlist is
+  empty and must stay empty.
+- Walking pace is now derived from `CityEconomyRules.AbstractTravelTicks` (30)
+  rather than from the render cadence, so it looks different from before. The
+  constant remains provisional tuning.
+
+**Documents affected:** `docs/ARCHITECTURE.md` §5 and §10,
+`docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md`, `docs/CURRENT_STATUS.md`, `CHANGELOG.md`.
+
+**Code affected:** `game/scripts/Domain/CityWorld.cs`,
+`game/scripts/Domain/Citizen.cs`, `game/scripts/Domain/WorldTimeAdvance.cs`,
+`game/scripts/Domain/OfflineProgression.cs`, `game/scripts/CityWorldController.cs`,
+`game/scripts/CityMacroSnapshot.cs`,
+`game/scripts/Prototypes/MacroStreetLiveView.cs`, `game/scripts/CityPrototype.cs`,
+`tests/WorldofGoses.Tests/CitizenTravelAuthorityTests.cs` (new),
+`tests/WorldofGoses.Tests/ArchitectureBoundaryTests.cs`.
+
+---
+
 ## Infrastructure decisions
 
 These concern the agent architecture itself, not game design.

@@ -29,6 +29,8 @@ public sealed record BuildingDetailSnapshot(
     ResourceType? PrimitiveAxeMissingResource,
     int FoundingStorageCount,
     int FoundingStorageCapacity,
+    bool IsHousingFull,
+    BuildingDetailSnapshot.PendingProspectItem? PendingProspect,
     IReadOnlyList<ResourceInventoryItem> Resources,
     IReadOnlyList<RecipeInput> PendingInputs,
     IReadOnlyList<BuildingDetailSnapshot.CitizenItem> AssignedCitizens,
@@ -42,6 +44,21 @@ public sealed record BuildingDetailSnapshot(
     public bool IsForest => Kind == BuildingKind.Forest;
 
     public sealed record CitizenItem(CitizenId Id, string Name, LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
+
+    /// <summary>
+    /// Projection of the awaiting Town Hall prospect. Empty when no
+    /// prospect is waiting or when the snapshot is not for a Town Hall.
+    /// Built only on demand — the Town Hall refresh path is the sole
+    /// consumer today.
+    /// </summary>
+    public sealed record PendingProspectItem(
+        CitizenId Seed,
+        string Name,
+        LineageId Lineage,
+        GenderId Gender,
+        AppearanceVariantId Appearance,
+        FounderCubeProfile CubeProfile,
+        CombatNature CombatNature);
 
     /// <summary>
     /// A citizen who cannot be assigned here right now. Carries the raw
@@ -108,6 +125,22 @@ public sealed record BuildingDetailSnapshot(
             resources.Add(ToResourceItem(world, resource));
         }
 
+        PendingProspectItem? prospectItem = null;
+        if (building.Kind == BuildingKind.TownHall
+            && world.PendingProspect is { } pendingProspect)
+        {
+            prospectItem = new PendingProspectItem(
+                new CitizenId(pendingProspect.Seed),
+                pendingProspect.Name,
+                pendingProspect.Profile.Lineage,
+                pendingProspect.Profile.Gender,
+                AppearanceVariantId.Standard,
+                pendingProspect.Profile.CubeProfile,
+                pendingProspect.Profile.CombatNature);
+        }
+        bool isHousingFull = building.Kind == BuildingKind.TownHall
+            && world.AvailableHousing == 0;
+
         return new BuildingDetailSnapshot(building.Id, building.DisplayName, building.FullDisplayLabel,
             building.Kind, building.ResourceLabel, building.ResourceUnit, building.Stock,
             building.StorageCapacity, world.CurrentProductionRate(building.Id), CityEconomyRules.ProductionCycleTicks,
@@ -120,6 +153,8 @@ public sealed record BuildingDetailSnapshot(
             world.ToolCraftAvailability(ToolKind.PrimitiveAxe).MissingResource,
             world.FoundingStorageCount(),
             world.GroundResourceCapacity(),
+            isHousingFull,
+            prospectItem,
             resources,
             new List<RecipeInput>(building.PendingInputs), assigned, available, visible,
             unavailable);

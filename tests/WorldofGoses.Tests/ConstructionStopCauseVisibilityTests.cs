@@ -90,7 +90,7 @@ public sealed class ConstructionStopCauseVisibilityTests
         CityWorld world = TestHelpers.NewConstructionWorld();
         ConstructionProject project = world.Projects.Values.Single();
         Citizen founder = world.Hero!;
-        world.ConfirmCitizenArrivedAtAssignment(founder.Id, project.Id);
+        TestHelpers.PlaceAtAssignment(world, founder.Id);
         Assert.Equal(CitizenLocation.AtWork, founder.CurrentLocation);
 
         // Drain the contributor below the per-interval stamina cost.

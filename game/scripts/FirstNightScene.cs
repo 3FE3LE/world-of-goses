@@ -193,14 +193,14 @@ public partial class FirstNightScene : Node
 
     private Vector2 SpiritAnchor()
     {
-        FirstNightState? night = _controller?.World.FirstNight;
+        FirstNightStage? stage = _controller?.GetFirstNightStage();
         // Only move into the fire once there is a fire to move into. Without
         // the anchor check the spirit read `_campfireScreenPosition`, which
         // stays at its constructor default while the founding site is still a
         // project — the middle of the screen. From `CampfireBuilt` onward the
         // spirit teleported there and hovered over nothing.
-        bool inTheFlame = night is not null
-            && night.Stage >= FirstNightStage.CampfireBuilt
+        bool inTheFlame = stage is not null
+            && stage.Value >= FirstNightStage.CampfireBuilt
             && _hasCampfireAnchor;
         return inTheFlame
             ? _campfireScreenPosition
@@ -282,8 +282,9 @@ public partial class FirstNightScene : Node
             return;
         }
         RefreshPositionsFromWorld();
-        FirstNightState? night = _controller.World.FirstNight;
-        if (night is null || !night.IsActive)
+        FirstNightStage? stage = _controller.GetFirstNightStage();
+        bool isActive = _controller.IsFirstNightActive();
+        if (stage is null || !isActive)
         {
             _bubble.Vanish();
             _spirit.Vanish();
@@ -312,9 +313,10 @@ public partial class FirstNightScene : Node
         // returns null for stages that wait on a module, which is
         // exactly when the balloon should hide — the player is being
         // asked to build something, not to read.
-        LineageId lineage = _controller.World.Hero?.Profile.Lineage ?? LineageId.Ardhen;
-        IDialogueNode? node = FireSpiritDialogueCatalog.NodeFor(night.Stage, lineage);
-        if (node is null && FirstNightRules.WaitsForModule(night.Stage))
+        LineageId lineage = _controller.GetHeroLineageId() ?? LineageId.Ardhen;
+        FirstNightStage activeStage = stage.Value;
+        IDialogueNode? node = FireSpiritDialogueCatalog.NodeFor(activeStage, lineage);
+        if (node is null && FirstNightRules.WaitsForModule(activeStage))
         {
             // The two build stages have no authored line on purpose: they wait
             // for the player to make something. Left at that, the spirit fell
@@ -322,7 +324,7 @@ public partial class FirstNightScene : Node
             // taught anything. The balloon now carries a directive instead —
             // derived from the real recipe, never a hand-written quantity,
             // per DEC-0014 §4.
-            _bubble.Speak(DescribeModuleDirective(night.Stage), string.Empty);
+            _bubble.Speak(DescribeModuleDirective(activeStage), string.Empty);
             _bubble.FollowSpeaker(SpiritAnchor());
         }
         else if (node is null)
@@ -331,7 +333,7 @@ public partial class FirstNightScene : Node
         }
         else
         {
-            bool isSleeping = night.Stage == FirstNightStage.Sleeping;
+            bool isSleeping = activeStage == FirstNightStage.Sleeping;
             _bubble.Speak(
                 UiText.Get(node.BodyKey),
                 UiText.Get(isSleeping
@@ -342,19 +344,19 @@ public partial class FirstNightScene : Node
                 // narration about the spirit, and a balloon with a tail
                 // presented them as the spirit narrating itself.
                 hasSpeaker: node.SpeakerId == FireSpiritDialogueCatalog.FireSpiritSpeakerId
-                    && FirstNightRules.SpiritIsPresent(night.Stage));
+                    && FirstNightRules.SpiritIsPresent(activeStage));
             _bubble.FollowSpeaker(SpiritAnchor());
         }
 
         // Spirit visual: present only between Manifested and Sleeping
         // (FirstNightRules.SpiritIsPresent). Position is the founder
         // before the campfire exists, the campfire once it does.
-        if (!FirstNightRules.SpiritIsPresent(night.Stage))
+        if (!FirstNightRules.SpiritIsPresent(activeStage))
         {
             _spirit.Vanish();
             return;
         }
-        if (night.Stage >= FirstNightStage.CampfireBuilt)
+        if (activeStage >= FirstNightStage.CampfireBuilt)
         {
             _spirit.PlaceOnCampfire(_campfireScreenPosition);
         }
@@ -393,7 +395,7 @@ public partial class FirstNightScene : Node
         // Building to point at, and the macro view exposes no anchor for a
         // project. In that case we draw nothing: a fire in an invented place
         // is worse than no fire, because the player reads it as world state.
-        int? siteId = _controller?.World.FoundingSiteBuildingId();
+        int? siteId = _controller?.GetFoundingSiteBuildingId();
         Vector2 siteScreen = siteId is null
             ? Vector2.Zero
             : InvokePositionGetter(macroView, "GetBuildingGlobalPosition", siteId.Value);
@@ -413,8 +415,7 @@ public partial class FirstNightScene : Node
     private bool HasEmbersAfterDeparture()
     {
         if (_controller is null) return false;
-        CityWorld world = _controller.World;
-        if (!world.HasFoundingSiteModule(FoundingSiteModule.Campfire)) return false;
-        return world.Log.Events.Any(evt => evt.Kind == WorldEventKind.SpiritDeparted);
+        if (!_controller.HasFoundingSiteModule(FoundingSiteModule.Campfire)) return false;
+        return _controller.HasSpiritDepartedEvent();
     }
 }

@@ -7,8 +7,15 @@ namespace WorldofGoses.Tests;
 
 public class CitizenAutonomyTests
 {
+    /// <summary>
+    /// The inverse of the rule this test used to guard. Until DEC-0023 a live
+    /// journey could only end when Godot reported its sprite had arrived, so
+    /// elapsed ticks deliberately did nothing. Now world time is the only
+    /// authority: the citizen arrives on the arrival tick whether or not
+    /// anything is being drawn, and not one tick earlier.
+    /// </summary>
     [Fact]
-    public void LiveTicks_DoNotCompleteAVisibleAssignmentRouteByElapsedTime()
+    public void LiveTicks_CompleteAnAssignmentRouteByElapsedTime()
     {
         CityWorld world = TestHelpers.WorldWithHome();
         Citizen hero = world.Hero!;
@@ -17,7 +24,7 @@ public class CitizenAutonomyTests
         world.RegisterBuilding(quarry);
         Assert.True(world.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
 
-        for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks - 1; tick++)
         {
             world.AdvanceWorldTick();
         }
@@ -25,7 +32,7 @@ public class CitizenAutonomyTests
         Assert.Equal(CitizenLocation.InTransit, hero.CurrentLocation);
         Assert.Equal(0, quarry.Stock);
 
-        world.AdvanceOfflineWorldTick();
+        world.AdvanceWorldTick();
 
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
     }
@@ -41,13 +48,13 @@ public class CitizenAutonomyTests
         quarry.DepositIron(100);
         world.RegisterBuilding(quarry);
         Assert.True(world.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(hero.Id, quarry.Id));
+        TestHelpers.PlaceAtAssignment(world, hero.Id);
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
 
         TestHelpers.AdvanceToNextProductionCycle(world);
         for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
 
         Assert.Equal(quarry.Id, hero.CurrentAssignment);
@@ -67,12 +74,12 @@ public class CitizenAutonomyTests
         quarry.DepositIron(100);
         world.RegisterBuilding(quarry);
         Assert.True(world.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(hero.Id, quarry.Id));
+        TestHelpers.PlaceAtAssignment(world, hero.Id);
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
         TestHelpers.AdvanceToNextProductionCycle(world);
         for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         Assert.Equal(CitizenVitalStatus.BlockedNoFood, hero.VitalStatus);
 
@@ -89,7 +96,7 @@ public class CitizenAutonomyTests
 
         for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
     }
@@ -103,7 +110,7 @@ public class CitizenAutonomyTests
         quarry.DepositIron(100);
         world.RegisterBuilding(quarry);
         Assert.True(world.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
-        Assert.True(world.ConfirmCitizenArrivedAtAssignment(hero.Id, quarry.Id));
+        TestHelpers.PlaceAtAssignment(world, hero.Id);
         world.DepositResource(ResourceType.Wood, 2);
         ExpeditionRequest request = ExpeditionRequest.Reconnaissance(hero.Id);
 
@@ -146,8 +153,8 @@ public class CitizenAutonomyTests
 
         for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
         {
-            live.AdvanceOfflineWorldTick();
-            restored.AdvanceOfflineWorldTick();
+            live.AdvanceWorldTick();
+            restored.AdvanceWorldTick();
         }
 
         Assert.Equal(liveHero.CurrentLocation, restoredHero.CurrentLocation);
@@ -167,7 +174,7 @@ public class CitizenAutonomyTests
         quarry.DepositIron(100);
         live.RegisterBuilding(quarry);
         Assert.True(live.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
-        Assert.True(live.ConfirmCitizenArrivedAtAssignment(hero.Id, quarry.Id));
+        TestHelpers.PlaceAtAssignment(live, hero.Id);
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
         live.DepositFood(1);
         TestHelpers.AdvanceToNextProductionCycle(live);
@@ -177,13 +184,13 @@ public class CitizenAutonomyTests
         CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(live));
         for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks - 1; tick++)
         {
-            restored.AdvanceOfflineWorldTick();
+            restored.AdvanceWorldTick();
         }
 
         Assert.Equal(CitizenLocation.InTransit, restored.Hero!.CurrentLocation);
         Assert.Equal(foodDuringTravel, restored.FoodStock);
 
-        restored.AdvanceOfflineWorldTick();
+        restored.AdvanceWorldTick();
         Assert.Equal(CitizenLocation.AtHome, restored.Hero.CurrentLocation);
         Assert.Equal(foodDuringTravel - 1, restored.FoodStock);
     }

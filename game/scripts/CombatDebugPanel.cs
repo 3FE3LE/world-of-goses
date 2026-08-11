@@ -139,7 +139,7 @@ public partial class CombatDebugPanel : Control
             route,
             Supplies: 6,
             // Stable seed so a debug run is reproducible and comparable.
-            Seed: (ulong)(_controller.World.CurrentTick + 1));
+            Seed: (ulong)(_controller.CurrentTick + 1));
 
         ExpeditionRunResult result = service.Run(party, plan);
         service.ApplyResult(party, result);

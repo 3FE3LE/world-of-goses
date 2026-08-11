@@ -46,11 +46,11 @@ public sealed class WoundRecoveryTests
         Assert.Equal(CitizenCommitmentKind.Recovery, hero.Commitment.Kind);
         for (int tick = 1; tick < WoundRules.ModerateRecoveryTicks; tick++)
         {
-            world.AdvanceOfflineWorldTick();
+            world.AdvanceWorldTick();
         }
         Assert.NotNull(hero.Wound);
 
-        world.AdvanceOfflineWorldTick();
+        world.AdvanceWorldTick();
 
         Assert.Null(hero.Wound);
         Assert.NotEqual(CitizenCommitmentKind.Recovery, hero.Commitment.Kind);
@@ -100,7 +100,7 @@ public sealed class WoundRecoveryTests
         for (int tick = 0; tick < WoundRules.ModerateRecoveryTicks; tick++)
         {
             live.AdvanceWorldTick();
-            offline.AdvanceOfflineWorldTick();
+            offline.AdvanceWorldTick();
         }
 
         var capturedAt = System.DateTimeOffset.UnixEpoch;

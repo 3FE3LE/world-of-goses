@@ -21,7 +21,12 @@ public sealed class WorldTimeAdvanceTests
         var result = WorldTimeAdvance.Advance(batched, ticks);
 
         Assert.True(result.BatchedTicks > ticks - 10);
-        Assert.True(result.SteppedTicks <= 6);
+        // Six of these are the day/night boundaries, which are always stepped.
+        // The seventh is the founder's arrival home after the shelter completes:
+        // an arrival is a scheduled state change, so the batch stops short of it
+        // and hands that one tick to the canonical path (DEC-0023). Before A2 the
+        // journey simply never ended offline, which is why this used to be six.
+        Assert.True(result.SteppedTicks <= 7);
         Assert.Equal(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(
                 canonical, DateTimeOffset.UnixEpoch.AddDays(2))),

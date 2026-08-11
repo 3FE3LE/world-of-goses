@@ -242,6 +242,9 @@ and §17 acceptance test are complete.
   identity; citizen visuals derive from semantic context and building anchors.
 - Founder and recruited citizens use the same visual travel system. Mid-transit
   load reconstructs elapsed progress rather than replaying from the origin.
+- Journeys end on world time alone (DEC-0023). The macro view paces its route
+  across the domain's arrival window, so the drawn walk and the fact land
+  together; a hidden view or a dropped frame cannot change production.
 - Idle/wait citizens may wander through existing pathfinding without mutating
   domain location.
 - Buildings provide derived entrance, exit, work, waiting and leisure anchors.
@@ -325,8 +328,8 @@ and §17 acceptance test are complete.
 - Production priority is persisted but remains a future scheduling hint.
 - Storage is per-building plus city inventory/reservations; no complete global
   capacity/cargo/logistics model exists.
-- Assigned-work offline catch-up still steps ticks; recovery and expedition use
-  semantic boundaries.
+- Assigned-work offline catch-up still steps ticks; recovery, expedition and now
+  citizen travel use semantic boundaries.
 - Expedition planning/status remains in the city rail, while active expeditions
   can open the lateral `ExpeditionLiveView` without owning their runtime state.
   Its provisional `CombatantView` actors project authoritative session

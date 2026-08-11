@@ -121,6 +121,10 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
   batched events. *(bible/10)*
 - Live advancement and offline catch-up use the same domain rules.
   *(docs/PRODUCT_DIRECTION.md)*
+- A citizen's journey ends when world time reaches its arrival tick, never
+  because a view reported an arrival. There is one tick method; presentation
+  paces its route to the domain's window and cannot delay, deny or hasten the
+  outcome. *(DEC-0023, `CityWorld.CompleteDueTravel`)*
 - There is one world clock. City, travel, and combat advance in parallel. The
   world cannot be paused; the only current global speeds are 1x / 2x / 4x, and
   changing to or from `ExpeditionLiveView` never changes speed. *(bible/10,

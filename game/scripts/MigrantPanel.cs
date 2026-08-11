@@ -86,8 +86,8 @@ public partial class MigrantPanel : Control
 
     public void ShowForVisualRegression()
     {
-        if (_controller.World.Hero is not null
-            && _controller.World.Citizens.Count < 2)
+        RosterSnapshot roster = _controller.GetRosterSnapshot();
+        if (roster.HeroId.HasValue && roster.CitizenCount < 2)
         {
             _controller.TryAcceptPendingProspect();
         }
@@ -95,7 +95,7 @@ public partial class MigrantPanel : Control
         // Select the founder so the capture covers the detail block. Without a
         // selection the panel only renders its empty-roster hint, which is what
         // let the DEC-0013 crash in DescribeCitizen ship unseen.
-        if (_controller.World.Hero is Citizen hero) SelectCitizen(hero.Id);
+        if (roster.HeroId.HasValue) SelectCitizen(roster.HeroId.Value);
     }
 
     /// <summary>
@@ -112,15 +112,24 @@ public partial class MigrantPanel : Control
     public void ShowMigrantCubeForVisualRegression(CitizenId migrantId)
     {
         Open();
-        if (!_controller.World.Citizens.TryGetValue(migrantId, out Citizen? migrant)
-            || migrant.IsHero)
+        RosterSnapshot roster = _controller.GetRosterSnapshot();
+        RosterSnapshot.RosterEntry? entry = null;
+        foreach (var candidate in roster.Entries)
+        {
+            if (candidate.Id == migrantId)
+            {
+                entry = candidate;
+                break;
+            }
+        }
+        if (entry is null || entry.IsHero)
         {
             GD.PushError(
                 $"Migrant cube fixture expected a non-hero citizen {migrantId.Value}; " +
                 "refusing to photograph a substitute.");
             return;
         }
-        SelectCitizen(migrant.Id);
+        SelectCitizen(entry.Id);
     }
 
     public void Close()
@@ -148,7 +157,7 @@ public partial class MigrantPanel : Control
 
     private void OnRecruitPressed()
     {
-        if (_controller.World.Hero is null)
+        if (!_controller.GetRosterSnapshot().HeroId.HasValue)
         {
             Notifier.ShowError(UiText.Get("Create a hero first."));
             return;
@@ -176,46 +185,50 @@ public partial class MigrantPanel : Control
         }
         _citizenButtons.Clear();
 
+        RosterSnapshot roster = _controller.GetRosterSnapshot();
+        var entriesById = new Dictionary<CitizenId, RosterSnapshot.RosterEntry>();
+        foreach (var entry in roster.Entries) entriesById[entry.Id] = entry;
+
         if (!_selectedCitizenId.HasValue
-            || _controller.World.GetCitizen(_selectedCitizenId.Value) is null)
+            || !entriesById.ContainsKey(_selectedCitizenId.Value))
         {
-            _selectedCitizenId = _controller.World.Hero?.Id;
+            _selectedCitizenId = roster.HeroId;
         }
 
         int migrantCount = 0;
-        foreach (Citizen citizen in _controller.World.Citizens.Values)
+        foreach (RosterSnapshot.RosterEntry entry in roster.Entries)
         {
-            if (!citizen.IsHero) migrantCount++;
+            if (!entry.IsHero) migrantCount++;
             var button = new Button
             {
-                Text = DescribeRosterRow(citizen),
+                Text = DescribeRosterRow(entry),
                 Alignment = HorizontalAlignment.Left,
                 CustomMinimumSize = new Vector2(0, 44),
-                ThemeTypeVariation = _selectedCitizenId == citizen.Id
+                ThemeTypeVariation = _selectedCitizenId == entry.Id
                     ? "HudButtonSelected"
                     : "HudButton",
             };
-            CitizenId id = citizen.Id;
+            CitizenId id = entry.Id;
             button.Pressed += () => SelectCitizen(id);
             _citizenList.AddChild(button);
             _citizenButtons[id] = button;
         }
 
-        CityWorld world = _controller.World;
-        bool hasHero = world.Hero is not null;
-        _recruitButton.Disabled = !hasHero || world.AvailableHousing == 0;
+        bool hasHero = roster.HeroId.HasValue;
+        _recruitButton.Disabled = !hasHero || roster.IsHousingFull;
         _recruitButton.TooltipText = !hasHero
             ? UiText.Get("Create a hero first.")
-            : world.AvailableHousing == 0
+            : roster.IsHousingFull
                 ? UiText.Get("ui.citizens.housing_full")
                 : UiText.Get("ui.citizens.recruit_available");
         _statusLabel.Text = UiText.Format(
             "ui.citizens.count_with_housing",
-            world.Citizens.Count,
+            roster.CitizenCount,
             migrantCount,
-            world.HousingCapacity);
-        Citizen? selected = _selectedCitizenId.HasValue
-            ? _controller.World.GetCitizen(_selectedCitizenId.Value)
+            roster.HousingCapacity);
+        RosterSnapshot.RosterEntry? selected = _selectedCitizenId.HasValue
+            && entriesById.TryGetValue(_selectedCitizenId.Value, out var found)
+            ? found
             : null;
         _detailLabel.Text = selected is null
             ? UiText.Get("Recruit the first citizen to begin the roster.")
@@ -239,13 +252,13 @@ public partial class MigrantPanel : Control
         }
     }
 
-    private string DescribeRosterRow(Citizen citizen)
+    private string DescribeRosterRow(RosterSnapshot.RosterEntry citizen)
     {
         string role = UiText.Get(citizen.IsHero ? "Hero" : "Citizen");
         return UiText.Format("ui.citizens.roster_row", citizen.Name, role, DescribeStatus(citizen));
     }
 
-    private string DescribeCitizen(Citizen citizen)
+    private string DescribeCitizen(RosterSnapshot.RosterEntry citizen)
     {
         string assignment = citizen.CurrentAssignment.HasValue
             ? ResolveAssignmentName(citizen.CurrentAssignment.Value)
@@ -255,10 +268,10 @@ public partial class MigrantPanel : Control
             citizen.Name,
             DescribeStatus(citizen),
             assignment,
-            UiText.Get(ProfileCatalog.Get(citizen.Profile.Lineage).DisplayName),
+            UiText.Get(ProfileCatalog.Get(citizen.Lineage).DisplayName),
             CitizenNatureText.FormatLocalized(
                 citizen.CubeProfile,
-                citizen.Profile.Lineage,
+                citizen.Lineage,
                 citizen.CombatNature),
             citizen.CurrentStamina,
             citizen.MaxStamina);
@@ -285,9 +298,9 @@ public partial class MigrantPanel : Control
         ? SimulationTimeText.FormatLocalized(value)
         : "—";
 
-    private string DescribeStatus(Citizen citizen)
+    private string DescribeStatus(RosterSnapshot.RosterEntry citizen)
     {
-        if (_controller.World.IsCitizenOnActiveExpedition(citizen.Id))
+        if (citizen.IsOnActiveExpedition)
         {
             return UiText.Get("On expedition");
         }
@@ -304,12 +317,16 @@ public partial class MigrantPanel : Control
 
     private string ResolveAssignmentName(BuildingId assignmentId)
     {
-        Building? building = _controller.World.GetBuilding(assignmentId);
-        if (building is not null) return UiText.Get(building.DisplayName);
-        ConstructionProject? project = _controller.World.GetProject(assignmentId);
-        return project is not null
-            ? UiText.Format("ui.citizens.construction_assignment", UiText.Get(project.DisplayName))
-            : UiText.Get("Unknown");
+        RosterSnapshot roster = _controller.GetRosterSnapshot();
+        if (roster.BuildingDisplayNames.TryGetValue(assignmentId, out string? buildingName))
+        {
+            return UiText.Get(buildingName!);
+        }
+        if (roster.ProjectDisplayNames.TryGetValue(assignmentId, out string? projectName))
+        {
+            return UiText.Format("ui.citizens.construction_assignment", UiText.Get(projectName!));
+        }
+        return UiText.Get("Unknown");
     }
 
 }

@@ -71,7 +71,7 @@ public sealed class NaturalResourcePatch
         }
     }
 
-    public int GatherUnit(int unitId, int amount)
+    internal int GatherUnit(int unitId, int amount)
     {
         if (amount <= 0 || unitId < 0 || unitId >= _unitReserves.Count) return 0;
         int gathered = Math.Min(amount, _unitReserves[unitId]);
@@ -80,7 +80,14 @@ public sealed class NaturalResourcePatch
         return gathered;
     }
 
-    public int Gather(int amount)
+    /// <summary>
+    /// Aggregate-only gather mutator: every public gather flow goes
+    /// through <see cref="CityWorld"/>, which validates hero state,
+    /// gathering capacity, and tool gates before calling this method.
+    /// Marked <c>internal</c> so no caller outside the domain can
+    /// drain a patch directly.
+    /// </summary>
+    internal int Gather(int amount)
     {
         if (amount <= 0) return 0;
         int remaining = amount;
@@ -147,7 +154,7 @@ public sealed class NaturalResourcePatch
     /// CityWorld to allocate a globally free position through the layout planner.
     /// Returns the total reserve added this boundary.
     /// </summary>
-    public int Regenerate(
+    internal int Regenerate(
         int amountPerUnit,
         int unitCapacity,
         Func<int, bool> canGrowAtUnit)

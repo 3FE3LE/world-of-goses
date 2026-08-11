@@ -9,6 +9,8 @@ public sealed record ConstructionSnapshot(
     bool HasHero,
     string? HeroName,
     BuildingId? HomeBuildingId,
+    bool HasCultivationSite,
+    bool HasTownHall,
     ConstructionSnapshot.ProjectItem? Project,
     IReadOnlyList<ConstructionSnapshot.CitizenItem> AvailableCitizens,
     IReadOnlyList<ConstructionSnapshot.UnavailableCitizenItem> UnavailableCitizens,
@@ -203,7 +205,18 @@ public sealed record ConstructionSnapshot(
         int foundingStorageCount = hasFoundingCache
             ? world.FoundingStorageCount()
             : world.CarriedGroundResourceCount();
+        bool hasCultivationSite = world.CultivationSites.Count > 0;
+        bool hasTownHall = false;
+        foreach (var building in world.Buildings.Values)
+        {
+            if (building.Kind == BuildingKind.TownHall)
+            {
+                hasTownHall = true;
+                break;
+            }
+        }
         return new ConstructionSnapshot(world.Hero is not null, world.Hero?.Name, homeId,
+            hasCultivationSite, hasTownHall,
             projectItem, available, unavailable, options, moduleOptions,
             hasFoundingCache,
             foundingStorageCount,

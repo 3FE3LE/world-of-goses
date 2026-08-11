@@ -172,11 +172,11 @@ public partial class ConstructionPanel : PanelContainer
 
     private void OnCancelProjectRequested(int projectId)
     {
-        var project = _controller.GetProject(new BuildingId(projectId));
-        if (project is null) return;
-        if (_controller.CancelProject(new BuildingId(projectId)))
+        var buildingId = new BuildingId(projectId);
+        if (!_controller.TryGetProjectDisplayName(buildingId, out string? displayName)) return;
+        if (_controller.CancelProject(buildingId))
         {
-            Notifier.Show(UiText.Format("ui.construction.cancelled", UiText.Get(project.DisplayName)));
+            Notifier.Show(UiText.Format("ui.construction.cancelled", UiText.Get(displayName ?? "")));
         }
         else
         {
@@ -617,7 +617,7 @@ public partial class ConstructionPanel : PanelContainer
             ? "Establish the Founding Site and begin its Campfire."
             : "Gather 3 Branches and 2 Small Stone for the Campfire.");
         _cultivationButton.Visible = true;
-        bool cultivationExists = _controller.World.CultivationSites.Count > 0;
+        bool cultivationExists = snapshot.HasCultivationSite;
         bool cultivationEnabled = canAuthorise
             && hasHome
             && !cultivationExists
@@ -650,8 +650,7 @@ public partial class ConstructionPanel : PanelContainer
                 ? "Build a Quarry."
                 : "Not enough materials to authorise a Quarry.");
         _townHallButton.Visible = true;
-        bool townHallExists = _controller.World.Buildings.Values.Any(
-            building => building.Kind == BuildingKind.TownHall);
+        bool townHallExists = snapshot.HasTownHall;
         bool townHallEnabled = canAuthorise && hasHome && !townHallExists && townHall.CanPayDeposit;
         _townHallButton.Disabled = !townHallEnabled;
         _townHallButton.TooltipText = UiText.Get(!hasHome
