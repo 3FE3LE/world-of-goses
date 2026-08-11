@@ -110,9 +110,27 @@ public partial class StatChip : HBoxContainer
         AddChild(_label);
     }
 
+    /// <summary>
+    /// Process-wide texture cache. See <see cref="IconButton"/> for the
+    /// rationale. <see cref="CreateTextureIcon"/> is a hot-path
+    /// primitive called per row from <c>CityStatusPanel</c> and
+    /// <c>CitySummaryPanel</c>; the cache keeps its per-call allocation
+    /// count at one (the new <see cref="TextureRect"/>) rather than
+    /// one plus the loaded <see cref="Texture2D"/> wrapper.
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<string, Texture2D?> IconCache = new();
+
+    private static Texture2D? LoadIcon(string path)
+    {
+        if (IconCache.TryGetValue(path, out Texture2D? cached)) return cached;
+        Texture2D? loaded = ResourceLoader.Load<Texture2D>(path);
+        IconCache[path] = loaded;
+        return loaded;
+    }
+
     private static TextureRect CreateTextureIcon(string iconPath) => new()
     {
-        Texture = ResourceLoader.Load<Texture2D>(iconPath),
+        Texture = LoadIcon(iconPath),
         StretchMode = TextureRect.StretchModeEnum.Keep,
         CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,

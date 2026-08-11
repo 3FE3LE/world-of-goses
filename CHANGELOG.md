@@ -69,6 +69,29 @@ ocurría porque se quedaba congelado en mitad de la calle.
 
 ---
 
+## A3: el HUD persistente deja de reconstruirse en cada tick
+
+**2026-08-11** · arquitectura · sin cambio de schema
+
+Lo que se nota: abrir el macro con un mundo activo ya no paga un
+rebuild completo del status bar, el city summary y la crónica por cada
+tick de simulación. Las superficies persistentes ahora actualizan sus
+hijos en sitio; solo `ExpeditionPanel` (modal oculto por defecto) y los
+widgets estructurales raros reconstruyen. El comportamiento visual y
+las pruebas siguen verdes.
+
+El status bar reemplaza `QueueFree` + `new` por un `ApplySnapshot` que
+muta los labels, iconos y tooltips de los chips de recurso. La crónica
+mantiene un pool de filas persistentes y las oculta o las reusa por
+identidad. `ExpeditionPanel` cierra un leak de lambdas en
+`_controller.WorldTickAdvanced` que sobrevivía al `_ExitTree`, y
+agrega un guard `if (!Visible) return` para que el modal oculto no
+procese ticks. Un cache compartido path→Texture2D corta las llamadas a
+`ResourceLoader.Load` que la barra, los docks y la crónica hacían en
+hot paths.
+
+---
+
 ## A1: la frontera Presentation → Domain queda cerrada por el controller
 
 **2026-08-11** · arquitectura · sin cambio de schema

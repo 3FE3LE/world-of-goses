@@ -103,6 +103,37 @@ public partial class CitySummaryPanel : PanelContainer
 
     public void Refresh(CityStatusSnapshot snapshot)
     {
+        // Coalesce N signals per frame into a single ApplySnapshot. The
+        // full SceneTree rebuild that runs below is expensive enough to
+        // require this guard — without it, a single tick that raises
+        // WorldTickAdvanced + BuildingStateChanged + ProjectStateChanged
+        // produced three rebuilds in a row.
+        if (_refreshQueued) return;
+        _refreshQueued = true;
+        _pendingSnapshot = snapshot;
+        CallDeferred(MethodName.ApplyQueuedRefresh);
+    }
+
+    private bool _refreshQueued;
+    private CityStatusSnapshot? _pendingSnapshot;
+
+    private void ApplyQueuedRefresh()
+    {
+        _refreshQueued = false;
+        if (_pendingSnapshot is { } snapshot)
+        {
+            _pendingSnapshot = null;
+            ApplySnapshot(snapshot);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds the summary body against the latest snapshot. This is the
+    /// only place where the SceneTree is restructured; deferred callers
+    /// coalesce so a frame with multiple signals produces one rebuild.
+    /// </summary>
+    private void ApplySnapshot(CityStatusSnapshot snapshot)
+    {
         foreach (Node child in _content.GetChildren())
         {
             _content.RemoveChild(child);

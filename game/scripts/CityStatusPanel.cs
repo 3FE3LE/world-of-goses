@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
@@ -12,6 +13,15 @@ namespace WorldofGoses;
 /// carries the camera-mode toggle and the menu/pause open button.
 /// It consumes <see cref="CityStatusSnapshot"/> only; storage and reservation
 /// rules remain in the city domain.
+///
+/// <para>
+/// A3 surface: the brand block, world-context block, resource ticker, and
+/// population chip are built <b>once</b> and updated in place via
+/// <see cref="ApplySnapshot"/>. A world tick never restructures the row's
+/// SceneTree — it only mutates existing labels, icons, tooltips, and
+/// visibility. The persistent utility cluster (camera/menu/speed) keeps its
+/// typed accessor contract.
+/// </para>
 /// </summary>
 public partial class CityStatusPanel : PanelContainer
 {
@@ -45,6 +55,17 @@ public partial class CityStatusPanel : PanelContainer
     private ulong _emphasizedSaveGeneration;
     private bool _saveIndicatorVisible;
     private CityWorldController? _controller;
+
+    // Persistent block references — created once in EnsureBuiltSurface,
+    // mutated in place by ApplySnapshot. No QueueFree per tick.
+    private Label _brandLabel = null!;
+    private Label _worldContextLabel = null!;
+    private TextureRect _worldContextIcon = null!;
+    private Control _worldContextBlock = null!;
+    private HBoxContainer _resourceTicker = null!;
+    private StatChip _populationChip = null!;
+    private StatChip? _resourceOverflowChip;
+    private readonly Dictionary<ResourceType, StatChip> _resourceChips = new();
 
     /// <summary>
     /// Typed accessor for the camera-mode toggle. Owned by the right-edge
@@ -85,11 +106,10 @@ public partial class CityStatusPanel : PanelContainer
     }
 
     /// <summary>
-    /// Creates the row and wires subscriptions the first time it runs.
-    /// Safe to call multiple times — idempotent. Exists so that an
-    /// early <see cref="Refresh"/> from a sibling that was instantiated
-    /// before us doesn't crash on a null
-    /// <c>_row</c>.
+    /// Creates the row, persistent blocks, and wires subscriptions the first
+    /// time it runs. Safe to call multiple times — idempotent. Exists so
+    /// that an early <see cref="Refresh"/> from a sibling that was
+    /// instantiated before us doesn't crash on a null <c>_row</c>.
     /// </summary>
     private void EnsureBuilt()
     {
@@ -121,8 +141,89 @@ public partial class CityStatusPanel : PanelContainer
         safeArea.AddChild(_row);
 
         EnsureUtilityClusterBuilt();
+        EnsureSurfaceBuilt();
 
         LineageThemeRegistry.ActiveLineageChanged += OnLineageAccentChanged;
+    }
+
+    /// <summary>
+    /// Builds the persistent block structure (brand, world context, resource
+    /// ticker, population) exactly once. <see cref="ApplySnapshot"/> mutates
+    /// text/icon/visibility on these existing nodes; it never replaces them.
+    /// </summary>
+    private void EnsureSurfaceBuilt()
+    {
+        if (_brandLabel is not null) return;
+
+        _brandLabel = new Label
+        {
+            Name = "BrandBlock",
+            Text = "WORLD OF GOSES",
+            ThemeTypeVariation = "HudBrand",
+            CustomMinimumSize = new Vector2(BrandBlockWidth, Tokens.HudRowHeight),
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+
+        _worldContextLabel = new Label
+        {
+            ThemeTypeVariation = "HudBody",
+            VerticalAlignment = VerticalAlignment.Center,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _worldContextIcon = new TextureRect
+        {
+            StretchMode = TextureRect.StretchModeEnum.Keep,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
+            SizeFlagsVertical = SizeFlags.ShrinkCenter,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Modulate = LineageThemeRegistry.IconAccent,
+        };
+        var contextRow = new HBoxContainer
+        {
+            Name = "WorldContextRow",
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        contextRow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        contextRow.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        contextRow.AddChild(_worldContextLabel);
+        contextRow.AddChild(_worldContextIcon);
+        _worldContextBlock = new Control
+        {
+            Name = "WorldContext",
+            CustomMinimumSize = new Vector2(WorldContextWidth, Tokens.HudRowHeight),
+            ClipContents = true,
+            MouseFilter = MouseFilterEnum.Ignore,
+        };
+        _worldContextBlock.AddChild(contextRow);
+
+        _resourceTicker = new HBoxContainer
+        {
+            Name = "ResourceTicker",
+            Alignment = BoxContainer.AlignmentMode.Center,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            ClipContents = true,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        _resourceTicker.AddThemeConstantOverride("separation", Tokens.SpacingBase);
+
+        _populationChip = StatChip.HudIconValue(IconPaths.Users, "0");
+        _populationChip.Name = "Population";
+        _populationChip.TooltipText = UiText.Get("ui.status.population");
+
+        _row.AddChild(_brandLabel);
+        _row.AddChild(_worldContextBlock);
+        _row.AddChild(_resourceTicker);
+        _row.AddChild(_populationChip);
+
+        // The utility cluster was added first by EnsureUtilityClusterBuilt,
+        // so move it back to the rightmost position now that the persistent
+        // blocks are in place.
+        if (_utilityCluster is not null)
+        {
+            _row.MoveChild(_utilityCluster, _row.GetChildCount() - 1);
+        }
     }
 
     /// <summary>
@@ -216,31 +317,124 @@ public partial class CityStatusPanel : PanelContainer
     {
         EnsureBuilt();
         var snapshot = controller.GetCityStatusSnapshot();
-        foreach (var child in _row.GetChildren())
-        {
-            // The utility cluster is persistent — its buttons (camera-mode,
-            // menu) are bound by typed accessors that the macro view caches.
-            // Tear-down would free the very nodes the macro view still holds.
-            if (child == _utilityCluster) continue;
-            _row.RemoveChild(child);
-            child.QueueFree();
-        }
-        _savedChip = null;
-
-        _row.AddChild(BuildBrandBlock());
-        _row.AddChild(BuildWorldContext(snapshot));
-        _row.AddChild(BuildResourceTicker(snapshot));
-        _row.AddChild(BuildPopulation(snapshot));
-        // Brand/world/ticker/population were just added to the end, so the
-        // persistent cluster (initially at index 0) now sits left of them.
-        // Move it back to the rightmost position so it stays right-edge.
-        if (_utilityCluster is not null)
-        {
-            _row.MoveChild(_utilityCluster, _row.GetChildCount() - 1);
-        }
+        ApplySnapshot(snapshot);
         if (_saveIndicatorVisible) ApplySavedChip();
-        ReapplyAccent();
     }
+
+    /// <summary>
+    /// Mutates the existing persistent structure to reflect the latest
+    /// snapshot. Replaces the previous rebuild-per-tick SceneTree churn
+    /// with in-place label/icon/visibility updates. The
+    /// <see cref="_resourceChips"/> dictionary carries a chip per
+    /// resource so adding or removing a single resource only touches
+    /// one entry; chips not in the snapshot are hidden rather than freed
+    /// so the focus chain and tooltips remain stable.
+    /// </summary>
+    private void ApplySnapshot(CityStatusSnapshot snapshot)
+    {
+        // World context: text + sun/moon icon flip is the only thing
+        // that changes frame-to-frame.
+        string time = SimulationTimeText.FormatLocalized(snapshot.CurrentTick);
+        string context = string.IsNullOrWhiteSpace(snapshot.LineageName)
+            ? time
+            : UiText.Format("ui.status.world_context", snapshot.LineageName, time);
+        _worldContextLabel.Text = context;
+        _worldContextBlock.TooltipText = snapshot.IsLaborTime
+            ? context
+            : context + "\n" + UiText.Get("ui.status.off_hours_hint");
+        string iconPath = GameClock.IsDaytime(snapshot.CurrentTick)
+            ? IconPaths.Sun
+            : IconPaths.Moon;
+        _worldContextIcon.Texture = LoadIconCached(iconPath);
+        _worldContextIcon.Modulate = LineageThemeRegistry.IconAccent;
+
+        // Population: a single StatChip, mutated in place.
+        string popValue = snapshot.HousingCapacity > 0
+            ? $"{snapshot.CitizenCount}/{snapshot.HousingCapacity}"
+            : snapshot.CitizenCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _populationChip.UpdateText(popValue);
+        _populationChip.TooltipText = snapshot.HousingCapacity > 0
+            ? UiText.Format(
+                "ui.status.population_with_capacity",
+                snapshot.CitizenCount,
+                snapshot.HousingCapacity)
+            : UiText.Get("ui.status.population");
+
+        // Resource ticker: a fixed cap of slots, hidden/shown rather than
+        // added/removed. Newly visible resources are added to
+        // _resourceChips; resources that drop out of the snapshot are
+        // hidden and remain in the dictionary so a later reappearance
+        // is cheap.
+        System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> ordered =
+            ResourcePriority.Prioritize(snapshot.Resources);
+        int visibleCount = System.Math.Min(ordered.Count, MaxVisibleResourceChips);
+        var seen = new HashSet<ResourceType>();
+        for (int i = 0; i < visibleCount; i++)
+        {
+            ResourceInventoryItem resource = ordered[i];
+            seen.Add(resource.Resource);
+            if (!_resourceChips.TryGetValue(resource.Resource, out StatChip? chip))
+            {
+                chip = StatChip.HudIconValue(
+                    resource.Resource,
+                    CompactNumber.Format(resource.AvailableAmount));
+                chip.Name = $"Resource{resource.Resource}";
+                chip.TooltipText = BuildResourceTooltip(resource);
+                _resourceTicker.AddChild(chip);
+                _resourceChips[resource.Resource] = chip;
+            }
+            chip.Visible = true;
+            chip.UpdateText(CompactNumber.Format(resource.AvailableAmount));
+            chip.TooltipText = BuildResourceTooltip(resource);
+            _resourceTicker.MoveChild(chip, i);
+        }
+        // Hide any chip whose resource is no longer in the snapshot.
+        foreach (var pair in _resourceChips)
+        {
+            if (!seen.Contains(pair.Key)) pair.Value.Visible = false;
+        }
+
+        // Overflow affordance: created lazily on first need, hidden
+        // again when it has nothing to show.
+        if (ordered.Count > visibleCount)
+        {
+            var hidden = new System.Collections.Generic.List<ResourceInventoryItem>(
+                ordered.Count - visibleCount);
+            for (int i = visibleCount; i < ordered.Count; i++)
+            {
+                hidden.Add(ordered[i]);
+            }
+            if (_resourceOverflowChip is null)
+            {
+                _resourceOverflowChip = StatChip.HudIconValue(
+                    IconPaths.Backpack,
+                    "+" + hidden.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                _resourceOverflowChip.Name = "ResourceOverflow";
+                _resourceTicker.AddChild(_resourceOverflowChip);
+            }
+            else
+            {
+                _resourceOverflowChip.UpdateText(
+                    "+" + hidden.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            _resourceOverflowChip.Visible = true;
+            _resourceOverflowChip.TooltipText = BuildOverflowTooltip(hidden);
+        }
+        else if (_resourceOverflowChip is not null)
+        {
+            _resourceOverflowChip.Visible = false;
+        }
+    }
+
+    private static Texture2D? LoadIconCached(string path)
+    {
+        if (IconPathCache.TryGetValue(path, out Texture2D? cached)) return cached;
+        Texture2D? loaded = ResourceLoader.Load<Texture2D>(path);
+        IconPathCache[path] = loaded;
+        return loaded;
+    }
+
+    private static readonly System.Collections.Generic.Dictionary<string, Texture2D?> IconPathCache = new();
 
     /// <summary>
     /// Builds the right-edge utility cluster exactly once. Subsequent calls

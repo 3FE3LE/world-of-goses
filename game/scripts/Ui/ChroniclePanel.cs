@@ -173,13 +173,17 @@ public partial class ChroniclePanel : VBoxContainer
         RebuildFocusables();
     }
 
+    private VBoxContainer? _contentContainer;
+    private Label? _caption;
+    private Label? _noActivityLabel;
+    private VBoxContainer? _decisionsContainer;
+    private HSeparator? _decisionsSeparator;
+    private readonly List<ChronicleEventRow> _rowPool = new();
+
     private void RebuildBody()
     {
-        foreach (Node child in _body.GetChildren())
-        {
-            _body.RemoveChild(child);
-            child.QueueFree();
-        }
+        if (_contentContainer is null) BuildBodyOnce();
+        VBoxContainer content = _contentContainer!;
         _decisionButtons.Clear();
 
         IReadOnlyList<WorldEvent> meaningful =
@@ -192,39 +196,148 @@ public partial class ChroniclePanel : VBoxContainer
         // own header uses.
         _header.Text = $"{UiText.Get("ui.expedition_rail.activity")} · {compacted.Count}";
 
+        // Offline summary caption: hidden when there is no summary,
+        // updated in place when there is. Same node lives across rebuilds.
+        if (!string.IsNullOrWhiteSpace(_offlineSummary))
+        {
+            _caption!.Text = _offlineSummary;
+            _caption.Visible = true;
+        }
+        else
+        {
+            _caption!.Visible = false;
+        }
+
+        // Decision section: rebuild is cheap (it already diffs by identity
+        // via its own state) and rare (production-blocked events only).
+        // Recreate the section per refresh; focus chain reacts via
+        // RebuildFocusables below.
+        if (_decisionsContainer is not null) _decisionsContainer.QueueFree();
+        _decisionsContainer = null;
+        _decisionsSeparator = null;
+        RebuildDecisions(meaningful, content);
+
+        int start = Math.Max(0, compacted.Count - MaximumRows);
+        int visibleCount = compacted.Count - start;
+        // Grow the persistent row pool to the count we need.
+        while (_rowPool.Count < visibleCount)
+        {
+            var row = new ChronicleEventRow();
+            content.AddChild(row);
+            _rowPool.Add(row);
+        }
+        // Apply in place. Surplus rows are hidden so they don't take
+        // layout space — the next tick can re-show them without an
+        // allocation.
+        for (int i = 0; i < _rowPool.Count; i++)
+        {
+            ChronicleEventRow row = _rowPool[i];
+            if (i < visibleCount)
+            {
+                row.Apply(compacted[start + i]);
+                row.Visible = true;
+            }
+            else
+            {
+                row.Visible = false;
+            }
+        }
+
+        if (compacted.Count == 0)
+        {
+            _noActivityLabel!.Visible = true;
+        }
+        else
+        {
+            _noActivityLabel!.Visible = false;
+        }
+
+        RebuildFocusables();
+    }
+
+    private void BuildBodyOnce()
+    {
         // Single VBoxContainer inside the body's scroll. Every scrollable
         // element (caption, decisions, rows) lives in this one VBox, so the
         // body scrolls as a whole however many rows or decisions accumulate.
-        var content = new VBoxContainer
+        _contentContainer = new VBoxContainer
         {
+            Name = "ChronicleContent",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             SizeFlagsVertical = SizeFlags.ShrinkBegin,
             MouseFilter = MouseFilterEnum.Pass,
         };
-        content.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        _body.AddChild(content);
+        _contentContainer.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        _body.AddChild(_contentContainer);
 
-        if (!string.IsNullOrWhiteSpace(_offlineSummary))
+        _caption = new Label
         {
-            content.AddChild(Caption(_offlineSummary, LineageThemeRegistry.IconAccent));
-        }
+            Name = "Caption",
+            ThemeTypeVariation = "HudCaption",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            MouseFilter = MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        _contentContainer.AddChild(_caption);
 
-        BuildDecisions(meaningful, content);
+        _noActivityLabel = new Label
+        {
+            Name = "NoActivity",
+            Text = UiText.Get("ui.expedition_rail.no_activity"),
+            ThemeTypeVariation = "HudCaption",
+            MouseFilter = MouseFilterEnum.Ignore,
+            Visible = false,
+        };
+        _contentContainer.AddChild(_noActivityLabel);
+    }
 
-        int start = Math.Max(0, compacted.Count - MaximumRows);
-        if (compacted.Count == 0)
+    private void RebuildDecisions(
+        IReadOnlyList<WorldEvent> meaningful, VBoxContainer content)
+    {
+        var decisionsContainer = new VBoxContainer
         {
-            content.AddChild(Caption(UiText.Get("ui.expedition_rail.no_activity")));
-        }
-        else
+            Name = "Decisions",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        decisionsContainer.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+
+        List<DecisionNeeded> decisions = GroupDecisionsNeeded(meaningful);
+        if (decisions.Count == 0) return;
+
+        decisionsContainer.AddChild(new HudSectionHeader(
+            UiText.Get("ui.chronicle.needs_attention"),
+            decisions.Count.ToString()));
+        foreach (DecisionNeeded decision in decisions)
         {
-            for (int i = start; i < compacted.Count; i++)
+            string label = $"{decision.Count}× {UiText.Get(decision.SubjectName)}";
+            if (decision.TargetBuildingId is not BuildingId buildingId)
             {
-                content.AddChild(new ChronicleEventRow(compacted[i]));
+                decisionsContainer.AddChild(Caption(label));
+                continue;
             }
-        }
 
-        RebuildFocusables();
+            var button = new IconButton
+            {
+                IconPath = IconPaths.Warning,
+                ButtonText = UiText.Format("ui.chronicle.open", label),
+                ShowLabel = true,
+                TooltipText = UiText.Get("ui.chronicle.open_tooltip"),
+                ThemeTypeVariation = "HudButton",
+                FocusMode = FocusModeEnum.All,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
+            button.Pressed += () => _controller?.SelectBuilding(buildingId);
+            decisionsContainer.AddChild(button);
+            _decisionButtons.Add(button);
+        }
+        decisionsContainer.AddChild(new HSeparator
+        {
+            ThemeTypeVariation = "HudSeparator",
+            MouseFilter = MouseFilterEnum.Ignore,
+        });
+        content.AddChild(decisionsContainer);
+        _decisionsContainer = decisionsContainer;
     }
 
     private void RebuildFocusables()
@@ -357,15 +470,34 @@ public partial class ChroniclePanel : VBoxContainer
 
     private sealed partial class ChronicleEventRow : HBoxContainer
     {
-        public ChronicleEventRow(ChronicleEventProjection.Item item)
+        private readonly TextureRect _icon;
+        private readonly Label _body;
+        private readonly Label _timestamp;
+
+        /// <summary>
+        /// Process-wide texture cache for the chronicle's per-row icon.
+        /// The 27-event-kind enum maps to a closed set of icon paths that
+        /// never changes; the cache keeps the per-row rebuild allocation
+        /// at zero after the first tick.
+        /// </summary>
+        private static readonly Dictionary<string, Texture2D?> IconPathCache = new();
+
+        private static Texture2D? LoadIconCached(string path)
+        {
+            if (IconPathCache.TryGetValue(path, out Texture2D? cached)) return cached;
+            Texture2D? loaded = ResourceLoader.Load<Texture2D>(path);
+            IconPathCache[path] = loaded;
+            return loaded;
+        }
+
+        public ChronicleEventRow()
         {
             MouseFilter = MouseFilterEnum.Ignore;
             SizeFlagsHorizontal = SizeFlags.ExpandFill;
             AddThemeConstantOverride("separation", Tokens.SpacingTight);
 
-            var icon = new TextureRect
+            _icon = new TextureRect
             {
-                Texture = ResourceLoader.Load<Texture2D>(IconPathFor(item.Kind)),
                 CustomMinimumSize = new Vector2(IconSize, IconSize),
                 StretchMode = TextureRect.StretchModeEnum.KeepCentered,
                 ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -373,7 +505,7 @@ public partial class ChroniclePanel : VBoxContainer
                 MouseFilter = MouseFilterEnum.Ignore,
                 Modulate = LineageThemeRegistry.IconAccent,
             };
-            AddChild(icon);
+            AddChild(_icon);
 
             var text = new VBoxContainer
             {
@@ -382,21 +514,34 @@ public partial class ChroniclePanel : VBoxContainer
             };
             text.AddThemeConstantOverride("separation", 0);
             AddChild(text);
-            text.AddChild(new Label
+            _body = new Label
             {
-                Text = WorldEventTextFormatter.FormatLocalized(
-                    item.Kind, item.SubjectName, item.Amount),
                 ThemeTypeVariation = "HudCaption",
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 MouseFilter = MouseFilterEnum.Ignore,
-            });
-            text.AddChild(new Label
+            };
+            text.AddChild(_body);
+            _timestamp = new Label
             {
-                Text = SimulationTimeText.FormatLocalized(item.LastTick),
                 ThemeTypeVariation = "HudCaption",
                 MouseFilter = MouseFilterEnum.Ignore,
                 Modulate = new Color(1f, 1f, 1f, 0.72f),
-            });
+            };
+            text.AddChild(_timestamp);
+        }
+
+        /// <summary>
+        /// Mutates the persistent row in place. Called from
+        /// <see cref="ChroniclePanel.RebuildBody"/>'s diff so a row
+        /// that survives a refresh keeps its node identity and never
+        /// pays the SceneTree-rebuild cost.
+        /// </summary>
+        public void Apply(ChronicleEventProjection.Item item)
+        {
+            _icon.Texture = LoadIconCached(IconPathFor(item.Kind));
+            _body.Text = WorldEventTextFormatter.FormatLocalized(
+                item.Kind, item.SubjectName, item.Amount);
+            _timestamp.Text = SimulationTimeText.FormatLocalized(item.LastTick);
         }
 
         private static string IconPathFor(WorldEventKind kind) => kind switch

@@ -127,8 +127,8 @@ public partial class ExpeditionPanel : Control
         _closeButton.Pressed += OnClosePressed;
         _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
         _controller.CitizensChanged += OnCitizensChanged;
-        _controller.BuildingStateChanged += _ => Refresh();
-        _controller.WorldTickAdvanced += _ => Refresh();
+        _controller.BuildingStateChanged += OnBuildingStateChanged;
+        _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         GetViewport().SizeChanged += ApplyResponsiveBounds;
 
         Hide();
@@ -142,6 +142,8 @@ public partial class ExpeditionPanel : Control
         {
             _controller.ExpeditionStateChanged -= OnExpeditionStateChanged;
             _controller.CitizensChanged -= OnCitizensChanged;
+            _controller.BuildingStateChanged -= OnBuildingStateChanged;
+            _controller.WorldTickAdvanced -= OnWorldTickAdvanced;
         }
         GetViewport().SizeChanged -= ApplyResponsiveBounds;
     }
@@ -295,9 +297,46 @@ public partial class ExpeditionPanel : Control
 
     private void OnClosePressed() => Close();
 
-    private void OnExpeditionStateChanged(int _) => Refresh();
+    private void OnExpeditionStateChanged(int _) => RequestRefresh();
 
-    private void OnCitizensChanged() => Refresh();
+    private void OnCitizensChanged() => RequestRefresh();
+
+    /// <summary>
+    /// Building events arrive every tick because the founding-camp production
+    /// path raises one per work interval. The panel only cares whether the
+    /// available buildings changed (assignable work site count, town hall
+    /// existence); drop the rest while hidden.
+    /// </summary>
+    private void OnBuildingStateChanged(int _) => RequestRefresh();
+
+    /// <summary>
+    /// World tick is the cheapest cooldown we have. Coalesce N signals in
+    /// one frame into a single ApplySnapshot via a deferred call so the
+    /// modal never processes more than once per frame, and short-circuit
+    /// while the modal is hidden.
+    /// </summary>
+    private void OnWorldTickAdvanced(int _) => RequestRefresh();
+
+    private bool _refreshQueued;
+
+    private void RequestRefresh()
+    {
+        if (!IsInsideTree() || !Visible) return;
+        if (_refreshQueued) return;
+        _refreshQueued = true;
+        CallDeferred(MethodName.ApplyQueuedRefresh);
+    }
+
+    private void ApplyQueuedRefresh()
+    {
+        _refreshQueued = false;
+        if (!Visible) return;
+        Refresh();
+        // A tick may have disabled the focused action button. Re-evaluate
+        // the focus chain so keyboard navigation always lands on a
+        // usable control.
+        FocusCurrentAction();
+    }
 
     private void Refresh()
     {

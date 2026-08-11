@@ -1,3 +1,4 @@
+#nullable enable
 using Godot;
 using WorldofGoses.Ui;
 
@@ -75,12 +76,30 @@ public partial class IconButton : Button
         ApplyContent();
     }
 
+    /// <summary>
+    /// Path-keyed static texture cache shared by every icon-bearing
+    /// primitive (<see cref="IconButton"/>, <see cref="StatChip"/>,
+    /// <see cref="HudResourceRow"/>). Godot's own resource cache holds
+    /// the underlying <c>Texture2D</c>; this map keeps the managed
+    /// wrapper from being re-allocated on every per-tick
+    /// <see cref="ApplyContent"/>. The cache is process-wide and
+    /// never evicted — every icon path in the HUD is bound for the
+    /// process lifetime.
+    /// </summary>
+    private static readonly System.Collections.Generic.Dictionary<string, Texture2D?> IconCache = new();
+
+    private static Texture2D? LoadIcon(string path)
+    {
+        if (IconCache.TryGetValue(path, out Texture2D? cached)) return cached;
+        Texture2D? loaded = ResourceLoader.Load<Texture2D>(path);
+        IconCache[path] = loaded;
+        return loaded;
+    }
+
     private void ApplyContent()
     {
         Text = _showLabel ? (ButtonText ?? string.Empty) : string.Empty;
-        Icon = string.IsNullOrEmpty(IconPath)
-            ? null
-            : ResourceLoader.Load<Texture2D>(IconPath);
+        Icon = string.IsNullOrEmpty(IconPath) ? null : LoadIcon(IconPath);
     }
 
     private void OnLineageChanged(string lineage)
