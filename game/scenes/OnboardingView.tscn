@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/AstralOnboardingView.cs" id="1_onboarding"]
+[ext_resource type="Script" uid="uid://crg4evm3yqil0" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="2_safearea"]
 
 [node name="OnboardingView" type="Control"]
 layout_mode = 3
@@ -10,3 +11,114 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_onboarding")
+
+[node name="AstralVeil" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.015, 0.02, 0.055, 1)
+
+[node name="Glow" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.15, 0.08, 0.28, 0.16)
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_safearea")
+MinimumInset = 32
+
+[node name="Shell" type="VBoxContainer" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Progress" type="Label" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"SectionTitle"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Fragments" type="HBoxContainer" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="TopSpacer" type="Control" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ScreenTitle"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Narrative" type="Label" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyText"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StageSlot" type="VBoxContainer" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="Consequence" type="Label" parent="SafeArea/Shell"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"BodyText"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BottomSpacer" type="Control" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Error" type="Label" parent="SafeArea/Shell"]
+custom_minimum_size = Vector2(0, 21)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ErrorText"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Footer" type="HBoxContainer" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+alignment = 2
+
+[node name="Back" type="Button" parent="SafeArea/Shell/Footer"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"ButtonText"
+
+[node name="Next" type="Button" parent="SafeArea/Shell/Footer"]
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"ButtonPrimary"

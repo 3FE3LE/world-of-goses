@@ -42,6 +42,7 @@ public sealed class PanelSceneMigrationTests
         ["game/scripts/CitySummaryPanel.cs", "game/scenes/Components/CitySummaryPanel.tscn", "CitySummaryPanel"],
         ["game/scripts/PoliciesPanel.cs", "game/scenes/Components/PoliciesPanel.tscn", "PoliciesPanel"],
         ["game/scripts/ExpeditionLiveView.cs", "game/scenes/expeditions/ExpeditionLiveView.tscn", "ExpeditionLiveView"],
+        ["game/scripts/AstralOnboardingView.cs", "game/scenes/OnboardingView.tscn", "OnboardingView"],
     ];
 
     /// <summary>
@@ -56,6 +57,7 @@ public sealed class PanelSceneMigrationTests
     [
         ["game/scripts/BuildingDetailView.cs", "BuildingDetailView"],
         ["game/scripts/ProductionPanel.cs", "ProductionPanel"],
+        ["game/scripts/CityStatusPanel.cs", "CityStatusPanel"],
     ];
 
     [Theory]
@@ -93,20 +95,40 @@ public sealed class PanelSceneMigrationTests
     /// </summary>
     private static IEnumerable<string> ResolvedPaths(string source)
     {
+        // The const path fields panels use when the same subtree is addressed
+        // from several methods, so an interpolated lookup can be expanded back
+        // into the literal path the scene has to declare.
+        var constants = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (Match match in PathConstantPattern.Matches(source))
+        {
+            constants[match.Groups["name"].Value] = match.Groups["path"].Value;
+            yield return match.Groups["path"].Value;
+        }
+
         foreach (Match match in GetNodePattern.Matches(source))
         {
             string path = match.Groups["path"].Value;
             if (path.StartsWith('/') || path.StartsWith("..", StringComparison.Ordinal)) continue;
             yield return path;
         }
-        foreach (Match match in PathConstantPattern.Matches(source))
+
+        // GetNode<T>($"{SomePath}/Child/Leaf"). Without this the guard would
+        // silently see no paths at all in a panel that addresses everything
+        // through one const, and pass by checking nothing — which is worse
+        // than failing, because it reads as coverage.
+        foreach (Match match in InterpolatedGetNodePattern.Matches(source))
         {
-            yield return match.Groups["path"].Value;
+            if (!constants.TryGetValue(match.Groups["root"].Value, out string? root)) continue;
+            yield return $"{root}{match.Groups["rest"].Value}";
         }
     }
 
     private static readonly Regex PathConstantPattern = new(
-        @"private const string \w*Path = ""(?<path>[^""/][^""]*)""",
+        @"private const string (?<name>\w*Path) = ""(?<path>[^""/][^""]*)""",
+        RegexOptions.CultureInvariant);
+
+    private static readonly Regex InterpolatedGetNodePattern = new(
+        @"GetNode(?:OrNull)?<[^>]+>\(\s*\$""\{(?<root>\w+)\}(?<rest>[^""]*)""\s*\)",
         RegexOptions.CultureInvariant);
 
     [Theory]

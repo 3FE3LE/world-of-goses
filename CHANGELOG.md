@@ -115,6 +115,16 @@ que el resto de la vista puede actuar— y un test que comprueba la dirección
 contra `StreetDepthProjection.RowScreenY`, no contra el signo de un entero.
 Cierra GitHub #14.
 
+**8 de 10 paneles A-class.** `AstralOnboardingView` mueve su shell —velo,
+resplandor, safe area, los dos espaciadores que impiden que el pie se salga de
+pantalla y las dos alturas reservadas— a `OnboardingView.tscn`; lo que queda es
+el slot de etapa, cuyo contenido entero se reemplaza por etapa, así que su
+entrada pasa de la fila A a la B en vez de cerrarse envolviendo dos bucles en
+primitivas que sólo existirían para contentar al escáner. `CityStatusPanel`
+autora su fila completa, incluido el utility cluster con los tres botones en su
+orden definitivo —lo que retira un `MoveChild` correctivo— y se lleva por
+delante tres builders estáticos que ya no llamaba nadie.
+
 **5 de 10 paneles A-class.** `PoliciesPanel` tiene su propia escena de
 componente; `ExpeditionLiveView` ya estaba migrado y su entrada en el allowlist
 era deuda obsoleta; `BuildingDetailView` autora en la escena padre sus tres

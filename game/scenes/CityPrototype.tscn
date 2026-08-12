@@ -30,6 +30,7 @@
 [ext_resource type="Script" uid="uid://b2cikgemjvsb2" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 [ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
 [ext_resource type="Script" uid="uid://bv0guhat2bymo" path="res://scripts/Ui/ResourceInventoryPanel.cs" id="40_resourceinventory"]
+[ext_resource type="Script" uid="uid://bdc3he180rh0o" path="res://scripts/SpeedButton.cs" id="41_speedbtn"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -54,6 +55,91 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"HudSurface"
 script = ExtResource("5_status")
+
+[node name="SafeArea" type="MarginContainer" parent="GameUiShell/CityStatusPanel" unique_id=1259124351]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("20_safearea")
+MinimumTopInset = 0
+MinimumBottomInset = 0
+
+[node name="StatusComposition" type="HBoxContainer" parent="GameUiShell/CityStatusPanel/SafeArea" unique_id=1259124352]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 12
+
+[node name="BrandBlock" type="Label" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition" unique_id=1259124353]
+custom_minimum_size = Vector2(190, 24)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudBrand"
+text = "WORLD OF GOSES"
+vertical_alignment = 1
+
+[node name="WorldContext" type="Control" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition" unique_id=1259124354]
+clip_contents = true
+custom_minimum_size = Vector2(250, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="WorldContextRow" type="HBoxContainer" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/WorldContext" unique_id=1259124355]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="Text" type="Label" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/WorldContext/WorldContextRow" unique_id=1259124356]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"HudBody"
+vertical_alignment = 1
+
+[node name="Icon" type="TextureRect" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/WorldContext/WorldContextRow" unique_id=1259124357]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 3
+
+[node name="ResourceTicker" type="HBoxContainer" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition" unique_id=1259124358]
+clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="UtilityCluster" type="HBoxContainer" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition" unique_id=1259124359]
+layout_mode = 2
+size_flags_horizontal = 8
+theme_override_constants/separation = 4
+
+[node name="CameraButton" type="Button" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster" unique_id=1259124360]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"HudButton"
+script = ExtResource("15_iconbtn")
+
+[node name="SpeedButton" type="Button" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster" unique_id=1259124361]
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"HudButton"
+script = ExtResource("41_speedbtn")
+
+[node name="MenuButton" type="Button" parent="GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster" unique_id=1259124362]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"HudButton"
+script = ExtResource("15_iconbtn")
 
 [node name="ScreenContent" type="Control" parent="GameUiShell" unique_id=2019693930]
 layout_mode = 2

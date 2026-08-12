@@ -172,11 +172,18 @@ public sealed class HudCompositionTests
             "scripts",
             "CityStatusPanel.cs"));
 
-        Assert.Contains("Name = \"BrandBlock\"", source, StringComparison.Ordinal);
-        Assert.Contains("Name = \"WorldContext\"", source, StringComparison.Ordinal);
-        Assert.Contains("Name = \"ResourceTicker\"", source, StringComparison.Ordinal);
+        // A11: the four persistent blocks are authored in the scene, so their
+        // presence is asserted there. Population stays a StatChip built in
+        // code — it is the same primitive the transient saved-state chip uses.
+        string[] scene = ReadScene();
+        foreach (string block in new[] { "BrandBlock", "WorldContext", "ResourceTicker" })
+        {
+            Assert.Contains(
+                scene,
+                line => line.StartsWith($"[node name=\"{block}\"", StringComparison.Ordinal));
+        }
+        Assert.Contains(scene, line => line.Trim() == "theme_type_variation = &\"HudBrand\"");
         Assert.Contains("Name = \"Population\"", source, StringComparison.Ordinal);
-        Assert.Contains("ThemeTypeVariation = \"HudBrand\"", source, StringComparison.Ordinal);
         Assert.Contains("StatChip.HudIconValue", source, StringComparison.Ordinal);
         Assert.DoesNotContain("DisplayServer.WindowGetSize", source, StringComparison.Ordinal);
         Assert.DoesNotContain("GetVisibleRect", source, StringComparison.Ordinal);
@@ -446,7 +453,13 @@ public sealed class HudCompositionTests
 
         string statusSource = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "CityStatusPanel.cs"));
-        Assert.Contains("new SpeedButton", statusSource, StringComparison.Ordinal);
+        // The control is authored in the utility cluster now, not constructed.
+        Assert.Contains(
+            scene,
+            line => line.Contains("path=\"res://scripts/SpeedButton.cs\"", StringComparison.Ordinal));
+        Assert.Contains(
+            scene,
+            line => line.StartsWith("[node name=\"SpeedButton\"", StringComparison.Ordinal));
         Assert.Contains("public SpeedButton SpeedButton", statusSource, StringComparison.Ordinal);
     }
 
@@ -790,12 +803,17 @@ public sealed class HudCompositionTests
             root, "game", "scripts", "CityStatusPanel.cs"));
 
         // The utility cluster lives inside the row, persists across Refresh,
-        // and exposes two icon-only IconButtons by typed accessor.
-        Assert.Contains("Name = \"UtilityCluster\"", source, StringComparison.Ordinal);
+        // and exposes two icon-only IconButtons by typed accessor. A11 moved
+        // its shape into the scene, so the cluster and its right-edge
+        // alignment are asserted there and the typed contract here.
+        string[] scene = ReadScene();
+        Assert.Contains(
+            scene,
+            line => line.StartsWith("[node name=\"UtilityCluster\"", StringComparison.Ordinal));
+        Assert.Contains(scene, line => line.Trim() == "size_flags_horizontal = 8");
         Assert.Contains("public IconButton CameraButton", source, StringComparison.Ordinal);
         Assert.Contains("public IconButton MenuButton", source, StringComparison.Ordinal);
         Assert.Contains("public SpeedButton SpeedButton", source, StringComparison.Ordinal);
-        Assert.Contains("SizeFlagsHorizontal = SizeFlags.ShrinkEnd", source, StringComparison.Ordinal);
         // Two icon-only buttons inside the cluster: ShowLabel = false must
         // appear at least twice (Camera + Menu). SpeedButton uses its own
         // play-icon stack rather than a ShowLabel toggle.
@@ -858,11 +876,16 @@ public sealed class HudCompositionTests
             "CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight)",
             source,
             StringComparison.Ordinal);
+        // Camera and Menu declare the same cell in the scene. The literal
+        // there is anchored to the token here, so the three cannot drift
+        // apart without this failing.
+        _ = panel;
+        Assert.Equal(40, WorldofGoses.Ui.Tokens.ControlHeight);
         Assert.Equal(
             2,
             Regex.Matches(
-                panel,
-                @"CustomMinimumSize = new Vector2\(Tokens\.ControlHeight, Tokens\.ControlHeight\)")
+                string.Join('\n', ReadScene()),
+                @"custom_minimum_size = Vector2\(40, 40\)")
                 .Count);
 
         // Native Button icon rendering, exactly like its two siblings, so

@@ -207,15 +207,21 @@ public static class ArchitectureBoundaryAllowlist
             // city; the dynamic content is rebuilt on signal. The
             // migration moves the shell to a PackedScene and keeps
             // C# only for the rows that depend on a snapshot.
-            "game/scripts/CityStatusPanel.cs",    // top status bar + utility cluster
             "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
-            "game/scripts/AstralOnboardingView.cs", // astral onboarding full screen
             "game/scripts/HeroProfileView.cs",    // profile columns
             "game/scripts/ConstructionPanel.cs",  // construction modal shell
 
             // ── B: genuinely dynamic collection ──
             // Static parts are minimal (VBoxContainer + Header);
             // dynamic rows are the bulk. Stay programmatic.
+            // Shell migrated to game/scenes/OnboardingView.tscn; what remains
+            // is the stage slot, whose whole content is replaced per stage
+            // (twelve progress pips, four narrative choices, the naming
+            // controls, the founder card) and freed by ClearStage. That is the
+            // B shape, so the entry moved here rather than being closed by
+            // wrapping two loops in primitives that exist only to satisfy the
+            // scanner.
+            "game/scripts/AstralOnboardingView.cs",
             "game/scripts/AssignmentPanel.cs",     // 3 scrollable sections + rows
             "game/scripts/ExpeditionPanel.cs",     // team list rebuilt per snapshot
             "game/scripts/BuildingPlot.cs",       // one node per plot, fixed per-plot structure

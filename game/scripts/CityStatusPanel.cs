@@ -25,6 +25,14 @@ namespace WorldofGoses;
 /// </summary>
 public partial class CityStatusPanel : PanelContainer
 {
+    /// <summary>
+    /// The authored row, relative to this panel. Every node lookup goes
+    /// through it rather than through the resolved `_row`, so each path in
+    /// this file reads against the same origin and can be checked against the
+    /// scene without knowing which receiver it was called on.
+    /// </summary>
+    private const string RowPath = "SafeArea/StatusComposition";
+
     internal const float BrandBlockWidth = 190f;
     internal const float WorldContextWidth = 250f;
 
@@ -115,30 +123,12 @@ public partial class CityStatusPanel : PanelContainer
     {
         if (_row is not null) return;
 
-        _row = new HBoxContainer
-        {
-            Name = "StatusComposition",
-            Alignment = BoxContainer.AlignmentMode.Begin,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        _row.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        // The status bar surface spans the full width of the GameUiShell
-        // VBox; wrap the chip row in a SafeAreaMarginContainer so the
-        // chip content stays inside the OS safe area on notched or
-        // rounded displays. Wrapping the OUTER panel with a margin
-        // container previously rendered a visible grey band and was
-        // reverted (TO_DO.md 2026-07-22).
-        var safeArea = new SafeAreaMarginContainer
-        {
-            Name = "SafeArea",
-            MinimumTopInset = 0,
-            MinimumBottomInset = 0,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        AddChild(safeArea);
-        safeArea.AddChild(_row);
+        // A11: the row lives in CityPrototype.tscn. The SafeAreaMarginContainer
+        // above it is why the chips stay inside the OS safe area on notched or
+        // rounded displays; wrapping the OUTER panel instead rendered a visible
+        // grey band and was reverted (TO_DO.md 2026-07-22), which is why the
+        // margin sits on this inner node and not on the surface.
+        _row = GetNode<HBoxContainer>(RowPath);
 
         EnsureUtilityClusterBuilt();
         EnsureSurfaceBuilt();
@@ -155,75 +145,23 @@ public partial class CityStatusPanel : PanelContainer
     {
         if (_brandLabel is not null) return;
 
-        _brandLabel = new Label
-        {
-            Name = "BrandBlock",
-            Text = "WORLD OF GOSES",
-            ThemeTypeVariation = "HudBrand",
-            CustomMinimumSize = new Vector2(BrandBlockWidth, Tokens.HudRowHeight),
-            VerticalAlignment = VerticalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
+        _brandLabel = GetNode<Label>($"{RowPath}/BrandBlock");
+        _worldContextBlock = GetNode<Control>($"{RowPath}/WorldContext");
+        _worldContextLabel = GetNode<Label>($"{RowPath}/WorldContext/WorldContextRow/Text");
+        _worldContextIcon = GetNode<TextureRect>($"{RowPath}/WorldContext/WorldContextRow/Icon");
+        _worldContextIcon.Modulate = LineageThemeRegistry.IconAccent;
+        _resourceTicker = GetNode<HBoxContainer>($"{RowPath}/ResourceTicker");
 
-        _worldContextLabel = new Label
-        {
-            ThemeTypeVariation = "HudBody",
-            VerticalAlignment = VerticalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        _worldContextIcon = new TextureRect
-        {
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-        };
-        var contextRow = new HBoxContainer
-        {
-            Name = "WorldContextRow",
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        contextRow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        contextRow.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        contextRow.AddChild(_worldContextLabel);
-        contextRow.AddChild(_worldContextIcon);
-        _worldContextBlock = new Control
-        {
-            Name = "WorldContext",
-            CustomMinimumSize = new Vector2(WorldContextWidth, Tokens.HudRowHeight),
-            ClipContents = true,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        _worldContextBlock.AddChild(contextRow);
-
-        _resourceTicker = new HBoxContainer
-        {
-            Name = "ResourceTicker",
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            ClipContents = true,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _resourceTicker.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-
+        // The population chip is a StatChip factory rather than an authored
+        // node: it is the same primitive the saved-state chip uses, and both
+        // are inserted and removed from the row at runtime.
         _populationChip = StatChip.HudIconValue(IconPaths.Users, "0");
         _populationChip.Name = "Population";
         _populationChip.TooltipText = UiText.Get("ui.status.population");
-
-        _row.AddChild(_brandLabel);
-        _row.AddChild(_worldContextBlock);
-        _row.AddChild(_resourceTicker);
+        // Before the utility cluster, which the scene authors last so it keeps
+        // the right edge.
         _row.AddChild(_populationChip);
-
-        // The utility cluster was added first by EnsureUtilityClusterBuilt,
-        // so move it back to the rightmost position now that the persistent
-        // blocks are in place.
-        if (_utilityCluster is not null)
-        {
-            _row.MoveChild(_utilityCluster, _row.GetChildCount() - 1);
-        }
+        _row.MoveChild(_populationChip, _row.GetChildCount() - 2);
     }
 
     /// <summary>
@@ -445,143 +383,21 @@ public partial class CityStatusPanel : PanelContainer
     {
         if (_utilityCluster is not null) return;
 
-        _utilityCluster = new HBoxContainer
-        {
-            Name = "UtilityCluster",
-            SizeFlagsHorizontal = SizeFlags.ShrinkEnd,
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-        _utilityCluster.AddThemeConstantOverride("separation", Tokens.SpacingTight);
+        // Camera first (anchor for the cluster), Speed in the middle, Menu at
+        // the end where the original utility cluster lived — the scene holds
+        // that order now, so nothing has to move a child back into place after
+        // the fact.
+        _utilityCluster = GetNode<HBoxContainer>($"{RowPath}/UtilityCluster");
+        _cameraButton = GetNode<IconButton>($"{RowPath}/UtilityCluster/CameraButton");
+        _speedButton = GetNode<SpeedButton>($"{RowPath}/UtilityCluster/SpeedButton");
+        _menuButton = GetNode<IconButton>($"{RowPath}/UtilityCluster/MenuButton");
 
-        _cameraButton = new IconButton
-        {
-            Name = "CameraButton",
-            ThemeTypeVariation = "HudButton",
-            FocusMode = FocusModeEnum.All,
-            MouseFilter = MouseFilterEnum.Stop,
-            CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight),
-            ShowLabel = false,
-        };
-
-        _menuButton = new IconButton
-        {
-            Name = "MenuButton",
-            IconPath = IconPaths.Menu,
-            ButtonText = UiText.Get("ui.nav.menu_short"),
-            TooltipText = UiText.Get("ui.pause.open"),
-            ThemeTypeVariation = "HudButton",
-            FocusMode = FocusModeEnum.All,
-            MouseFilter = MouseFilterEnum.Stop,
-            CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight),
-            ShowLabel = false,
-        };
-
-        _speedButton = new SpeedButton
-        {
-            Name = "SpeedButton",
-            ThemeTypeVariation = "HudButton",
-            FocusMode = FocusModeEnum.All,
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-
-        // Camera first (anchor for the cluster), Speed in the middle,
-        // Menu at the end where the original utility cluster lived.
-        _utilityCluster.AddChild(_cameraButton);
-        _utilityCluster.AddChild(_speedButton);
-        _utilityCluster.AddChild(_menuButton);
-        _row.AddChild(_utilityCluster);
+        _menuButton.SetIconAndLabel(IconPaths.Menu, UiText.Get("ui.nav.menu_short"));
+        _menuButton.ShowLabel = false;
+        _menuButton.TooltipText = UiText.Get("ui.pause.open");
+        _cameraButton.ShowLabel = false;
     }
 
-    private static Label BuildBrandBlock() => new()
-    {
-        Name = "BrandBlock",
-        Text = "WORLD OF GOSES",
-        ThemeTypeVariation = "HudBrand",
-        CustomMinimumSize = new Vector2(BrandBlockWidth, Tokens.HudRowHeight),
-        VerticalAlignment = VerticalAlignment.Center,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
-
-    private static Control BuildWorldContext(CityStatusSnapshot snapshot)
-    {
-        string time = SimulationTimeText.FormatLocalized(snapshot.CurrentTick);
-        string context = string.IsNullOrWhiteSpace(snapshot.LineageName)
-            ? time
-            : UiText.Format("ui.status.world_context", snapshot.LineageName, time);
-        var wrap = new Control
-        {
-            Name = "WorldContext",
-            CustomMinimumSize = new Vector2(WorldContextWidth, Tokens.HudRowHeight),
-            ClipContents = true,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        var contextRow = new HBoxContainer
-        {
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        contextRow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        contextRow.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        contextRow.AddChild(new Label
-        {
-            Text = context,
-            ThemeTypeVariation = "HudBody",
-            VerticalAlignment = VerticalAlignment.Center,
-            MouseFilter = MouseFilterEnum.Ignore,
-        });
-        contextRow.AddChild(new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(
-                GameClock.IsDaytime(snapshot.CurrentTick) ? IconPaths.Sun : IconPaths.Moon),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-        });
-        wrap.TooltipText = snapshot.IsLaborTime
-            ? context
-            : context + "\n" + UiText.Get("ui.status.off_hours_hint");
-        wrap.AddChild(contextRow);
-        return wrap;
-    }
-
-    private static HBoxContainer BuildResourceTicker(CityStatusSnapshot snapshot)
-    {
-        var ticker = new HBoxContainer
-        {
-            Name = "ResourceTicker",
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            ClipContents = true,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        ticker.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> ordered =
-            ResourcePriority.Prioritize(snapshot.Resources);
-        int visibleCount = System.Math.Min(ordered.Count, MaxVisibleResourceChips);
-        for (int i = 0; i < visibleCount; i++)
-        {
-            ResourceInventoryItem resource = ordered[i];
-            StatChip chip = StatChip.HudIconValue(
-                resource.Resource,
-                CompactNumber.Format(resource.AvailableAmount));
-            chip.Name = $"Resource{resource.Resource}";
-            chip.TooltipText = BuildResourceTooltip(resource);
-            ticker.AddChild(chip);
-        }
-        if (ordered.Count > visibleCount)
-        {
-            var hidden = new System.Collections.Generic.List<ResourceInventoryItem>(ordered.Count - visibleCount);
-            for (int i = visibleCount; i < ordered.Count; i++)
-            {
-                hidden.Add(ordered[i]);
-            }
-            StatChip overflow = BuildResourceOverflowChip(hidden);
-            ticker.AddChild(overflow);
-        }
-        return ticker;
-    }
 
     private static StatChip BuildResourceOverflowChip(
         System.Collections.Generic.IReadOnlyList<ResourceInventoryItem> hidden)

@@ -68,102 +68,49 @@ public partial class AstralOnboardingView : Control
         if (Visible) RenderQuestion();
     }
 
+    /// <summary>
+    /// Binds the shell authored in <c>game/scenes/OnboardingView.tscn</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The two spacers the scene carries — <c>TopSpacer</c> and
+    /// <c>BottomSpacer</c>, both vertically expanding at equal ratio — are the
+    /// structural reason this view does not overflow. Every other child sizes
+    /// to its content, and a <c>VBoxContainer</c> with no expanding sibling
+    /// neither clips nor scrolls: it lays the surplus out past the bottom edge
+    /// and walks the footer off screen. They absorb the slack, optically
+    /// centre the reading block between the fragment strip and the footer, and
+    /// collapse the moment the content genuinely needs the room.
+    /// </para>
+    /// <para>
+    /// The two reserved heights are equally deliberate. <c>Consequence</c>
+    /// holds one line open for the whole question stage even while empty — the
+    /// longest immediate consequence in either catalogue is 77 characters,
+    /// which renders on one line at this measure — so choosing cannot reflow
+    /// the block above it. <c>Error</c> has an explicit floor rather than
+    /// whatever height an empty Label happens to report for the font.
+    /// </para>
+    /// </remarks>
     private void BuildShell()
     {
-        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
         OverlayLayers.Apply(this, OverlayLayers.Onboarding);
 
-        _astralVeil = new ColorRect
-        {
-            Color = new Color(0.015f, 0.02f, 0.055f, 1f),
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-        _astralVeil.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(_astralVeil);
+        _astralVeil = GetNode<ColorRect>("AstralVeil");
+        _progress = GetNode<Label>("SafeArea/Shell/Progress");
+        _fragments = GetNode<HBoxContainer>("SafeArea/Shell/Fragments");
+        _title = GetNode<Label>("SafeArea/Shell/Title");
+        _narrative = GetNode<Label>("SafeArea/Shell/Narrative");
+        _stageSlot = GetNode<VBoxContainer>("SafeArea/Shell/StageSlot");
+        _consequence = GetNode<Label>("SafeArea/Shell/Consequence");
+        _error = GetNode<Label>("SafeArea/Shell/Error");
+        _footer = GetNode<HBoxContainer>("SafeArea/Shell/Footer");
 
-        var glow = new ColorRect
-        {
-            Color = new Color(0.15f, 0.08f, 0.28f, 0.16f),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        glow.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(glow);
-
-        var safe = new SafeAreaMarginContainer { MinimumInset = 32 };
-        safe.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(safe);
-
-        var shell = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        shell.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        safe.AddChild(shell);
-
-        _progress = NewLabel("SectionTitle", HorizontalAlignment.Center);
-        shell.AddChild(_progress);
-        _fragments = new HBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.Center,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        _fragments.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        shell.AddChild(_fragments);
-
-        // The two spacers are the structural reason this view no longer
-        // overflows. Every other child sizes to its content, so without a
-        // vertically expanding sibling a VBoxContainer neither clips nor
-        // scrolls — it simply lays the surplus out past the bottom edge and
-        // walks the footer off-screen. These absorb the slack, optically
-        // centre the block between the fragment strip and the footer, and
-        // collapse to zero the moment the content genuinely needs the room.
-        // Equal ratios: the header already sits above them, so an even split
-        // is what puts the reading block on the optical centre.
-        shell.AddChild(NewSpacer(1f));
-
-        _title = NewLabel("ScreenTitle", HorizontalAlignment.Center);
-        shell.AddChild(_title);
-        _narrative = NewLabel("BodyText", HorizontalAlignment.Center);
-        shell.AddChild(_narrative);
-
-        // Slot for the stage-specific content: the four narrative choices,
-        // the naming controls, or the founder card.
-        _stageSlot = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _stageSlot.AddThemeConstantOverride("separation", 6);
-        shell.AddChild(_stageSlot);
-
-        _consequence = NewLabel("BodyText", HorizontalAlignment.Center);
-        // One line of headroom, held open for the whole question stage even
-        // while empty. The longest immediate consequence in either catalog is
-        // 77 characters, which renders on one line at this measure, so the
-        // row never changes height once reserved and selecting a choice
-        // cannot reflow the block above it.
-        _consequence.CustomMinimumSize = new Vector2(0, 26);
-        shell.AddChild(_consequence);
-
-        shell.AddChild(NewSpacer(1f));
-
-        _error = NewLabel("ErrorText", HorizontalAlignment.Center);
-        // Explicit floor so the reserved row has a deterministic height rather
-        // than whatever an empty Label happens to report for the font.
-        _error.CustomMinimumSize = new Vector2(0, 21);
-        shell.AddChild(_error);
-
-        _footer = new HBoxContainer
-        {
-            Alignment = BoxContainer.AlignmentMode.End,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        _footer.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
-        shell.AddChild(_footer);
-        _back = StandardButtons.NavigationButton(TrKey("ui.onboarding.back"));
-        _next = StandardButtons.NavigationButton(TrKey("ui.onboarding.stabilise"));
-        _next.ThemeTypeVariation = "ButtonPrimary";
+        _back = GetNode<Button>("SafeArea/Shell/Footer/Back");
+        _next = GetNode<Button>("SafeArea/Shell/Footer/Next");
+        _back.Text = TrKey("ui.onboarding.back");
+        _next.Text = TrKey("ui.onboarding.stabilise");
         _back.Pressed += OnBack;
         _next.Pressed += OnNext;
-        _footer.AddChild(_back);
-        _footer.AddChild(_next);
     }
 
     private void RenderQuestion()
