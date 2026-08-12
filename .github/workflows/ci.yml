@@ -59,15 +59,35 @@ jobs:
         run: pwsh ./scripts/Validate-AgentContext.ps1
 
       # AGENTS.md §5 core check: build the Godot .NET project.
+      #
+      # --no-incremental so the warning count CI reports comes from a real
+      # compilation. An incremental build over a warm tree recompiles
+      # nothing and still prints "0 Warning(s)", which is how a baseline
+      # starts lying. -warnaserror holds the zero-warning baseline the
+      # exit gate reached: a new CS8602 or a resurrected CS2002 fails here
+      # rather than accumulating quietly.
       - name: Build game project
         working-directory: game
-        run: dotnet build --configuration Debug
+        run: dotnet build --configuration Debug --no-incremental -warnaserror
 
       # AGENTS.md §5 core check: run the xUnit domain/persistence suite.
       # --no-build because the previous step already produced binaries.
       - name: Run xUnit tests
         working-directory: tests/WorldofGoses.Tests
         run: dotnet test --no-build --configuration Debug
+
+      # The edge xUnit cannot reach. Compilation and unit tests never touch
+      # Godot's lifecycle, scene composition, _Ready() or signals: A9 shipped
+      # a build-green, 1323-tests-green repository whose game could not boot
+      # at all. This step launches the real production main scene headless,
+      # with the visual-capture harness off, and fails on a stack overflow,
+      # an engine/script error, an unhandled managed exception, or a scene
+      # that never reaches its startup path.
+      #
+      # Same script tools/New-SessionSnapshot.ps1 -Mode Full runs, on purpose.
+      - name: Normal Godot boot (smoke)
+        shell: pwsh
+        run: pwsh ./tools/Test-GodotBoot.ps1
 
       # AGENTS.md §5 path-gated check for any diff touching locale.
       # Sub-second; cheap enough to run unconditionally.

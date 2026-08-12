@@ -247,31 +247,6 @@ public partial class FirstNightScene : Node
         _selection == CityWorldController.Selection.MacroView
         && _modalHost?.IsOpen != true;
 
-    /// <summary>
-    /// Updates the cached founder screen position. The macro view
-    /// invokes this whenever the founder's projected position shifts
-    /// (camera follow, depth change, world resize).
-    /// </summary>
-    [Obsolete("A9: subscribe to MacroStreetLiveView.WorldDialogueAnchorsChanged instead.")]
-    public void UpdateFounderPosition(Vector2 screenPosition)
-    {
-        _founderScreenPosition = screenPosition;
-        ProjectCurrentStage();
-    }
-
-    /// <summary>
-    /// Updates the cached campfire screen position. The macro view
-    /// invokes this when the campfire is first completed and again
-    /// whenever its anchor shifts. A null vector clears the cached
-    /// position (used before the campfire exists).
-    /// </summary>
-    [Obsolete("A9: subscribe to MacroStreetLiveView.WorldDialogueAnchorsChanged instead.")]
-    public void UpdateCampfirePosition(Vector2 screenPosition)
-    {
-        _campfireScreenPosition = screenPosition;
-        ProjectCurrentStage();
-    }
-
     private void OnFirstNightStageChanged(int _)
     {
         ProjectCurrentStage();

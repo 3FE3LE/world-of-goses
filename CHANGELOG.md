@@ -17,6 +17,71 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Exit gate A0–A12: la verificación deja de contar una historia que el
+## artefacto no sostiene
+
+**2026-08-12** · arquitectura · sin cambio de schema (v34) · 1340 pruebas
+superadas, 0 omitidas sobre 1340, compilación forzada con 0 avisos
+
+El arco A0–A12 terminó con el build en verde, 1323 pruebas pasando y todas
+las guardas de arquitectura sostenidas — mientras el juego no arrancaba. Esa
+regresión (la recursión de `_Ready` de A9) la encontró una persona abriendo
+el juego, no la tubería, porque nada en la tubería lo abría nunca. Este
+cierre elimina esa clase de hueco: los sitios donde la verificación afirmaba
+más de lo que medía.
+
+**El jugador gana un juego que no puede volver a shippear sin arrancar.**
+`tools/Test-GodotBoot.ps1` lanza la escena principal real en headless, con
+el arnés de captura apagado, y falla ante una salida anormal — nombrando
+`STATUS_STACK_OVERFLOW`, que es como murió A9 —, ante `ERROR`/`SCRIPT
+ERROR`, ante una excepción gestionada sin capturar, y ante una escena que
+nunca llega a su arranque. CI lo corre después de las pruebas y
+`New-SessionSnapshot -Mode Full` corre ese mismo script, no un segundo
+parecido. Probado reintroduciendo la recursión de A9: la guarda se pone
+roja y nombra el fallo exacto.
+
+**Y una línea de diálogo que estaba en inglés en la build inglesa.**
+`ExpeditionPanel` pedía a `en.po` el msgid `"Wood"`, que no existe: el
+error de despacho por falta de suministros mostraba el nombre crudo del
+enum. Salió al escribir la guarda que A12 dejó anotada como *pendiente*.
+`ResourceTypeLocalizer` pierde su fallback por nombre de enum — un
+`ResourceType` sin mapear ahora es un fallo de test, no una cadena sin
+traducir en producción — y `GenderIdLocalizer` cubre la familia hermana.
+
+Lo demás es honestidad medida:
+
+- **La cobertura offline era ficción.** `VerticalLoopPersistenceTests` tenía
+  `if (offline) world.AdvanceWorldTick(); else world.AdvanceWorldTick();`:
+  ambas ramas idénticas, así que `WorldTimeAdvance` nunca se ejecutaba y la
+  suite comparaba el camino canónico consigo mismo. Ahora el tramo offline
+  pasa por el catch-up real y **afirma que hubo ticks agrupados**, lo único
+  que un avance en vivo no puede producir. La comparación pasó de igualdad
+  byte a byte del save —que comparaba IDs de evento autoincrementales— a
+  equivalencia semántica sobre la crónica duradera. La prueba de
+  recuperación que estaba `Skip`-eada vuelve a correr (GitHub #1).
+- **El baseline de build no puede mentir.** Compilaba incremental sobre un
+  árbol caliente, no recompilaba nada y anotaba «0 errores, 0 avisos». Ahora
+  es `--no-incremental`, y CI además usa `-warnaserror`. Los 22 avisos que
+  una compilación forzada sí exponía están arreglados de raíz: entre ellos
+  una desreferencia nula realmente alcanzable detrás de 16 de ellos, y un
+  CS2002 por doble compilación en Persistence.
+- **Un fotograma dorado podía ser de otra aplicación.** La captura usaba
+  `CopyFromScreen` sobre el rectángulo de la ventana —una copia del
+  escritorio, no del juego— y una corrida llegó a fotografiar una ventana de
+  Chrome/Meet y archivarla como válida. Ahora la escribe el motor desde su
+  propio viewport; sin fallback (GitHub #2).
+- **`WorldRestoreState` documentaba una arquitectura que no corría.** Cero
+  referencias durante todo A7–A12. Eliminado; `ARCHITECTURE.md` describe el
+  flujo de restauración que sí se ejecuta, y explica por qué completarlo
+  habría sido un tercer modelo de objetos paralelo sin mejorar la propiedad
+  de dependencias.
+- **La lista de excepciones contaba tres que ya no existían.**
+  `PresentationDirectWorldAccess` queda vacía. Las lecturas de producción
+  que aún alcanzaban el agregado por el seam de propiedad
+  (`AvailableConstructionLots`, el snapshot de depuración, el reinicio
+  conservando fundador) son casos de uso del session; `controller.World` ya
+  no existe, así que reintroducirlo no compila.
+
 ## A8–A12: la frontera pasa a ser del compilador, no de la disciplina
 
 **2026-08-12** · arquitectura · sin cambio de schema · 1323 pruebas superadas

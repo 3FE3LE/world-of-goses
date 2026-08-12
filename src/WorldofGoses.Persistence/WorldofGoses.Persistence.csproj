@@ -37,7 +37,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="**/*.cs" />
+    <!--
+      The Exclude is not decoration: MSBuild itself feeds the compiler
+      `obj/$(Configuration)/$(TargetFramework)/.NETCoreApp,Version=vX.AssemblyAttributes.cs`,
+      and a bare `**/*.cs` glob picks the same file up a second time, which is
+      exactly the CS2002 "source file specified multiple times" warning this
+      project used to emit on every clean build. `EnableDefaultCompileItems`
+      is off here, so the SDK's usual bin/obj exclusions do not apply and the
+      exclusion has to be written out.
+    -->
+    <Compile Include="**/*.cs"
+             Exclude="$(BaseOutputPath)**/*.cs;bin/**/*.cs;obj/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup>

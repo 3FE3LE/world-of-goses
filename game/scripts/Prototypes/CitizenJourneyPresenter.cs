@@ -26,7 +26,19 @@ internal sealed class CitizenJourneyPresenter
     {
         public CitizenJourneyPresenter? Presenter;
         public CitizenId CitizenId;
-        public CitizenSpriteCarrier? Carrier;
+
+        /// <summary>
+        /// The sprite that draws this citizen. Non-nullable: a journey
+        /// without a carrier has nothing to project, and the view
+        /// dereferences this on every reconcile and every frame. It was
+        /// nullable only to serve a carrier-less constructor used by a
+        /// dead A4 migration forwarder, which cost 16 CS8602/CS8604
+        /// warnings and left a real null-dereference reachable if
+        /// anything had ever called it. Both are gone; the single
+        /// creation path in <c>MacroStreetLiveView</c> always mounts a
+        /// carrier from <c>CitizenSpriteBank</c> first.
+        /// </summary>
+        public CitizenSpriteCarrier Carrier;
         public int Street;
         public float Lateral;
         public float DepthAnchor;
@@ -57,20 +69,6 @@ internal sealed class CitizenJourneyPresenter
             Lateral = lateral;
         }
 
-        /// <summary>Compact constructor for the ambient-route helper
-        /// that doesn't have a carrier yet. The view passes the
-        /// carrier once <c>CitizenSpriteBank</c> creates it.</summary>
-        public JourneyState(
-            CitizenJourneyPresenter presenter,
-            CitizenId citizenId,
-            int street,
-            float lateral)
-        {
-            Presenter = presenter;
-            CitizenId = citizenId;
-            Street = street;
-            Lateral = lateral;
-        }
     }
 
     private readonly Dictionary<int, JourneyState> _citizenJourneys = new();
@@ -303,22 +301,6 @@ internal sealed class CitizenJourneyPresenter
     /// <summary>Disposes the navmesh planner. The view calls this
     /// from its <c>_ExitTree</c> pass.</summary>
     public void DisposeNavmeshPlanner() => _navmeshPlanner?.Dispose();
-
-    /// <summary>Looks up or creates the per-citizen journey entry.
-    /// Same name as the view's helper so the migration is a clean
-    /// forwarder.</summary>
-    public JourneyState GetOrCreateJourney(CitizenId citizenId, out bool created)
-    {
-        if (_citizenJourneys.TryGetValue(citizenId.Value, out JourneyState? existing))
-        {
-            created = false;
-            return existing;
-        }
-        var journey = new JourneyState(this, citizenId, null!, 0, 0f);
-        _citizenJourneys[citizenId.Value] = journey;
-        created = true;
-        return journey;
-    }
 
     /// <summary>Mutation helper for the founder's per-frame transition.
     /// The view's <c>AdvanceTransition</c> takes <c>ref</c> parameters;

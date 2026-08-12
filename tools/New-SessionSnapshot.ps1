@@ -185,7 +185,13 @@ if ($Mode -eq "Full") {
     } "could not install .githooks/commit-msg"
 
     $buildResult = Invoke-Probe "build" {
-        $run = Invoke-Capture "dotnet" @("build") (Join-Path $repoRoot "game")
+        # --no-incremental is the whole point of this probe. A plain
+        # `dotnet build` against an up-to-date tree recompiles nothing and
+        # still prints "0 Error(s), 0 Warning(s)", so STATE.txt could record
+        # a spotless baseline that no compiler ever produced. The measured
+        # baseline has to come from a real compilation or it is not a
+        # measurement.
+        $run = Invoke-Capture "dotnet" @("build", "--no-incremental") (Join-Path $repoRoot "game")
         $errors = [regex]::Match($run.Output, "(\d+)\s+Error\(s\)")
         $warnings = [regex]::Match($run.Output, "(\d+)\s+Warning\(s\)")
         if ($errors.Success -and $warnings.Success) {
@@ -207,15 +213,16 @@ if ($Mode -eq "Full") {
     } "could not run dotnet test"
 
     $bootResult = Invoke-Probe "headless boot" {
-        if (-not (Test-Path -LiteralPath $GodotPath)) { throw "Godot not found at $GodotPath" }
-        $run = Invoke-Capture $GodotPath @("--headless", "--path", "game", "--quit-after", "3")
-        # A clean boot still prints informational lines, so match the two
-        # prefixes Godot reserves for real failures rather than the word
-        # "error" anywhere in the log.
-        $failures = @([regex]::Matches($run.Output, "(?m)^(ERROR|SCRIPT ERROR):"))
-        if ($run.ExitCode -ne 0) { "FAILED (exit $($run.ExitCode))" }
-        elseif ($failures.Count -gt 0) { "boots, but reported $($failures.Count) engine or script errors" }
-        else { "OK (no C# or scene errors)" }
+        # Delegates to tools/Test-GodotBoot.ps1 rather than keeping a second
+        # idea of what "boots" means. The A9 regression proved that a boot
+        # check is only worth having if it is the same one CI runs; two
+        # subtly different checks are how a green pipeline ships a game that
+        # cannot start.
+        $run = Invoke-Capture "pwsh" @(
+            "-NoProfile", "-File", (Join-Path $repoRoot "tools\Test-GodotBoot.ps1"),
+            "-GodotPath", $GodotPath)
+        $summary = $run.Output.Trim() -replace "\s*\r?\n\s*", " | "
+        if ($run.ExitCode -eq 0) { "OK — $summary" } else { $summary }
     } "could not run the headless boot"
 
     $contextResult = Invoke-Probe "agent context" {
