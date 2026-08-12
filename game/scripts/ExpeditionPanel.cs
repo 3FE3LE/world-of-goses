@@ -249,7 +249,11 @@ public partial class ExpeditionPanel : Control
             ExpeditionStartOutcome.MissingSupplies when supplyResource.HasValue =>
                 UiText.Format(
                     "ui.expedition.dispatch_missing_supplies",
-                    UiText.Get(supplyResource.Value.ToString())),
+                    // Was UiText.Get(supplyResource.Value.ToString()), which asked
+                    // the catalogs for "Wood"/"Iron"/"Branches". en.po has no such
+                    // msgids — only the lowercase ones — so the English build
+                    // rendered the raw enum name into the dispatch error.
+                    ResourceTypeLocalizer.Label(supplyResource.Value)),
             ExpeditionStartOutcome.AlreadyActive =>
                 UiText.Get("ui.expedition.dispatch_active_hint"),
             ExpeditionStartOutcome.MemberUnavailable =>

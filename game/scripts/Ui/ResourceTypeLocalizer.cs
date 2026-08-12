@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using WorldofGoses.Domain;
 
 namespace WorldofGoses.Ui;
@@ -19,9 +20,6 @@ public static class ResourceTypeLocalizer
 {
     /// <summary>
     /// Returns the localised label for <paramref name="resource"/>.
-    /// Falls back to the lowercased enum name when the resource is
-    /// unknown so a future slice that adds a value cannot produce a
-    /// silent "missing translation" in shipped UI.
     /// </summary>
     public static string Label(ResourceType resource) => UiText.Get(Key(resource));
 
@@ -29,7 +27,23 @@ public static class ResourceTypeLocalizer
     /// Returns the PO key for <paramref name="resource"/> without
     /// going through <see cref="UiText.Get"/>. Useful for tooltips
     /// that compose a translation themselves.
+    ///
+    /// <para>The mapping is exhaustive and has no enum-name fallback.
+    /// It used to end in <c>_ =&gt; resource.ToString().ToLowerInvariant()</c>,
+    /// which quietly reinstated the exact coupling this class exists to
+    /// remove: a new resource compiled, ran, and shipped a raw enum name
+    /// into the UI, and renaming an existing one silently changed a PO
+    /// key. Throwing is the point — an unmapped value must be a loud,
+    /// early failure, and
+    /// <c>ResourceTypeLocalizationContractTests</c> turns it into a
+    /// failing test the moment the enum grows rather than a defect a
+    /// player finds.</para>
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The resource has no explicit localisation key. Add one arm here
+    /// and the matching msgid to every catalog under
+    /// <c>game/locale/</c>.
+    /// </exception>
     public static string Key(ResourceType resource) => resource switch
     {
         ResourceType.Stone => "stone",
@@ -41,6 +55,11 @@ public static class ResourceTypeLocalizer
         ResourceType.PlantFiber => "plantfiber",
         ResourceType.SmallStone => "smallstone",
         ResourceType.WildFood => "wildfood",
-        _ => resource.ToString().ToLowerInvariant(),
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(resource),
+            resource,
+            "ResourceType has no explicit i18n key. Add an arm to "
+                + "ResourceTypeLocalizer.Key and the msgid to every game/locale catalog; "
+                + "deriving the key from the enum name is what A12 removed."),
     };
 }

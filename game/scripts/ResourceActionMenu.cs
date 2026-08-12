@@ -58,7 +58,7 @@ public partial class ResourceActionMenu : IconButton
         TooltipText = canGather
             ? UiText.Format(
                 "ui.gather.resource_action",
-                UiText.Get(resourceType.ToString().ToLowerInvariant()))
+                ResourceTypeLocalizer.Label(resourceType))
             : unavailableReason;
         Show();
         ResetSize();

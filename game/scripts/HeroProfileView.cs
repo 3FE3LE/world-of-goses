@@ -224,7 +224,7 @@ public partial class HeroProfileView : Control
             UiText.Get(hero.NaturalWeaponFamilies[0]),
             UiText.Get(hero.NaturalWeaponFamilies[1])));
         AddBody(UiText.Get("ui.hero_profile.natural_weapons_hint"));
-        AddBody(UiText.Format("ui.hero_profile.gender", UiText.Get(hero.Gender.ToString())));
+        AddBody(UiText.Format("ui.hero_profile.gender", GenderIdLocalizer.Label(hero.Gender)));
 
         AddHeading(UiText.Get("ui.hero_profile.condition_heading"));
         AddStaminaBar(hero.CurrentStamina, hero.EffectiveMaxStamina);
