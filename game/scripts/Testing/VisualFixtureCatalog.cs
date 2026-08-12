@@ -73,6 +73,14 @@ public sealed class VisualFixtureCatalog
         Register("macro-hud-active-construction", VisualFixtureKind.MacroComposition);
         Register("macro-hud-active-expedition", VisualFixtureKind.MacroComposition);
 
+        // Utility cluster, one per speed state. The speed control is the only
+        // member of that cluster whose content changes, so "it is centred" is
+        // three claims rather than one and needs three frames to sign off
+        // (GitHub #16).
+        Register("utility-cluster-speed-normal", VisualFixtureKind.MacroComposition);
+        Register("utility-cluster-speed-fast", VisualFixtureKind.MacroComposition);
+        Register("utility-cluster-speed-fastest", VisualFixtureKind.MacroComposition);
+
         // First night.
         Register("first-night-active", VisualFixtureKind.FirstNight);
         Register("first-night-concluded", VisualFixtureKind.FirstNight);

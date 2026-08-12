@@ -124,6 +124,15 @@ States that cannot be reached reliably from an existing slot may use
 `-VisualFixture wound-recovery`; its action can be exercised at every
 resolution with `-NormalizedClicks '0.5,0.48'`.
 
+The `utility-cluster-speed-normal` / `-fast` / `-fastest` fixtures capture the
+top-bar utility cluster at each simulation speed. Three frames rather than one
+because Camera and Menu never change their content while Speed does, so
+"the cluster is aligned" is three claims: a control whose height and optical
+centre only match its neighbours in one of its states is exactly the defect
+GitHub #16 reported, and a single frame signs off whichever state it happened
+to catch. Review them together and check that the three glyphs occupy the same
+cell as the two static buttons beside them.
+
 The `policies` fixture opens the read-only city Policies surface and validates
 its bounded scroll body plus the macro action row at 1280×720 and 1920×1080.
 The `migrant` fixture opens the Citizens roster used to choose the explicit

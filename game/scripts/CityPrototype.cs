@@ -214,6 +214,15 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             case "macro-hud-expedition-active":
                 ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveExpedition);
                 break;
+            case "utility-cluster-speed-normal":
+                ShowUtilityClusterForVisualRegression(CityWorldController.SpeedChoice.Normal);
+                break;
+            case "utility-cluster-speed-fast":
+                ShowUtilityClusterForVisualRegression(CityWorldController.SpeedChoice.Fast);
+                break;
+            case "utility-cluster-speed-fastest":
+                ShowUtilityClusterForVisualRegression(CityWorldController.SpeedChoice.Fastest);
+                break;
             case "expedition-live-early":
                 ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Encounter);
                 break;
@@ -1727,6 +1736,21 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         {
             inspector.Hide();
         }
+    }
+
+    /// <summary>
+    /// The top-bar utility cluster at one simulation speed. Camera and Menu
+    /// never change their content, so the cluster's alignment was only ever
+    /// signed off in whichever state a macro fixture happened to capture —
+    /// which is how a Speed control sitting at a different height from its
+    /// two neighbours survived (GitHub #16). One frame per speed makes
+    /// "centred in 1×, 2× and 4×" three separate, checkable claims.
+    /// </summary>
+    private void ShowUtilityClusterForVisualRegression(CityWorldController.SpeedChoice speed)
+    {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
+        ShowMacroHudForVisualRegression(MacroHudFixtureState.Default);
+        GetNode<CityWorldController>("CityWorldController").SetSimulationSpeed(speed);
     }
 
     private void ShowCultivationForVisualRegression()
