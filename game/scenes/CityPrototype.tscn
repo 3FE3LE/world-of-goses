@@ -246,6 +246,106 @@ size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("9_prod")
 
+[node name="Root" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel" unique_id=875224310]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224311]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+horizontal_alignment = 1
+
+[node name="StockRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224312]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Stock" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224313]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+
+[node name="EnabledToggle" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224314]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"ButtonText"
+toggle_mode = true
+script = ExtResource("15_iconbtn")
+
+[node name="StockBar" type="ProgressBar" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224315]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+max_value = 1.0
+value = 0.0
+
+[node name="Rate" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224316]
+layout_mode = 2
+theme_type_variation = &"NumericText"
+
+[node name="Inputs" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224317]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+
+[node name="Status" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224318]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+
+[node name="PolicySeparator" type="HSeparator" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224319]
+layout_mode = 2
+
+[node name="PolicyHeader" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224320]
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+horizontal_alignment = 1
+
+[node name="PolicyRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224321]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="MinColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224322]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224323]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+horizontal_alignment = 1
+
+[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224324]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"LineEdit"
+max_value = 999.0
+rounded = true
+
+[node name="MaxColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224325]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224326]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+horizontal_alignment = 1
+
+[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224327]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"LineEdit"
+max_value = 999.0
+rounded = true
+
+[node name="PolicyError" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224328]
+layout_mode = 2
+theme_type_variation = &"ErrorText"
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="TownHallProspect" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224297]
 visible = false
 layout_mode = 2

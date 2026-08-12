@@ -115,7 +115,7 @@ que el resto de la vista puede actuar— y un test que comprueba la dirección
 contra `StreetDepthProjection.RowScreenY`, no contra el signo de un entero.
 Cierra GitHub #14.
 
-**4 de 10 paneles A-class.** `PoliciesPanel` tiene su propia escena de
+**5 de 10 paneles A-class.** `PoliciesPanel` tiene su propia escena de
 componente; `ExpeditionLiveView` ya estaba migrado y su entrada en el allowlist
 era deuda obsoleta; `BuildingDetailView` autora en la escena padre sus tres
 superficies condicionales —el marcador de arte provisional, la tarjeta de
@@ -129,6 +129,16 @@ defecto no es un constructor sin parámetros para la reflexión de Godot, y sin 
 un nodo con ese script no instancia: el boot murió con "does not define a
 parameterless constructor" y se llevó la escena entera. Lo cazó
 `Test-GodotBoot.ps1`, no la suite — que es para lo que está.
+
+`ProductionPanel` mueve su columna entera —título, fila de stock con su toggle,
+barra, ritmo, insumos, estado, separador y el par de SpinBox de política— a la
+escena padre; el script conserva los textos, los límites y las señales. Dos
+avisos del camino, los dos silenciosos: pasar una clave de localización como
+variable en vez de literal la vuelve invisible para el validador, que cayó de
+324 a 322 runtime keys sin fallar nada; y escribir un ejemplo entrecomillado de
+esa misma llamada dentro de un comentario hizo que el validador extrajera el
+ejemplo como clave y fallara. Un guard que lee texto fuente no distingue un
+comentario de una llamada.
 
 El script se queda con señales, `Refresh` y filas dirigidas por snapshot. Lo que
 antes construía a mano ahora son primitivas reutilizables en `Ui/`:

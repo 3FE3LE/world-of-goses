@@ -36,128 +36,55 @@ public partial class ProductionPanel : PanelContainer
     private Label _policyErrorLabel = null!;
     private bool _refreshing;
 
+    /// <summary>
+    /// A11: the shape is authored under <c>ProductionPanel/Root</c> in
+    /// <c>CityPrototype.tscn</c>. Every string is still written here, because
+    /// a literal in a <c>.tscn</c> is one no locale switch can reach; the
+    /// numbers come from <see cref="MinStockFloor"/>/<see cref="MaxStockCeiling"/>
+    /// so the policy bounds have one owner rather than one per file.
+    /// </summary>
     public override void _Ready()
     {
-        var root = new VBoxContainer();
-        AddChild(root);
-        // The authored HudCard parent owns the shared one-pixel surface. This
-        // content contributes no competing frame or lineage style override.
+        _titleLabel = GetNode<Label>("Root/Title");
+        _titleLabel.Text = UiText.Get("Production");
 
-        _titleLabel = new Label
-        {
-            Text = UiText.Get("Production"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        _titleLabel.ThemeTypeVariation = "HudHeader";
-        root.AddChild(_titleLabel);
+        _stockLabel = GetNode<Label>("Root/StockRow/Stock");
 
-        var stockRow = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            Alignment = BoxContainer.AlignmentMode.Center,
-        };
-        stockRow.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        root.AddChild(stockRow);
-
-        _stockLabel = new Label { Text = string.Empty };
-        _stockLabel.ThemeTypeVariation = "HudBody";
-        stockRow.AddChild(_stockLabel);
-
-        _enabledToggle = StandardButtons.IconAction(
-            IconPaths.Pause,
-            UiText.Get("Pause"),
-            tooltip: UiText.Get("Pause production"));
-        _enabledToggle.ToggleMode = true;
+        _enabledToggle = GetNode<IconButton>("Root/StockRow/EnabledToggle");
+        _enabledToggle.SetIconAndLabel(IconPaths.Pause, UiText.Get("Pause"));
+        _enabledToggle.TooltipText = UiText.Get("Pause production");
         _enabledToggle.Toggled += OnPolicyToggle;
-        stockRow.AddChild(_enabledToggle);
 
-        _stockBar = new ProgressBar
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Value = 0,
-            CustomMinimumSize = new Vector2(0, 12),
-        };
-        root.AddChild(_stockBar);
+        _stockBar = GetNode<ProgressBar>("Root/StockBar");
+        _rateLabel = GetNode<Label>("Root/Rate");
 
-        _rateLabel = new Label { Text = string.Empty };
-        _rateLabel.ThemeTypeVariation = "NumericText";
-        root.AddChild(_rateLabel);
+        _inputsLabel = GetNode<Label>("Root/Inputs");
+        _inputsLabel.Text = UiText.Get("Inputs due: none");
 
-        _inputsLabel = new Label { Text = UiText.Get("Inputs due: none") };
-        _inputsLabel.ThemeTypeVariation = "HudCaption";
-        root.AddChild(_inputsLabel);
+        _statusLabel = GetNode<Label>("Root/Status");
+        GetNode<Label>("Root/PolicyHeader").Text = UiText.Get("Reactive policy");
 
-        _statusLabel = new Label();
-        _statusLabel.ThemeTypeVariation = "HudCaption";
-        root.AddChild(_statusLabel);
-
-        var policySeparator = new HSeparator();
-        root.AddChild(policySeparator);
-
-        var policyHeader = new Label
-        {
-            Text = UiText.Get("Reactive policy"),
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        policyHeader.ThemeTypeVariation = "HudHeader";
-        root.AddChild(policyHeader);
-
-        var policyRow = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            Alignment = BoxContainer.AlignmentMode.Center,
-        };
-        policyRow.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        root.AddChild(policyRow);
-
-        _minStockBox = BuildPolicyBox("Min");
-        _maxStockBox = BuildPolicyBox("Max");
-        policyRow.AddChild(BuildPolicyColumn(UiText.Get("Min"), _minStockBox));
-        policyRow.AddChild(BuildPolicyColumn(UiText.Get("Max"), _maxStockBox));
-
+        // The caption is resolved here rather than inside the helper so the
+        // key stays a literal at the call site. The localisation validator
+        // scans for a quoted key argument and cannot see one arriving as a
+        // variable, which silently drops it from the catalogue's coverage —
+        // moving these two into the helper cost exactly that, 324 runtime
+        // keys down to 322, without failing anything.
+        _minStockBox = BindPolicyColumn("Min", UiText.Get("Min"));
+        _maxStockBox = BindPolicyColumn("Max", UiText.Get("Max"));
         _minStockBox.ValueChanged += OnMinStockChanged;
         _maxStockBox.ValueChanged += OnMaxStockChanged;
 
-        _policyErrorLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _policyErrorLabel.ThemeTypeVariation = "ErrorText";
-        root.AddChild(_policyErrorLabel);
+        _policyErrorLabel = GetNode<Label>("Root/PolicyError");
     }
 
-    private static VBoxContainer BuildPolicyColumn(string caption, SpinBox box)
+    private SpinBox BindPolicyColumn(string column, string caption)
     {
-        var column = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        column.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        var label = new Label
-        {
-            Text = caption,
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        label.ThemeTypeVariation = "HudCaption";
-        column.AddChild(label);
-        column.AddChild(box);
-        return column;
-    }
-
-    private static SpinBox BuildPolicyBox(string _)
-    {
-        return new SpinBox
-        {
-            MinValue = MinStockFloor,
-            MaxValue = MaxStockCeiling,
-            Step = 1,
-            Rounded = true,
-            CustomMinimumSize = new Vector2(96, 0),
-            FocusMode = Control.FocusModeEnum.All,
-            ThemeTypeVariation = "LineEdit",
-        };
+        GetNode<Label>($"Root/PolicyRow/{column}Column/Caption").Text = caption;
+        SpinBox box = GetNode<SpinBox>($"Root/PolicyRow/{column}Column/Box");
+        box.MinValue = MinStockFloor;
+        box.MaxValue = MaxStockCeiling;
+        return box;
     }
 
     private void OnMinStockChanged(double value)
