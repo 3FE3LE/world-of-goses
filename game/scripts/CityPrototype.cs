@@ -52,7 +52,7 @@ public partial class CityPrototype : Node
     /// </summary>
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (!@event.IsActionPressed("ui_cancel")) return;
+        if (!@event.IsActionPressed(UiInputActions.Cancel)) return;
         CityWorldController controller = GetNodeOrNull<CityWorldController>("CityWorldController");
         if (controller is null) return;
         // The PauseMenu only opens via ESC when the macro view is the
@@ -78,6 +78,10 @@ public partial class CityPrototype : Node
         AddChild(firstNightScene);
         if (WorldofGoses.Testing.VisualRegressionHarness.Activate())
         {
+            // Golden frames are written by the engine from its own viewport,
+            // not copied off the desktop by the capture script — see
+            // ViewportCaptureService for why that distinction is load-bearing.
+            WorldofGoses.Testing.VisualRegressionHarness.AttachViewportCapture(this);
             // A10: the harness owns detection and dispatch. The per-fixture
             // composition steps still live as private methods on this scene
             // (they touch the scene tree, which is the prototype's
@@ -140,8 +144,8 @@ public partial class CityPrototype : Node
         // a stuck action would leak into whatever the next fixture does.
         static void SendCancelForVisualRegression()
         {
-            Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });
-            Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
+            Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Cancel, Pressed = true });
+            Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Cancel, Pressed = false });
         }
 
         static void SendRightForVisualRegression()
@@ -590,6 +594,79 @@ public partial class CityPrototype : Node
             GetTree().CreateTimer(0.15).Timeout +=
                 () => ValidatePrimaryNavPointerForVisualRegression(action);
         }).CallDeferred();
+    }
+
+    /// <summary>
+    /// Waits until <paramref name="target"/> has a settled layout, then
+    /// dispatches a real pointer click at its centre and invokes
+    /// <paramref name="next"/>.
+    ///
+    /// <para>"Settled" means visible in the tree with a non-degenerate global
+    /// rect that is identical on two consecutive frames. This exists because
+    /// clicking at a pre-layout rect was the actual cause of the
+    /// chronicle-roundtrip flake: the coordinate was stale, the click landed
+    /// on the neighbouring control, and the fixture reported a layout bug that
+    /// was really a misdirected click. The previous workaround was an
+    /// arbitrary <c>CreateTimer(0.1)</c> plus, for the return edge, replacing
+    /// the pointer with <c>EmitSignal(Pressed)</c> — which quietly turned an
+    /// input-E2E fixture into a state-only one and stopped testing the very
+    /// route the fixture is named after (GitHub #2).</para>
+    ///
+    /// <para>Waiting on the observable condition instead of on a duration is
+    /// what makes the real click usable on both edges. It is deliberately
+    /// narrow: the broad timer cleanup across fixture setup is GitHub #7.</para>
+    /// </summary>
+    private void ClickWhenLaidOutForVisualRegression(
+        Control target,
+        Action next,
+        Func<Rect2>? settleProbe = null,
+        int remainingFrames = 240)
+    {
+        // What must hold still is not always the button. A header keeps the
+        // same rect while the panel underneath it is still animating open, so
+        // watching the button alone reports "settled" on the very next frame
+        // and fires the follow-up click into a transition. The probe lets the
+        // caller name the geometry that actually moves — for an accordion,
+        // the body it expands.
+        Func<Rect2> probe = settleProbe ?? target.GetGlobalRect;
+        Callable.From(() => AwaitStableRect(probe(), remainingFrames)).CallDeferred();
+
+        void AwaitStableRect(Rect2 lastSeen, int budget)
+        {
+            if (!IsInstanceValid(target))
+            {
+                GD.PushError(
+                    "[WOG-VISUAL-CLICK] Target was freed before its layout settled.");
+                return;
+            }
+
+            Rect2 observed = probe();
+            Rect2 targetRect = target.GetGlobalRect();
+            bool usable = target.IsVisibleInTree()
+                && targetRect.Size.X > 0f
+                && targetRect.Size.Y > 0f
+                && observed == lastSeen;
+
+            if (usable)
+            {
+                SendPointerClickForVisualRegression(target);
+                next();
+                return;
+            }
+
+            if (budget <= 0)
+            {
+                GD.PushError(
+                    $"[WOG-VISUAL-CLICK] '{target.Name}' never reached a stable layout "
+                    + $"(target {targetRect}, probe {observed}, "
+                    + $"visible={target.IsVisibleInTree()}). Refusing to click at an "
+                    + "unsettled coordinate; a misdirected click reports as a layout "
+                    + "failure somewhere else entirely.");
+                return;
+            }
+
+            Callable.From(() => AwaitStableRect(observed, budget - 1)).CallDeferred();
+        }
     }
 
     private static void SendPointerClickForVisualRegression(Control target)
@@ -2271,8 +2348,8 @@ public partial class CityPrototype : Node
             + "stage=800x488, sides=228/224, squad=441, skills=456.");
         if (!_expeditionLiveEscapeFixture) return;
 
-        Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = true });
-        Input.ParseInputEvent(new InputEventAction { Action = "ui_cancel", Pressed = false });
+        Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Cancel, Pressed = true });
+        Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Cancel, Pressed = false });
         GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionLiveEscapeForVisualRegression;
     }
 
@@ -2396,8 +2473,8 @@ public partial class CityPrototype : Node
             GD.PushError("[WOG-EXPEDITION-RAIL-FOCUS] default focus did not reach View.");
             return;
         }
-        Input.ParseInputEvent(new InputEventAction { Action = "ui_down", Pressed = true });
-        Input.ParseInputEvent(new InputEventAction { Action = "ui_down", Pressed = false });
+        Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Down, Pressed = true });
+        Input.ParseInputEvent(new InputEventAction { Action = UiInputActions.Down, Pressed = false });
         GetTree().CreateTimer(0.15).Timeout += ValidateExpeditionRailFocusForVisualRegression;
     }
 
@@ -2461,32 +2538,29 @@ public partial class CityPrototype : Node
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
-        // Wait a frame before the first click. The fixture has just reseeded
-        // the world, so the rail rebuilt its cards this frame and its children
-        // have not been sorted yet; clicking immediately dispatches at a
-        // pre-layout rect. In a real window that stale coordinate landed on
-        // VER instead of the chronicle header and opened the live view, which
-        // then reported as "Chronicle did not restore expeditions" — a
-        // misdirected click wearing the costume of a layout bug.
-        GetTree().CreateTimer(0.1).Timeout += () =>
-        {
-            SendPointerClickForVisualRegression(rail.MoreButton);
-            GetTree().CreateTimer(0.1).Timeout += () =>
-            {
-                if (!rail.ChronicleExpanded)
-                {
-                    GD.PushError("[WOG-EXPEDITION-RAIL-ROUNDTRIP] Chronicle did not open.");
-                    return;
-                }
-                // The first edge already exercised real pointer dispatch. Emit the
-                // same Button signal for the return edge so the fixture validates
-                // accordion state rather than depending on a relayout race in the
-                // headless pointer coordinate transform.
-                rail.MoreButton.EmitSignal(BaseButton.SignalName.Pressed);
-                GetTree().CreateTimer(0.1).Timeout +=
-                    ValidateExpeditionRailChronicleRoundTripForVisualRegression;
-            };
-        };
+        // Both edges are real pointer clicks, and both wait on the button's
+        // layout actually settling rather than on a fixed delay. The fixture
+        // is named "roundtrip" because it proves the player can open the
+        // Chronicle and get their expedition controls back; a return edge
+        // that called EmitSignal instead — as this one used to, to dodge a
+        // relayout race — tested the accordion's state machine and nothing
+        // about the route the player takes to reach it (GitHub #2).
+        // Both edges settle on the expedition body, which is the geometry the
+        // accordion actually animates. MoreButton's own rect is constant
+        // through the transition, so probing it would have reported "settled"
+        // one frame after the first click and fired the second into a
+        // half-open accordion.
+        Func<Rect2> accordionSettled = () => rail.ExpeditionBodyRectForVisualRegression;
+
+        ClickWhenLaidOutForVisualRegression(
+            rail.MoreButton,
+            () => ClickWhenLaidOutForVisualRegression(
+                rail.MoreButton,
+                () => Callable.From(
+                        ValidateExpeditionRailChronicleRoundTripForVisualRegression)
+                    .CallDeferred(),
+                accordionSettled),
+            accordionSettled);
     }
 
     private void ValidateExpeditionRailChronicleRoundTripForVisualRegression()

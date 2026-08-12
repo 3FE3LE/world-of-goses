@@ -50,10 +50,12 @@ public static class VisualRegressionHarness
     private const string EnvironmentVariable = "WOG_VISUAL_CAPTURE";
     private const string CommandLineFlag = "--wog-visual-capture";
     private const string FixtureCommandLinePrefix = "--wog-visual-fixture=";
+    private const string CapturePathCommandLinePrefix = "--wog-visual-capture-out=";
 
     private static bool _isActive;
     private static string? _fixtureName;
     private static string? _longTerrariumCapturePath;
+    private static string? _viewportCapturePath;
 
     /// <summary>
     /// True once <see cref="Activate"/> has run and confirmed the
@@ -78,6 +80,29 @@ public static class VisualRegressionHarness
     public static string? LongTerrariumCapturePath => _longTerrariumCapturePath;
 
     /// <summary>
+    /// Where the golden frame should be written, from
+    /// <c>--wog-visual-capture-out=</c>. <c>null</c> when the caller did not
+    /// ask for a viewport capture.
+    /// </summary>
+    public static string? ViewportCapturePath => _viewportCapturePath;
+
+    /// <summary>
+    /// Attaches the engine-side golden-frame writer to
+    /// <paramref name="host"/> when one was requested. No-op in normal play
+    /// and when no output path was given.
+    ///
+    /// <para>The capture is taken from the engine's own viewport rather than
+    /// from the desktop, so an unrelated foreground window cannot end up in
+    /// a golden frame — see <see cref="ViewportCaptureService"/>.</para>
+    /// </summary>
+    public static void AttachViewportCapture(Node host)
+    {
+        ArgumentNullException.ThrowIfNull(host);
+        if (!_isActive || _viewportCapturePath is null) return;
+        host.AddChild(new ViewportCaptureService(_viewportCapturePath));
+    }
+
+    /// <summary>
     /// Reads the environment and command line, decides whether the
     /// harness is active, and returns the requested fixture name.
     /// Idempotent: a second call returns the same result without
@@ -98,6 +123,10 @@ public static class VisualRegressionHarness
             else if (argument.StartsWith("WOG_LONG_TERRARIUM_CAPTURE=", StringComparison.Ordinal))
             {
                 _longTerrariumCapturePath = argument["WOG_LONG_TERRARIUM_CAPTURE=".Length..];
+            }
+            else if (argument.StartsWith(CapturePathCommandLinePrefix, StringComparison.Ordinal))
+            {
+                _viewportCapturePath = argument[CapturePathCommandLinePrefix.Length..];
             }
         }
 

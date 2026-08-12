@@ -8,6 +8,52 @@ Each launched resolution writes to its own Godot log inside the capture
 directory. This prevents a running editor or another matrix process from
 contending for the default `user://logs` file before the window is exposed.
 
+## Two kinds of fixture
+
+Every fixture is exactly one of these, and the distinction decides what the
+harness guarantees and what a failure means. GitHub #2 closed the gap where
+both were treated as one thing.
+
+**Visual-state fixtures** compose a city and take a picture of it. They pass
+`-VisualFixture <name>` and no `-NormalizedClicks`. The golden frame is
+written by the engine from its own viewport (`ViewportCaptureService`), so it
+needs no window focus and cannot be corrupted by anything else on the
+desktop. These run unattended.
+
+**Input-E2E fixtures** additionally exercise the real pointer route: an OS
+level click, through the window manager, into the engine's input handling —
+the thing that catches a `Stop`-filtered ancestor `Control` silently
+swallowing input, which no amount of code reading or `EmitSignal` will ever
+catch. They pass `-NormalizedClicks` and require an interactive desktop. The
+harness takes the foreground for real (`AttachThreadInput` + friends) and
+then *verifies*, before each click, that the Godot window is both frontmost
+and the owner of the pixel under the cursor. If either check fails the run
+aborts. It does not fall back to clicking anyway.
+
+An E2E fixture that replaces the pointer with a direct `EmitSignal` is not an
+E2E fixture; it is a visual-state fixture with a misleading name, and it
+tests the one edge that was never in doubt.
+
+## Provenance: where a golden frame comes from
+
+The golden PNG is produced *inside* the Godot process by
+`game/scripts/Testing/ViewportCaptureService.cs`, which reads
+`GetViewport().GetTexture().GetImage()` and saves it. The capture script asks
+for the shot with a `<frame>.png.request` file and waits for `.done` (which
+carries the dimensions the engine actually rendered) or `.failed`.
+
+It used to be `Graphics.CopyFromScreen` over the window's screen rectangle —
+a copy of the desktop, not of the game. That is not a theoretical distinction:
+a run captured a Chrome/Google Meet window and filed it as a valid golden
+frame. Raising and focusing the window does not fix the class of bug, because
+`SetForegroundWindow` fails *silently* for a process that does not already own
+the foreground, and another application's always-on-top window outranks a
+topmost one regardless.
+
+There is deliberately **no fallback** to a desktop grab. A capture that cannot
+be taken from the viewport is a failed capture. Restoring a fallback would
+restore the defect.
+
 ## Capture command
 
 Run from the repository root with Godot 4.7.1 .NET:
@@ -51,8 +97,10 @@ PowerShell preserves the string array:
 
 The Windows harness opens a real Godot window because Movie Maker always uses
 the project's logical 1280×720 viewport and is not compatible with the headless
-dummy renderer. It captures the window client at 1280×720 and 1920×1080,
-rejects missing, empty, or incorrectly sized PNGs, and writes a JSON manifest. Captures are review artifacts and are
+dummy renderer. It renders at 1280×720 and 1920×1080, polls until the client
+rect actually reaches the requested size before deriving any coordinate (the
+50×50 bootstrap client used to race a fixed sleep), rejects missing, empty, or
+incorrectly sized PNGs, and writes a JSON manifest. Captures are review artifacts and are
 not committed by default. Use a distinct `StateName` for every prepared state.
 The default scene is `CityPrototype.tscn`; `-ScenePath` may target a reusable
 component scene. The harness sets `WOG_VISUAL_CAPTURE=1`: the controller still
