@@ -18,6 +18,8 @@
   -->
   <ItemGroup>
     <Compile Remove="scripts/Domain/**/*.cs" />
+    <Compile Remove="scripts/Application/**/*.cs" />
     <ProjectReference Include="../src/WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
+    <ProjectReference Include="../src/WorldofGoses.Application/WorldofGoses.Application.csproj" />
   </ItemGroup>
 </Project>

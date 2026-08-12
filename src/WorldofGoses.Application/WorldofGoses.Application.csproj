@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The application read-model layer: the snapshots that project domain state
+    into the shape a view renders. Like the domain, a plain Microsoft.NET.Sdk
+    project with no GodotSharp reference, so it can depend on the domain and
+    the BCL and on nothing the engine provides.
+
+    That constraint is the point, and it closes a bug this project has already
+    hit once: a snapshot that called UiText.Get baked a translation into a
+    record at construction time, which crashed the Godot-free unit tests that
+    build snapshots directly. UiText needs the engine's TranslationServer, so
+    that mistake is now a compile error rather than a test failure to
+    diagnose. Localisation happens at the Control that displays the value.
+
+    Sources live at game/scripts/Application/ for the same reason the domain's
+    do: the layer is visible where the code is, and the engine never scans
+    this project's build output.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <RootNamespace>WorldofGoses</RootNamespace>
+    <AssemblyName>WorldofGoses.Application</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)../../game/scripts/Application/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -201,21 +201,23 @@ public sealed class ArchitectureBoundaryTests
     /// need to extend — and the slice that owns the cleanup.
     /// </summary>
     /// <summary>
-    /// The domain assembly must never gain a Godot reference. This is the
-    /// belt to the compiler's braces: <c>src/WorldofGoses.Domain</c> is a
-    /// plain <c>Microsoft.NET.Sdk</c> project, so `using Godot` there is
+    /// Neither engine-free assembly may gain a Godot reference. This is the
+    /// belt to the compiler's braces: both are plain
+    /// <c>Microsoft.NET.Sdk</c> projects, so `using Godot` in either is
     /// already a build error — but only for as long as nobody "fixes" a
     /// future compile error by adding the package back. This test names that
     /// temptation so it fails loudly instead of silently reopening the
     /// boundary the whole split exists to create.
     /// </summary>
-    [Fact]
-    public void DomainProject_DoesNotReferenceGodot()
+    [Theory]
+    [InlineData("WorldofGoses.Domain")]
+    [InlineData("WorldofGoses.Application")]
+    public void EngineFreeProject_DoesNotReferenceGodot(string projectName)
     {
         string projectFile = Path.Combine(
-            FindRepositoryRoot(), "src", "WorldofGoses.Domain", "WorldofGoses.Domain.csproj");
+            FindRepositoryRoot(), "src", projectName, $"{projectName}.csproj");
 
-        Assert.True(File.Exists(projectFile), $"Domain project not found at '{projectFile}'.");
+        Assert.True(File.Exists(projectFile), $"Project not found at '{projectFile}'.");
 
         // XML comments are stripped first: the project file explains at length
         // why it does not reference GodotSharp, and prose about the rule must
