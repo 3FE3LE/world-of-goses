@@ -6,10 +6,23 @@ using System.Runtime.CompilerServices;
 /// encapsulation does not have to be weakened at the public API level just to
 /// be testable.
 ///
-/// <para>Deliberately NOT granted to the Godot assembly. Presentation calls
-/// the domain's <em>public</em> API and nothing else; anything it genuinely
-/// needs is promoted with intent and a doc comment, which is how the six
-/// members the assembly split first caught were resolved.</para>
+/// <para><strong>The Godot assembly IS granted.</strong> This comment used to
+/// claim the opposite — "deliberately NOT granted to the Godot assembly" —
+/// while <c>WorldofGoses.Domain.csproj</c> carried an
+/// <c>InternalsVisibleTo("World of Goses")</c> assembly attribute the whole
+/// time. A10 added the grant so the visual-regression harness could reach
+/// <c>CityWorld.ConcludeFirstNightForFixtures</c> and
+/// <c>ConstructionProject.SeedProgressForFixture</c> after both were demoted
+/// from <c>public</c>; the comment was never updated. A boundary document
+/// that describes a stricter boundary than the compiler enforces is worse
+/// than none, because reviewers trust it.</para>
+///
+/// <para>What is actually true: Presentation calls the domain's
+/// <em>public</em> API for all gameplay. The internal grant exists for the
+/// fixture seams only, and which call sites may use them is pinned by
+/// <c>ArchitectureBoundaryTests</c> (<c>Presentation_ConcludesFirstNightOnlyInFixtures</c>,
+/// <c>Presentation_DoesNotAccessCityWorldDirectly</c>) rather than by
+/// visibility, precisely because visibility can no longer express it.</para>
 ///
 /// <para>
 /// Architecture Hardening A6 also grants <c>InternalsVisibleTo</c> to the
