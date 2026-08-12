@@ -207,7 +207,6 @@ public static class ArchitectureBoundaryAllowlist
             // city; the dynamic content is rebuilt on signal. The
             // migration moves the shell to a PackedScene and keeps
             // C# only for the rows that depend on a snapshot.
-            "game/scripts/CitySummaryPanel.cs",   // header + scroll body + content
             "game/scripts/CityStatusPanel.cs",    // top status bar + utility cluster
             "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
             "game/scripts/AstralOnboardingView.cs", // astral onboarding full screen

@@ -34,6 +34,27 @@ public static class IconPaths
     public const string Minus = Root + "minus.svg";
     public const string Expand = Root + "expand.svg";
 
+    /// <summary>
+    /// The three-state speedometer for the simulation-speed control, promoted
+    /// from <c>art/Pixelarticons/svg/speed-{slow,medium,fast}.svg</c> on
+    /// 2026-08-12 to close GitHub #16.
+    ///
+    /// <para>They exist because the previous control stacked one, two or four
+    /// copies of <see cref="Play"/> in 8 px cells. These icons are 24 px and
+    /// <c>TextureRect.StretchMode.Keep</c> draws a source at its own size
+    /// regardless of the rect, so the cells never shrank the glyphs — they
+    /// overflowed a 36 px button. One glyph per state fits its cell natively,
+    /// which is what <see cref="Tokens.IconInline"/> has always documented.</para>
+    ///
+    /// <para>The names are the upstream ones and describe the three steps
+    /// relative to each other, not an absolute pace: the control cycles
+    /// 1× → 2× → 4×, and there is no slower-than-normal speed to confuse them
+    /// with. <c>DEC</c>-nothing: the world always runs.</para>
+    /// </summary>
+    public const string SpeedSlow = Root + "speed-slow.svg";
+    public const string SpeedMedium = Root + "speed-medium.svg";
+    public const string SpeedFast = Root + "speed-fast.svg";
+
     // State and context.
     public const string Info = Root + "info.svg";
     public const string Warning = Root + "warning.svg";

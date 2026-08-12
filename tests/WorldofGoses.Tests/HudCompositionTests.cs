@@ -558,13 +558,20 @@ public sealed class HudCompositionTests
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs"));
         string itemSource = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ConstructionQueueItem.cs"));
+        string separatorSource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "HudSeparator.cs"));
 
         Assert.Contains("CollapsiblePanelHeader", source, StringComparison.Ordinal);
         Assert.Contains("HudSectionHeader", source, StringComparison.Ordinal);
         Assert.Contains("HudMetricRow", source, StringComparison.Ordinal);
         Assert.Contains("HudResourceRow", source, StringComparison.Ordinal);
         Assert.Contains("HudProgressBar", source, StringComparison.Ordinal);
-        Assert.Contains("ThemeTypeVariation = \"HudSeparator\"", source, StringComparison.Ordinal);
+        // The divider is a theme variation, never an inline stylebox. A11
+        // moved the three-property initialiser into a Ui/ primitive, so the
+        // rule is asserted where it now lives — and that the panel reaches
+        // for that primitive rather than re-deciding it.
+        Assert.Contains("new HudSeparator()", source, StringComparison.Ordinal);
+        Assert.Contains("ThemeTypeVariation = \"HudSeparator\"", separatorSource, StringComparison.Ordinal);
         Assert.Contains("GetCityStatusSnapshot", source, StringComparison.Ordinal);
         Assert.Contains("snapshot.Resources", source, StringComparison.Ordinal);
         Assert.Contains("snapshot.Projects", source, StringComparison.Ordinal);
@@ -809,24 +816,88 @@ public sealed class HudCompositionTests
                 + "authored on the PauseMenu node or as OpenButtonPath's default.");
     }
 
+    /// <summary>
+    /// GitHub #16. Speed sat at 36×24 in a cluster of 40×40 buttons, and drew
+    /// its state by stacking up to four copies of the 24 px play glyph in 8 px
+    /// <c>TextureRect</c> cells. <c>StretchMode.Keep</c> draws a source at its
+    /// natural size whatever rect it is handed, so the small cells never
+    /// shrank the glyphs — they overflowed the button, got clipped, and left
+    /// the visible group's optical centre unrelated to the rect being centred.
+    /// </summary>
     [Fact]
-    public void SpeedButton_CentresItsIconsOnTheButton()
+    public void SpeedButton_SharesTheUtilityClusterCellAndOneGlyphPerState()
     {
-        // The previous version used a centred nested FullRect container
-        // that left asymmetric visual padding. The current build sizes
-        // the button to its content and applies equal left/right margins
-        // so the play-icon stack sits on the geometric centre.
-        string source = File.ReadAllText(Path.Combine(
-            TestHelpers.FindRepositoryRoot(), "game", "scripts", "SpeedButton.cs"));
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root, "game", "scripts", "SpeedButton.cs"));
+        string panel = File.ReadAllText(Path.Combine(root, "game", "scripts", "CityStatusPanel.cs"));
 
-        Assert.Contains("CustomMinimumSize = new Vector2(ButtonWidth, ButtonHeight)",
-            source, StringComparison.Ordinal);
+        // Same interactive cell as Camera and Menu, from the same token.
         Assert.Contains(
-            "_container.AddThemeConstantOverride(\"margin_left\", IconPadding);",
-            source, StringComparison.Ordinal);
-        Assert.Contains(
-            "_container.AddThemeConstantOverride(\"margin_right\", IconPadding);",
-            source, StringComparison.Ordinal);
+            "CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight)",
+            source,
+            StringComparison.Ordinal);
+        Assert.Equal(
+            2,
+            Regex.Matches(
+                panel,
+                @"CustomMinimumSize = new Vector2\(Tokens\.ControlHeight, Tokens\.ControlHeight\)")
+                .Count);
+
+        // Native Button icon rendering, exactly like its two siblings, so
+        // centring is the renderer's job rather than a margin calculation.
+        Assert.Contains("class SpeedButton : IconButton", source, StringComparison.Ordinal);
+        Assert.Contains("ShowLabel = false", source, StringComparison.Ordinal);
+
+        // One glyph per state, each a member of the 24 px catalogue.
+        Assert.Contains("IconPaths.SpeedSlow", source, StringComparison.Ordinal);
+        Assert.Contains("IconPaths.SpeedMedium", source, StringComparison.Ordinal);
+        Assert.Contains("IconPaths.SpeedFast", source, StringComparison.Ordinal);
+
+        // The composition that produced the overflow is gone: no icon stack,
+        // no hand-rolled cell smaller than the glyph it has to hold. Asserted
+        // against executable source, because the remarks block deliberately
+        // names what was removed and why.
+        string executable = StripComments(source);
+        Assert.DoesNotContain("new TextureRect", executable, StringComparison.Ordinal);
+        Assert.DoesNotContain("PlayIconSize", executable, StringComparison.Ordinal);
+        Assert.DoesNotContain("ClipContents", executable, StringComparison.Ordinal);
+        Assert.DoesNotContain("IconPaths.Play", executable, StringComparison.Ordinal);
+
+        // The cycle and its tooltips are unchanged.
+        Assert.Contains("SpeedChoice.Normal => CityWorldController.SpeedChoice.Fast", source, StringComparison.Ordinal);
+        Assert.Contains("SpeedChoice.Fast => CityWorldController.SpeedChoice.Fastest", source, StringComparison.Ordinal);
+        Assert.Contains("SpeedChoice.Fastest => CityWorldController.SpeedChoice.Normal", source, StringComparison.Ordinal);
+        Assert.Contains("ui.speed.normal", source, StringComparison.Ordinal);
+        Assert.Contains("ui.speed.fast", source, StringComparison.Ordinal);
+        Assert.Contains("ui.speed.fastest", source, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The three speed glyphs must be real 24 px members of the icon
+    /// catalogue, tintable the same way every other icon is. A Pixelarticons
+    /// source ships with <c>fill="currentColor"</c>, which Godot's rasteriser
+    /// cannot resolve; the promoted copy has to carry the white fill the
+    /// accent modulates against, or the icon renders as an unlit shape.
+    /// </summary>
+    [Theory]
+    [InlineData("speed-slow.svg")]
+    [InlineData("speed-medium.svg")]
+    [InlineData("speed-fast.svg")]
+    public void PromotedSpeedGlyphs_AreImportedTintableAndNativelyTwentyFourPixels(string fileName)
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string iconPath = Path.Combine(root, "game", "assets", "ui", "icons", "24", fileName);
+
+        Assert.True(File.Exists(iconPath), $"{fileName} was not promoted into the 24 px catalogue.");
+        Assert.True(
+            File.Exists(iconPath + ".import"),
+            $"{fileName} has no .import sibling, so the runtime cannot load it.");
+
+        string svg = File.ReadAllText(iconPath);
+        Assert.Contains("width=\"24\"", svg, StringComparison.Ordinal);
+        Assert.Contains("height=\"24\"", svg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#ffffff\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("currentColor", svg, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1538,6 +1609,18 @@ public sealed class HudCompositionTests
         }
         return -1;
     }
+
+    /// <summary>
+    /// Executable source only. A "this construct is gone" assertion has to
+    /// ignore comments, or the remark explaining what was removed becomes the
+    /// thing that fails the check.
+    /// </summary>
+    private static string StripComments(string source) =>
+        CommentPattern.Replace(source, string.Empty);
+
+    private static readonly Regex CommentPattern = new(
+        @"//[^\r\n]*|/\*.*?\*/",
+        RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
     private static readonly Regex MouseFilterPattern = new(
         @"^mouse_filter\s*=\s*(\d+)\s*$",

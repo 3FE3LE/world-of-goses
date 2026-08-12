@@ -12,12 +12,21 @@ namespace WorldofGoses;
 /// Persistent city-at-a-glance surface. Renders the same immutable status
 /// projection as the top bar and owns only ephemeral collapse state.
 ///
-/// <para>Architecture Hardening A11: the static hierarchy
-/// (<c>VBoxContainer</c> → <c>CollapsiblePanelHeader</c> → <c>ScrollContainer</c>
-/// → <c>MarginContainer</c> gutter → <c>VBoxContainer</c> content) lives
-/// in <c>game/scenes/Components/CitySummaryPanel.tscn</c>. The script
-/// resolves the nodes by name, subscribes to controller signals, and
-/// only composes dynamic rows in <see cref="ApplySnapshot"/>.</para>
+/// <para>Architecture Hardening A11: the static hierarchy —
+/// <c>Layout</c> → <c>Header</c> → <c>SummaryBody</c> → <c>Gutter</c> →
+/// <c>SummaryContent</c> — is authored in
+/// <c>game/scenes/Components/CitySummaryPanel.tscn</c>, which
+/// <c>CityPrototype.tscn</c> instances at its HUD slot. The script resolves
+/// those five nodes, subscribes to controller signals, and composes only the
+/// snapshot-driven rows in <see cref="ApplySnapshot"/>.</para>
+///
+/// <para>The scene has to be <em>instanced</em> by the parent, not merely
+/// authored beside it: an earlier attempt added the component scene while
+/// <c>CityPrototype.tscn</c> still declared a bare <c>PanelContainer</c> with
+/// this script attached, so at runtime the panel had no children and
+/// <c>GetNode("Layout/Header")</c> took the boot down. The
+/// <c>instance=ExtResource</c> line in the parent scene is what makes the
+/// hierarchy exist.</para>
 /// </summary>
 [GlobalClass]
 public partial class CitySummaryPanel : PanelContainer
@@ -42,7 +51,10 @@ public partial class CitySummaryPanel : PanelContainer
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
         MouseFilter = MouseFilterEnum.Stop;
-        BuildSurface();
+        _header = GetNode<CollapsiblePanelHeader>("Layout/Header");
+        _body = GetNode<ScrollContainer>("Layout/SummaryBody");
+        _content = GetNode<VBoxContainer>("Layout/SummaryBody/Gutter/SummaryContent");
+        _header.ExpandedChanged += OnHeaderExpandedChanged;
         _controller = GetNode<CityWorldController>(ControllerPath);
         _controller.WorldTickAdvanced += OnStateChanged;
         _controller.BuildingStateChanged += OnStateChanged;
@@ -56,54 +68,18 @@ public partial class CitySummaryPanel : PanelContainer
         Refresh(_controller.GetCityStatusSnapshot());
     }
 
-    private void BuildSurface()
-    {
-        var layout = new VBoxContainer
-        {
-            MouseFilter = MouseFilterEnum.Pass,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        layout.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        AddChild(layout);
-
-        _header = new CollapsiblePanelHeader(UiText.Get("ui.city_summary.city"));
-        _header.ExpandedChanged += expanded => _body.Visible = expanded;
-        layout.AddChild(_header);
-
-        _body = new ScrollContainer
-        {
-            Name = "SummaryBody",
-            CustomMinimumSize = new Vector2(0, ExpandedBodyHeight),
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-        layout.AddChild(_body);
-
-        _content = new VBoxContainer
-        {
-            Name = "SummaryContent",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _content.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-
-        // The gutter the vertical scrollbar draws over. It has to wrap the
-        // content rather than inset the ScrollContainer, because the bar is
-        // positioned against the viewport's right edge and follows any margin
-        // put there. See Tokens.ScrollGutter.
-        var gutter = new MarginContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        gutter.AddThemeConstantOverride("margin_right", Tokens.ScrollGutter);
-        gutter.AddChild(_content);
-        _body.AddChild(gutter);
-    }
+    /// <summary>
+    /// Folding the section hides its body. The scene keeps the
+    /// <c>Gutter</c> — the margin the vertical scrollbar draws over — inside
+    /// the scrolled content rather than insetting <c>SummaryBody</c> itself,
+    /// because the bar is positioned against the viewport's right edge and
+    /// would follow any margin put there. See <see cref="Tokens.ScrollGutter"/>.
+    /// </summary>
+    private void OnHeaderExpandedChanged(bool expanded) => _body.Visible = expanded;
 
     public override void _ExitTree()
     {
+        if (_header is not null) _header.ExpandedChanged -= OnHeaderExpandedChanged;
         if (_controller is not null)
         {
             _controller.WorldTickAdvanced -= OnStateChanged;
@@ -172,7 +148,7 @@ public partial class CitySummaryPanel : PanelContainer
             snapshot.Resources.Count.ToString(CultureInfo.InvariantCulture)));
         if (snapshot.Resources.Count == 0)
         {
-            _content.AddChild(EmptyLabel("ui.city_summary.no_resources"));
+            _content.AddChild(new HudEmptyState("ui.city_summary.no_resources"));
         }
         else
         {
@@ -195,7 +171,7 @@ public partial class CitySummaryPanel : PanelContainer
             snapshot.Projects.Count.ToString(CultureInfo.InvariantCulture)));
         if (snapshot.Projects.Count == 0)
         {
-            _content.AddChild(EmptyLabel("ui.city_summary.no_construction"));
+            _content.AddChild(new HudEmptyState("ui.city_summary.no_construction"));
         }
         else
         {
@@ -299,64 +275,23 @@ public partial class CitySummaryPanel : PanelContainer
 
     private void BuildIdentity(CityStatusSnapshot snapshot, string lineage)
     {
-        var identity = new HBoxContainer
-        {
-            Name = "CityIdentity",
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        identity.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        _content.AddChild(identity);
-        identity.AddChild(new TextureRect
-        {
-            Texture = ResourceLoader.Load<Texture2D>(IconPaths.Building),
-            StretchMode = TextureRect.StretchModeEnum.Keep,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            CustomMinimumSize = new Vector2(Tokens.IconInline, Tokens.IconInline),
-            SizeFlagsVertical = SizeFlags.ShrinkCenter,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Modulate = LineageThemeRegistry.IconAccent,
-            TooltipText = UiText.Format("ui.city_summary.founding_lineage", lineage),
-        });
-        var labels = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        labels.AddThemeConstantOverride("separation", 0);
-        identity.AddChild(labels);
-        labels.AddChild(new Label
-        {
-            Text = lineage,
-            ThemeTypeVariation = "HudHeader",
-            MouseFilter = MouseFilterEnum.Ignore,
-        });
         string population = snapshot.HousingCapacity > 0
             ? UiText.Format(
                 "ui.status.population_with_capacity",
                 snapshot.CitizenCount,
                 snapshot.HousingCapacity)
             : UiText.Format("ui.status.population", snapshot.CitizenCount);
-        labels.AddChild(new Label
+        _content.AddChild(new HudIdentityRow(
+            IconPaths.Building,
+            lineage,
+            population,
+            UiText.Format("ui.city_summary.founding_lineage", lineage))
         {
-            Text = population,
-            ThemeTypeVariation = "HudCaption",
-            MouseFilter = MouseFilterEnum.Ignore,
+            Name = "CityIdentity",
         });
     }
 
-    private void AddSeparator() => _content.AddChild(new HSeparator
-    {
-        ThemeTypeVariation = "HudSeparator",
-        MouseFilter = MouseFilterEnum.Ignore,
-    });
-
-    private static Label EmptyLabel(string key) => new()
-    {
-        Text = UiText.Get(key),
-        ThemeTypeVariation = "HudCaption",
-        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
+    private void AddSeparator() => _content.AddChild(new HudSeparator());
 
     private static string ResourceTooltip(ResourceInventoryItem resource)
     {

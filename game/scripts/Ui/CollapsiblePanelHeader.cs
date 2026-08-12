@@ -43,6 +43,19 @@ public partial class CollapsiblePanelHeader : Button
     private readonly TextureRect _chevron;
     private bool _expanded = true;
 
+    /// <summary>
+    /// Godot's entry point. A node authored into a <c>.tscn</c> is created
+    /// through the parameterless constructor and then has its exported
+    /// properties applied, so a header that only had the titled constructor
+    /// below could not be placed in a scene at all — which is why every panel
+    /// that wanted one had to build its shell in C#. The title is set from the
+    /// localisation catalogue at runtime either way, so there is nothing for
+    /// the scene to author here.
+    /// </summary>
+    public CollapsiblePanelHeader() : this(string.Empty)
+    {
+    }
+
     public CollapsiblePanelHeader(string title, bool expanded = true)
     {
         ThemeTypeVariation = "HudCollapsibleHeader";

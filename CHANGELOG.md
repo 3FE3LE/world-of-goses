@@ -17,6 +17,48 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Paneles A-class a `.tscn` y un control de velocidad que cabe en su celda
+
+**2026-08-12** · presentación · sin cambio de schema (v34)
+
+**El jugador gana un control de velocidad legible.** `SpeedButton` medía 36×24
+en un cluster de botones de 40×40, y dibujaba su estado apilando hasta cuatro
+copias del glyph de 24 px `play` en celdas de 8 px. `StretchMode.Keep` dibuja la
+fuente a su tamaño natural sea cual sea el rect que reciba —lo que
+`Tokens.IconInline` lleva documentando desde siempre—, así que las celdas
+pequeñas nunca encogieron nada: producían cuatro glyphs de 24 px desbordando un
+botón de 36 px, `ClipContents` cortaba lo que sobraba, y el centro óptico del
+grupo visible no tenía relación con el rect que el layout creía estar centrando.
+Ahora es un `IconButton` con la misma celda `Tokens.ControlHeight` que Camera y
+Menu y **un** glyph por estado, promovidos desde
+`art/Pixelarticons/svg/speed-{slow,medium,fast}.svg` — una familia de tres pasos
+que cabe nativa en 24 px. El ciclo 1× → 2× → 4× y sus tooltips no cambian.
+Cierra GitHub #16.
+
+**`CitySummaryPanel` compone su jerarquía estática en la escena.** Primer panel
+A-class migrado de los diez de GitHub #9:
+`game/scenes/Components/CitySummaryPanel.tscn` posee `Layout` → `Header` →
+`SummaryBody` → `Gutter` → `SummaryContent`, y `CityPrototype.tscn` lo
+**instancia**. Esa palabra es el intento anterior: se autoró la escena del
+componente mientras el padre seguía declarando un `PanelContainer` pelado con el
+script encima, así que en runtime el panel no tenía hijos, `GetNode("Layout/Header")`
+lanzaba y el boot moría con "Node not found" — sin que build ni tests dijeran
+nada, porque el C# compilaba y la escena parseaba. `PanelSceneMigrationTests`
+cierra esa clase entera: comprueba que el padre instancia la escena del
+componente y que **cada** `GetNode<T>("ruta")` del script nombra un nodo que la
+escena declara, leyendo los dos ficheros de texto y diciendo qué nodo falta.
+
+El script se queda con señales, `Refresh` y filas dirigidas por snapshot. Lo que
+antes construía a mano ahora son primitivas reutilizables en `Ui/`:
+`HudSeparator` (la regla de un píxel, con su variación de tema y sin comerse
+clicks), `HudEmptyState` (la frase de sección vacía, que envuelve en vez de
+truncar) y `HudIdentityRow` (icono + título + pie). `CollapsiblePanelHeader`
+gana un constructor sin parámetros: sin él ningún `.tscn` podía instanciarlo, que
+es la razón por la que cada panel con una sección plegable tenía que construir su
+shell en C#.
+
+---
+
 ## State Authority & Lifecycle Model: una verdad, un propietario — y una
 ## primera expedición que ya no puede matar la partida en silencio
 

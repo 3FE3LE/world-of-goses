@@ -26,7 +26,7 @@
 [ext_resource type="Script" uid="uid://d1hkrd20c0shp" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
 [ext_resource type="Script" uid="uid://b5f0ai5c71i6m" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
 [ext_resource type="Script" uid="uid://ca8rcb461dsjm" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
-[ext_resource type="Script" uid="uid://bn7ub8qd5jhd6" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
+[ext_resource type="PackedScene" path="res://scenes/Components/CitySummaryPanel.tscn" id="36_summary"]
 [ext_resource type="Script" uid="uid://b2cikgemjvsb2" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 [ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
 
@@ -242,7 +242,7 @@ grow_vertical = 0
 theme_type_variation = &"HudDock"
 script = ExtResource("35_actiondock")
 
-[node name="CitySummaryPanel" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=952075053]
+[node name="CitySummaryPanel" parent="GameUiShell/ScreenContent" unique_id=952075053 instance=ExtResource("36_summary")]
 visible = false
 layout_mode = 1
 offset_left = 8.0
@@ -250,7 +250,6 @@ offset_top = 8.0
 offset_right = 248.0
 offset_bottom = 8.0
 theme_type_variation = &"HudSurface"
-script = ExtResource("36_summary")
 
 [node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=215122816]
 visible = false

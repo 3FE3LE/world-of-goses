@@ -1,0 +1,37 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" uid="uid://bn7ub8qd5jhd6" path="res://scripts/CitySummaryPanel.cs" id="1_summary"]
+[ext_resource type="Script" uid="uid://cw1mplhubcunb" path="res://scripts/Ui/CollapsiblePanelHeader.cs" id="2_header"]
+
+[node name="CitySummaryPanel" type="PanelContainer"]
+visible = false
+theme_type_variation = &"HudSurface"
+script = ExtResource("1_summary")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="Header" type="Button" parent="Layout"]
+layout_mode = 2
+script = ExtResource("2_header")
+
+[node name="SummaryBody" type="ScrollContainer" parent="Layout"]
+custom_minimum_size = Vector2(0, 536)
+layout_mode = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+
+[node name="Gutter" type="MarginContainer" parent="Layout/SummaryBody"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/margin_right = 16
+
+[node name="SummaryContent" type="VBoxContainer" parent="Layout/SummaryBody/Gutter"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 4
