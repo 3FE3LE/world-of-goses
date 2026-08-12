@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -66,7 +66,7 @@ public sealed class WoundRecoveryTests
         Citizen hero = world.Hero!;
         WorldSave save = WorldPersistence.Capture(world);
 
-        CityWorld restored = CityWorld.FromSave(save);
+        CityWorld restored = WorldPersistence.FromSave(save);
         Citizen restoredHero = restored.GetCitizen(hero.Id)!;
 
         Assert.NotNull(restoredHero.Wound);
@@ -94,8 +94,8 @@ public sealed class WoundRecoveryTests
         seed.DepositFood(WoundRules.ModerateFoodCost);
         Assert.True(seed.TryBeginWoundRecovery(hero.Id).IsSuccess);
         WorldSave initial = WorldPersistence.Capture(seed);
-        CityWorld live = CityWorld.FromSave(initial);
-        CityWorld offline = CityWorld.FromSave(initial);
+        CityWorld live = WorldPersistence.FromSave(initial);
+        CityWorld offline = WorldPersistence.FromSave(initial);
 
         for (int tick = 0; tick < WoundRules.ModerateRecoveryTicks; tick++)
         {

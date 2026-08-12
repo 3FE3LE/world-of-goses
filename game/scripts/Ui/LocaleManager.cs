@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text.Json;
 using Godot;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 
 namespace WorldofGoses.Ui;
 

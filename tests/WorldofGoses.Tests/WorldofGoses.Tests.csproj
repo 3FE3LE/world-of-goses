@@ -20,7 +20,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Architecture Hardening A6: Persistence moved into its own
+      assembly. Tests that previously reached `WorldofGoses.Domain.Persistence`
+      through the Domain wildcard now need an explicit
+      ProjectReference to the new assembly.
+    -->
     <ProjectReference Include="..\..\game\World of Goses.csproj" />
+    <ProjectReference Include="..\..\src\WorldofGoses.Persistence\WorldofGoses.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

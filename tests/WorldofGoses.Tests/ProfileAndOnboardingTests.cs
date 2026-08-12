@@ -1,7 +1,7 @@
 #pragma warning disable CS0618 // Explicit coverage for the one-version legacy profile API.
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;

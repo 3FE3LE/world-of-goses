@@ -70,10 +70,13 @@ public sealed class ArchitectureBoundaryTests
 
     /// <summary>
     /// Presentation files that import or reference any type under the
-    /// <c>WorldofGoses.Domain.Persistence</c> namespace.
+    /// persistence namespace. Architecture Hardening A6 moved persistence
+    /// out of Domain into its own assembly (<c>WorldofGoses.Persistence</c>);
+    /// the rule tracks both the legacy and the new namespace so an unmigrated
+    /// import (the worst kind of debt) still trips the test.
     /// </summary>
     private static readonly Regex PersistenceReferencePattern = new(
-        @"\bWorldofGoses\.Domain\.Persistence\b|using\s+WorldofGoses\.Domain\.Persistence\b|\bWorldPersistence\b|\bWorldSave\b",
+        @"\bWorldofGoses\.Domain\.Persistence\b|using\s+WorldofGoses\.Domain\.Persistence\b|\bWorldofGoses\.Persistence\b|using\s+WorldofGoses\.Persistence\b|\bWorldPersistence\b|\bWorldSave\b",
         RegexOptions.CultureInvariant);
 
     /// <summary>
@@ -212,6 +215,7 @@ public sealed class ArchitectureBoundaryTests
     [Theory]
     [InlineData("WorldofGoses.Domain")]
     [InlineData("WorldofGoses.Application")]
+    [InlineData("WorldofGoses.Persistence")]
     public void EngineFreeProject_DoesNotReferenceGodot(string projectName)
     {
         string projectFile = Path.Combine(
@@ -231,6 +235,41 @@ public sealed class ArchitectureBoundaryTests
         Assert.DoesNotContain("Godot.NET.Sdk", project, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("GodotSharp", project, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Microsoft.NET.Sdk", project, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A6 closes the persistence leak: Domain
+    /// must not depend on Persistence. If a future refactor adds a
+    /// <c>ProjectReference</c> from the domain assembly back into the
+    /// persistence layer, the build fails here, before review.
+    ///
+    /// <para>The only allowed dependency direction between the two is
+    /// <c>Persistence → Domain</c>. Application, by spec, also stays
+    /// out of Persistence in this slice, and that rule is enforced by
+    /// a sibling test below.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("WorldofGoses.Domain")]
+    [InlineData("WorldofGoses.Application")]
+    public void Layer_DoesNotReferencePersistenceAssembly(string projectName)
+    {
+        string projectFile = Path.Combine(
+            FindRepositoryRoot(), "src", projectName, $"{projectName}.csproj");
+
+        Assert.True(File.Exists(projectFile), $"Project not found at '{projectFile}'.");
+
+        // XML comments are stripped first so prose explanations of the
+        // rule don't register as breaches of it.
+        string project = Regex.Replace(
+            File.ReadAllText(projectFile),
+            @"<!--.*?-->",
+            string.Empty,
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.DoesNotContain(
+            "WorldofGoses.Persistence.csproj",
+            project,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

@@ -289,7 +289,7 @@ touched — regardless of which domain owns the feature.
 - **Required skills:** `technical-foundation`
 - **Conditional skills:** the skill of every domain whose state is serialized
 - **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`
-- **Code:** `game/scripts/Domain/Persistence/WorldSave.cs` (`CurrentVersion`), `WorldPersistence.cs`, `IncompatibleSaveVersionException.cs`, and the `*Save.cs` DTOs
+- **Code:** `src/WorldofGoses.Persistence/WorldSave.cs` (`CurrentVersion`), `WorldPersistence.cs`, `IncompatibleSaveVersionException.cs`, and the `*Save.cs` DTOs
 - **Hard rule:** any new persisted field requires a version decision, round-trip tests, and a documented migration path.
 
 ### Offline progression

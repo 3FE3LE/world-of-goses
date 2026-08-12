@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -44,7 +44,7 @@ public sealed class ToolGatheringTests
         world.Resources.DepositToCityInventory(ResourceType.SmallStone, 1);
         Assert.True(world.TryCraftTool(ToolKind.PrimitiveAxe).IsSuccess);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         Assert.True(restored.HasTool(ToolKind.PrimitiveAxe));
         Assert.Equal(
@@ -64,7 +64,7 @@ public sealed class ToolGatheringTests
         Assert.Equal(28, migrated.Version);
         Assert.Empty(migrated.Tools);
         WorldPersistence.Validate(WorldPersistence.MigrateToCurrent(migrated));
-        Assert.False(CityWorld.FromSave(migrated).HasTool(ToolKind.PrimitiveAxe));
+        Assert.False(WorldPersistence.FromSave(migrated).HasTool(ToolKind.PrimitiveAxe));
     }
 
     [Fact]

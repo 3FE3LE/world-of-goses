@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -315,7 +315,7 @@ public class ConstructionTickTests
         var save = WorldPersistence.Capture(world);
         WorldPersistence.Validate(save);
         var json = WorldPersistence.SerializeToJson(save);
-        var restored = CityWorld.FromSave(
+        var restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(json));
         var restoredProject = FirstProject(restored);
         Assert.Equal(project.Progress, restoredProject.Progress);

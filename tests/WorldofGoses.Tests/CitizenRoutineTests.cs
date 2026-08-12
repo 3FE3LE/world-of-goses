@@ -1,5 +1,5 @@
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;

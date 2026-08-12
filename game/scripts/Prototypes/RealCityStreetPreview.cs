@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 
 namespace WorldofGoses.Prototypes;
 
@@ -80,7 +80,7 @@ public partial class RealCityStreetPreview : Node2D
         save = WorldPersistence.MigrateToCurrent(save);
         WorldPersistence.Validate(save);
         var world = new CityWorld();
-        world.Restore(save);
+        WorldPersistence.ApplyTo(world, save);
         CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
 
         AddPlots(snapshot.Buildings, isProject: false);

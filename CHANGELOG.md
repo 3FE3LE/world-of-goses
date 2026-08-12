@@ -17,6 +17,184 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## A7: IDs estables y contrato semántico de restore
+
+**2026-08-12** · arquitectura · sin cambio de schema · 1310 pruebas superadas
+y 1 omitida sobre 1311
+
+Lo que NO se nota, y es el grueso del trabajo: cada enum persistido
+del juego — `ResourceType`, `BuildingKind`, `ToolKind`, `FirstNightStage`,
+`ParcelTerritoryState`, `BuildingOrientation`, `ConstructionKind`,
+`CitizenOrigin`, `CitizenCommitmentKind`, `CitizenVitalStatus`,
+`CitizenLocation`, `WoundSeverity`, `ExpeditionStatus`, `ExpeditionPhase`,
+`ExpeditionEncounterOutcome`, `ExpeditionRetreatPosture`,
+`ExpeditionRewardKind`, `ResourceOpportunityKind`, `ResourceOpportunityState`,
+`CultivationPlotState`, `GenderId`, `ElementalAffinityId` y el resto de los
+combat/equipment IDs — tiene ahora un mapper explícito de IDs persistidos
+en `src/WorldofGoses.Persistence/Ids/`. Cada mapper expone dos
+operaciones: `ToId(value)` produce la cadena wire estable;
+`TryParse(id, out value)` la decodifica. Antes, cada uno de esos
+enums viajaba por la frontera Domain→JSON con un `Enum.ToString()`,
+lo cual significaba que renombrar `ResourceType.Wood` a
+`ResourceType.WoodLog` cambiaba silenciosamente el protocolo del
+save. Ahora ese cambio exige tocar el mapper (un solo punto) y, si
+no se actualiza el `TryParse` para aceptar el ID viejo, los saves
+históricos rompen en build, no en runtime.
+
+A7 también introduce el tipo `WorldRestoreState` en Domain — un
+contrato semántico, engine-free, que NO es el JSON schema. Es un
+record con `RestoredX` records anidados, todos con tipos del
+dominio (`BuildingKind`, `ResourceType`, etc.) en vez de strings. Es
+la puerta que A8 usará para que el applier deje de recibir
+`WorldSave` directamente: el pipeline será `WorldSave → WorldSaveMapper
+→ WorldRestoreState → CityWorld.ApplyRestoreState(state)`. Hoy el
+mapper existe como contrato (puede ser consumido por tests y por
+herramientas de migración), pero el applier sigue operando sobre
+`WorldSave` por compatibilidad con las ~680 líneas de A6. La
+introducción del mapper no rompe el ciclo: el wire ID del JSON sigue
+siendo byte-idéntico, lo verifican 96 contract tests nuevos.
+
+Los 96 contract tests de `StableSaveIdContractTests` congelan:
+- los IDs wire de cada valor persistido (`Theory` por enum family);
+- la parseabilidad inversa (que `TryParse(id)` rondea al valor original);
+- la regla de que ningún archivo del capture/restore pipeline
+  (`WorldPersistence.cs`, `WorldSaveApplier.cs`) puede contener un
+  `Enum.ToString()` directo sobre un enum persistido — un regex
+  busca el patrón y falla el build si lo encuentra. Eso es lo que
+  cazó cuatro regresiones durante el propio refactor (en
+  `ParcelTerritoryState.Available/Locked.ToString()` y
+  `ResourceOpportunityState.Available.ToString()`).
+
+Lo que el jugador NO nota: nada cambia. Carga de saves v34 sigue
+funcionando. Lo que el próximo implementador de un feature sí nota:
+si añade un nuevo enum persistido, tiene que crear su mapper (un
+archivo de ~30 líneas) antes de empezar a usarlo; si renombra un
+valor persistido, tiene que actualizar el mapper y (si no quiere
+romper saves viejos) añadir un paso de migración. El contrato es
+explícito en cada mapper y en el guardrail de tests.
+
+**Sin schema.** No hay migration; no cambia la persistencia. Los
+saves existentes cargan byte-idéntico.
+
+---
+
+## A6: Persistence sale de Domain
+
+**2026-08-12** · arquitectura · sin cambio de schema · 1214 pruebas superadas
+y 1 omitida sobre 1215
+
+Lo que NO se nota, y es el grueso del trabajo: la persistencia deja de
+vivir dentro de Domain. El nuevo assembly `src/WorldofGoses.Persistence`
+(`Microsoft.NET.Sdk`, sin Godot) absorbe los 27 DTOs `*Save.cs`,
+`WorldSave.cs` con su `CurrentVersion = 34`, `WorldPersistence.cs`
+con el serializador JSON, las migraciones v2→v34, la validación, el
+mapeador Capture/Restore y la lógica de slot atómico con `.bak`
+sidecar. El espacio de nombres pasa de `WorldofGoses.Domain.Persistence`
+a `WorldofGoses.Persistence`. Las fuentes se mudaron vía `git mv` desde
+`game/scripts/Domain/Persistence/` para preservar la historia; los
+companion `.uid` de Godot viajan con cada `.cs`.
+
+La flecha de dependencia permitida es la única posible:
+**Persistence → Domain**. Domain nunca referencia Persistence, lo cual
+queda blindado por
+`ArchitectureBoundaryTests.Layer_DoesNotReferencePersistenceAssembly`
+tanto para Domain como para Application (que tampoco debe empezar a
+depender de él en este slice). El guardrail previo
+`EngineFreeProject_DoesNotReferenceGodot` se extendió para cubrir
+también a Persistence: añadir `using Godot` ahí es un error de
+compilación, no un comentario de revisión. La migration path
+existente (v2→v34) corre byte-idéntica; los roundtrip tests cargan
+saves de cada versión sin cambio.
+
+El método público `CityWorld.Restore(WorldSave save)` no puede vivir
+en Domain ahora — Domain ya no ve `WorldSave`. La orquestación se
+mudó a `WorldSaveApplier.ApplyTo(CityWorld world, WorldSave save)` en
+Persistence, y `WorldPersistence.ApplyTo` / `WorldPersistence.FromSave`
+sirven como facade para no ensuciar cada call site. Para que el
+applier pueda poblar el mundo sin duplicar lógica,
+`CityWorld` expone por `internal` los campos y helpers que ya usaba
+la restore original (`_citizens`, `_buildings`, `_projects`,
+`RegisterBuilding`, `RegisterNaturalResourcePatch`, `EnsureFoundingParcels`,
+`MobiliseForDay`, `MobiliseForNight`, `NaturalResourceOccupiesFrontageCell`,
+`FindFirstAvailablePlacement`, `ResourcePositionIndex`,
+`SetPendingProspectForRestore`, `CreateMigrantProfile`,
+`ToExpeditionOutcome`). El csproj de Domain gana el exclude
+`**/Persistence/**` para que los archivos viejos no compilen dos
+veces durante el movimiento; el csproj de Game y el de Tests añaden
+`ProjectReference` a `WorldofGoses.Persistence`. La seam
+`InternalsVisibleTo("WorldofGoses.Persistence")` en Domain.asmInfo es
+lo que permite al appler ver esos internals sin filtrar la API
+pública.
+
+Lo que el jugador NO nota: nada cambia en pantalla, en el formato de
+save, en la velocidad de carga, ni en la semántica de ninguna
+migración. El mundo se serializa exactamente igual que antes; la
+v34 sigue siendo v34. Lo que el próximo implementador de un feature
+sí nota: ya no puede abrir un save DTO desde Domain sin que el build
+falle — el boundary `Domain → Persistence` está cerrado por test.
+
+**Sin schema.** No hay migration; no cambia la persistencia.
+
+---
+
+## A5-A: la capa Application deja de significar sólo "snapshots"
+
+**2026-08-12** · arquitectura · sin cambio de schema · 1211 pruebas superadas
+y 1 omitida sobre 1212
+
+Lo que NO se nota, y es el grueso del trabajo: `WorldofGoses.Application`
+deja de ser el cubo donde viven los read models y pasa a ser un ensamblado
+con dos responsabilidades. Sigue conteniendo los snapshots inmutables
+(`CityStatusSnapshot`, `ConstructionSnapshot`, `BuildingDetailSnapshot`,
+`CityMacroSnapshot`, etc., más `MacroStreetLiveViewState`/`MacroCitizenSnapshot`
+movidos a `game/scripts/Application/`), pero ahora también expone un único
+**facade de casos de uso engine-free**, `CityGameSession`. Cada método
+público del session es un caso de uso: autorizar construcción, asignar un
+ciudadano a un edificio o a un proyecto, cosechar un sitio de cultivo,
+fabricar una herramienta, despachar o cancelar una expedición, sembrar la
+primera noche, avanzar el reloj del mundo, sembrar los bosques iniciales.
+
+`CityWorldController` ya no orquesta esas operaciones directamente. Sigue
+siendo el dueño temporal de `CityWorld` (la persistencia aún recibe la
+instancia y será abordada en A6-A7), pero cada wrapper público que toca
+estado de juego delega en `_session.<Método>` y sólo después traduce el
+resultado a `EmitSignal(...)` y a `SaveNow()` cuando corresponde. Los
+resultados son los `*Result` que ya existían en el dominio
+(`AssignmentResult`, `ToolCraftResult`, `CultivationActionResult`,
+`ExpeditionStartResult`, `ConstructionAuthorizationResult`,
+`HeroCreationResult`, `HeroIncorporationResult`, `WoundRecoveryResult`).
+No se introdujo una nueva jerarquía de resultados; se reutilizaron los
+outcome types que ya describían cada modo de fallo posible.
+
+El session no expone `Execute(Action<CityWorld>)`, `GetWorld()` ni
+`WithWorld(...)`. El facade recibe el `CityWorld` por constructor (sin DI
+container, sin service locator, sin MediatR, sin `ICommandHandler<T>`) y
+todo el código de Presentation llega al dominio únicamente a través de sus
+métodos. Los únicos `_world.` que sobreviven en el controller son las
+costuras legítimas: la persistencia (`_world.Restore(...)`,
+`WorldPersistence.SaveToSlot(_world, ...)`), las suscripciones a eventos
+del dominio (`_world.BuildingChanged += ...`), los `internal` fixture
+seam para los visual regression (`SeedFixtureWorld`,
+`RestoreFixtureWorld`, `AdvanceWorldTickForFixture`, etc.), y los chequeos
+de validez de selección (`_world.GetBuilding(id) is null`).
+
+El guardrail nuevo es `UseCaseDelegationTests`. Lista cada método de caso
+de uso del controller y verifica que el cuerpo llama a
+`_session.<Nombre>`, no a `_world.<Nombre>`. Cuando se añada un comando de
+gameplay nuevo al controller sin pasar por el session, el build falla
+antes de llegar a revisión. No detecta arquitectura mediante nombres
+privados: enumera únicamente los wrappers públicos que ya sabemos que son
+casos de uso.
+
+Lo que el jugador NO nota: nada cambia en pantalla. Lo que el próximo
+implementador de un feature sí nota: ya no puede añadir un comando nuevo
+directamente al controller — tiene que crear el método correspondiente en
+`CityGameSession` y delegar.
+
+**Sin schema.** No hay migration; no cambia la persistencia.
+
+---
+
 ## A5: las capas dejan de ser una convención y pasan a ser ensamblados
 
 **2026-08-11** · arquitectura · sin cambio de schema · 1209 pruebas superadas

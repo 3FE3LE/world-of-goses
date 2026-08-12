@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using WorldofGoses.Prototypes;
 using Xunit;
 
@@ -160,7 +160,7 @@ public sealed class DynamicFrontageTests
             window);
         Assert.True(result.IsSuccess, result.Outcome.ToString());
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
         ParcelPlacement placement = restored.ParcelPlacements[result.ProjectId!.Value];
 
@@ -209,7 +209,7 @@ public sealed class DynamicFrontageTests
                 && candidate.StartColumn <= protectedColumn
                 && candidate.StartColumn + candidate.FrontageColumns > protectedColumn);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
         Assert.Equal(corridor, restored.CorridorReservations[corridor.Id]);
     }

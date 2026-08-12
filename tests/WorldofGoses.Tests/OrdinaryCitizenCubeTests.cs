@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -141,7 +141,7 @@ public sealed class OrdinaryCitizenCubeTests
         int seed = world.PendingProspect!.Seed;
         FounderCubeProfile cubeBefore = world.PendingProspect.Profile.CubeProfile;
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         Assert.Equal(seed, restored.PendingProspect!.Seed);

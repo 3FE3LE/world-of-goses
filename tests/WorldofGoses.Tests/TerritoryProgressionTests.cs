@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -72,7 +72,7 @@ public sealed class TerritoryProgressionTests
             world.Log.Events,
             evt => evt.Kind == WorldEventKind.TerritoryAdvanced);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
         Assert.Null(restored.NextTerritoryTarget);
         Assert.Equal(parcelsBefore, restored.Parcels.Count);
     }

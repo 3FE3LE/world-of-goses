@@ -1376,7 +1376,7 @@ public sealed class HudCompositionTests
         Assert.Contains("TryActivateSkill(index)", live, StringComparison.Ordinal);
         Assert.Contains("_controller.TryActivateMemberSkill(id, slotIndex)", live,
             StringComparison.Ordinal);
-        Assert.Contains("_world.TryActivateMemberSkill(expeditionId, slotIndex)", controller,
+        Assert.Contains("_session.TryActivateMemberSkill(expeditionId, slotIndex)", controller,
             StringComparison.Ordinal);
         Assert.Contains("if (changed) _hasUnsavedChanges = true;", controller,
             StringComparison.Ordinal);

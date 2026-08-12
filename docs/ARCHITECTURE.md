@@ -35,12 +35,24 @@ arrows are the only direction references are allowed to point:
 
 ```
   src/WorldofGoses.Domain          Microsoft.NET.Sdk · no GodotSharp
-  (game/scripts/Domain/)           the rules, the clock, the persistence
-          ▲                        format. BCL only.
+  (game/scripts/Domain/)           the rules, the clock. BCL only.
+          ▲                        ↑
+          │                        │  Persistence sees Domain internals
+          │                        │  through InternalsVisibleTo; the
+          │                        │  dependency arrow only goes one way.
+          │                        │
+  src/WorldofGoses.Persistence     Microsoft.NET.Sdk · no GodotSharp (A6)
+  (src/WorldofGoses.Persistence/)  the *Save DTOs, JSON, migrations,
+          ▲                        validation, mapper, atomic slot writes
+          │                        and .bak sidecar. Domain never references
+          │                        this assembly.
           │
   src/WorldofGoses.Application     Microsoft.NET.Sdk · no GodotSharp
-  (game/scripts/Application/)      the snapshots: read models that project
-          ▲                        domain state into what a view renders.
+  (game/scripts/Application/)      the use cases and the snapshots: read models
+          ▲                        that project domain state into what a view
+                                   renders, and the engine-free commands that
+                                   coordinate one or more domain operations
+                                   into a single player intent (A5).
           │
   game/World of Goses.csproj       Godot.NET.Sdk
   (everything else under           scenes, nodes, input, animation, audio,
@@ -182,6 +194,66 @@ Presentation and controllers continue calling `CityWorld`; collaborators are
 not service locators and are not exposed across the Godot boundary. Further
 extraction requires a concrete slice; the aggregate still intentionally owns
 resource topology, causal history, persistence restore, and orchestration.
+
+**A5 — Application facade.** A5 turns the Application assembly into the real
+use-case boundary between Godot and the domain. The single sealed class
+`CityGameSession` (in `game/scripts/Application/CityGameSession.cs`) is the
+only caller of `CityWorld` for gameplay commands and snapshot queries:
+construction authorisation, citizen assignment, production policy, expedition
+start/cancel/skill, cultivation, gathering, tool crafting, first-night
+dialogue, and the world tick itself. `CityWorldController` constructs one
+session per controller instance and reduces to a Godot adapter — input →
+session call → translate outcome → `EmitSignal`. The session is engine-free,
+owns no Godot types, returns the existing `*Result` types and immutable
+snapshots, and exposes no `Execute(Action<CityWorld>)`, `GetWorld()` or
+`WithWorld(...)` escape hatch. `CityWorld` ownership still lives on the
+controller for now; A6/A7 will move it into the session and remove the
+`internal CityWorld World => _world` test seam. `UseCaseDelegationTests`
+(the new A5 guardrail) lists every use-case method on the controller and
+asserts each one's body routes through `_session.<Name>`; a new command
+added directly to the controller fails the build before review.
+
+**A6 — Persistence extraction.** A6 moves persistence out of Domain and into
+its own engine-free assembly (`src/WorldofGoses.Persistence`). The single
+dependency arrow allowed between the two layers is `Persistence → Domain`;
+Domain never references Persistence, enforced by
+`ArchitectureBoundaryTests.Layer_DoesNotReferencePersistenceAssembly`.
+The `*Save` DTOs, `WorldSave` itself, `WorldPersistence`, the v2→v34
+migration chain, validation, and the JSON serializer all relocate. The
+restore orchestration that lived on `CityWorld.Restore(WorldSave)` moves
+to `WorldSaveApplier.ApplyTo(world, save)` in Persistence; `CityWorld`
+exposes the few internal fields and helpers (`_citizens`, `_buildings`,
+`RegisterBuilding`, `MobiliseForDay`, `ResourcePositionIndex`,
+`SetPendingProspectForRestore`, …) through `internal` so the applier
+can drive the world without duplicating logic. `WorldPersistence` stays
+as the public facade (A6 spec: "Mantener una facade WorldPersistence
+temporal si reduce el ruido de call sites") and `ArchitectureBoundaryTests`
+extends `EngineFreeProject_DoesNotReferenceGodot` to the new assembly. No
+JSON shape, schema version, migration semantic, or slot behaviour was
+touched; A6 is mechanical extraction. A7 inherits the controller's direct
+persistence seam and will move the slot/save orchestration into the
+`CityGameSession` facade.
+
+**A7 — Stable IDs and semantic restore contract.** A7 freezes the wire
+IDs of every persisted enum family so renaming a C# enum value does
+not silently change the save format. The pattern is one small static
+mapper per enum family under
+`src/WorldofGoses.Persistence/Ids/` (e.g. `BuildingKindSaveIds`,
+`ResourceTypeSaveIds`, `FirstNightStageSaveIds`). Every Capture and
+Restore site for a persisted enum now goes through its `*SaveIds.ToId`
+or `*SaveIds.TryParse`; the raw `Enum.ToString()` calls that used to
+drive persistence are gone. `StableSaveIdContractTests` (96 cases) freezes
+the wire strings of every persisted value and includes a source-text
+guardrail that fails the build if a future refactor reintroduces a raw
+`Enum.ToString()` call on a persisted enum.
+
+A7 also introduces the `WorldRestoreState` semantic type in Domain.
+Persistence owns the mapping between JSON-shaped `WorldSave` and that
+semantic state; the world-state contract is `WorldRestoreState` plus
+its `RestoredX` records (all domain-typed: `BuildingKind`, `ResourceType`,
+`ParcelTerritoryState`, etc.). Renaming a C# enum never reaches Domain
+through this path — only through the ID mapper in Persistence.
+
 
 Citizen responsibility is split between a durable player-authored
 `Citizen.WorkOrder` and the mutually-exclusive current `Citizen.Commitment`.

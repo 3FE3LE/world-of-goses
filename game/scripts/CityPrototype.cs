@@ -5,7 +5,7 @@ using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using WorldofGoses.Ui;
 using WorldofGoses.Prototypes;
 

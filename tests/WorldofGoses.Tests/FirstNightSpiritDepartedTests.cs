@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -58,7 +58,7 @@ public sealed class FirstNightSpiritDepartedTests
         Assert.True(world.TryCloseFirstNightDialogue());
 
         WorldSave captured = WorldPersistence.Capture(world);
-        CityWorld restored = CityWorld.FromSave(captured);
+        CityWorld restored = WorldPersistence.FromSave(captured);
 
         WorldEvent? spiritDeparted = restored.Log.Events
             .FirstOrDefault(evt => evt.Kind == WorldEventKind.SpiritDeparted);
@@ -78,7 +78,7 @@ public sealed class FirstNightSpiritDepartedTests
         Assert.DoesNotContain(
             save.Events,
             evt => string.Equals(evt.Kind, WorldEventKind.SpiritDeparted.ToString(), System.StringComparison.Ordinal));
-        CityWorld restored = CityWorld.FromSave(save);
+        CityWorld restored = WorldPersistence.FromSave(save);
         Assert.NotNull(restored);
     }
 

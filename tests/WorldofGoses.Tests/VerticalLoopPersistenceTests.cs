@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -106,7 +106,7 @@ public sealed class VerticalLoopPersistenceTests
         }
     }
 
-    private static CityWorld Reload(CityWorld world) => CityWorld.FromSave(
+    private static CityWorld Reload(CityWorld world) => WorldPersistence.FromSave(
         WorldPersistence.DeserializeFromJson(Snapshot(world)));
 
     private static string Snapshot(CityWorld world) =>

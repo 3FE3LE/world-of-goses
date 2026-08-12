@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -20,7 +20,7 @@ public sealed class VerticalSliceRepetitionTests
         Assert.Equal(ExpeditionStatus.Returned, first.Status);
         Assert.Null(first.TargetParcelId);
 
-        world = CityWorld.FromSave(WorldPersistence.Capture(world));
+        world = WorldPersistence.FromSave(WorldPersistence.Capture(world));
         Citizen founder = world.GetCitizen(founderId)!;
         int safety = GameClock.TicksPerInGameDay * 2;
         while (!founder.CanJoinExpedition && safety-- > 0)

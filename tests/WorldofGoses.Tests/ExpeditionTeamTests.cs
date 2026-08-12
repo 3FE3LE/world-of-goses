@@ -1,4 +1,5 @@
 using WorldofGoses.Domain;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -165,10 +166,10 @@ public class ExpeditionTeamTests
         IncorporateHeroes(world, memberA, memberB);
         world.StartExpedition(ExpeditionRequest.Reconnaissance(new[] { memberA, memberB }));
 
-        CityWorld restored = CityWorld.FromSave(
-            Domain.Persistence.WorldPersistence.DeserializeFromJson(
-                Domain.Persistence.WorldPersistence.SerializeToJson(
-                    Domain.Persistence.WorldPersistence.Capture(world))));
+        CityWorld restored = WorldPersistence.FromSave(
+            WorldPersistence.DeserializeFromJson(
+                WorldPersistence.SerializeToJson(
+                    WorldPersistence.Capture(world))));
 
         Expedition restoredExpedition = Assert.Single(restored.Expeditions.Values);
         Assert.Equal(new[] { memberA, memberB }, restoredExpedition.MemberIds);

@@ -10,5 +10,17 @@ using System.Runtime.CompilerServices;
 /// the domain's <em>public</em> API and nothing else; anything it genuinely
 /// needs is promoted with intent and a doc comment, which is how the six
 /// members the assembly split first caught were resolved.</para>
+///
+/// <para>
+/// Architecture Hardening A6 also grants <c>InternalsVisibleTo</c> to the
+/// <c>WorldofGoses.Persistence</c> assembly. The persistence layer lives
+/// outside Domain and may not have Domain types reference it, so the only
+/// way the mapper can call into domain helpers like
+/// <c>CitizenProfile.Restore</c> and
+/// <c>ExpeditionCombatSessionFactory.OpeningBaselineFor</c> is by reaching
+/// through the internal seam. The seam is still one-directional: Persistence
+/// may see Domain internals, but Domain never sees Persistence symbols.
+/// </para>
 /// </summary>
 [assembly: InternalsVisibleTo("WorldofGoses.Tests")]
+[assembly: InternalsVisibleTo("WorldofGoses.Persistence")]

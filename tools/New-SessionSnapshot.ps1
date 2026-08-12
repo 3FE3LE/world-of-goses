@@ -138,7 +138,12 @@ $workingTree = Invoke-Probe "git status" {
 # ---------------------------------------------------------------------------
 
 $schemaVersion = Invoke-Probe "save schema" {
-    $savePath = Join-Path $repoRoot "game\scripts\Domain\Persistence\WorldSave.cs"
+    $savePath = Join-Path $repoRoot "src\WorldofGoses.Persistence\WorldSave.cs"
+    if (-not (Test-Path $savePath)) {
+        # A6 relocated Persistence out of Domain; keep the legacy path as
+        # a fallback so the snapshot survives the move-in-progress.
+        $savePath = Join-Path $repoRoot "game\scripts\Domain\Persistence\WorldSave.cs"
+    }
     $match = Select-String -LiteralPath $savePath -Pattern "CurrentVersion\s*=\s*(\d+)" | Select-Object -First 1
     if (-not $match) { throw "CurrentVersion not found in WorldSave.cs" }
     "WorldSave.CurrentVersion = $($match.Matches[0].Groups[1].Value)"

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -60,7 +60,7 @@ public class HeroIncorporationTests
         var citizenId = new CitizenId(4);
         Assert.True(world.TryIncorporateHero(citizenId).IsSuccess);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         Assert.True(restored.GetCitizen(citizenId)!.IsHero);
         Assert.Equal(founder.Id, restored.Hero!.Id);

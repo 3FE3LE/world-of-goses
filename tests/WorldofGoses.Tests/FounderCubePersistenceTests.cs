@@ -1,7 +1,7 @@
 #pragma warning disable CS0618 // Explicit v29/v30 compatibility assertions for retained DTO fields.
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -48,14 +48,14 @@ public sealed class FounderCubePersistenceTests
         WorldSave loadedV28 = WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(V28FounderSave()));
         WorldSave migrated = WorldPersistence.MigrateToCurrent(loadedV28);
-        CityWorld restoredV28 = CityWorld.FromSave(migrated);
+        CityWorld restoredV28 = WorldPersistence.FromSave(migrated);
 
         FounderOnboardingResult fallback = restoredV28.Hero!.Profile.FounderOnboardingResult!;
         Assert.Empty(fallback.NarrativeMemory.AnswerIds);
         Assert.Equal(CubeScoring.ComputeCubeVertex(fallback.Lineage), fallback.CubeProfile);
 
         WorldSave savedV30 = WorldPersistence.Capture(restoredV28);
-        CityWorld restoredV30 = CityWorld.FromSave(
+        CityWorld restoredV30 = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(savedV30)));
 

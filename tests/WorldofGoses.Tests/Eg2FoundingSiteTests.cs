@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -93,7 +93,7 @@ public sealed class Eg2FoundingSiteTests
         Assert.Contains(FoundingSiteModule.Canopy, shelter.FoundingSiteOriginModules);
         Assert.Equal(FoundingSiteRules.ShelterCapacity, world.GroundResourceCapacity());
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
         Assert.Equal(4, restored.GetBuilding(siteId)!.FoundingSiteOriginModules.Count);
     }
 
@@ -110,7 +110,7 @@ public sealed class Eg2FoundingSiteTests
 
         WorldSave save = WorldPersistence.Capture(world);
         WorldPersistence.Validate(save);
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
         ConstructionProject restoredProject = restored.GetProject(project.Id)!;
 

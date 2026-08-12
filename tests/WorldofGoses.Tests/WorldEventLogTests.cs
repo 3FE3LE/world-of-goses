@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using WorldofGoses.Presentation;
 using Xunit;
 
@@ -142,7 +142,7 @@ public class WorldEventLogTests
         TestHelpers.AdvanceToNextProductionCycle(world);
         Assert.NotEmpty(world.Log.Events);
 
-        world.Restore(WorldPersistence.Capture(world));
+        WorldPersistence.ApplyTo(world, WorldPersistence.Capture(world));
 
         Assert.Empty(world.Log.Events);
     }

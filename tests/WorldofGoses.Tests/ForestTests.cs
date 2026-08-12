@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -45,7 +45,7 @@ public class ForestTests
             unitId: 2,
             amount: CityWorld.StartingTreeWoodReserve);
 
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(
                     WorldPersistence.Capture(world))));

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -58,7 +58,7 @@ public sealed class MigrateV32ToV33Tests
         founder.EquipmentLoadout!.Weapon = null;
 
         WorldSave migrated = WorldPersistence.MigrateToCurrent(v32);
-        CityWorld restored = CityWorld.FromSave(migrated);
+        CityWorld restored = WorldPersistence.FromSave(migrated);
         Assert.Null(restored.Hero!.EquipmentLoadout.Weapon);
 
         int remaining = restored.Expeditions[expeditionId].EndTick - restored.CurrentTick;
@@ -89,7 +89,7 @@ public sealed class MigrateV32ToV33Tests
         companionSave.CommitmentKind = CitizenCommitmentKind.Expedition.ToString();
         companionSave.CommitmentEntityId = legacy.Id;
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(v32));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(v32));
         int encounterTicks = (legacy.EndTick - legacy.StartTick) / 4;
         WorldTimeAdvance.Advance(restored, encounterTicks);
 
@@ -111,7 +111,7 @@ public sealed class MigrateV32ToV33Tests
         v32.Citizens.Single(citizen => citizen.Id == world.Hero!.Id.Value)
             .EquipmentLoadout!.Weapon = null;
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(v32));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(v32));
 
         Assert.Equal(0, restored.GetCombatSessionSnapshot(expeditionId)!.Step);
         restored.AdvanceWorldTick();
@@ -131,7 +131,7 @@ public sealed class MigrateV32ToV33Tests
         CitizenSave founder = v32.Citizens.Single(citizen => citizen.Id == world.Hero!.Id.Value);
         founder.EquipmentLoadout!.Weapon = null;
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(v32));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(v32));
         Assert.Null(restored.Hero!.EquipmentLoadout.Weapon);
         Assert.Null(restored.GetCombatSessionSnapshot(expeditionId));
 

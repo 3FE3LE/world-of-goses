@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
 
 namespace WorldofGoses.Domain;
 
@@ -24,31 +23,38 @@ public sealed class CityWorld
         "Inara", "Tovan", "Mirel", "Sada", "Orin", "Veya", "Cael", "Neris",
     };
 
-    private readonly Dictionary<CitizenId, Citizen> _citizens = new();
-    private readonly Dictionary<BuildingId, Building> _buildings = new();
-    private readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
-    private readonly Dictionary<BuildingId, CultivationSite> _cultivationSites = new();
-    private readonly Dictionary<ParcelId, CityParcel> _parcels = new();
-    private readonly Dictionary<int, NaturalResourcePatch> _naturalResourcePatches = new();
-    private readonly Dictionary<BuildingId, ParcelPlacement> _parcelPlacements = new();
-    private readonly Dictionary<int, CorridorReservation> _corridorReservations = new();
-    private readonly WorldEventLog _log = new();
-    private readonly CityInventory _inventory = new();
-    private readonly CityResourceLedger _resources;
+    // Architecture Hardening A6: these fields are `internal` (not
+    // `private`) so the persistence assembly can drive `Restore` from
+    // outside Domain. Domain does not depend on Persistence; Persistence
+    // reaches these fields through `InternalsVisibleTo`. The fields stay
+    // `readonly` for every collection that is conceptually append-only
+    // for ordinary gameplay; the persistence restore seam is the only
+    // operation that clears or replaces them.
+    internal readonly Dictionary<CitizenId, Citizen> _citizens = new();
+    internal readonly Dictionary<BuildingId, Building> _buildings = new();
+    internal readonly Dictionary<BuildingId, ConstructionProject> _projects = new();
+    internal readonly Dictionary<BuildingId, CultivationSite> _cultivationSites = new();
+    internal readonly Dictionary<ParcelId, CityParcel> _parcels = new();
+    internal readonly Dictionary<int, NaturalResourcePatch> _naturalResourcePatches = new();
+    internal readonly Dictionary<BuildingId, ParcelPlacement> _parcelPlacements = new();
+    internal readonly Dictionary<int, CorridorReservation> _corridorReservations = new();
+    internal readonly WorldEventLog _log = new();
+    internal readonly CityInventory _inventory = new();
+    internal readonly CityResourceLedger _resources;
     private readonly CitizenAssignmentService _assignments;
     private readonly BuildingProductionSimulation _production;
     private readonly ConstructionSimulation _construction;
-    private readonly Dictionary<ExpeditionId, Expedition> _expeditions = new();
-    private readonly Dictionary<ExpeditionId, CombatSession> _combatSessions = new();
-    private readonly Dictionary<ResourceOpportunityId, ResourceOpportunity>
+    internal readonly Dictionary<ExpeditionId, Expedition> _expeditions = new();
+    internal readonly Dictionary<ExpeditionId, CombatSession> _combatSessions = new();
+    internal readonly Dictionary<ResourceOpportunityId, ResourceOpportunity>
         _resourceOpportunities = new();
-    private readonly HashSet<ToolKind> _tools = new();
-    private FirstNightState? _firstNight;
-    private int _tick;
-    private int _nextProjectId = 1;
-    private int _nextExpeditionId = 1;
-    private int _nextCorridorReservationId = 1;
-    private readonly EarlyGameMetrics _metrics = new();
+    internal readonly HashSet<ToolKind> _tools = new();
+    internal FirstNightState? _firstNight;
+    internal int _tick;
+    internal int _nextProjectId = 1;
+    internal int _nextExpeditionId = 1;
+    internal int _nextCorridorReservationId = 1;
+    internal readonly EarlyGameMetrics _metrics = new();
 
     private static readonly CitizenId PrincipalHeroId = new(1);
 
@@ -83,6 +89,7 @@ public sealed class CityWorld
     public int CurrentTick => _tick;
     public IReadOnlyDictionary<CitizenId, Citizen> Citizens => _citizens;
     public CitizenProspect? PendingProspect { get; private set; }
+    internal void SetPendingProspectForRestore(CitizenProspect? prospect) => PendingProspect = prospect;
     public IReadOnlyDictionary<BuildingId, Building> Buildings => _buildings;
     public IReadOnlyDictionary<BuildingId, ConstructionProject> Projects => _projects;
     public IReadOnlyDictionary<BuildingId, CultivationSite> CultivationSites =>
@@ -735,7 +742,7 @@ public sealed class CityWorld
         return nextId;
     }
 
-    private static CitizenProfile CreateMigrantProfile(int seed)
+    internal static CitizenProfile CreateMigrantProfile(int seed)
     {
         LineageDefinition lineage =
             ProfileCatalog.Lineages[seed % ProfileCatalog.Lineages.Count];
@@ -1383,7 +1390,7 @@ public sealed class CityWorld
         return Math.Max(max, 200) + 1;
     }
 
-    private void EnsureFoundingParcels()
+    internal void EnsureFoundingParcels()
     {
         // A fresh terrarium starts as one readable horizontal strip. Three
         // parcels provide 81 frontage cells: enough for the founding resources,
@@ -1403,7 +1410,7 @@ public sealed class CityWorld
         }
     }
 
-    private void RegisterNaturalResourcePatch(NaturalResourcePatch patch)
+    internal void RegisterNaturalResourcePatch(NaturalResourcePatch patch)
     {
         if (!_parcels.TryGetValue(patch.ParcelId, out CityParcel? parcel))
         {
@@ -1442,7 +1449,7 @@ public sealed class CityWorld
         }
     }
 
-    private void RegisterParcelPlacement(ParcelPlacement placement)
+    internal void RegisterParcelPlacement(ParcelPlacement placement)
     {
         if (!_parcels.TryGetValue(placement.ParcelId, out CityParcel? parcel)
             || !parcel.IsUnlocked)
@@ -1488,7 +1495,7 @@ public sealed class CityWorld
         }
     }
 
-    private ParcelPlacement? FindFirstAvailablePlacement(
+    internal ParcelPlacement? FindFirstAvailablePlacement(
         BuildingId entityId,
         string footprintProfileId)
     {
@@ -1585,7 +1592,7 @@ public sealed class CityWorld
     public bool ReleaseCorridor(int reservationId) =>
         _corridorReservations.Remove(reservationId);
 
-    private void RegisterCorridorReservation(CorridorReservation reservation)
+    internal void RegisterCorridorReservation(CorridorReservation reservation)
     {
         for (int column = reservation.StartColumn;
              column < reservation.EndColumnExclusive;
@@ -1663,7 +1670,12 @@ public sealed class CityWorld
             footprintProfileId,
             BuildingOrientation.South);
 
-    private bool NaturalResourceOccupiesFrontageCell(
+    // Architecture Hardening A6: these private helpers are `internal`
+    // so the persistence assembly can replay a restore without
+    // duplicating the city's mobilisation and placement logic. Domain
+    // does not depend on Persistence; Persistence reaches them via
+    // InternalsVisibleTo. They remain hidden from Presentation.
+    internal bool NaturalResourceOccupiesFrontageCell(
         ConstructionRowId rowId,
         int frontageColumn)
     {
@@ -1769,7 +1781,7 @@ public sealed class CityWorld
     public CultivationSite? GetCultivationSite(BuildingId siteId) =>
         _cultivationSites.TryGetValue(siteId, out CultivationSite? site) ? site : null;
 
-    private void RegisterCultivationSite(CultivationSite site)
+    internal void RegisterCultivationSite(CultivationSite site)
     {
         ArgumentNullException.ThrowIfNull(site);
         if (_buildings.ContainsKey(site.Id) || _projects.ContainsKey(site.Id)
@@ -2319,7 +2331,7 @@ public sealed class CityWorld
     /// </summary>
     public event EventHandler<PatchChangedEventArgs>? PatchChanged;
 
-    private int ResourcePositionIndex(BuildingId forestId, int unitId)
+    internal int ResourcePositionIndex(BuildingId forestId, int unitId)
     {
         int positionIndex = 0;
         foreach (Building building in _buildings.Values)
@@ -3156,7 +3168,7 @@ public sealed class CityWorld
             new ExpeditionChangedEventArgs(expedition.Id, expedition.Status));
     }
 
-    private static ExpeditionEncounterOutcome ToExpeditionOutcome(CombatOutcome outcome) =>
+    internal static ExpeditionEncounterOutcome ToExpeditionOutcome(CombatOutcome outcome) =>
         outcome switch
         {
             CombatOutcome.PartyVictory => ExpeditionEncounterOutcome.FullSuccess,
@@ -3649,7 +3661,7 @@ public sealed class CityWorld
     /// leave their production building to rest; idle citizens stay
     /// at home (they never left). Called on the day→night boundary.
     /// </summary>
-    private void MobiliseForNight()
+    internal void MobiliseForNight()
     {
         foreach (var citizen in _citizens.Values)
         {
@@ -3670,7 +3682,7 @@ public sealed class CityWorld
     /// unassigned citizens stay at home. Called on the night→day
     /// boundary.
     /// </summary>
-    private void MobiliseForDay()
+    internal void MobiliseForDay()
     {
         foreach (var citizen in _citizens.Values)
         {
@@ -4446,740 +4458,6 @@ public sealed class CityWorld
             }
         }
         return BuildingProductionCalculator.ProductionPerTick(presentWorkers, building);
-    }
-
-    private static CitizenCommitment RestoreCitizenCommitment(
-        WorldSave save,
-        CitizenSave citizen)
-    {
-        if (!string.IsNullOrWhiteSpace(citizen.CommitmentKind)
-            && Enum.TryParse(
-                citizen.CommitmentKind,
-                ignoreCase: true,
-                out CitizenCommitmentKind explicitKind))
-        {
-            return new CitizenCommitment(explicitKind, citizen.CommitmentEntityId);
-        }
-
-        if (citizen.CurrentAssignment is int assignmentId)
-        {
-            CitizenCommitmentKind kind = save.Projects.Any(project => project.Id == assignmentId)
-                ? CitizenCommitmentKind.Construction
-                : CitizenCommitmentKind.BuildingWork;
-            return new CitizenCommitment(kind, assignmentId);
-        }
-
-        ExpeditionSave? activeExpedition = save.Expeditions.FirstOrDefault(expedition =>
-            expedition.MemberCitizenIds.Contains(citizen.Id)
-            && Enum.TryParse(expedition.Status, true, out ExpeditionStatus status)
-            && status == ExpeditionStatus.Active);
-        return activeExpedition is null
-            ? CitizenCommitment.None
-            : new CitizenCommitment(
-                CitizenCommitmentKind.Expedition,
-                activeExpedition.Id);
-    }
-
-    private static CitizenWorkOrder? RestoreCitizenWorkOrder(
-        WorldSave save,
-        CitizenSave citizen)
-    {
-        if (!string.IsNullOrWhiteSpace(citizen.WorkOrderKind)
-            && citizen.WorkOrderEntityId is int explicitEntityId
-            && Enum.TryParse(
-                citizen.WorkOrderKind,
-                ignoreCase: true,
-                out CitizenCommitmentKind explicitKind)
-            && explicitKind is CitizenCommitmentKind.BuildingWork
-                or CitizenCommitmentKind.Construction)
-        {
-            return new CitizenWorkOrder(explicitKind, new BuildingId(explicitEntityId));
-        }
-        if (citizen.CurrentAssignment is not int assignmentId) return null;
-        CitizenCommitmentKind inferredKind = save.Projects.Any(project => project.Id == assignmentId)
-            ? CitizenCommitmentKind.Construction
-            : CitizenCommitmentKind.BuildingWork;
-        return new CitizenWorkOrder(inferredKind, new BuildingId(assignmentId));
-    }
-
-    /// <summary>
-    /// Replaces this world's contents with the contents of
-    /// <paramref name="save"/>. Used by the persistence layer when
-    /// auto-loading on launch.
-    /// </summary>
-    public void Restore(WorldSave save)
-    {
-        WorldPersistence.Validate(save);
-        // Replay validation depends on reconstructed citizens and combatants.
-        // Run the complete rehydration on an isolated candidate first so any
-        // deterministic mismatch fails before this live world is cleared.
-        var preflight = new CityWorld();
-        preflight.RestoreValidated(save);
-        RestoreValidated(save);
-    }
-
-    private void RestoreValidated(WorldSave save)
-    {
-        // Restoring re-deposits every stored resource through the ledger.
-        // Without this the load itself would be booked as gathering, and the
-        // figures would grow with every relaunch — exactly the behaviour the
-        // EG-0 report cannot tolerate, since the playtest of EG-1+ depends on
-        // the metric being accurate across sessions.
-        _resources.ObserveFlows(null);
-        _citizens.Clear();
-        _buildings.Clear();
-        _projects.Clear();
-        _cultivationSites.Clear();
-        _parcels.Clear();
-        _naturalResourcePatches.Clear();
-        _parcelPlacements.Clear();
-        _corridorReservations.Clear();
-        _resourceOpportunities.Clear();
-        _log.Clear();
-        _resources.ClearReservations();
-        _nextProjectId = 1;
-        _nextCorridorReservationId = 1;
-        _tick = save.CurrentTick;
-
-        foreach (ParcelSave parcel in save.Parcels)
-        {
-            var restoredParcel = new CityParcel(
-                new ParcelId(parcel.Id),
-                parcel.LogicalColumn,
-                parcel.LogicalRow,
-                Enum.TryParse(
-                    parcel.TerritoryState,
-                    ignoreCase: true,
-                    out ParcelTerritoryState territoryState)
-                        ? territoryState
-                        : parcel.IsUnlocked
-                            ? ParcelTerritoryState.Available
-                            : ParcelTerritoryState.Locked);
-            _parcels.Add(restoredParcel.Id, restoredParcel);
-        }
-
-        foreach (var bs in save.Buildings)
-        {
-            var kind = Enum.TryParse<BuildingKind>(bs.Kind, ignoreCase: true, out var parsed)
-                ? parsed
-                : BuildingKind.Quarry;
-            var resource = Enum.TryParse<ResourceType>(bs.ProducedResourceType, ignoreCase: true, out var pres)
-                ? pres
-                : ResourceType.Stone;
-            var competency = string.IsNullOrEmpty(bs.ProducedCompetencyId)
-                ? CompetencyId.Mining
-                : new CompetencyId(bs.ProducedCompetencyId);
-
-            int balancedStorageCapacity = save.EconomicBalanceVersion == 0
-                ? kind switch
-                {
-                    BuildingKind.Farm => Math.Max(bs.StorageCapacity, CityEconomyRules.FarmStorageCapacity),
-                    BuildingKind.Quarry => Math.Max(bs.StorageCapacity, CityEconomyRules.QuarryStorageCapacity),
-                    _ => bs.StorageCapacity,
-                }
-                : bs.StorageCapacity;
-            int balancedBaseProduction = save.EconomicBalanceVersion == 0
-                && kind == BuildingKind.Quarry
-                ? Math.Min(bs.BaseProductionPerWorker, 1)
-                : bs.BaseProductionPerWorker;
-            var building = new Building(
-                id: new BuildingId(bs.Id),
-                displayName: bs.DisplayName,
-                kind: kind,
-                producedResourceType: resource,
-                producedCompetencyId: competency,
-                workerCapacity: bs.WorkerCapacity,
-                visualCapacity: bs.VisualCapacity,
-                baseProductionPerWorker: balancedBaseProduction,
-                storageCapacity: balancedStorageCapacity,
-                resourceLabel: string.IsNullOrEmpty(bs.ResourceLabel) ? "Resource" : bs.ResourceLabel,
-                resourceUnit: string.IsNullOrEmpty(bs.ResourceUnit) ? "units" : bs.ResourceUnit,
-                initialStock: bs.Stock,
-                productionEnabled: bs.ProductionEnabled);
-            // v3 fields default to (0, StorageCapacity, 0) for v2 saves
-            // that predate the policy triplet. A legacy TargetStock is
-            // treated as MaxStock so old saves behave identically.
-            int savedMaxStock = bs.MaxStock ?? bs.TargetStock ?? bs.StorageCapacity;
-            int maxStock = savedMaxStock == bs.StorageCapacity
-                ? balancedStorageCapacity
-                : savedMaxStock;
-            int minStock = bs.MinStock ?? 0;
-            int priority = bs.Priority ?? 0;
-            building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock, priority);
-
-            // Old saves predate the wood-gathering slice and have no
-            // WoodReserve field; for Forest plots, seed them with
-            // the starting reserve so the saving doesn't auto-demolish
-            // them on the first tick. Fresh worlds (already carrying
-            // a WoodReserve) preserve their state.
-            if (kind == BuildingKind.Forest && bs.WoodUnitReserves is { Count: > 0 })
-            {
-                building.RestoreWoodUnits(bs.WoodUnitReserves);
-            }
-            else if (kind == BuildingKind.Forest && bs.WoodReserve is null)
-            {
-                building.SeedWoodReserve(StartingForestWoodReserve);
-                if (bs.WorkerCapacity == 0)
-                {
-                    // Old saves serialised Forest with capacity 0 (a
-                    // marker for "non-productive in v2"). Re-apply the
-                    // v4 defaults so the player can assign workers.
-                    building.ReplaceForestCapacity(
-                        workerCapacity: 2,
-                        visualCapacity: 2,
-                        baseProductionPerWorker: 1);
-                }
-            }
-            else
-            {
-                building.SeedWoodReserve(bs.WoodReserve ?? 0);
-            }
-            building.DepositIron(bs.IronStock);
-            if (bs.FoundingSiteOriginModules is { Count: > 0 })
-            {
-                var originModules = new List<FoundingSiteModule>();
-                foreach (string savedModule in bs.FoundingSiteOriginModules)
-                {
-                    if (Enum.TryParse(savedModule, ignoreCase: true, out FoundingSiteModule module))
-                    {
-                        originModules.Add(module);
-                    }
-                }
-                building.RestoreFoundingSiteOriginModules(originModules);
-            }
-
-            RegisterBuilding(building, placeIfMissing: false);
-
-            foreach (var cid in bs.AssignedCitizenIds)
-            {
-                // Building.TryAssign is internal — same-assembly access.
-                building.TryAssign(new CitizenId(cid));
-            }
-        }
-
-        foreach (NaturalResourcePatchSave patch in save.NaturalResourcePatches)
-        {
-            ResourceType type = Enum.TryParse(
-                patch.ResourceType,
-                ignoreCase: true,
-                out ResourceType parsedType)
-                ? parsedType
-                : ResourceType.Wood;
-            RegisterNaturalResourcePatch(new NaturalResourcePatch(
-                patch.Id,
-                new ParcelId(patch.ParcelId),
-                type,
-                patch.UnitReserves,
-                patch.LegacyStorageBuildingId.HasValue
-                    ? new BuildingId(patch.LegacyStorageBuildingId.Value)
-                    : null,
-                patch.UnitPositions.Select(position =>
-                    new NaturalResourceUnitPosition(
-                        position.RowWithinParcel,
-                        position.FrontageColumnWithinParcel))));
-        }
-        EnsureFoundingParcels();
-
-        foreach (var cs in save.Citizens)
-        {
-            // Old saves (no StaminaMax) restore to full stamina;
-            // new saves (StaminaMax present) restore the saved current.
-            int? maxStamina = cs.StaminaMax;
-            int? initialStamina = maxStamina.HasValue ? cs.StaminaCurrent : (int?)null;
-            CitizenProfile restoredProfile = WorldPersistence.RestoreProfile(cs.Profile!);
-            EquipmentLoadout restoredLoadout = WorldPersistence.RestoreEquipmentLoadout(cs.EquipmentLoadout);
-            CurrentHealthAndCondition? restoredHealth = cs.CurrentHealthAndCondition switch
-            {
-                null => null,
-                { CurrentHealth: null, ConditionFactor: null } => CurrentHealthAndCondition.Unresolved,
-                { CurrentHealth: double health, ConditionFactor: double factor } =>
-                    new CurrentHealthAndCondition(health, factor),
-                _ => throw new InvalidOperationException(
-                    $"Citizen {cs.Id}: health and condition must both be present or both be unresolved."),
-            };
-            IEnumerable<CompetencyProgress> restoredWeaponCompetencies =
-                (cs.WeaponCompetencies ?? new List<WeaponCompetencySave>()).Select(entry =>
-                    new CompetencyProgress(
-                        Enum.Parse<WeaponFamily>(entry.Family, ignoreCase: true),
-                        entry.Level,
-                        entry.Experience));
-            var citizen = new Citizen(
-                new CitizenId(cs.Id),
-                cs.Name,
-                cs.AppearanceSeed,
-                profile: restoredProfile,
-                initialStamina: initialStamina,
-                maxStamina: maxStamina,
-                initialWellFedTicks: cs.WellFedRemainingTicks,
-                appearanceVariant: string.IsNullOrEmpty(cs.AppearanceVariant)
-                    ? (AppearanceVariantId?)null
-                    : new AppearanceVariantId(cs.AppearanceVariant),
-                origin: Enum.TryParse(
-                    cs.Origin,
-                    ignoreCase: true,
-                    out CitizenOrigin origin)
-                        ? origin
-                        : cs.Roles.Any(role => role.Id == RoleId.Hero.Value)
-                            ? CitizenOrigin.AstralFounder
-                        : CitizenOrigin.Mortal,
-                equipmentLoadout: restoredLoadout,
-                currentHealthAndCondition: restoredHealth,
-                weaponCompetencies: restoredWeaponCompetencies);
-            CitizenCommitment commitment = RestoreCitizenCommitment(save, cs);
-            CitizenVitalStatus vitalStatus = Enum.TryParse(
-                cs.VitalStatus,
-                ignoreCase: true,
-                out CitizenVitalStatus restoredVitalStatus)
-                    ? restoredVitalStatus
-                    : CitizenVitalStatus.Stable;
-            citizen.RestoreCommitment(
-                commitment,
-                RestoreCitizenWorkOrder(save, cs),
-                vitalStatus,
-                cs.ResumeWorkNotBeforeTick);
-            if (!string.IsNullOrWhiteSpace(cs.WoundSeverity)
-                && cs.WoundOriginatingEventId is int woundEventId
-                && Enum.TryParse(
-                    cs.WoundSeverity,
-                    ignoreCase: true,
-                    out WoundSeverity woundSeverity))
-            {
-                citizen.RestoreWound(new CitizenWound(
-                    woundSeverity,
-                    new WorldEventId(woundEventId),
-                    cs.WoundRecoveryTicksRemaining));
-            }
-            if (cs.LastVisitedResourceBuildingId.HasValue
-                && cs.LastVisitedResourceUnitId.HasValue)
-            {
-                citizen.VisitResource(
-                    new BuildingId(cs.LastVisitedResourceBuildingId.Value),
-                    cs.LastVisitedResourceUnitId.Value,
-                    cs.LastVisitedResourcePositionIndex
-                        ?? ResourcePositionIndex(
-                            new BuildingId(cs.LastVisitedResourceBuildingId.Value),
-                            cs.LastVisitedResourceUnitId.Value));
-            }
-            else if (cs.LastVisitedResourcePatchId.HasValue
-                && cs.LastVisitedResourceUnitId.HasValue
-                && cs.LastVisitedResourcePositionIndex.HasValue)
-            {
-                citizen.VisitResource(
-                    cs.LastVisitedResourcePatchId.Value,
-                    cs.LastVisitedResourceUnitId.Value,
-                    cs.LastVisitedResourcePositionIndex.Value);
-            }
-
-            foreach (var entry in cs.Competencies)
-            {
-                citizen.AddExperience(new CompetencyId(entry.Id), entry.Experience);
-            }
-
-            foreach (var role in cs.Roles)
-            {
-                citizen.GrantRole(new RoleId(role.Id), role.GrantedAtTick);
-            }
-
-            RegisterCitizen(citizen);
-        }
-
-        if (save.Projects is { Count: > 0 })
-        {
-            foreach (var ps in save.Projects)
-            {
-                var kind = Enum.TryParse<ConstructionKind>(ps.Kind, ignoreCase: true, out var parsed)
-                    ? parsed
-                    : ConstructionKind.BasicShelter;
-                var project = new ConstructionProject(
-                    id: new BuildingId(ps.Id),
-                    kind: kind,
-                    displayName: string.IsNullOrEmpty(ps.DisplayName) ? "Basic Shelter" : ps.DisplayName,
-                    requiredWork: ps.RequiredWork,
-                    workerCapacity: ps.WorkerCapacity,
-                    enabled: ps.Enabled)
-                {
-                    Progress = ps.Progress,
-                    StopCause = ConstructionStopCause.Paused,
-                };
-                // Restore material drawdown state. v2 saves without
-                // these fields default to "fully spent" (empty) — the
-                // resumed project simply runs without any per-interval
-                // drawdown, which matches the pre-v3 behaviour exactly.
-                var remaining = new List<RecipeInput>();
-                if (ps.RemainingInputs is { Count: > 0 })
-                {
-                    foreach (var pair in ps.RemainingInputs)
-                    {
-                        if (Enum.TryParse<ResourceType>(pair.Key, ignoreCase: true, out var res)
-                            && pair.Value > 0)
-                        {
-                            remaining.Add(new RecipeInput(res, pair.Value));
-                        }
-                    }
-                }
-                project.SetRemainingInputs(remaining);
-                var deposited = new List<RecipeInput>();
-                if (ps.DepositedInputs is { Count: > 0 })
-                {
-                    foreach (var pair in ps.DepositedInputs)
-                    {
-                        if (Enum.TryParse(pair.Key, ignoreCase: true, out ResourceType resource)
-                            && pair.Value > 0)
-                        {
-                            deposited.Add(new RecipeInput(resource, pair.Value));
-                        }
-                    }
-                }
-                var completedModules = new List<FoundingSiteModule>();
-                if (ps.CompletedFoundingModules is { Count: > 0 })
-                {
-                    foreach (string savedModule in ps.CompletedFoundingModules)
-                    {
-                        if (Enum.TryParse(savedModule, ignoreCase: true, out FoundingSiteModule module))
-                        {
-                            completedModules.Add(module);
-                        }
-                    }
-                }
-                FoundingSiteModule? activeModule = Enum.TryParse(
-                    ps.ActiveFoundingModule,
-                    ignoreCase: true,
-                    out FoundingSiteModule parsedModule)
-                        ? parsedModule
-                        : null;
-                project.RestoreFoundingState(
-                    activeModule,
-                    completedModules,
-                    ps.PhaseStartedAtTick,
-                    deposited);
-                RegisterProject(project);
-                foreach (var cid in ps.AssignedCitizenIds)
-                {
-                    project.TryAssign(new CitizenId(cid));
-                }
-                if (ps.Id >= _nextProjectId) _nextProjectId = ps.Id + 1;
-            }
-        }
-
-        foreach (CultivationSiteSave savedSite in save.CultivationSites)
-        {
-            _ = Enum.TryParse(
-                savedSite.State,
-                ignoreCase: true,
-                out CultivationPlotState state);
-            RegisterCultivationSite(new CultivationSite(
-                new BuildingId(savedSite.Id),
-                state,
-                savedSite.PlantedTick,
-                savedSite.ReadyAtTick));
-            if (savedSite.Id >= _nextProjectId) _nextProjectId = savedSite.Id + 1;
-        }
-
-        foreach (CorridorReservationSave corridor in save.CorridorReservations)
-        {
-            RegisterCorridorReservation(new CorridorReservation(
-                corridor.Id,
-                new ConstructionRowId(corridor.RowId),
-                corridor.StartColumn,
-                corridor.FrontageColumns));
-        }
-
-        foreach (ParcelPlacementSave placement in save.ParcelPlacements)
-        {
-            BuildingOrientation orientation = Enum.TryParse(
-                placement.Orientation,
-                ignoreCase: true,
-                out BuildingOrientation parsedOrientation)
-                ? parsedOrientation
-                : BuildingOrientation.South;
-            var restoredPlacement = new ParcelPlacement(
-                new BuildingId(placement.EntityId),
-                new ParcelId(placement.ParcelId),
-                new ConstructionRowId(placement.RowId),
-                placement.StartColumn,
-                placement.FrontageColumns,
-                placement.DepthRows,
-                placement.BaseFrontageColumns,
-                placement.LeftExpansionColumns,
-                placement.RightExpansionColumns,
-                placement.LotColumn,
-                placement.LotRow,
-                placement.LotWidth,
-                placement.LotHeight,
-                placement.FootprintProfileId,
-                orientation);
-            bool overlapsResource = false;
-            for (int column = restoredPlacement.StartColumn;
-                 column < restoredPlacement.StartColumn + restoredPlacement.FrontageColumns;
-                 column++)
-            {
-                if (!NaturalResourceOccupiesFrontageCell(restoredPlacement.RowId, column)) continue;
-                overlapsResource = true;
-                break;
-            }
-            if (overlapsResource)
-            {
-                restoredPlacement = FindFirstAvailablePlacement(
-                    restoredPlacement.EntityId,
-                    restoredPlacement.FootprintProfileId)
-                    ?? throw new InvalidOperationException(
-                        $"No resource-free parcel lot is available for entity "
-                        + $"{restoredPlacement.EntityId.Value}.");
-            }
-            RegisterParcelPlacement(restoredPlacement);
-        }
-
-        // Citizens are constructed with CurrentLocation = AtHome
-        // (the default). If the saved tick is mid-cycle — neither
-        // exactly at a sunrise nor a sunset — the next mobilisation
-        // wouldn't fire until the clock crosses the boundary, leaving
-        // everyone visibly at home even though the time-of-day is
-        // daytime. Seed the initial location from the saved tick so
-        // the visualisation matches reality from the very first frame.
-        if (GameClock.IsDaytime(_tick))
-        {
-            MobiliseForDay();
-        }
-        else
-        {
-            MobiliseForNight();
-        }
-        foreach (CitizenSave savedCitizen in save.Citizens)
-        {
-            if (string.IsNullOrWhiteSpace(savedCitizen.CurrentLocation)
-                || !_citizens.TryGetValue(new CitizenId(savedCitizen.Id), out Citizen? citizen)
-                || !Enum.TryParse(
-                    savedCitizen.CurrentLocation,
-                    ignoreCase: true,
-                    out CitizenLocation savedLocation))
-            {
-                continue;
-            }
-            if (savedLocation == CitizenLocation.InTransit)
-            {
-                if (savedCitizen.IsReturningHome)
-                {
-                    citizen.BeginTravelHome(savedCitizen.TransitStartedAtTick ?? _tick);
-                }
-                else
-                {
-                    citizen.BeginTravelToAssignment(savedCitizen.TransitStartedAtTick ?? _tick);
-                }
-            }
-            else
-            {
-                citizen.SetLocation(savedLocation);
-            }
-        }
-
-        var restoredEvents = new List<WorldEvent>(save.Events.Count);
-        foreach (var evt in save.Events)
-        {
-            _ = Enum.TryParse(evt.Kind, ignoreCase: true, out WorldEventKind kind);
-            _ = Enum.TryParse(evt.SubjectKind, ignoreCase: true, out WorldEventSubjectKind subjectKind);
-            restoredEvents.Add(new WorldEvent(
-                new WorldEventId(evt.Id),
-                evt.Tick,
-                kind,
-                new WorldEventSubject(subjectKind, evt.SubjectEntityId, evt.SubjectDisplayName),
-                evt.Amount,
-                evt.CauseEventId is int causeId ? new WorldEventId(causeId) : null));
-        }
-        _log.Restore(restoredEvents);
-
-        var restoredReservations = new List<ResourceReservation>(save.ResourceReservations.Count);
-        foreach (var reservation in save.ResourceReservations)
-        {
-            _ = Enum.TryParse(reservation.Resource, ignoreCase: true, out ResourceType resource);
-            _ = Enum.TryParse(reservation.OwnerKind, ignoreCase: true,
-                out ResourceReservationOwnerKind ownerKind);
-            restoredReservations.Add(new ResourceReservation(
-                new ResourceReservationId(reservation.Id),
-                resource,
-                reservation.Amount,
-                new ResourceReservationOwner(ownerKind, reservation.OwnerEntityId)));
-        }
-        _resources.RestoreReservations(restoredReservations);
-        var restoredInventory = new Dictionary<ResourceType, int>();
-        foreach ((string key, int amount) in save.CityInventory)
-        {
-            _ = Enum.TryParse(key, ignoreCase: true, out ResourceType resource);
-            restoredInventory[resource] = amount;
-        }
-        _inventory.Restore(restoredInventory);
-        _tools.Clear();
-        foreach (string savedTool in save.Tools)
-        {
-            if (Enum.TryParse(savedTool, true, out ToolKind tool)) _tools.Add(tool);
-        }
-
-        // Validate() has already rejected an unparseable stage or an
-        // inconsistent concluding tick, so this only has to reconstruct.
-        _firstNight = save.FirstNight is { } savedNight
-            && Enum.TryParse(savedNight.Stage, true, out FirstNightStage savedStage)
-            ? new FirstNightState(
-                savedStage,
-                savedNight.CurrentDialogueNodeId,
-                savedNight.StartedAtTick,
-                savedNight.ConcludedAtTick)
-            : null;
-
-        foreach (ResourceOpportunitySave opportunity in save.ResourceOpportunities)
-        {
-            _ = Enum.TryParse(
-                opportunity.Kind,
-                true,
-                out ResourceOpportunityKind kind);
-            _ = Enum.TryParse(
-                opportunity.State,
-                true,
-                out ResourceOpportunityState state);
-            var id = new ResourceOpportunityId(opportunity.Id);
-            _resourceOpportunities.Add(
-                id,
-                new ResourceOpportunity(
-                    id,
-                    kind,
-                    state,
-                    opportunity.ReservedByExpeditionId is int expeditionId
-                        ? new ExpeditionId(expeditionId)
-                        : null));
-        }
-
-        _expeditions.Clear();
-        _combatSessions.Clear();
-        _nextExpeditionId = 1;
-        foreach (ExpeditionSave expedition in save.Expeditions)
-        {
-            ExpeditionSupplyRequirement supplyRequirement =
-                expedition.SupplyAmount > 0
-                && Enum.TryParse(expedition.SupplyResource, true, out ResourceType supply)
-                    ? ExpeditionSupplyRequirement.Required(supply, expedition.SupplyAmount)
-                    : ExpeditionSupplyRequirement.None;
-            _ = Enum.TryParse(expedition.Status, true, out ExpeditionStatus status);
-            _ = Enum.TryParse(
-                string.IsNullOrEmpty(expedition.RewardKind)
-                    ? ExpeditionRewardKind.Supplies.ToString()
-                    : expedition.RewardKind,
-                true,
-                out ExpeditionRewardKind rewardKind);
-            ExpeditionReward reward = rewardKind switch
-            {
-                ExpeditionRewardKind.Supplies
-                    when Enum.TryParse(
-                        expedition.RewardResource,
-                        true,
-                        out ResourceType rewardResource) =>
-                    ExpeditionReward.Supplies(rewardResource, expedition.RewardAmount),
-                ExpeditionRewardKind.Migrant => ExpeditionReward.Migrant,
-                _ => ExpeditionReward.Discovery,
-            };
-            if (!Enum.TryParse(expedition.Phase, true, out ExpeditionPhase phase))
-            {
-                phase = ExpeditionPhase.Outbound;
-            }
-            ExpeditionEncounterOutcome? encounterOutcome =
-                !string.IsNullOrEmpty(expedition.EncounterOutcome)
-                && Enum.TryParse(expedition.EncounterOutcome, true, out ExpeditionEncounterOutcome parsedOutcome)
-                    ? parsedOutcome
-                    : null;
-            _ = Enum.TryParse(
-                string.IsNullOrEmpty(expedition.RetreatPosture)
-                    ? ExpeditionRetreatPosture.ContinueAfterSetback.ToString()
-                    : expedition.RetreatPosture,
-                true,
-                out ExpeditionRetreatPosture retreatPosture);
-            WorldEventId? dispatchEventId = expedition.DispatchEventId is int eventId
-                ? new WorldEventId(eventId)
-                : null;
-            var restored = new Expedition(
-                new ExpeditionId(expedition.Id),
-                expedition.DisplayName,
-                expedition.MemberCitizenIds.Select(id => new CitizenId(id)).ToArray(),
-                expedition.StartTick,
-                expedition.EndTick,
-                supplyRequirement,
-                reward,
-                expedition.ReservationId is int reservationId
-                    ? new ResourceReservationId(reservationId)
-                    : null,
-                status,
-                phase,
-                encounterOutcome,
-                retreatPosture,
-                dispatchEventId,
-                expedition.ReturnedAmount,
-                expedition.DeliveredMigrantId is int migrantId
-                    ? new CitizenId(migrantId)
-                    : null,
-                expedition.TargetParcelId is int targetParcelId
-                    ? new ParcelId(targetParcelId)
-                    : null,
-                expedition.ResourceOpportunityId is int opportunityId
-                    ? new ResourceOpportunityId(opportunityId)
-                    : null,
-                Enum.TryParse(
-                    expedition.ResourceOpportunityKind,
-                    true,
-                    out ResourceOpportunityKind opportunityKind)
-                        ? opportunityKind
-                        : null,
-                expedition.SetbackReturn,
-                expedition.PartialReturn,
-                expedition.CarryCapacity,
-                expedition.ObjectiveReachedAtTick,
-                expedition.CombatRulesVersion);
-            _expeditions.Add(restored.Id, restored);
-            if (expedition.HasCombatSession)
-            {
-                var commands = new List<CombatSessionCommand>(expedition.CombatCommands.Count);
-                foreach (CombatSessionCommandSave command in expedition.CombatCommands)
-                {
-                    _ = Enum.TryParse(command.Kind, true, out CombatSessionCommandKind kind);
-                    commands.Add(new CombatSessionCommand(command.BeforeStep, kind, command.Value));
-                }
-                CombatSession fresh = ExpeditionCombatSessionFactory.Create(restored, _citizens);
-                CombatSession restoredSession = CombatSession.Restore(
-                    session: fresh,
-                    stepsAdvanced: expedition.CombatStepsAdvanced,
-                    commands: commands);
-                CombatOutcome replayedOutcome = restoredSession.Outcome;
-                if ((encounterOutcome is null && replayedOutcome != CombatOutcome.InProgress)
-                    || (encounterOutcome.HasValue
-                        && (replayedOutcome == CombatOutcome.InProgress
-                            || ToExpeditionOutcome(replayedOutcome) != encounterOutcome.Value)))
-                {
-                    throw new InvalidOperationException(
-                        $"Expedition {expedition.Id} combat replay disagrees with its encounter outcome.");
-                }
-                _combatSessions.Add(
-                    restored.Id,
-                    restoredSession);
-            }
-            if (expedition.Id >= _nextExpeditionId) _nextExpeditionId = expedition.Id + 1;
-        }
-        PendingProspect = save.PendingProspectSeed is int prospectSeed
-            ? new CitizenProspect(
-                prospectSeed,
-                string.IsNullOrWhiteSpace(save.PendingProspectName)
-                    ? MigrantNameForSeed(prospectSeed)
-                    : save.PendingProspectName,
-                CreateMigrantProfile(prospectSeed))
-            : null;
-
-        // Rehydration is finished, so resource movement means gameplay again.
-        // The measurement is restored from the snapshot rather than rebuilt,
-        // because the flows that produced it already happened.
-        WorldPersistence.RestoreEarlyGameMetrics(_metrics, save.EarlyGameMetrics);
-        _resources.ObserveFlows(_metrics);
-    }
-
-    /// <summary>Builds a fresh <see cref="CityWorld"/> from a validated snapshot.</summary>
-    public static CityWorld FromSave(WorldSave save)
-    {
-        var world = new CityWorld();
-        world.Restore(save);
-        return world;
     }
 
     private void RaiseBuildingChanged(BuildingId buildingId)

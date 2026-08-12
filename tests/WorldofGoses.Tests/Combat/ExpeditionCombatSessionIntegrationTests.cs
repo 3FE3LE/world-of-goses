@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests.Combat;
@@ -15,7 +15,7 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         (CityWorld world, ExpeditionId expeditionId) = StartSpiritTrail();
         Assert.Null(world.Hero!.EquipmentLoadout.Weapon);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         Assert.Null(restored.Hero!.EquipmentLoadout.Weapon);
         Assert.Equal(expeditionId, Assert.Single(restored.Expeditions).Key);
@@ -49,7 +49,7 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         Assert.True(live.TryActivateMemberSkill(expeditionId, 0));
         live.AdvanceWorldTick();
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         AssertSessionEquivalent(
             live.GetCombatSessionSnapshot(expeditionId)!,
             restored.GetCombatSessionSnapshot(expeditionId)!);
@@ -76,8 +76,8 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         (CityWorld source, ExpeditionId expeditionId) = StartSpiritTrail();
         AdvanceToCombat(source, expeditionId);
         WorldSave snapshot = WorldPersistence.Capture(source);
-        CityWorld live = CityWorld.FromSave(snapshot);
-        CityWorld offline = CityWorld.FromSave(snapshot);
+        CityWorld live = WorldPersistence.FromSave(snapshot);
+        CityWorld offline = WorldPersistence.FromSave(snapshot);
 
         const int observedTicks = 4;
         for (int tick = 0; tick < observedTicks; tick++) live.AdvanceWorldTick();
@@ -189,7 +189,7 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         string before = WorldPersistence.SerializeToJson(
             WorldPersistence.Capture(existing, DateTimeOffset.UnixEpoch));
 
-        Assert.Throws<InvalidOperationException>(() => existing.Restore(save));
+        Assert.Throws<InvalidOperationException>(() => WorldPersistence.ApplyTo(existing, save));
 
         string after = WorldPersistence.SerializeToJson(
             WorldPersistence.Capture(existing, DateTimeOffset.UnixEpoch));

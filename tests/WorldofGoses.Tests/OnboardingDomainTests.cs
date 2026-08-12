@@ -1,6 +1,6 @@
 #pragma warning disable CS0618 // Explicit v29 round-trip coverage for retained legacy fields.
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -61,7 +61,7 @@ public class OnboardingDomainTests
     {
         var world = TestHelpers.NewHeroWorld();
         var save = WorldPersistence.Capture(world);
-        var restored = CityWorld.FromSave(
+        var restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
 
         Assert.Equal(world.Hero!.Profile.Lineage, restored.Hero!.Profile.Lineage);

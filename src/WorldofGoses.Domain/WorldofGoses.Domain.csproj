@@ -36,7 +36,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)../../game/scripts/Domain/**/*.cs" />
+    <!--
+      Architecture Hardening A6: the persistence layer moved out of
+      Domain into its own assembly. The exclude glob keeps the old
+      `game/scripts/Domain/Persistence/` folder from being compiled
+      here while the files are being relocated to
+      `src/WorldofGoses.Persistence/`. The folder is deleted at the
+      end of the slice; this glob is the transitional safety net that
+      prevents double-compilation during the move.
+    -->
+    <Compile Include="$(MSBuildThisFileDirectory)../../game/scripts/Domain/**/*.cs"
+             Exclude="$(MSBuildThisFileDirectory)../../game/scripts/Domain/Persistence/**/*.cs" />
   </ItemGroup>
 
 </Project>

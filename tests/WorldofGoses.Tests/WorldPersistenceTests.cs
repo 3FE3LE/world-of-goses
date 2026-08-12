@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -68,7 +68,7 @@ public class WorldPersistenceTests
         world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: 0, priority: 0);
 
         var save = WorldPersistence.Capture(world);
-        var restored = CityWorld.FromSave(
+        var restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
 
         Assert.False(restored.PrimaryBuilding.ProductionEnabled);
@@ -127,7 +127,7 @@ public class WorldPersistenceTests
         var save = WorldPersistence.Capture(world);
         var json = WorldPersistence.SerializeToJson(save);
         var save2 = WorldPersistence.DeserializeFromJson(json);
-        var restored = CityWorld.FromSave(save2);
+        var restored = WorldPersistence.FromSave(save2);
 
         AssertCityWorldEquals(world, restored);
     }
@@ -138,7 +138,7 @@ public class WorldPersistenceTests
         WorldSave legacy = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         legacy.EconomicBalanceVersion = 0;
 
-        CityWorld restored = CityWorld.FromSave(legacy);
+        CityWorld restored = WorldPersistence.FromSave(legacy);
 
         Assert.Equal(
             CityEconomyRules.QuarryStorageCapacity,
@@ -252,7 +252,7 @@ public class WorldPersistenceTests
     {
         var save = WorldPersistence.Capture(TestHelpers.NewProductionWorld());
         save.CurrentTick = -1;
-        Assert.Throws<InvalidOperationException>(() => CityWorld.FromSave(save));
+        Assert.Throws<InvalidOperationException>(() => WorldPersistence.FromSave(save));
     }
 
     [Fact]
@@ -469,7 +469,7 @@ public class WorldPersistenceTests
 
         var save = WorldPersistence.Capture(world);
         var json = WorldPersistence.SerializeToJson(save);
-        var restored = CityWorld.FromSave(
+        var restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(json));
 
         var restoredBran = restored.GetCitizen(bran.Id)!;

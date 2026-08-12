@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -186,7 +186,7 @@ public sealed class FirstNightTests
         Assert.True(world.TryCloseFirstNightDialogue());
         Assert.True(world.TryOpenFirstNightDialogue("spirit.cold.body"));
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         FirstNightState night = Assert.IsType<FirstNightState>(restored.FirstNight);
         Assert.Equal(FirstNightStage.SpiritArrived, night.Stage);
@@ -201,7 +201,7 @@ public sealed class FirstNightTests
         CityWorld world = NightWorld();
         world.ConcludeFirstNightForFixtures();
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         Assert.Equal(FirstNightStage.Concluded, restored.FirstNight!.Stage);
         Assert.False(restored.IsFirstNightActive);
@@ -253,7 +253,7 @@ public sealed class FirstNightTests
         WorldSave current = WorldPersistence.MigrateToCurrent(migrated);
         WorldPersistence.Validate(current);
 
-        CityWorld restored = CityWorld.FromSave(current);
+        CityWorld restored = WorldPersistence.FromSave(current);
         Assert.False(restored.IsFirstNightActive);
     }
 
@@ -293,7 +293,7 @@ public sealed class FirstNightTests
     public void OfflineCatchUpDoesNotAdvanceTheNightEither()
     {
         CityWorld live = NightWorld();
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
         for (int tick = 0; tick < FirstNightRules.DawnTick; tick++) live.AdvanceWorldTick();
         WorldTimeAdvance.Advance(offline, FirstNightRules.DawnTick);

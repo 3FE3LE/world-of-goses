@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -133,7 +133,7 @@ public class ExpeditionEncounterTests
 
         // Round-trip while still Outbound (before the encounter tick), then
         // advance the restored world through the same boundary.
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
         for (int i = 0; i < request.DurationTicks / 4; i++) restored.AdvanceWorldTick();
@@ -237,7 +237,7 @@ public class ExpeditionEncounterTests
         (CityWorld world, _, Expedition expedition) =
             StartGuaranteedSetback(ExpeditionRetreatPosture.RetreatAfterSetback);
 
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
         Expedition restoredExpedition = restored.Expeditions[expedition.Id];
@@ -264,7 +264,7 @@ public class ExpeditionEncounterTests
         {
             live.RegisterBuilding(TestHelpers.NewBuilding(new BuildingId(7000)));
         }
-        CityWorld offline = CityWorld.FromSave(
+        CityWorld offline = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(WorldPersistence.Capture(live))));
         int liveEventCursor = live.Log.Events.Count;
@@ -414,7 +414,7 @@ public class ExpeditionEncounterTests
         Assert.Equal(
             dispatchEventId,
             Assert.Single(save.Expeditions).DispatchEventId);
-        CityWorld restored = CityWorld.FromSave(save);
+        CityWorld restored = WorldPersistence.FromSave(save);
         Assert.True(restored.CancelExpedition(expeditionId));
         WorldEvent cancelled = restored.Log.Events.Last(
             evt => evt.Kind == WorldEventKind.ExpeditionCancelled);

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -55,7 +55,7 @@ public sealed class EarlyGameMetricsTests
         int gatheredBefore = world.Metrics.Gathered[ResourceType.Wood];
 
         WorldSave save = WorldPersistence.Capture(world);
-        CityWorld reloaded = CityWorld.FromSave(
+        CityWorld reloaded = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(save)));
 

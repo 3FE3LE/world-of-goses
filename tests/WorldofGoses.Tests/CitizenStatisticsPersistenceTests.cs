@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -37,7 +37,7 @@ public sealed class CitizenStatisticsPersistenceTests
         // MigrateToCurrent for the tail rather than another hand-chained call:
         // FromSave validates against CurrentVersion, and a fixed chain has to be
         // edited on every new schema version.
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(migrated));
         Citizen restoredCitizen = Assert.Single(restored.Citizens.Values);
         // The migration rebuilds the bare Kovari vertex, and Body wins its
         // three-way tie. The affinity stays Fire and no longer decides this:
@@ -71,7 +71,7 @@ public sealed class CitizenStatisticsPersistenceTests
         string json = WorldPersistence.SerializeToJson(WorldPersistence.Capture(world));
         Assert.DoesNotContain("PhysicalExpression", json);
         Assert.DoesNotContain("PhysicalChannelPower", json);
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(json));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(json));
         Citizen restoredHero = restored.Hero!;
         DerivedStatistics after = new CitizenStatisticsService().Calculate(restoredHero, 1.05);
 
@@ -101,7 +101,7 @@ public sealed class CitizenStatisticsPersistenceTests
         citizen.EquipmentLoadout = null;
 
         WorldSave migrated = WorldPersistence.MigrateV29ToV30(save);
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(migrated));
 
         Assert.Equal(answerIds, restored.Hero!.Profile.FounderOnboardingResult!.NarrativeMemory.AnswerIds);
         DefensiveStatistics defense = new DefensiveStatisticsCalculator(StatisticsBalanceConfig.Default)
@@ -126,7 +126,7 @@ public sealed class CitizenStatisticsPersistenceTests
         citizen.CurrentHealthAndCondition = null;
 
         WorldSave migrated = WorldPersistence.MigrateV29ToV30(save);
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(migrated));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(migrated));
 
         Assert.False(restored.Hero!.CurrentHealthAndCondition.IsResolved);
         Assert.NotNull(restored.Hero.Wound);

@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -163,7 +163,7 @@ public sealed class MigrateV31ToV32Tests
             WorldPersistence.DeserializeFromJson(LegacyJsonWithMastery));
 
         Citizen restoredFounder = Assert.Single(
-            CityWorld.FromSave(migrated).Citizens.Values,
+            WorldPersistence.FromSave(migrated).Citizens.Values,
             citizen => citizen.Origin == CitizenOrigin.AstralFounder);
 
         FounderCubeProfile cube = restoredFounder.Profile.CubeProfile;

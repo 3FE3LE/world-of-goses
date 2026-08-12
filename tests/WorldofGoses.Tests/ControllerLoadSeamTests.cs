@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;

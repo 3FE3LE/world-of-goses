@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -84,7 +84,7 @@ public sealed class MigrateV33ToV34Tests
         WorldSave legacySeed = WorldPersistence.Capture(world);
         Assert.Single(legacySeed.Expeditions).CombatRulesVersion =
             ExpeditionCombatSessionFactory.LegacyRulesVersion;
-        world = CityWorld.FromSave(legacySeed);
+        world = WorldPersistence.FromSave(legacySeed);
         while (world.GetCombatSessionSnapshot(expeditionId) is null) world.AdvanceWorldTick();
         Assert.True(world.SetCombatAutoSkillsEnabled(expeditionId, false));
         Assert.True(world.TryActivateMemberSkill(expeditionId, 0));
@@ -108,7 +108,7 @@ public sealed class MigrateV33ToV34Tests
                 ElementalResonance = baseline.ElementalResonance,
             };
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.MigrateToCurrent(v33));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.MigrateToCurrent(v33));
         CombatSessionSnapshot actual = Assert.IsType<CombatSessionSnapshot>(
             restored.GetCombatSessionSnapshot(expeditionId));
 

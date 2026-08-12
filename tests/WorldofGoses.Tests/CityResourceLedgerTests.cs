@@ -1,6 +1,6 @@
 using System;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -226,7 +226,7 @@ public class CityResourceLedgerTests
             world.StartExpedition(ExpeditionRequest.Reconnaissance(heroId));
         Assert.True(started.IsSuccess);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         Assert.True(restored.IsCitizenOnActiveExpedition(heroId));
@@ -256,7 +256,7 @@ public class CityResourceLedgerTests
         heroSave.CommitmentEntityId = null;
 
         WorldPersistence.Validate(legacyV14);
-        CityWorld restored = CityWorld.FromSave(legacyV14);
+        CityWorld restored = WorldPersistence.FromSave(legacyV14);
 
         Assert.Equal(CitizenCommitmentKind.Expedition, restored.Hero!.Commitment.Kind);
         Assert.Equal(started.ExpeditionId!.Value.Value, restored.Hero.Commitment.EntityId);
@@ -272,7 +272,7 @@ public class CityResourceLedgerTests
         Assert.True(world.Resources.TryReserve(ResourceType.Iron, 7, owner,
             out ResourceReservation? first));
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         Assert.Equal(ironBefore, restored.TotalStockOf(ResourceType.Iron));

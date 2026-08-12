@@ -5,7 +5,7 @@ using System.IO;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 
 namespace WorldofGoses;
 
@@ -113,6 +113,24 @@ public partial class CityWorldController : Node
     public delegate void FirstNightStageChangedEventHandler(int stage);
 
     private readonly CityWorld _world = new();
+    // Architecture Hardening A5: every use-case command and snapshot
+    // query that Presentation needs is funnelled through this session.
+    // The controller remains the Godot adapter (signals, _Process,
+    // lifecycle, persistence) and delegates orchestration here.
+    // C# forbids referencing instance fields from another field's
+    // initializer, so `_session` is assigned in the constructor below.
+    private readonly CityGameSession _session;
+
+    /// <summary>
+    /// Default parameterless constructor required by Godot's source
+    /// generator for instantiating the node. Constructs the application
+    /// session over the freshly-allocated world so every later call has
+    /// a single, deterministic facade in front of the domain.
+    /// </summary>
+    public CityWorldController()
+    {
+        _session = new CityGameSession(_world);
+    }
 
     /// <summary>
     /// Seconds between periodic auto-saves during gameplay. Tunable.
@@ -261,7 +279,7 @@ public partial class CityWorldController : Node
     public override void _Process(double delta)
     {
         if (IsVisualCaptureMode) SampleFrameTimeForVisualCapture();
-        if (_world.NeedsOnboarding || _onboardingCompletionPending) return;
+        if (_session.NeedsOnboarding || _onboardingCompletionPending) return;
 
         AdvanceLiveSimulation(delta);
 
@@ -286,8 +304,8 @@ public partial class CityWorldController : Node
         _simulationTimer -= ticksDue * SimulationTickIntervalSeconds;
         for (int i = 0; i < ticksDue; i++)
         {
-            _world.AdvanceWorldTick();
-            EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+            _session.AdvanceWorldTick();
+            EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
         }
         EmitFirstNightStageIfChanged();
         _hasUnsavedChanges = true;
@@ -334,14 +352,14 @@ public partial class CityWorldController : Node
         _world.DrainAllNaturalResourcesForFixtures();
         // Reflect the new state through the existing signals so the
         // macro view re-renders without an autosave side-effect.
-        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+        EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
 
     public void AdvanceWorldTickForVisualRegression()
     {
         if (!IsVisualCaptureMode) return;
-        _world.AdvanceWorldTick();
-        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+        _session.AdvanceWorldTick();
+        EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
 
     /// <summary>
@@ -354,7 +372,7 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void SeedFixtureWorld(CityWorld fixture)
     {
-        _world.Restore(WorldPersistence.Capture(fixture));
+        WorldPersistence.ApplyTo(_world, WorldPersistence.Capture(fixture));
     }
 
     /// <summary>
@@ -364,7 +382,7 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void RestoreFixtureWorld(WorldSave save)
     {
-        _world.Restore(save);
+        WorldPersistence.ApplyTo(_world, save);
     }
 
     /// <summary>
@@ -374,8 +392,8 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void AdvanceWorldTickForFixture()
     {
-        _world.AdvanceWorldTick();
-        EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
+        _session.AdvanceWorldTick();
+        EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
 
     /// <summary>
@@ -626,11 +644,11 @@ public partial class CityWorldController : Node
 
     public bool ResetCityKeepingFounderAndRestart()
     {
-        if (!PersistenceWritesEnabled || _world.Hero is null) return false;
+        if (!PersistenceWritesEnabled || !_session.HasHero) return false;
         try
         {
             CityWorld restarted = _world.CreateRestartedCityKeepingHero();
-            _world.Restore(WorldPersistence.Capture(restarted));
+            WorldPersistence.ApplyTo(_world, WorldPersistence.Capture(restarted));
             SaveWorldToPrimarySlot();
             GetTree().ReloadCurrentScene();
             return true;
@@ -644,7 +662,7 @@ public partial class CityWorldController : Node
 
     private void TryAutoSave()
     {
-        if (_world.NeedsOnboarding || !_hasUnsavedChanges) return;
+        if (_session.NeedsOnboarding || !_hasUnsavedChanges) return;
 
         try
         {
@@ -678,8 +696,8 @@ public partial class CityWorldController : Node
 
     public bool SelectHero()
     {
-        if (_world.Hero is null) return false;
-        SelectCitizenForObservation(_world.Hero.Id);
+        if (!_session.HasHero) return false;
+        SelectCitizenForObservation(_session.HeroId!.Value);
         _currentExpeditionLiveId = null;
         _currentSelection = Selection.HeroProfile;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.HeroProfile);
@@ -718,9 +736,9 @@ public partial class CityWorldController : Node
     }
 
     public bool NeedsOnboarding() =>
-        _world.NeedsOnboarding || _onboardingCompletionPending;
+        _session.NeedsOnboarding || _onboardingCompletionPending;
 
-    public bool HasHero() => _world.Hero is not null;
+    public bool HasHero() => _session.HasHero;
 
     public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
     {
@@ -737,18 +755,8 @@ public partial class CityWorldController : Node
             return HeroCreationResult.Success(pendingHero.Id);
         }
 
-        var result = _world.TryCreateHero(request);
+        var result = _session.CompleteOnboarding(request);
         if (!result.IsSuccess || !result.CitizenId.HasValue) return result;
-
-        // Drop two forests so the hero has a gathering target before
-        // the Basic Shelter can be authorised. The wood-cost gate
-        // would otherwise deadlock a fresh world.
-        _world.SeedStartingForests();
-        // EG-1: also seed the four rudimentary ground resources
-        // (Branches, Plant Fiber, Small Stone, Wild Food) on free
-        // parcels after the Forests. Idempotent and silent on saves
-        // where parcels 3–6 are already taken by player construction.
-        _world.SeedStartingOpportunities();
 
         _onboardingCompletionPending = true;
         if (!TrySaveNow())
@@ -763,42 +771,42 @@ public partial class CityWorldController : Node
 
     internal Building? GetBuildingForFixture(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
-    public CityStatusSnapshot GetCityStatusSnapshot() => CityStatusSnapshot.From(_world);
+    public CityStatusSnapshot GetCityStatusSnapshot() => _session.GetCityStatusSnapshot();
 
-    public ConstructionSnapshot GetConstructionSnapshot() => ConstructionSnapshot.From(_world);
+    public ConstructionSnapshot GetConstructionSnapshot() => _session.GetConstructionSnapshot();
 
     public BuildingDetailSnapshot? GetBuildingDetailSnapshot(BuildingId buildingId) =>
-        BuildingDetailSnapshot.From(_world, buildingId);
+        _session.GetBuildingDetailSnapshot(buildingId);
 
-    public CityMacroSnapshot GetCityMacroSnapshot() => CityMacroSnapshot.From(_world);
+    public CityMacroSnapshot GetCityMacroSnapshot() => _session.GetCityMacroSnapshot();
 
     public ConstructionPlacementSnapshot GetConstructionPlacementSnapshot() =>
-        ConstructionPlacementSnapshot.From(_world);
+        _session.GetConstructionPlacementSnapshot();
 
     public ExpeditionPlanningSnapshot GetExpeditionPlanningSnapshot() =>
-        ExpeditionPlanningSnapshot.From(_world);
+        _session.GetExpeditionPlanningSnapshot();
 
     public ExpeditionRailSnapshot GetExpeditionRailSnapshot() =>
-        ExpeditionRailSnapshot.From(_world);
+        _session.GetExpeditionRailSnapshot();
 
     public ExpeditionLiveSnapshot? GetExpeditionLiveSnapshot(ExpeditionId expeditionId) =>
-        ExpeditionLiveSnapshot.From(_world, expeditionId);
+        _session.GetExpeditionLiveSnapshot(expeditionId);
 
     public bool SetCombatAutoSkillsEnabled(ExpeditionId expeditionId, bool enabled)
     {
-        bool changed = _world.SetCombatAutoSkillsEnabled(expeditionId, enabled);
+        bool changed = _session.SetCombatAutoSkillsEnabled(expeditionId, enabled);
         if (changed) _hasUnsavedChanges = true;
         return changed;
     }
 
     public bool TryActivateMemberSkill(ExpeditionId expeditionId, int slotIndex)
     {
-        bool accepted = _world.TryActivateMemberSkill(expeditionId, slotIndex);
+        bool accepted = _session.TryActivateMemberSkill(expeditionId, slotIndex);
         if (accepted) _hasUnsavedChanges = true;
         return accepted;
     }
 
-    public CityPolicySnapshot GetCityPolicySnapshot() => CityPolicySnapshot.From(_world);
+    public CityPolicySnapshot GetCityPolicySnapshot() => _session.GetCityPolicySnapshot();
 
     public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
     {
@@ -815,14 +823,14 @@ public partial class CityWorldController : Node
             _lastSimulationProcessedAtUnixMillis);
     }
 
-    public HeroProfileSnapshot? GetHeroProfileSnapshot() => HeroProfileSnapshot.From(_world);
+    public HeroProfileSnapshot? GetHeroProfileSnapshot() => _session.GetHeroProfileSnapshot();
 
     // -- A1 boundary queries: replace the entity-returning wrappers that
     // the A0 allowlist named as legacy debt. Every method below returns
     // a value type or an immutable snapshot — never a domain entity.
 
     /// <summary>The current world tick as projected by <see cref="CityStatusSnapshot"/>.</summary>
-    public int CurrentTick => _world.CurrentTick;
+    public int CurrentTick => _session.CurrentTick;
 
     /// <summary>
     /// Tick projected through <see cref="Domain.FirstNightState.DisplayedTick"/>
@@ -830,171 +838,108 @@ public partial class CityWorldController : Node
     /// advancing world tick. Mirrors the value
     /// <see cref="CityStatusSnapshot.From"/> projects.
     /// </summary>
-    public int? GetDisplayedTick() => _world.FirstNight?.DisplayedTick(_world.CurrentTick);
+    public int? GetDisplayedTick() => _session.GetDisplayedTick();
 
     /// <summary>The hero's id, or <c>null</c> when no hero exists.</summary>
-    public CitizenId? GetHeroId() => _world.Hero?.Id;
+    public CitizenId? GetHeroId() => _session.HeroId;
 
     /// <summary>The hero's lineage id, used by <see cref="FirstNightScene"/> to swap the theme palette.</summary>
-    public LineageId? GetHeroLineageId() => _world.Hero?.Profile.Lineage;
+    public LineageId? GetHeroLineageId() => _session.HeroLineageId;
 
     /// <summary>The id of the building that grew out of the founding site, or <c>null</c> while it is still a project.</summary>
-    public int? GetFoundingSiteBuildingId() => _world.FoundingSiteBuildingId();
+    public int? GetFoundingSiteBuildingId() => _session.FoundingSiteBuildingId;
 
     /// <summary>The first completed Home's id, or <c>null</c>.</summary>
-    public BuildingId? GetPrimaryHomeId() => _world.PrimaryHome?.Id;
+    public BuildingId? GetPrimaryHomeId() => _session.PrimaryHomeId;
 
     /// <summary>Edible food horizon: stored Food plus gathered Wild Food.</summary>
-    public int GetFoodStock() => _world.FoodStock;
+    public int GetFoodStock() => _session.FoodStock;
 
     /// <summary>True when at least one Cultivation Site exists.</summary>
-    public bool HasCultivationSite() => _world.CultivationSites.Count > 0;
+    public bool HasCultivationSite() => _session.HasCultivationSite;
 
     /// <summary>True when at least one Town Hall building exists.</summary>
-    public bool HasTownHall()
-    {
-        foreach (var building in _world.Buildings.Values)
-        {
-            if (building.Kind == BuildingKind.TownHall) return true;
-        }
-        return false;
-    }
+    public bool HasTownHall() => _session.HasTownHall;
 
     /// <summary>True when the next migrant cannot be housed.</summary>
-    public bool IsHousingFull() => _world.AvailableHousing == 0;
+    public bool IsHousingFull() => _session.IsHousingFull;
 
     /// <summary>True when a Town Hall is awaiting an accepted prospect.</summary>
-    public bool HasPendingProspect() => _world.PendingProspect is not null;
+    public bool HasPendingProspect() => _session.HasPendingProspect;
 
     /// <summary>Read-only projection of one Cultivation Site's lifecycle.</summary>
     public CultivationSiteSnapshot? GetCultivationSiteSnapshot(BuildingId siteId) =>
-        CultivationSiteSnapshot.From(_world, siteId);
+        _session.GetCultivationSiteSnapshot(siteId);
 
     /// <summary>Read-only projection of a citizen's current routine (wraps <see cref="CityWorld.GetCitizenRoutine"/>).</summary>
     public CitizenRoutineSnapshot? GetCitizenRoutineSnapshot(CitizenId id) =>
-        _world.GetCitizenRoutine(id);
+        _session.GetCitizenRoutineSnapshot(id);
 
     /// <summary>Bundled projection used by <see cref="Prototypes.MacroStreetLiveView"/>.</summary>
     public MacroStreetLiveViewState GetMacroStreetViewState() =>
-        MacroStreetLiveViewState.From(_world);
+        _session.GetMacroStreetViewState();
 
     /// <summary>Read-only projection of one combat session (wraps <see cref="CityWorld.GetCombatSessionSnapshot"/>).</summary>
     public CombatSessionSnapshot? GetCombatSessionSnapshot(ExpeditionId expeditionId) =>
-        _world.GetCombatSessionSnapshot(expeditionId);
+        _session.GetCombatSessionSnapshot(expeditionId);
 
     /// <summary>Bundled projection used by the expedition planning panel.</summary>
     public ExpeditionPanelState GetExpeditionPanelState() =>
-        ExpeditionPanelState.From(_world);
+        _session.GetExpeditionPanelState();
 
     /// <summary>Roster snapshot used by <c>MigrantPanel</c>.</summary>
-    public RosterSnapshot GetRosterSnapshot() => RosterSnapshot.From(_world);
+    public RosterSnapshot GetRosterSnapshot() => _session.GetRosterSnapshot();
 
     /// <summary>Compact citizen projection used by the macro view for routing state lookups.</summary>
     public MacroCitizenSnapshot? TryGetMacroCitizenSnapshot(CitizenId id) =>
-        MacroCitizenSnapshot.From(_world, id);
+        _session.TryGetMacroCitizenSnapshot(id);
 
     /// <summary>The id of the building that grew out of the founding site (alias of <see cref="GetFoundingSiteBuildingId"/>).</summary>
-    public BuildingId? GetFoundingStorageBuildingId()
-    {
-        int? id = _world.FoundingSiteBuildingId();
-        return id.HasValue ? new BuildingId(id.Value) : null;
-    }
+    public BuildingId? GetFoundingStorageBuildingId() => _session.FoundingStorageBuildingId;
 
     /// <summary>Resolves a citizen's display name without exposing the live entity.</summary>
-    public bool TryGetCitizenDisplayName(CitizenId id, out string? name)
-    {
-        Citizen? citizen = _world.GetCitizen(id);
-        name = citizen?.Name;
-        return citizen is not null;
-    }
+    public bool TryGetCitizenDisplayName(CitizenId id, out string? name) =>
+        _session.TryGetCitizenDisplayName(id, out name);
 
     /// <summary>Resolves a building's display name without exposing the live entity.</summary>
-    public bool TryGetBuildingDisplayName(BuildingId id, out string? name)
-    {
-        Building? building = _world.GetBuilding(id);
-        name = building?.DisplayName;
-        return building is not null;
-    }
+    public bool TryGetBuildingDisplayName(BuildingId id, out string? name) =>
+        _session.TryGetBuildingDisplayName(id, out name);
 
     /// <summary>Resolves a project's display name without exposing the live entity.</summary>
-    public bool TryGetProjectDisplayName(BuildingId id, out string? name)
-    {
-        ConstructionProject? project = _world.GetProject(id);
-        name = project?.DisplayName;
-        return project is not null;
-    }
+    public bool TryGetProjectDisplayName(BuildingId id, out string? name) =>
+        _session.TryGetProjectDisplayName(id, out name);
 
     /// <summary>Returns the start tick of an expedition (the cancel-button gate compares to this).</summary>
-    public int GetExpeditionStartTick(ExpeditionId id)
-    {
-        return _world.Expeditions.TryGetValue(id, out Expedition? expedition)
-            ? expedition.StartTick
-            : 0;
-    }
+    public int GetExpeditionStartTick(ExpeditionId id) =>
+        _session.GetExpeditionStartTick(id);
 
     /// <summary>Picks the first active expedition in deterministic order. Returns false when none are active.</summary>
-    public bool TryGetActiveExpeditionId(out ExpeditionId id)
-    {
-        foreach (Expedition expedition in _world.Expeditions.Values)
-        {
-            if (expedition.Status == ExpeditionStatus.Active)
-            {
-                id = expedition.Id;
-                return true;
-            }
-        }
-        id = default;
-        return false;
-    }
+    public bool TryGetActiveExpeditionId(out ExpeditionId id) =>
+        _session.TryGetActiveExpeditionId(out id);
 
     /// <summary>Returns the display names of an expedition's members, or null when the expedition is unknown.</summary>
-    public bool TryGetExpeditionMemberDisplayNames(ExpeditionId id, out IReadOnlyList<string>? names)
-    {
-        if (!_world.Expeditions.TryGetValue(id, out Expedition? expedition))
-        {
-            names = null;
-            return false;
-        }
-        var resolved = new List<string>(expedition.MemberIds.Count);
-        foreach (CitizenId memberId in expedition.MemberIds)
-        {
-            Citizen? citizen = _world.GetCitizen(memberId);
-            resolved.Add(citizen?.Name ?? "?");
-        }
-        names = resolved;
-        return true;
-    }
+    public bool TryGetExpeditionMemberDisplayNames(ExpeditionId id, out IReadOnlyList<string>? names) =>
+        _session.TryGetExpeditionMemberDisplayNames(id, out names);
 
     /// <summary>Returns the id of the next territory target parcel, or null when none.</summary>
-    public bool TryGetNextTerritoryParcelId(out int? parcelId)
-    {
-        CityParcel? target = _world.NextTerritoryTarget;
-        parcelId = target?.Id.Value;
-        return target is not null;
-    }
+    public bool TryGetNextTerritoryParcelId(out int? parcelId) =>
+        _session.TryGetNextTerritoryParcelId(out parcelId);
 
     /// <summary>True while the authored first night is still running.</summary>
-    public bool IsFirstNightActive() => _world.IsFirstNightActive;
+    public bool IsFirstNightActive() => _session.IsFirstNightActive;
 
     /// <summary>Current authored first-night stage, or null when no night is staged.</summary>
-    public FirstNightStage? GetFirstNightStage() =>
-        _world.FirstNight is { } night ? night.Stage : null;
+    public FirstNightStage? GetFirstNightStage() => _session.FirstNightStage;
 
     /// <summary>True when the world has the named Founding Site module active or completed.</summary>
     public bool HasFoundingSiteModule(FoundingSiteModule module) =>
-        _world.HasFoundingSiteModule(module);
+        _session.HasFoundingSiteModule(module);
 
     /// <summary>True when the world has logged a Spirit Departed event (used by the first-night embers fade).</summary>
-    public bool HasSpiritDepartedEvent()
-    {
-        foreach (WorldEvent evt in _world.Log.Events)
-        {
-            if (evt.Kind == WorldEventKind.SpiritDeparted) return true;
-        }
-        return false;
-    }
+    public bool HasSpiritDepartedEvent() => _session.HasSpiritDepartedEvent();
 
-    public int CurrentProductionRate(BuildingId buildingId) => _world.CurrentProductionRate(buildingId);
+    public int CurrentProductionRate(BuildingId buildingId) =>
+        _session.CurrentProductionRate(buildingId);
 
     // The two GatherWood wrappers are gone. They forwarded to a domain method
     // that never checked ToolKind.PrimitiveAxe, so any scene holding a
@@ -1003,43 +948,43 @@ public partial class CityWorldController : Node
     // through TryGatherFromPatch — so they were reachable API with no purpose.
 
     public int GatherFromPatch(int patchId, int unitId, int amount) =>
-        _world.GatherFromPatch(patchId, unitId, amount);
+        _session.GatherFromPatch(patchId, unitId, amount);
 
     public NaturalResourceGatherResult GetNaturalResourceGatherAvailability(
         int patchId,
         int unitId) =>
-        _world.NaturalResourceGatherAvailability(patchId, unitId);
+        _session.GetNaturalResourceGatherAvailability(patchId, unitId);
 
     public NaturalResourceGatherResult TryGatherFromPatch(
         int patchId,
         int unitId,
         int amount) =>
-        _world.TryGatherFromPatch(patchId, unitId, amount);
+        _session.TryGatherFromPatch(patchId, unitId, amount);
 
     public ToolCraftResult TryCraftTool(ToolKind tool)
     {
-        ToolCraftResult result = _world.TryCraftTool(tool);
+        ToolCraftResult result = _session.TryCraftTool(tool);
         if (result.IsSuccess) SaveNow();
         return result;
     }
 
     public CultivationActionResult TrySowCultivationSite(BuildingId siteId)
     {
-        CultivationActionResult result = _world.TrySowCultivationSite(siteId);
+        CultivationActionResult result = _session.TrySowCultivationSite(siteId);
         if (result.IsSuccess) SaveNow();
         return result;
     }
 
     public CultivationActionResult TryHarvestCultivationSite(BuildingId siteId)
     {
-        CultivationActionResult result = _world.TryHarvestCultivationSite(siteId);
+        CultivationActionResult result = _session.TryHarvestCultivationSite(siteId);
         if (result.IsSuccess) SaveNow();
         return result;
     }
 
     public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
-        var result = _world.TryAssignCitizen(buildingId, citizenId);
+        var result = _session.TryAssignCitizen(buildingId, citizenId);
         if (!result.IsSuccess)
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
@@ -1047,7 +992,7 @@ public partial class CityWorldController : Node
 
     public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId)
     {
-        var result = _world.TryUnassignCitizen(buildingId, citizenId);
+        var result = _session.TryUnassignCitizen(buildingId, citizenId);
         if (!result.IsSuccess)
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
@@ -1055,7 +1000,7 @@ public partial class CityWorldController : Node
 
     public AssignmentResult TryAssignCitizenToProject(BuildingId projectId, CitizenId citizenId)
     {
-        var result = _world.TryAssignToProject(projectId, citizenId);
+        var result = _session.TryAssignCitizenToProject(projectId, citizenId);
         if (!result.IsSuccess)
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
@@ -1063,7 +1008,7 @@ public partial class CityWorldController : Node
 
     public AssignmentResult TryUnassignCitizenFromProject(BuildingId projectId, CitizenId citizenId)
     {
-        var result = _world.TryUnassignFromProject(projectId, citizenId);
+        var result = _session.TryUnassignCitizenFromProject(projectId, citizenId);
         if (!result.IsSuccess)
             EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
         return result;
@@ -1079,7 +1024,7 @@ public partial class CityWorldController : Node
         ConstructionKind kind,
         ConstructionLot? selectedLot)
     {
-        var result = _world.TryAuthorizeConstruction(kind, selectedLot);
+        var result = _session.TryAuthorizeConstruction(kind, selectedLot);
         if (result.IsSuccess && result.ProjectId.HasValue)
         {
             SaveNow();
@@ -1091,14 +1036,14 @@ public partial class CityWorldController : Node
         BuildingId projectId,
         FoundingSiteModule module)
     {
-        var result = _world.TryAuthorizeFoundingSiteModule(projectId, module);
+        var result = _session.TryAuthorizeFoundingSiteModule(projectId, module);
         if (result.IsSuccess) SaveNow();
         return result;
     }
 
     public int ReturnFoundingCargo()
     {
-        int returned = _world.ReturnFoundingCargo();
+        int returned = _session.ReturnFoundingCargo();
         if (returned > 0) SaveNow();
         return returned;
     }
@@ -1113,7 +1058,7 @@ public partial class CityWorldController : Node
     /// </summary>
     public bool TryOpenFirstNightDialogue(string nodeId)
     {
-        bool opened = _world.TryOpenFirstNightDialogue(nodeId);
+        bool opened = _session.TryOpenFirstNightDialogue(nodeId);
         if (opened) EmitFirstNightStageIfChanged();
         return opened;
     }
@@ -1126,7 +1071,7 @@ public partial class CityWorldController : Node
     /// </summary>
     public bool TryCloseFirstNightDialogue()
     {
-        bool advanced = _world.TryCloseFirstNightDialogue();
+        bool advanced = _session.TryCloseFirstNightDialogue();
         if (advanced) EmitFirstNightStageIfChanged();
         return advanced;
     }
@@ -1143,8 +1088,8 @@ public partial class CityWorldController : Node
         // Cities with no FirstNightState never had a night and never
         // will — emitting a fake Concluded stage would mislead the
         // presentation layer into thinking the spirit departed.
-        if (_world.FirstNight is null) return;
-        int currentStage = (int)_world.FirstNight.Stage;
+        if (!_session.HasFirstNight) return;
+        int currentStage = (int)_session.FirstNightStage!;
         if (currentStage == _lastObservedFirstNightStage) return;
         _lastObservedFirstNightStage = currentStage;
         EmitSignal(SignalName.FirstNightStageChanged, currentStage);
@@ -1154,19 +1099,19 @@ public partial class CityWorldController : Node
         _world.AvailableConstructionLots();
 
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
-        _world.SetProjectEnabled(projectId, enabled);
+        _session.SetProjectEnabled(projectId, enabled);
 
-    public bool CancelProject(BuildingId projectId) => _world.CancelProject(projectId);
+    public bool CancelProject(BuildingId projectId) => _session.CancelProject(projectId);
 
     internal ConstructionProject? GetProjectForFixture(BuildingId projectId) => _world.GetProject(projectId);
 
-    public int AdvanceProduction(BuildingId buildingId) => _world.AdvanceProduction(buildingId);
+    public int AdvanceProduction(BuildingId buildingId) => _session.AdvanceProduction(buildingId);
 
     public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority) =>
-        _world.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
+        _session.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
 
     public void SetProductionEnabled(BuildingId buildingId, bool enabled) =>
-        _world.SetProductionEnabled(buildingId, enabled);
+        _session.SetProductionEnabled(buildingId, enabled);
 
     private void TryLoadFromDisk()
     {
@@ -1204,18 +1149,18 @@ public partial class CityWorldController : Node
         save = WorldPersistence.MigrateToCurrent(save);
         bool migrated = save.Version != originalVersion;
         WorldPersistence.Validate(save);
-        _world.Restore(save);
+        WorldPersistence.ApplyTo(_world, save);
         // Retroactive seed for saves predating the wood-gathering
         // slice: if the world has the founding hero but no Forests,
         // give it two Forests so wood gathering remains reachable.
         // SeedStartingForests is idempotent — it skips when forests
         // already exist or when no hero is present.
-        _world.SeedStartingForests();
+        _session.SeedStartingForests();
         // EG-1 retroactive seed for the four rudimentary ground
         // resources on legacy saves. Silent when no free parcel is
         // available — a save that already built something on
         // parcels 3–6 keeps its layout and gains no new patches.
-        _world.SeedStartingOpportunities();
+        _session.SeedStartingOpportunities();
         _world.EnsureFoundingShelterContributor();
         AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
         // Surface the loaded night on the very first frame, before any
@@ -1243,20 +1188,20 @@ public partial class CityWorldController : Node
             if (LastOfflineReport.HadProgression)
             {
                 GD.Print(
-                    $"World loaded from {source} (tick {_world.CurrentTick}). " +
+                    $"World loaded from {source} (tick {_session.CurrentTick}). " +
                     $"Offline progression: +{LastOfflineReport.TicksApplied} ticks, " +
                     $"+{LastOfflineReport.StockAdded} stock, " +
                     $"{(int)LastOfflineReport.SimulatedTime.TotalSeconds}s simulated.");
             }
             else
             {
-                GD.Print($"World loaded from {source} (tick {_world.CurrentTick}).");
+                GD.Print($"World loaded from {source} (tick {_session.CurrentTick}).");
             }
         }
         else
         {
             LastOfflineReport = null;
-            GD.Print($"World loaded from {source} (tick {_world.CurrentTick}).");
+            GD.Print($"World loaded from {source} (tick {_session.CurrentTick}).");
         }
     }
 
@@ -1288,7 +1233,7 @@ public partial class CityWorldController : Node
 
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
-        var result = _world.StartExpedition(request);
+        var result = _session.StartExpedition(request);
         if (result.IsSuccess) SaveNow();
         return result;
     }
@@ -1298,7 +1243,7 @@ public partial class CityWorldController : Node
         IReadOnlyList<CitizenId> memberIds,
         ExpeditionRetreatPosture retreatPosture)
     {
-        ExpeditionStartResult result = _world.StartResourceExpedition(
+        ExpeditionStartResult result = _session.StartResourceExpedition(
             opportunityId,
             memberIds,
             retreatPosture);
@@ -1308,7 +1253,7 @@ public partial class CityWorldController : Node
 
     public HeroIncorporationResult TryIncorporateHero(CitizenId citizenId)
     {
-        HeroIncorporationResult result = _world.TryIncorporateHero(citizenId);
+        HeroIncorporationResult result = _session.TryIncorporateHero(citizenId);
         if (result.IsSuccess)
         {
             SaveNow();
@@ -1319,7 +1264,7 @@ public partial class CityWorldController : Node
 
     public WoundRecoveryResult TryBeginWoundRecovery(CitizenId citizenId)
     {
-        WoundRecoveryResult result = _world.TryBeginWoundRecovery(citizenId);
+        WoundRecoveryResult result = _session.TryBeginWoundRecovery(citizenId);
         if (result.IsSuccess)
         {
             SaveNow();
@@ -1330,7 +1275,7 @@ public partial class CityWorldController : Node
 
     public CityWorld.MigrantResult TryAcceptPendingProspect()
     {
-        var result = _world.TryAcceptPendingProspect();
+        var result = _session.TryAcceptPendingProspect();
         if (result.IsSuccess)
         {
             SaveNow();
@@ -1341,7 +1286,7 @@ public partial class CityWorldController : Node
 
     public bool CancelExpedition(ExpeditionId id)
     {
-        if (_world.CancelExpedition(id))
+        if (_session.CancelExpedition(id))
         {
             SaveNow();
             return true;

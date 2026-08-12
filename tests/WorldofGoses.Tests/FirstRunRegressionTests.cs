@@ -1,6 +1,6 @@
 using Godot;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -129,7 +129,7 @@ public sealed class FirstRunRegressionTests
 
         string json = WorldPersistence.SerializeToJson(
             WorldPersistence.Capture(live));
-        CityWorld offline = CityWorld.FromSave(
+        CityWorld offline = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(json));
         Citizen restoredMigrant = offline.GetCitizen(migrantId)!;
         Assert.Equal(farmId, restoredMigrant.CurrentAssignment);
@@ -207,7 +207,7 @@ public sealed class FirstRunRegressionTests
         Assert.Equal(CityWorld.MigrantOutcome.Success,
             world.TryHostExpeditionProspect("Inara"));
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         CitizenProspect sourceProspect = Assert.IsType<CitizenProspect>(world.PendingProspect);

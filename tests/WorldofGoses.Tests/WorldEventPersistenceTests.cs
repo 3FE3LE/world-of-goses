@@ -1,5 +1,5 @@
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -63,7 +63,7 @@ public class WorldEventPersistenceTests
         world.Log.Record(0, WorldEventKind.ProductionBlocked, subject,
             causeEventId: capped.Id);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 
         Assert.Equal(2, restored.Log.Events.Count);

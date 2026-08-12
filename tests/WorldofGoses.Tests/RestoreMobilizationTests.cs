@@ -1,5 +1,5 @@
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -22,7 +22,7 @@ public class RestoreMobilizationTests
         // Restore: with no transition having fired between saved
         // tick and any new tick, the default CurrentLocation (AtHome)
         // would stick — except Restore now seeds it explicitly.
-        var restored = CityWorld.FromSave(save);
+        var restored = WorldPersistence.FromSave(save);
 
         Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(1))!.CurrentLocation);
         Assert.Equal(CitizenLocation.AtHome, restored.GetCitizen(new CitizenId(2))!.CurrentLocation);
@@ -42,7 +42,7 @@ public class RestoreMobilizationTests
         }
         var save = WorldPersistence.Capture(world);
 
-        var restored = CityWorld.FromSave(save);
+        var restored = WorldPersistence.FromSave(save);
 
         foreach (var citizen in restored.Citizens.Values)
         {
@@ -59,7 +59,7 @@ public class RestoreMobilizationTests
             world.AdvanceWorldTick();
         }
         var save = WorldPersistence.Capture(world);
-        var restored = CityWorld.FromSave(save);
+        var restored = WorldPersistence.FromSave(save);
 
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         var visible = restored.GetCurrentlyVisibleOccupants(quarry);

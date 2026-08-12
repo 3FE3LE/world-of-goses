@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -13,8 +13,8 @@ public sealed class WorldTimeAdvanceTests
     {
         var source = TestHelpers.WorldWithHome();
         var snapshot = WorldPersistence.Capture(source, DateTimeOffset.UnixEpoch.AddDays(1));
-        var canonical = CityWorld.FromSave(snapshot);
-        var batched = CityWorld.FromSave(snapshot);
+        var canonical = WorldPersistence.FromSave(snapshot);
+        var batched = WorldPersistence.FromSave(snapshot);
         const int ticks = GameClock.TicksPerInGameDay * 3 + 217;
 
         for (int i = 0; i < ticks; i++) canonical.AdvanceWorldTick();

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -183,7 +183,7 @@ public sealed class FounderNarrativeTests
         Assert.Equal(onboarding.CubeProfile, snapshot.CubeProfile);
         Assert.Equal("Earth", snapshot.ElementalAffinity);
 
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
         Assert.Equal(onboarding, restored.Hero!.Profile.FounderOnboardingResult);

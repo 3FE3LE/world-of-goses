@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -35,7 +35,7 @@ public sealed class ClearedResourceCellTests
         WorldSave save = WorldPersistence.Capture(world);
         WorldPersistence.Validate(save);
 
-        CityWorld restored = CityWorld.FromSave(save);
+        CityWorld restored = WorldPersistence.FromSave(save);
         ParcelPlacement placement = restored.ParcelPlacements.Values.Single();
         Assert.Equal(row, placement.RowId);
         Assert.Equal(lot.StartColumn, placement.StartColumn);

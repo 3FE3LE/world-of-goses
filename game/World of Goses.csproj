@@ -21,5 +21,13 @@
     <Compile Remove="scripts/Application/**/*.cs" />
     <ProjectReference Include="../src/WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
     <ProjectReference Include="../src/WorldofGoses.Application/WorldofGoses.Application.csproj" />
+    <!--
+      Architecture Hardening A6: Persistence moved out of Domain into
+      its own engine-free assembly. Presentation calls into it through
+      the temporary `WorldPersistence` facade (load/save/migrate) and
+      through `WorldPersistence.ApplyTo` / `WorldPersistence.FromSave`
+      for the restore path that used to live on `CityWorld`.
+    -->
+    <ProjectReference Include="../src/WorldofGoses.Persistence/WorldofGoses.Persistence.csproj" />
   </ItemGroup>
 </Project>

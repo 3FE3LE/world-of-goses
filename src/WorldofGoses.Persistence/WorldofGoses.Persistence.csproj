@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The persistence layer: own the *Save DTOs, JSON serialization, slot
+    filesystem, atomic-write + .bak sidecar, migrations, validation, and
+    the domain<->DTO mapper. Sits OUTSIDE the Domain assembly so that
+    Domain does not depend on persistence and the boundary rule
+    (`using Godot` outside engine-free assemblies) compounds with
+    "Domain does not reference Persistence" — the architectural
+    failure mode A6 removes.
+
+    Architecture Hardening A6 establishes this split. Like Domain and
+    Application, it is a plain Microsoft.NET.Sdk project with no
+    GodotSharp reference, so adding `using Godot` here is a compile
+    error rather than a review comment.
+
+    Sources were physically relocated from `game/scripts/Domain/Persistence/`
+    and their namespace was renamed from `WorldofGoses.Domain.Persistence`
+    to `WorldofGoses.Persistence` so the dependency direction
+    Persistence -> Domain stays the only allowed one.
+
+    Domain does not reference this assembly. Application also does not
+    reference it: persistence DTOs are owned by the persistence layer
+    and Presentation reaches them through the temporary
+    `WorldPersistence` facade.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>WorldofGoses.Persistence</RootNamespace>
+    <AssemblyName>WorldofGoses.Persistence</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -115,7 +115,7 @@ public sealed class Eg4ResourceExpeditionTests
             wood.Id,
             new[] { live.Hero!.Id },
             ExpeditionRetreatPosture.ContinueAfterSetback);
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.DeserializeFromJson(
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(live))));
 
         ResourceOpportunity restored = offline.ResourceOpportunities[wood.Id];

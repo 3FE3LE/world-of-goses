@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -101,7 +101,7 @@ public sealed class ParcelPlacementPersistenceTests
         CityWorld world = TestHelpers.NewProductionWorld();
         WorldSave save = WorldPersistence.Capture(world);
 
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(save)));
 

@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -119,7 +119,7 @@ public class CitizenAutonomyTests
         Assert.True(started.IsSuccess);
         Assert.Equal(quarry.Id, hero.CurrentAssignment);
         Assert.Equal(CitizenCommitmentKind.Expedition, hero.Commitment.Kind);
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
         Assert.Equal(quarry.Id, restored.Hero!.CurrentAssignment);
         Assert.Equal(CitizenCommitmentKind.Expedition, restored.Hero.Commitment.Kind);
 
@@ -146,7 +146,7 @@ public class CitizenAutonomyTests
         Assert.True(live.TryAssignCitizen(liveQuarry.Id, liveHero.Id).IsSuccess);
         for (int tick = 0; tick < 11; tick++) live.AdvanceWorldTick();
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         Citizen restoredHero = restored.Hero!;
         Assert.Equal(CitizenLocation.InTransit, restoredHero.CurrentLocation);
         Assert.Equal(liveHero.TransitStartedAtTick, restoredHero.TransitStartedAtTick);
@@ -181,7 +181,7 @@ public class CitizenAutonomyTests
         Assert.True(hero.IsReturningHome);
         int foodDuringTravel = live.FoodStock;
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks - 1; tick++)
         {
             restored.AdvanceWorldTick();

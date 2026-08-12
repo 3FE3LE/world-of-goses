@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -114,7 +114,7 @@ public class Eg1ResourceSeamTests
         Assert.Equal(0, hero.LastVisitedResourceUnitId);
 
         var restored = new CityWorld();
-        restored.Restore(captured);
+        WorldPersistence.ApplyTo(restored, captured);
         Assert.Equal(branches.Id, restored.Hero!.LastVisitedResourcePatchId);
         Assert.Equal(0, restored.Hero.LastVisitedResourceUnitId);
         WorldPersistence.Validate(WorldPersistence.Capture(restored));
@@ -182,7 +182,7 @@ public class Eg1ResourceSeamTests
 
         WorldSave equipped = WorldPersistence.Capture(world);
         equipped.Tools.Add(ToolKind.PrimitiveAxe.ToString());
-        world = CityWorld.FromSave(equipped);
+        world = WorldPersistence.FromSave(equipped);
         forest = FindFirstPatch(world, ResourceType.Wood);
         int before = world.CarriedGroundResourceCount();
         int gathered = world.GatherFromPatch(forest.Id, unitId: 0, amount: 1);

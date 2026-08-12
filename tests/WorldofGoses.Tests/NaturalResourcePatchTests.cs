@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -48,8 +48,8 @@ public sealed class NaturalResourcePatchTests
             unitId: 0,
             amount: CityWorld.StartingTreeWoodReserve);
         WorldSave save = WorldPersistence.Capture(source);
-        CityWorld live = CityWorld.FromSave(save);
-        CityWorld offline = CityWorld.FromSave(save);
+        CityWorld live = WorldPersistence.FromSave(save);
+        CityWorld offline = WorldPersistence.FromSave(save);
 
         for (int tick = 0; tick < GameClock.TicksPerInGameDay; tick++)
         {
@@ -89,7 +89,7 @@ public sealed class NaturalResourcePatchTests
 
         int gathered = world.GatherWood(new BuildingId(patch.Id), unitId: 0, amount: 1);
         WorldSave save = WorldPersistence.Capture(world);
-        CityWorld restored = CityWorld.FromSave(
+        CityWorld restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(
                 WorldPersistence.SerializeToJson(save)));
 
@@ -135,7 +135,7 @@ public sealed class NaturalResourcePatchTests
             amount: CityWorld.StartingForestWoodReserve);
         world.TryConsumeResource(ResourceType.Wood, CityWorld.StartingForestWoodReserve);
         world.AdvanceWorldTick();
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(world));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(world));
 
         restored.SeedStartingForests();
 

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -130,8 +130,8 @@ public sealed class Eg3CultivationSiteTests
         Assert.True(source.TrySowCultivationSite(id).IsSuccess);
         source.Hero!.RestoreStamina(source.Hero.MaxStamina);
         WorldSave baseline = WorldPersistence.Capture(source);
-        CityWorld live = CityWorld.FromSave(Clone(baseline));
-        CityWorld offline = CityWorld.FromSave(Clone(baseline));
+        CityWorld live = WorldPersistence.FromSave(Clone(baseline));
+        CityWorld offline = WorldPersistence.FromSave(Clone(baseline));
 
         for (int tick = 0; tick < CultivationRules.GrowthTicks; tick++)
         {
@@ -160,7 +160,7 @@ public sealed class Eg3CultivationSiteTests
 
         WorldSave save = WorldPersistence.Capture(world);
         WorldPersistence.Validate(save);
-        CityWorld restored = CityWorld.FromSave(Clone(save));
+        CityWorld restored = WorldPersistence.FromSave(Clone(save));
         CultivationSite plot = restored.GetCultivationSite(id)!;
 
         Assert.Equal(CultivationPlotState.Growing, plot.State);

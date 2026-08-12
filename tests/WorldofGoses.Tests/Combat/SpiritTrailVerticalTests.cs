@@ -2,7 +2,7 @@ using System.Linq;
 using System.Collections.Generic;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests.Combat;
@@ -249,8 +249,8 @@ public sealed class SpiritTrailVerticalTests
         (CityWorld source, ExpeditionId expeditionId) =
             ExpeditionCombatSessionIntegrationTests.StartSpiritTrail();
         WorldSave start = WorldPersistence.Capture(source);
-        CityWorld live = CityWorld.FromSave(start);
-        CityWorld offline = CityWorld.FromSave(start);
+        CityWorld live = WorldPersistence.FromSave(start);
+        CityWorld offline = WorldPersistence.FromSave(start);
         Expedition liveExpedition = live.Expeditions[expeditionId];
         int duration = liveExpedition.EndTick - live.CurrentTick;
 
@@ -268,7 +268,7 @@ public sealed class SpiritTrailVerticalTests
             offline.Hero!.CurrentHealthAndCondition);
     }
 
-    private static CityWorld RoundTrip(CityWorld world) => CityWorld.FromSave(
+    private static CityWorld RoundTrip(CityWorld world) => WorldPersistence.FromSave(
         WorldPersistence.DeserializeFromJson(
             WorldPersistence.SerializeToJson(WorldPersistence.Capture(world))));
 

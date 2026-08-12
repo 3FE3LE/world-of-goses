@@ -1,5 +1,5 @@
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -22,7 +22,7 @@ public class WorldPersistenceV3Tests
         var save = WorldPersistence.Capture(world);
         Assert.Equal(WorldSave.CurrentVersion, save.Version);
 
-        var restored = CityWorld.FromSave(
+        var restored = WorldPersistence.FromSave(
             WorldPersistence.DeserializeFromJson(WorldPersistence.SerializeToJson(save)));
 
         Assert.Equal(4, restored.GetBuilding(new BuildingId(1))!.MinStock);
@@ -113,7 +113,7 @@ public class WorldPersistenceV3Tests
         var currentSave = WorldPersistence.MigrateToCurrent(v18Save);
         Assert.Equal(WorldSave.CurrentVersion, currentSave.Version);
 
-        var restored = CityWorld.FromSave(currentSave);
+        var restored = WorldPersistence.FromSave(currentSave);
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);

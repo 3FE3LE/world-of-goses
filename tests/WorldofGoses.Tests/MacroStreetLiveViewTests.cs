@@ -1,6 +1,6 @@
 using Godot;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using WorldofGoses.Prototypes;
 using WorldofGoses.Ui;
 using Xunit;

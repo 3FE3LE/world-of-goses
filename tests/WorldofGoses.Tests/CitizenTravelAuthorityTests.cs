@@ -1,6 +1,6 @@
 using System.Linq;
 using WorldofGoses.Domain;
-using WorldofGoses.Domain.Persistence;
+using WorldofGoses.Persistence;
 using Xunit;
 
 namespace WorldofGoses.Tests;
@@ -89,7 +89,7 @@ public sealed class CitizenTravelAuthorityTests
     public void TravelToWork_LiveAndOfflineReachTheSameState()
     {
         (CityWorld live, _, _) = AssignedWorld(8101);
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks * 2);
         AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks * 2);
@@ -109,7 +109,7 @@ public sealed class CitizenTravelAuthorityTests
         Assert.Null(hero.CurrentAssignment);
 
         hero.BeginTravelHome(live.CurrentTick);
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
         AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks);
@@ -133,7 +133,7 @@ public sealed class CitizenTravelAuthorityTests
             live.AdvanceWorldTick();
         }
         Assert.True(live.TryAssignCitizen(quarry.Id, live.Hero!.Id).IsSuccess);
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks * 3);
         AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks * 3);
@@ -152,7 +152,7 @@ public sealed class CitizenTravelAuthorityTests
         int arrivesAt = hero.TravelArrivalTick!.Value;
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks / 3);
 
-        CityWorld restored = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         Assert.Equal(CitizenLocation.InTransit, restored.Hero!.CurrentLocation);
         Assert.Equal(hero.TransitStartedAtTick, restored.Hero.TransitStartedAtTick);
         // The journey keeps its original deadline: a save does not restart it,
@@ -178,7 +178,7 @@ public sealed class CitizenTravelAuthorityTests
     public void SimulationSpeed_DoesNotChangeWhatATickDoes(int speedMultiplier)
     {
         (CityWorld reference, _, _) = AssignedWorld(8105);
-        CityWorld atSpeed = CityWorld.FromSave(WorldPersistence.Capture(reference));
+        CityWorld atSpeed = WorldPersistence.FromSave(WorldPersistence.Capture(reference));
 
         int ticks = CityEconomyRules.AbstractTravelTicks * 2;
         AdvanceLive(reference, ticks);
@@ -207,7 +207,7 @@ public sealed class CitizenTravelAuthorityTests
         TestHelpers.AdvanceToNextProductionCycle(live);
         Assert.True(hero.IsReturningHome);
 
-        CityWorld offline = CityWorld.FromSave(WorldPersistence.Capture(live));
+        CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         int foodWhileWalking = live.FoodStock;
 
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);

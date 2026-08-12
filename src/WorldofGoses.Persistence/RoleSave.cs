@@ -1,0 +1,8 @@
+using WorldofGoses.Domain;
+namespace WorldofGoses.Persistence;
+
+public sealed class RoleSave
+{
+    public string Id { get; set; } = "";
+    public int GrantedAtTick { get; set; }
+}
