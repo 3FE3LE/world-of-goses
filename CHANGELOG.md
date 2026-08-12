@@ -17,6 +17,54 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## A8–A12: la frontera pasa a ser del compilador, no de la disciplina
+
+**2026-08-12** · arquitectura · sin cambio de schema · 1323 pruebas superadas
+y 1 omitida sobre 1324
+
+Cierra el arco A0–A12. `CityGameSession` (Application) pasa a ser el
+dueño de `CityWorld`: el controller ya no tiene un `CityWorld` propio,
+sólo un `_session`, y el acceso que queda para los fixtures de
+regresión visual es `internal CityWorld World { get; }` alcanzado vía
+`InternalsVisibleTo("World of Goses")`. Las escenas de producción no
+tocan el agregado: cada lectura va por un snapshot inmutable y cada
+escritura por un método del session. Las cuatro dependencias entre
+ensamblados (Domain sin nada, Application sobre Domain, Persistence
+sobre Domain, Godot sobre los tres) las impone `ProjectReference`, así
+que una regresión que añada Godot al dominio o JSON a Application ya no
+pasa revisión: no compila. `ArchitectureBoundaryTests` (+519 líneas,
+con `ArchitectureBoundaryAllowlist` como registro explícito de las
+excepciones que quedan) congela lo que los `ProjectReference` no pueden
+expresar.
+
+A9 mata el seam por reflexión de la primera noche. `FirstNightScene`
+leía las anclas del mundo con `HasMethod` + `Node.Call` en su propio
+`_Process`, una vez por frame; ahora `MacroStreetLiveView` emite
+`WorldDialogueAnchorsChanged` cuando la cámara o la proyección se
+mueven y la escena refresca sólo entonces. Se fue el `_Process`
+completo y con él el string mágico del nombre del método.
+
+A10 saca la regresión visual del prototipo a `game/scripts/Testing/`:
+`VisualRegressionHarness` decide si la captura está activa y
+`VisualFixtureCatalog` conoce los 17 fixtures por nombre, en vez de que
+el nombre viva repartido entre el script de PowerShell y ~50 métodos de
+`CityPrototype`. A11 vuelve a authorizar paneles en `.tscn` y A12
+introduce `ResourceTypeLocalizer`, con lo que ninguna clave i18n se
+deriva ya de `enum.ToString()` — el dominio no conoce claves PO, igual
+que desde A7 no conoce IDs de save.
+
+Lo que el jugador NO nota: nada. Mismo schema 34, mismos saves, misma
+pantalla. Lo que el próximo implementador sí nota está en
+`docs/ARCHITECTURE_HARDENING_REPORT.md` §15: ya no puede añadir reglas
+de gameplay al controller, pasar `CityWorld` a una vista, meter Godot
+en el dominio, ni derivar un ID de save o una clave i18n del nombre de
+un enum. El §10 del mismo informe lista la deuda que se conserva a
+propósito, cada línea con su issue de GitHub (#5–#9).
+
+**Sin schema.** No hay migration; la persistencia no cambia.
+
+---
+
 ## A7: IDs estables y contrato semántico de restore
 
 **2026-08-12** · arquitectura · sin cambio de schema · 1310 pruebas superadas

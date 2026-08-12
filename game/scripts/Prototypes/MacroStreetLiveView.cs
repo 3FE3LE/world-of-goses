@@ -412,6 +412,7 @@ public partial class MacroStreetLiveView : Node2D
         RefreshPlots();
         _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
         _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
+        NotifyWorldDialogueAnchorsChanged();
         Visible = false;
         // ScreenContent (this node's parent) sits below CityStatusPanel
         // inside a VBoxContainer, so its own local (0,0) is NOT the
@@ -588,6 +589,27 @@ public partial class MacroStreetLiveView : Node2D
         return ToGlobal(position);
     }
 
+    /// <summary>
+    /// Architecture Hardening A9: emits whenever the projected screen
+    /// positions of the founder or any world building change because
+    /// the camera or projection moved. <see cref="FirstNightScene"/>
+    /// subscribes here to refresh its cached anchors without polling
+    /// every frame.
+    /// </summary>
+    [Signal]
+    public delegate void WorldDialogueAnchorsChangedEventHandler();
+
+    /// <summary>
+    /// Emits <see cref="WorldDialogueAnchorsChanged"/>. Called after
+    /// every camera state change (lateral pan, depth change, zoom,
+    /// follow toggle, reset) so subscribers refresh only when the
+    /// projection actually moved. The check belongs to the caller:
+    /// this helper does not compare against the previous value, it
+    /// simply notifies.
+    /// </summary>
+    private void NotifyWorldDialogueAnchorsChanged() =>
+        EmitSignal(SignalName.WorldDialogueAnchorsChanged);
+
     public void PrepareFounderArrival()
     {
         ActivatePerspective();
@@ -640,6 +662,7 @@ public partial class MacroStreetLiveView : Node2D
     private void ResetZoom()
     {
         _camera.ZoomLevel = DefaultZoom;
+        NotifyWorldDialogueAnchorsChanged();
         Scale = Vector2.One;
         Position = _camera.NeutralPosition;
         ZoomTowardPivot(DefaultZoom, new Vector2(CenterX, CameraZoomPivotY));
@@ -1300,30 +1323,35 @@ public partial class MacroStreetLiveView : Node2D
         && _journeys.Journeys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
         && journey.Route is not null;
 
-    public void ShowThirdStreetDepthForVisualRegression()
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void ShowThirdStreetDepthForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         SetCameraFollowsHero(false);
         _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
         _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
         _camera.CameraDepthTarget = null;
         _camera.CameraTransitionAccumulator = 0f;
+        NotifyWorldDialogueAnchorsChanged();
         QueueRedraw();
     }
 
-    public void ShowLongTerrariumForVisualRegression()
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void ShowLongTerrariumForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ActivatePerspective();
         SetCameraFollowsHero(false);
         _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
         _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
         _camera.CameraDepthTarget = null;
         _camera.CameraTransitionAccumulator = 0f;
+        NotifyWorldDialogueAnchorsChanged();
         ZoomTowardPivot(MinZoom, new Vector2(CenterX, CameraZoomPivotY));
         GD.Print(
             $"Long terrarium fixture: {_worldParcelRows} parcel rows, "
             + $"{_streetCount} streets, zoom {_camera.ZoomLevel:F2}.");
+        NotifyWorldDialogueAnchorsChanged();
         QueueRedraw();
         if (!string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable(
                 "WOG_LONG_TERRARIUM_CAPTURE")))
@@ -1568,6 +1596,7 @@ public partial class MacroStreetLiveView : Node2D
         float newZoom = Mathf.Clamp(_camera.ZoomLevel + delta, MinZoom, MaxZoom);
         if (Mathf.IsEqualApprox(newZoom, _camera.ZoomLevel)) return;
         ZoomTowardPivot(newZoom, new Vector2(CenterX, CameraZoomPivotY));
+        NotifyWorldDialogueAnchorsChanged();
     }
 
     /// <summary>
@@ -1584,6 +1613,9 @@ public partial class MacroStreetLiveView : Node2D
         Position += pivotLocal * (oldScale - newScale);
         Scale = newScale;
         _camera.ZoomLevel = newZoom;
+        // Caller follows up with NotifyWorldDialogueAnchorsChanged when
+        // the change is the public API; private callers don't need to
+        // re-notify because the public one fires once.
     }
 
     /// <summary>
@@ -1623,6 +1655,7 @@ public partial class MacroStreetLiveView : Node2D
         }
         _camera.CameraFollowsHero = value;
         UpdateCameraModeButtonLabel();
+        NotifyWorldDialogueAnchorsChanged();
         QueueRedraw();
     }
 
@@ -1771,7 +1804,7 @@ public partial class MacroStreetLiveView : Node2D
                 ? TerrainAtlas.RegionOfId(
                     TerrainAtlas.TreeFor(_renderer.GroundBiome, tree.ForestId, tree.UnitId).TrunkId)
                 : TerrainAtlas.ResourceRegion(tree.ResourceType, tree.ForestId, tree.UnitId));
-        string resourceName = UiText.Get(tree.ResourceType.ToString().ToLowerInvariant());
+        string resourceName = ResourceTypeLocalizer.Label(tree.ResourceType);
         string detail = UiText.Format("ui.resource.units_remain", tree.Reserve, resourceName);
         _contextInspector.ShowSelection(icon, resourceName, detail);
     }
@@ -1948,6 +1981,7 @@ public partial class MacroStreetLiveView : Node2D
             _camera.BuildingEntryStep++;
             float t = (float)_camera.BuildingEntryStep / BuildingEntryZoomSteps;
             ZoomTowardPivot(Mathf.Lerp(_camera.BuildingEntryStartZoom, BuildingEntryZoomLevel, t), _camera.BuildingEntryPivotLocal);
+            NotifyWorldDialogueAnchorsChanged();
             if (_camera.BuildingEntryStep >= BuildingEntryZoomSteps)
             {
                 _camera.PendingBuildingEntry = null;
@@ -2692,6 +2726,7 @@ public partial class MacroStreetLiveView : Node2D
             _lateralHalfWidthPx);
         if (next == _camera.FreeCameraLateral) return false;
         _camera.FreeCameraLateral = next;
+        NotifyWorldDialogueAnchorsChanged();
         QueueRedraw();
         return true;
     }

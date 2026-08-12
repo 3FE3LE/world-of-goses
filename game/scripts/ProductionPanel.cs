@@ -290,7 +290,7 @@ public partial class ProductionPanel : PanelContainer
         var parts = new System.Collections.Generic.List<string>();
         foreach (var input in snapshot.PendingInputs)
         {
-            parts.Add($"{input.Amount} {input.Resource.ToString().ToLowerInvariant()}");
+            parts.Add($"{input.Amount} {ResourceTypeLocalizer.Label(input.Resource)}");
         }
         return UiText.Format("ui.production.inputs_due", string.Join(" + ", parts));
     }

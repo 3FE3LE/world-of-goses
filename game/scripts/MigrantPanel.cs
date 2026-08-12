@@ -84,8 +84,10 @@ public partial class MigrantPanel : Control
         (_recruitButton.Disabled ? _closeButton : _recruitButton).GrabFocus();
     }
 
-    public void ShowForVisualRegression()
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void ShowForVisualRegression()
     {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         RosterSnapshot roster = _controller.GetRosterSnapshot();
         if (roster.HeroId.HasValue && roster.CitizenCount < 2)
         {
@@ -109,8 +111,10 @@ public partial class MigrantPanel : Control
     /// capture that quietly swapped one for the other is what let the first
     /// version of this fixture photograph a bare vertex and read as proof.
     /// </summary>
-    public void ShowMigrantCubeForVisualRegression(CitizenId migrantId)
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void ShowMigrantCubeForVisualRegression(CitizenId migrantId)
     {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         Open();
         RosterSnapshot roster = _controller.GetRosterSnapshot();
         RosterSnapshot.RosterEntry? entry = null;

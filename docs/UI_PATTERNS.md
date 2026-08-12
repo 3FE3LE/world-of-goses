@@ -644,6 +644,72 @@ When touching an existing screen:
 PRs touching the UI must include the audit findings in the
 description (`- affected: CityMacroView, CityStatusPanel, BackButton`).
 
+## 9.1 Architecture Hardening A11 — the static-structure rule
+
+The rule is the §2 table restated as an executable constraint, so new
+screens stop mixing static layout, Theme and runtime state
+arbitrarily. The guard
+`ArchitectureBoundaryTests.ProductionUi_DoesNotComposeStaticHierarchyInCode`
+fails the build if a production screen reaches for `new VBoxContainer`,
+`new Panel`, `new HBox`, `new Label`, `new Button`, `new Container`,
+`new TextureRect`, `new PanelContainer`, `new MarginContainer`,
+`new ScrollContainer`, `new CenterContainer`, `new GridContainer`,
+`new TabBar`, `new TabContainer`, `new HSeparator`, `new VSeparator`,
+`new HSplitContainer` or `new VSplitContainer` for its top-level
+layout. Three classifications explain where each existing file
+belongs:
+
+| Class | Lives where | Why |
+| --- | --- | --- |
+| **A — static authored structure** | `.tscn` | Shape is identical for every city; nothing depends on runtime data. |
+| **B — genuinely dynamic collection** | C# (allowlist) | Shape is mostly rows the snapshot rebuilds each refresh; the static parts (scroll container, header, separators) are minimal. |
+| **C — reusable primitive** | `Ui/<Name>.cs` or `scenes/Components/<Name>.tscn` | Already in the right place. The scanner skips `Ui/`, `Prototypes/` and the testing layer. |
+| **D — dev/debug tooling** | C# (allowlist) | Only renders under `WOG_VISUAL_CAPTURE`. |
+| **E — runtime-only visual object** | C# (allowlist) | Transient overlay nodes (first night, notifier, founder arrival). |
+
+`PauseMenu` is the canonical example of the rule: the entire shell —
+Scrim, CenterContainer, Card with the `HudSurface` variation,
+MarginContainer with the project's spacing constants, Heading,
+MainActions, ResetConfirmation — is in `game/scenes/PauseMenu.tscn`.
+The C# side only does `GetNode<…>(…)`, wires `Pressed` signals, owns
+the ESC handler, refreshes localized text on locale change, and
+toggles the confirmation panel. Zero `new Panel` / `new VBox` /
+`new Button` calls. The same pattern applies to
+`OnboardingView`, `HeroProfileView`, `MigrantPanel`,
+`ExpeditionPanel`, `PauseMenu`, `AssignmentRow` (PackedScene
+reusable), `ResourceTree`, `CultivationActionMenu`,
+`ResourceActionMenu`, `CombatantView`, `OctagonalSkillSlot`,
+`ExpeditionSquadSlot`, `ExpeditionSquadStrip`, `ExpeditionSkillStrip`.
+
+What goes where, in one line each:
+
+- **Static hierarchy** (anchors, containers, chrome) → `.tscn`.
+- **Static styling** (theme variations, font sizes, colours) →
+  `default_theme.tres` via `ThemeTypeVariation`. Reach for the
+  variation before any `theme_override_*`.
+- **Spacing tokens** → `Ui/Tokens.cs`. No re-decided numbers at the
+  call site.
+- **Runtime behaviour** (focus, signal wiring, state binding,
+  refresh) → C#.
+- **Dynamic rows** (data-driven collections) → C# with reusable
+  primitives (`Ui/HudMetricRow`, `Ui/HudResourceRow`,
+  `Ui/ConstructionQueueItem`, `Ui/AssignmentRow`).
+
+The one exception to "no ThemeBoxFlat for visible chrome" — the
+`HudSeparator` `StyleBoxLine` and the flat fill in `HudProgress` —
+is named in `HudThemeVariationTests` so a third needs a visible
+edit. `ScrollGutter` lives as a Token (`Ui/Tokens.ScrollGutter`)
+because the gutter has to sit inside the scrolled content for the
+bar to behave correctly; an inline number is the documented
+exception, the token is the named version.
+
+The migration tracker lives at
+`ArchitectureBoundaryAllowlist.ProductionUiStaticStructureInCode`.
+Every entry in the **A** row is one slice of work: create the
+`.tscn`, move the static shell there, keep C# for signal wiring
+and dynamic rows, remove the entry from the allowlist when the
+guard stays green.
+
 ## 10. Forward-looking — expeditions and citizens roster
 
 When the expeditions and citizens roster screens arrive they MUST

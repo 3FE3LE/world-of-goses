@@ -174,8 +174,10 @@ public partial class ExpeditionPanel : Control
         _modalHost.Close();
     }
 
-    public void ShowWoundRecoveryForVisualRegression()
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void ShowWoundRecoveryForVisualRegression()
     {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _showRecoveryFixture = true;
         Open();
     }

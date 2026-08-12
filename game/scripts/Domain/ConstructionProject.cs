@@ -63,12 +63,17 @@ public sealed class ConstructionProject
     /// <para>The <see cref="Progress"/> setter stays <c>internal</c> so real
     /// play can only advance a worksite through the simulation tick, which is
     /// what applies the recipe inputs, the stop causes and the phase
-    /// transitions. This method exists because the visual-regression fixtures
-    /// need a finished building without simulating the days it takes to build
+    /// transitions. This method exists because the visual-regression harness
+    /// needs a finished building without simulating the days it takes to build
     /// one — and it clamps to <see cref="RequiredWork"/> so a fixture cannot
     /// invent a state the simulation itself could never reach.</para>
+    ///
+    /// <para>Architecture Hardening A10 made this seam <c>internal</c>. The
+    /// only legitimate callers are the visual-regression harness and the
+    /// test assembly (both reach it via <c>InternalsVisibleTo</c>). Production
+    /// code can no longer grow a new screenshot path through this method.</para>
     /// </summary>
-    public void SeedProgressForFixture(int work) =>
+    internal void SeedProgressForFixture(int work) =>
         Progress = Math.Clamp(work, 0, RequiredWork);
 
     /// <summary>

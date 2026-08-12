@@ -547,7 +547,7 @@ public partial class AstralOnboardingView : Control
         GetParent().AddChild(arrival);
         arrival.Completed += OnArrivalCompleted;
         arrival.Begin(
-            _controller.World.Hero!,
+            _controller.TryGetHeroForFounderArrival()!,
             _cityView.GetFoundingArrivalGlobalPosition());
         Hide();
     }
@@ -709,9 +709,13 @@ public partial class AstralOnboardingView : Control
         return true;
     }
 
-    public void ShowForVisualRegression(int step)
+    /// <summary>
+    /// A12 closes the seam: <c>internal</c> and gated on the
+    /// visual-regression harness. Production scenes never call this.
+    /// </summary>
+    internal void ShowForVisualRegression(int step)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         int questionStep = Math.Clamp(
             step,
             0,

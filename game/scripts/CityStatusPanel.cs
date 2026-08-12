@@ -602,7 +602,7 @@ public partial class CityStatusPanel : PanelContainer
         };
         foreach (ResourceInventoryItem resource in hidden)
         {
-            string name = UiText.Get(resource.Resource.ToString().ToLowerInvariant());
+            string name = ResourceTypeLocalizer.Label(resource.Resource);
             string amount = CompactNumber.FormatExact(resource.AvailableAmount);
             lines.Add(UiText.Format("ui.status.resource_overflow_line", name, amount));
         }
@@ -618,7 +618,7 @@ public partial class CityStatusPanel : PanelContainer
         string total = CompactNumber.FormatExact(resource.TotalAmount);
         var lines = new System.Collections.Generic.List<string>
         {
-            UiText.Get(resource.Resource.ToString().ToLowerInvariant()),
+            ResourceTypeLocalizer.Label(resource.Resource),
             UiText.Format("ui.status.resource_available", amount),
             UiText.Format("ui.status.resource_stored", total),
         };

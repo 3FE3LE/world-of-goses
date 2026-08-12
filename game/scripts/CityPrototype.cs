@@ -76,8 +76,13 @@ public partial class CityPrototype : Node
         // there is nothing to override here.
         var firstNightScene = new FirstNightScene { Name = "FirstNightScene" };
         AddChild(firstNightScene);
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1")
+        if (WorldofGoses.Testing.VisualRegressionHarness.Activate())
         {
+            // A10: the harness owns detection and dispatch. The per-fixture
+            // composition steps still live as private methods on this scene
+            // (they touch the scene tree, which is the prototype's
+            // responsibility); the harness classifies the requested name
+            // so the per-fixture switch can branch on the typed result.
             CallDeferred(MethodName.ApplyVisualRegressionFixture);
         }
     }
@@ -524,7 +529,7 @@ public partial class CityPrototype : Node
                 break;
             case "forest-depleted":
                 GetNode<CityWorldController>("CityWorldController")
-                    .DrainAllForestsForVisualRegression();
+                    .DrainAllForestsForFixture();
                 break;
             case "citizen-travel":
                 ShowCitizenTravelForVisualRegression();
@@ -1506,7 +1511,7 @@ public partial class CityPrototype : Node
     {
         ShowTopStatusForVisualRegression(locale);
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         Citizen? hero = world.Hero;
         if (hero is null)
         {
@@ -1533,7 +1538,7 @@ public partial class CityPrototype : Node
     {
         ShowTopStatusForVisualRegression(locale);
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         Citizen? hero = world.Hero;
         if (hero is null)
         {
@@ -1693,7 +1698,7 @@ public partial class CityPrototype : Node
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
             "GameUiShell/ScreenContent/MacroStreetLiveView");
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder)
         {
             GD.PushError("Citizen travel fixture requires a founded city.");
@@ -1880,7 +1885,7 @@ public partial class CityPrototype : Node
     private void ShowWorldStatusTreatmentForVisualRegression()
     {
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
 
         int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
@@ -1913,7 +1918,7 @@ public partial class CityPrototype : Node
         // player clicks a citizen — not just when the macro view paints
         // the bubble for a known citizen by hand.
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
 
         int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
@@ -1995,7 +2000,7 @@ public partial class CityPrototype : Node
         }
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         SeedHermeticFounderForExpeditionRailFixture(controller);
-        CityWorld world = controller.World;
+        CityWorld world = controller.GetFixtureWorld();
         ExpeditionRail rail = GetNode<ExpeditionRail>(
             "GameUiShell/ScreenContent/ExpeditionRail");
 
@@ -2065,7 +2070,7 @@ public partial class CityPrototype : Node
         _expeditionLiveFixtureState = state;
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         if (!PrepareSpiritTrailVisualFixture(controller, out ExpeditionId expeditionId)) return;
-        AdvanceSpiritTrailVisualFixture(controller.World, expeditionId, state);
+        AdvanceSpiritTrailVisualFixture(controller.GetFixtureWorld(), expeditionId, state);
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Fast);
         ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
             "GameUiShell/ScreenContent/ExpeditionLiveView");
@@ -2520,8 +2525,8 @@ public partial class CityPrototype : Node
             "GameUiShell/ScreenContent/ExpeditionRail");
         rail.GrabDefaultFocus();
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        controller.AdvanceWorldTickForVisualRegression();
-        controller.AdvanceWorldTickForVisualRegression();
+        controller.AdvanceWorldTickForFixtureHarness();
+        controller.AdvanceWorldTickForFixtureHarness();
         CallDeferred(MethodName.DeferExpeditionRailPhaseFocusValidation);
     }
 

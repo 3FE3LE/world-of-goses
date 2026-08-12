@@ -42,6 +42,12 @@ expand_margin_top = 2.0
 expand_margin_right = 2.0
 expand_margin_bottom = 2.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_progress_fill"]
+bg_color = Color(0.518, 0.392, 0.216, 1)
+
+[sub_resource type="StyleBoxLine" id="StyleBoxLine_hud_separator"]
+color = Color(0.161, 0.169, 0.184, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_scroll"]
 bg_color = Color(0.02, 0.027, 0.042, 0.72)
 border_width_left = 1
@@ -58,13 +64,6 @@ content_margin_bottom = 2.0
 bg_color = Color(0.025, 0.032, 0.048, 0.97)
 border_width_bottom = 2
 border_color = Color(0.72, 0.57, 0.27, 1)
-
-[sub_resource type="StyleBoxLine" id="StyleBoxLine_hud_separator"]
-color = Color(0.161, 0.169, 0.184, 1)
-thickness = 1
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud_progress_fill"]
-bg_color = Color(0.518, 0.392, 0.216, 1)
 
 [resource]
 BodySmall/base_type = &"Label"
@@ -136,6 +135,8 @@ GameTitle/colors/font_color = Color(1, 0.937, 0.776, 1)
 GameTitle/constants/line_spacing = 4
 GameTitle/font_sizes/font_size = 48
 GameTitle/fonts/font = ExtResource("1_geist")
+HudBadge/base_type = &"PanelContainer"
+HudBadge/styles/panel = ExtResource("40_hud_badge")
 HudBody/base_type = &"Label"
 HudBody/colors/font_color = Color(0.86, 0.84, 0.78, 1)
 HudBody/font_sizes/font_size = 16
@@ -186,10 +187,6 @@ HudButtonSelected/styles/focus = SubResource("StyleBoxFlat_focus")
 HudButtonSelected/styles/hover = ExtResource("36_hud_button_selected")
 HudButtonSelected/styles/normal = ExtResource("36_hud_button_selected")
 HudButtonSelected/styles/pressed = ExtResource("36_hud_button_selected")
-HudBadge/base_type = &"PanelContainer"
-HudBadge/styles/panel = ExtResource("40_hud_badge")
-HudStateBadge/base_type = &"PanelContainer"
-HudStateBadge/styles/panel = ExtResource("40_hud_badge")
 HudCaption/base_type = &"Label"
 HudCaption/colors/font_color = Color(0.76, 0.75, 0.73, 1)
 HudCaption/font_sizes/font_size = 14
@@ -236,18 +233,10 @@ HudProgress/styles/fill = SubResource("StyleBoxFlat_hud_progress_fill")
 HudSeparator/base_type = &"HSeparator"
 HudSeparator/constants/separation = 1
 HudSeparator/styles/separator = SubResource("StyleBoxLine_hud_separator")
+HudStateBadge/base_type = &"PanelContainer"
+HudStateBadge/styles/panel = ExtResource("40_hud_badge")
 HudSurface/base_type = &"PanelContainer"
 HudSurface/styles/panel = ExtResource("27_hud_surface")
-OctagonalSkillSlot/base_type = &"Control"
-OctagonalSkillSlot/colors/border_default = Color(0.192, 0.196, 0.235, 1)
-OctagonalSkillSlot/colors/border_disabled = Color(0.294, 0.302, 0.329, 1)
-OctagonalSkillSlot/colors/border_locked = Color(0.431, 0.439, 0.471, 1)
-OctagonalSkillSlot/colors/border_ready = Color(0.835, 0.565, 0.243, 1)
-OctagonalSkillSlot/colors/fill_cooldown = Color(0.075, 0.078, 0.114, 0.98)
-OctagonalSkillSlot/colors/fill_disabled = Color(0.035, 0.047, 0.075, 0.88)
-OctagonalSkillSlot/colors/fill_empty = Color(0.027, 0.039, 0.067, 0.98)
-OctagonalSkillSlot/colors/fill_locked = Color(0.035, 0.047, 0.075, 0.98)
-OctagonalSkillSlot/colors/fill_ready = Color(0.102, 0.09, 0.071, 0.98)
 Label/colors/font_color = Color(0.96, 0.92, 0.82, 1)
 Label/font_sizes/font_size = 18
 Label/fonts/font = ExtResource("3_pixelify")
@@ -261,6 +250,16 @@ NumericText/base_type = &"Label"
 NumericText/colors/font_color = Color(0.97, 0.93, 0.78, 1)
 NumericText/font_sizes/font_size = 18
 NumericText/fonts/font = ExtResource("3_pixelify")
+OctagonalSkillSlot/base_type = &"Control"
+OctagonalSkillSlot/colors/border_default = Color(0.192, 0.196, 0.235, 1)
+OctagonalSkillSlot/colors/border_disabled = Color(0.294, 0.302, 0.329, 1)
+OctagonalSkillSlot/colors/border_locked = Color(0.431, 0.439, 0.471, 1)
+OctagonalSkillSlot/colors/border_ready = Color(0.835, 0.565, 0.243, 1)
+OctagonalSkillSlot/colors/fill_cooldown = Color(0.075, 0.078, 0.114, 0.98)
+OctagonalSkillSlot/colors/fill_disabled = Color(0.035, 0.047, 0.075, 0.88)
+OctagonalSkillSlot/colors/fill_empty = Color(0.027, 0.039, 0.067, 0.98)
+OctagonalSkillSlot/colors/fill_locked = Color(0.035, 0.047, 0.075, 0.98)
+OctagonalSkillSlot/colors/fill_ready = Color(0.102, 0.09, 0.071, 0.98)
 OverlayPanel/base_type = &"PanelContainer"
 OverlayPanel/styles/panel = ExtResource("26_panel_elevated")
 Panel/styles/panel = ExtResource("25_panel_card")

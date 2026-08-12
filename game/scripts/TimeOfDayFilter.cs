@@ -51,9 +51,11 @@ public partial class TimeOfDayFilter : Control
     /// reproducibly. Without this the captured hour is whatever the save
     /// happens to hold, which makes an ambient effect impossible to
     /// review. Visual-regression only; never called in normal play.
+    /// A12 closes the seam: <c>internal</c> and gated on the harness.
     /// </summary>
-    public void PinDayFractionForVisualRegression(double fraction)
+    internal void PinDayFractionForVisualRegression(double fraction)
     {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _pinnedFraction = fraction;
     }
 

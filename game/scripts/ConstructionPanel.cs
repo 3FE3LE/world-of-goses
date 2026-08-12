@@ -894,7 +894,7 @@ public partial class ConstructionPanel : PanelContainer
             parts.Add(UiText.Format(
                 "ui.construction.material_full",
                 material.Required,
-                UiText.Get(material.Resource.ToString().ToLowerInvariant()),
+                ResourceTypeLocalizer.Label(material.Resource),
                 material.Available));
         }
         return parts.Count == 0 ? UiText.Get("no material cost") : string.Join(" + ", parts);
@@ -910,7 +910,7 @@ public partial class ConstructionPanel : PanelContainer
             parts.Add(UiText.Format(
                 "ui.construction.material_full",
                 material.Required,
-                UiText.Get(material.Resource.ToString().ToLowerInvariant()),
+                ResourceTypeLocalizer.Label(material.Resource),
                 material.Available));
         }
         return parts.Count == 0
@@ -1106,7 +1106,7 @@ public partial class ConstructionPanel : PanelContainer
         var parts = new List<string>();
         foreach (var material in option.Materials)
         {
-            string resource = material.Resource.ToString().ToLowerInvariant();
+            string resource = ResourceTypeLocalizer.Label(material.Resource);
             parts.Add(option.Kind is ConstructionKind.FoundingSite
                 or ConstructionKind.CultivationSite
                 ? UiText.Format(
@@ -1129,7 +1129,7 @@ public partial class ConstructionPanel : PanelContainer
         var parts = new List<string>();
         foreach (var input in inputs)
         {
-            parts.Add($"{input.Amount} {UiText.Get(input.Resource.ToString().ToLowerInvariant())}");
+            parts.Add($"{input.Amount} {ResourceTypeLocalizer.Label(input.Resource)}");
         }
         return string.Join(" + ", parts);
     }

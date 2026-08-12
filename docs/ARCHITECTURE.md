@@ -254,6 +254,300 @@ its `RestoredX` records (all domain-typed: `BuildingKind`, `ResourceType`,
 `ParcelTerritoryState`, etc.). Renaming a C# enum never reaches Domain
 through this path — only through the ID mapper in Persistence.
 
+**A9 — First Night typed integration.** A9 closes the last dynamic
+dispatch seam between presentation scenes. `FirstNightScene` used to
+reach the macro view's founder and campfire anchors through
+`HasMethod(methodName)` + `Node.Call(methodName, …)`, and refreshed
+its cached positions every frame inside `_Process` whether the camera
+moved or not. The macro view now exposes the anchors as a typed C#
+record (`WorldDialogueAnchors`) and a typed Godot signal
+(`WorldDialogueAnchorsChanged`); `FirstNightScene` subscribes once and
+calls the macro view's typed methods
+(`GetFoundingArrivalGlobalPosition`, `GetBuildingGlobalPosition`)
+directly. Camera and projection changes (lateral pan, depth change,
+zoom, follow toggle, reset, building-entry zoom animation) raise the
+signal from the macro view's own state-change sites, so the night
+scene refreshes only when the projection actually moved. The
+`FirstNightScene._Process` method is gone: visual flicker and
+animation stay inside `FireSpiritVisual`'s own `_Process`, layout
+clamping stays inside `FirstNightSpeechBubble.FollowSpeaker`. The new
+guards are:
+
+- `FirstNightScene_DoesNotUseDynamicDispatch` — `HasMethod` and
+  `node.Call("name", …)` patterns fail the build. Allowlist is empty
+  by design; there is no legitimate use of dynamic dispatch in the
+  night anymore.
+- `FirstNightScene_SubscribesToTypedAnchorSignal` — the scene must
+  subscribe to `WorldDialogueAnchorsChanged` and reference both typed
+  anchor getters.
+- `MacroStreetLiveView_ExposesTypedAnchorSignal` — the macro view
+  declares the typed signal and emits it through
+  `EmitSignal(SignalName.WorldDialogueAnchorsChanged)`.
+
+`UpdateFounderPosition(Vector2)` and `UpdateCampfirePosition(Vector2)`
+on `FirstNightScene` are now `[Obsolete]` — the macro view no longer
+calls them and the only entry path is the typed signal. The visual
+behaviour of the first night (spirit, embers, speech bubble) is
+unchanged: every place that previously polled every frame now updates
+once per real camera change, which is what changes during play
+anyway.
+
+**A10 — Visual regression harness.** A10 centralises every
+fixture/visual-regression seam under
+`game/scripts/Testing/VisualRegressionHarness.cs` and
+`game/scripts/Testing/VisualFixtureCatalog.cs`. Three production
+APIs that grew to enable screenshots are gone:
+
+- `CityWorldController.DrainAllForestsForVisualRegression` — was
+  `public`; A10 moved the same operation to the `internal`
+  `DrainAllForestsForFixture` seam and gated it on
+  `VisualRegressionHarness.IsActive`.
+- `CityWorldController.AdvanceWorldTickForVisualRegression` — was
+  `public`; A10 moved it to `AdvanceWorldTickForFixtureHarness`
+  with the same gating.
+- `CityWorld.ConcludeFirstNightForFixtures` — was `public`; A10 made
+  it `internal` and granted the Godot assembly
+  `InternalsVisibleTo` so the harness (which lives there) can still
+  call it.
+
+Two more Domain methods followed the same path:
+`ConstructionProject.SeedProgressForFixture` and
+`CityWorld.DrainAllNaturalResourcesForFixtures` are now `internal`;
+the test assembly keeps its existing grant, and the Godot assembly
+gets one for the harness. Production scenes cannot grow a new
+screenshot path through these seams — the guard
+`Domain_DoesNotExposeFixtureSeamsAsPublic` fails the build if any
+future Domain method ends in `ForFixture(s)` and ships as `public`.
+
+`CityWorldController`'s fixture surface shrank in two stages:
+
+1. The two `public` visual-regression entry points above are gone.
+2. The remaining `internal` fixture methods
+   (`SeedFixtureWorld`, `RestoreFixtureWorld`,
+   `AdvanceWorldTickForFixture`, `RecordFixtureWoundEvent`,
+   `SeedProjectProgressForFixture`, `RegisterFixtureCitizen`,
+   `NextFixtureCitizenId`, `NextFixtureCitizenIdByMax`,
+   `RecordFixtureLogEvent`, `GetFixtureResourceAvailable`,
+   `DepositToFixtureInventory`, `GetFixtureHeroProfile`,
+   `GetFixtureHero`, `CancelFirstActiveExpeditionForFixture`,
+   `GetProjectForFixture`, `GetBuildingForFixture`) stay `internal`
+   and remain the seam the harness reaches through. The next slice
+   moves their bodies behind the harness so the controller does not
+   grow a per-fixture method for every new screenshot.
+
+The visual-regression harness owns activation
+(`VisualRegressionHarness.Activate` parses `WOG_VISUAL_CAPTURE` and
+the `--wog-visual-capture` / `--wog-visual-fixture=` arguments),
+classification (`VisualFixtureCatalog.Classify` returns a typed
+`VisualFixtureKind`), and the runtime scenes ask
+`VisualRegressionHarness.IsActive` instead of probing
+`Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE")` themselves.
+The remaining direct env-var reads in
+`MacroStreetLiveView`, `ExpeditionRail`, `PauseMenu`, `ConstructionPanel`,
+`ExpeditionLiveView`, `BuildingDetailView`, `AstralOnboardingView`,
+`ResourceInventoryPanel`, `LocaleManager`, `PanelHeader`,
+`ExpeditionStage` stay as-is because each one gates a tiny dev-only
+behaviour (frame-time sampling, debug toggles, locale probe). Folding
+them through the harness is a refactor for the next slice; A10
+removes the fixture-orchestration env-var reads and leaves the
+behaviour-gating ones behind with a documented reason.
+
+The fixture seams that A10 leaves behind are:
+
+| Seam | Why it stays |
+|---|---|
+| `CityWorldController` `internal void` fixture methods (≈14) | The harness is the only legitimate caller; the methods stay `internal` and gated on `VisualRegressionHarness.IsActive`. Moving their bodies into the harness is a future slice. |
+| `ConstructionProject.SeedProgressForFixture` (internal) | The harness needs a way to fast-forward a worksite without simulating days. The seam is `internal` and only the test assembly + harness reach it. |
+| `CityWorld.DrainAllNaturalResourcesForFixtures` (internal) | The depleted-forest screenshot needs the world with no trees; the seam is `internal` for the same reason. |
+| `CityWorld.ConcludeFirstNightForFixtures` (internal) | First-night screenshots sometimes need a post-opening world; the seam is `internal` and called only through the harness. |
+| Direct `WOG_VISUAL_CAPTURE` env-var reads in scene trees (≈12 sites) | Each gates a dev-only behaviour (frame-time sampling, debug toggles). Folding them through `VisualRegressionHarness.IsActive` is the next slice; A10 removes the fixture-orchestration reads and documents the rest. |
+
+The new guards are:
+
+- `VisualRegressionHarness_LivesUnderTestingNamespace` — both
+  `VisualRegressionHarness.cs` and `VisualFixtureCatalog.cs` live
+  under `game/scripts/Testing/`.
+- `Domain_DoesNotExposeFixtureSeamsAsPublic` — every Domain
+  `*.ForFixture(s)` method must be `internal` (or below).
+- `CityWorldController_DoesNotGrowPublicVisualRegressionMethods` —
+  no new `public` `*ForVisualRegression` entry points.
+
+**A11 — Static-structure authoring rule.** A11 codifies the rule
+that production UI panels whose shape does not depend on runtime
+data live in a `.tscn`; the script owns behaviour, state binding,
+and the rows that the snapshot drives. The rule exists in three
+places that must stay in sync:
+
+- `docs/UI_PATTERNS.md` §2 (the three component patterns) and §9
+  (the migration checklist), which A11 extended with §9.1
+  ("the static-structure rule").
+- `ArchitectureBoundaryAllowlist.ProductionUiStaticStructureInCode`,
+  which classifies every production UI file as **A** (migrate to
+  `.tscn`), **B** (genuinely dynamic collection, stays programmatic),
+  **C** (reusable primitive in `Ui/` — already excluded by the
+  scanner), **D** (dev/debug tooling), or **E** (runtime-only
+  visual object).
+- The architecture guard
+  `ProductionUi_DoesNotComposeStaticHierarchyInCode`, which
+  scans every production screen (excluding `Domain/`,
+  `Application/`, `Testing/`, `Ui/` primitives, `Prototypes/`) for
+  `new Panel | new Label | new Button | new Container | new HBox |
+  new VBox | new Margin | new TextureRect | new PanelContainer |
+  new Separator | new HSeparator | new VSeparator | new
+  GridContainer | new TabBar | new TabContainer | new
+  ScrollContainer | new CenterContainer | new PanelContainer |
+  new MarginContainer | new HSplitContainer | new VSplitContainer`
+  and fails the build on a future screen that reaches for one of
+  those for its top-level layout.
+
+The rule, in one sentence: **what does not depend on data lives in
+`.tscn` and Theme; what depends on data lives in C#; nothing lives
+in both.**
+
+The canonical example is `PauseMenu`: the entire shell (Scrim,
+CenterContainer, Card with `HudSurface`, MarginContainer with the
+project's spacing tokens, Heading, MainActions, ResetConfirmation)
+is in `game/scenes/PauseMenu.tscn`; the C# side only does
+`GetNode<…>(…)`, wires `Pressed` signals, owns the ESC handler and
+focus, and refreshes localized text on locale change. Zero
+`new Panel` / `new VBox` / `new Button` calls. The same pattern
+applies to `OnboardingView`, `HeroProfileView`, `MigrantPanel`,
+`ExpeditionPanel`, `AssignmentRow`, `ResourceTree`,
+`CultivationActionMenu`, `ResourceActionMenu`, `CombatantView`,
+`OctagonalSkillSlot`, `ExpeditionSquadSlot`, `ExpeditionSquadStrip`,
+`ExpeditionSkillStrip`.
+
+The migration order (high churn → low churn) lives in the GitHub
+issue tracker: `CitySummaryPanel` → `CityStatusPanel` →
+`ExpeditionRail` → `HeroProfileView` → `AstralOnboardingView` →
+`PoliciesPanel` / `ProductionPanel` / `BuildingDetailView` /
+`ConstructionPanel` → `ExpeditionLiveView`. Each slice creates the
+`.tscn`, moves the static shell there, keeps C# for signal wiring
+and dynamic rows, and removes the entry from the allowlist when
+the guard stays green.
+
+The single documented exception to "no inline spacing numbers"
+is `Tokens.ScrollGutter`: the gutter has to sit inside the
+scrolled content for the vertical scrollbar to behave correctly,
+and a `theme_override_*` on the `ScrollContainer`'s own `StyleBox`
+moves the bar with the viewport instead. The token names the
+value (`16`); a literal at the call site is the documented
+exception.
+
+**A12 — Final audit.** A12 closes the last slices of
+transversal debt after A0–A11. No new layers, no large refactors.
+
+The i18n mappings that used to derive PO keys from enum names
+(`UiText.Get(resourceType.ToString().ToLowerInvariant())`) now
+route through typed Presentation mappers. The first is
+`Ui/ResourceTypeLocalizer`, which owns the explicit
+`ResourceType → PO key` switch; Domain and Application no longer
+know any PO key. Future mappers for other enum families
+(ConstructionKind, BuildingKind, LineageId) follow the same
+pattern.
+
+The fixture entry points that used to be `public` on every
+production surface so a screenshot could author its scene are
+now `internal` and gated on
+`WorldofGoses.Testing.VisualRegressionHarness.IsActive`. A10
+closed the seam on `CityWorldController`; A12 closes it on
+`AstralOnboardingView.ShowForVisualRegression`,
+`CombatDebugPanel.RunForVisualRegression`,
+`ExpeditionPanel.ShowWoundRecoveryForVisualRegression`,
+`MigrantPanel.ShowForVisualRegression`,
+`MigrantPanel.ShowMigrantCubeForVisualRegression`,
+`TimeOfDayFilter.PinDayFractionForVisualRegression`,
+`MacroStreetLiveView.ShowThirdStreetDepthForVisualRegression`,
+and `MacroStreetLiveView.ShowLongTerrariumForVisualRegression`.
+The static guard
+`ArchitectureBoundaryTests.Production_DoesNotExposePublicVisualRegressionMethods`
+catches any future regression.
+
+The UI input actions the codebase uses (`ui_cancel`, `ui_accept`,
+`ui_left/right/up/down`) live as `const string` on
+`Ui/UiInputActions`. The string literal `"ui_cancel"` is no
+longer scattered through 12 callsites; the centralisation is
+the seam for a future input-remap surface.
+
+The dependency boundary is enforced by the project references
+themselves:
+
+- `WorldofGoses.Domain` references no other game assembly.
+- `WorldofGoses.Application` references Domain only.
+- `WorldofGoses.Persistence` references Domain only.
+- `game/World of Goses.csproj` (Godot) references all three.
+
+The Domain assembly's `[assembly: InternalsVisibleTo("World of Goses")]`
+grant is the documented seam that lets the visual-regression
+harness reach the narrow `internal void DrainAllNaturalResourcesForFixtures()`
+and `internal void ConcludeFirstNightForFixtures()` seams on
+`CityWorld` and `ConstructionProject.SeedProgressForFixture`.
+Production code cannot grow a new screenshot path through these
+methods: there is no public `*ForFixture` API on the Domain, the
+Godot fixture surface is `internal`, and the static guard
+`Domain_DoesNotExposeFixtureSeamsAsPublic` fails the build on a
+future regression.
+
+The full Architecture Hardening report lives at
+`docs/ARCHITECTURE_HARDENING_REPORT.md` (A12 deliverable). The
+remaining debt — `ProductionUiStaticStructureInCode`'s A-class
+panels still in C#, the visual fixture orchestration not yet
+ported to `VisualFixtureCatalog`, the direct `WOG_VISUAL_CAPTURE`
+env-var reads not yet folded through `VisualRegressionHarness`
+— lives in the GitHub issue tracker with explicit owners.
+
+**A8 — Session-owned world, presentation as adapter.** A8 closes the
+last remaining presentation ownership of `CityWorld`. The aggregate is
+constructed and owned by `CityGameSession` (Application); the
+controller reduces to a Godot adapter that subscribes to the session's
+forwarded events, drives the simulation cadence, and persists the
+session's owned world through `WorldPersistence`. The previous
+`private readonly CityWorld _world = new();` and the legacy
+`internal CityWorld World => _world;` getter on the controller are
+gone; the controller holds a single `private readonly CityGameSession
+_session;` reference and never touches `CityWorld` outside the
+visual-regression fixture seam (`internal CityWorld GetFixtureWorld()`
+on the controller, fed by the session's `internal CityWorld World`
+getter). The session exposes typed events (`BuildingChanged`,
+`ProjectChanged`, `PatchChanged`, `CultivationSiteChanged`,
+`ExpeditionChanged`) so the controller subscribes without ever holding
+a `CityWorld` reference. The dirty bit (`IsDirty`) lives on the session
+and is set whenever the world's events fire or a use-case returns a
+successful `*Result`. Persistence orchestration (save / load / reset /
+EG-0 report) stays on the controller because the Application assembly
+intentionally does not reference the Persistence assembly (A6 rule,
+enforced by `Layer_DoesNotReferencePersistenceAssembly`); the
+controller reaches the session's owned world through the `internal`
+seam and writes through `WorldPersistence.SaveToSlot` /
+`WorldPersistence.ApplyTo` / `WorldPersistence.DeleteSlot`. `UseCaseDelegationTests`
+still asserts every public controller method routes through
+`_session.<Name>`; the new `ArchitectureBoundaryTests` guards are:
+
+- `Presentation_DoesNotInstantiateCityWorld` — only the
+  `CityPrototype` and `RealCityStreetPreview` fixture scenes are
+  allowed to author fresh worlds; production presentation never builds
+  one of its own.
+- `Presentation_DoesNotMutateAggregatesOrEntities` — scene code
+  outside the controller never calls a public mutator on
+  `Citizen`, `Building`, `CityWorld`, `Expedition`,
+  `ConstructionProject`, or `CultivationSite`. The controller is the
+  documented fixture seam and is exempted by the scanner.
+- `CityWorldController_DoesNotHoldACityWorldField` — the controller
+  never re-introduces a `private readonly CityWorld _world` field.
+- `CityWorldController_DoesNotExposeWorldGetter` — the controller
+  never exposes a `CityWorld World` property; the only reach is
+  `internal CityWorld GetFixtureWorld()`.
+- `Domain_DoesNotReferenceApplicationAssembly` — Domain has no
+  `ProjectReference` to Application. The only dependency direction
+  between Domain and Application is `Application → Domain`.
+
+The path for a new gameplay feature is now strictly
+**Presentation → Application use case → Domain**: a Godot input
+handler calls the controller's thin use-case wrapper, which forwards
+to the matching method on `CityGameSession`, which orchestrates the
+domain. No future slice needs to reach into `CityWorld` from
+Presentation.
+
 
 Citizen responsibility is split between a durable player-authored
 `Citizen.WorkOrder` and the mutually-exclusive current `Citizen.Commitment`.

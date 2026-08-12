@@ -147,6 +147,15 @@
       "duplicates_or_overlaps": ["docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md"],
       "note": "Proposed for a split on the strength of 17 backlog markers; the evidence did not survive. Every one of them was a substring false positive — 'future attachments', 'deferred disposal', 'owed' found inside 'allowed' and 'reflowed'. With whole-word matching 14 remain and all are the adjective 'future' inside descriptive prose. This document describes the code that exists, start to finish, and is not split. Its real defect is staleness, not structure: §8 narrates migrations to v28 while the code is at v31. Tracked as M-28 in TO_DO.md."
     },
+    "docs/ARCHITECTURE_HARDENING_REPORT.md": {
+      "proposed_type": "record",
+      "authority": "historical",
+      "domains": ["technical"],
+      "action": "keep",
+      "related_code": ["src/", "game/scripts/Application/", "tests/WorldofGoses.Tests/ArchitectureBoundaryTests.cs"],
+      "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
+      "note": "Dated final state of the A0-A12 hardening: the assembly graph after Persistence and Application left the Godot project, CityWorld's owner, the stable save IDs, and the guards that keep the boundary compiler-enforced. Overlaps ARCHITECTURE.md by design and loses to it: that document says what the architecture IS, this one records how these seams were closed and stops being edited."
+    },
     "docs/CURRENT_STATUS.md": {
       "proposed_type": "spec",
       "authority": "canonical",

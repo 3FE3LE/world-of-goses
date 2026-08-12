@@ -1,5 +1,167 @@
 [
   {
+    "from": ".agents/agents/presentation-experience/AGENT.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/presentation-experience/AGENT.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/presentation-experience/AGENT.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/presentation-experience/AGENT.md",
+    "to_raw": "../../../docs/ai/SKILL_MIGRATION.md",
+    "to": "docs/ai/SKILL_MIGRATION.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/presentation-experience/AGENT.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/quality-guardian/AGENT.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/agents/quality-guardian/AGENT.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": ".agents/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": ".claude/agents/presentation-experience.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/presentation-experience.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "../docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/presentation-experience.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "../docs/ai/RISK_MODEL.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/presentation-experience.md",
+    "to_raw": "../../../docs/ai/SKILL_MIGRATION.md",
+    "to": "../docs/ai/SKILL_MIGRATION.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/presentation-experience.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "../docs/ai/WORKFLOW_MODES.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/quality-guardian.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "../docs/ai/RISK_MODEL.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/agents/quality-guardian.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "../docs/ai/WORKFLOW_MODES.md",
+    "exists": false
+  },
+  {
+    "from": ".claude/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": ".claude/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/SKILL_MIGRATION.md",
+    "to": "docs/ai/SKILL_MIGRATION.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-quality-guardian/SKILL.md",
+    "to_raw": "../../../docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/agent-quality-guardian/SKILL.md",
+    "to_raw": "../../../docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": ".codex/skills/presentation-experience/SKILL.md",
+    "to_raw": "../../../docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
     "from": "AGENTS.md",
     "to_raw": "CLAUDE.md",
     "to": "CLAUDE.md",
@@ -37,8 +199,32 @@
   },
   {
     "from": "AGENTS.md",
+    "to_raw": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "AGENTS.md",
+    "to_raw": "docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": "AGENTS.md",
     "to_raw": "docs/ai/FEATURE_HANDOFF_TEMPLATE.md",
     "to": "docs/ai/FEATURE_HANDOFF_TEMPLATE.md",
+    "exists": true
+  },
+  {
+    "from": "AGENTS.md",
+    "to_raw": "docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "AGENTS.md",
+    "to_raw": "docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
     "exists": true
   },
   {
@@ -117,6 +303,24 @@
     "from": "CLAUDE.md",
     "to_raw": "docs/ai/DECISION_LOG.md",
     "to": "docs/ai/DECISION_LOG.md",
+    "exists": true
+  },
+  {
+    "from": "CLAUDE.md",
+    "to_raw": "docs/ai/DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": "CLAUDE.md",
+    "to_raw": "docs/ai/RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "CLAUDE.md",
+    "to_raw": "docs/ai/WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
     "exists": true
   },
   {
@@ -234,6 +438,90 @@
     "exists": true
   },
   {
+    "from": "docs/ai/AGENT_DISPATCH.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_DISPATCH.md",
+    "to_raw": "SKILL_MIGRATION.md",
+    "to": "docs/ai/SKILL_MIGRATION.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_DISPATCH.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md",
+    "to_raw": "AGENT_DISPATCH.md",
+    "to": "docs/ai/AGENT_DISPATCH.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md",
+    "to_raw": "CONTEXT_MAP.md",
+    "to": "docs/ai/CONTEXT_MAP.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/AGENT_WORKFLOW_REFACTOR_REPORT.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "AGENT_DISPATCH.md",
+    "to": "docs/ai/AGENT_DISPATCH.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "SKILL_MIGRATION.md",
+    "to": "docs/ai/SKILL_MIGRATION.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/CONTEXT_MAP.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
     "from": "docs/ai/CURRENT_DEVELOPMENT_STATE.md",
     "to_raw": "../CURRENT_STATUS.md",
     "to": "docs/CURRENT_STATUS.md",
@@ -243,6 +531,36 @@
     "from": "docs/ai/CURRENT_DEVELOPMENT_STATE.md",
     "to_raw": "../session-state/STATE.txt",
     "to": "docs/session-state/STATE.txt",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/DOMAIN_CONSULTATION.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/DOMAIN_CONSULTATION.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/DOMAIN_CONSULTATION.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
     "exists": true
   },
   {
@@ -279,6 +597,54 @@
     "from": "docs/ai/README.md",
     "to_raw": "FEATURE_HANDOFF_TEMPLATE.md",
     "to": "docs/ai/FEATURE_HANDOFF_TEMPLATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/RISK_MODEL.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/RISK_MODEL.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/SKILL_MIGRATION.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/SKILL_MIGRATION.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/SKILL_MIGRATION.md",
+    "to_raw": "WORKFLOW_MODES.md",
+    "to": "docs/ai/WORKFLOW_MODES.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/WORKFLOW_MODES.md",
+    "to_raw": "DOCUMENTATION_IMPACT_GATE.md",
+    "to": "docs/ai/DOCUMENTATION_IMPACT_GATE.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/WORKFLOW_MODES.md",
+    "to_raw": "DOMAIN_CONSULTATION.md",
+    "to": "docs/ai/DOMAIN_CONSULTATION.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ai/WORKFLOW_MODES.md",
+    "to_raw": "RISK_MODEL.md",
+    "to": "docs/ai/RISK_MODEL.md",
     "exists": true
   },
   {
@@ -685,8 +1051,26 @@
   },
   {
     "from": "README.md",
-    "to_raw": "docs/ARCHITECTURE.md",
-    "to": "docs/ARCHITECTURE.md",
+    "to_raw": "AGENTS.md",
+    "to": "AGENTS.md",
+    "exists": true
+  },
+  {
+    "from": "README.md",
+    "to_raw": "CHANGELOG.md",
+    "to": "CHANGELOG.md",
+    "exists": true
+  },
+  {
+    "from": "README.md",
+    "to_raw": "CLAUDE.md",
+    "to": "CLAUDE.md",
+    "exists": true
+  },
+  {
+    "from": "README.md",
+    "to_raw": "docs/",
+    "to": "docs/",
     "exists": true
   },
   {
@@ -703,68 +1087,14 @@
   },
   {
     "from": "README.md",
-    "to_raw": "docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md",
-    "to": "docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/PRODUCT_DIRECTION.md",
-    "to": "docs/PRODUCT_DIRECTION.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/README.md",
-    "to": "docs/README.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/UI_AUDIT.md",
-    "to": "docs/UI_AUDIT.md",
+    "to_raw": "docs/REPOSITORY_CONVENTIONS.md",
+    "to": "docs/REPOSITORY_CONVENTIONS.md",
     "exists": true
   },
   {
     "from": "README.md",
     "to_raw": "docs/UI_PATTERNS.md",
     "to": "docs/UI_PATTERNS.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/VALIDATION.md",
-    "to": "docs/VALIDATION.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/VISUAL_REGRESSION.md",
-    "to": "docs/VISUAL_REGRESSION.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/world-of-goses-design-bible/06_LINEAGES.md",
-    "to": "docs/world-of-goses-design-bible/06_LINEAGES.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md",
-    "to": "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
-    "to": "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md",
-    "exists": true
-  },
-  {
-    "from": "README.md",
-    "to_raw": "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
-    "to": "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md",
     "exists": true
   },
   {

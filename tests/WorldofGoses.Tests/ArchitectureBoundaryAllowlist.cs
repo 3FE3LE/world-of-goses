@@ -129,4 +129,127 @@ public static class ArchitectureBoundaryAllowlist
             // Architecture Hardening A3.
             "game/scripts/IconPaths.cs",
         };
+
+    /// <summary>
+    /// Files under Presentation that may reach into a domain aggregate
+    /// or entity through a public mutator. Architecture Hardening A8
+    /// closed the production paths: every gameplay command goes
+    /// through <c>CityGameSession</c>, and visual-regression fixtures
+    /// reach the world only through the controller's <c>internal</c>
+    /// fixture methods. The entries below are the two fixture scenes
+    /// that still author their own citizens / buildings by hand and
+    /// therefore trip the mutator pattern. Closing them is fixture-seam
+    /// work that belongs to a future slice.
+    /// </summary>
+    public static IReadOnlyCollection<string> PresentationEntityMutator { get; } =
+        new[]
+        {
+            // game/scripts/CityPrototype.cs — dev-only fixture scene
+            // that authors named, deterministic citizens and reads
+            // inventory directly to compose screenshot scenarios.
+            // Gated by the WOG_VISUAL_CAPTURE flag and never runs in
+            // production. Closing the seam is fixture-seam extraction
+            // that lives behind a future slice.
+            "game/scripts/CityPrototype.cs",
+
+            // game/scripts/CombatDebugPanel.cs — debug-only combat
+            // trigger that equips the picked party through direct
+            // entity mutation before running the deterministic
+            // resolver. Closing the seam is fixture-seam extraction
+            // that lives behind a future slice.
+            "game/scripts/CombatDebugPanel.cs",
+        };
+
+    /// <summary>
+    /// Files under Presentation that may instantiate a fresh
+    /// <see cref="CityWorld"/>. Architecture Hardening A8 made the
+    /// <c>CityGameSession</c> the only legitimate owner of the
+    /// aggregate; production presentation code never builds a world
+    /// of its own. The single entry is the dev-only fixture scene
+    /// that authors named, deterministic cities for screenshot
+    /// scenarios. Closing it is fixture-seam work that belongs to a
+    /// future slice.
+    /// </summary>
+    public static IReadOnlyCollection<string> PresentationInstantiatesWorld { get; } =
+        new[]
+        {
+            // game/scripts/CityPrototype.cs — dev-only fixture scene
+            // that authors named, deterministic cities to compose
+            // screenshot scenarios. Gated by the WOG_VISUAL_CAPTURE
+            // flag and never runs in production.
+            "game/scripts/CityPrototype.cs",
+
+            // game/scripts/Prototypes/RealCityStreetPreview.cs —
+            // dev-only preview that loads a real save through
+            // WorldPersistence and authors a fresh CityWorld to render
+            // the macro layout. Closing the seam is fixture-seam
+            // extraction that lives behind a future slice.
+            "game/scripts/Prototypes/RealCityStreetPreview.cs",
+        };
+
+    /// <summary>
+    /// Files under Presentation that still compose their static UI
+    /// hierarchy in C#. Architecture Hardening A11 codifies the rule
+    /// that production screens whose shape does not depend on
+    /// runtime data live in a <c>.tscn</c>; the script owns behaviour,
+    /// state binding, and the rows that the snapshot drives.
+    ///
+    /// <para>Every entry below is one of the four classifications
+    /// A11 documents:</para>
+    /// <list type="bullet">
+    ///   <item><b>A</b> — static authored structure. Currently
+    ///         composed in C#; targeted for migration to <c>.tscn</c>
+    ///         by follow-up slices (see the GitHub issue tracker).</item>
+    ///   <item><b>B</b> — genuinely dynamic collection. Static parts
+    ///         are minimal (scroll container + headers); the bulk is
+    ///         data-driven rows the snapshot rebuilds each refresh.</item>
+    ///   <item><b>D</b> — dev/debug tooling. No migration needed.</item>
+    ///   <item><b>E</b> — runtime-only visual object. Lives only while
+    ///         a transient state is active; no migration needed.</item>
+    /// </list>
+    ///
+    /// <para>The architecture guard
+    /// <see cref="ArchitectureBoundaryTests.ProductionUi_DoesNotComposeStaticHierarchyInCode"/>
+    /// scans every other production screen and fails the build if
+    /// one adds static structure in C#. New panels default to
+    /// <c>.tscn</c>; the script only composes dynamic rows.</para>
+    /// </summary>
+    public static IReadOnlyCollection<string> ProductionUiStaticStructureInCode { get; } =
+        new[]
+        {
+            // ── A: static authored structure, migrate to .tscn ──
+            // Each panel's static hierarchy is identical for every
+            // city; the dynamic content is rebuilt on signal. The
+            // migration moves the shell to a PackedScene and keeps
+            // C# only for the rows that depend on a snapshot.
+            "game/scripts/CitySummaryPanel.cs",   // header + scroll body + content
+            "game/scripts/CityStatusPanel.cs",    // top status bar + utility cluster
+            "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
+            "game/scripts/AstralOnboardingView.cs", // astral onboarding full screen
+            "game/scripts/HeroProfileView.cs",    // profile columns
+            "game/scripts/PoliciesPanel.cs",      // policy list shell
+            "game/scripts/ProductionPanel.cs",    // production + stock shell
+            "game/scripts/BuildingDetailView.cs", // building-detail shell
+            "game/scripts/ConstructionPanel.cs",  // construction modal shell
+            "game/scripts/ExpeditionLiveView.cs", // expedition-live shell
+
+            // ── B: genuinely dynamic collection ──
+            // Static parts are minimal (VBoxContainer + Header);
+            // dynamic rows are the bulk. Stay programmatic.
+            "game/scripts/AssignmentPanel.cs",     // 3 scrollable sections + rows
+            "game/scripts/ExpeditionPanel.cs",     // team list rebuilt per snapshot
+            "game/scripts/BuildingPlot.cs",       // one node per plot, fixed per-plot structure
+
+            // ── D: dev/debug tooling ──
+            // Combat debug panel only renders under WOG_VISUAL_CAPTURE.
+            "game/scripts/CombatDebugPanel.cs",
+
+            // ── E: runtime-only visual object ──
+            // First-night overlay nodes vanish when the night ends;
+            // notifier toasts and the founder arrival sequence are
+            // transient visuals that compose on demand.
+            "game/scripts/FirstNightScene.cs",
+            "game/scripts/Notifier.cs",
+            "game/scripts/FounderArrivalSequence.cs",
+        };
 }

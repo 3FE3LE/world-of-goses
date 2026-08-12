@@ -273,6 +273,485 @@ public sealed class ArchitectureBoundaryTests
     }
 
     /// <summary>
+    /// Architecture Hardening A8: the Domain layer must not depend on
+    /// the Application layer. Application sits above Domain in the
+    /// dependency stack (use cases read domain state, not the other
+    /// way around); Domain does not import types from Application. A
+    /// future refactor that crosses that direction fails the build.
+    /// </summary>
+    [Fact]
+    public void Domain_DoesNotReferenceApplicationAssembly()
+    {
+        string projectFile = Path.Combine(
+            FindRepositoryRoot(),
+            "src", "WorldofGoses.Domain", "WorldofGoses.Domain.csproj");
+
+        Assert.True(File.Exists(projectFile), $"Project not found at '{projectFile}'.");
+
+        string project = Regex.Replace(
+            File.ReadAllText(projectFile),
+            @"<!--.*?-->",
+            string.Empty,
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.DoesNotContain(
+            "WorldofGoses.Application.csproj",
+            project,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A9: the night scene reaches the macro
+    /// view through typed C# calls and a typed signal. It must not
+    /// probe method names via <c>HasMethod</c> and dispatch through
+    /// <c>Node.Call</c>; that seam was the dynamic-dispatch regression
+    /// A9 closed. The allowlist is empty by design — there is no
+    /// legitimate call site for this pattern in the night anymore.
+    /// </summary>
+    private static readonly Regex NightDynamicDispatchPattern = new(
+        @"\bHasMethod\s*\(|\bnode\.Call\s*\(|\.HasMethod\s*\(|\.Call\s*\(\s*""[A-Za-z]",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void FirstNightScene_DoesNotUseDynamicDispatch()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string firstNightPath = Path.Combine(
+            repositoryRoot, "game", "scripts", "FirstNightScene.cs");
+        Assert.True(
+            File.Exists(firstNightPath),
+            $"FirstNightScene not found at '{firstNightPath}'.");
+
+        string source = File.ReadAllText(firstNightPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        Assert.False(
+            NightDynamicDispatchPattern.IsMatch(executable),
+            "FirstNightScene still uses HasMethod or Node.Call for "
+            + "dynamic dispatch. Architecture Hardening A9 requires the "
+            + "night to reach the macro view through typed C# methods and "
+            + "the WorldDialogueAnchorsChanged signal.");
+    }
+
+    /// <summary>
+    /// Architecture Hardening A9: the night scene must subscribe to
+    /// <c>WorldDialogueAnchorsChanged</c> on the macro view and refresh
+    /// its cached anchors through typed method calls — not poll the
+    /// macro view in <c>_Process</c>. The handler presence is the
+    /// contract; the polling absence is the regression guard.
+    /// </summary>
+    [Fact]
+    public void FirstNightScene_SubscribesToTypedAnchorSignal()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string firstNightPath = Path.Combine(
+            repositoryRoot, "game", "scripts", "FirstNightScene.cs");
+        Assert.True(
+            File.Exists(firstNightPath),
+            $"FirstNightScene not found at '{firstNightPath}'.");
+
+        string source = File.ReadAllText(firstNightPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        Assert.Contains(
+            "WorldDialogueAnchorsChanged",
+            executable,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GetFoundingArrivalGlobalPosition",
+            executable,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "GetBuildingGlobalPosition",
+            executable,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A9: the macro view must raise the typed
+    /// <c>WorldDialogueAnchorsChanged</c> signal when the camera or
+    /// projection changes. The previous design polled every frame;
+    /// the new design emits only on real change so the night scene
+    /// can refresh cached anchors from a typed event.
+    /// </summary>
+    [Fact]
+    public void MacroStreetLiveView_ExposesTypedAnchorSignal()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string macroPath = Path.Combine(
+            repositoryRoot,
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs");
+        Assert.True(
+            File.Exists(macroPath),
+            $"MacroStreetLiveView not found at '{macroPath}'.");
+
+        string source = File.ReadAllText(macroPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        Assert.Contains(
+            "[Signal]",
+            executable,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "WorldDialogueAnchorsChangedEventHandler",
+            executable,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "EmitSignal(SignalName.WorldDialogueAnchorsChanged",
+            executable,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A10: the visual-regression harness lives
+    /// under <c>game/scripts/Testing/</c>. Production runtime classes
+    /// do not own fixture orchestration; they ask the harness whether
+    /// capture mode is active and let the harness drive the
+    /// dispatch.
+    /// </summary>
+    [Fact]
+    public void VisualRegressionHarness_LivesUnderTestingNamespace()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string harnessPath = Path.Combine(
+            repositoryRoot, "game", "scripts", "Testing", "VisualRegressionHarness.cs");
+        string catalogPath = Path.Combine(
+            repositoryRoot, "game", "scripts", "Testing", "VisualFixtureCatalog.cs");
+
+        Assert.True(
+            File.Exists(harnessPath),
+            $"VisualRegressionHarness not found at '{harnessPath}'.");
+        Assert.True(
+            File.Exists(catalogPath),
+            $"VisualFixtureCatalog not found at '{catalogPath}'.");
+    }
+
+    /// <summary>
+    /// Architecture Hardening A10: the Domain does not expose fixture
+    /// seams as <c>public</c> members anymore. The two methods that
+    /// used to be <c>public</c> so a screenshot could author the state
+    /// it wanted are now <c>internal</c>; production scenes cannot
+    /// grow a new screenshot path through them. Any future seam that
+    /// has to remain visible across the assembly boundary must go in
+    /// <see cref="ArchitectureBoundaryAllowlist.DomainFixtureSeamAllowlist"/>.
+    /// </summary>
+    private static readonly Regex PublicDomainFixtureSeamPattern = new(
+        @"\bpublic\s+(?:void|[A-Z]\w*)\s+\w*[Ff]or[Ff]ixture(?:s)?\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Domain_DoesNotExposeFixtureSeamsAsPublic()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string domainPath = Path.Combine(repositoryRoot, "game", "scripts", "Domain");
+
+        foreach (string file in Directory.EnumerateFiles(
+            domainPath, "*.cs", SearchOption.AllDirectories))
+        {
+            string source = File.ReadAllText(file);
+            string executable = CommentStripper.Replace(source, string.Empty);
+
+            Assert.False(
+                PublicDomainFixtureSeamPattern.IsMatch(executable),
+                $"Domain source '{file}' exposes a public *ForFixture method. "
+                + "Architecture Hardening A10 closed this seam; only the test "
+                + "assembly and the visual-regression harness reach it.");
+        }
+    }
+
+    /// <summary>
+    /// Architecture Hardening A10: CityWorldController does not grow
+    /// new public methods to enable screenshots. The visual-regression
+    /// entry points that used to live as <c>public</c> members
+    /// (<c>DrainAllForestsForVisualRegression</c>,
+    /// <c>AdvanceWorldTickForVisualRegression</c>) are gone; the
+    /// fixture seam is <c>internal</c> and only the harness calls
+    /// it. A future regression that adds another
+    /// <c>ForVisualRegression</c> public method fails this test.
+    /// </summary>
+    private static readonly Regex ControllerPublicVisualRegressionPattern = new(
+        @"\bpublic\s+(?:void|[A-Z]\w*)\s+\w*[Ff]or[Vv]isual[Rr]egression\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void CityWorldController_DoesNotGrowPublicVisualRegressionMethods()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string controllerPath = Path.Combine(
+            repositoryRoot, "game", "scripts", "CityWorldController.cs");
+        Assert.True(
+            File.Exists(controllerPath),
+            $"Controller not found at '{controllerPath}'.");
+
+        string source = File.ReadAllText(controllerPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        Assert.False(
+            ControllerPublicVisualRegressionPattern.IsMatch(executable),
+            "CityWorldController still exposes a public *ForVisualRegression "
+            + "method. Architecture Hardening A10 closes that seam: the "
+            + "harness reaches the same operations through internal methods "
+            + "gated on VisualRegressionHarness.IsActive.");
+    }
+
+    /// <summary>
+    /// Architecture Hardening A11: production UI panels must not
+    /// compose their static hierarchy in C#. A panel whose shape,
+    /// anchors and container layout do not depend on runtime data is a
+    /// <c>.tscn</c>; runtime C# owns behaviour, state binding, and
+    /// the rows that the snapshot drives. The allowlist is the
+    /// canonical list of panels that A11 documented as "B" (genuinely
+    /// dynamic), "D" (dev tooling) or "E" (runtime-only visual
+    /// object); every other production screen lives in
+    /// <see cref="ArchitectureBoundaryAllowlist.ProductionUiMigratedToTscn"/>
+    /// once migrated. New panels default to <c>.tscn</c> and use the
+    /// C# only for dynamic rows.
+    /// </summary>
+    private static readonly Regex PublicVisualRegressionMethodPattern = new(
+        @"\bpublic\s+(?:void|[A-Z]\w*)\s+\w*[Ff]or[Vv]isual[Rr]egression\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Production_DoesNotExposePublicVisualRegressionMethods()
+    {
+        // A10 closed the controller seam; A12 closes the seam on every
+        // other public surface. Visual-regression entry points must be
+        // `internal` and gated on VisualRegressionHarness.IsActive so
+        // production scenes cannot grow a new screenshot path through
+        // them.
+        string repositoryRoot = FindRepositoryRoot();
+        string scriptsPath = Path.Combine(repositoryRoot, "game", "scripts");
+        List<string> offending = new();
+
+        foreach (string file in Directory.EnumerateFiles(scriptsPath, "*.cs", SearchOption.AllDirectories))
+        {
+            // Domain/Application/Testing are not production UI.
+            if (file.Replace('\\', '/').Contains("/Domain/", StringComparison.Ordinal)) continue;
+            if (file.Replace('\\', '/').Contains("/Application/", StringComparison.Ordinal)) continue;
+            if (file.Replace('\\', '/').Contains("/Testing/", StringComparison.Ordinal)) continue;
+
+            string source = File.ReadAllText(file);
+            string executable = CommentStripper.Replace(source, string.Empty);
+            string relativePath = ToRepositoryRelative(repositoryRoot, file);
+
+            foreach (Match match in PublicVisualRegressionMethodPattern.Matches(executable))
+            {
+                offending.Add(
+                    $"{relativePath}: '{match.Value}' exposes a public "
+                    + "*ForVisualRegression method. A10/A12 closed this seam: "
+                    + "the entry point must be `internal` and gated on "
+                    + "VisualRegressionHarness.IsActive.");
+            }
+        }
+
+        Assert.Empty(offending);
+    }
+    private static readonly Regex ProductionUiStaticStructurePattern = new(
+        @"\bnew\s+(?:Panel|Label|Button|Container|HBox|VBox|Margin|TextureRect|PanelContainer|Separator|HSeparator|VSeparator|GridContainer|TabBar|TabContainer|Tab|ScrollContainer|CenterContainer|PanelContainer|MarginContainer|HSplitContainer|VSplitContainer)\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void ProductionUi_DoesNotComposeStaticHierarchyInCode()
+    {
+        // Production screens under game/scripts/ (outside the Ui/ folder of
+        // reusable primitives) must not compose their static hierarchy in
+        // C#. A future screen that reaches for `new VBoxContainer { ... }`
+        // for its top-level layout fails this test.
+        IReadOnlyList<string> offending = ScanProductionUiForViolations(
+            ProductionUiStaticStructurePattern,
+            ArchitectureBoundaryAllowlist.ProductionUiStaticStructureInCode,
+            nameof(ArchitectureBoundaryAllowlist.ProductionUiStaticStructureInCode));
+
+        Assert.Empty(offending);
+    }
+
+    private static IReadOnlyList<string> ScanProductionUiForViolations(
+        Regex pattern,
+        IReadOnlyCollection<string> allowlist,
+        string allowlistPropertyName)
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string scriptsPath = Path.Combine(repositoryRoot, "game", "scripts");
+        HashSet<string> allowlistSet = new(allowlist, StringComparer.Ordinal);
+        List<string> offending = new();
+
+        foreach (string file in Directory.EnumerateFiles(scriptsPath, "*.cs", SearchOption.AllDirectories))
+        {
+            // Domain, Application, Persistence are engine-free layers; not UI.
+            if (file.Replace('\\', '/').Contains("/Domain/", StringComparison.Ordinal)) continue;
+            if (file.Replace('\\', '/').Contains("/Application/", StringComparison.Ordinal)) continue;
+            if (file.Replace('\\', '/').Contains("/Testing/", StringComparison.Ordinal)) continue;
+
+            // Ui/ primitives intentionally compose controls — they ARE
+            // the reusable building blocks (Buttons, Panels, Chips).
+            if (file.Replace('\\', '/').Contains("/Ui/", StringComparison.Ordinal)) continue;
+
+            // Prototypes/ are reference compositions, not production UI.
+            if (file.Replace('\\', '/').Contains("/Prototypes/", StringComparison.Ordinal)) continue;
+
+            string source = File.ReadAllText(file);
+            string executable = CommentStripper.Replace(source, string.Empty);
+            string relativePath = ToRepositoryRelative(repositoryRoot, file);
+
+            foreach (Match match in pattern.Matches(executable))
+            {
+                if (allowlistSet.Contains(relativePath))
+                {
+                    continue;
+                }
+                offending.Add(
+                    $"{relativePath}: '{match.Value}' builds a static UI "
+                    + $"hierarchy in C#. Architecture Hardening A11 routes "
+                    + $"this through a .tscn; the script owns behaviour and "
+                    + $"dynamic rows only. See {allowlistPropertyName} for the "
+                    + $"panels A11 classified as B/D/E and the migration order.");
+            }
+        }
+
+        return offending;
+    }
+
+    /// <summary>
+    /// Architecture Hardening A8: Presentation never instantiates
+    /// <see cref="CityWorld"/> directly. The aggregate is owned by
+    /// <see cref="WorldofGoses.CityGameSession"/>, and a view that
+    /// built its own <c>CityWorld</c> would create a parallel world
+    /// outside the session's reach. The narrow fixture seam reaches
+    /// the session's owned world through
+    /// <c>controller.GetFixtureWorld()</c>; building a fresh aggregate
+    /// from Presentation is the regression this guard catches.
+    /// </summary>
+    private static readonly Regex PresentationInstantiatesWorldPattern = new(
+        @"\bnew\s+CityWorld\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Presentation_DoesNotInstantiateCityWorld()
+    {
+        // The visual-regression fixture seam
+        // (<c>CityPrototype</c>) authors fresh <c>CityWorld</c>
+        // aggregates to compose screenshot scenarios. Production
+        // presentation code never builds a world of its own — the
+        // session owns the only one. The allowlist is one entry by
+        // design.
+        IReadOnlyList<string> offending = ScanPresentationForViolations(
+            PresentationInstantiatesWorldPattern,
+            ArchitectureBoundaryAllowlist.PresentationInstantiatesWorld,
+            nameof(ArchitectureBoundaryAllowlist.PresentationInstantiatesWorld));
+
+        Assert.Empty(offending);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A8: Presentation never calls a public
+    /// mutator on a domain aggregate or entity. Production views read
+    /// through snapshot projections or use-case commands on the
+    /// session; the only allowed direct entity mutation is the visual
+    /// regression fixture seam, gated by the controller's
+    /// <c>internal</c> fixture methods. A view that called
+    /// <c>citizen.SustainWound(...)</c> directly would be a regression
+    /// even though the method compiles cleanly.
+    /// </summary>
+    private static readonly Regex PresentationEntityMutatorPattern = new(
+        @"\b_?controller\??\.World\b"
+        + @"|\b(?:[Cc]itizen|[Bb]uilding|[Cc]ity[Ww]orld|[Ee]xpedition|[Cc]onstructionProject|[Cc]ultivationSite)"
+        + @"\.[A-Z][A-Za-z0-9_]*\s*\(",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Presentation_DoesNotMutateAggregatesOrEntities()
+    {
+        // The visual-regression fixture seam reaches the session's
+        // owned world through narrow controller commands. Any other
+        // presentation code that mutates an aggregate or entity
+        // directly is a regression; no allowlist entries are expected.
+        // The controller itself is excluded — its fixture commands are
+        // the documented seam. This test scans scene code only.
+        IReadOnlyList<string> offending = ScanPresentationScenesForViolations(
+            PresentationEntityMutatorPattern,
+            ArchitectureBoundaryAllowlist.PresentationEntityMutator,
+            nameof(ArchitectureBoundaryAllowlist.PresentationEntityMutator));
+
+        Assert.Empty(offending);
+    }
+
+    /// <summary>
+    /// Architecture Hardening A8: <see cref="WorldofGoses.CityWorldController"/>
+    /// no longer carries a <c>_world</c> field. A future refactor that
+    /// re-introduces one — bypassing the session seam — would break the
+    /// ownership rule that the session owns the aggregate. The guard
+    /// scans the controller source for the field declaration so any
+    /// regression fails the build before review.
+    /// </summary>
+    [Fact]
+    public void CityWorldController_DoesNotHoldACityWorldField()
+    {
+        string controllerPath = Path.Combine(
+            FindRepositoryRoot(),
+            "game", "scripts", "CityWorldController.cs");
+        Assert.True(
+            File.Exists(controllerPath),
+            $"Controller not found at '{controllerPath}'.");
+
+        string source = File.ReadAllText(controllerPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        Assert.False(
+            Regex.IsMatch(
+                executable,
+                @"\b(?:private|protected|internal|public)\s+readonly\s+CityWorld\s+\w+",
+                RegexOptions.CultureInvariant),
+            "CityWorldController still holds a CityWorld field; "
+            + "Architecture Hardening A8 moved ownership to CityGameSession.");
+        Assert.False(
+            Regex.IsMatch(
+                executable,
+                @"\b(?:private|protected|internal)\s+CityWorld\s+_?world\b",
+                RegexOptions.CultureInvariant),
+            "CityWorldController still has a CityWorld instance field named '_world'; "
+            + "Architecture Hardening A8 moved ownership to CityGameSession.");
+    }
+
+    /// <summary>
+    /// Architecture Hardening A8: <see cref="WorldofGoses.CityWorldController"/>
+    /// no longer exposes a public or internal <c>World</c> getter on
+    /// itself. The session owns the aggregate and exposes the narrow
+    /// <c>internal CityWorld GetFixtureWorld()</c> reach for the
+    /// visual-regression fixture seam, but presentation never reads
+    /// the controller for a <c>World</c> reference for gameplay. The
+    /// session's own <c>internal CityWorld World</c> is exempt because
+    /// it is the documented fixture seam.
+    /// </summary>
+    private static readonly Regex ControllerWorldGetterPattern = new(
+        @"\b(?:public|internal|private)\s+(?:readonly\s+)?CityWorld\s+World\s*[{=>]",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void CityWorldController_DoesNotExposeWorldGetter()
+    {
+        string controllerPath = Path.Combine(
+            FindRepositoryRoot(),
+            "game", "scripts", "CityWorldController.cs");
+        Assert.True(
+            File.Exists(controllerPath),
+            $"Controller not found at '{controllerPath}'.");
+
+        string source = File.ReadAllText(controllerPath);
+        string executable = CommentStripper.Replace(source, string.Empty);
+
+        // Allow `internal CityWorld GetFixtureWorld()` — the narrow
+        // fixture seam documented by A8 — but never a plain `World`
+        // property. The lookahead `{=>` covers both the `{ get {` and
+        // `=> _session.World;` shapes.
+        Assert.False(
+            ControllerWorldGetterPattern.IsMatch(executable),
+            "CityWorldController still exposes a World getter (the legacy "
+            + "'internal CityWorld World' from before A8). The session owns "
+            + "the aggregate; presentation reaches it through the narrow "
+            + "GetFixtureWorld() fixture seam, not through a controller property.");
+    }
+
+    /// <summary>
     /// Only the visual-regression fixture builders may end the first night by
     /// decree. The sequence is the game's opening; skipping it in real play
     /// would start a city in a state the player never lived through.
@@ -299,6 +778,31 @@ public sealed class ArchitectureBoundaryTests
         IReadOnlyCollection<string> allowlist,
         string allowlistPropertyName)
     {
+        return ScanPresentationFiles(pattern, allowlist, allowlistPropertyName, includeController: true);
+    }
+
+    /// <summary>
+    /// Same scan as <see cref="ScanPresentationForViolations"/> but
+    /// skips <c>CityWorldController.cs</c>. Architecture Hardening A8
+    /// moved entity-mutation freedom into the controller's
+    /// <c>internal</c> fixture methods; the controller is the
+    /// documented seam, not a regression. Scene code outside the
+    /// controller still has to go through the session.
+    /// </summary>
+    private static IReadOnlyList<string> ScanPresentationScenesForViolations(
+        Regex pattern,
+        IReadOnlyCollection<string> allowlist,
+        string allowlistPropertyName)
+    {
+        return ScanPresentationFiles(pattern, allowlist, allowlistPropertyName, includeController: false);
+    }
+
+    private static IReadOnlyList<string> ScanPresentationFiles(
+        Regex pattern,
+        IReadOnlyCollection<string> allowlist,
+        string allowlistPropertyName,
+        bool includeController)
+    {
         string repositoryRoot = FindRepositoryRoot();
         string scriptsPath = Path.Combine(repositoryRoot, "game", "scripts");
         HashSet<string> allowlistSet = new(allowlist, StringComparer.Ordinal);
@@ -309,6 +813,21 @@ public sealed class ArchitectureBoundaryTests
             // Domain is its own boundary (DomainBoundaryTests covers it).
             // Persistence and Combat are sub-namespaces of Domain.
             if (file.Replace('\\', '/').Contains("/Domain/", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            // Application is its own assembly too; its files compile
+            // through the WorldofGoses.Application project rather than
+            // the Godot presentation project. Boundary tests for the
+            // application assembly live on the layer rules above.
+            if (file.Replace('\\', '/').Contains("/Application/", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (!includeController
+                && file.Replace('\\', '/').EndsWith("/CityWorldController.cs", StringComparison.Ordinal))
             {
                 continue;
             }

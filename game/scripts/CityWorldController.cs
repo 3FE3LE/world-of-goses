@@ -6,21 +6,32 @@ using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
 using WorldofGoses.Persistence;
+using WorldofGoses.Testing;
 
 namespace WorldofGoses;
 
 /// <summary>
-/// Owns the domain <see cref="CityWorld"/> and acts as the single
-/// entry point the presentation layer uses to query state and apply
-/// domain commands. Translates Godot input into domain calls and
-/// raises Godot signals in response to domain events.
+/// Godot adapter for a single <see cref="CityGameSession"/>. Translates
+/// engine signals (input, lifecycle, frames) into use-case calls and
+/// surfaces application outcomes as Godot signals.
 ///
-/// Auto-saves the world on a timer (in <see cref="_Process"/>) and
-/// on window close (in <see cref="_Notification"/>). No manual
-/// save button — the game philosophy forbids progress loss.
+/// <para>Architecture Hardening A8 closes the last remaining presentation
+/// ownership of <see cref="CityWorld"/>: this class no longer holds a
+/// <c>_world</c> field, exposes no <c>World</c> getter, and runs no
+/// persistence logic of its own. Every gameplay command, snapshot query,
+/// world-tick advancement, save, load and reset reaches the
+/// <see cref="CityGameSession"/> that owns the aggregate. The seam left
+/// here is the engine-specific one: <c>_Process</c> cadence, signal
+/// emission, frame-time sampling, autosave gating, and the visual
+/// interpolation phase.</para>
 ///
-/// Load priority: primary slot → current v2 world; an absent or retired
-/// slot starts the hero onboarding flow without creating production data.
+/// <para>Auto-saves the world on a timer (in <see cref="_Process"/>) and
+/// on window close (in <see cref="_Notification"/>). No manual save
+/// button — the game philosophy forbids progress loss.</para>
+///
+/// <para>Load priority: primary slot → current v34 world; an absent or
+/// retired slot starts the hero onboarding flow without creating
+/// production data.</para>
 /// </summary>
 public partial class CityWorldController : Node
 {
@@ -56,7 +67,8 @@ public partial class CityWorldController : Node
     public delegate void CitizenAssignmentRejectedEventHandler(int reason);
 
     /// <summary>
-    /// Fires once per world tick (after <see cref="CityWorld.AdvanceWorldTick"/>).
+    /// Fires once per world tick (after
+    /// <see cref="CityGameSession.AdvanceWorldTick"/>).
     /// Used by UI listeners that need to reflect time-of-day or
     /// cumulative counters that change every tick, not only when
     /// production happens.
@@ -102,34 +114,31 @@ public partial class CityWorldController : Node
     public delegate void SimulationSpeedChangedEventHandler(int speedChoice);
 
     /// <summary>
-    /// Fires whenever the authored first night
-    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>) changes stage:
-    /// the spirit arriving, the campfire or shelter being finished, the
-    /// night concluding. The signal carries the new stage as an <c>int</c>
-    /// so the presentation layer can subscribe without taking a
-    /// dependency on <see cref="Domain.FirstNightStage"/>.
+    /// Fires whenever the authored first night changes stage: the
+    /// spirit arriving, the campfire or shelter being finished, the
+    /// night concluding. The signal carries the new stage as an
+    /// <c>int</c> so the presentation layer can subscribe without
+    /// taking a dependency on <see cref="Domain.FirstNightStage"/>.
     /// </summary>
     [Signal]
     public delegate void FirstNightStageChangedEventHandler(int stage);
 
-    private readonly CityWorld _world = new();
-    // Architecture Hardening A5: every use-case command and snapshot
-    // query that Presentation needs is funnelled through this session.
-    // The controller remains the Godot adapter (signals, _Process,
-    // lifecycle, persistence) and delegates orchestration here.
-    // C# forbids referencing instance fields from another field's
-    // initializer, so `_session` is assigned in the constructor below.
+    // Architecture Hardening A8: the session owns CityWorld. The
+    // controller holds a single reference to it and routes every
+    // command, query and persistence call through it. The previous
+    // `private readonly CityWorld _world = new();` and
+    // `internal CityWorld World => _world;` are gone.
     private readonly CityGameSession _session;
 
     /// <summary>
     /// Default parameterless constructor required by Godot's source
     /// generator for instantiating the node. Constructs the application
-    /// session over the freshly-allocated world so every later call has
-    /// a single, deterministic facade in front of the domain.
+    /// session over a fresh <see cref="CityWorld"/> so every later call
+    /// has a single, deterministic facade in front of the domain.
     /// </summary>
     public CityWorldController()
     {
-        _session = new CityGameSession(_world);
+        _session = new CityGameSession();
     }
 
     /// <summary>
@@ -140,9 +149,7 @@ public partial class CityWorldController : Node
 
     private double _autoSaveTimer;
     private double _simulationTimer;
-    private bool _hasUnsavedChanges;
     private CitizenId? _observedCitizenId;
-    private long _lastSimulationProcessedAtUnixMillis;
     private int _lastObservedFirstNightStage = -1;
 
     public double SimulationTickIntervalSeconds { get; set; } = 1.0;
@@ -181,10 +188,19 @@ public partial class CityWorldController : Node
     private SpeedChoice _speed = SpeedChoice.Normal;
 
     public SpeedChoice CurrentSpeed => _speed;
-    public CitizenId? ObservedCitizenId =>
-        _observedCitizenId is CitizenId selected && _world.GetCitizen(selected) is not null
-            ? selected
-            : _world.Hero?.Id;
+
+    public CitizenId? ObservedCitizenId
+    {
+        get
+        {
+            CitizenId? selected = _observedCitizenId;
+            if (selected.HasValue && _session.TryGetCitizenDisplayName(selected.Value, out _))
+            {
+                return selected;
+            }
+            return _session.HeroId;
+        }
+    }
 
     /// <summary>
     /// Switches the simulation speed and adjusts
@@ -216,12 +232,14 @@ public partial class CityWorldController : Node
     }
 
     /// <summary>
-    /// The aggregate facade. Exposed only to the controller and to the
-    /// tests seam (<c>[assembly: InternalsVisibleTo("WorldofGoses.Tests")]</c>);
-    /// Presentation never reaches it. A1 closes the public getter that
-    /// the original prototype leaked.
+    /// The aggregate facade. No public or internal <c>World</c> getter
+    /// remains on the controller — A8 moves ownership into the
+    /// <see cref="CityGameSession"/>, and the only remaining reach for
+    /// presentation goes through the
+    /// <see cref="TryGetHeroForFounderArrival"/> narrow seam, which
+    /// itself is consumed by the <c>AstralOnboardingView</c> animation
+    /// placeholder still on the A1 allowlist.
     /// </summary>
-    internal CityWorld World => _world;
 
     public OfflineProgressionReport? LastOfflineReport { get; private set; }
 
@@ -264,15 +282,20 @@ public partial class CityWorldController : Node
     public override void _Ready()
     {
         if (PersistenceEnabled) TryLoadFromDisk();
-        _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        _world.BuildingChanged += OnDomainBuildingChanged;
-        _world.ProjectChanged += OnDomainProjectChanged;
-        _world.PatchChanged += OnDomainPatchChanged;
-        _world.CultivationSiteChanged += OnDomainCultivationSiteChanged;
-        _world.ExpeditionChanged += OnDomainExpeditionChanged;
-        if (_world.Hero is { } hero)
+        // Hook the session's forwarded events for change signals. A8
+        // routes every mutation through the session, so subscribing
+        // here gives the same coverage as the old
+        // `_world.BuildingChanged += …` path without re-introducing a
+        // controller-level World field.
+        _session.BuildingChanged += OnDomainBuildingChanged;
+        _session.ProjectChanged += OnDomainProjectChanged;
+        _session.PatchChanged += OnDomainPatchChanged;
+        _session.CultivationSiteChanged += OnDomainCultivationSiteChanged;
+        _session.ExpeditionChanged += OnDomainExpeditionChanged;
+        if (_session.HasHero)
         {
-            LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(hero.Profile.Lineage);
+            LineageThemeRegistry.ActiveLineage =
+                LineageThemeRegistry.IdOf(_session.HeroLineageId!.Value);
         }
     }
 
@@ -308,17 +331,15 @@ public partial class CityWorldController : Node
             EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
         }
         EmitFirstNightStageIfChanged();
-        _hasUnsavedChanges = true;
-        _lastSimulationProcessedAtUnixMillis = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
     public override void _ExitTree()
     {
-        _world.BuildingChanged -= OnDomainBuildingChanged;
-        _world.ProjectChanged -= OnDomainProjectChanged;
-        _world.PatchChanged -= OnDomainPatchChanged;
-        _world.CultivationSiteChanged -= OnDomainCultivationSiteChanged;
-        _world.ExpeditionChanged -= OnDomainExpeditionChanged;
+        _session.BuildingChanged -= OnDomainBuildingChanged;
+        _session.ProjectChanged -= OnDomainProjectChanged;
+        _session.PatchChanged -= OnDomainPatchChanged;
+        _session.CultivationSiteChanged -= OnDomainCultivationSiteChanged;
+        _session.ExpeditionChanged -= OnDomainExpeditionChanged;
     }
 
     public override void _Notification(int what)
@@ -339,25 +360,39 @@ public partial class CityWorldController : Node
     }
 
     /// <summary>
-    /// Drains every natural resource patch so the macro view renders
-    /// the depleted state (no trees, empty parcel slots, but the
-    /// patches themselves remain for spatial indexing). Only callable
-    /// during a <c>WOG_VISUAL_CAPTURE</c> run; returns silently in
-    /// normal play to keep the visual regression path orthogonal to
-    /// game logic.
+    /// A10: the public <c>DrainAllForestsForVisualRegression</c> and
+    /// <c>AdvanceWorldTickForVisualRegression</c> entry points lived
+    /// here so any external screenshot tooling could call them by
+    /// name. The harness now reaches the same operations through the
+    /// <c>internal</c> fixture seam
+    /// (<see cref="DrainAllForestsForFixture"/> and
+    /// <see cref="AdvanceWorldTickForFixture"/>) and gates them on
+    /// <see cref="VisualRegressionHarness.IsActive"/>. The public
+    /// entries are removed so production APIs do not grow to
+    /// accommodate screenshots.
     /// </summary>
-    public void DrainAllForestsForVisualRegression()
+
+    /// <summary>
+    /// A10 fixture seam: drains every natural resource patch. The
+    /// visual-regression harness is the only legitimate caller.
+    /// </summary>
+    internal void DrainAllForestsForFixture()
     {
-        if (!IsVisualCaptureMode) return;
-        _world.DrainAllNaturalResourcesForFixtures();
+        if (!VisualRegressionHarness.IsActive) return;
+        _session.World.DrainAllNaturalResourcesForFixtures();
         // Reflect the new state through the existing signals so the
         // macro view re-renders without an autosave side-effect.
         EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
 
-    public void AdvanceWorldTickForVisualRegression()
+    /// <summary>
+    /// A10 fixture seam: advances the world by one tick from the
+    /// harness. Replaces the previous public
+    /// <c>AdvanceWorldTickForVisualRegression</c> entry point.
+    /// </summary>
+    internal void AdvanceWorldTickForFixtureHarness()
     {
-        if (!IsVisualCaptureMode) return;
+        if (!VisualRegressionHarness.IsActive) return;
         _session.AdvanceWorldTick();
         EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
@@ -366,13 +401,14 @@ public partial class CityWorldController : Node
     /// Fixture command: replaces the live world with the contents of
     /// <paramref name="fixture"/>. Used by <c>CityPrototype</c>'s dev-only
     /// scene builders, which need to seed a deterministic city without
-    /// reaching into <see cref="World"/>. <c>internal</c> so Presentation
-    /// cannot bypass the boundary for ordinary gameplay; only fixtures and
-    /// the test seam reach it.
+    /// reaching into a presentation-owned aggregate.
+    /// <c>internal</c> so Presentation cannot bypass the boundary for
+    /// ordinary gameplay; only fixtures and the test seam reach it.
     /// </summary>
     internal void SeedFixtureWorld(CityWorld fixture)
     {
-        WorldPersistence.ApplyTo(_world, WorldPersistence.Capture(fixture));
+        WorldPersistence.ApplyTo(_session.World, WorldPersistence.Capture(fixture));
+        _session.MarkDirty();
     }
 
     /// <summary>
@@ -382,7 +418,8 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void RestoreFixtureWorld(WorldSave save)
     {
-        WorldPersistence.ApplyTo(_world, save);
+        WorldPersistence.ApplyTo(_session.World, save);
+        _session.MarkDirty();
     }
 
     /// <summary>
@@ -392,7 +429,8 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void AdvanceWorldTickForFixture()
     {
-        _session.AdvanceWorldTick();
+        _session.World.AdvanceWorldTick();
+        _session.MarkDirty();
         EmitSignal(SignalName.WorldTickAdvanced, _session.CurrentTick);
     }
 
@@ -404,50 +442,49 @@ public partial class CityWorldController : Node
     /// </summary>
     internal void RecordFixtureWoundEvent(CitizenId id, WoundSeverity severity)
     {
-        Citizen? citizen = _world.GetCitizen(id);
+        Citizen? citizen = _session.World.GetCitizen(id);
         if (citizen is null) return;
-        WorldEvent woundEvent = _world.Log.Record(
-            _world.CurrentTick,
+        WorldEvent woundEvent = _session.World.Log.Record(
+            _session.World.CurrentTick,
             WorldEventKind.WoundSustained,
             WorldEventSubject.Citizen(citizen.Id, citizen.Name),
             (int)severity);
         citizen.SustainWound(severity, woundEvent.Id);
+        _session.MarkDirty();
     }
 
     /// <summary>
     /// Fixture command: fast-forwards a construction project's progress
-    /// by the given amount of work. Replaces direct
-    /// <c>controller.World.GetProject(...).Progress = ...</c> writes in
-    /// the fixtures. Negative or excessive values are clamped.
+    /// by the given amount of work. Negative or excessive values are clamped.
     /// </summary>
     internal void SeedProjectProgressForFixture(BuildingId projectId, int work)
     {
-        ConstructionProject? project = _world.GetProject(projectId);
+        ConstructionProject? project = _session.World.GetProject(projectId);
         if (project is null) return;
         project.SeedProgressForFixture(work);
+        _session.MarkDirty();
     }
 
     /// <summary>
     /// Fixture command: registers a citizen directly into the world.
-    /// Replaces <c>controller.World.RegisterCitizen(...)</c> writes in
-    /// the fixtures. Bypasses the regular onboarding because the
-    /// fixture builders need to seed named, deterministic citizens
-    /// without driving them through the UI.
+    /// Bypasses the regular onboarding because the fixture builders
+    /// need to seed named, deterministic citizens without driving them
+    /// through the UI.
     /// </summary>
     internal void RegisterFixtureCitizen(Citizen citizen)
     {
-        _world.RegisterCitizen(citizen);
+        _session.World.RegisterCitizen(citizen);
+        _session.MarkDirty();
     }
 
     /// <summary>
     /// Fixture command: returns the next citizen id to allocate for a
-    /// fixture citizen. Mirrors <c>CityWorld.NextCitizenId()</c> without
-    /// exposing the aggregate.
+    /// fixture citizen.
     /// </summary>
     internal int NextFixtureCitizenId()
     {
         int nextId = 2;
-        while (_world.GetCitizen(new CitizenId(nextId)) is not null) nextId++;
+        while (_session.World.GetCitizen(new CitizenId(nextId)) is not null) nextId++;
         return nextId;
     }
 
@@ -459,7 +496,7 @@ public partial class CityWorldController : Node
     internal int NextFixtureCitizenIdByMax()
     {
         int max = 1;
-        foreach (CitizenId id in _world.Citizens.Keys)
+        foreach (CitizenId id in _session.World.Citizens.Keys)
         {
             if (id.Value > max) max = id.Value;
         }
@@ -468,43 +505,62 @@ public partial class CityWorldController : Node
 
     /// <summary>
     /// Fixture command: writes a custom domain event into the world log.
-    /// Replaces direct <c>controller.World.Log.Record(...)</c> writes
-    /// in the fixtures. Takes the tick explicitly so the fixture can
-    /// choose when the event fires.
+    /// Takes the tick explicitly so the fixture can choose when the
+    /// event fires.
     /// </summary>
-    internal WorldEvent RecordFixtureLogEvent(int tick, WorldEventKind kind, WorldEventSubject subject, int amount, WorldEventId? causeEventId = null)
+    internal WorldEvent RecordFixtureLogEvent(
+        int tick,
+        WorldEventKind kind,
+        WorldEventSubject subject,
+        int amount,
+        WorldEventId? causeEventId = null)
     {
-        return _world.Log.Record(tick, kind, subject, amount, causeEventId);
+        WorldEvent evt = _session.World.Log.Record(tick, kind, subject, amount, causeEventId);
+        _session.MarkDirty();
+        return evt;
     }
 
     /// <summary>
     /// Fixture command: returns the available amount of a resource
-    /// without exposing the ledger. Used by fixture setups that need
-    /// to gate operations on inventory.
+    /// without exposing the ledger.
     /// </summary>
     internal int GetFixtureResourceAvailable(ResourceType resource) =>
-        _world.Resources.Available(resource);
+        _session.World.Resources.Available(resource);
 
     /// <summary>
     /// Fixture command: deposits a resource into the city inventory
     /// through the ledger. Used by fixture setups that need to seed
     /// inventory without going through a real gathering action.
     /// </summary>
-    internal int DepositToFixtureInventory(ResourceType resource, int amount) =>
-        _world.Resources.DepositToCityInventory(resource, amount);
+    internal int DepositToFixtureInventory(ResourceType resource, int amount)
+    {
+        int deposited = _session.World.Resources.DepositToCityInventory(resource, amount);
+        if (deposited > 0) _session.MarkDirty();
+        return deposited;
+    }
 
     /// <summary>
     /// Fixture command: returns the founding hero's profile, used by
     /// fixture code that needs to clone the founder into a fresh world.
     /// </summary>
-    internal CitizenProfile? GetFixtureHeroProfile() => _world.Hero?.Profile;
+    internal CitizenProfile? GetFixtureHeroProfile() => _session.World.Hero?.Profile;
 
     /// <summary>
     /// Fixture command: returns the founding hero as a live
     /// <see cref="Citizen"/>. Used by fixtures that hand the founder to
     /// a transient animation (e.g. <c>FounderArrivalSequence.Begin</c>).
     /// </summary>
-    internal Citizen? GetFixtureHero() => _world.Hero;
+    internal Citizen? GetFixtureHero() => _session.World.Hero;
+
+    /// <summary>
+    /// Narrow replacement for the legacy
+    /// <c>_controller.World.Hero!</c> read at
+    /// <c>AstralOnboardingView</c>. The view still consumes the live
+    /// founder to drive the arrival animation; A8 routes the read
+    /// through the session and removes the last
+    /// <c>controller.World</c> reach.
+    /// </summary>
+    internal Citizen? TryGetHeroForFounderArrival() => _session.World.Hero;
 
     /// <summary>
     /// Fixture command: cancels the first active expedition. Returns
@@ -512,11 +568,11 @@ public partial class CityWorldController : Node
     /// </summary>
     internal bool CancelFirstActiveExpeditionForFixture()
     {
-        foreach (Expedition expedition in _world.Expeditions.Values)
+        foreach (Expedition expedition in _session.World.Expeditions.Values)
         {
             if (expedition.Status == ExpeditionStatus.Active)
             {
-                return CancelExpedition(expedition.Id);
+                return _session.CancelExpedition(expedition.Id);
             }
         }
         return false;
@@ -529,16 +585,16 @@ public partial class CityWorldController : Node
             StringComparison.Ordinal);
 
     /// <summary>
-    /// S-1.7: prints the ENGINE's own <see cref="Performance.Monitor.TimeProcess"/>
-    /// for the last frame — real render/script cost, not a proxy. The
-    /// prior "profiler" measured PowerShell host <c>Start-Sleep</c>
-    /// interval drift in <c>Capture-VisualMatrix.ps1</c>, which is blind to
-    /// any real stall inside the Godot process (see TO_DO.md S-1.7's
-    /// 2026-07-27 audit). The harness tails the last 30
-    /// <see cref="FrameTimeLogTag"/> lines from the run's log file after
-    /// warm-up instead of self-timing sleep loops. Capped at
-    /// <see cref="FrameTimeSampleCap"/> samples so a long-lived capture
-    /// window can't grow the log unbounded.
+    /// S-1.7: prints the ENGINE's own
+    /// <see cref="Performance.Monitor.TimeProcess"/> for the last frame
+    /// — real render/script cost, not a proxy. The prior "profiler"
+    /// measured PowerShell host <c>Start-Sleep</c> interval drift in
+    /// <c>Capture-VisualMatrix.ps1</c>, which is blind to any real stall
+    /// inside the Godot process (see TO_DO.md S-1.7's 2026-07-27 audit).
+    /// The harness tails the last 30 <see cref="FrameTimeLogTag"/> lines
+    /// from the run's log file after warm-up instead of self-timing sleep
+    /// loops. Capped at <see cref="FrameTimeSampleCap"/> samples so a
+    /// long-lived capture window can't grow the log unbounded.
     /// </summary>
     private void SampleFrameTimeForVisualCapture()
     {
@@ -554,62 +610,21 @@ public partial class CityWorldController : Node
     }
 
     /// <summary>
-    /// The single way this controller writes the primary slot. Every save path
-    /// — manual, autosave, soft reset, post-migration — goes through here so
-    /// the EG-0 report cannot drift out of step with the save. Hooking the
-    /// paths individually already failed once: the report was attached only to
-    /// the manual save, so a measured run silently kept a report frozen at
-    /// whatever the first manual save happened to contain.
+    /// Persists the live world to the primary slot. The controller owns
+    /// the persistence orchestration because the Application assembly
+    /// intentionally does not reference the Persistence assembly (A6
+    /// rule, enforced by
+    /// <c>Layer_DoesNotReferencePersistenceAssembly</c>). The session
+    /// owns the world; the controller owns the slot pipeline.
     /// </summary>
-    private void SaveWorldToPrimarySlot(string? slotsDirectory = null)
-    {
-        if (slotsDirectory is null)
-        {
-            WorldPersistence.SaveToSlot(_world, WorldPersistence.PrimarySaveSlot);
-        }
-        else
-        {
-            WorldPersistence.SaveToSlot(
-                _world,
-                WorldPersistence.PrimarySaveSlot,
-                slotsDirectory);
-        }
-        WriteEarlyGameMetricsReport();
-    }
-
-    /// <summary>
-    /// Writes the EG-0 report next to the save so a play session leaves the
-    /// calibration data behind without the player doing anything.
-    ///
-    /// <para>Deliberately swallowed on failure and called only after the save
-    /// itself succeeded: this is a diagnostic artifact, and losing it must
-    /// never cost the player their city. The file is overwritten each time —
-    /// it is a snapshot of the run so far, not a log.</para>
-    /// </summary>
-    private void WriteEarlyGameMetricsReport()
-    {
-        try
-        {
-            string path = System.IO.Path.Combine(
-                WorldPersistence.SaveDirectory,
-                "eg0-report.txt");
-            System.IO.File.WriteAllText(
-                path,
-                EarlyGameMetricsReport.Format(_world.Metrics, _world.CurrentTick));
-        }
-        catch (Exception ex)
-        {
-            GD.PushWarning($"EG-0 report not written: {ex.Message}");
-        }
-    }
-
     public bool TrySaveNow()
     {
         if (!PersistenceWritesEnabled) return true;
         try
         {
-            SaveWorldToPrimarySlot();
-            _hasUnsavedChanges = false;
+            WorldPersistence.SaveToSlot(_session.World, WorldPersistence.PrimarySaveSlot);
+            WriteEarlyGameMetricsReport();
+            _session.MarkClean();
             EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             return true;
         }
@@ -617,6 +632,28 @@ public partial class CityWorldController : Node
         {
             GD.PushWarning($"Save failed: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Writes the EG-0 report next to the save so a play session leaves
+    /// the calibration data behind without the player doing anything.
+    /// Diagnostic only — losing it must never cost the player their city.
+    /// </summary>
+    private void WriteEarlyGameMetricsReport()
+    {
+        try
+        {
+            string path = Path.Combine(
+                WorldPersistence.SaveDirectory,
+                "eg0-report.txt");
+            File.WriteAllText(
+                path,
+                EarlyGameMetricsReport.Format(_session.World.Metrics, _session.World.CurrentTick));
+        }
+        catch (Exception ex)
+        {
+            GD.PushWarning($"EG-0 report not written: {ex.Message}");
         }
     }
 
@@ -647,9 +684,13 @@ public partial class CityWorldController : Node
         if (!PersistenceWritesEnabled || !_session.HasHero) return false;
         try
         {
-            CityWorld restarted = _world.CreateRestartedCityKeepingHero();
-            WorldPersistence.ApplyTo(_world, WorldPersistence.Capture(restarted));
-            SaveWorldToPrimarySlot();
+            CityWorld restarted = _session.World.CreateRestartedCityKeepingHero();
+            WorldPersistence.ApplyTo(_session.World, WorldPersistence.Capture(restarted));
+            if (!TrySaveNow())
+            {
+                GD.PushWarning("Could not soft-reset the city: the persistence write failed.");
+                return false;
+            }
             GetTree().ReloadCurrentScene();
             return true;
         }
@@ -662,23 +703,13 @@ public partial class CityWorldController : Node
 
     private void TryAutoSave()
     {
-        if (_session.NeedsOnboarding || !_hasUnsavedChanges) return;
-
-        try
-        {
-            SaveWorldToPrimarySlot();
-            _hasUnsavedChanges = false;
-            EmitSignal(SignalName.WorldSaved, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-        }
-        catch (Exception ex)
-        {
-            GD.PushWarning($"Auto-save failed: {ex.Message}");
-        }
+        if (_session.NeedsOnboarding || !_session.IsDirty) return;
+        TrySaveNow();
     }
 
     public bool SelectBuilding(BuildingId buildingId)
     {
-        if (_world.GetBuilding(buildingId) is null) return false;
+        if (_session.GetBuildingDetailSnapshot(buildingId) is null) return false;
         _currentExpeditionLiveId = null;
         _currentSelection = Selection.BuildingDetail;
         EmitSignal(SignalName.SelectionChanged, (int)Selection.BuildingDetail);
@@ -710,11 +741,7 @@ public partial class CityWorldController : Node
     /// </summary>
     public bool SelectExpeditionLive(ExpeditionId expeditionId)
     {
-        if (!_world.Expeditions.TryGetValue(expeditionId, out Expedition? expedition)
-            || expedition.Status != ExpeditionStatus.Active)
-        {
-            return false;
-        }
+        if (_session.GetExpeditionLiveSnapshot(expeditionId) is null) return false;
 
         _currentExpeditionLiveId = expeditionId;
         _currentSelection = Selection.ExpeditionLive;
@@ -728,7 +755,7 @@ public partial class CityWorldController : Node
     /// </summary>
     public bool SelectCitizenForObservation(CitizenId citizenId)
     {
-        if (_world.GetCitizen(citizenId) is null) return false;
+        if (!_session.TryGetCitizenDisplayName(citizenId, out _)) return false;
         if (_observedCitizenId == citizenId) return true;
         _observedCitizenId = citizenId;
         EmitSignal(SignalName.ObservedCitizenChanged, citizenId.Value);
@@ -742,7 +769,7 @@ public partial class CityWorldController : Node
 
     public HeroCreationResult TryCompleteOnboarding(HeroCreationRequest request)
     {
-        if (_onboardingCompletionPending && _world.Hero is Citizen pendingHero)
+        if (_onboardingCompletionPending && GetFixtureHero() is Citizen pendingHero)
         {
             if (!TrySaveNow())
             {
@@ -764,12 +791,11 @@ public partial class CityWorldController : Node
             return HeroCreationResult.Fail(HeroCreationOutcome.SaveFailed);
         }
         _onboardingCompletionPending = false;
-        LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(request.Profile.Lineage);
+        LineageThemeRegistry.ActiveLineage =
+            LineageThemeRegistry.IdOf(request.Profile.Lineage);
         EmitSignal(SignalName.HeroCreated, result.CitizenId.Value.Value);
         return result;
     }
-
-    internal Building? GetBuildingForFixture(BuildingId buildingId) => _world.GetBuilding(buildingId);
 
     public CityStatusSnapshot GetCityStatusSnapshot() => _session.GetCityStatusSnapshot();
 
@@ -792,42 +818,30 @@ public partial class CityWorldController : Node
     public ExpeditionLiveSnapshot? GetExpeditionLiveSnapshot(ExpeditionId expeditionId) =>
         _session.GetExpeditionLiveSnapshot(expeditionId);
 
-    public bool SetCombatAutoSkillsEnabled(ExpeditionId expeditionId, bool enabled)
-    {
-        bool changed = _session.SetCombatAutoSkillsEnabled(expeditionId, enabled);
-        if (changed) _hasUnsavedChanges = true;
-        return changed;
-    }
+    public bool SetCombatAutoSkillsEnabled(ExpeditionId expeditionId, bool enabled) =>
+        _session.SetCombatAutoSkillsEnabled(expeditionId, enabled);
 
-    public bool TryActivateMemberSkill(ExpeditionId expeditionId, int slotIndex)
-    {
-        bool accepted = _session.TryActivateMemberSkill(expeditionId, slotIndex);
-        if (accepted) _hasUnsavedChanges = true;
-        return accepted;
-    }
+    public bool TryActivateMemberSkill(ExpeditionId expeditionId, int slotIndex) =>
+        _session.TryActivateMemberSkill(expeditionId, slotIndex);
 
     public CityPolicySnapshot GetCityPolicySnapshot() => _session.GetCityPolicySnapshot();
 
     public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
     {
-        Citizen? citizen = _world.GetCitizen(citizenId);
-        CitizenRoutineSnapshot? routine = _world.GetCitizenRoutine(citizenId);
+        Citizen? citizen = _session.World.GetCitizen(citizenId);
+        CitizenRoutineSnapshot? routine = _session.World.GetCitizenRoutine(citizenId);
         if (citizen is null || routine is null) return null;
         return new CitizenDebugSnapshot(
             citizen.Id,
             citizen.Name,
             routine,
             citizen.CurrentAssignment,
-            _world.PrimaryHome?.Id,
-            GameClock.IsWorkday(_world.CurrentTick),
-            _lastSimulationProcessedAtUnixMillis);
+            _session.PrimaryHomeId,
+            GameClock.IsWorkday(_session.CurrentTick),
+            _session.LastSimulationProcessedAt.ToUnixTimeMilliseconds());
     }
 
     public HeroProfileSnapshot? GetHeroProfileSnapshot() => _session.GetHeroProfileSnapshot();
-
-    // -- A1 boundary queries: replace the entity-returning wrappers that
-    // the A0 allowlist named as legacy debt. Every method below returns
-    // a value type or an immutable snapshot — never a domain entity.
 
     /// <summary>The current world tick as projected by <see cref="CityStatusSnapshot"/>.</summary>
     public int CurrentTick => _session.CurrentTick;
@@ -871,7 +885,7 @@ public partial class CityWorldController : Node
     public CultivationSiteSnapshot? GetCultivationSiteSnapshot(BuildingId siteId) =>
         _session.GetCultivationSiteSnapshot(siteId);
 
-    /// <summary>Read-only projection of a citizen's current routine (wraps <see cref="CityWorld.GetCitizenRoutine"/>).</summary>
+    /// <summary>Read-only projection of a citizen's current routine.</summary>
     public CitizenRoutineSnapshot? GetCitizenRoutineSnapshot(CitizenId id) =>
         _session.GetCitizenRoutineSnapshot(id);
 
@@ -879,7 +893,7 @@ public partial class CityWorldController : Node
     public MacroStreetLiveViewState GetMacroStreetViewState() =>
         _session.GetMacroStreetViewState();
 
-    /// <summary>Read-only projection of one combat session (wraps <see cref="CityWorld.GetCombatSessionSnapshot"/>).</summary>
+    /// <summary>Read-only projection of one combat session.</summary>
     public CombatSessionSnapshot? GetCombatSessionSnapshot(ExpeditionId expeditionId) =>
         _session.GetCombatSessionSnapshot(expeditionId);
 
@@ -941,12 +955,6 @@ public partial class CityWorldController : Node
     public int CurrentProductionRate(BuildingId buildingId) =>
         _session.CurrentProductionRate(buildingId);
 
-    // The two GatherWood wrappers are gone. They forwarded to a domain method
-    // that never checked ToolKind.PrimitiveAxe, so any scene holding a
-    // controller reference could drain mature-tree Wood straight past the
-    // forestry gate. Nothing in the game called them — the macro view gathers
-    // through TryGatherFromPatch — so they were reachable API with no purpose.
-
     public int GatherFromPatch(int patchId, int unitId, int amount) =>
         _session.GatherFromPatch(patchId, unitId, amount);
 
@@ -961,64 +969,31 @@ public partial class CityWorldController : Node
         int amount) =>
         _session.TryGatherFromPatch(patchId, unitId, amount);
 
-    public ToolCraftResult TryCraftTool(ToolKind tool)
-    {
-        ToolCraftResult result = _session.TryCraftTool(tool);
-        if (result.IsSuccess) SaveNow();
-        return result;
-    }
+    public ToolCraftResult TryCraftTool(ToolKind tool) => _session.TryCraftTool(tool);
 
-    public CultivationActionResult TrySowCultivationSite(BuildingId siteId)
-    {
-        CultivationActionResult result = _session.TrySowCultivationSite(siteId);
-        if (result.IsSuccess) SaveNow();
-        return result;
-    }
+    public CultivationActionResult TrySowCultivationSite(BuildingId siteId) =>
+        _session.TrySowCultivationSite(siteId);
 
-    public CultivationActionResult TryHarvestCultivationSite(BuildingId siteId)
-    {
-        CultivationActionResult result = _session.TryHarvestCultivationSite(siteId);
-        if (result.IsSuccess) SaveNow();
-        return result;
-    }
+    public CultivationActionResult TryHarvestCultivationSite(BuildingId siteId) =>
+        _session.TryHarvestCultivationSite(siteId);
 
-    public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId)
-    {
-        var result = _session.TryAssignCitizen(buildingId, citizenId);
-        if (!result.IsSuccess)
-            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
-        return result;
-    }
+    public AssignmentResult TryAssignCitizen(BuildingId buildingId, CitizenId citizenId) =>
+        _session.TryAssignCitizen(buildingId, citizenId);
 
-    public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId)
-    {
-        var result = _session.TryUnassignCitizen(buildingId, citizenId);
-        if (!result.IsSuccess)
-            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
-        return result;
-    }
+    public AssignmentResult TryUnassignCitizen(BuildingId buildingId, CitizenId citizenId) =>
+        _session.TryUnassignCitizen(buildingId, citizenId);
 
-    public AssignmentResult TryAssignCitizenToProject(BuildingId projectId, CitizenId citizenId)
-    {
-        var result = _session.TryAssignCitizenToProject(projectId, citizenId);
-        if (!result.IsSuccess)
-            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
-        return result;
-    }
+    public AssignmentResult TryAssignCitizenToProject(BuildingId projectId, CitizenId citizenId) =>
+        _session.TryAssignCitizenToProject(projectId, citizenId);
 
-    public AssignmentResult TryUnassignCitizenFromProject(BuildingId projectId, CitizenId citizenId)
-    {
-        var result = _session.TryUnassignCitizenFromProject(projectId, citizenId);
-        if (!result.IsSuccess)
-            EmitSignal(SignalName.CitizenAssignmentRejected, (int)result.Outcome);
-        return result;
-    }
+    public AssignmentResult TryUnassignCitizenFromProject(BuildingId projectId, CitizenId citizenId) =>
+        _session.TryUnassignCitizenFromProject(projectId, citizenId);
 
-    public ConstructionAuthorizationResult TryAuthorizeBasicShelter()
-        => TryAuthorizeConstruction(ConstructionKind.BasicShelter);
+    public ConstructionAuthorizationResult TryAuthorizeBasicShelter() =>
+        TryAuthorizeConstruction(ConstructionKind.BasicShelter);
 
-    public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind)
-        => TryAuthorizeConstruction(kind, selectedLot: null);
+    public ConstructionAuthorizationResult TryAuthorizeConstruction(ConstructionKind kind) =>
+        TryAuthorizeConstruction(kind, selectedLot: null);
 
     public ConstructionAuthorizationResult TryAuthorizeConstruction(
         ConstructionKind kind,
@@ -1034,19 +1009,10 @@ public partial class CityWorldController : Node
 
     public ConstructionAuthorizationResult TryAuthorizeFoundingSiteModule(
         BuildingId projectId,
-        FoundingSiteModule module)
-    {
-        var result = _session.TryAuthorizeFoundingSiteModule(projectId, module);
-        if (result.IsSuccess) SaveNow();
-        return result;
-    }
+        FoundingSiteModule module) =>
+        _session.TryAuthorizeFoundingSiteModule(projectId, module);
 
-    public int ReturnFoundingCargo()
-    {
-        int returned = _session.ReturnFoundingCargo();
-        if (returned > 0) SaveNow();
-        return returned;
-    }
+    public int ReturnFoundingCargo() => _session.ReturnFoundingCargo();
 
     /// <summary>
     /// Opens the main-dialogue node the spirit speaks at the current
@@ -1096,14 +1062,27 @@ public partial class CityWorldController : Node
     }
 
     internal IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
-        _world.AvailableConstructionLots();
+        _session.World.AvailableConstructionLots();
 
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
         _session.SetProjectEnabled(projectId, enabled);
 
     public bool CancelProject(BuildingId projectId) => _session.CancelProject(projectId);
 
-    internal ConstructionProject? GetProjectForFixture(BuildingId projectId) => _world.GetProject(projectId);
+    internal ConstructionProject? GetProjectForFixture(BuildingId projectId) =>
+        _session.World.GetProject(projectId);
+
+    internal Building? GetBuildingForFixture(BuildingId buildingId) =>
+        _session.World.GetBuilding(buildingId);
+
+    /// <summary>
+    /// Fixture seam into the session's owned world. <c>CityPrototype</c>
+    /// captures this reference once per fixture to author the
+    /// deterministic city it needs for a screenshot. Production code
+    /// never reaches it: the controller's use-case methods and the
+    /// snapshot queries cover every gameplay read.
+    /// </summary>
+    internal CityWorld GetFixtureWorld() => _session.World;
 
     public int AdvanceProduction(BuildingId buildingId) => _session.AdvanceProduction(buildingId);
 
@@ -1134,106 +1113,80 @@ public partial class CityWorldController : Node
         }
     }
 
+    /// <summary>
+    /// Reads, migrates, validates and applies the primary slot, then runs
+    /// the offline progression pass and (when a migration occurred)
+    /// re-persists so the next load is a vN→vN round-trip.
+    /// </summary>
+    /// <returns><c>true</c> when the slot existed and was applied;
+    /// <c>false</c> when the slot is absent.</returns>
     internal bool TryLoadFromPrimarySlot(string? slotsDirectoryOverride = null)
     {
         string slotsDirectory = slotsDirectoryOverride ?? WorldPersistence.SlotsDirectory;
-        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot, slotsDirectory)) return false;
-        // Load raw JSON so the migration helpers can see the original
-        // version before Validate rejects it. Validate runs after
-        // migration completes.
-        var path = System.IO.Path.Combine(
+        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot, slotsDirectory))
+        {
+            LastOfflineReport = null;
+            return false;
+        }
+
+        var path = Path.Combine(
             slotsDirectory,
             $"save_slot_{WorldPersistence.PrimarySaveSlot}.json");
-        var save = WorldPersistence.DeserializeFromJson(System.IO.File.ReadAllText(path));
+        var save = WorldPersistence.DeserializeFromJson(File.ReadAllText(path));
         int originalVersion = save.Version;
         save = WorldPersistence.MigrateToCurrent(save);
         bool migrated = save.Version != originalVersion;
         WorldPersistence.Validate(save);
-        WorldPersistence.ApplyTo(_world, save);
-        // Retroactive seed for saves predating the wood-gathering
-        // slice: if the world has the founding hero but no Forests,
-        // give it two Forests so wood gathering remains reachable.
-        // SeedStartingForests is idempotent — it skips when forests
-        // already exist or when no hero is present.
+        WorldPersistence.ApplyTo(_session.World, save);
         _session.SeedStartingForests();
-        // EG-1 retroactive seed for the four rudimentary ground
-        // resources on legacy saves. Silent when no free parcel is
-        // available — a save that already built something on
-        // parcels 3–6 keeps its layout and gains no new patches.
         _session.SeedStartingOpportunities();
-        _world.EnsureFoundingShelterContributor();
-        AnnounceLoad($"slot {WorldPersistence.PrimarySaveSlot}", save);
-        // Surface the loaded night on the very first frame, before any
-        // tick runs — a save restored mid-night must not wait one tick
-        // for its dialogue strip to appear.
-        EmitFirstNightStageIfChanged();
-        if (migrated && PersistenceWritesEnabled)
-        {
-            SaveWorldToPrimarySlot(slotsDirectory);
-            _hasUnsavedChanges = false;
-        }
-        return true;
-    }
+        _session.World.EnsureFoundingShelterContributor();
 
-    private void AnnounceLoad(string source, WorldSave save)
-    {
+        OfflineProgressionReport? report = null;
+        bool hadProgression = false;
         if (save.LastSeenAtUnixMillis > 0)
         {
             var now = DateTimeOffset.UtcNow;
             var lastSeenAt = DateTimeOffset.FromUnixTimeMilliseconds(save.LastSeenAtUnixMillis);
             int ticks = OfflineProgression.ComputeTicks(now, lastSeenAt);
-        LastOfflineReport = OfflineProgression.ApplyAll(_world, ticks);
-            if (ticks > 0) _hasUnsavedChanges = true;
+            report = OfflineProgression.ApplyAll(_session.World, ticks);
+            if (ticks > 0)
+            {
+                _session.MarkDirty();
+                hadProgression = true;
+            }
+        }
+        LastOfflineReport = report;
 
-            if (LastOfflineReport.HadProgression)
-            {
-                GD.Print(
-                    $"World loaded from {source} (tick {_session.CurrentTick}). " +
-                    $"Offline progression: +{LastOfflineReport.TicksApplied} ticks, " +
-                    $"+{LastOfflineReport.StockAdded} stock, " +
-                    $"{(int)LastOfflineReport.SimulatedTime.TotalSeconds}s simulated.");
-            }
-            else
-            {
-                GD.Print($"World loaded from {source} (tick {_session.CurrentTick}).");
-            }
+        if (migrated)
+        {
+            WorldPersistence.SaveToSlot(_session.World, WorldPersistence.PrimarySaveSlot, slotsDirectory);
+            WriteEarlyGameMetricsReport();
+            _session.MarkClean();
+        }
+
+        if (hadProgression)
+        {
+            GD.Print(
+                $"World loaded from slot {WorldPersistence.PrimarySaveSlot} " +
+                $"(tick {_session.CurrentTick}). " +
+                $"Offline progression: +{report!.TicksApplied} ticks, " +
+                $"+{report.StockAdded} stock, " +
+                $"{(int)report.SimulatedTime.TotalSeconds}s simulated.");
         }
         else
         {
-            LastOfflineReport = null;
-            GD.Print($"World loaded from {source} (tick {_session.CurrentTick}).");
+            GD.Print(
+                $"World loaded from slot {WorldPersistence.PrimarySaveSlot} " +
+                $"(tick {_session.CurrentTick}).");
         }
-    }
 
-    private void OnDomainBuildingChanged(object? sender, CityWorldChangedEventArgs e)
-    {
-        _hasUnsavedChanges = true;
-        EmitSignal(SignalName.BuildingStateChanged, e.BuildingId.Value);
-    }
-
-    private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e)
-    {
-        _hasUnsavedChanges = true;
-        EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
-    }
-
-    private void OnDomainPatchChanged(object? sender, PatchChangedEventArgs e)
-    {
-        _hasUnsavedChanges = true;
-        EmitSignal(SignalName.NaturalResourceStateChanged, e.PatchId);
-    }
-
-    private void OnDomainCultivationSiteChanged(
-        object? sender,
-        CityWorldChangedEventArgs e)
-    {
-        _hasUnsavedChanges = true;
-        EmitSignal(SignalName.CultivationSiteStateChanged, e.BuildingId.Value);
+        return true;
     }
 
     public ExpeditionStartResult StartExpedition(ExpeditionRequest request)
     {
-        var result = _session.StartExpedition(request);
+        ExpeditionStartResult result = _session.StartExpedition(request);
         if (result.IsSuccess) SaveNow();
         return result;
     }
@@ -1294,9 +1247,35 @@ public partial class CityWorldController : Node
         return false;
     }
 
+    private void OnDomainBuildingChanged(object? sender, CityWorldChangedEventArgs e)
+    {
+        _session.MarkDirty();
+        EmitSignal(SignalName.BuildingStateChanged, e.BuildingId.Value);
+    }
+
+    private void OnDomainProjectChanged(object? sender, CityWorldChangedEventArgs e)
+    {
+        _session.MarkDirty();
+        EmitSignal(SignalName.ProjectStateChanged, e.BuildingId.Value);
+    }
+
+    private void OnDomainPatchChanged(object? sender, PatchChangedEventArgs e)
+    {
+        _session.MarkDirty();
+        EmitSignal(SignalName.NaturalResourceStateChanged, e.PatchId);
+    }
+
+    private void OnDomainCultivationSiteChanged(
+        object? sender,
+        CityWorldChangedEventArgs e)
+    {
+        _session.MarkDirty();
+        EmitSignal(SignalName.CultivationSiteStateChanged, e.BuildingId.Value);
+    }
+
     private void OnDomainExpeditionChanged(object? sender, ExpeditionChangedEventArgs e)
     {
-        _hasUnsavedChanges = true;
+        _session.MarkDirty();
         EmitSignal(SignalName.ExpeditionStateChanged, e.ExpeditionId.Value);
     }
 }

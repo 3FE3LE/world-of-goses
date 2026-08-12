@@ -1,8 +1,10 @@
 #nullable enable
+using System;
 using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
+using WorldofGoses.Prototypes;
 
 namespace WorldofGoses;
 
@@ -38,11 +40,14 @@ public partial class FirstNightScene : Node
     [Export] public NodePath ControllerPath { get; set; } = "../CityWorldController";
 
     /// <summary>
-    /// Path to the macro street view, whose
-    /// <c>GetFoundingArrivalGlobalPosition()</c> resolves the founder's
-    /// projected screen position. Optional: when the macro view is
-    /// absent (tests, editor-only fixtures) the scene falls back to a
-    /// fixed viewport-centred placeholder.
+    /// Path to the macro street view. The typed
+    /// <see cref="Prototypes.MacroStreetLiveView.GetFoundingArrivalGlobalPosition"/>
+    /// and <see cref="Prototypes.MacroStreetLiveView.GetBuildingGlobalPosition"/>
+    /// methods resolve the founder and campfire anchors, and the
+    /// <c>WorldDialogueAnchorsChanged</c> signal notifies when the
+    /// projection moves. Optional: when the macro view is absent
+    /// (tests, editor-only fixtures) the scene falls back to a fixed
+    /// viewport-centred placeholder.
     /// </summary>
     [Export] public NodePath MacroViewPath { get; set; } = "../GameUiShell/ScreenContent/MacroStreetLiveView";
 
@@ -55,23 +60,24 @@ public partial class FirstNightScene : Node
     [Export] public NodePath ModalHostPath { get; set; } = "../GameUiShell/ScreenContent/ModalHost";
 
     private CityWorldController? _controller;
+    private MacroStreetLiveView? _macroView;
     private FirstNightSpeechBubble _bubble = null!;
     private FireSpiritVisual _spirit = null!;
     private FirstNightEmbers _embers = null!;
 
     /// <summary>
-    /// Approximate screen position of the founder at the start of the
-    /// night. The macro view calls <see cref="UpdateFounderPosition"/>
-    /// whenever the camera or the founder's actual screen position
-    /// changes; the spirit visual reads this when it needs to hover
-    /// beside the founder before the campfire is built.
+    /// Approximate screen position of the founder. Refreshed by
+    /// <see cref="RefreshAnchorsFromMacro"/> whenever the macro view
+    /// emits <c>WorldDialogueAnchorsChanged</c>; the spirit visual
+    /// reads it when it needs to hover beside the founder before the
+    /// campfire is built.
     /// </summary>
     private Vector2 _founderScreenPosition = new(640, 360);
 
     /// <summary>
     /// Approximate screen position of the campfire once it has been
-    /// built. The macro view calls <see cref="UpdateCampfirePosition"/>
-    /// whenever the campfire is created or its visual anchor shifts.
+    /// built. Refreshed by the same handler; the spirit and embers
+    /// settle into it once the founding module completes.
     /// </summary>
     private Vector2 _campfireScreenPosition = new(640, 380);
 
@@ -116,6 +122,12 @@ public partial class FirstNightScene : Node
         _controller.FirstNightStageChanged += OnFirstNightStageChanged;
         _controller.SelectionChanged += OnSelectionChanged;
 
+        _macroView = GetNodeOrNull<MacroStreetLiveView>(MacroViewPath);
+        if (_macroView is not null)
+        {
+            _macroView.WorldDialogueAnchorsChanged += RefreshAnchorsFromMacro;
+        }
+
         _modalHost = GetNodeOrNull<ModalHost>(ModalHostPath);
         if (_modalHost is not null)
         {
@@ -125,33 +137,26 @@ public partial class FirstNightScene : Node
         // Project the loaded stage on first frame so a save restored
         // mid-night shows its dialogue immediately, without waiting for
         // the next tick.
+        RefreshAnchorsFromMacro();
         ProjectCurrentStage();
     }
 
     /// <summary>
-    /// Keeps the spirit, its bubble and the embers sitting on the world.
+    /// Architecture Hardening A9 removed the per-frame anchor
+    /// polling. The spirit and bubble now follow
+    /// <see cref="RefreshAnchorsFromMacro"/>, which only fires when
+    /// the macro view's projection actually moves (camera pan, zoom,
+    /// follow toggle). When nothing is visible there is no work to
+    /// do — the visuals vanish and stay vanished until the next
+    /// stage transition respawns them.
     ///
     /// <para>
-    /// <c>MacroStreetLiveView</c> has no camera transform to inherit — it
-    /// projects each street by hand from <c>CameraDepthAnchor</c> and
-    /// <c>CameraLateral</c> — so moving the camera changes the *projection*,
-    /// not a parent transform. Re-parenting would therefore not help; the
-    /// position genuinely has to be re-derived. It used to be sampled only on
-    /// a stage change, which is why the spirit looked nailed to the viewport:
-    /// it stayed wherever it was the last time the night advanced.
-    /// </para>
+    /// Visual flicker and animation stay where they were: the
+    /// <see cref="FireSpiritVisual"/> owns its 12 Hz flicker inside its
+    /// own <c>_Process</c>, and the <see cref="FirstNightSpeechBubble"/>
+    /// is layout-only. Nothing at this scene layer needs a per-frame
+    /// tick for world anchors anymore, so <c>_Process</c> is gone.</para>
     /// </summary>
-    public override void _Process(double delta)
-    {
-        _ = delta;
-        if (_controller is null) return;
-        if (!_spirit.Visible && !_embers.Visible && !_bubble.Visible) return;
-
-        RefreshPositionsFromWorld();
-        if (_spirit.Visible) _spirit.MoveTo(SpiritAnchor());
-        if (_embers.Visible) _embers.PlaceAt(_campfireScreenPosition);
-        if (_bubble.Visible) _bubble.FollowSpeaker(SpiritAnchor());
-    }
 
     /// <summary>
     /// Where the spirit currently belongs: beside the founder until the
@@ -171,7 +176,7 @@ public partial class FirstNightScene : Node
             parts.Add(UiText.Format(
                 "firstnight.directive.amount",
                 input.Amount,
-                UiText.Get(input.Resource.ToString().ToLowerInvariant())));
+                ResourceTypeLocalizer.Label(input.Resource)));
         }
 
         string needed = parts.Count switch
@@ -214,6 +219,10 @@ public partial class FirstNightScene : Node
             _controller.FirstNightStageChanged -= OnFirstNightStageChanged;
             _controller.SelectionChanged -= OnSelectionChanged;
         }
+        if (_macroView is not null)
+        {
+            _macroView.WorldDialogueAnchorsChanged -= RefreshAnchorsFromMacro;
+        }
         if (_modalHost is not null)
         {
             _modalHost.Opened -= ProjectCurrentStage;
@@ -243,6 +252,7 @@ public partial class FirstNightScene : Node
     /// invokes this whenever the founder's projected position shifts
     /// (camera follow, depth change, world resize).
     /// </summary>
+    [Obsolete("A9: subscribe to MacroStreetLiveView.WorldDialogueAnchorsChanged instead.")]
     public void UpdateFounderPosition(Vector2 screenPosition)
     {
         _founderScreenPosition = screenPosition;
@@ -255,6 +265,7 @@ public partial class FirstNightScene : Node
     /// whenever its anchor shifts. A null vector clears the cached
     /// position (used before the campfire exists).
     /// </summary>
+    [Obsolete("A9: subscribe to MacroStreetLiveView.WorldDialogueAnchorsChanged instead.")]
     public void UpdateCampfirePosition(Vector2 screenPosition)
     {
         _campfireScreenPosition = screenPosition;
@@ -271,6 +282,52 @@ public partial class FirstNightScene : Node
         _controller?.TryCloseFirstNightDialogue();
     }
 
+    /// <summary>
+    /// Re-reads the founder and campfire projected screen positions
+    /// from the macro view through typed C# methods, and pushes the
+    /// updated values into the visuals. Replaces the previous
+    /// <c>HasMethod</c> + <c>Node.Call</c> + <c>_Process</c>-per-frame
+    /// polling seam: the macro view now raises a typed
+    /// <c>WorldDialogueAnchorsChanged</c> signal whenever the camera or
+    /// projection moves, so this handler is the single refresh path.
+    /// </summary>
+    private void RefreshAnchorsFromMacro()
+    {
+        var macroView = _macroView;
+        if (macroView is null) return;
+
+        Vector2 founderScreen = macroView.GetFoundingArrivalGlobalPosition();
+        if (founderScreen != Vector2.Zero)
+        {
+            _founderScreenPosition = founderScreen;
+        }
+
+        // Anchor the campfire on the structure that actually holds it. This
+        // used to be the founder's own projected spot minus 32 px, which drew
+        // the fire on top of the citizen — invisible while the embers were a
+        // faint wireframe, an obvious bonfire standing in front of him once
+        // they became a sprite.
+        //
+        // When the founding site is still a construction project there is no
+        // Building to point at, and the macro view exposes no anchor for a
+        // project. In that case we draw nothing: a fire in an invented place
+        // is worse than no fire, because the player reads it as world state.
+        int? siteId = _controller?.GetFoundingSiteBuildingId();
+        if (siteId is int id)
+        {
+            Vector2 siteScreen = macroView.GetBuildingGlobalPosition(id);
+            if (siteScreen != Vector2.Zero)
+            {
+                _campfireScreenPosition = siteScreen;
+                _hasCampfireAnchor = true;
+                ProjectCurrentStage();
+                return;
+            }
+        }
+        _hasCampfireAnchor = false;
+        ProjectCurrentStage();
+    }
+
     private void ProjectCurrentStage()
     {
         if (_controller is null) return;
@@ -281,7 +338,14 @@ public partial class FirstNightScene : Node
             _embers.Vanish();
             return;
         }
-        RefreshPositionsFromWorld();
+        // Deliberately does NOT refresh the anchors: RefreshAnchorsFromMacro
+        // ends by calling this method, so re-entering it here made the two
+        // mutually recursive and overflowed the stack on the first _Ready
+        // where the world was visible — the scene never booted. The anchors
+        // stay current because the macro view raises
+        // WorldDialogueAnchorsChanged on every camera or projection move and
+        // that handler runs even while the world is hidden, so a stage
+        // projection only ever repaints with values already up to date.
         FirstNightStage? stage = _controller.GetFirstNightStage();
         bool isActive = _controller.IsFirstNightActive();
         if (stage is null || !isActive)
@@ -367,51 +431,12 @@ public partial class FirstNightScene : Node
     }
 
     /// <summary>
-    /// Pulls live founder and campfire screen positions from the macro
-    /// view. The founder's position is always available; the campfire
-    /// position only resolves once the founding module is complete.
-    /// Falls back to the cached placeholder when the macro view is
-    /// absent (tests, fixtures).
+    /// Architecture Hardening A9 closes the legacy <c>HasMethod</c> +
+    /// <c>Node.Call</c> seam. Anchor refresh lives in
+    /// <see cref="RefreshAnchorsFromMacro"/> (typed call path) and
+    /// runs from the macro view's <c>WorldDialogueAnchorsChanged</c>
+    /// signal — no per-frame polling, no string-based dispatch.
     /// </summary>
-    private void RefreshPositionsFromWorld()
-    {
-        var macroView = GetNodeOrNull<Node>(MacroViewPath);
-        if (macroView is null) return;
-
-        Vector2 founderScreen = InvokePositionGetter(
-            macroView, "GetFoundingArrivalGlobalPosition");
-        if (founderScreen != Vector2.Zero)
-        {
-            _founderScreenPosition = founderScreen;
-        }
-
-        // Anchor the campfire on the structure that actually holds it. This
-        // used to be the founder's own projected spot minus 32 px, which drew
-        // the fire on top of the citizen — invisible while the embers were a
-        // faint wireframe, an obvious bonfire standing in front of him once
-        // they became a sprite.
-        //
-        // When the founding site is still a construction project there is no
-        // Building to point at, and the macro view exposes no anchor for a
-        // project. In that case we draw nothing: a fire in an invented place
-        // is worse than no fire, because the player reads it as world state.
-        int? siteId = _controller?.GetFoundingSiteBuildingId();
-        Vector2 siteScreen = siteId is null
-            ? Vector2.Zero
-            : InvokePositionGetter(macroView, "GetBuildingGlobalPosition", siteId.Value);
-        _hasCampfireAnchor = siteScreen != Vector2.Zero;
-        if (_hasCampfireAnchor) _campfireScreenPosition = siteScreen;
-    }
-
-    private static Vector2 InvokePositionGetter(Node node, string methodName, params Variant[] args)
-    {
-        if (!node.HasMethod(methodName)) return Vector2.Zero;
-        Variant result = node.Call(methodName, args);
-        return result.VariantType == Variant.Type.Vector2
-            ? (Vector2)result
-            : Vector2.Zero;
-    }
-
     private bool HasEmbersAfterDeparture()
     {
         if (_controller is null) return false;

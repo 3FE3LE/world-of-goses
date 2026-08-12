@@ -1708,8 +1708,15 @@ public sealed class CityWorld
     /// The controller used to loop over
     /// <see cref="NaturalResourcePatches"/> and call it anyway. Now the loop
     /// is on the inside, where that rule holds.</para>
+    ///
+    /// <para>Architecture Hardening A10 made this seam <c>internal</c>. The
+    /// only legitimate callers are the visual-regression harness (via the
+    /// controller's <c>DrainAllForestsForFixture</c> fixture method, which
+    /// reaches here through the Godot assembly's
+    /// <c>InternalsVisibleTo</c> grant) and the test assembly. Production
+    /// scenes cannot drain the world just to take a screenshot.</para>
     /// </summary>
-    public void DrainAllNaturalResourcesForFixtures()
+    internal void DrainAllNaturalResourcesForFixtures()
     {
         foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
         {
@@ -3407,16 +3414,17 @@ public sealed class CityWorld
     /// city past its opening — rations at dawn, production cycles, expeditions —
     /// and those rules are not about the first night. Without this they would all
     /// run with the calendar held and quietly assert the wrong thing.
-    /// No scene or panel may skip the sequence in real play. That used to be
-    /// expressed as <c>internal</c>, which stopped meaning anything the moment
-    /// the domain became its own assembly and the fixture builders — which
-    /// legitimately need it — landed on the other side of the boundary. The
-    /// rule is now enforced where it can actually be checked:
+    /// No scene or panel may skip the sequence in real play. A10 moved this
+    /// seam from <c>public</c> to <c>internal</c>: the only legitimate callers
+    /// are the visual-regression harness (it routes through the controller's
+    /// fixture seam, which itself reaches this method via the test assembly's
+    /// <c>InternalsVisibleTo</c> grant) and the test assembly. The
+    /// architecture guard
     /// <c>ArchitectureBoundaryTests.Presentation_ConcludesFirstNightOnlyInFixtures</c>
     /// pins the call sites, and the <c>ForFixtures</c> suffix keeps the intent
     /// unmissable at every one of them.
     /// </summary>
-    public void ConcludeFirstNightForFixtures()
+    internal void ConcludeFirstNightForFixtures()
     {
         if (_firstNight is not { IsActive: true } night) return;
         while (night.IsActive) night.TryAdvance(_tick);

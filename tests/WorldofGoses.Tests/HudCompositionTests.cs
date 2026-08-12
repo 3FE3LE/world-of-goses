@@ -122,7 +122,7 @@ public sealed class HudCompositionTests
         Assert.All(new[] { summary, rail, primary }, block =>
             Assert.Contains(block, line => line.Trim() == "visible = false"));
         Assert.Contains(action, line => line.Trim() == "theme_type_variation = &\"HudDock\"");
-        Assert.Contains(action, line => line.Trim() == "mouse_filter = 0");
+        AssertOwnsPointerInput(action, "ActionDock");
         Assert.Contains(inspector, line => line.Trim() == "theme_type_variation = &\"HudCard\"");
         Assert.Contains("ThemeTypeVariation = \"HudButtonSelected\"", actionSource,
             StringComparison.Ordinal);
@@ -226,7 +226,7 @@ public sealed class HudCompositionTests
         Assert.Contains(rail, line => line.Trim() == "offset_bottom = -8.0");
         Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = 8.0");
         Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -104.0");
-        Assert.Contains(rail, line => line.Trim() == "mouse_filter = 0");
+        AssertOwnsPointerInput(rail, "ExpeditionRail");
         Assert.Contains(rail, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
         Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
         Assert.Contains("ChronicleEventProjection.Compact", chronicle, StringComparison.Ordinal);
@@ -784,18 +784,29 @@ public sealed class HudCompositionTests
         string root = TestHelpers.FindRepositoryRoot();
         string[] sceneLines = ReadScene();
 
-        // The PauseMenu node in CityPrototype.tscn sets open_button_path
-        // explicitly so the redirect is discoverable in the scene file.
+        // The redirect must be discoverable without opening the script, but
+        // Godot drops an [Export] whose value equals the script's own
+        // default, so re-saving the scene in the editor deletes the explicit
+        // line without changing where the button points. Accept either
+        // spelling; a third target is still a regression.
         int pauseNode = IndexOfNodeHeader(sceneLines, "PauseMenu");
         Assert.True(pauseNode >= 0, "Could not locate PauseMenu node in CityPrototype.tscn.");
         int end = IndexOfNextNodeHeader(sceneLines, pauseNode + 1);
         int blockEnd = end < 0 ? sceneLines.Length : end;
         string block = string.Join(
             "\n", sceneLines[pauseNode..blockEnd]);
-        Assert.Contains(
-            "open_button_path = NodePath(\"../GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton\")",
-            block,
-            StringComparison.Ordinal);
+        const string target =
+            "../GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton";
+        string pauseSource = File.ReadAllText(Path.Combine(root, "game", "scripts", "PauseMenu.cs"));
+        bool authoredInScene = block.Contains(
+            $"open_button_path = NodePath(\"{target}\")", StringComparison.Ordinal);
+        bool authoredAsScriptDefault = pauseSource.Contains(
+            $"\"{target}\"", StringComparison.Ordinal);
+
+        Assert.True(
+            authoredInScene || authoredAsScriptDefault,
+            "The pause menu must open from the utility cluster's MenuButton, either "
+                + "authored on the PauseMenu node or as OpenButtonPath's default.");
     }
 
     [Fact]
@@ -1378,9 +1389,7 @@ public sealed class HudCompositionTests
             StringComparison.Ordinal);
         Assert.Contains("_session.TryActivateMemberSkill(expeditionId, slotIndex)", controller,
             StringComparison.Ordinal);
-        Assert.Contains("if (changed) _hasUnsavedChanges = true;", controller,
-            StringComparison.Ordinal);
-        Assert.Contains("if (accepted) _hasUnsavedChanges = true;", controller,
+        Assert.Contains("_session.SetCombatAutoSkillsEnabled(expeditionId, enabled)", controller,
             StringComparison.Ordinal);
         Assert.Contains("_autoButton.Toggled += OnAutoToggled", live, StringComparison.Ordinal);
         Assert.DoesNotContain("Key1", live, StringComparison.Ordinal);
@@ -1456,6 +1465,32 @@ public sealed class HudCompositionTests
             StringComparison.Ordinal);
         Assert.Contains("[WOG-EXPEDITION-LIVE-ESC] returned to city", source,
             StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Asserts the node keeps pointer input to itself instead of passing it
+    /// through to the world behind it.
+    /// </summary>
+    /// <remarks>
+    /// Godot does not serialize a property whose value equals the node's
+    /// default, and <c>MouseFilter.Stop</c> is <c>0</c> — the default for
+    /// <c>Control</c>. An explicit <c>mouse_filter = 0</c> therefore
+    /// disappears from the <c>.tscn</c> the first time the editor re-saves
+    /// the scene, so its absence means Stop and asserting the literal line
+    /// only measures who last opened the scene. The regression this guards
+    /// is an authored <c>Pass</c> (1) or <c>Ignore</c> (2), which is still
+    /// written out and still caught here.
+    /// </remarks>
+    private static void AssertOwnsPointerInput(string[] nodeBlock, string nodeName)
+    {
+        string? authored = nodeBlock
+            .Select(line => line.Trim())
+            .FirstOrDefault(line => line.StartsWith("mouse_filter = ", StringComparison.Ordinal));
+
+        Assert.True(
+            authored is null || authored == "mouse_filter = 0",
+            $"{nodeName} must own pointer input (MouseFilter.Stop) so its clicks do not "
+                + $"fall through to the world behind it, but the scene authors '{authored}'.");
     }
 
     private static string[] NodeBlock(string nodeName)

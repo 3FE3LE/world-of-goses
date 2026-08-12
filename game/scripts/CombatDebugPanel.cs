@@ -102,7 +102,12 @@ public partial class CombatDebugPanel : Control
     }
 
     /// <summary>Drives the same path the Run button does, for a capture.</summary>
-    public void RunForVisualRegression() => OnRunPressed();
+    /// <summary>A12: <c>internal</c> and gated on the harness.</summary>
+    internal void RunForVisualRegression()
+    {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
+        OnRunPressed();
+    }
 
     private void OnRunPressed()
     {
@@ -112,7 +117,7 @@ public partial class CombatDebugPanel : Control
             return;
         }
 
-        List<Citizen> party = SelectParty(_controller.World);
+        List<Citizen> party = SelectParty(_controller.GetFixtureWorld());
         if (party.Count == 0)
         {
             _output.Text =

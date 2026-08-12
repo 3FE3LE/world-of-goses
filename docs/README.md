@@ -51,6 +51,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | `CURRENT_STATUS.md` | What slice is live, what the next proof should be, verification commands. |
 | `session-state/` | **Generated, not written.** The measured baseline and a dated screenshot of the city at the start of each session. When it disagrees with the prose above, it wins. |
 | `ARCHITECTURE.md` | Folder layout, the engine/domain boundary, three visual scales, persistence boundary, what is out of scope. |
+| `ARCHITECTURE_HARDENING_REPORT.md` | **Dated final state of A0–A12, not a contract.** The assembly graph after Persistence and Application left the Godot project, who owns `CityWorld`, the stable save IDs, and the structural guards that keep the boundary compiler-enforced. `ARCHITECTURE.md` remains the authority; this records how the seams were closed. |
 | `VISUAL_REGRESSION.md` | Reproducible capture harness, required UI-state matrix, and human sign-off contract. |
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
 | `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |

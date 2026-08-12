@@ -20,14 +20,14 @@
 [ext_resource type="PackedScene" path="res://scenes/PauseMenu.tscn" id="25_pause_menu"]
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
 [ext_resource type="Script" uid="uid://grhfjvibk8re" path="res://scripts/Ui/PrimaryNavDock.cs" id="29_primarynav"]
-[ext_resource type="Script" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
-[ext_resource type="Script" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
+[ext_resource type="Script" uid="uid://gx867xv7uegx" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
+[ext_resource type="Script" uid="uid://jedqt2wq4x81" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
-[ext_resource type="Script" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
-[ext_resource type="Script" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
-[ext_resource type="Script" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
-[ext_resource type="Script" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
-[ext_resource type="Script" uid="uid://dexpeditionrail06" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
+[ext_resource type="Script" uid="uid://d1hkrd20c0shp" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
+[ext_resource type="Script" uid="uid://b5f0ai5c71i6m" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
+[ext_resource type="Script" uid="uid://ca8rcb461dsjm" path="res://scripts/Ui/ActionDock.cs" id="35_actiondock"]
+[ext_resource type="Script" uid="uid://bn7ub8qd5jhd6" path="res://scripts/CitySummaryPanel.cs" id="36_summary"]
+[ext_resource type="Script" uid="uid://b2cikgemjvsb2" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 [ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
@@ -86,24 +86,24 @@ script = ExtResource("12_construction")
 
 [node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/Center" unique_id=1643693377 instance=ExtResource("27_expedition")]
 layout_mode = 2
-ControllerPath = NodePath("../../../../CityWorldController")
 ModalHostPath = NodePath("../../ModalHost")
 
-[node name="PoliciesPanel" type="Control" parent="GameUiShell/ScreenContent"]
+[node name="PoliciesPanel" type="Control" parent="GameUiShell/ScreenContent" unique_id=602712654]
 visible = false
 layout_mode = 1
+anchors_preset = 0
 script = ExtResource("31_policies")
 
-[node name="MigrantPanel" parent="GameUiShell/ScreenContent" instance=ExtResource("32_migrant")]
+[node name="MigrantPanel" parent="GameUiShell/ScreenContent" unique_id=514887703 instance=ExtResource("32_migrant")]
+anchors_preset = 0
 ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="MacroStreetLiveView" type="Node2D" parent="GameUiShell/ScreenContent" unique_id=1900000001]
 visible = false
 script = ExtResource("30_streetlive")
 
-[node name="ExpeditionLiveView" parent="GameUiShell/ScreenContent" instance=ExtResource("39_expedition_live")]
+[node name="ExpeditionLiveView" parent="GameUiShell/ScreenContent" unique_id=1050699462 instance=ExtResource("39_expedition_live")]
 layout_mode = 1
-ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent" unique_id=113990765]
 visible = false
@@ -167,7 +167,7 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="VisualStage" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="VisualStage" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=2030585767]
 custom_minimum_size = Vector2(460, 256)
 layout_mode = 2
 mouse_filter = 2
@@ -187,6 +187,7 @@ stretch_mode = 5
 [node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310030]
 layout_mode = 1
 anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_top = -176.0
@@ -194,7 +195,7 @@ grow_horizontal = 2
 grow_vertical = 0
 script = ExtResource("7_slots")
 
-[node name="LeftSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main"]
+[node name="LeftSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=367411498]
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -206,13 +207,13 @@ size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("8_assign")
 
-[node name="Details" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content"]
+[node name="Details" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content" unique_id=43386981]
 custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="RightSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details"]
+[node name="RightSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=2068385061]
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -223,7 +224,7 @@ size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("9_prod")
 
-[node name="ActionDock" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+[node name="ActionDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=407908960]
 visible = false
 custom_minimum_size = Vector2(480, 72)
 layout_mode = 1
@@ -238,23 +239,20 @@ offset_right = 240.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 0
 theme_type_variation = &"HudDock"
 script = ExtResource("35_actiondock")
 
-[node name="CitySummaryPanel" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+[node name="CitySummaryPanel" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=952075053]
 visible = false
 layout_mode = 1
-anchors_preset = 0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 248.0
 offset_bottom = 8.0
-mouse_filter = 0
 theme_type_variation = &"HudSurface"
 script = ExtResource("36_summary")
 
-[node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+[node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=215122816]
 visible = false
 layout_mode = 1
 anchors_preset = 2
@@ -269,10 +267,10 @@ mouse_filter = 2
 theme_type_variation = &"HudCard"
 script = ExtResource("34_inspector")
 
-[node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent"]
+[node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1368772485]
 visible = false
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -281,11 +279,8 @@ offset_top = 8.0
 offset_right = -8.0
 offset_bottom = -8.0
 grow_horizontal = 0
-mouse_filter = 0
 theme_type_variation = &"HudSurface"
 script = ExtResource("38_expeditionrail")
-ControllerPath = NodePath("../../../CityWorldController")
-ExpeditionPanelPath = NodePath("../Center/ExpeditionPanel")
 
 [node name="PrimaryNavDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1278598179]
 visible = false
@@ -302,14 +297,13 @@ offset_right = 260.0
 offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 0
-mouse_filter = 0
 theme_type_variation = &"HudDock"
 script = ExtResource("29_primarynav")
 
 [node name="Actions" type="HBoxContainer" parent="GameUiShell/ScreenContent/PrimaryNavDock" unique_id=2007280117]
 layout_mode = 2
-alignment = 1
 theme_override_constants/separation = 4
+alignment = 1
 
 [node name="HeroAccessButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=352864886]
 layout_mode = 2
@@ -339,7 +333,7 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/backpack.svg"
 ButtonText = "Recon"
 
-[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions"]
+[node name="PoliciesButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=534734943]
 layout_mode = 2
 tooltip_text = "Review city-wide policies"
 theme_type_variation = &"HudButton"
@@ -348,7 +342,7 @@ script = ExtResource("15_iconbtn")
 IconPath = "res://assets/ui/icons/24/clipboard-note.svg"
 ButtonText = "Policies"
 
-[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions"]
+[node name="CitizensButton" type="Button" parent="GameUiShell/ScreenContent/PrimaryNavDock/Actions" unique_id=165735471]
 layout_mode = 2
 tooltip_text = "Open the citizens roster"
 theme_type_variation = &"HudButton"
@@ -361,10 +355,9 @@ ButtonText = "Citizens"
 layout_mode = 1
 
 [node name="TimeOfDayFilter" type="Control" parent="GameUiShell/ScreenContent" unique_id=1900000002]
+anchors_preset = 0
 script = ExtResource("33_timeoffilter")
-ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="PauseMenu" parent="." unique_id=1513436726 instance=ExtResource("25_pause_menu")]
-open_button_path = NodePath("../GameUiShell/CityStatusPanel/SafeArea/StatusComposition/UtilityCluster/MenuButton")
 
 [node name="OnboardingView" parent="." unique_id=1152483645 instance=ExtResource("10_onboarding")]

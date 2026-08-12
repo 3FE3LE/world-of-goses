@@ -332,7 +332,7 @@ public partial class BuildingDetailView : Control
 			: snapshot.PrimitiveAxeMissingResource is ResourceType missing
 				? UiText.Format(
 					"ui.tools.primitive_axe_missing_resource",
-					UiText.Get(missing.ToString().ToLowerInvariant()))
+					ResourceTypeLocalizer.Label(missing))
 				: UiText.Get("ui.tools.primitive_axe_recipe");
 		_shelterResourcesPanel!.Render(
 			snapshot.Resources,

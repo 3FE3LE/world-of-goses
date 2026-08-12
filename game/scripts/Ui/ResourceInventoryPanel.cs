@@ -79,7 +79,7 @@ public partial class ResourceInventoryPanel : PanelContainer
         row.AddChild(new ResourceIcon(item.Resource));
         row.AddChild(new Label
         {
-            Text = UiText.Get(item.Resource.ToString().ToLowerInvariant()),
+            Text = ResourceTypeLocalizer.Label(item.Resource),
             ThemeTypeVariation = "HudBody",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             VerticalAlignment = VerticalAlignment.Center,

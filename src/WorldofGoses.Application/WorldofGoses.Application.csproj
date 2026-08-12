@@ -38,4 +38,23 @@
     <ProjectReference Include="../WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
   </ItemGroup>
 
+  <!--
+    Grants the test assembly access to internal members (the
+    CityGameSession(CityWorld) constructor and the World getter).
+    The Godot presentation assembly also receives this grant so the
+    CityWorldController can subscribe to the session's owned world
+    for change events and forward the world's reach to the visual
+    regression fixture seam — production code never reads the World
+    getter directly; the boundary is enforced by
+    ArchitectureBoundaryTests.Presentation_DoesNotAccessCityWorldDirectly.
+  -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>WorldofGoses.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>World of Goses</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

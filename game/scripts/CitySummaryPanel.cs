@@ -178,7 +178,7 @@ public partial class CitySummaryPanel : PanelContainer
                 // stays hidden by passing an empty string.
                 var row = new HudResourceRow(
                     resource.Resource,
-                    UiText.Get(resource.Resource.ToString().ToLowerInvariant()),
+                    ResourceTypeLocalizer.Label(resource.Resource),
                     resource.AvailableAmount.ToString(CultureInfo.InvariantCulture));
                 row.TooltipText = ResourceTooltip(resource);
                 _content.AddChild(row);
@@ -357,7 +357,7 @@ public partial class CitySummaryPanel : PanelContainer
     private static string ResourceTooltip(ResourceInventoryItem resource)
     {
         int reserved = resource.TotalAmount - resource.AvailableAmount;
-        string tooltip = UiText.Get(resource.Resource.ToString().ToLowerInvariant())
+        string tooltip = ResourceTypeLocalizer.Label(resource.Resource)
             + "\n" + UiText.Format("ui.status.resource_available", resource.AvailableAmount)
             + "\n" + UiText.Format("ui.status.resource_stored", resource.TotalAmount);
         return reserved > 0

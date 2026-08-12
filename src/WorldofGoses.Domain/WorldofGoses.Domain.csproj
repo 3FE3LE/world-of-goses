@@ -49,4 +49,23 @@
              Exclude="$(MSBuildThisFileDirectory)../../game/scripts/Domain/Persistence/**/*.cs" />
   </ItemGroup>
 
+  <!--
+    Architecture Hardening A10 closes the previous shape, where
+    ConstructionProject.SeedProgressForFixture and
+    CityWorld.ConcludeFirstNightForFixtures were public so the
+    visual-regression fixtures could author the state they wanted.
+    The two seams are now internal. The Godot presentation assembly
+    receives this grant so the dedicated visual-regression harness
+    (game/scripts/Testing/) can still drive the screenshots; the test
+    assembly grants itself in the test project's csproj. Production
+    scenes cannot reach either method, enforced by the
+    ConstructionProjectFixtureCallsiteAllowlist and the
+    CityWorldFixtureCallsiteAllowlist architecture guards.
+  -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>World of Goses</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
