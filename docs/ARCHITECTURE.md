@@ -239,6 +239,19 @@ other. The presenter never ends a journey — `PacedRouteSteps` still paces
 against the domain window, and `ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival`
 keeps the old authority from returning.
 
+What A4 has not done: the interaction *handlers* stay in the view on purpose.
+`MacroInteractionController` answers "what is at this point" and owns the
+selection and hover state, but `SelectTree`, `SelectBuildingPlot`,
+`OpenGatherMenu`, `OpenCultivationMenu` and `UpdateWorldHover` still live in
+the view, because moving them would mean handing the controller the context
+inspector, both action menus, the terrain atlas and the controller facade —
+trading one large class for a second one. The remaining follow-up is the
+folder: `game/scripts/Prototypes/` is no longer a prototype and belongs under
+`Presentation/Macro/`. Eight assertions in `HudCompositionTests` grep the view
+by hardcoded path segments (`"game", "scripts", "Prototypes"`), so the move is
+a rename plus those eight paths, and should be its own commit rather than a
+rider on a behavioural change.
+
 The macro camera is free by default. Selection changes information and action
 context only; following the selected citizen requires the explicit camera toggle. WASD
 and the arrow keys always pan the camera. In an unobstructed macro view their
