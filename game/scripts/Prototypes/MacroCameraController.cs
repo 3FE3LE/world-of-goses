@@ -132,14 +132,74 @@ internal sealed class MacroCameraController
         set => _neutralPosition = value;
     }
 
-    /// <summary>Vertical pan direction: <c>-1</c> up, <c>0</c> none,
-    /// <c>1</c> down. The view's <c>BeginVerticalCameraPan</c> writes
-    /// this; <c>ContinueVerticalCameraPan</c> reads it.</summary>
+    /// <summary>
+    /// One step further from the viewer: the camera advances to a higher
+    /// street index, so every street it is looking at gains screen Y and the
+    /// world scrolls <em>down</em> while the viewpoint travels up the
+    /// perspective toward the horizon. This is what <c>PanUp</c> (W / ↑) does.
+    /// </summary>
+    /// <remarks>
+    /// The convention is stated as a step along the street index rather than
+    /// as a screen direction because the street index is the only one of the
+    /// two anything here can act on: <see cref="FreeCameraStreet"/> feeds
+    /// <see cref="CameraDepthAnchor"/>, every street renders at
+    /// <c>street - anchor</c>, and <c>StreetDepthProjection.RowScreenY</c>
+    /// turns a smaller depth into a larger Y. Naming the constants after the
+    /// screen is what produced GitHub #14: this property documented
+    /// "<c>-1</c> up, <c>1</c> down" while every call site passed <c>+1</c>
+    /// for <c>PanUp</c>, so the written convention and the executed one were
+    /// exact opposites and neither could be trusted to read the other's
+    /// intent. At the ends of the range the clamp then swallows one of the
+    /// two silently, which is how an inverted reading surfaces as "vertical
+    /// pan does nothing" rather than as "vertical pan goes the wrong way".
+    /// </remarks>
+    public const int PanAwayFromViewer = 1;
+
+    /// <summary>
+    /// One step back toward the viewer — a lower street index, the world
+    /// scrolling up. <c>PanDown</c> (S / ↓). The exact negation of
+    /// <see cref="PanAwayFromViewer"/>.
+    /// </summary>
+    public const int PanTowardViewer = -1;
+
+    /// <summary>The step currently being held, or <c>0</c> when neither
+    /// vertical key is down. Always one of <see cref="PanAwayFromViewer"/>,
+    /// <c>0</c> or <see cref="PanTowardViewer"/>. The view's
+    /// <c>BeginVerticalCameraPan</c> writes this;
+    /// <c>ContinueVerticalCameraPan</c> reads it.</summary>
     public int VerticalPanDirection
     {
         get => _verticalPanDirection;
         set => _verticalPanDirection = value;
     }
+
+    /// <summary>
+    /// The street step for a given pair of held vertical keys. Pure, so the
+    /// first press and the hold-repeat can call the same function instead of
+    /// each restating the convention — the two restatements disagreeing is
+    /// exactly what #14 reported.
+    /// </summary>
+    /// <remarks>
+    /// Holding both resolves to no movement rather than to whichever branch
+    /// happens to be tested first. Two opposing steps per frame cancel; the
+    /// previous "first match wins" ordering made the result depend on the
+    /// order of two <c>if</c>s, which is not a rule anyone could predict.
+    /// </remarks>
+    public static int VerticalStepFor(bool panAwayHeld, bool panTowardHeld)
+    {
+        if (panAwayHeld == panTowardHeld) return 0;
+        return panAwayHeld ? PanAwayFromViewer : PanTowardViewer;
+    }
+
+    /// <summary>
+    /// The street a <paramref name="step"/> from <paramref name="currentStreet"/>
+    /// actually reaches, bounded by the world. Only the direction that would
+    /// leave the range is refused; the way back is always available.
+    /// </summary>
+    public static int ClampStreetStep(int currentStreet, int step, int streetCount) =>
+        streetCount <= 0
+            ? currentStreet
+            : Mathf.Clamp(currentStreet + step, 0, streetCount - 1);
 
     /// <summary>Vertical pan hold seconds. The view's
     /// <c>VerticalPanRepeatSeconds</c> and

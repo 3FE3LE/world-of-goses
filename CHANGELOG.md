@@ -48,6 +48,29 @@ cierra esa clase entera: comprueba que el padre instancia la escena del
 componente y que **cada** `GetNode<T>("ruta")` del script nombra un nodo que la
 escena declara, leyendo los dos ficheros de texto y diciendo qué nodo falta.
 
+**Las flechas vuelven a mover la cámara en el primer press.** `_Input`
+reclamaba ↑/↓ para el mundo con `SetInputAsHandled()` —correcto, porque Godot
+también las mapea a `ui_up`/`ui_down` y si no el foco del HUD se las lleva— pero
+no hacía nada con ellas. Un evento marcado como manejado en `_Input` no llega a
+`_UnhandledInput`, que es donde vivía el pan vertical: W y S daban su paso en el
+primer press y las flechas no, y sólo se movían cuando el poll de repetición
+—que `Input.IsActionPressed` lee y ningún manejo de eventos puede matar de
+hambre— notaba que la tecla ya estaba pulsada. El pan lateral nunca se rompió
+porque A/D/←/→ son sólo poll y no tenían primer paso por evento que perder.
+Reservar y actuar viven ahora en el mismo sitio, `TryHandleCameraNavigationKey`,
+compartido por las dos rutas de entrada.
+
+La otra mitad de #14 era semántica: `MacroCameraController.VerticalPanDirection`
+documentaba «`-1` arriba, `1` abajo» mientras cada call site pasaba `+1` para
+`PanUp` — la convención escrita y la ejecutada eran opuestas exactas, y en los
+extremos del rango el clamp se traga una de las dos en silencio, que es cómo una
+lectura invertida se manifiesta como «no se mueve» en vez de como «se mueve al
+revés». Ahora hay dos constantes con nombre, `PanAwayFromViewer` y
+`PanTowardViewer`, definidas por el paso en el índice de calle —lo único sobre lo
+que el resto de la vista puede actuar— y un test que comprueba la dirección
+contra `StreetDepthProjection.RowScreenY`, no contra el signo de un entero.
+Cierra GitHub #14.
+
 El script se queda con señales, `Refresh` y filas dirigidas por snapshot. Lo que
 antes construía a mano ahora son primitivas reutilizables en `Ui/`:
 `HudSeparator` (la regla de un píxel, con su variación de tema y sin comerse

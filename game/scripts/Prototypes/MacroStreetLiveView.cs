@@ -1477,7 +1477,46 @@ public partial class MacroStreetLiveView : Node2D
         // frame. Handling the physical key before GUI dispatch reserves it
         // for the world. Gamepad D-pad events remain available to the HUD's
         // explicit focus neighbours.
+        //
+        // Acting on it here is the other half, and its absence was GitHub #14:
+        // SetInputAsHandled in _Input stops the event before _UnhandledInput,
+        // which is where the vertical pan lives. Reserving without acting
+        // therefore swallowed ↑/↓ outright — W and S panned on the first
+        // press, the arrows did not, and only the hold-repeat's
+        // Input.IsActionPressed poll (which no amount of event handling can
+        // starve) eventually noticed the key was down. Lateral pan was
+        // unaffected because A/D/←/→ are poll-only and never had an
+        // event-driven first step to lose.
+        TryHandleCameraNavigationKey(@event);
         GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>
+    /// The camera commands that need to act on the press itself rather than
+    /// on the per-frame poll. Shared by <see cref="_Input"/>, which owns the
+    /// arrow keys, and <see cref="_UnhandledInput"/>, which sees W/S/F — so
+    /// both routes produce the same first step for the same intent.
+    /// </summary>
+    /// <returns>Whether the event was a camera command this view acted on.</returns>
+    private bool TryHandleCameraNavigationKey(InputEvent @event)
+    {
+        if (!CanUseWorldNavigationInput) return false;
+        if (@event.IsActionPressed(CameraInputActions.PanUp))
+        {
+            BeginVerticalCameraPan(MacroCameraController.PanAwayFromViewer);
+            return true;
+        }
+        if (@event.IsActionPressed(CameraInputActions.PanDown))
+        {
+            BeginVerticalCameraPan(MacroCameraController.PanTowardViewer);
+            return true;
+        }
+        if (@event.IsActionPressed(CameraInputActions.ToggleFollow))
+        {
+            ToggleCameraMode();
+            return true;
+        }
+        return false;
     }
 
     internal static bool IsWorldNavigationArrow(InputEventKey key) =>
@@ -1536,21 +1575,11 @@ public partial class MacroStreetLiveView : Node2D
         {
             return;
         }
-        if (@event.IsActionPressed(CameraInputActions.PanUp))
+        // W/S/F arrive here; the arrows were already claimed and acted on in
+        // _Input. Both routes go through the one handler so the same intent
+        // cannot produce two different first steps (GitHub #14).
+        if (TryHandleCameraNavigationKey(@event))
         {
-            BeginVerticalCameraPan(1);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-        if (@event.IsActionPressed(CameraInputActions.PanDown))
-        {
-            BeginVerticalCameraPan(-1);
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-        if (@event.IsActionPressed(CameraInputActions.ToggleFollow))
-        {
-            ToggleCameraMode();
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -2677,7 +2706,10 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void StepFreeCameraStreet(int direction)
     {
-        int nextStreet = Mathf.Clamp(_camera.FreeCameraStreet + direction, 0, _streetCount - 1);
+        int nextStreet = MacroCameraController.ClampStreetStep(
+            _camera.FreeCameraStreet,
+            direction,
+            _streetCount);
         if (nextStreet == _camera.FreeCameraStreet) return;
         _camera.FreeCameraStreet = nextStreet;
         _camera.CameraDepthTarget = _camera.FreeCameraStreet;
@@ -2750,12 +2782,9 @@ public partial class MacroStreetLiveView : Node2D
         return 0f;
     }
 
-    private static int ReadVerticalDirection()
-    {
-        if (Input.IsActionPressed(CameraInputActions.PanUp)) return 1;
-        if (Input.IsActionPressed(CameraInputActions.PanDown)) return -1;
-        return 0;
-    }
+    private static int ReadVerticalDirection() => MacroCameraController.VerticalStepFor(
+        Input.IsActionPressed(CameraInputActions.PanUp),
+        Input.IsActionPressed(CameraInputActions.PanDown));
 
     /// <summary>
     /// Mounts the founder's canonical sprite carrier into this view. Only

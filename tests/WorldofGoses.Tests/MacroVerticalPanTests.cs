@@ -1,0 +1,252 @@
+using System.IO;
+using System.Text.RegularExpressions;
+using WorldofGoses.Prototypes;
+using Xunit;
+
+namespace WorldofGoses.Tests;
+
+/// <summary>
+/// GitHub #14. <c>MacroCameraController.VerticalPanDirection</c> documented
+/// "<c>-1</c> up, <c>1</c> down" while every call site passed <c>+1</c> for
+/// <c>PanUp</c> — the written convention and the executed one were exact
+/// opposites, and the first press and the hold-repeat each restated it
+/// separately. At the ends of the street range the clamp then swallows one of
+/// the two directions, which is how an inverted reading surfaces to a player
+/// as "vertical pan does nothing" rather than as "vertical pan goes the wrong
+/// way".
+///
+/// <para>
+/// These assert the direction against the projection that actually puts a
+/// street on screen, not merely against the sign of an integer.
+/// </para>
+/// </summary>
+public sealed class MacroVerticalPanTests
+{
+    private const int StreetCount = 13;
+
+    [Fact]
+    public void TheTwoVerticalStepsAreExactOpposites()
+    {
+        Assert.Equal(
+            -MacroCameraController.PanTowardViewer,
+            MacroCameraController.PanAwayFromViewer);
+        Assert.NotEqual(0, MacroCameraController.PanAwayFromViewer);
+    }
+
+    [Theory]
+    [InlineData(true, false, MacroCameraController.PanAwayFromViewer)]
+    [InlineData(false, true, MacroCameraController.PanTowardViewer)]
+    [InlineData(false, false, 0)]
+    // Both keys held cancel rather than letting whichever branch is tested
+    // first decide. Two opposing steps in one frame are not a direction.
+    [InlineData(true, true, 0)]
+    public void HeldKeysResolveToOneStep(bool panAway, bool panToward, int expected)
+    {
+        Assert.Equal(expected, MacroCameraController.VerticalStepFor(panAway, panToward));
+    }
+
+    /// <summary>
+    /// The acceptance criterion that a number cannot answer: pressing "up"
+    /// must move the viewpoint the way the player reads as up.
+    ///
+    /// <para>
+    /// Every street renders at <c>street - cameraAnchor</c>, and
+    /// <see cref="StreetDepthProjection.RowScreenY"/> converts a smaller depth
+    /// into a <em>larger</em> screen Y — further down the screen. So advancing
+    /// the anchor by <see cref="MacroCameraController.PanAwayFromViewer"/>
+    /// slides the streets already on screen downward while the viewpoint
+    /// travels up the perspective toward the horizon, which is what the player
+    /// sees as panning up. The opposite step must move it the other way by the
+    /// same amount.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void PanningAwayMovesTheWorldDownTheScreenAndPanningTowardMovesItUp()
+    {
+        const float baseY = 620f;
+        const int observedStreet = 6;
+        const int anchor = 4;
+
+        float restingY = StreetDepthProjection.RowScreenY(observedStreet - anchor, baseY);
+        float afterPanAway = StreetDepthProjection.RowScreenY(
+            observedStreet - (anchor + MacroCameraController.PanAwayFromViewer),
+            baseY);
+        float afterPanToward = StreetDepthProjection.RowScreenY(
+            observedStreet - (anchor + MacroCameraController.PanTowardViewer),
+            baseY);
+
+        Assert.True(
+            afterPanAway > restingY,
+            $"PanUp must slide the world down the screen: {restingY} -> {afterPanAway}.");
+        Assert.True(
+            afterPanToward < restingY,
+            $"PanDown must slide the world up the screen: {restingY} -> {afterPanToward}.");
+    }
+
+    [Fact]
+    public void AtTheNearEdgeOnlyTheOutOfRangeDirectionIsRefused()
+    {
+        const int nearest = 0;
+
+        Assert.Equal(
+            nearest,
+            MacroCameraController.ClampStreetStep(
+                nearest, MacroCameraController.PanTowardViewer, StreetCount));
+        Assert.Equal(
+            nearest + 1,
+            MacroCameraController.ClampStreetStep(
+                nearest, MacroCameraController.PanAwayFromViewer, StreetCount));
+    }
+
+    [Fact]
+    public void AtTheFarEdgeOnlyTheOutOfRangeDirectionIsRefused()
+    {
+        int farthest = StreetCount - 1;
+
+        Assert.Equal(
+            farthest,
+            MacroCameraController.ClampStreetStep(
+                farthest, MacroCameraController.PanAwayFromViewer, StreetCount));
+        Assert.Equal(
+            farthest - 1,
+            MacroCameraController.ClampStreetStep(
+                farthest, MacroCameraController.PanTowardViewer, StreetCount));
+    }
+
+    /// <summary>
+    /// From an interior street both directions move, and they move to
+    /// opposite streets — the "desde una calle interior, ambas direcciones
+    /// cambian de calle y el resultado visual es opuesto" criterion.
+    /// </summary>
+    [Fact]
+    public void FromAnInteriorStreetBothDirectionsMoveAndDisagree()
+    {
+        const int interior = 5;
+
+        int away = MacroCameraController.ClampStreetStep(
+            interior, MacroCameraController.PanAwayFromViewer, StreetCount);
+        int toward = MacroCameraController.ClampStreetStep(
+            interior, MacroCameraController.PanTowardViewer, StreetCount);
+
+        Assert.NotEqual(interior, away);
+        Assert.NotEqual(interior, toward);
+        Assert.Equal(2, away - toward);
+    }
+
+    /// <summary>
+    /// A degenerate world must not be steppable into a negative street. The
+    /// clamp is the only thing standing between a not-yet-sized view and an
+    /// index that no renderer can project.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void AStreetCountWithNoRoomNeverMoves(int streetCount)
+    {
+        Assert.Equal(
+            0,
+            MacroCameraController.ClampStreetStep(
+                0, MacroCameraController.PanAwayFromViewer, streetCount));
+        Assert.Equal(
+            0,
+            MacroCameraController.ClampStreetStep(
+                0, MacroCameraController.PanTowardViewer, streetCount));
+    }
+
+    /// <summary>
+    /// The first press and the key-repeat must share the convention rather
+    /// than each spelling out a sign. The repeat path reads its step through
+    /// <c>MacroCameraController.VerticalStepFor</c>; the press path names the
+    /// same two constants. A literal <c>1</c> or <c>-1</c> handed to
+    /// <c>BeginVerticalCameraPan</c> is the shape that drifted.
+    /// </summary>
+    [Fact]
+    public void PressAndRepeatShareOneConvention()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        Assert.Contains(
+            "BeginVerticalCameraPan(MacroCameraController.PanAwayFromViewer)",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.Contains(
+            "BeginVerticalCameraPan(MacroCameraController.PanTowardViewer)",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.Contains(
+            "MacroCameraController.VerticalStepFor(",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.DoesNotMatch(
+            new Regex(@"BeginVerticalCameraPan\(\s*-?\d+\s*\)"),
+            source);
+    }
+
+    /// <summary>
+    /// The half of #14 a sign convention could not explain: <c>_Input</c>
+    /// claimed the arrow keys for the world with
+    /// <c>SetInputAsHandled()</c> and then did nothing with them. Marking an
+    /// event handled in <c>_Input</c> stops it before <c>_UnhandledInput</c>,
+    /// which is where the vertical pan lived — so W and S produced a step on
+    /// the first press and ↑/↓ produced none, catching up only when the
+    /// hold-repeat's <c>Input.IsActionPressed</c> poll noticed the key was
+    /// already down. Reserving and acting must stay together.
+    /// </summary>
+    [Fact]
+    public void ArrowKeysAreActedOnBeforeTheyAreClaimed()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        int inputOverride = source.IndexOf(
+            "public override void _Input(InputEvent @event)",
+            System.StringComparison.Ordinal);
+        Assert.True(inputOverride > 0, "MacroStreetLiveView no longer overrides _Input.");
+
+        int unhandledOverride = source.IndexOf(
+            "public override void _UnhandledInput(InputEvent @event)",
+            System.StringComparison.Ordinal);
+        Assert.True(unhandledOverride > inputOverride, "_UnhandledInput moved above _Input.");
+
+        string inputBody = source[inputOverride..unhandledOverride];
+        int acts = inputBody.IndexOf(
+            "TryHandleCameraNavigationKey(@event)",
+            System.StringComparison.Ordinal);
+        int claims = inputBody.IndexOf(
+            "GetViewport().SetInputAsHandled()",
+            System.StringComparison.Ordinal);
+
+        Assert.True(
+            acts > 0,
+            "_Input claims the arrow keys for the world, so it must also act on them: "
+            + "anything it marks handled never reaches _UnhandledInput.");
+        Assert.True(
+            claims > acts,
+            "_Input must act on the camera command before marking the event handled.");
+    }
+
+    /// <summary>
+    /// The lateral axis is untouched by #14 and must stay that way: A/← move
+    /// one way, D/→ the other, and neither is expressed through the vertical
+    /// convention.
+    /// </summary>
+    [Fact]
+    public void LateralPanKeepsItsOwnUnchangedConvention()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        Assert.Contains(
+            "if (Input.IsActionPressed(CameraInputActions.PanLeft)) return -1f;",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.Contains(
+            "if (Input.IsActionPressed(CameraInputActions.PanRight)) return 1f;",
+            source,
+            System.StringComparison.Ordinal);
+    }
+}
