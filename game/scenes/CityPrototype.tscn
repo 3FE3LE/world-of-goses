@@ -29,6 +29,7 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/CitySummaryPanel.tscn" id="36_summary"]
 [ext_resource type="Script" uid="uid://b2cikgemjvsb2" path="res://scripts/ExpeditionRail.cs" id="38_expeditionrail"]
 [ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
+[ext_resource type="Script" uid="uid://bv0guhat2bymo" path="res://scripts/Ui/ResourceInventoryPanel.cs" id="40_resourceinventory"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -182,6 +183,29 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
+[node name="ProvisionalArt" type="ColorRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310031]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.42, 0.27, 0.16, 1)
+
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage/ProvisionalArt" unique_id=903310032]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"HudLabel"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310030]
 layout_mode = 1
 anchors_preset = 12
@@ -221,6 +245,50 @@ size_flags_horizontal = 3
 size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("9_prod")
+
+[node name="TownHallProspect" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224297]
+visible = false
+layout_mode = 2
+theme_type_variation = &"HudCard"
+
+[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect" unique_id=875224298]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Prospect" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224299]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+autowrap_mode = 3
+
+[node name="AcceptButton" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224300]
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"HudButtonSelected"
+
+[node name="HomeSummary" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224301]
+visible = false
+layout_mode = 2
+theme_type_variation = &"HudCard"
+
+[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary" unique_id=875224302]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Capacity" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224303]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ShelterResources" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224304]
+layout_mode = 2
+script = ExtResource("40_resourceinventory")
+
+[node name="CraftAxeButton" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224305]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+theme_type_variation = &"HudButtonSelected"
 
 [node name="ActionDock" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=407908960]
 visible = false

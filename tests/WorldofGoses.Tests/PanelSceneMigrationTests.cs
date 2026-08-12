@@ -41,7 +41,72 @@ public sealed class PanelSceneMigrationTests
     [
         ["game/scripts/CitySummaryPanel.cs", "game/scenes/Components/CitySummaryPanel.tscn", "CitySummaryPanel"],
         ["game/scripts/PoliciesPanel.cs", "game/scenes/Components/PoliciesPanel.tscn", "PoliciesPanel"],
+        ["game/scripts/ExpeditionLiveView.cs", "game/scenes/expeditions/ExpeditionLiveView.tscn", "ExpeditionLiveView"],
     ];
+
+    /// <summary>
+    /// Panels whose hierarchy is authored inside <c>CityPrototype.tscn</c>
+    /// itself rather than in a component scene of their own. They are just as
+    /// migrated — the shape is in a <c>.tscn</c> and the script only binds —
+    /// but there is no separate scene for
+    /// <see cref="ParentSceneInstancesTheComponentScene"/> to check, so what
+    /// holds them is that every path they resolve exists in the parent scene.
+    /// </summary>
+    public static IEnumerable<object[]> PanelsAuthoredInTheParentScene =>
+    [
+        ["game/scripts/BuildingDetailView.cs", "BuildingDetailView"],
+    ];
+
+    [Theory]
+    [MemberData(nameof(PanelsAuthoredInTheParentScene))]
+    public void ScriptResolvesOnlyNodesTheParentSceneDeclares(string scriptPath, string nodeName)
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, scriptPath.Replace('/', Path.DirectorySeparatorChar)));
+        IReadOnlySet<string> authored = NodePaths(
+            Path.Combine(root, "game", "scenes", "CityPrototype.tscn"));
+
+        // Paths are relative to the panel's own node inside the parent scene.
+        string prefix = authored.Single(path =>
+            path.EndsWith($"/{nodeName}", StringComparison.Ordinal)
+            || path == nodeName);
+
+        var missing = new List<string>();
+        foreach (string path in ResolvedPaths(source))
+        {
+            if (!authored.Contains($"{prefix}/{path}")) missing.Add(path);
+        }
+
+        Assert.True(
+            missing.Count == 0,
+            $"{scriptPath} resolves {string.Join(", ", missing)} under {prefix}, "
+            + "which CityPrototype.tscn does not declare.");
+    }
+
+    /// <summary>
+    /// Relative node paths a script resolves, from both
+    /// <c>GetNode&lt;T&gt;("…")</c> and the <c>const string</c> path fields
+    /// panels use when the same subtree is addressed from several methods.
+    /// Absolute paths and paths climbing out of the panel are skipped.
+    /// </summary>
+    private static IEnumerable<string> ResolvedPaths(string source)
+    {
+        foreach (Match match in GetNodePattern.Matches(source))
+        {
+            string path = match.Groups["path"].Value;
+            if (path.StartsWith('/') || path.StartsWith("..", StringComparison.Ordinal)) continue;
+            yield return path;
+        }
+        foreach (Match match in PathConstantPattern.Matches(source))
+        {
+            yield return match.Groups["path"].Value;
+        }
+    }
+
+    private static readonly Regex PathConstantPattern = new(
+        @"private const string \w*Path = ""(?<path>[^""/][^""]*)""",
+        RegexOptions.CultureInvariant);
 
     [Theory]
     [MemberData(nameof(MigratedPanels))]

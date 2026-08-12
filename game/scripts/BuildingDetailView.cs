@@ -25,6 +25,10 @@ public partial class BuildingDetailView : Control
 	[Export] public NodePath TitlePath { get; set; } = "SafeArea/Layout/Header/Title";
 	[Export] public NodePath ArtHeaderPath { get; set; } = "SafeArea/Layout/Content/Main/VisualStage/BuildingArtHeader";
 
+	private const string ProvisionalArtPath = "SafeArea/Layout/Content/Main/VisualStage/ProvisionalArt";
+	private const string TownHallProspectPath = "SafeArea/Layout/Content/Details/TownHallProspect";
+	private const string HomeSummaryPath = "SafeArea/Layout/Content/Details/HomeSummary";
+
 	private CityWorldController _controller = null!;
 	private VisibleWorkerSlots _slots = null!;
 	private AssignmentPanel _assignmentPanel = null!;
@@ -62,24 +66,12 @@ public partial class BuildingDetailView : Control
 		_backButton = RequireNode<Button>(BackButtonPath);
 		_title = RequireNode<Label>(TitlePath);
 		_artHeader = RequireNode<TextureRect>(ArtHeaderPath);
-		_provisionalArt = new ColorRect
-		{
-			Color = new Color(0.42f, 0.27f, 0.16f),
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		_provisionalArt.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-		_provisionalArtLabel = new Label
-		{
-			ThemeTypeVariation = "HudLabel",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			VerticalAlignment = VerticalAlignment.Center,
-			MouseFilter = MouseFilterEnum.Ignore,
-		};
-		_provisionalArtLabel.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-		_provisionalArt.AddChild(_provisionalArtLabel);
-		_artHeader.GetParent().AddChild(_provisionalArt);
-		_provisionalArt.MoveToFront();
-		_slots.MoveToFront();
+		// A11: the placeholder that stands in for missing building art is
+		// authored beside the art header, between it and the worker slots, so
+		// its draw order is the scene's rather than two MoveToFront calls
+		// racing to express the same thing.
+		_provisionalArt = RequireNode<ColorRect>(ProvisionalArtPath);
+		_provisionalArtLabel = RequireNode<Label>($"{ProvisionalArtPath}/Caption");
 
 		_slots.CitizenClicked += OnSlotCitizenClicked;
 		_assignmentPanel.AssignRequested += OnAssignRequested;
@@ -256,31 +248,21 @@ public partial class BuildingDetailView : Control
 		_townHallPanel!.Visible = true;
 	}
 
+	/// <summary>
+	/// Binds the authored Town Hall surface. A11: it is a conditional
+	/// surface, not a dynamic one — its shape is the same for every Town
+	/// Hall, so it lives in the scene hidden and this only wires it. The
+	/// lazy-build guard stays because <see cref="Refresh"/> can reach here
+	/// on any building and only the Town Hall needs the wiring.
+	/// </summary>
 	private void EnsureTownHallPanel()
 	{
 		if (_townHallPanel is not null) return;
-		var layout = new VBoxContainer();
-		layout.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-		_prospectLabel = new Label
-		{
-			ThemeTypeVariation = "HudBody",
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-		};
-		_acceptProspectButton = new Ui.PrimaryActionButton
-		{
-			Text = UiText.Get("ui.town_hall.accept"),
-			ThemeTypeVariation = "HudButtonSelected",
-		};
+		_townHallPanel = RequireNode<PanelContainer>(TownHallProspectPath);
+		_prospectLabel = RequireNode<Label>($"{TownHallProspectPath}/Rows/Prospect");
+		_acceptProspectButton = RequireNode<Button>($"{TownHallProspectPath}/Rows/AcceptButton");
+		_acceptProspectButton.Text = UiText.Get("ui.town_hall.accept");
 		_acceptProspectButton.Pressed += OnAcceptProspect;
-		layout.AddChild(_prospectLabel);
-		layout.AddChild(_acceptProspectButton);
-		_townHallPanel = new PanelContainer
-		{
-			Name = "TownHallProspect",
-			ThemeTypeVariation = "HudCard",
-		};
-		_townHallPanel.AddChild(layout);
-		_productionPanel.GetParent().AddChild(_townHallPanel);
 	}
 
 	private void OnAcceptProspect()
@@ -346,33 +328,16 @@ public partial class BuildingDetailView : Control
 	{
 		if (_homeSummary is not null) return;
 
-		_homeSummaryLabel = new Label
-		{
-			ThemeTypeVariation = "HudBody",
-			HorizontalAlignment = HorizontalAlignment.Center,
-			AutowrapMode = TextServer.AutowrapMode.WordSmart,
-		};
-
-		_craftAxeButton = StandardButtons.TextAction(
-			UiText.Get("ui.tools.craft_primitive_axe"),
-			UiText.Get("ui.tools.primitive_axe_recipe"));
-		_craftAxeButton.ThemeTypeVariation = "HudButtonSelected";
-		_craftAxeButton.CustomMinimumSize = new Vector2(0, 44);
+		_homeSummary = RequireNode<PanelContainer>(HomeSummaryPath);
+		_homeSummaryLabel = RequireNode<Label>($"{HomeSummaryPath}/Rows/Capacity");
+		_shelterResourcesPanel = RequireNode<ResourceInventoryPanel>(
+			$"{HomeSummaryPath}/Rows/ShelterResources");
+		_craftAxeButton = RequireNode<Button>($"{HomeSummaryPath}/Rows/CraftAxeButton");
+		// Text and tooltip are rewritten every Refresh from the snapshot, so
+		// the scene authors neither; these are only the starting values.
+		_craftAxeButton.Text = UiText.Get("ui.tools.craft_primitive_axe");
+		_craftAxeButton.TooltipText = UiText.Get("ui.tools.primitive_axe_recipe");
 		_craftAxeButton.Pressed += OnCraftPrimitiveAxe;
-		var layout = new VBoxContainer();
-		layout.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-		layout.AddChild(_homeSummaryLabel);
-		_shelterResourcesPanel = new ResourceInventoryPanel();
-		layout.AddChild(_shelterResourcesPanel);
-		layout.AddChild(_craftAxeButton);
-
-		_homeSummary = new PanelContainer
-		{
-			Name = "HomeSummary",
-			ThemeTypeVariation = "HudCard",
-		};
-		_homeSummary.AddChild(layout);
-		_productionPanel.GetParent().AddChild(_homeSummary);
 	}
 
 	private void OnCraftPrimitiveAxe()

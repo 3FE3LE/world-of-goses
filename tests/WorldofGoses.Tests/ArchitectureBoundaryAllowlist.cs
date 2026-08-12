@@ -212,9 +212,7 @@ public static class ArchitectureBoundaryAllowlist
             "game/scripts/AstralOnboardingView.cs", // astral onboarding full screen
             "game/scripts/HeroProfileView.cs",    // profile columns
             "game/scripts/ProductionPanel.cs",    // production + stock shell
-            "game/scripts/BuildingDetailView.cs", // building-detail shell
             "game/scripts/ConstructionPanel.cs",  // construction modal shell
-            "game/scripts/ExpeditionLiveView.cs", // expedition-live shell
 
             // ── B: genuinely dynamic collection ──
             // Static parts are minimal (VBoxContainer + Header);

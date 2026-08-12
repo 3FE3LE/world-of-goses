@@ -115,6 +115,21 @@ que el resto de la vista puede actuar— y un test que comprueba la dirección
 contra `StreetDepthProjection.RowScreenY`, no contra el signo de un entero.
 Cierra GitHub #14.
 
+**4 de 10 paneles A-class.** `PoliciesPanel` tiene su propia escena de
+componente; `ExpeditionLiveView` ya estaba migrado y su entrada en el allowlist
+era deuda obsoleta; `BuildingDetailView` autora en la escena padre sus tres
+superficies condicionales —el marcador de arte provisional, la tarjeta de
+prospect del Ayuntamiento y el resumen del Refugio—, que eran estáticas en forma
+y sólo condicionales en presencia, que es exactamente lo que un `visible = false`
+en la escena expresa mejor que un constructor perezoso. Con ellas se van dos
+`MoveToFront` que competían por decir lo mismo que el orden de la escena ya dice.
+
+`ResourceInventoryPanel` gana constructor sin parámetros. Un argumento por
+defecto no es un constructor sin parámetros para la reflexión de Godot, y sin él
+un nodo con ese script no instancia: el boot murió con "does not define a
+parameterless constructor" y se llevó la escena entera. Lo cazó
+`Test-GodotBoot.ps1`, no la suite — que es para lo que está.
+
 El script se queda con señales, `Refresh` y filas dirigidas por snapshot. Lo que
 antes construía a mano ahora son primitivas reutilizables en `Ui/`:
 `HudSeparator` (la regla de un píxel, con su variación de tema y sin comerse

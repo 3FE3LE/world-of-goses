@@ -18,7 +18,18 @@ public partial class ResourceInventoryPanel : PanelContainer
     private int _resourceCount;
     private ResourceInventoryOwner _owner;
 
-    public ResourceInventoryPanel(bool expandedByDefault = false)
+    /// <summary>
+    /// Godot's entry point. A default argument is not a parameterless
+    /// constructor as far as the engine's reflection is concerned, so without
+    /// this a node carrying this script fails to instantiate at load with
+    /// "does not define a parameterless constructor" — which takes the whole
+    /// scene, and the boot, down with it.
+    /// </summary>
+    public ResourceInventoryPanel() : this(expandedByDefault: false)
+    {
+    }
+
+    public ResourceInventoryPanel(bool expandedByDefault)
     {
         _expanded = expandedByDefault;
         Name = "ResourceInventory";
