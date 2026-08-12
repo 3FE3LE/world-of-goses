@@ -232,7 +232,13 @@ public sealed class Citizen
         return true;
     }
 
-    internal void SustainWound(WoundSeverity severity, WorldEventId originatingEventId)
+    /// <summary>Records a wound on this citizen, keeping the worst severity
+    /// when one is already open.</summary>
+    /// <remarks>Public because wounding is a genuine domain command that
+    /// combat, expeditions and the world controller all issue after logging
+    /// the originating event — the event id parameter is what ties the wound
+    /// to its cause, and that contract is enforced by the signature.</remarks>
+    public void SustainWound(WoundSeverity severity, WorldEventId originatingEventId)
     {
         if (Wound is null)
         {

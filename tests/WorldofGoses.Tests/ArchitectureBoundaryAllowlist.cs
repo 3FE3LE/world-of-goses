@@ -103,6 +103,19 @@ public static class ArchitectureBoundaryAllowlist
     /// read-only snapshots.
     /// Remove during Architecture Hardening A3.
     /// </summary>
+    /// <summary>
+    /// The only files allowed to conclude the first night by decree. Both are
+    /// visual-regression fixture builders: they fabricate a mid-game city for
+    /// a screenshot and must not sit through the opening sequence to do it.
+    /// This allowlist is not legacy debt to be paid down — it is the rule
+    /// itself, and it should stay exactly this short.
+    /// </summary>
+    public static IReadOnlyCollection<string> PresentationFirstNightFixtureSeam { get; } =
+        new[]
+        {
+            "game/scripts/CityPrototype.cs",
+        };
+
     public static IReadOnlyCollection<string> PresentationMutableEntityReturn { get; } =
         new[]
         {

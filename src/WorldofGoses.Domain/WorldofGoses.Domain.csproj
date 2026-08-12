@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The domain assembly. Plain Microsoft.NET.Sdk with NO reference to
+    GodotSharp, which is the whole point: `using Godot` inside the domain
+    is now a COMPILE ERROR rather than a rule a reviewer has to notice.
+    DomainBoundaryTests still greps the sources, but it is the second line
+    of defence now, not the first.
+
+    The sources deliberately stay at game/scripts/Domain/ and are linked in
+    from here. Physically moving 223 files would churn every test that
+    locates the domain by path, every .uid Godot generated for them, and
+    every doc reference — all to buy nothing the compiler boundary does not
+    already buy. Keeping the csproj outside game/ is what matters: it puts
+    bin/ and obj/ outside the Godot project folder, so the engine never
+    scans build output.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <RootNamespace>WorldofGoses.Domain</RootNamespace>
+    <AssemblyName>WorldofGoses.Domain</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <!-- Godot loads the game assembly into a collectible AssemblyLoadContext;
+         class libraries it references must opt in so their dependencies are
+         copied and unloaded alongside it. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Matches the Godot project: nullable is per-file (`#nullable enable`),
+         not global. Turning it on here would surface hundreds of pre-existing
+         warnings in files that never opted in, which is a separate piece of
+         work from drawing the assembly boundary. -->
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)../../game/scripts/Domain/**/*.cs" />
+  </ItemGroup>
+
+</Project>

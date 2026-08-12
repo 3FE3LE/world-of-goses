@@ -331,10 +331,7 @@ public partial class CityWorldController : Node
     public void DrainAllForestsForVisualRegression()
     {
         if (!IsVisualCaptureMode) return;
-        foreach (var patch in _world.NaturalResourcePatches.Values)
-        {
-            patch.Gather(int.MaxValue);
-        }
+        _world.DrainAllNaturalResourcesForFixtures();
         // Reflect the new state through the existing signals so the
         // macro view re-renders without an autosave side-effect.
         EmitSignal(SignalName.WorldTickAdvanced, _world.CurrentTick);
@@ -409,8 +406,7 @@ public partial class CityWorldController : Node
     {
         ConstructionProject? project = _world.GetProject(projectId);
         if (project is null) return;
-        int target = System.Math.Clamp(work, 0, project.RequiredWork);
-        project.Progress = target;
+        project.SeedProgressForFixture(work);
     }
 
     /// <summary>

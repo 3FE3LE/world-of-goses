@@ -1684,7 +1684,33 @@ public sealed class CityWorld
         return false;
     }
 
-    internal void RegisterCitizen(Citizen citizen)
+    /// <summary>
+    /// Drains every natural resource patch to empty. The visual-regression
+    /// fixture for the depleted world needs a city whose forests are gone; the
+    /// patches themselves survive, because the macro view still indexes them
+    /// spatially to lay out the parcel slots.
+    ///
+    /// <para>Lives here rather than in the controller because
+    /// <see cref="NaturalResourcePatch.Gather"/> is <c>internal</c> on
+    /// purpose — "no caller outside the domain can drain a patch directly".
+    /// The controller used to loop over
+    /// <see cref="NaturalResourcePatches"/> and call it anyway. Now the loop
+    /// is on the inside, where that rule holds.</para>
+    /// </summary>
+    public void DrainAllNaturalResourcesForFixtures()
+    {
+        foreach (NaturalResourcePatch patch in _naturalResourcePatches.Values)
+        {
+            patch.Gather(int.MaxValue);
+        }
+    }
+
+    /// <summary>Adds an already-constructed citizen to the city.</summary>
+    /// <remarks>Public because admitting a citizen is a genuine domain
+    /// command — onboarding, migration and the save migrations all issue it.
+    /// It validates the id is free and throws otherwise, so the invariant is
+    /// enforced by the method, not by its accessibility.</remarks>
+    public void RegisterCitizen(Citizen citizen)
     {
         ArgumentNullException.ThrowIfNull(citizen);
         if (!_citizens.TryAdd(citizen.Id, citizen))
@@ -1801,7 +1827,12 @@ public sealed class CityWorld
     /// and never progressed.
     /// </para>
     /// </summary>
-    internal bool IsLaborTime() => GameClock.IsDaytime(_tick) || !HasCompletedFirstShelter();
+    /// <remarks>Public because it is a pure query the city status panel
+    /// displays ("Labor: Active"). Reading whether the city is working
+    /// changes nothing; there is no invariant for <c>internal</c> to protect
+    /// here, and it only looked protected while the domain and the HUD shared
+    /// one assembly.</remarks>
+    public bool IsLaborTime() => GameClock.IsDaytime(_tick) || !HasCompletedFirstShelter();
 
     private static bool ContainsControlCharacter(string value)
     {
@@ -3364,9 +3395,16 @@ public sealed class CityWorld
     /// city past its opening — rations at dawn, production cycles, expeditions —
     /// and those rules are not about the first night. Without this they would all
     /// run with the calendar held and quietly assert the wrong thing.
-    /// It is <c>internal</c> so no scene or panel can skip the sequence.
+    /// No scene or panel may skip the sequence in real play. That used to be
+    /// expressed as <c>internal</c>, which stopped meaning anything the moment
+    /// the domain became its own assembly and the fixture builders — which
+    /// legitimately need it — landed on the other side of the boundary. The
+    /// rule is now enforced where it can actually be checked:
+    /// <c>ArchitectureBoundaryTests.Presentation_ConcludesFirstNightOnlyInFixtures</c>
+    /// pins the call sites, and the <c>ForFixtures</c> suffix keeps the intent
+    /// unmissable at every one of them.
     /// </summary>
-    internal void ConcludeFirstNightForFixtures()
+    public void ConcludeFirstNightForFixtures()
     {
         if (_firstNight is not { IsActive: true } night) return;
         while (night.IsActive) night.TryAdvance(_tick);

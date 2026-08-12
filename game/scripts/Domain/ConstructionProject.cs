@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace WorldofGoses.Domain;
@@ -54,6 +55,21 @@ public sealed class ConstructionProject
 
     public IReadOnlyList<CitizenId> AssignedCitizenIds => _assigned;
     public int AssignedCount => _assigned.Count;
+
+    /// <summary>
+    /// Fast-forwards this worksite's progress. The one sanctioned way for a
+    /// fixture builder to fabricate a half-built or finished site.
+    ///
+    /// <para>The <see cref="Progress"/> setter stays <c>internal</c> so real
+    /// play can only advance a worksite through the simulation tick, which is
+    /// what applies the recipe inputs, the stop causes and the phase
+    /// transitions. This method exists because the visual-regression fixtures
+    /// need a finished building without simulating the days it takes to build
+    /// one — and it clamps to <see cref="RequiredWork"/> so a fixture cannot
+    /// invent a state the simulation itself could never reach.</para>
+    /// </summary>
+    public void SeedProgressForFixture(int work) =>
+        Progress = Math.Clamp(work, 0, RequiredWork);
 
     /// <summary>
     /// Inputs the city still owes this worksite after the deposit

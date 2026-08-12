@@ -200,6 +200,59 @@ public sealed class ArchitectureBoundaryTests
     /// message names the allowlist property the next maintainer would
     /// need to extend — and the slice that owns the cleanup.
     /// </summary>
+    /// <summary>
+    /// The domain assembly must never gain a Godot reference. This is the
+    /// belt to the compiler's braces: <c>src/WorldofGoses.Domain</c> is a
+    /// plain <c>Microsoft.NET.Sdk</c> project, so `using Godot` there is
+    /// already a build error — but only for as long as nobody "fixes" a
+    /// future compile error by adding the package back. This test names that
+    /// temptation so it fails loudly instead of silently reopening the
+    /// boundary the whole split exists to create.
+    /// </summary>
+    [Fact]
+    public void DomainProject_DoesNotReferenceGodot()
+    {
+        string projectFile = Path.Combine(
+            FindRepositoryRoot(), "src", "WorldofGoses.Domain", "WorldofGoses.Domain.csproj");
+
+        Assert.True(File.Exists(projectFile), $"Domain project not found at '{projectFile}'.");
+
+        // XML comments are stripped first: the project file explains at length
+        // why it does not reference GodotSharp, and prose about the rule must
+        // not read as a breach of it.
+        string project = Regex.Replace(
+            File.ReadAllText(projectFile),
+            @"<!--.*?-->",
+            string.Empty,
+            RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+        Assert.DoesNotContain("Godot.NET.Sdk", project, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("GodotSharp", project, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Microsoft.NET.Sdk", project, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Only the visual-regression fixture builders may end the first night by
+    /// decree. The sequence is the game's opening; skipping it in real play
+    /// would start a city in a state the player never lived through.
+    ///
+    /// <para>This rule used to be expressed as <c>internal</c> on
+    /// <c>CityWorld.ConcludeFirstNightForFixtures</c>. That stopped meaning
+    /// anything when the domain became its own assembly and the fixture
+    /// builders — the legitimate callers — ended up outside it, so the rule
+    /// moved here, where the call sites can actually be pinned.</para>
+    /// </summary>
+    [Fact]
+    public void Presentation_ConcludesFirstNightOnlyInFixtures()
+    {
+        IReadOnlyList<string> offending = ScanPresentationForViolations(
+            new Regex(@"\bConcludeFirstNightForFixtures\s*\(", RegexOptions.CultureInvariant),
+            ArchitectureBoundaryAllowlist.PresentationFirstNightFixtureSeam,
+            nameof(ArchitectureBoundaryAllowlist.PresentationFirstNightFixtureSeam));
+
+        Assert.Empty(offending);
+    }
+
     private static IReadOnlyList<string> ScanPresentationForViolations(
         Regex pattern,
         IReadOnlyCollection<string> allowlist,

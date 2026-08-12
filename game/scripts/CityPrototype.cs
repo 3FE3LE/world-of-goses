@@ -1053,7 +1053,7 @@ public partial class CityPrototype : Node
                 return;
             }
             ConstructionProject project = fixture.GetProject(projectId)!;
-            project.Progress = project.RequiredWork;
+            project.SeedProgressForFixture(project.RequiredWork);
             fixture.AdvanceWorldTick();
             if (blockedCargo)
             {
@@ -1298,7 +1298,7 @@ public partial class CityPrototype : Node
         }
 
         ConstructionProject project = fixture.GetProject(projectId)!;
-        project.Progress = project.RequiredWork;
+        project.SeedProgressForFixture(project.RequiredWork);
         fixture.AdvanceWorldTick();
         SettleFixtureTravel(fixture);
         error = string.Empty;
@@ -1350,7 +1350,7 @@ public partial class CityPrototype : Node
             return;
         }
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
-        shelterProject.Progress = shelterProject.RequiredWork;
+        shelterProject.SeedProgressForFixture(shelterProject.RequiredWork);
         fixture.AdvanceWorldTick();
         SettleFixtureTravel(fixture);
         fixture.Resources.DepositToCityInventory(ResourceType.Branches, 3);
@@ -1396,7 +1396,7 @@ public partial class CityPrototype : Node
             return;
         }
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
-        shelterProject.Progress = shelterProject.RequiredWork;
+        shelterProject.SeedProgressForFixture(shelterProject.RequiredWork);
         fixture.AdvanceWorldTick();
         SettleFixtureTravel(fixture);
 
@@ -1475,7 +1475,7 @@ public partial class CityPrototype : Node
         }
 
         ConstructionProject project = controller.GetProjectForFixture(projectId)!;
-        project.Progress = project.RequiredWork / 3;
+        project.SeedProgressForFixture(project.RequiredWork / 3);
         if (!blocked && controller.GetFixtureHero() is Citizen founder)
         {
             controller.TryAssignCitizenToProject(projectId, founder.Id);
@@ -1661,7 +1661,7 @@ public partial class CityPrototype : Node
             return;
         }
         ConstructionProject shelterProject = fixture.GetProject(shelterId)!;
-        shelterProject.Progress = shelterProject.RequiredWork;
+        shelterProject.SeedProgressForFixture(shelterProject.RequiredWork);
         fixture.AdvanceWorldTick();
         SettleFixtureTravel(fixture);
 
@@ -1677,7 +1677,7 @@ public partial class CityPrototype : Node
             return;
         }
         ConstructionProject cultivationProject = fixture.GetProject(cultivationId)!;
-        cultivationProject.Progress = cultivationProject.RequiredWork;
+        cultivationProject.SeedProgressForFixture(cultivationProject.RequiredWork);
         fixture.AdvanceWorldTick();
         while (!GameClock.IsDaytime(fixture.CurrentTick)) fixture.AdvanceWorldTick();
 
@@ -2160,7 +2160,7 @@ public partial class CityPrototype : Node
                     return false;
                 }
                 project ??= world.Projects.Values.Single();
-                project.Progress = project.RequiredWork;
+                project.SeedProgressForFixture(project.RequiredWork);
                 world.AdvanceWorldTick();
             }
             else if (!world.TryCloseFirstNightDialogue())

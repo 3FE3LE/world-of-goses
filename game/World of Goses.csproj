@@ -5,4 +5,19 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <RootNamespace>WorldofGoses</RootNamespace>
   </PropertyGroup>
+
+  <!--
+    The domain compiles into its own Godot-free assembly
+    (src/WorldofGoses.Domain). Its sources still live under scripts/Domain/,
+    so they must be removed from THIS project's default glob or they would
+    compile twice. The ProjectReference is what the presentation layer sees.
+
+    Consequence, and the reason this exists: `using Godot` under
+    scripts/Domain/ no longer compiles. The boundary is the compiler's job
+    now, not a reviewer's.
+  -->
+  <ItemGroup>
+    <Compile Remove="scripts/Domain/**/*.cs" />
+    <ProjectReference Include="../src/WorldofGoses.Domain/WorldofGoses.Domain.csproj" />
+  </ItemGroup>
 </Project>
