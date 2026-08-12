@@ -65,17 +65,6 @@ public sealed class Citizen
     public int? TransitStartedAtTick { get; private set; }
     public bool IsReturningHome { get; private set; }
 
-    /// <summary>
-    /// Richer FSM-backed behavior state (S-1.5), validated against
-    /// <see cref="CitizenBehaviorRules"/>. <see cref="SetLocation"/> and
-    /// the stamina mutators drive it; expedition dispatch/return do not
-    /// yet (see <c>TO_DO.md</c> S-1.5) — those transitions stay
-    /// documented-only until that call site is wired.
-    /// </summary>
-    public CitizenBehaviorState Behavior => _behaviorFsm.Current;
-    private readonly FiniteStateMachine<CitizenBehaviorState> _behaviorFsm =
-        new(CitizenBehaviorState.Idle, CitizenBehaviorRules.IsDocumentedTransition);
-
     public BuildingId? LastVisitedResourceBuildingId { get; private set; }
     public int? LastVisitedResourcePatchId { get; private set; }
     public int? LastVisitedResourceUnitId { get; private set; }
@@ -274,7 +263,6 @@ public sealed class Citizen
         {
             BeginTravelHome(currentTick);
         }
-        _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Wound treatment began");
         return true;
     }
 
@@ -307,7 +295,6 @@ public sealed class Citizen
         }
         VitalStatus = CitizenVitalStatus.Recovering;
         BeginTravelHome(currentTick);
-        _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Vital recovery interrupted work");
         return true;
     }
 
@@ -345,20 +332,35 @@ public sealed class Citizen
             TransitStartedAtTick = null;
             IsReturningHome = false;
         }
-        if (location == CitizenLocation.AtWork)
-        {
-            _behaviorFsm.TryTransition(CitizenBehaviorState.Working, "Mobilised to work");
-        }
-        else if (location == CitizenLocation.InTransit)
-        {
-            _behaviorFsm.TryTransition(CitizenBehaviorState.Travelling, "Travelling to assignment");
-        }
-        else
-        {
-            _behaviorFsm.TryTransition(
-                CurrentAssignment.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
-                "Mobilised to home");
-        }
+    }
+
+    /// <summary>
+    /// Restores the captured physical location verbatim, including the
+    /// <em>absence</em> of transit metadata. Persistence reconstructs; it does
+    /// not invent.
+    ///
+    /// <para>
+    /// The distinction matters for exactly one shape. An expedition traveller
+    /// is <see cref="CitizenLocation.InTransit"/> with no
+    /// <see cref="TransitStartedAtTick"/> — see
+    /// <see cref="DispatchOnExpedition"/> — because their journey is timed by
+    /// the expedition, not by <see cref="CityEconomyRules.AbstractTravelTicks"/>.
+    /// Restoring them through <see cref="BeginTravelToAssignment"/> stamped a
+    /// start tick, which gave them a <see cref="TravelArrivalTick"/> the
+    /// captured world never had; thirty ticks later <c>CompleteDueTravel</c>
+    /// found no standing order to arrive at and settled them at home while
+    /// their expedition was still running.
+    /// </para>
+    /// </summary>
+    internal void RestoreLocation(
+        CitizenLocation location,
+        int? transitStartedAtTick,
+        bool isReturningHome)
+    {
+        CurrentLocation = location;
+        bool travels = location == CitizenLocation.InTransit;
+        TransitStartedAtTick = travels ? transitStartedAtTick : null;
+        IsReturningHome = travels && isReturningHome;
     }
 
     internal void BeginTravelToAssignment(int currentTick)
@@ -398,15 +400,20 @@ public sealed class Citizen
         TravelArrivalTick is int arrivesAt && currentTick >= arrivesAt;
 
     /// <summary>
-    /// Drives the two expedition-dispatch transitions (S-1.5 follow-up)
-    /// back to back: <see cref="CityWorld.StartExpedition"/> only ever
-    /// calls this on the hero, and only after confirming the hero is
-    /// unassigned — per <see cref="SetLocation"/>'s own logic that always
-    /// means <see cref="CitizenBehaviorState.Idle"/>, never <c>Resting</c>
-    /// or <c>Injured</c> (both require an assignment), so both hops are
-    /// always documented and never silently rejected. No travel-time delay
-    /// is modelled yet, so <c>Travelling</c> is visited but not lingered
-    /// in — see <c>TO_DO.md</c> S-1.5 for why that's an honest gap, not a bug.
+    /// Commits the citizen to an expedition. The commitment is the authority:
+    /// "on expedition" is not a separate flag, it is
+    /// <see cref="CitizenCommitmentKind.Expedition"/> plus the expedition's own
+    /// id, and every projection reads it back from there.
+    ///
+    /// <para>
+    /// <see cref="CitizenLocation.InTransit"/> is set directly rather than
+    /// through <see cref="BeginTravelToAssignment"/> because an expedition's
+    /// journey is timed by the expedition, not by
+    /// <see cref="CityEconomyRules.AbstractTravelTicks"/>; leaving
+    /// <see cref="TransitStartedAtTick"/> null is what keeps
+    /// <see cref="TravelArrivalTick"/> from claiming an in-city arrival for a
+    /// citizen who is outside the city.
+    /// </para>
     /// </summary>
     internal bool DispatchOnExpedition(ExpeditionId expeditionId)
     {
@@ -417,16 +424,14 @@ public sealed class Citizen
         }
         Commitment = new CitizenCommitment(CitizenCommitmentKind.Expedition, expeditionId.Value);
         CurrentLocation = CitizenLocation.InTransit;
-        _behaviorFsm.TryTransition(CitizenBehaviorState.Travelling, "Hero dispatched on expedition");
-        _behaviorFsm.TryTransition(CitizenBehaviorState.OnExpedition, "Expedition reaches Active state");
         return true;
     }
 
     /// <summary>
-    /// Returns the citizen to <see cref="CitizenBehaviorState.Idle"/> when
-    /// their expedition ends — whether by natural completion, failure, or
-    /// cancellation; the catalog documents all three under the same
-    /// "returns or is cancelled" trigger.
+    /// Releases the expedition commitment when it ends — whether by natural
+    /// completion, failure, or cancellation. The citizen falls back to their
+    /// standing <see cref="WorkOrder"/> when they have one, which is what makes
+    /// an order survive the interruption rather than being forgotten by it.
     /// </summary>
     internal bool ReturnFromExpedition(ExpeditionId expeditionId, int currentTick = 0)
     {
@@ -443,9 +448,6 @@ public sealed class Citizen
         ResumeWorkNotBeforeTick = checked(
             (currentTick / GameClock.TicksPerInGameDay + 1)
             * GameClock.TicksPerInGameDay);
-        _behaviorFsm.TryTransition(
-            WorkOrder.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
-            "Expedition returns or is cancelled");
         return true;
     }
 
@@ -465,9 +467,6 @@ public sealed class Citizen
             ? new CitizenCommitment(workOrder.Kind, workOrder.TargetId.Value)
             : CitizenCommitment.None;
         CurrentLocation = CitizenLocation.AtHome;
-        _behaviorFsm.TryTransition(
-            WorkOrder.HasValue ? CitizenBehaviorState.Resting : CitizenBehaviorState.Idle,
-            "Expedition dispatch cancelled before departure");
         return true;
     }
 
@@ -632,10 +631,6 @@ public sealed class Citizen
     {
         if (amount <= 0) return;
         CurrentStamina = Math.Max(0, CurrentStamina - amount);
-        if (CurrentStamina == 0)
-        {
-            _behaviorFsm.TryTransition(CitizenBehaviorState.Injured, "Stamina depleted to zero");
-        }
     }
 
     /// <summary>
@@ -647,10 +642,6 @@ public sealed class Citizen
     {
         if (amount <= 0) return;
         CurrentStamina = Math.Min(EffectiveMaxStamina, CurrentStamina + amount);
-        if (CurrentStamina > 0 && Behavior == CitizenBehaviorState.Injured)
-        {
-            _behaviorFsm.TryTransition(CitizenBehaviorState.Resting, "Stamina restored to threshold");
-        }
     }
 
     /// <summary>

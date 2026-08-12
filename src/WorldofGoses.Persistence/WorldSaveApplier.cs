@@ -483,21 +483,24 @@ internal static class WorldSaveApplier
             {
                 continue;
             }
-            if (savedLocation == CitizenLocation.InTransit)
-            {
-                if (savedCitizen.IsReturningHome)
-                {
-                    citizen.BeginTravelHome(savedCitizen.TransitStartedAtTick ?? world._tick);
-                }
-                else
-                {
-                    citizen.BeginTravelToAssignment(savedCitizen.TransitStartedAtTick ?? world._tick);
-                }
-            }
-            else
-            {
-                citizen.SetLocation(savedLocation);
-            }
+            // An in-city journey always carries the tick it began on, so the
+            // remaining distance is recomputed rather than replayed from the
+            // origin. A pre-v-field save that lost it falls back to "now",
+            // which costs at most one AbstractTravelTicks of walking.
+            //
+            // An expedition traveller is a different shape: InTransit with no
+            // start tick, because the expedition owns the timing. That absence
+            // has to survive the round trip — see Citizen.RestoreLocation for
+            // what stamping a start tick onto them used to do.
+            bool travelsWithTheCity =
+                savedLocation == CitizenLocation.InTransit
+                && citizen.Commitment.Kind != CitizenCommitmentKind.Expedition;
+            citizen.RestoreLocation(
+                savedLocation,
+                travelsWithTheCity
+                    ? savedCitizen.TransitStartedAtTick ?? world._tick
+                    : savedCitizen.TransitStartedAtTick,
+                travelsWithTheCity && savedCitizen.IsReturningHome);
         }
 
         var restoredEvents = new List<WorldEvent>(save.Events.Count);

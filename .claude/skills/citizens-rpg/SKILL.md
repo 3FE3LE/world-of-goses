@@ -95,7 +95,7 @@ visible. Make consequences persist.
   `CitizenProfile.cs`, `CitizenCommitment.cs`, `CitizenCommitmentKind.cs`,
   `CitizenAvailabilityReason.cs`, `CitizenVitalStatus.cs`,
   `CitizenAssignmentService.cs`, `CitizenNeedsRules.cs`,
-  `CitizenBehavior.cs`, `CompetencyEntry.cs`, `CompetencyId.cs`, `Role.cs`,
+  `CitizenRoutine.cs`, `CompetencyEntry.cs`, `CompetencyId.cs`, `Role.cs`,
   `RoleId.cs`.
 - Presentation snapshots: `CitizenProfile.cs` (if used as snapshot),
   `CityStatusSnapshot.cs`, `BuildingDetailSnapshot.cs`,

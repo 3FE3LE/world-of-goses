@@ -38,9 +38,19 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 - A citizen cannot hold incompatible commitments simultaneously. Work,
   construction, expedition, rest, and recovery are mutually exclusive.
   *(docs/FIRST_PLAYABLE_LOOP_AUDIT.md, gap G0)*
+- One truth has one owner. No two fields may independently answer the same
+  question about a citizen — what they are doing is derived from commitment,
+  location, transit metadata, wound, vital status, stamina and work order,
+  never stored beside them. *(docs/STATE_AUTHORITY.md)*
 - Personal consequences persist across sessions.
 - There is no general instant healing. A wounded person requires beds, staff,
   medicine, time, and rehabilitation. *(bible/01 principle 8, bible/02 pillar 6)*
+- The domain never inflicts a durable consequence the city has no legal route
+  to resolve. A wound is only inflicted on a city that can already treat it —
+  a Basic Shelter and the treatment cost — because the wound itself blocks
+  the gathering, construction and expedition work that would earn either.
+  *(docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §8.2 and §16,
+  DEC-0011, GitHub #13)*
 - The visual representation is not the persistent entity. `Citizen` is
   persistent data; `CitizenView` is a temporary visual representation. There
   must be no active Godot node per citizen. *(bible/04, bible/10)*

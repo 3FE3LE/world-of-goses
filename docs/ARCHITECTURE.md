@@ -765,6 +765,20 @@ In practice:
 
 The visual layer never invents state. It reads it.
 
+**Which C# class, though, is the question this section used to leave
+open.** [`STATE_AUTHORITY.md`](STATE_AUTHORITY.md) answers it: it is the
+canonical registry of every mutable truth in the simulation, the five
+categories those truths fall into (lifecycle state, orthogonal condition,
+intent, derived projection, presentation state), who may write each one,
+and how each is reconstructed from a save. It also holds the contract for
+the animation layer that does not exist yet — domain facts → routine
+snapshot → animation projection → Godot, one direction only.
+
+Read it before adding a field that answers a question something else in
+the tree can already answer. The failure mode it prevents is not an
+untidy enum; it is two owners of one truth, drifting apart, with neither
+wrong on its own terms.
+
 ## 7. Person entity: one citizen, many attachments
 
 There is exactly one person entity in the domain: `Citizen`. The

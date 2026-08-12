@@ -52,6 +52,7 @@ These files describe what the code does today, the recommended slice sequence, a
 | `session-state/` | **Generated, not written.** The measured baseline and a dated screenshot of the city at the start of each session. When it disagrees with the prose above, it wins. |
 | `ARCHITECTURE.md` | Folder layout, the engine/domain boundary, three visual scales, persistence boundary, what is out of scope. |
 | `ARCHITECTURE_HARDENING_REPORT.md` | **Dated final state of A0–A12, not a contract.** The assembly graph after Persistence and Application left the Godot project, who owns `CityWorld`, the stable save IDs, and the structural guards that keep the boundary compiler-enforced. `ARCHITECTURE.md` remains the authority; this records how the seams were closed. |
+| `STATE_AUTHORITY.md` | Who owns each mutable truth: the five categories (lifecycle state, orthogonal condition, intent, derived projection, presentation state), the per-concept registry of owner / persistence / writers / invariants, the progress-liveness rule, and the contract the future animation layer must follow. `ARCHITECTURE.md` owns the assembly boundaries; this owns ownership. |
 | `VISUAL_REGRESSION.md` | Reproducible capture harness, required UI-state matrix, and human sign-off contract. |
 | `UI_PATTERNS.md` | North-star rules for reusable UI: PackedScene / `[GlobalClass]` / static factory, naming, state binding via signals, theming hierarchy, save/load integration, navigation, per-PR audit checklist. **Read this before authoring any new screen or widget.** |
 | `UI_AUDIT.md` | Manual checklist + history of signature for the current UI state after each stabilisation slice. |
@@ -121,6 +122,7 @@ automatic addition to `game/assets/`.
 | "What did the city actually look like last session?" | `session-state/<date>-macro-1280x720.png` |
 | "How did we get here?" | `../CHANGELOG.md` |
 | "How is the code organised today?" | `ARCHITECTURE.md` |
+| "Who owns this piece of state, and may I add a field for it?" | `STATE_AUTHORITY.md` |
 | "How should I build a new screen or widget?" | `UI_PATTERNS.md` |
 | "What does the current UI look like in practice?" | `UI_AUDIT.md` |
 | "How do I validate a new slice?" | `PRODUCT_DIRECTION.md` |

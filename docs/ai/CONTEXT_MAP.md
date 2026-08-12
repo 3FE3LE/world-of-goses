@@ -303,8 +303,19 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `technical-foundation`
 - **Required skills:** `technical-foundation`, `core-game-vision`
 - **Conditional skills:** all affected domains; use `gameplay-integrator` if two or more pillars are involved
-- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`, `docs/REPOSITORY_CONVENTIONS.md`
+- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/STATE_AUTHORITY.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`, `docs/REPOSITORY_CONVENTIONS.md`
 - **Escalate:** an architecture change that invalidates saves without a migration strategy must stop and ask.
+
+### State authority
+- **Primary agent:** `technical-foundation`
+- **Required skills:** `technical-foundation`, plus the skill of every domain whose state is touched
+- **Conditional skills:** `citizens-rpg`, `expeditions-territory`, `city-simulation`, `narrative-lore`
+- **Canonical docs:** `docs/STATE_AUTHORITY.md`, `docs/ai/CROSS_DOMAIN_INVARIANTS.md`
+- **Code:** `game/scripts/Domain/Citizen.cs`, `CitizenRoutine.cs`, `Expedition.cs`, `CultivationSite.cs`, `ResourceOpportunity.cs`, `FirstNightState.cs`, `src/WorldofGoses.Persistence/WorldSaveApplier.cs`
+- **Tests:** `tests/WorldofGoses.Tests/StateAuthorityInvariantTests.cs`, `CitizenActivityProjectionTests.cs`, `OpeningProgressLivenessTests.cs`
+- **Use when:** adding or changing an enum, flag, or field that describes what something *is doing*, *is committed to*, or *is affected by*; or when a projection starts being read as if it were a fact.
+- **Hard rule:** one truth, one owner. Classify the concept into the five categories in `STATE_AUTHORITY.md` §1 and add its registry row in the same change. Do not introduce a generic state-machine abstraction; a lifecycle expresses its rules through its own named commands.
+- **Escalate:** a change that would make two fields independently answer the same question must be redesigned, not approved.
 
 ### Tests
 - **Primary agent:** the agent owning the domain under test

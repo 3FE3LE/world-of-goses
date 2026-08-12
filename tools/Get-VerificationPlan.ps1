@@ -232,12 +232,16 @@ if ($architectureHits -and $risk -ne 'HIGH') {
 # - 2+ subtrees touched → HIGH
 # - root-level Domain file (e.g. WorldSave.cs at the layer root) → HIGH
 # - 1 subtree touched → MEDIUM (FEATURE / DOMAIN_REVIEW)
-$domainSubtrees = @('Citizen', 'City', 'Expedition') | Where-Object {
+# @() is load-bearing: Where-Object yields $null when nothing matches, and the
+# `-eq 0` branch below — the root-level Domain case — could therefore never be
+# reached, because reading .Count on $null throws first. A change touching only
+# game/scripts/Domain/*.cs crashed the planner instead of being classified HIGH.
+$domainSubtrees = @(@('Citizen', 'City', 'Expedition') | Where-Object {
     Test-AnyMatch -Paths $paths -Patterns @(
         "game/scripts/Domain/$_/*",
         "game/scripts/Domain/$_/**"
     )
-}
+})
 if ($domainSubtrees.Count -ge 2) {
     $risk = 'HIGH'; $reasons.Add("multiple Domain subtrees touched: $($domainSubtrees -join ', ')")
 } elseif ($domainSubtrees.Count -eq 1 -and $risk -ne 'HIGH') {

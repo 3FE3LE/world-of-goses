@@ -116,6 +116,13 @@ public sealed class WoundRecoveryTests
             CityWorld world = TestHelpers.NewHeroWorld();
             world.SeedStartingForests();
             world.GatherWood(new BuildingId(100), 2);
+            // These tests are about what a wound *is* once the city carries
+            // one, so the fixture has to be a city that can carry one: a
+            // Basic Shelter and the treatment cost. Without both,
+            // WoundRules.CanCityCarryWound refuses the wound outright, which
+            // is the progress-liveness rule GitHub #13 introduced and is
+            // covered by OpeningProgressLivenessTests.
+            GiveTreatmentCapability(world);
             for (int tick = 0; tick < startTick; tick++) world.AdvanceWorldTick();
             Citizen hero = world.Hero!;
             hero.ConsumeStamina(hero.CurrentStamina - 1);
@@ -136,5 +143,25 @@ public sealed class WoundRecoveryTests
             }
         }
         throw new Xunit.Sdk.XunitException("No deterministic setback vector found.");
+    }
+
+    private static void GiveTreatmentCapability(CityWorld world)
+    {
+        world.RegisterBuilding(new Building(
+            id: new BuildingId(900),
+            displayName: "Basic Shelter",
+            kind: BuildingKind.Home,
+            producedResourceType: ResourceType.Stone,
+            producedCompetencyId: CompetencyId.Mining,
+            workerCapacity: 2,
+            visualCapacity: 2,
+            baseProductionPerWorker: 0,
+            storageCapacity: 0,
+            resourceLabel: "Rest",
+            resourceUnit: "rest",
+            productionEnabled: false));
+        world.Resources.DepositToCityInventory(
+            ResourceType.Food,
+            WoundRules.ModerateFoodCost);
     }
 }

@@ -17,6 +17,69 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## State Authority & Lifecycle Model: una verdad, un propietario — y una
+## primera expedición que ya no puede matar la partida en silencio
+
+**2026-08-12** · arquitectura · sin cambio de schema (v34) · 1503 pruebas
+superadas, 0 omitidas; build con 0 avisos; `Test-GodotBoot.ps1` limpio; 478
+comprobaciones de agent-context
+
+**El jugador gana una apertura de la que siempre se puede salir.** Antes, una
+primera Spirit Trail perdida dejaba al Founder herido en un mundo sin Basic
+Shelter y sin nada comestible. La herida lo volvía no disponible, y no
+disponible significa que no puede recolectar, no puede construir y no puede
+volver a salir — que son exactamente las tres formas de conseguir el refugio y
+la comida que el tratamiento exige. `TryBeginWoundRecovery` devolvía
+`ShelterUnavailable`, recolectar devolvía `HeroUnavailable`, despachar devolvía
+`MemberUnavailable`: ninguna acción legal, para siempre. Ahora el dominio no
+inflige una consecuencia duradera que la ciudad no tenga ruta legal para
+resolver (`WoundRules.CanCityCarryWound`). El revés sigue costando el tiempo
+del viaje, la salud, la condición y la recompensa; simplemente no se convierte
+además en una herida que nadie puede curar. Con refugio y comida en pie, todas
+las reglas normales siguen intactas, incluido el coste en Food. Cierra
+GitHub #13. La regresión barre las configuraciones de Founder que el onboarding
+produce de verdad — ocho linajes por seis afinidades —, no una afinidad fija.
+
+**El código gana un solo dueño por verdad.** `docs/STATE_AUTHORITY.md` es ahora
+canónico: cinco categorías (lifecycle state, condición ortogonal,
+intención/orden, proyección derivada, estado de presentación) y un registro por
+concepto con propietario, persistencia, escritores, invariantes y
+reconstrucción. `CitizenBehaviorState` no sobrevivió a esa clasificación:
+mezclaba actividad semántica, localización, un ciclo de vida externo y stamina
+en un único enum, movido por `SetLocation`, los mutadores de stamina y los
+enganches de expedición a través de un `TryTransition` cuyo `bool` no leía
+ningún call site — y luego se copiaba tal cual dentro de
+`CitizenRoutineSnapshot`, la proyección derivada, como una segunda opinión que
+podía estar desfasada. Se eliminó entero, junto con `CitizenBehaviorRules` y
+`FiniteStateMachine<TState>`, cuyo único consumidor en todo el árbol era ese
+enum. No lo sustituye ningún framework de FSM: las máquinas de ciclo de vida
+reales — `Expedition`, `CultivationSite`, `ResourceOpportunity`,
+`FirstNightState` — ya expresan sus reglas con comandos propios, validación en
+el comando e invariantes en el constructor, que es más de lo que una tabla de
+transiciones con disparadores en string sabría decir.
+
+**La persistencia deja de inventar un viaje.** Un ciudadano en expedición está
+`InTransit` sin tick de inicio, porque el viaje lo cronometra la expedición y
+no `AbstractTravelTicks`. El restore lo reconstruía con
+`BeginTravelToAssignment(tick actual)`, fabricando un `TravelArrivalTick` que
+el mundo capturado nunca tuvo; treinta ticks después la llegada vencía, no
+encontraba orden de trabajo donde llegar y sentaba al Founder en casa con su
+expedición todavía activa. Ahora `Citizen.RestoreLocation` reconstruye también
+la *ausencia* de metadata.
+
+`StateAuthorityInvariantTests` codifica las invariantes que ningún propietario
+puede comprobar solo: commitment y expedición concuerdan en ambas direcciones
+durante toda la ruta; la metadata de tránsito es coherente a lo largo de un día
+completo; una orden de trabajo sobrevive a la expedición y a una recarga tomada
+durante ella; la herida coexiste con stamina llena y sólo la recuperación la
+cura; la proyección de rutina es pura, repetible e idéntica entre dos mundos
+restaurados del mismo save, y no aparece en el JSON; vivo y offline llegan al
+mismo save serializado; y los estados terminales —expedición resuelta,
+oportunidad agotada, parcela cosechada, noche concluida— no reabren. La matriz
+completa de saltos de `ExpeditionPhase` se verifica entera, no por muestreo.
+
+---
+
 ## Exit gate A0–A12: la verificación deja de contar una historia que el
 ## artefacto no sostiene
 

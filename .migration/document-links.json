@@ -649,6 +649,12 @@
   },
   {
     "from": "docs/ARCHITECTURE.md",
+    "to_raw": "STATE_AUTHORITY.md",
+    "to": "docs/STATE_AUTHORITY.md",
+    "exists": true
+  },
+  {
+    "from": "docs/ARCHITECTURE.md",
     "to_raw": "world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
     "to": "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md",
     "exists": true
@@ -819,6 +825,18 @@
     "from": "docs/README.md",
     "to_raw": "world-of-goses-design-bible/README.md",
     "to": "docs/world-of-goses-design-bible/README.md",
+    "exists": true
+  },
+  {
+    "from": "docs/STATE_AUTHORITY.md",
+    "to_raw": "ai/CROSS_DOMAIN_INVARIANTS.md",
+    "to": "docs/ai/CROSS_DOMAIN_INVARIANTS.md",
+    "exists": true
+  },
+  {
+    "from": "docs/STATE_AUTHORITY.md",
+    "to_raw": "ARCHITECTURE.md",
+    "to": "docs/ARCHITECTURE.md",
     "exists": true
   },
   {

@@ -525,8 +525,54 @@ public sealed class CityWorld
         }
     }
 
+    /// <summary>
+    /// The Basic Shelter that hosts wound treatment, or null while the city
+    /// has none. Lowest building id wins so the choice is stable across a
+    /// save/load and across the live/offline pair.
+    /// </summary>
+    private Building? TreatmentShelter => _buildings.Values
+        .Where(building => building.Kind == BuildingKind.Home)
+        .OrderBy(building => building.Id.Value)
+        .FirstOrDefault();
+
+    /// <summary>
+    /// Unreserved edible stock, counted exactly as <see cref="TryConsumeFood"/>
+    /// spends it: stored Food first, Wild Food as the survival buffer behind it.
+    /// </summary>
+    public int EdibleStock =>
+        _resources.Available(ResourceType.Food)
+        + _resources.Available(ResourceType.WildFood);
+
+    /// <summary>
+    /// Whether this city could actually carry a durable injury of
+    /// <paramref name="severity"/> — see
+    /// <see cref="WoundRules.CanCityCarryWound"/> for why inflicting one it
+    /// cannot treat is a progress-liveness bug rather than a difficulty knob.
+    /// </summary>
+    public bool CanCarryWound(WoundSeverity severity) => WoundRules.CanCityCarryWound(
+        severity,
+        TreatmentShelter is not null,
+        EdibleStock);
+
     private void ApplyExpeditionWound(Expedition expedition)
     {
+        // VS-3 introduces one recoverable wound tier. The enum and rules are
+        // intentionally extensible, but expedition content must earn a
+        // harsher tier before the simulation starts creating one.
+        const WoundSeverity severity = WoundSeverity.Moderate;
+
+        // Progress liveness (GitHub #13). The opening Spirit Trail returns
+        // before the Founding Site has consolidated into a Basic Shelter and
+        // with no edible stock, so a wound recorded here would have no legal
+        // route to recovery: the wound blocks gathering, construction and the
+        // next expedition, which are the only three ways the city could earn
+        // the shelter and the food that treatment needs. The setback still
+        // costs the run — elapsed time, the combat's health/condition, no
+        // reward — it just does not also become a durable injury the city has
+        // no way to carry. Nothing changes once the city is equipped for
+        // treatment: the ordinary Food cost in TryBeginWoundRecovery stands.
+        if (!CanCarryWound(severity)) return;
+
         Citizen? wounded = expedition.MemberIds
             .Select(memberId => GetCitizen(memberId))
             .Where(member => member is not null)
@@ -536,10 +582,6 @@ public sealed class CityWorld
             .FirstOrDefault();
         if (wounded is null) return;
 
-        // VS-3 introduces one recoverable wound tier. The enum and rules are
-        // intentionally extensible, but expedition content must earn a
-        // harsher tier before the simulation starts creating one.
-        WoundSeverity severity = WoundSeverity.Moderate;
         WorldEvent woundEvent = _log.Record(
             _tick,
             WorldEventKind.WoundSustained,
@@ -567,10 +609,7 @@ public sealed class CityWorld
         {
             return WoundRecoveryResult.Fail(WoundRecoveryOutcome.OnExpedition);
         }
-        Building? shelter = _buildings.Values
-            .Where(building => building.Kind == BuildingKind.Home)
-            .OrderBy(building => building.Id.Value)
-            .FirstOrDefault();
+        Building? shelter = TreatmentShelter;
         if (shelter is null)
         {
             return WoundRecoveryResult.Fail(WoundRecoveryOutcome.ShelterUnavailable);
@@ -4015,7 +4054,6 @@ public sealed class CityWorld
             expectedAt,
             nextTransition,
             blockReason,
-            citizen.Behavior,
             citizen.CurrentLocation,
             order);
     }

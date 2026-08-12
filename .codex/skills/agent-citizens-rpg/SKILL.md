@@ -70,7 +70,7 @@ metadata:
    `CitizenCommitment.cs`, `CitizenCommitmentKind.cs`,
    `CitizenAvailabilityReason.cs`, `CitizenVitalStatus.cs`, `Role.cs`,
    `CompetencyEntry.cs`, `CitizenAssignmentService.cs`,
-   `CitizenNeedsRules.cs`, `CitizenBehavior.cs`, `CitizenProfile.cs`.
+   `CitizenNeedsRules.cs`, `CitizenRoutine.cs`, `CitizenProfile.cs`.
 3. Read the relevant tests in
    `tests/WorldofGoses.Tests/Citizen*Tests.cs` and
    `CityWorldStaminaTests.cs`.

@@ -156,6 +156,15 @@
       "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
       "note": "Dated final state of the A0-A12 hardening: the assembly graph after Persistence and Application left the Godot project, CityWorld's owner, the stable save IDs, and the guards that keep the boundary compiler-enforced. Overlaps ARCHITECTURE.md by design and loses to it: that document says what the architecture IS, this one records how these seams were closed and stops being edited."
     },
+    "docs/STATE_AUTHORITY.md": {
+      "proposed_type": "spec",
+      "authority": "canonical",
+      "domains": ["technical", "citizens", "expeditions", "city", "narrative"],
+      "action": "keep",
+      "related_code": ["game/scripts/Domain/", "src/WorldofGoses.Persistence/", "tests/WorldofGoses.Tests/StateAuthorityInvariantTests.cs"],
+      "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
+      "note": "Canonical for ownership: which type holds each mutable truth, which of the five categories it belongs to, whether it is persisted, and how it is rebuilt from a save. Splits cleanly from ARCHITECTURE.md, which owns the assembly boundaries and the folder layout; that document links here rather than restating the registry. Also holds the not-yet-built animation boundary so the contract exists before the code does."
+    },
     "docs/CURRENT_STATUS.md": {
       "proposed_type": "spec",
       "authority": "canonical",

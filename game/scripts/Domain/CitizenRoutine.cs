@@ -7,6 +7,15 @@ namespace WorldofGoses.Domain;
 /// second state machine and is not persisted: save/load restores the citizen's
 /// order, commitment, logical location and transit timing, then this projection
 /// explains what those facts mean at the current world tick.
+///
+/// <para>
+/// This enum is the <em>only</em> semantic-activity vocabulary in the domain.
+/// It used to compete with <c>CitizenBehaviorState</c>, a parallel enum driven
+/// by its own state machine and copied verbatim onto
+/// <see cref="CitizenRoutineSnapshot"/> — a second authority for the same
+/// question, mutated from different call sites and able to disagree with the
+/// facts around it. See <c>docs/STATE_AUTHORITY.md</c>.
+/// </para>
 /// </summary>
 public enum CitizenRoutineActivity
 {
@@ -57,6 +66,5 @@ public sealed record CitizenRoutineSnapshot(
     int? ExpectedCompletionTick,
     int? NextTransitionTick,
     CitizenRoutineBlockReason BlockReason,
-    CitizenBehaviorState Behavior,
     CitizenLocation LogicalLocation,
     CitizenWorkOrder? WorkOrder);

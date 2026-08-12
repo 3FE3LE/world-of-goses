@@ -435,7 +435,7 @@ superados en 2026-07-30; ver §8.)_
 | S-1.2 NavigationServer2D | Primer corte hecho; reconciliar dentro de H-26. |
 | S-1.3 terreno perspectiva | Primer corte hecho; se rechazó el overview estirado. Una única perspectiva y zoom uniforme muestran una ventana móvil de 13 calles sobre el sobre objetivo 8×9. La captura vacía final aún cuesta 15,201 ms: implementar culling/batching lateral y validar navegación por ventanas antes de habilitar expansión; no forzar TileMap sobre trapecios proyectados. |
 | S-1.4 MultiMesh | Diferido al trigger de H-30. |
-| S-1.5 FSM | Seam mínimo hecho; ampliar solo con comportamiento autónomo real. |
+| S-1.5 FSM | Cerrada por eliminación. `CitizenBehaviorState` y `FiniteStateMachine<TState>` se borraron: eran una segunda autoridad sobre lo que ya responden `Commitment`, `CurrentLocation`, `Wound` y stamina, y su `TryTransition` devolvía un `bool` que ningún call site leía. Las máquinas de ciclo de vida reales (Expedition, CultivationSite, ResourceOpportunity, FirstNight) ya expresan sus reglas con comandos propios y no necesitan una clase genérica. Un NPC autónomo futuro añade su propio ciclo de vida; no revive el enum compartido. Ver `docs/STATE_AUTHORITY.md`. |
 | S-1.6 diálogos | Seam mínimo hecho; ampliar con H-31. |
 | S-1.7 profiler | Hecho; mantener medición real del engine en matrices. |
 

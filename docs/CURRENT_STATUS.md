@@ -41,10 +41,17 @@ and this section gets corrected in the same change.
   keyed by its real `ExpeditionId`; presentation and `combat-debug` observe the
   same domain engine without owning it. Non-Spirit expeditions deliberately keep
   their previous aggregate resolver during this narrow slice.
-- `dotnet test`: 1185/1186 passing (1 omitido por brittleness del JSON snapshot en
-  `VerticalLoopPersistenceTests.Recovery_ReloadedHalfway`; el comportamiento no
-  cambió, sólo los IDs auto-incrementados de eventos difieren desde que el
-  workday se desplazó a 08:00).
+- `dotnet test`: 1503/1503 passing, 0 omitidos.
+- **State authority.** `docs/STATE_AUTHORITY.md` es canónico sobre quién posee
+  cada verdad mutable: cinco categorías (lifecycle state, condición ortogonal,
+  intención/orden, proyección derivada, estado de presentación) y un registro
+  por concepto con propietario, persistencia, escritores, invariantes y forma
+  de reconstrucción. `CitizenBehaviorState`, `CitizenBehaviorRules` y
+  `FiniteStateMachine<TState>` fueron **eliminados**: el enum mezclaba
+  actividad, localización, commitment externo y stamina en una segunda
+  autoridad no persistida cuyo `TryTransition` devolvía un `bool` que ningún
+  call site leía. `CitizenRoutineSnapshot` sigue siendo la única proyección de
+  actividad y ya no transporta ese valor.
 - `WorldSave.CurrentVersion`: 34. V33→V34 converts the opening Spirit Trail to
   no supply + Discovery, removes the exact synthetic weapon and versions combat
   rules so an in-flight legacy replay is not rerolled. V32→V33 persists the active Spirit Trail
@@ -100,7 +107,7 @@ and this section gets corrected in the same change.
   authorisable module with its cost and the amount held, and the module button's
   tooltip names what is still missing. The founder-cargo inventory starts
   collapsed so those lines are not pushed out of the panel's scroll body.
-- Agent-context validation: 474 checks passing.
+- Agent-context validation: 478 checks passing.
 - Official visual review sizes: 1280×720 and 1920×1080.
 
 ## 2. Active proof
@@ -216,6 +223,23 @@ and §17 acceptance test are complete.
 - Moderate wound independently persists from stamina, limits effective stamina
   and blocks another expedition.
 - Basic Shelter treatment costs one Food and 3600 ticks.
+- **Progress liveness.** A setback only records a persistent wound when the city
+  can already treat it — a completed Basic Shelter plus the treatment cost in
+  unreserved Food/Wild Food (`WoundRules.CanCityCarryWound`, read through
+  `CityWorld.CanCarryWound`). The opening Spirit Trail returns before either
+  exists, so a lost first sortie used to leave the sole Founder wounded,
+  unavailable for gathering, construction and dispatch, and unable to reach the
+  shelter or the food that treatment needs: `ShelterUnavailable` forever. The
+  setback still costs elapsed time, health and condition, and the reward. Once
+  the city is equipped every ordinary rule stands, treatment cost included.
+  Closes GitHub #13; regressed in `OpeningProgressLivenessTests` across the
+  founder configurations onboarding really produces.
+- A save taken mid-expedition no longer invents an in-city journey on restore.
+  An expedition traveller is `InTransit` with no transit start tick because the
+  expedition owns the timing; the restore path used to stamp one, giving them a
+  `TravelArrivalTick` the captured world never had, and thirty ticks later the
+  travel completion settled the Founder at home while the route was still
+  running.
 - Fresh cities expose three horizontal available parcels. No locked frontier is
   rendered or selected by reconnaissance while expansion and its terrarium
   boundary language remain under design; legacy parcel records are preserved.
