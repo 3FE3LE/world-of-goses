@@ -391,7 +391,7 @@ public partial class BuildingDetailView : Control
 
 	internal void ExpandShelterResourcesForVisualRegression()
 	{
-		if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+		if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
 		Refresh();
 		_shelterResourcesPanel?.SetExpandedForVisualRegression(expanded: true);
 	}

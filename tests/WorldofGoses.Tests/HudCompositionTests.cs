@@ -953,9 +953,11 @@ public sealed class HudCompositionTests
         Assert.Contains("_bodyHost.Register(_scroll)", rail, StringComparison.Ordinal);
         Assert.Contains("_bodyHost.Register(_chronicle.Body)", rail, StringComparison.Ordinal);
 
-        // Both headers are mounted on the rail's own column, OUTSIDE the body
-        // host, so neither disappears when its body folds.
-        Assert.Contains("_layout.AddChild(_chronicle.Header)", rail, StringComparison.Ordinal);
+        // Both headers stay on screen when their body folds; the chronicle
+        // header is the LAST child of the body host (issue #12) so a real
+        // click on MoreButton reaches it instead of being absorbed by the
+        // body in front of it.
+        Assert.Contains("_bodyHost.AddChild(_chronicle.Header)", rail, StringComparison.Ordinal);
         Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
 
         // Accordion: expanding either surface shows exactly that body.

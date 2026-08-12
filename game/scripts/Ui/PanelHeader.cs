@@ -60,7 +60,7 @@ public partial class PanelHeader : HBoxContainer
 
     internal void PressCloseForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _closeButton.EmitSignal(BaseButton.SignalName.Pressed);
     }
 

@@ -525,13 +525,13 @@ public partial class ConstructionPanel : PanelContainer
 
     internal void ScrollBodyToEndForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         CallDeferred(MethodName.ApplyVisualRegressionScroll);
     }
 
     internal void PressHeaderCloseForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _header.PressCloseForVisualRegression();
     }
 

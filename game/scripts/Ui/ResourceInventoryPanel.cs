@@ -112,7 +112,7 @@ public partial class ResourceInventoryPanel : PanelContainer
 
     internal void SetExpandedForVisualRegression(bool expanded)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _expanded = expanded;
         ApplyExpandedState();
     }

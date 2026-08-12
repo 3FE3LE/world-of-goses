@@ -758,7 +758,7 @@ public partial class MacroStreetLiveView : Node2D
 
     internal void ShowConstructionForVisualRegression(bool placement)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ActivatePerspective();
         if (placement)
         {
@@ -773,7 +773,7 @@ public partial class MacroStreetLiveView : Node2D
 
     internal void ShowConstructionPlacementHoverForVisualRegression(bool valid)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ActivatePerspective();
         OnPlacementRequested((int)ConstructionKind.Farm);
         foreach (PlacementLotBox candidate in _placement.PlacementLots)
@@ -788,7 +788,7 @@ public partial class MacroStreetLiveView : Node2D
 
     internal void PreparePlacementConfirmationForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ActivatePerspective();
         OnPlacementRequested((int)ConstructionKind.Farm);
         foreach (PlacementLotBox candidate in _placement.PlacementLots)
@@ -1319,7 +1319,7 @@ public partial class MacroStreetLiveView : Node2D
     internal static float CameraZoomPivotYForTests => CameraZoomPivotY;
 
     internal bool HasActiveCitizenJourneyForVisualRegression(CitizenId citizenId) =>
-        System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1"
+        WorldofGoses.Testing.VisualRegressionHarness.IsActive
         && _journeys.Journeys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
         && journey.Route is not null;
 
@@ -1362,7 +1362,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void CaptureLongTerrariumViewport()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         string? configuredPath = System.Environment.GetEnvironmentVariable(
             "WOG_LONG_TERRARIUM_CAPTURE");
         if (string.IsNullOrWhiteSpace(configuredPath)) return;

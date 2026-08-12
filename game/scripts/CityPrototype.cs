@@ -17,7 +17,7 @@ namespace WorldofGoses;
 /// and handles top-level input. The actual visual logic lives in
 /// the view scripts; this script is intentionally thin.
 /// </summary>
-public partial class CityPrototype : Node
+public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHost
 {
     private bool _expeditionLiveEscapeFixture;
     private ExpeditionLiveFixtureState _expeditionLiveFixtureState;
@@ -82,6 +82,9 @@ public partial class CityPrototype : Node
             // not copied off the desktop by the capture script — see
             // ViewportCaptureService for why that distinction is load-bearing.
             WorldofGoses.Testing.VisualRegressionHarness.AttachViewportCapture(this);
+            // Issue #8: frame-time sampling now lives on its own profiler
+            // node, gated on VisualRegressionHarness.IsActive.
+            WorldofGoses.Testing.VisualRegressionProfiler.Attach(this);
             // A10: the harness owns detection and dispatch. The per-fixture
             // composition steps still live as private methods on this scene
             // (they touch the scene tree, which is the prototype's
@@ -102,12 +105,27 @@ public partial class CityPrototype : Node
             break;
         }
 
+        // Issue #5: dispatch through the typed host entry point so the
+        // catalog knows every name this scene responds to.
+        if (fixture is null) return;
+        ApplyNamedFixture(fixture);
+    }
+
+    /// <summary>
+    /// Issue #5: typed dispatch entry point. The catalog classifies the
+    /// name (logged if unknown) and the case-statement below picks the
+    /// composition step. The case lives here because each branch
+    /// touches scene-tree state on <c>this</c>, but the closed list of
+    /// recognised names lives in <see cref="WorldofGoses.Testing.VisualFixtureCatalog"/>.
+    /// </summary>
+    public void ApplyNamedFixture(string fixture)
+    {
         // `biome-<lineage>` builds a fresh city founded by that lineage, so
         // every ground palette can be reviewed without replaying onboarding
         // once per lineage. Handled before the switch because the lineage is
         // part of the name.
         const string biomePrefix = "biome-";
-        if (fixture is not null && fixture.StartsWith(biomePrefix, StringComparison.Ordinal))
+        if (fixture.StartsWith(biomePrefix, StringComparison.Ordinal))
         {
             ShowBiomeForVisualRegression(fixture[biomePrefix.Length..]);
             return;
@@ -1840,17 +1858,20 @@ public partial class CityPrototype : Node
             "GameUiShell/ScreenContent/Center/ConstructionPanel");
 
         expedition.Open();
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        // Issue #7: wait for the modal's own signal instead of an
+        // arbitrary 0.2s timer. ModalHost raises Opened/Closed when
+        // its open animation has bound content.
+        await ToSignal(host, ModalHost.SignalName.Opened);
         ValidateContained("ExpeditionPanel", expedition, city);
         expedition.Close();
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        await ToSignal(host, ModalHost.SignalName.Closed);
 
         GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
             .ShowConstructionForVisualRegression(placement: false);
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        await ToSignal(host, ModalHost.SignalName.Opened);
         ValidateContained("ConstructionPanel", construction, city);
         construction.PressHeaderCloseForVisualRegression();
-        await ToSignal(GetTree().CreateTimer(0.2), SceneTreeTimer.SignalName.Timeout);
+        await ToSignal(host, ModalHost.SignalName.Closed);
         if (host.IsOpen || construction.Visible)
         {
             GD.PushError("Modal close fixture: construction X did not close ModalHost.");

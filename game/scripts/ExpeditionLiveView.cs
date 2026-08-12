@@ -212,14 +212,14 @@ public partial class ExpeditionLiveView : Control
 
     internal void ShowEarlyFixture()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _fixtureShowsTwoEnemies = true;
         if (Visible) Refresh();
     }
 
     internal void UseStableFounderLabelForVisualRegression()
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _fixtureUsesStableFounderLabel = true;
         if (Visible) Refresh();
     }

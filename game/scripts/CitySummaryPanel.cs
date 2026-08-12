@@ -9,8 +9,15 @@ using WorldofGoses.Ui;
 namespace WorldofGoses;
 
 /// <summary>
-/// Persistent city-at-a-glance surface. It renders the same immutable status
+/// Persistent city-at-a-glance surface. Renders the same immutable status
 /// projection as the top bar and owns only ephemeral collapse state.
+///
+/// <para>Architecture Hardening A11: the static hierarchy
+/// (<c>VBoxContainer</c> → <c>CollapsiblePanelHeader</c> → <c>ScrollContainer</c>
+/// → <c>MarginContainer</c> gutter → <c>VBoxContainer</c> content) lives
+/// in <c>game/scenes/Components/CitySummaryPanel.tscn</c>. The script
+/// resolves the nodes by name, subscribes to controller signals, and
+/// only composes dynamic rows in <see cref="ApplySnapshot"/>.</para>
 /// </summary>
 [GlobalClass]
 public partial class CitySummaryPanel : PanelContainer
@@ -34,10 +41,7 @@ public partial class CitySummaryPanel : PanelContainer
     public override void _Ready()
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
-        ThemeTypeVariation = "HudSurface";
-        CustomMinimumSize = new Vector2(PanelWidth, 0);
         MouseFilter = MouseFilterEnum.Stop;
-
         BuildSurface();
         _controller = GetNode<CityWorldController>(ControllerPath);
         _controller.WorldTickAdvanced += OnStateChanged;
@@ -50,21 +54,6 @@ public partial class CitySummaryPanel : PanelContainer
         if (_localeManager is not null) _localeManager.LocaleChanged += OnLocaleChanged;
         LineageThemeRegistry.ActiveLineageChanged += OnLineageChanged;
         Refresh(_controller.GetCityStatusSnapshot());
-    }
-
-    public override void _ExitTree()
-    {
-        if (_controller is not null)
-        {
-            _controller.WorldTickAdvanced -= OnStateChanged;
-            _controller.BuildingStateChanged -= OnStateChanged;
-            _controller.ProjectStateChanged -= OnStateChanged;
-            _controller.NaturalResourceStateChanged -= OnStateChanged;
-            _controller.CultivationSiteStateChanged -= OnStateChanged;
-            _controller.HeroCreated -= OnStateChanged;
-        }
-        if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
-        LineageThemeRegistry.ActiveLineageChanged -= OnLineageChanged;
     }
 
     private void BuildSurface()
@@ -111,6 +100,21 @@ public partial class CitySummaryPanel : PanelContainer
         gutter.AddThemeConstantOverride("margin_right", Tokens.ScrollGutter);
         gutter.AddChild(_content);
         _body.AddChild(gutter);
+    }
+
+    public override void _ExitTree()
+    {
+        if (_controller is not null)
+        {
+            _controller.WorldTickAdvanced -= OnStateChanged;
+            _controller.BuildingStateChanged -= OnStateChanged;
+            _controller.ProjectStateChanged -= OnStateChanged;
+            _controller.NaturalResourceStateChanged -= OnStateChanged;
+            _controller.CultivationSiteStateChanged -= OnStateChanged;
+            _controller.HeroCreated -= OnStateChanged;
+        }
+        if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
+        LineageThemeRegistry.ActiveLineageChanged -= OnLineageChanged;
     }
 
     public void Refresh(CityStatusSnapshot snapshot)

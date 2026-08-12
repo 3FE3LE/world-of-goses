@@ -37,11 +37,9 @@ public partial class CityWorldController : Node
 {
     private const string VisualCaptureEnvironmentVariable = "WOG_VISUAL_CAPTURE";
     private const string VisualCaptureCommandLineArgument = "--wog-visual-capture";
-    // S-1.7: real per-frame cost for tools/Capture-VisualMatrix.ps1's
-    // profiler to parse from the log — see SampleFrameTimeForVisualCapture.
-    private const string FrameTimeLogTag = "[WOG-FRAME-TIME]";
-    private const int FrameTimeSampleCap = 300; // ~5s at 60fps; bounds log growth if the window stays open.
-    private int _frameTimeSamplesEmitted;
+    // S-1.7 frame-time sampling lives in
+    // game/scripts/Testing/VisualRegressionProfiler.cs since the
+    // A12 move (issue #8); the controller owns no profiling code.
     private bool _onboardingCompletionPending;
     private bool _suppressPersistenceWrites;
     private Selection _currentSelection = Selection.MacroView;
@@ -301,7 +299,8 @@ public partial class CityWorldController : Node
 
     public override void _Process(double delta)
     {
-        if (IsVisualCaptureMode) SampleFrameTimeForVisualCapture();
+        // Frame-time sampling runs on VisualRegressionProfiler (issue #8),
+        // not here. The controller owns no profiling code.
         if (_session.NeedsOnboarding || _onboardingCompletionPending) return;
 
         AdvanceLiveSimulation(delta);
@@ -575,31 +574,6 @@ public partial class CityWorldController : Node
             System.Environment.GetEnvironmentVariable(VisualCaptureEnvironmentVariable),
             "1",
             StringComparison.Ordinal);
-
-    /// <summary>
-    /// S-1.7: prints the ENGINE's own
-    /// <see cref="Performance.Monitor.TimeProcess"/> for the last frame
-    /// — real render/script cost, not a proxy. The prior "profiler"
-    /// measured PowerShell host <c>Start-Sleep</c> interval drift in
-    /// <c>Capture-VisualMatrix.ps1</c>, which is blind to any real stall
-    /// inside the Godot process (see TO_DO.md S-1.7's 2026-07-27 audit).
-    /// The harness tails the last 30 <see cref="FrameTimeLogTag"/> lines
-    /// from the run's log file after warm-up instead of self-timing sleep
-    /// loops. Capped at <see cref="FrameTimeSampleCap"/> samples so a
-    /// long-lived capture window can't grow the log unbounded.
-    /// </summary>
-    private void SampleFrameTimeForVisualCapture()
-    {
-        if (_frameTimeSamplesEmitted >= FrameTimeSampleCap) return;
-        _frameTimeSamplesEmitted++;
-        double processMs = Performance.GetMonitor(Performance.Monitor.TimeProcess) * 1000.0;
-        // Invariant culture, not the OS locale's own decimal separator —
-        // the harness parses this with double.TryParse(InvariantCulture)
-        // and a comma-decimal locale (e.g. es-*) silently broke every
-        // sample otherwise (found via a real capture run, not by reading
-        // the code — see TO_DO.md S-1.7).
-        GD.Print($"{FrameTimeLogTag} {processMs.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}");
-    }
 
     /// <summary>
     /// Persists the live world to the primary slot. The controller owns

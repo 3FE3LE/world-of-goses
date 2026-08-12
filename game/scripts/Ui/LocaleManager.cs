@@ -73,7 +73,7 @@ public partial class LocaleManager : Node
     /// </summary>
     internal void SetLocaleForVisualRegression(string locale)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         if (!LoadLocale(locale)) return;
         EmitSignal(SignalName.LocaleChanged, CurrentLocale);
     }

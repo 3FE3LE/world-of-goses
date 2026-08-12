@@ -142,7 +142,7 @@ public partial class PauseMenu : Control
 
     internal void ShowForVisualRegression(bool confirmReset)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         Open();
         if (confirmReset) ShowResetConfirmation();
     }

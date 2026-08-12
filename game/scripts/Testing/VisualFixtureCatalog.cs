@@ -7,25 +7,44 @@ using WorldofGoses.Domain;
 namespace WorldofGoses.Testing;
 
 /// <summary>
+/// Macro HUD composition state, exposed so the catalog and tests can
+/// address each authored macro HUD variant without knowing its enum
+/// value.
+/// </summary>
+public enum MacroHudFixtureState
+{
+    Default,
+    Selection,
+    ActiveConstruction,
+    ActiveExpedition,
+}
+
+/// <summary>
+/// Typed dispatch entry point for the visual-regression fixture
+/// bodies that live on <c>CityPrototype</c>. Issue #5 establishes
+/// this interface so the catalog can route a fixture name to the
+/// matching <c>Show*ForVisualRegression</c> method without reading
+/// <c>CityPrototype</c>'s private API. The bodies themselves stay
+/// on the prototype (they touch the scene tree, which is the
+/// prototype's responsibility); the interface is the seam.
+/// </summary>
+public interface IVisualFixtureHost
+{
+    void ApplyNamedFixture(string name);
+}
+
+/// <summary>
 /// Catalog of authored visual regression fixtures. Each entry maps a
 /// fixture name (passed via <c>--wog-visual-fixture=&lt;name&gt;</c>) to
 /// the function that prepares the world for its screenshot.
 ///
 /// <para>Architecture Hardening A10 introduces this catalog as the
-/// single dispatch table for fixture orchestration. The previous
-/// shape inlined every fixture as a
-/// <c>Show*ForVisualRegression</c> method on <c>CityPrototype</c>;
-/// the catalog keeps one typed table here so a future slice can move
-/// the per-fixture composition steps into a fixture builder without
-/// touching <c>CityPrototype</c>'s 2 600-line body.</para>
-///
-/// <para>This first slice ships the catalog scaffold and the
-/// classification helper. Per-fixture composition still lives on
-/// <c>CityPrototype</c>; the next slice ports it entry-by-entry.
-/// Adding a fixture before the port is a one-line entry in the
-/// <see cref="KnownFixtures"/> table; adding a fixture after the port
-/// is a one-line entry in the catalog's
-/// <see cref="Register"/> method.</para>
+/// single dispatch table for fixture orchestration. A10 issue #5
+/// moves the case-statement dispatch out of <c>CityPrototype</c>:
+/// the prototype implements <see cref="IVisualFixtureHost"/>, and
+/// the catalog knows every named fixture. The bodies stay on the
+/// prototype (they touch the scene tree), but the dispatch table
+/// and the closed enumeration of known fixtures live here.</para>
 /// </summary>
 public sealed class VisualFixtureCatalog
 {
@@ -87,6 +106,14 @@ public sealed class VisualFixtureCatalog
         return VisualFixtureKind.Other;
     }
 
+    /// <summary>
+    /// True when the catalog has an entry for the given fixture name.
+    /// </summary>
+    public bool Contains(string name) =>
+        name is not null && _kinds.ContainsKey(name);
+
     private void Register(string name, VisualFixtureKind kind) =>
         _kinds[name] = kind;
 }
+
+

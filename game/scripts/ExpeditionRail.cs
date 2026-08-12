@@ -122,7 +122,6 @@ public partial class ExpeditionRail : PanelContainer
         _chronicle.SetController(_controller);
         _chronicle.ExpandedChanged += OnChronicleExpanded;
         _chronicle.FocusablesChanged += OnChronicleFocusablesChanged;
-        _layout.AddChild(_chronicle.Header);
 
         // One host, one ExpandFill, one visible body. Registering both
         // bodies here is what removes the old two-claimant negotiation: the
@@ -130,6 +129,19 @@ public partial class ExpeditionRail : PanelContainer
         // because only one of them is ever measured.
         _bodyHost = new AccordionHost();
         _layout.AddChild(_bodyHost);
+
+        // Issue #12 fix: the chronicle header lives inside the body host as
+        // the LAST child, so Godot draws it on top of whichever body is the
+        // current protagonist. The previous layout had the header as a
+        // sibling of bodyHost, which made bodyHost's children (the chronicle
+        // body ScrollContainer) draw on top of the header — a real pointer
+        // click on the MoreButton was absorbed by the body in front of it
+        // once the chronicle was open, so the toggle's second click never
+        // reached the header. With the header as the topmost child of the
+        // host, the click lands on the header, the body still gets the
+        // wheel events it needs (its own gui_input, same MouseFilter), and
+        // the visual position is unchanged.
+        _bodyHost.AddChild(_chronicle.Header);
 
         _scroll = new ScrollContainer
         {
@@ -251,7 +263,7 @@ public partial class ExpeditionRail : PanelContainer
 
     internal void ShowVisualRegressionReport(OfflineProgressionReport report)
     {
-        if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         _visualRegressionFixtureActive = true;
         ShowOfflineReport(report);
     }
