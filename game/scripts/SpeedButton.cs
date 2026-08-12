@@ -47,10 +47,19 @@ public partial class SpeedButton : IconButton
     {
         // Icon-only, and exactly the cell Camera and Menu claim, so the three
         // share one interactive height rather than three opinions about it.
+        //
+        // No CompactIconButtonStyle here, deliberately. It overrides all four
+        // styleboxes with 2 px content margins, which Camera and Menu do not
+        // do — they take the HudButton variation's own padding. Two buttons
+        // padded by the theme beside one padded by an override put their icons
+        // in differently-sized content boxes, and the odd one out reads as
+        // off-centre next to the pair even though each is centred within its
+        // own box. The compact style exists for buttons that have to fit
+        // somewhere tighter than the standard cell; this one is the standard
+        // cell.
         ShowLabel = false;
         ButtonText = string.Empty;
         CustomMinimumSize = new Vector2(Tokens.ControlHeight, Tokens.ControlHeight);
-        CompactIconButtonStyle.Apply(this);
         base._Ready();
 
         var controllerNode = GetNodeOrNull<CityWorldController>(ControllerPath);

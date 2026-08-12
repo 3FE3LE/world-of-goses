@@ -1141,8 +1141,23 @@ public partial class MacroStreetLiveView : Node2D
             maximumColumn = Math.Max(maximumColumn, parcel.LogicalColumn);
             maximumRow = Math.Max(maximumRow, parcel.LogicalRow);
         }
-        _worldParcelColumns = Math.Max(1, maximumColumn + 1);
-        _worldParcelRows = Math.Max(1, maximumRow + 1);
+        // The navigable envelope is floored at the view's own authored
+        // default, never derived from owned parcels alone. A fresh city owns
+        // three parcels in a single row, which collapsed the world to three
+        // streets — and since the free camera opens on street 2, that left it
+        // sitting on the last row with the clamp swallowing every PanUp. The
+        // camera could only ever move toward the viewer, twice, and then not
+        // at all: exactly the "no pasa a la calle superior" of GitHub #14, and
+        // the reason the earlier semantic fix did not resolve it.
+        //
+        // Flooring here restores what _Ready already used before the first
+        // snapshot arrived and overrode it downward. Streets beyond the owned
+        // parcels render as plain ground, which is the "moving thirteen-street
+        // window through a larger semantic city" docs/CURRENT_STATUS.md
+        // describes — not an unlock: territory is still painted per real
+        // parcel by SetParcelTerritory above.
+        _worldParcelColumns = Math.Max(DefaultWorldParcelColumns, maximumColumn + 1);
+        _worldParcelRows = Math.Max(DefaultWorldParcelRows, maximumRow + 1);
         _streetCount = _worldParcelRows * ParcelGrid.ConstructionRowsPerParcel;
         _lateralHalfWidthPx = _worldParcelColumns
             * ParcelGrid.ConstructionRowsPerParcel
@@ -1151,6 +1166,27 @@ public partial class MacroStreetLiveView : Node2D
         _renderer.LateralHalfWidthPx = _lateralHalfWidthPx;
         _renderer.WorldParcelColumns = _worldParcelColumns;
         _renderer.WorldParcelRows = _worldParcelRows;
+        KeepFreeCameraInsideTheWorld();
+    }
+
+    /// <summary>
+    /// Pulls the free camera back inside the envelope after it changes. The
+    /// envelope is recomputed on every snapshot, and nothing else re-checks
+    /// the camera against it — so a world that got shallower could leave the
+    /// camera parked on a street that no longer exists, where both pan
+    /// directions clamp and the view is stranded.
+    /// </summary>
+    private void KeepFreeCameraInsideTheWorld()
+    {
+        int inside = MacroCameraController.ClampStreetStep(
+            _camera.FreeCameraStreet,
+            0,
+            _streetCount);
+        if (inside == _camera.FreeCameraStreet) return;
+        _camera.FreeCameraStreet = inside;
+        _camera.CameraDepthAnchor = inside;
+        _camera.CameraDepthTarget = null;
+        _camera.CameraTransitionAccumulator = 0f;
     }
 
     /// <summary>

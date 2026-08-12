@@ -229,6 +229,77 @@ public sealed class MacroVerticalPanTests
     }
 
     /// <summary>
+    /// The cause the semantic fix did not reach, measured in the running
+    /// game: a fresh city owns three parcels in a single row, so deriving the
+    /// navigable envelope from owned parcels alone collapsed the world to
+    /// three streets — and the free camera opens on street 2. It was parked on
+    /// the last row with every <c>PanUp</c> clamped to a no-op, able to move
+    /// toward the viewer twice and then not at all.
+    ///
+    /// <para>
+    /// Asserted as arithmetic over the real constants rather than through the
+    /// engine: with the floor in place the opening street must have room in
+    /// <em>both</em> directions.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void AFreshCityLeavesRoomToPanInBothDirections()
+    {
+        // What a fresh city actually owns: three parcels across one row.
+        const int freshCityParcelRows = 1;
+        int rows = System.Math.Max(
+            MacroViewConstants.DefaultWorldParcelRows,
+            freshCityParcelRows);
+        int streetCount = rows * WorldofGoses.Domain.ParcelGrid.ConstructionRowsPerParcel;
+        int openingStreet = System.Math.Clamp(2, 0, streetCount - 1);
+
+        Assert.True(
+            streetCount > 3,
+            $"A fresh city must not collapse the navigable world to its owned "
+            + $"parcel row; got {streetCount} streets.");
+        Assert.NotEqual(
+            openingStreet,
+            MacroCameraController.ClampStreetStep(
+                openingStreet, MacroCameraController.PanAwayFromViewer, streetCount));
+        Assert.NotEqual(
+            openingStreet,
+            MacroCameraController.ClampStreetStep(
+                openingStreet, MacroCameraController.PanTowardViewer, streetCount));
+    }
+
+    /// <summary>
+    /// The envelope is recomputed on every snapshot and nothing else rechecks
+    /// the camera against it, so the recompute has to pull the camera back in
+    /// itself or a shallower world strands it on a street that no longer
+    /// exists — where both directions clamp.
+    /// </summary>
+    [Fact]
+    public void ShrinkingTheEnvelopeReclampsTheCamera()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        int envelope = source.IndexOf(
+            "private void RefreshParcelEnvelope(",
+            System.StringComparison.Ordinal);
+        Assert.True(envelope > 0, "RefreshParcelEnvelope is gone.");
+
+        Assert.Contains(
+            "_worldParcelRows = Math.Max(DefaultWorldParcelRows, maximumRow + 1);",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.Contains(
+            "_worldParcelColumns = Math.Max(DefaultWorldParcelColumns, maximumColumn + 1);",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.Contains(
+            "KeepFreeCameraInsideTheWorld();",
+            source[envelope..],
+            System.StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// The lateral axis is untouched by #14 and must stay that way: A/← move
     /// one way, D/→ the other, and neither is expressed through the vertical
     /// convention.

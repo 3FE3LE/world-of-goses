@@ -21,7 +21,13 @@ baseline — not a list of touched files, which `git log` already owns.
 
 **2026-08-12** · presentación · sin cambio de schema (v34)
 
-**El jugador gana un control de velocidad legible.** `SpeedButton` medía 36×24
+**El jugador gana un control de velocidad legible.** `SpeedButton` no lleva
+`CompactIconButtonStyle`: sobrescribe los cuatro styleboxes con márgenes de
+contenido de 2 px, cosa que Camera y Menu no hacen —ellos toman el padding de la
+variación `HudButton`—, así que dos botones con el padding del tema junto a uno
+con override ponen sus iconos en cajas de contenido de distinto tamaño, y el
+impar se lee descentrado al lado del par aunque cada uno esté centrado dentro de
+la suya. `SpeedButton` medía además 36×24
 en un cluster de botones de 40×40, y dibujaba su estado apilando hasta cuatro
 copias del glyph de 24 px `play` en celdas de 8 px. `StretchMode.Keep` dibuja la
 fuente a su tamaño natural sea cual sea el rect que reciba —lo que
@@ -47,6 +53,22 @@ nada, porque el C# compilaba y la escena parseaba. `PanelSceneMigrationTests`
 cierra esa clase entera: comprueba que el padre instancia la escena del
 componente y que **cada** `GetNode<T>("ruta")` del script nombra un nodo que la
 escena declara, leyendo los dos ficheros de texto y diciendo qué nodo falta.
+
+**La cámara vuelve a subir de calle.** La causa real, medida en el juego
+corriendo: `RefreshParcelEnvelope` derivaba el mundo navegable **sólo** de las
+parcelas poseídas, y una ciudad recién fundada tiene tres parcelas en **una**
+fila — tres calles. La cámara libre abre en la calle 2. Estaba aparcada en la
+última fila del mundo con cada `PanUp` tragado por el clamp: podía acercarse dos
+pasos y después nada. El diagnóstico en vivo lo dejó sin discusión —
+`streets=3 free=2`, `afterUp free=2 target=`— y ahora, con el suelo puesto,
+`streets=6 free=2`, `afterUp 3 → 4`, `afterDown 3`. El envelope no baja del
+default que la propia vista ya usaba antes de que el primer snapshot lo
+encogiera, y el recálculo devuelve la cámara dentro del mundo para que un
+envelope más corto no pueda dejarla varada en una calle que ya no existe. Las
+calles más allá de las parcelas poseídas se dibujan como suelo llano, que es la
+«ventana móvil de trece calles sobre una ciudad semántica mayor» que
+`CURRENT_STATUS.md` describe — no un unlock: el territorio se sigue pintando por
+parcela real.
 
 **Las flechas vuelven a mover la cámara en el primer press.** `_Input`
 reclamaba ↑/↓ para el mundo con `SetInputAsHandled()` —correcto, porque Godot
