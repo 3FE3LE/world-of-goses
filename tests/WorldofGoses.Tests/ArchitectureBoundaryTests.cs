@@ -546,8 +546,30 @@ public sealed class ArchitectureBoundaryTests
 
         Assert.Empty(offending);
     }
+    /// <summary>
+    /// The A11 scanner. Two things it used to get wrong, and both let the rule
+    /// it exists to enforce pass unnoticed.
+    ///
+    /// <para>
+    /// It only matched a following <c>(</c>, so <c>new VBoxContainer { … }</c>
+    /// — the object-initialiser form every panel in this repository actually
+    /// uses — slipped straight through. And its alternation listed
+    /// <c>HBox</c>/<c>VBox</c> rather than <c>HBoxContainer</c>/
+    /// <c>VBoxContainer</c>, names no Godot type has, so the two commonest
+    /// layout nodes in the tree were never in it to begin with. Between them
+    /// the guard was reporting a clean scan over panels that compose their
+    /// whole shell in C#: every entry in the A row of the allowlist was
+    /// unnecessary, which is a guard that agrees with you rather than one
+    /// that checks.
+    /// </para>
+    /// </summary>
     private static readonly Regex ProductionUiStaticStructurePattern = new(
-        @"\bnew\s+(?:Panel|Label|Button|Container|HBox|VBox|Margin|TextureRect|PanelContainer|Separator|HSeparator|VSeparator|GridContainer|TabBar|TabContainer|Tab|ScrollContainer|CenterContainer|PanelContainer|MarginContainer|HSplitContainer|VSplitContainer)\s*\(",
+        @"\bnew\s+(?:Panel|PanelContainer|Label|RichTextLabel|Button|TextureButton"
+        + @"|TextureRect|NinePatchRect|ColorRect|HSeparator|VSeparator|Separator"
+        + @"|BoxContainer|HBoxContainer|VBoxContainer|MarginContainer|ScrollContainer"
+        + @"|CenterContainer|GridContainer|HFlowContainer|VFlowContainer"
+        + @"|AspectRatioContainer|TabContainer|TabBar|HSplitContainer|VSplitContainer"
+        + @"|Container)\s*[({]",
         RegexOptions.CultureInvariant);
 
     [Fact]

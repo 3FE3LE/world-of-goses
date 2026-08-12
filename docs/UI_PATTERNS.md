@@ -728,6 +728,15 @@ because the gutter has to sit inside the scrolled content for the
 bar to behave correctly; an inline number is the documented
 exception, the token is the named version.
 
+The scanner matches both construction forms — `new VBoxContainer(...)` and
+`new VBoxContainer { ... }` — and names the real Godot types. It used to
+match only a following `(`, and listed `HBox`/`VBox` rather than
+`HBoxContainer`/`VBoxContainer`, names no engine type has. Between the
+two it reported a clean scan over panels that compose their entire shell
+in C#: every A-row entry in the allowlist was unnecessary, which is a
+guard that agrees with you rather than one that checks. A panel leaving
+the allowlist now has to have actually been migrated.
+
 The migration tracker lives at
 `ArchitectureBoundaryAllowlist.ProductionUiStaticStructureInCode`.
 Every entry in the **A** row is one slice of work: create the

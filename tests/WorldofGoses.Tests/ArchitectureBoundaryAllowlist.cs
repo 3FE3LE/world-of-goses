@@ -223,16 +223,24 @@ public static class ArchitectureBoundaryAllowlist
             "game/scripts/AssignmentPanel.cs",     // 3 scrollable sections + rows
             "game/scripts/ExpeditionPanel.cs",     // team list rebuilt per snapshot
             "game/scripts/BuildingPlot.cs",       // one node per plot, fixed per-plot structure
+            "game/scripts/MacroBuildingView.cs",  // one node per building, spawned per snapshot
+            "game/scripts/MigrantPanel.cs",       // shell is .tscn; the prospect buttons are per-snapshot
 
             // ── D: dev/debug tooling ──
             // Combat debug panel only renders under WOG_VISUAL_CAPTURE.
             "game/scripts/CombatDebugPanel.cs",
+
+            // ── D: dev/showcase tooling ──
+            // Component showcase scene, not a player-facing screen.
+            "game/scripts/LineageShowcase.cs",
 
             // ── E: runtime-only visual object ──
             // First-night overlay nodes vanish when the night ends;
             // notifier toasts and the founder arrival sequence are
             // transient visuals that compose on demand.
             "game/scripts/FirstNightScene.cs",
+            "game/scripts/FirstNightSpeechBubble.cs",
+            "game/scripts/TimeOfDayFilter.cs",
             "game/scripts/Notifier.cs",
             "game/scripts/FounderArrivalSequence.cs",
         };
