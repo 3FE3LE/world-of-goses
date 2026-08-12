@@ -214,6 +214,28 @@ no arrival tick to be paced against and keep the plain cadence gait.
 `ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival` keeps the
 old authority from returning, with an allowlist that is empty by construction.
 
+**A4 — macro view composition.** `MacroStreetLiveView` composes five
+single-responsibility collaborators plus three pure-helper classes (A4):
+`MacroStreetRenderer` (records + per-street draw + band-layer stack + hit-rect
+publication), `MacroInteractionController` (selection + hover state),
+`CitizenJourneyPresenter` (founder state + per-citizen journey dictionary +
+`StreetNavigationServerPlanner`), `MacroCameraController` (zoom + free/follow
+mode + lateral/depth anchor + pan + transition timing + building-entry push),
+and `PlacementPresenter` (placement-mode state: the active flag, the chosen
+kind, the projected lot and cell boxes, and the hovered / selected lot). The
+placement clickable rects deliberately stay in `MacroHitRects`, the one
+hit-rect bag the whole macro view shares, so the presenter takes them as an
+argument instead of keeping a second copy. The pure helpers —
+`MacroViewConstants`, `MacroProjectionHelpers`, `MacroObstacleGeometry`,
+`MacroSelectionTextBuilder` — centralise numerics, projection maths, obstacle
+geometry, and selection text. `MacroHitRects` and `MacroPlotLookup` are the
+record-bag seams between the renderer and the interaction / journey paths. No
+interfaces, no DI, no service locator. The view orchestrates the collaborators
+but does not know their internals; the collaborators do not know about each
+other. The presenter never ends a journey — `PacedRouteSteps` still paces
+against the domain window, and `ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival`
+keeps the old authority from returning.
+
 The macro camera is free by default. Selection changes information and action
 context only; following the selected citizen requires the explicit camera toggle. WASD
 and the arrow keys always pan the camera. In an unobstructed macro view their

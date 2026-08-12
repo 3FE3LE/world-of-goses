@@ -351,7 +351,13 @@ public sealed class HudCompositionTests
         Assert.Contains("_actionDock.Hide();\n        _primaryNavDock.Show();", Normalize(source), StringComparison.Ordinal);
         Assert.Contains("_primaryNavDock.Hide();\n        _actionDock.Show();", Normalize(source), StringComparison.Ordinal);
         Assert.Contains("if (restorePrimaryNavigation) _primaryNavDock.Show();", source, StringComparison.Ordinal);
-        Assert.Contains("_placementActive && @event.IsActionPressed(\"ui_cancel\")", source, StringComparison.Ordinal);
+        // A4 moved the placement-mode state out of the view and into
+        // PlacementPresenter; the guard is the same guard, read through
+        // the presenter instead of a local field.
+        Assert.Contains(
+            "_placement.PlacementActive && @event.IsActionPressed(\"ui_cancel\")",
+            source,
+            StringComparison.Ordinal);
         Assert.Contains("CancelPlacement();", source, StringComparison.Ordinal);
         Assert.Contains("_confirmButton.FocusNeighborLeft", actionDockSource, StringComparison.Ordinal);
         Assert.Contains("_confirmButton.FocusNeighborRight", actionDockSource, StringComparison.Ordinal);

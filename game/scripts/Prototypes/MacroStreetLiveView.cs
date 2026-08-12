@@ -5,6 +5,14 @@ using System.Linq;
 using Godot;
 using WorldofGoses.Domain;
 using WorldofGoses.Ui;
+// A4: the plot/tree records live on the renderer. Aliasing them here keeps
+// the in-class references inside this view compilable without touching the
+// 50+ bodies that already use the unqualified names.
+using PlotBox = WorldofGoses.Prototypes.MacroStreetRenderer.PlotBox;
+using TreeBox = WorldofGoses.Prototypes.MacroStreetRenderer.TreeBox;
+using PlacementLotBox = WorldofGoses.Prototypes.PlacementPresenter.PlacementLotBox;
+using PlacementCellBox = WorldofGoses.Prototypes.PlacementPresenter.PlacementCellBox;
+using CitizenJourney = WorldofGoses.Prototypes.CitizenJourneyPresenter.JourneyState;
 
 namespace WorldofGoses.Prototypes;
 
@@ -52,7 +60,7 @@ namespace WorldofGoses.Prototypes;
 /// independent from selection. Free mode decouples the vanishing point
 /// (<see cref="CameraLateral"/>/
 /// <see cref="CameraDepthAnchor"/>) from the founder's own true position
-/// (<see cref="_heroLateral"/>/<see cref="_heroStreet"/>, which keeps
+/// (<see cref="_journeys.HeroLateral"/>/<see cref="_journeys.HeroStreet"/>, which keeps
 /// moving/routing on its own regardless of camera mode) and projects the
 /// founder as an ordinary sprite instead of always at depth 0.
 ///
@@ -68,67 +76,70 @@ namespace WorldofGoses.Prototypes;
 /// </summary>
 public partial class MacroStreetLiveView : Node2D
 {
-    private const bool DefaultCameraFollowsHero = false;
-    private const float CenterX = 640f;
-    private const float BaseY = 580f; // ScreenContent-local. HUD migrations do not
+    // A4: every shared numeric and color lives in MacroViewConstants. The
+    // view keeps the same `private const` / `private static readonly` names
+    // as compile-time-or-static forwarders so the existing in-class
+    // references (and the existing test surface) keep compiling unchanged.
+    private const bool DefaultCameraFollowsHero = MacroViewConstants.DefaultCameraFollowsHero;
+    private const float CenterX = MacroViewConstants.CenterX;
+    private const float BaseY = MacroViewConstants.BaseY; // ScreenContent-local. HUD migrations do not
     // retune the world projection; doing so would shift every authored depth row.
-    private const float CameraZoomPivotY = 680f;
-    private const float LotUnitPx = 90f;
-    private const int DefaultWorldParcelColumns = 5;
-    private const int DefaultWorldParcelRows = 2;
+    private const float CameraZoomPivotY = MacroViewConstants.CameraZoomPivotY;
+    private const float LotUnitPx = MacroViewConstants.LotUnitPx;
+    private const int DefaultWorldParcelColumns = MacroViewConstants.DefaultWorldParcelColumns;
+    private const int DefaultWorldParcelRows = MacroViewConstants.DefaultWorldParcelRows;
 
     // Quantized zoom: discrete steps, never a continuous drag/slider.
-    private const float ZoomStep = 0.15f;
-    private const float MinZoom = 1.3f;
-    private const float DefaultZoom = 1.45f;
-    private const float MaxZoom = 3.0f;
+    private const float ZoomStep = MacroViewConstants.ZoomStep;
+    private const float MinZoom = MacroViewConstants.MinZoom;
+    private const float DefaultZoom = MacroViewConstants.DefaultZoom;
+    private const float MaxZoom = MacroViewConstants.MaxZoom;
 
     // Holding vertical pan repeats slowly at first, then gently accelerates.
     // The camera still advances only on the 12 Hz pixel-motion cadence and
     // still crosses integer streets through discrete transition steps.
-    private const float VerticalPanInitialRepeatSeconds = 0.48f;
-    private const float VerticalPanMinimumRepeatSeconds = 0.26f;
-    private const float VerticalPanAccelerationSeconds = 3f;
-    private const float VerticalPanMaximumTransitionMultiplier = 1.55f;
+    private const float VerticalPanInitialRepeatSeconds = MacroViewConstants.VerticalPanInitialRepeatSeconds;
+    private const float VerticalPanMinimumRepeatSeconds = MacroViewConstants.VerticalPanMinimumRepeatSeconds;
+    private const float VerticalPanAccelerationSeconds = MacroViewConstants.VerticalPanAccelerationSeconds;
+    private const float VerticalPanMaximumTransitionMultiplier = MacroViewConstants.VerticalPanMaximumTransitionMultiplier;
 
     // Same cadence discipline as the earlier prototypes (design bible §08,
     // "Pixel-motion grammar"): no continuous tweening.
-    private const int TransitionSteps = 10;
-    private const float DepthStepSize = 1f / TransitionSteps;
+    private const int TransitionSteps = MacroViewConstants.TransitionSteps;
+    private const float DepthStepSize = MacroViewConstants.DepthStepSize;
 
     // Building-entry camera push: a handful of DISCRETE zoom steps toward
     // the clicked building (same stepped cadence as citizen/camera motion —
     // never a continuous Tween), applied to THIS node's own Scale/Position
     // (the map), not to BuildingDetailView. See BeginBuildingEntry.
-    private const int BuildingEntryZoomSteps = 10;
-    private const float BuildingEntryZoomLevel = 1.75f;
+    private const int BuildingEntryZoomSteps = MacroViewConstants.BuildingEntryZoomSteps;
+    private const float BuildingEntryZoomLevel = MacroViewConstants.BuildingEntryZoomLevel;
 
     // One resource unit owns one frontage cell. Its visual canvas therefore
     // stays within that cell instead of visually claiming a whole 3×3 lot.
-    private const float ResourceUnitBaseSizePx = TileUnitPx;
+    private const float ResourceUnitBaseSizePx = MacroViewConstants.ResourceUnitBaseSizePx;
     // Lateral span a living tree blocks when crossing its band (its lot).
     // Half hero width plus a small margin: how much free lateral space a
     // crossing between streets needs to count as viable.
-    private const float RouteClearancePx = 14f;
+    private const float RouteClearancePx = MacroViewConstants.RouteClearancePx;
     // Granularity when scanning a band for a viable crossing point. Must be
     // small enough to reliably land inside the narrowest realistic gap
     // between two adjacent same-row obstacles (with today's spacing, as
     // little as ~18 px) — a coarser step can jump clean over a legitimate
     // gap and force the search much farther out, reading as if the hero
     // detoured around a whole row instead of threading through it.
-    private const float CrossingScanStepPx = 6f;
+    private const float CrossingScanStepPx = MacroViewConstants.CrossingScanStepPx;
     // LPC frames center the body; feet sit ~28 frame px below center, which
     // is 7 px at the carrier's 0.25 macro scale (before depth scaling).
-    private const float HeroFootOffsetMacroPx = 7f;
+    private const float HeroFootOffsetMacroPx = MacroViewConstants.HeroFootOffsetMacroPx;
 
-    private const string ResourceActionMenuScenePath = "res://scenes/Components/ResourceActionMenu.tscn";
-    private const string CultivationActionMenuScenePath =
-        "res://scenes/Components/CultivationActionMenu.tscn";
+    private const string ResourceActionMenuScenePath = MacroViewConstants.ResourceActionMenuScenePath;
+    private const string CultivationActionMenuScenePath = MacroViewConstants.CultivationActionMenuScenePath;
 
     // Floor tiles sample the Kenney atlas ResourceTree already uses for
     // trees (S-1.3 biome pass), keyed by street so the corridor reads as
     // distinct ground per calle.
-    private const float TileUnitPx = LotUnitPx / 3f; // ParcelGrid.TilesPerStandardLot
+    private const float TileUnitPx = MacroViewConstants.TileUnitPx; // ParcelGrid.TilesPerStandardLot
     // Chunky pixel-grid step for the floor's staircase edges — see
     // DrawPixelStaircaseTrapezoid. Independent of PixelMotion.StepPixels:
     // coarse enough to read as deliberate pixel art, fine enough that the
@@ -140,7 +151,7 @@ public partial class MacroStreetLiveView : Node2D
     // whole-pixel grid and nothing is interpolated. Two is the floor worth
     // taking; at 1 px the treads stop reading as deliberate and the edge
     // becomes the diagonal this quantisation exists to avoid.
-    private const float PixelStepPx = 2f;
+    private const float PixelStepPx = MacroViewConstants.PixelStepPx;
     // Ground biome atlas coordinates in the shared Kenney roguelike sheet
     // (see ResourceTree.TerrainAtlasPath/AtlasRegionRect for the 16px+1
     // stride convention). Rows 0/1 hold two near-identical variants of each
@@ -150,27 +161,27 @@ public partial class MacroStreetLiveView : Node2D
     // the same swatch reserved for the future worn-path pass (H-32 S-1.3
     // follow-up): a trampled tile will simply render as this same Dirt
     // biome rather than needing a fourth texture.
-    private const int GrassAtlasColumn = 5;
-    private const int DirtAtlasColumn = 6;
-    private const int StoneAtlasColumn = 7;
-    private const int GroundAtlasRowA = 0;
-    private const int GroundAtlasRowB = 1;
-    private const float StatusBadgeSize = 24f;
-    private const float StatusBadgeBorder = 2f;
-    private static readonly Color BuildingColor = new("#8a7a54");
-    private static readonly Color UnderConstructionModulate = new(0.55f, 0.55f, 0.55f);
-    private static readonly Color PlacementAvailableColor = new("#2f8f5b22");
-    private static readonly Color PlacementHoveredValidColor = new("#45c87866");
-    private static readonly Color PlacementHoveredInvalidColor = new("#c94f4f70");
-    private static readonly Color PlacementBlockedCellColor = new("#8f3f3f2e");
-    private static readonly Color PlacementGridColor = new("#d8cda566");
+    private const int GrassAtlasColumn = MacroViewConstants.GrassAtlasColumn;
+    private const int DirtAtlasColumn = MacroViewConstants.DirtAtlasColumn;
+    private const int StoneAtlasColumn = MacroViewConstants.StoneAtlasColumn;
+    private const int GroundAtlasRowA = MacroViewConstants.GroundAtlasRowA;
+    private const int GroundAtlasRowB = MacroViewConstants.GroundAtlasRowB;
+    private const float StatusBadgeSize = MacroViewConstants.StatusBadgeSize;
+    private const float StatusBadgeBorder = MacroViewConstants.StatusBadgeBorder;
+    private static readonly Color BuildingColor = MacroViewConstants.BuildingColor;
+    private static readonly Color UnderConstructionModulate = MacroViewConstants.UnderConstructionModulate;
+    private static readonly Color PlacementAvailableColor = MacroViewConstants.PlacementAvailableColor;
+    private static readonly Color PlacementHoveredValidColor = MacroViewConstants.PlacementHoveredValidColor;
+    private static readonly Color PlacementHoveredInvalidColor = MacroViewConstants.PlacementHoveredInvalidColor;
+    private static readonly Color PlacementBlockedCellColor = MacroViewConstants.PlacementBlockedCellColor;
+    private static readonly Color PlacementGridColor = MacroViewConstants.PlacementGridColor;
     // Territory tints: opaque for Locked so the player cannot mistake
     // it for buildable ground; progressively lighter for intermediate
     // states so the visual cost of an expedition reads at a glance.
-    private static readonly Color LockedParcelColor = new(0.08f, 0.07f, 0.05f, 0.78f);
-    private static readonly Color ReconnoitredParcelColor = new(0.86f, 0.72f, 0.28f, 0.32f);
-    private static readonly Color RouteSecuredParcelColor = new(0.47f, 0.62f, 0.34f, 0.22f);
-    private static readonly Color PlacementSelectedColor = new("#f2c94ccc");
+    private static readonly Color LockedParcelColor = MacroViewConstants.LockedParcelColor;
+    private static readonly Color ReconnoitredParcelColor = MacroViewConstants.ReconnoitredParcelColor;
+    private static readonly Color RouteSecuredParcelColor = MacroViewConstants.RouteSecuredParcelColor;
+    private static readonly Color PlacementSelectedColor = MacroViewConstants.PlacementSelectedColor;
 
     [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
     [Export] public NodePath StatusPanelPath { get; set; } = "../../CityStatusPanel";
@@ -221,179 +232,76 @@ public partial class MacroStreetLiveView : Node2D
     private Texture2D _terrainAtlas = null!;
     private Texture2D _storageFullIcon = null!;
     private WorldStatusBubble _worldStatusBubble = null!;
-    private readonly Dictionary<BuildingKind, Texture2D?> _buildingTextureCache = new();
-    private readonly Dictionary<int, CityMacroSnapshot.CitizenItem> _citizenStates = new();
-    private int? _hoveredCitizenId;
-    private int? _hoveredStorageBuildingId;
-    private CitizenId? _visualStatusCitizenId;
-    private bool _selectionIsMacro = true;
-    private float _zoomLevel = DefaultZoom;
-    private Vector2 _neutralPosition;
-
-    // Building-entry push state (see BeginBuildingEntry/AdvanceBuildingEntry).
-    private BuildingId? _pendingBuildingEntry;
-    private Vector2 _buildingEntryPivotLocal;
-    private float _buildingEntryStartZoom;
-    private int _buildingEntryStep;
-    private float _buildingEntryAccumulator;
-
-    // Camera mode (design bible §04 "Cámara-sigue"): follow-selected-target
-    // vs. always-available free pan, an explicit toggle independent from
-    // selection itself — see also the validated WalkableWorldCamera
-    // prototype. Free camera state is intentionally separate from the
-    // hero's own _heroStreet/_heroLateral (the hero's true position, which
-    // keeps moving/routing on its own regardless of camera mode).
-    private bool _cameraFollowsHero = DefaultCameraFollowsHero;
-    private float _freeCameraLateral;
-    private int _freeCameraStreet;
-    private float _cameraDepthAnchor;
-    private float? _cameraDepthTarget;
-    private float _cameraTransitionAccumulator;
-    private int _verticalPanDirection;
-    private float _verticalPanHoldSeconds;
-    private float _verticalPanRepeatAccumulator;
+    // A4: building texture cache and terrain wear moved to MacroStreetRenderer.
+    // (TerrainWearGrid kept here only because the doc-comments above still
+    // reference it; the renderer is the canonical owner — see its
+    // WearAt/TrampleHeroTile.)
+    // A4: _hoveredCitizenId, _hoveredStorageBuildingId, _visualStatusCitizenId,
+    // _selectionIsMacro moved to MacroInteractionController.
+    // A4: _zoomLevel, _neutralPosition, _pendingBuildingEntry,
+    // _buildingEntryPivotLocal, _buildingEntryStartZoom, _buildingEntryStep,
+    // _buildingEntryAccumulator, _cameraFollowsHero, _freeCameraLateral,
+    // _freeCameraStreet, _cameraDepthAnchor, _cameraDepthTarget,
+    // _cameraTransitionAccumulator, _verticalPanDirection,
+    // _verticalPanHoldSeconds, _verticalPanRepeatAccumulator moved to
+    // MacroCameraController.
 
     // Placement mode: select-then-confirm frontage picking projected directly on
     // the same terrain geometry as the city.
-    private readonly record struct PlacementLotBox(
-        ConstructionPlacementSnapshot.WindowItem Window,
-        int Street,
-        float LateralOffset,
-        float Width,
-        float Height);
-    private readonly record struct PlacementCellBox(
-        ConstructionPlacementSnapshot.CellItem Cell,
-        int Street,
-        float LateralOffset,
-        float Width,
-        float Height);
     private readonly record struct ResourceFeedbackAnchor(
         Vector2 Position,
         Node2D? FollowTarget,
         Vector2 FollowOffset);
-    private readonly List<PlacementLotBox> _placementLots = new();
-    private readonly List<PlacementCellBox> _placementCells = new();
-    private readonly List<(Rect2 Rect, PlacementLotBox Lot)> _clickablePlacementRects = new();
-    private bool _placementActive;
+    // A4: hit-rect collections moved to MacroHitRects bag; the placement
+    // state (active flag, kind, projected lots and cells, hover and
+    // selection) moved to PlacementPresenter.
+    private readonly PlacementPresenter _placement = new();
     private bool _selectHeroAfterModalClose;
-    private ConstructionKind _placementKind;
-    private ConstructionLot? _selectedPlacementLot;
-    private PlacementLotBox? _hoveredPlacementLot;
-    private string _placementBaseInstruction = string.Empty;
     private ActionDock _actionDock = null!;
     private PauseMenu _pauseMenu = null!;
 
-    private readonly List<PlotBox> _plots = new();
-    private readonly List<TreeBox> _trees = new();
+    // A4: _plots and _trees moved to MacroStreetRenderer.
     // S-1.3 phase 2: session-scoped foot-traffic wear, not persisted (see
     // TerrainWearGrid's own doc for why it deliberately stays out of WorldSave).
-    private readonly TerrainWearGrid _terrainWear = new();
-    private readonly List<(Rect2 Rect, int BuildingId)> _clickableRects = new();
-    private readonly List<(Rect2 Rect, TreeBox Tree)> _clickableTreeRects = new();
-    private readonly List<(Rect2 Rect, CitizenId CitizenId)> _clickableCitizenRects = new();
-    private readonly List<(Rect2 Rect, PlotBox Plot)> _storageFullBadgeRects = new();
-    private readonly Dictionary<int, List<StreetRoutePlanner.Interval>> _bandOccupancy = new();
-    private static readonly List<StreetRoutePlanner.Interval> EmptyBand = new();
+    // A4: terrain wear grid moved to MacroStreetRenderer.
+    // A4: _hitRects.BuildingClickableRects, _hitRects.TreeClickableRects, _hitRects.CitizenClickableRects, _hitRects.StorageBadgeRects
+    // moved to MacroHitRects bag.
+    // A4: _bandOccupancy and EmptyBand moved to MacroStreetRenderer.
 
+    // A4 (kept for legacy reads; the renderer is the canonical owner):
     private int _streetCount = 1;
     private float _lateralHalfWidthPx = LotUnitPx;
     private int _worldParcelColumns = DefaultWorldParcelColumns;
     private int _worldParcelRows = DefaultWorldParcelRows;
-    private readonly Dictionary<(int Row, int Column), ParcelTerritoryState> _parcelTerritory = new();
+    // A4: _citizenStates and _parcelTerritory moved to MacroStreetRenderer.
 
-    // The founder has an independent physical position. Follow mode may use
-    // it as the camera anchor, but selection and keyboard input never move it.
-    private int _heroStreet;
-    private float _heroLateral;
-    private float _depthAnchor;
-    private float? _depthTarget;
-    private float _motionAccumulator;
-    private float _transitionAccumulator;
-    private bool _heroWalking;
-    private bool _heroPositionInitialized;
+    // A4: founder's physical position and journey state moved to
+    // CitizenJourneyPresenter. The view's selection state also moved
+    // to MacroInteractionController above.
 
     private ContextInspector _contextInspector = null!;
-    private TreeBox? _selectedTree;
-    private int? _selectedBuildingId;
-    private CitizenId? _selectedCitizenId;
 
-    private CitizenSpriteCarrier? _heroCarrier;
-    private sealed class CitizenJourney
-    {
-        public CitizenJourney(
-            CitizenId citizenId,
-            CitizenSpriteCarrier carrier,
-            int street,
-            float lateral)
-        {
-            CitizenId = citizenId;
-            Carrier = carrier;
-            Street = street;
-            Lateral = lateral;
-            DepthAnchor = street;
-        }
-
-        public CitizenId CitizenId { get; }
-        public CitizenSpriteCarrier Carrier { get; }
-        public int Street { get; set; }
-        public float Lateral { get; set; }
-        public float DepthAnchor { get; set; }
-        public float? DepthTarget { get; set; }
-        public float TransitionAccumulator { get; set; }
-        public List<StreetRoutePlanner.Waypoint>? Route { get; set; }
-        public int RouteIndex { get; set; }
-        public BuildingId? Destination { get; set; }
-        public bool ReturningHome { get; set; }
-        public bool Walking { get; set; }
-        public bool IsAmbient { get; set; }
-        public int NextAmbientDecisionTick { get; set; }
-
-        // Pacing window of the domain journey this route draws. Null for an
-        // ambient wander, which answers to no domain fact and keeps the plain
-        // cadence gait.
-        public int? PacingStartTick { get; set; }
-        public int TotalSteps { get; set; }
-        public int StepsApplied { get; set; }
-    }
-
-    // Every non-founder citizen uses the same street route planner and cadence
-    // as the founder. This is presentation-only and never persists pixels.
-    private readonly Dictionary<int, CitizenJourney> _citizenJourneys = new();
+    // A4: _heroCarrier, _heroStreet, _heroLateral, _depthAnchor, _depthTarget,
+    // _motionAccumulator, _transitionAccumulator, _heroWalking,
+    // _heroPositionInitialized, _journeys.Journeys, _route, _routeIndex,
+    // _pendingGather, _pendingAssignment, _pendingReturnHome,
+    // _heroIsGatheringOutsideHome, _heroAmbientRoute,
+    // _heroNextAmbientDecisionTick, _routePacingStartTick, _routeTotalSteps,
+    // _routeStepsApplied, _lastKnownAssignment, _lastKnownHeroLocation,
+    // _journeys.NavmeshPlanner moved to CitizenJourneyPresenter.
 
     internal readonly record struct ReconstructedRoutePosition(
         int Street,
         float Lateral,
         int RouteIndex,
         int StepsApplied);
-    private StreetNavigationServerPlanner? _navmeshPlanner;
-    private List<StreetRoutePlanner.Waypoint>? _route;
-    private int _routeIndex;
-    private (int ForestId, int UnitId)? _pendingGather;
-    private BuildingId? _pendingAssignment;
-    private bool _pendingReturnHome;
-    // Domain CurrentLocation stays AtHome during a Gather route because
-    // gathering is not a work assignment. Without this latch a world refresh
-    // could re-hide the founder just as the gather animation resolves.
-    private bool _heroIsGatheringOutsideHome;
-    private bool _heroAmbientRoute;
-    private int _heroNextAmbientDecisionTick;
-    // Pacing anchor for the founder's current route. Set only for a real
-    // domain journey; a gather or ambient wander has no arrival tick to be
-    // paced against and keeps the plain one-step-per-cadence gait.
-    private int? _routePacingStartTick;
-    private int _routeTotalSteps;
-    private int _routeStepsApplied;
+    // A4: navmeshPlanner, _route, _routeIndex, _pendingGather, _pendingAssignment,
+    // _pendingReturnHome, _heroIsGatheringOutsideHome, _heroAmbientRoute,
+    // _heroNextAmbientDecisionTick, _routePacingStartTick, _routeTotalSteps,
+    // _routeStepsApplied, _lastKnownAssignment, _lastKnownHeroLocation
+    // moved to CitizenJourneyPresenter.
 
-    internal float CameraLateralForVisualRegression => _freeCameraLateral;
-    // Tracks the domain's own hero.CurrentAssignment so a route to the
-    // workplace fires exactly once per NEW assignment (see
-    // EnsureHeroCarrier) — without this, every world tick re-triggered the
-    // walk (or, worse, forced the carrier back to free-roam Macro state
-    // while something else — the assignment/worker-slot flow — still
-    // expected to own it), producing an endless fight that looked like the
-    // citizen looping in place for no reason.
-    private BuildingId? _lastKnownAssignment;
-    private CitizenLocation? _lastKnownHeroLocation;
+    internal float CameraLateralForVisualRegression => _camera.FreeCameraLateral;
     private bool _treeHovered;
     private ResourceType _hoveredResource = ResourceType.Wood;
 
@@ -403,32 +311,11 @@ public partial class MacroStreetLiveView : Node2D
     // `_controller.World.X` reads without holding the live aggregate.
     private MacroStreetLiveViewState _macroState = default!;
     private bool _macroStateInitialized;
-
-    private readonly record struct PlotBox(
-        int Street,
-        float LateralOffset,
-        float Width,
-        float Height,
-        int BuildingId,
-        string DisplayName,
-        BuildingKind Kind,
-        bool IsUnderConstruction,
-        bool IsClickable,
-        int Stock,
-        int StorageCapacity,
-        CultivationPlotState? CultivationState,
-        int? ReadyAtTick)
-    {
-        public bool IsStorageFull => StorageCapacity > 0 && Stock >= StorageCapacity;
-    }
-
-    private readonly record struct TreeBox(
-        int Street,
-        float LateralOffset,
-        int ForestId,
-        int UnitId,
-        ResourceType ResourceType,
-        int Reserve);
+    private readonly MacroStreetRenderer _renderer = new();
+    private readonly MacroInteractionController _interaction = new();
+    private readonly CitizenJourneyPresenter _journeys = new();
+    private readonly MacroCameraController _camera = new();
+    private readonly MacroHitRects _hitRects = new();
 
     public override void _Ready()
     {
@@ -465,15 +352,28 @@ public partial class MacroStreetLiveView : Node2D
         _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
+        _renderer.LoadTerrainAtlas(ResourceTree.TerrainAtlasPath);
         _storageFullIcon = GD.Load<Texture2D>(IconPaths.Check);
         _worldStatusBubble = new WorldStatusBubble();
         GetParent().CallDeferred(Node.MethodName.AddChild, _worldStatusBubble);
         // Pixel-art atlas tiles scale up crisp instead of smearing.
         TextureFilter = TextureFilterEnum.Nearest;
 
+        // A4: the renderer owns the per-street band layer stack. The painter
+        // is the view's DrawStreetObstacles — the renderer installs it on
+        // every new layer it creates.
+        _renderer.Attach(this);
+        _renderer.Painter = DrawStreetObstacles;
+        _interaction.Attach(_worldStatusBubble, _cursorController);
+        _camera.Attach(this);
+
         _streetCount = _worldParcelRows * ParcelGrid.LotsPerAxis;
         _lateralHalfWidthPx =
             _worldParcelColumns * ParcelGrid.LotsPerAxis * LotUnitPx * 0.5f;
+        _renderer.StreetCount = _streetCount;
+        _renderer.LateralHalfWidthPx = _lateralHalfWidthPx;
+        _renderer.WorldParcelColumns = _worldParcelColumns;
+        _renderer.WorldParcelRows = _worldParcelRows;
 
         _actionMenu = GD.Load<PackedScene>(ResourceActionMenuScenePath).Instantiate<ResourceActionMenu>();
         _actionMenu.GatherRequested += OnGatherRequested;
@@ -484,7 +384,7 @@ public partial class MacroStreetLiveView : Node2D
             .Instantiate<CultivationActionMenu>();
         _cultivationActionMenu.CultivationRequested += OnCultivationRequested;
         GetParent().CallDeferred(Node.MethodName.AddChild, _cultivationActionMenu);
-        _navmeshPlanner = new StreetNavigationServerPlanner();
+        _journeys.NavmeshPlanner = new StreetNavigationServerPlanner();
         BuildPlacementChrome();
 
         _controller.BuildingStateChanged += OnWorldChanged;
@@ -509,8 +409,8 @@ public partial class MacroStreetLiveView : Node2D
         UpdatePrimaryNavigationState();
 
         RefreshPlots();
-        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
-        _cameraDepthAnchor = _freeCameraStreet;
+        _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
         Visible = false;
         // ScreenContent (this node's parent) sits below CityStatusPanel
         // inside a VBoxContainer, so its own local (0,0) is NOT the
@@ -530,7 +430,7 @@ public partial class MacroStreetLiveView : Node2D
     private void NormalizePosition()
     {
         Position -= GlobalPosition;
-        _neutralPosition = Position;
+        _camera.NeutralPosition = Position;
         Scale = Vector2.One;
         ZoomTowardPivot(DefaultZoom, new Vector2(CenterX, CameraZoomPivotY));
     }
@@ -559,7 +459,8 @@ public partial class MacroStreetLiveView : Node2D
         _cameraModeButton.Pressed -= ToggleCameraMode;
         _actionDock.ConfirmButton.Pressed -= OnPlacementConfirmPressed;
         _actionDock.CancelButton.Pressed -= OnPlacementCancelPressed;
-        _navmeshPlanner?.Dispose();
+        _journeys.NavmeshPlanner?.Dispose();
+        _renderer.Dispose();
     }
 
     /// <summary>
@@ -624,9 +525,9 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void OnSelectionChanged(int selectionState)
     {
-        _selectionIsMacro =
+        _interaction.SelectionIsMacro =
             (CityWorldController.Selection)selectionState == CityWorldController.Selection.MacroView;
-        if (!_selectionIsMacro)
+        if (!_interaction.SelectionIsMacro)
         {
             Deactivate();
             return;
@@ -640,7 +541,7 @@ public partial class MacroStreetLiveView : Node2D
     private void ActivatePerspective()
     {
         ShowMacroHudSurfaces();
-        if (!_placementActive) ShowPrimaryNavigation();
+        if (!_placement.PlacementActive) ShowPrimaryNavigation();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
@@ -662,7 +563,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     public Vector2 GetBuildingGlobalPosition(int buildingId)
     {
-        foreach ((Rect2 rect, int id) in _clickableRects)
+        foreach ((Rect2 rect, int id) in _hitRects.BuildingClickableRects)
         {
             if (id != buildingId) continue;
             return ToGlobal(new Vector2(rect.Position.X + rect.Size.X * 0.5f, rect.End.Y));
@@ -690,7 +591,7 @@ public partial class MacroStreetLiveView : Node2D
     {
         ActivatePerspective();
         _primaryNavDock.Hide();
-        _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+        _journeys.HeroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
     }
 
     public void CompleteFounderArrival()
@@ -704,17 +605,17 @@ public partial class MacroStreetLiveView : Node2D
     private void Deactivate()
     {
         ClearWorldStatusHover();
-        _visualStatusCitizenId = null;
+        _interaction.VisualStatusCitizenId = null;
         Hide();
         HideMacroHudSurfaces();
         _primaryNavDock.Hide();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
-        _selectedTree = null;
-        _selectedBuildingId = null;
+        _interaction.SelectedTree = null;
+        _interaction.SelectedBuildingId = null;
         ClearTreeHover();
-        if (_placementActive) EndPlacement(restorePrimaryNavigation: false);
+        if (_placement.PlacementActive) EndPlacement(restorePrimaryNavigation: false);
         ResetZoom();
     }
 
@@ -737,11 +638,11 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void ResetZoom()
     {
-        _zoomLevel = DefaultZoom;
+        _camera.ZoomLevel = DefaultZoom;
         Scale = Vector2.One;
-        Position = _neutralPosition;
+        Position = _camera.NeutralPosition;
         ZoomTowardPivot(DefaultZoom, new Vector2(CenterX, CameraZoomPivotY));
-        _pendingBuildingEntry = null;
+        _camera.PendingBuildingEntry = null;
     }
 
     /// <summary>Opens or closes construction from the city toolbar.</summary>
@@ -749,7 +650,7 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (!Visible) return;
         ClearWorldStatusHover();
-        if (_placementActive)
+        if (_placement.PlacementActive)
         {
             CancelPlacement();
             return;
@@ -851,10 +752,10 @@ public partial class MacroStreetLiveView : Node2D
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
         ActivatePerspective();
         OnPlacementRequested((int)ConstructionKind.Farm);
-        foreach (PlacementLotBox candidate in _placementLots)
+        foreach (PlacementLotBox candidate in _placement.PlacementLots)
         {
             if (candidate.Window.IsValid != valid) continue;
-            _hoveredPlacementLot = candidate;
+            _placement.SetHoveredLot(candidate);
             _actionDock.InstructionText = PlacementHoverText(candidate.Window.State);
             QueueRedraw();
             return;
@@ -866,7 +767,7 @@ public partial class MacroStreetLiveView : Node2D
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
         ActivatePerspective();
         OnPlacementRequested((int)ConstructionKind.Farm);
-        foreach (PlacementLotBox candidate in _placementLots)
+        foreach (PlacementLotBox candidate in _placement.PlacementLots)
         {
             if (!candidate.Window.IsValid) continue;
             SelectPlacementLot(candidate);
@@ -883,13 +784,13 @@ public partial class MacroStreetLiveView : Node2D
     internal void ShowCitizenStatusForVisualRegression(CitizenId citizenId)
     {
         RefreshPlots();
-        _visualStatusCitizenId = citizenId;
+        _interaction.VisualStatusCitizenId = citizenId;
         CitizenSpriteCarrier? carrier = null;
-        if (_heroCarrier?.Id == citizenId)
+        if (_journeys.HeroCarrier?.Id == citizenId)
         {
-            carrier = _heroCarrier;
+            carrier = _journeys.HeroCarrier;
         }
-        else if (_citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
+        else if (_journeys.Journeys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
         {
             carrier = journey.Carrier;
         }
@@ -899,7 +800,7 @@ public partial class MacroStreetLiveView : Node2D
             GD.PushError($"World-status fixture could not expose citizen {citizenId.Value} on the macro map.");
             return;
         }
-        if (!_citizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen)) return;
+        if (!_renderer.CitizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen)) return;
         ShowCitizenStatus(citizen, CitizenHoverRect(carrier));
     }
 
@@ -915,11 +816,11 @@ public partial class MacroStreetLiveView : Node2D
     {
         RefreshPlots();
         CitizenSpriteCarrier? carrier = null;
-        if (_heroCarrier?.Id == citizenId)
+        if (_journeys.HeroCarrier?.Id == citizenId)
         {
-            carrier = _heroCarrier;
+            carrier = _journeys.HeroCarrier;
         }
-        else if (_citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
+        else if (_journeys.Journeys.TryGetValue(citizenId.Value, out CitizenJourney? journey))
         {
             carrier = journey.Carrier;
         }
@@ -1011,7 +912,7 @@ public partial class MacroStreetLiveView : Node2D
             _constructionMenuButton.ThemeTypeVariation = "HudButtonSelected";
             _constructionMenuButton.TooltipText = UiText.Get("Close the construction menu (work continues).");
         }
-        else if (_placementActive)
+        else if (_placement.PlacementActive)
         {
             _constructionMenuButton.SetIconAndLabel(IconPaths.Close, UiText.Get("Cancel"));
             _constructionMenuButton.ThemeTypeVariation = "HudButtonSelected";
@@ -1050,33 +951,29 @@ public partial class MacroStreetLiveView : Node2D
         ConstructionKind kind,
         ConstructionPlacementSnapshot placement)
     {
-        _placementActive = true;
-        _placementKind = kind;
-        _selectedPlacementLot = null;
-        _hoveredPlacementLot = null;
+        _placement.Begin(
+            kind,
+            UiText.Format(
+                "ui.construction.choose_lot",
+                UiText.Get(ConstructionRules.DisplayNameFor(kind))));
         _actionDock.ConfirmButton.Disabled = true;
-        _placementBaseInstruction = UiText.Format(
-            "ui.construction.choose_lot",
-            UiText.Get(ConstructionRules.DisplayNameFor(kind)));
-        _actionDock.InstructionText = _placementBaseInstruction;
+        _actionDock.InstructionText = _placement.PlacementBaseInstruction;
         _primaryNavDock.Hide();
         _actionDock.Show();
         _actionMenu.Hide();
         _cultivationActionMenu.Hide();
         _contextInspector.Hide();
-        _selectedTree = null;
-        _selectedBuildingId = null;
+        _interaction.SelectedTree = null;
+        _interaction.SelectedBuildingId = null;
         ClearTreeHover();
         float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
-        _placementLots.Clear();
-        _placementCells.Clear();
         foreach (ConstructionPlacementSnapshot.WindowItem window in placement.Windows)
         {
             ConstructionLot lot = window.Lot;
             int street = lot.RowId.Value;
             float frontageCenter = lot.StartColumn + lot.FrontageColumns * 0.5f;
             float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
-            _placementLots.Add(new PlacementLotBox(
+            _placement.AddLot(new PlacementLotBox(
                 window,
                 street,
                 lateralOffset,
@@ -1087,7 +984,7 @@ public partial class MacroStreetLiveView : Node2D
         {
             float frontageCenter = cell.FrontageColumn + 0.5f;
             float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
-            _placementCells.Add(new PlacementCellBox(
+            _placement.AddCell(new PlacementCellBox(
                 cell,
                 cell.RowId.Value,
                 lateralOffset,
@@ -1099,12 +996,8 @@ public partial class MacroStreetLiveView : Node2D
 
     private void EndPlacement(bool restorePrimaryNavigation = true)
     {
-        _placementActive = false;
-        _selectedPlacementLot = null;
-        _hoveredPlacementLot = null;
-        _placementLots.Clear();
-        _placementCells.Clear();
-        _clickablePlacementRects.Clear();
+        _placement.End();
+        _hitRects.PlacementRects.Clear();
         _actionDock.Hide();
         if (restorePrimaryNavigation) _primaryNavDock.Show();
         UpdateConstructionButtonLabel();
@@ -1113,40 +1006,25 @@ public partial class MacroStreetLiveView : Node2D
 
     private void SelectPlacementLot(PlacementLotBox lot)
     {
-        if (!lot.Window.IsValid)
-        {
-            _selectedPlacementLot = null;
-            _actionDock.ConfirmButton.Disabled = true;
-            _actionDock.InstructionText = PlacementHoverText(lot.Window.State);
-            QueueRedraw();
-            return;
-        }
-        _selectedPlacementLot = lot.Window.Lot;
-        _actionDock.ConfirmButton.Disabled = false;
-        _actionDock.InstructionText = UiText.Get("ui.construction.placement_selected");
+        _placement.SelectLot(lot);
+        bool selected = _placement.SelectedPlacementLot.HasValue;
+        _actionDock.ConfirmButton.Disabled = !selected;
+        _actionDock.InstructionText = selected
+            ? UiText.Get("ui.construction.placement_selected")
+            : PlacementHoverText(lot.Window.State);
         QueueRedraw();
     }
 
     private void UpdatePlacementHover(Vector2 mousePosition)
     {
-        PlacementLotBox? nearest = null;
-        float nearestDistanceSquared = float.MaxValue;
-        foreach ((Rect2 rect, PlacementLotBox lot) in _clickablePlacementRects)
-        {
-            if (!rect.HasPoint(mousePosition)) continue;
-            float distanceSquared = mousePosition.DistanceSquaredTo(rect.GetCenter());
-            if (distanceSquared >= nearestDistanceSquared) continue;
-            nearest = lot;
-            nearestDistanceSquared = distanceSquared;
-        }
-
-        if (_hoveredPlacementLot == nearest) return;
-        _hoveredPlacementLot = nearest;
+        PlacementLotBox? nearest =
+            PlacementPresenter.TryFindNearestLot(mousePosition, _hitRects.PlacementRects);
+        if (!_placement.SetHoveredLot(nearest)) return;
         _actionDock.InstructionText = nearest is PlacementLotBox hovered
             ? PlacementHoverText(hovered.Window.State)
-            : _selectedPlacementLot.HasValue
+            : _placement.SelectedPlacementLot.HasValue
                 ? UiText.Get("ui.construction.placement_selected")
-                : _placementBaseInstruction;
+                : _placement.PlacementBaseInstruction;
         QueueRedraw();
     }
 
@@ -1162,8 +1040,9 @@ public partial class MacroStreetLiveView : Node2D
 
     private void OnPlacementConfirmPressed()
     {
-        if (_selectedPlacementLot is not ConstructionLot lot) return;
-        ConstructionAuthorizationResult result = _controller.TryAuthorizeConstruction(_placementKind, lot);
+        if (_placement.SelectedPlacementLot is not ConstructionLot lot) return;
+        ConstructionAuthorizationResult result =
+            _controller.TryAuthorizeConstruction(_placement.PlacementKind, lot);
         if (!result.IsSuccess)
         {
             Notifier.ShowError(ConstructionPanel.FormatAuthorizationError(result.Outcome));
@@ -1197,15 +1076,14 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void RefreshPlots()
     {
-        _plots.Clear();
-        _trees.Clear();
-        _bandOccupancy.Clear();
+        _renderer.ClearPlotsAndTrees();
+        _renderer.ClearBandOccupancy();
         CityMacroSnapshot snapshot = _controller.GetCityMacroSnapshot();
         RefreshParcelEnvelope(snapshot);
-        _citizenStates.Clear();
+        _renderer.ClearCitizenStates();
         foreach (CityMacroSnapshot.CitizenItem citizen in snapshot.Citizens)
         {
-            _citizenStates[citizen.Id.Value] = citizen;
+            _renderer.SetCitizenState(citizen.Id.Value, citizen);
         }
         float totalLotColumns = _worldParcelColumns * ParcelGrid.LotsPerAxis;
 
@@ -1230,12 +1108,12 @@ public partial class MacroStreetLiveView : Node2D
 
     private void RefreshParcelEnvelope(CityMacroSnapshot snapshot)
     {
-        _parcelTerritory.Clear();
+        _renderer.ClearParcelTerritory();
         int maximumColumn = -1;
         int maximumRow = -1;
         foreach (CityMacroSnapshot.ParcelItem parcel in snapshot.Parcels)
         {
-            _parcelTerritory[(parcel.LogicalRow, parcel.LogicalColumn)] = parcel.TerritoryState;
+            _renderer.SetParcelTerritory(parcel.LogicalRow, parcel.LogicalColumn, parcel.TerritoryState);
             maximumColumn = Math.Max(maximumColumn, parcel.LogicalColumn);
             maximumRow = Math.Max(maximumRow, parcel.LogicalRow);
         }
@@ -1243,9 +1121,12 @@ public partial class MacroStreetLiveView : Node2D
         _worldParcelRows = Math.Max(1, maximumRow + 1);
         _streetCount = _worldParcelRows * ParcelGrid.ConstructionRowsPerParcel;
         _lateralHalfWidthPx = _worldParcelColumns
-            * ParcelGrid.LotsPerAxis
-            * LotUnitPx
-            * 0.5f;
+            * ParcelGrid.ConstructionRowsPerParcel
+            * LotUnitPx * 0.5f;
+        _renderer.StreetCount = _streetCount;
+        _renderer.LateralHalfWidthPx = _lateralHalfWidthPx;
+        _renderer.WorldParcelColumns = _worldParcelColumns;
+        _renderer.WorldParcelRows = _worldParcelRows;
     }
 
     /// <summary>
@@ -1256,9 +1137,9 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void RefreshSelectionInfoIfShown()
     {
-        if (_selectedTree is { } selectedTree)
+        if (_interaction.SelectedTree is { } selectedTree)
         {
-            foreach (TreeBox tree in _trees)
+            foreach (TreeBox tree in _renderer.Trees)
             {
                 if (tree.ForestId != selectedTree.ForestId || tree.UnitId != selectedTree.UnitId) continue;
                 SelectTree(tree);
@@ -1267,9 +1148,9 @@ public partial class MacroStreetLiveView : Node2D
             ClearSelection();
             return;
         }
-        if (_selectedCitizenId is { } selectedCitizenId)
+        if (_interaction.SelectedCitizenId is { } selectedCitizenId)
         {
-            if (_citizenStates.ContainsKey(selectedCitizenId.Value))
+            if (_renderer.CitizenStates.ContainsKey(selectedCitizenId.Value))
             {
                 SelectCitizen(selectedCitizenId);
                 return;
@@ -1277,8 +1158,8 @@ public partial class MacroStreetLiveView : Node2D
             ClearSelection();
             return;
         }
-        if (_selectedBuildingId is not { } buildingId) return;
-        foreach (PlotBox plot in _plots)
+        if (_interaction.SelectedBuildingId is not { } buildingId) return;
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.BuildingId != buildingId) continue;
             SelectBuildingPlot(buildingId);
@@ -1297,34 +1178,20 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void SelectCitizen(CitizenId citizenId)
     {
-        if (!_citizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen))
+        if (!_renderer.CitizenStates.TryGetValue(citizenId.Value, out CityMacroSnapshot.CitizenItem? citizen))
         {
             ClearSelection();
             return;
         }
-        _selectedCitizenId = citizenId;
-        _selectedTree = null;
-        _selectedBuildingId = null;
+        _interaction.SelectedCitizenId = citizenId;
+        _interaction.SelectedTree = null;
+        _interaction.SelectedBuildingId = null;
         Texture2D? icon = ResourceLoader.Load<Texture2D>(IconPaths.User);
         _contextInspector.ShowSelection(icon, citizen.Name, FormatCitizenSelectionDetail(citizen));
     }
 
-    internal static string FormatCitizenSelectionDetail(CityMacroSnapshot.CitizenItem citizen)
-    {
-        var lines = new List<string>();
-        foreach (SelectionLine line in BuildCitizenSelectionKeys(citizen))
-        {
-            _ = line.IconPath;
-            if (line.FormatArgs is null)
-            {
-                lines.Add(UiText.Get(line.TextKey));
-                continue;
-            }
-            object[] translated = TranslateSelectionArgs(line.FormatArgs);
-            lines.Add(UiText.Format(line.TextKey, translated));
-        }
-        return string.Join("\n", lines);
-    }
+    internal static string FormatCitizenSelectionDetail(CityMacroSnapshot.CitizenItem citizen) =>
+        MacroSelectionTextBuilder.FormatCitizenSelectionDetail(citizen);
 
     /// <summary>
     /// Translates raw domain values into the strings the view layer formats
@@ -1332,17 +1199,8 @@ public partial class MacroStreetLiveView : Node2D
     /// the wound recovery duration (ticks → human-readable string); the
     /// severity key is already a localization key and passes through unchanged.
     /// </summary>
-    private static object[] TranslateSelectionArgs(IReadOnlyList<object> formatArgs)
-    {
-        var translated = new object[formatArgs.Count];
-        for (int index = 0; index < formatArgs.Count; index++)
-        {
-            translated[index] = formatArgs[index] is int ticks
-                ? SimulationTimeText.FormatDurationLocalized(ticks)
-                : formatArgs[index];
-        }
-        return translated;
-    }
+    private static object[] TranslateSelectionArgs(IReadOnlyList<object> formatArgs) =>
+        MacroSelectionTextBuilder.TranslateSelectionArgs(formatArgs);
 
     internal readonly record struct SelectionLine(
         string IconPath,
@@ -1358,63 +1216,8 @@ public partial class MacroStreetLiveView : Node2D
     /// is the raw tick count; the view layer resolves it to a localized
     /// duration string before passing it to <see cref="UiText.Format"/>.
     /// </summary>
-    internal static IReadOnlyList<SelectionLine> BuildCitizenSelectionKeys(CityMacroSnapshot.CitizenItem citizen)
-    {
-        var lines = new List<SelectionLine>();
-        if (citizen.IsOnExpedition)
-        {
-            lines.Add(new SelectionLine(
-                IconPaths.Shield,
-                "ui.world_status.expedition",
-                null));
-        }
-        else
-        {
-            if (citizen.BlockReason == CitizenRoutineBlockReason.NoFood)
-            {
-                lines.Add(new SelectionLine(
-                    IconPaths.Warning,
-                    "ui.world_status.no_food",
-                    null));
-            }
-            else
-            {
-                string key = citizen.Activity switch
-                {
-                    CitizenRoutineActivity.Working => "ui.world_status.working",
-                    CitizenRoutineActivity.TravellingToWork => "ui.world_status.travelling",
-                    CitizenRoutineActivity.TravellingHome => "ui.world_status.travelling",
-                    CitizenRoutineActivity.WaitingForStorage => "ui.world_status.waiting_storage",
-                    CitizenRoutineActivity.WaitingForResources => "ui.world_status.waiting_resources",
-                    CitizenRoutineActivity.WorkplaceIdle => "ui.world_status.work_paused",
-                    CitizenRoutineActivity.OffDuty => "ui.world_status.off_duty",
-                    CitizenRoutineActivity.Resting => "ui.world_status.resting",
-                    CitizenRoutineActivity.Recovering => "ui.world_status.recovering",
-                    CitizenRoutineActivity.Leisure => "ui.world_status.idle",
-                    _ => "ui.world_status.unavailable",
-                };
-                lines.Add(new SelectionLine(IconPaths.Cog, key, null));
-            }
-        }
-        if (citizen.WoundSeverity is WoundSeverity severity)
-        {
-            string severityKey = severity == WoundSeverity.Severe
-                ? "ui.wound.severe"
-                : "ui.wound.moderate";
-            lines.Add(new SelectionLine(
-                IconPaths.Heart,
-                "ui.world_status.wound",
-                new object[] { severityKey }));
-            if (citizen.IsReceivingWoundTreatment)
-            {
-                lines.Add(new SelectionLine(
-                    IconPaths.Clock,
-                    "ui.world_status.treatment",
-                    new object[] { citizen.WoundRecoveryTicksRemaining }));
-            }
-        }
-        return lines;
-    }
+    internal static IReadOnlyList<SelectionLine> BuildCitizenSelectionKeys(CityMacroSnapshot.CitizenItem citizen) =>
+        MacroSelectionTextBuilder.BuildCitizenSelectionKeys(citizen);
 
     /// <summary>
     /// Each natural-resource patch has one reserve per visible unit;
@@ -1428,140 +1231,59 @@ public partial class MacroStreetLiveView : Node2D
         {
             if (forest.WoodUnitReserves[unitId] <= 0) continue;
             if (unitId >= forest.ResourceUnitPositions.Count) continue;
-            NaturalResourceUnitPosition position = forest.ResourceUnitPositions[unitId];
-            int street = forest.ParcelRow * ParcelGrid.ConstructionRowsPerParcel
-                + position.RowWithinParcel;
-            float totalFrontageColumns = totalLotColumns * ParcelGrid.TilesPerStandardLot;
-            float frontageCenter = forest.ParcelColumn * ParcelGrid.FrontageColumnsPerParcel
-                + position.FrontageColumnWithinParcel
-                + 0.5f;
-            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
-            _trees.Add(new TreeBox(
-                street,
-                lateralOffset,
-                forest.Id.Value,
-                unitId,
-                forest.GroundResourceType ?? ResourceType.Wood,
-                forest.WoodUnitReserves[unitId]));
-            ObstacleFootprintTemplate footprint = NaturalResourceFootprintCatalog.Get(
-                forest.GroundResourceType ?? ResourceType.Wood);
-            float halfTileUnitPx = TileUnitPx * 0.5f;
-            float reservedWidth = footprint.ReservedArea.Width * halfTileUnitPx;
-            StreetRoutePlanner.Interval obstacle = ObstacleIntervalFromClearances(
-                lateralOffset - reservedWidth * 0.5f,
-                reservedWidth,
-                footprint.LeftClearance * halfTileUnitPx,
-                footprint.RightClearance * halfTileUnitPx);
-            AddBandInterval(street, obstacle.Start, obstacle.End);
+            _renderer.AddTree(forest, unitId, (int)totalLotColumns);
         }
     }
 
-    private void AddPlot(CityMacroSnapshot.PlotItem item, bool clickable)
-    {
-        int street = item.RowId;
-        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
-        float frontageCenter = item.StartColumn + item.FrontageColumns * 0.5f;
-        float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
-        float width = item.FrontageColumns * TileUnitPx;
-        _plots.Add(new PlotBox(
-            street,
-            lateralOffset,
-            width,
-            item.DepthRows * TileUnitPx,
-            item.Id.Value,
-            item.DisplayName,
-            item.Kind,
-            item.IsUnderConstruction,
-            clickable,
-            item.Stock,
-            item.StorageCapacity,
-            item.CultivationState,
-            item.ReadyAtTick));
-        StreetRoutePlanner.Interval obstacle = BuildingObstacleInterval(
-            item,
-            totalFrontageColumns,
-            TileUnitPx);
-        AddBandInterval(street, obstacle.Start, obstacle.End);
-    }
+    private void AddPlot(CityMacroSnapshot.PlotItem item, bool clickable) =>
+        _renderer.AddPlot(item, clickable, _worldParcelColumns);
 
     internal static StreetRoutePlanner.Interval BuildingObstacleInterval(
         CityMacroSnapshot.PlotItem item,
         float totalFrontageColumns,
-        float tileUnitPx)
-    {
-        float reservedLeft = (item.StartColumn
-            - totalFrontageColumns * 0.5f) * tileUnitPx;
-        float reservedWidth = item.FrontageColumns * tileUnitPx;
-        float solidLeft = (item.StructuralStartHalfColumn * 0.5f
-            - totalFrontageColumns * 0.5f) * tileUnitPx;
-        float solidWidth = item.StructuralFrontageHalfColumns * 0.5f * tileUnitPx;
-        return ObstacleIntervalFromClearances(
-            reservedLeft,
-            reservedWidth,
-            solidLeft - reservedLeft,
-            reservedLeft + reservedWidth - solidLeft - solidWidth);
-    }
+        float tileUnitPx) =>
+        MacroObstacleGeometry.BuildingObstacleInterval(item, totalFrontageColumns, tileUnitPx);
 
     internal static StreetRoutePlanner.Interval ObstacleIntervalFromClearances(
         float reservedStart,
         float reservedWidth,
         float leftClearance,
-        float rightClearance)
-    {
-        if (reservedWidth <= 0f) throw new ArgumentOutOfRangeException(nameof(reservedWidth));
-        if (leftClearance < 0f) throw new ArgumentOutOfRangeException(nameof(leftClearance));
-        if (rightClearance < 0f) throw new ArgumentOutOfRangeException(nameof(rightClearance));
-        if (leftClearance + rightClearance >= reservedWidth)
-        {
-            throw new ArgumentException(
-                "Obstacle clearances must leave a positive solid interval.");
-        }
-        return new StreetRoutePlanner.Interval(
-            reservedStart + leftClearance,
-            reservedStart + reservedWidth - rightClearance);
-    }
+        float rightClearance) =>
+        MacroObstacleGeometry.ObstacleIntervalFromClearances(
+            reservedStart, reservedWidth, leftClearance, rightClearance);
 
-    private void AddBandInterval(int band, float start, float end)
-    {
-        if (!_bandOccupancy.TryGetValue(band, out List<StreetRoutePlanner.Interval>? intervals))
-        {
-            intervals = new List<StreetRoutePlanner.Interval>();
-            _bandOccupancy[band] = intervals;
-        }
-        intervals.Add(new StreetRoutePlanner.Interval(start, end));
-    }
+    private void AddBandInterval(int band, float start, float end) =>
+        _renderer.AddBandInterval(band, start, end);
 
     private IReadOnlyList<StreetRoutePlanner.Interval> GetBandOccupancy(int band) =>
-        _bandOccupancy.TryGetValue(band, out List<StreetRoutePlanner.Interval>? intervals)
-            ? intervals
-            : EmptyBand;
+        _renderer.GetBandOccupancy(band);
 
     /// <summary>The vanishing point's lateral position — the founder's own
     /// while following, an independently-steered value while free.</summary>
     private float CameraLateral =>
-        _cameraFollowsHero && TryGetObservedCitizenAnchor(out _, out float lateral)
+        _camera.CameraFollowsHero && TryGetObservedCitizenAnchor(out _, out float lateral)
             ? lateral
-            : _freeCameraLateral;
+            : _camera.FreeCameraLateral;
 
     /// <summary>The vanishing point's smoothed depth — see the class doc's
     /// "Camera mode" note and <see cref="AdvanceTransition"/>.</summary>
-    private float CameraDepthAnchor =>
-        _cameraFollowsHero && TryGetObservedCitizenAnchor(out float depth, out _)
+    internal float CameraDepthAnchor =>
+        _camera.CameraFollowsHero && TryGetObservedCitizenAnchor(out float depth, out _)
             ? depth
-            : _cameraDepthAnchor;
+            : _camera.CameraDepthAnchor;
 
     private bool IsProjectedDepthVisible(float relativeDepth) =>
-        StreetDepthProjection.IsVisibleDepth(relativeDepth);
+        MacroProjectionHelpers.IsProjectedDepthVisible(relativeDepth);
 
     private static float ProjectedRowScreenY(float relativeDepth) =>
-        StreetDepthProjection.RowScreenY(relativeDepth, BaseY);
+        MacroProjectionHelpers.ProjectedRowScreenY(relativeDepth, BaseY);
 
     private static float ProjectedHorizontalScale(float relativeDepth) =>
-        StreetDepthProjection.HorizontalScale(relativeDepth);
+        MacroProjectionHelpers.HorizontalScale(relativeDepth);
 
     private (Vector2 Position, Vector2 Scale) ProjectDepth(
         float relativeDepth,
-        float lateralOffset) => StreetDepthProjection.Project(
+        float lateralOffset) => MacroProjectionHelpers.Project(
             relativeDepth,
             lateralOffset,
             CenterX,
@@ -1574,17 +1296,17 @@ public partial class MacroStreetLiveView : Node2D
 
     internal bool HasActiveCitizenJourneyForVisualRegression(CitizenId citizenId) =>
         System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") == "1"
-        && _citizenJourneys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
+        && _journeys.Journeys.TryGetValue(citizenId.Value, out CitizenJourney? journey)
         && journey.Route is not null;
 
     public void ShowThirdStreetDepthForVisualRegression()
     {
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
         SetCameraFollowsHero(false);
-        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
-        _cameraDepthAnchor = _freeCameraStreet;
-        _cameraDepthTarget = null;
-        _cameraTransitionAccumulator = 0f;
+        _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
+        _camera.CameraDepthTarget = null;
+        _camera.CameraTransitionAccumulator = 0f;
         QueueRedraw();
     }
 
@@ -1593,14 +1315,14 @@ public partial class MacroStreetLiveView : Node2D
         if (System.Environment.GetEnvironmentVariable("WOG_VISUAL_CAPTURE") != "1") return;
         ActivatePerspective();
         SetCameraFollowsHero(false);
-        _freeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
-        _cameraDepthAnchor = _freeCameraStreet;
-        _cameraDepthTarget = null;
-        _cameraTransitionAccumulator = 0f;
+        _camera.FreeCameraStreet = Mathf.Clamp(2, 0, _streetCount - 1);
+        _camera.CameraDepthAnchor = _camera.FreeCameraStreet;
+        _camera.CameraDepthTarget = null;
+        _camera.CameraTransitionAccumulator = 0f;
         ZoomTowardPivot(MinZoom, new Vector2(CenterX, CameraZoomPivotY));
         GD.Print(
             $"Long terrarium fixture: {_worldParcelRows} parcel rows, "
-            + $"{_streetCount} streets, zoom {_zoomLevel:F2}.");
+            + $"{_streetCount} streets, zoom {_camera.ZoomLevel:F2}.");
         QueueRedraw();
         if (!string.IsNullOrWhiteSpace(System.Environment.GetEnvironmentVariable(
                 "WOG_LONG_TERRARIUM_CAPTURE")))
@@ -1629,30 +1351,37 @@ public partial class MacroStreetLiveView : Node2D
 
     public override void _Process(double delta)
     {
-        bool hasCitizenTravel = _route is not null
-            || _citizenJourneys.Values.Any(journey => journey.Route is not null);
+        bool hasCitizenTravel = _journeys.Route is not null
+            || _journeys.Journeys.Values.Any(journey => journey.Route is not null);
         if (!Visible && !hasCitizenTravel) return;
-        _motionAccumulator += (float)delta;
-        while (_motionAccumulator >= PixelMotion.CadenceSeconds)
+        _journeys.MotionAccumulator += (float)delta;
+        while (_journeys.MotionAccumulator >= PixelMotion.CadenceSeconds)
         {
-            _motionAccumulator -= PixelMotion.CadenceSeconds;
+            _journeys.MotionAccumulator -= PixelMotion.CadenceSeconds;
             MotionTick(allowCameraInput: CanUseWorldNavigationInput);
             AdvanceCitizenJourneysTick();
         }
         // The founder's own smoothed row (always active — it also paces
         // AdvanceRouteTick regardless of camera mode) and, independently,
         // the free camera's own smoothed row when not following.
-        bool heroDepthAnimating = _depthTarget.HasValue;
-        bool cameraDepthAnimating = _cameraDepthTarget.HasValue;
-        AdvanceTransition(ref _depthAnchor, ref _depthTarget, ref _transitionAccumulator, delta);
+        bool heroDepthAnimating = _journeys.DepthTarget.HasValue;
+        bool cameraDepthAnimating = _camera.CameraDepthTarget.HasValue;
+        float heroDepthAnchor = _journeys.DepthAnchor;
+        float? heroDepthTarget = _journeys.DepthTarget;
+        float heroTransitionAccumulator = _journeys.TransitionAccumulator;
+        AdvanceTransition(ref heroDepthAnchor, ref heroDepthTarget, ref heroTransitionAccumulator, delta);
+        _journeys.UpdateFounderTransition(heroDepthAnchor, heroDepthTarget, heroTransitionAccumulator);
+        float cameraDepthAnchor = _camera.CameraDepthAnchor;
+        float? cameraDepthTarget = _camera.CameraDepthTarget;
+        float cameraTransitionAccumulator = _camera.CameraTransitionAccumulator;
         AdvanceTransition(
-            ref _cameraDepthAnchor,
-            ref _cameraDepthTarget,
-            ref _cameraTransitionAccumulator,
+            ref cameraDepthAnchor,
+            ref cameraDepthTarget,
+            ref cameraTransitionAccumulator,
             delta,
-            DepthStepSize * VerticalPanTransitionMultiplier(_verticalPanHoldSeconds));
+            DepthStepSize * VerticalPanTransitionMultiplier(_camera.VerticalPanHoldSeconds));
         bool citizenDepthAnimating = false;
-        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        foreach (CitizenJourney journey in _journeys.Journeys.Values)
         {
             citizenDepthAnimating |= journey.DepthTarget.HasValue;
             AdvanceJourneyTransition(journey, delta);
@@ -1661,7 +1390,7 @@ public partial class MacroStreetLiveView : Node2D
         if (Visible)
         {
             AdvanceBuildingEntry(delta);
-            if (!_visualStatusCitizenId.HasValue)
+            if (!_interaction.VisualStatusCitizenId.HasValue)
             {
                 // The world owns the pointer whenever the cursor sits over
                 // a citizen or a full-storage badge. The macro view's own
@@ -1676,7 +1405,7 @@ public partial class MacroStreetLiveView : Node2D
                 // the exact symptom the user reported (visible only when
                 // an external window forced a redraw).
                 Vector2 localMouse = ToLocal(GetViewport().GetMousePosition());
-                if (_placementActive)
+                if (_placement.PlacementActive)
                 {
                     UpdatePlacementHover(localMouse);
                 }
@@ -1685,8 +1414,8 @@ public partial class MacroStreetLiveView : Node2D
                 if (!worldOwnsPointer && (
                     _modalHost.IsOpen
                     || _actionMenu.Visible
-                    || _placementActive
-                    || _pendingBuildingEntry is not null
+                    || _placement.PlacementActive
+                    || _camera.PendingBuildingEntry is not null
                     || UiInputBoundary.IsPointerOwnedByUi(GetViewport())))
                 {
                     ClearWorldStatusHover();
@@ -1704,7 +1433,7 @@ public partial class MacroStreetLiveView : Node2D
         if (!Visible
             || _pauseMenu.Visible
             || _modalHost?.IsOpen == true
-            || _placementActive
+            || _placement.PlacementActive
             || _actionMenu.Visible
             || _cultivationActionMenu.Visible
             || @event is not InputEventKey { Pressed: true } key
@@ -1730,7 +1459,7 @@ public partial class MacroStreetLiveView : Node2D
         Visible
         && !_pauseMenu.Visible
         && !_modalHost.IsOpen
-        && !_placementActive
+        && !_placement.PlacementActive
         && !_actionMenu.Visible
         && !_cultivationActionMenu.Visible;
 
@@ -1739,7 +1468,7 @@ public partial class MacroStreetLiveView : Node2D
         if (!Visible) return;
         // A building-entry push is a brief, exclusive, non-interruptible
         // transition — same spirit as the fullscreen placement scrim.
-        if (_pendingBuildingEntry is not null) return;
+        if (_camera.PendingBuildingEntry is not null) return;
         if (UiInputBoundary.IsWheelEvent(@event))
         {
             bool pointerIsOverScrollableUi = UiInputBoundary.IsPointerOverScrollableUi(GetViewport());
@@ -1751,7 +1480,7 @@ public partial class MacroStreetLiveView : Node2D
                 return;
             }
         }
-        if (_placementActive && @event.IsActionPressed("ui_cancel"))
+        if (_placement.PlacementActive && @event.IsActionPressed("ui_cancel"))
         {
             CancelPlacement();
             GetViewport().SetInputAsHandled();
@@ -1813,7 +1542,7 @@ public partial class MacroStreetLiveView : Node2D
                 TryRightClick(ToLocal(rightClick.Position));
                 break;
             case InputEventMouseMotion motion:
-                if (_placementActive)
+                if (_placement.PlacementActive)
                 {
                     UpdatePlacementHover(ToLocal(motion.Position));
                 }
@@ -1835,8 +1564,8 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void AdjustZoom(float delta)
     {
-        float newZoom = Mathf.Clamp(_zoomLevel + delta, MinZoom, MaxZoom);
-        if (Mathf.IsEqualApprox(newZoom, _zoomLevel)) return;
+        float newZoom = Mathf.Clamp(_camera.ZoomLevel + delta, MinZoom, MaxZoom);
+        if (Mathf.IsEqualApprox(newZoom, _camera.ZoomLevel)) return;
         ZoomTowardPivot(newZoom, new Vector2(CenterX, CameraZoomPivotY));
     }
 
@@ -1853,7 +1582,7 @@ public partial class MacroStreetLiveView : Node2D
         var newScale = Vector2.One * newZoom;
         Position += pivotLocal * (oldScale - newScale);
         Scale = newScale;
-        _zoomLevel = newZoom;
+        _camera.ZoomLevel = newZoom;
     }
 
     /// <summary>
@@ -1864,7 +1593,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void ToggleCameraMode()
     {
-        SetCameraFollowsHero(!_cameraFollowsHero);
+        SetCameraFollowsHero(!_camera.CameraFollowsHero);
     }
 
     /// <summary>
@@ -1877,7 +1606,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void SetCameraFollowsHero(bool value)
     {
-        if (_cameraFollowsHero == value) return;
+        if (_camera.CameraFollowsHero == value) return;
         if (!value)
         {
             // Entering free mode starts exactly where follow mode left
@@ -1885,13 +1614,13 @@ public partial class MacroStreetLiveView : Node2D
             // subsequent free-camera input diverges it from the founder.
             float currentLateral = CameraLateral;
             float currentDepth = CameraDepthAnchor;
-            _freeCameraLateral = currentLateral;
-            _freeCameraStreet = Mathf.RoundToInt(currentDepth);
-            _cameraDepthAnchor = currentDepth;
-            _cameraDepthTarget = null;
-            _cameraTransitionAccumulator = 0f;
+            _camera.FreeCameraLateral = currentLateral;
+            _camera.FreeCameraStreet = Mathf.RoundToInt(currentDepth);
+            _camera.CameraDepthAnchor = currentDepth;
+            _camera.CameraDepthTarget = null;
+            _camera.CameraTransitionAccumulator = 0f;
         }
-        _cameraFollowsHero = value;
+        _camera.CameraFollowsHero = value;
         UpdateCameraModeButtonLabel();
         QueueRedraw();
     }
@@ -1911,11 +1640,11 @@ public partial class MacroStreetLiveView : Node2D
         CitizenId? founderId = _controller.GetHeroId();
         if (observedId is null || observedId == founderId)
         {
-            depth = _depthAnchor;
-            lateral = _heroLateral;
+            depth = _journeys.DepthAnchor;
+            lateral = _journeys.HeroLateral;
             return founderId is not null;
         }
-        if (_citizenJourneys.TryGetValue(observedId.Value.Value, out CitizenJourney? journey))
+        if (_journeys.Journeys.TryGetValue(observedId.Value.Value, out CitizenJourney? journey))
         {
             depth = journey.DepthAnchor;
             lateral = journey.Lateral;
@@ -1930,8 +1659,8 @@ public partial class MacroStreetLiveView : Node2D
             lateral = plot.LateralOffset;
             return true;
         }
-        depth = _depthAnchor;
-        lateral = _heroLateral;
+        depth = _journeys.DepthAnchor;
+        lateral = _journeys.HeroLateral;
         return false;
     }
 
@@ -1939,13 +1668,13 @@ public partial class MacroStreetLiveView : Node2D
     {
         _cameraModeButton.SetIconAndLabel(
             IconPaths.Camera,
-            _cameraFollowsHero
+            _camera.CameraFollowsHero
                 ? UiText.Get("ui.camera.follow_short")
                 : UiText.Get("ui.camera.free_short"));
-        _cameraModeButton.TooltipText = _cameraFollowsHero
+        _cameraModeButton.TooltipText = _camera.CameraFollowsHero
             ? UiText.Get("ui.camera.follow_tooltip")
             : UiText.Get("ui.camera.free_tooltip");
-        _cameraModeButton.ThemeTypeVariation = _cameraFollowsHero
+        _cameraModeButton.ThemeTypeVariation = _camera.CameraFollowsHero
             ? "HudButtonSelected"
             : "HudButton";
     }
@@ -1968,34 +1697,26 @@ public partial class MacroStreetLiveView : Node2D
 
         // Placement mode is exclusive and blocks every other world click
         // while a lot is being chosen.
-        if (_placementActive)
+        if (_placement.PlacementActive)
         {
-            PlacementLotBox? nearest = null;
-            float nearestDistanceSquared = float.MaxValue;
-            foreach ((Rect2 rect, PlacementLotBox lot) in _clickablePlacementRects)
-            {
-                if (!rect.HasPoint(clickPosition)) continue;
-                float distanceSquared = clickPosition.DistanceSquaredTo(rect.GetCenter());
-                if (distanceSquared >= nearestDistanceSquared) continue;
-                nearest = lot;
-                nearestDistanceSquared = distanceSquared;
-            }
+            PlacementLotBox? nearest =
+                PlacementPresenter.TryFindNearestLot(clickPosition, _hitRects.PlacementRects);
             if (nearest is PlacementLotBox selected) SelectPlacementLot(selected);
             return;
         }
-        foreach ((Rect2 rect, TreeBox tree) in _clickableTreeRects)
+        foreach ((Rect2 rect, TreeBox tree) in _hitRects.TreeClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectTree(tree);
             return;
         }
-        foreach ((Rect2 rect, CitizenId citizenId) in _clickableCitizenRects)
+        foreach ((Rect2 rect, CitizenId citizenId) in _hitRects.CitizenClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectCitizen(citizenId);
             return;
         }
-        foreach ((Rect2 rect, int buildingId) in _clickableRects)
+        foreach ((Rect2 rect, int buildingId) in _hitRects.BuildingClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectBuildingPlot(buildingId);
@@ -2015,21 +1736,21 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void TryRightClick(Vector2 clickPosition)
     {
-        if (_placementActive) return;
-        foreach ((Rect2 rect, TreeBox tree) in _clickableTreeRects)
+        if (_placement.PlacementActive) return;
+        foreach ((Rect2 rect, TreeBox tree) in _hitRects.TreeClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectTree(tree);
             OpenGatherMenu(tree, rect);
             return;
         }
-        foreach ((Rect2 rect, CitizenId citizenId) in _clickableCitizenRects)
+        foreach ((Rect2 rect, CitizenId citizenId) in _hitRects.CitizenClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectCitizen(citizenId);
             return;
         }
-        foreach ((Rect2 rect, int buildingId) in _clickableRects)
+        foreach ((Rect2 rect, int buildingId) in _hitRects.BuildingClickableRects)
         {
             if (!rect.HasPoint(clickPosition)) continue;
             SelectBuildingPlot(buildingId);
@@ -2048,8 +1769,8 @@ public partial class MacroStreetLiveView : Node2D
 
     private void SelectTree(TreeBox tree)
     {
-        _selectedTree = tree;
-        _selectedBuildingId = null;
+        _interaction.SelectedTree = tree;
+        _interaction.SelectedBuildingId = null;
         // The selection icon is the same sprite the world draws, so the panel
         // and the plot agree. Non-wood resources used to fall back to a
         // generic leaf glyph regardless of what they actually were.
@@ -2059,7 +1780,7 @@ public partial class MacroStreetLiveView : Node2D
                 // The trunk tile of the very tree that was clicked, so the
                 // panel shows a cactus when a cactus was selected.
                 ? TerrainAtlas.RegionOfId(
-                    TerrainAtlas.TreeFor(_groundBiome, tree.ForestId, tree.UnitId).TrunkId)
+                    TerrainAtlas.TreeFor(_renderer.GroundBiome, tree.ForestId, tree.UnitId).TrunkId)
                 : TerrainAtlas.ResourceRegion(tree.ResourceType, tree.ForestId, tree.UnitId));
         string resourceName = UiText.Get(tree.ResourceType.ToString().ToLowerInvariant());
         string detail = UiText.Format("ui.resource.units_remain", tree.Reserve, resourceName);
@@ -2079,8 +1800,8 @@ public partial class MacroStreetLiveView : Node2D
         if (selectedPlot is { CultivationState: CultivationPlotState state })
         {
             PlotBox plot = selectedPlot.Value;
-            _selectedBuildingId = buildingId;
-            _selectedTree = null;
+            _interaction.SelectedBuildingId = buildingId;
+            _interaction.SelectedTree = null;
             string cultivationDetail = CultivationDetail(plot, state);
             _contextInspector.ShowSelection(
                 GD.Load<Texture2D>(IconPaths.Leaf),
@@ -2094,8 +1815,8 @@ public partial class MacroStreetLiveView : Node2D
             ClearSelection();
             return;
         }
-        _selectedBuildingId = buildingId;
-        _selectedTree = null;
+        _interaction.SelectedBuildingId = buildingId;
+        _interaction.SelectedTree = null;
         Texture2D? icon = GetBuildingTexture(snapshot.Kind);
         // For Home: count citizens physically at home (VisibleCitizens).
         // For production buildings: VisibleWorkerCount/HiddenWorkerCount
@@ -2202,10 +1923,10 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>Extension point: citizens will route here too once they get selection info.</summary>
     private void ClearSelection()
     {
-        if (_selectedTree is null && _selectedBuildingId is null && _selectedCitizenId is null) return;
-        _selectedTree = null;
-        _selectedBuildingId = null;
-        _selectedCitizenId = null;
+        if (_interaction.SelectedTree is null && _interaction.SelectedBuildingId is null && _interaction.SelectedCitizenId is null) return;
+        _interaction.SelectedTree = null;
+        _interaction.SelectedBuildingId = null;
+        _interaction.SelectedCitizenId = null;
         _contextInspector.Hide();
     }
 
@@ -2219,28 +1940,28 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BeginBuildingEntry(BuildingId buildingId, Vector2 pivotLocal)
     {
-        if (_pendingBuildingEntry is not null) return;
+        if (_camera.PendingBuildingEntry is not null) return;
         ClearWorldStatusHover();
-        _pendingBuildingEntry = buildingId;
-        _buildingEntryPivotLocal = pivotLocal;
-        _buildingEntryStartZoom = _zoomLevel;
-        _buildingEntryStep = 0;
-        _buildingEntryAccumulator = 0f;
+        _camera.PendingBuildingEntry = buildingId;
+        _camera.BuildingEntryPivotLocal = pivotLocal;
+        _camera.BuildingEntryStartZoom = _camera.ZoomLevel;
+        _camera.BuildingEntryStep = 0;
+        _camera.BuildingEntryAccumulator = 0f;
     }
 
     private void AdvanceBuildingEntry(double delta)
     {
-        if (_pendingBuildingEntry is not { } buildingId) return;
-        _buildingEntryAccumulator += (float)delta;
-        while (_buildingEntryAccumulator >= PixelMotion.CadenceSeconds && _pendingBuildingEntry is not null)
+        if (_camera.PendingBuildingEntry is not { } buildingId) return;
+        _camera.BuildingEntryAccumulator += (float)delta;
+        while (_camera.BuildingEntryAccumulator >= PixelMotion.CadenceSeconds && _camera.PendingBuildingEntry is not null)
         {
-            _buildingEntryAccumulator -= PixelMotion.CadenceSeconds;
-            _buildingEntryStep++;
-            float t = (float)_buildingEntryStep / BuildingEntryZoomSteps;
-            ZoomTowardPivot(Mathf.Lerp(_buildingEntryStartZoom, BuildingEntryZoomLevel, t), _buildingEntryPivotLocal);
-            if (_buildingEntryStep >= BuildingEntryZoomSteps)
+            _camera.BuildingEntryAccumulator -= PixelMotion.CadenceSeconds;
+            _camera.BuildingEntryStep++;
+            float t = (float)_camera.BuildingEntryStep / BuildingEntryZoomSteps;
+            ZoomTowardPivot(Mathf.Lerp(_camera.BuildingEntryStartZoom, BuildingEntryZoomLevel, t), _camera.BuildingEntryPivotLocal);
+            if (_camera.BuildingEntryStep >= BuildingEntryZoomSteps)
             {
-                _pendingBuildingEntry = null;
+                _camera.PendingBuildingEntry = null;
                 _controller.SelectBuilding(buildingId);
             }
         }
@@ -2253,36 +1974,27 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void UpdateTreeHover(Vector2 mousePosition)
     {
-        if (_placementActive)
+        if (_placement.PlacementActive)
         {
             ClearTreeHover();
             return;
         }
-        bool hovering = false;
-        ResourceType hoveredResource = ResourceType.Wood;
-        foreach ((Rect2 rect, TreeBox unit) in _clickableTreeRects)
-        {
-            if (!rect.HasPoint(mousePosition)) continue;
-            hovering = true;
-            hoveredResource = unit.ResourceType;
-            break;
-        }
-        // Track the resource too, not just "something is hovered": moving
-        // between a tree and a stone without leaving the resource band has to
-        // swap the tool, and it used to raise the axe for every one of them.
-        if (hovering == _treeHovered && hoveredResource == _hoveredResource) return;
-        _treeHovered = hovering;
-        _hoveredResource = hoveredResource;
-        if (hovering) _cursorController?.UseGatherCursor(hoveredResource);
-        else _cursorController?.RestoreSurfaceCursor();
+        bool hovering = _interaction.TryFindHoveredTree(
+            mousePosition, _hitRects.TreeClickableRects, out ResourceType hoveredResource);
+        if (hovering == _interaction.TreeHovered
+            && hoveredResource == _interaction.HoveredResource) return;
+        _interaction.TreeHovered = hovering;
+        _interaction.HoveredResource = hoveredResource;
+        if (hovering) _interaction.CursorController?.UseGatherCursor(hoveredResource);
+        else _interaction.CursorController?.RestoreSurfaceCursor();
     }
 
     private void UpdateWorldHover(Vector2 mousePosition)
     {
-        if (_placementActive || UiInputBoundary.IsPointerOwnedByUi(GetViewport()))
+        if (_placement.PlacementActive || UiInputBoundary.IsPointerOwnedByUi(GetViewport()))
         {
             ClearTreeHover();
-            ClearWorldStatusHover();
+            _interaction.ClearWorldStatusHover();
             return;
         }
 
@@ -2290,23 +2002,23 @@ public partial class MacroStreetLiveView : Node2D
             && citizen is not null)
         {
             ClearTreeHover();
-            if (_hoveredCitizenId != citizen.Id.Value || _hoveredStorageBuildingId.HasValue)
+            if (_interaction.HoveredCitizenId != citizen.Id.Value || _interaction.HoveredStorageBuildingId.HasValue)
             {
-                _hoveredCitizenId = citizen.Id.Value;
-                _hoveredStorageBuildingId = null;
+                _interaction.HoveredCitizenId = citizen.Id.Value;
+                _interaction.HoveredStorageBuildingId = null;
             }
             ShowCitizenStatus(citizen, citizenRect);
             return;
         }
 
-        foreach ((Rect2 rect, PlotBox plot) in _storageFullBadgeRects)
+        foreach ((Rect2 rect, PlotBox plot) in _hitRects.StorageBadgeRects)
         {
             if (!rect.HasPoint(mousePosition)) continue;
             ClearTreeHover();
-            if (_hoveredCitizenId.HasValue || _hoveredStorageBuildingId != plot.BuildingId)
+            if (_interaction.HoveredCitizenId.HasValue || _interaction.HoveredStorageBuildingId != plot.BuildingId)
             {
-                _hoveredCitizenId = null;
-                _hoveredStorageBuildingId = plot.BuildingId;
+                _interaction.HoveredCitizenId = null;
+                _interaction.HoveredStorageBuildingId = plot.BuildingId;
             }
             _worldStatusBubble.ShowAt(
                 ToGlobal(new Vector2(rect.GetCenter().X, rect.Position.Y)),
@@ -2320,25 +2032,14 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
 
-        ClearWorldStatusHover();
+        _interaction.ClearWorldStatusHover();
         UpdateTreeHover(mousePosition);
     }
 
-    private void ClearWorldStatusHover()
-    {
-        _hoveredCitizenId = null;
-        _hoveredStorageBuildingId = null;
-        _worldStatusBubble.Hide();
-    }
+    private void ClearWorldStatusHover() => _interaction.ClearWorldStatusHover();
 
-    private bool IsCursorOverStorageBadge(Vector2 localMouse)
-    {
-        foreach ((Rect2 rect, PlotBox _) in _storageFullBadgeRects)
-        {
-            if (rect.HasPoint(localMouse)) return true;
-        }
-        return false;
-    }
+    private bool IsCursorOverStorageBadge(Vector2 localMouse) =>
+        _interaction.IsCursorOverStorageBadge(localMouse, _hitRects.StorageBadgeRects);
 
     private void ShowCitizenStatus(CityMacroSnapshot.CitizenItem citizen, Rect2 citizenRect)
     {
@@ -2353,11 +2054,11 @@ public partial class MacroStreetLiveView : Node2D
         out CityMacroSnapshot.CitizenItem? citizen,
         out Rect2 citizenRect)
     {
-        if (_heroCarrier is not null
-            && IsVisibleMacroCarrier(_heroCarrier)
-            && _citizenStates.TryGetValue(_heroCarrier.Id.Value, out CityMacroSnapshot.CitizenItem? heroState))
+        if (_journeys.HeroCarrier is not null
+            && IsVisibleMacroCarrier(_journeys.HeroCarrier)
+            && _renderer.CitizenStates.TryGetValue(_journeys.HeroCarrier.Id.Value, out CityMacroSnapshot.CitizenItem? heroState))
         {
-            Rect2 heroRect = CitizenHoverRect(_heroCarrier);
+            Rect2 heroRect = CitizenHoverRect(_journeys.HeroCarrier);
             if (heroRect.HasPoint(mousePosition))
             {
                 citizen = heroState;
@@ -2366,10 +2067,10 @@ public partial class MacroStreetLiveView : Node2D
             }
         }
 
-        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        foreach (CitizenJourney journey in _journeys.Journeys.Values)
         {
             if (!IsVisibleMacroCarrier(journey.Carrier)
-                || !_citizenStates.TryGetValue(journey.CitizenId.Value, out CityMacroSnapshot.CitizenItem? state))
+                || !_renderer.CitizenStates.TryGetValue(journey.CitizenId.Value, out CityMacroSnapshot.CitizenItem? state))
             {
                 continue;
             }
@@ -2496,7 +2197,7 @@ public partial class MacroStreetLiveView : Node2D
         // A faulty mouse can emit two presses within the same frame. The first
         // request owns the route; accepting the duplicate would restart that
         // route and can make the founder appear never to arrive.
-        if (IsDuplicateGatherRequest(_pendingGather, forestId, unitId)) return;
+        if (IsDuplicateGatherRequest(_journeys.PendingGather, forestId, unitId)) return;
         NaturalResourceGatherResult availability =
             _controller.GetNaturalResourceGatherAvailability(forestId, unitId);
         if (!availability.CanGather)
@@ -2505,7 +2206,7 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         TreeBox? target = null;
-        foreach (TreeBox tree in _trees)
+        foreach (TreeBox tree in _renderer.Trees)
         {
             if (tree.ForestId != forestId || tree.UnitId != unitId) continue;
             target = tree;
@@ -2517,11 +2218,11 @@ public partial class MacroStreetLiveView : Node2D
             return;
         }
         EnsureHeroCarrierReadyToMove();
-        _pendingReturnHome = false;
-        _pendingAssignment = null;
-        _pendingGather = (forestId, unitId);
-        _route = PlanCitizenRoute(_heroStreet, _heroLateral, target.Value.Street, target.Value.LateralOffset);
-        _routeIndex = 0;
+        _journeys.PendingReturnHome = false;
+        _journeys.PendingAssignment = null;
+        _journeys.PendingGather = (forestId, unitId);
+        _journeys.Route = PlanCitizenRoute(_journeys.HeroStreet, _journeys.HeroLateral, target.Value.Street, target.Value.LateralOffset);
+        _journeys.RouteIndex = 0;
         // Gathering is not a work assignment, so the domain holds no journey to
         // pace this against. Keep the plain cadence gait.
         AnchorHeroRoutePacing(null);
@@ -2539,14 +2240,14 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void MotionTick(bool allowCameraInput)
     {
-        if (_route is not null)
+        if (_journeys.Route is not null)
         {
             AdvanceRouteTick();
         }
-        else if (_heroWalking && !_depthTarget.HasValue)
+        else if (_journeys.HeroWalking && !_journeys.DepthTarget.HasValue)
         {
-            _heroWalking = false;
-            _heroCarrier?.Idle(Vector2.Down);
+            _journeys.HeroWalking = false;
+            _journeys.HeroCarrier?.Idle(Vector2.Down);
         }
         if (!allowCameraInput) return;
         TryPanCameraLateral();
@@ -2555,18 +2256,18 @@ public partial class MacroStreetLiveView : Node2D
 
     private void AdvanceRouteTick()
     {
-        if (_route is null)
+        if (_journeys.Route is null)
         {
             CompleteRoute();
             return;
         }
-        if (_routePacingStartTick is int startedAt)
+        if (_journeys.RoutePacingStartTick is int startedAt)
         {
             // A domain journey: walk to wherever the world clock says we should
             // be. The route cannot finish early, cannot finish late, and cannot
             // decide anything — the domain already owns the arrival.
             AdvanceHeroRouteToStep(PacedRouteSteps(
-                _routeTotalSteps,
+                _journeys.RouteTotalSteps,
                 _controller.CurrentTick - startedAt,
                 _controller.CurrentTickPhase,
                 CityEconomyRules.AbstractTravelTicks));
@@ -2582,25 +2283,31 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void AdvanceHeroRouteToStep(int targetSteps)
     {
-        if (_route is null) return;
+        if (_journeys.Route is null) return;
         bool moved = false;
-        while (_routeStepsApplied < targetSteps && _routeIndex < _route.Count)
+        while (_journeys.RouteStepsApplied < targetSteps && _journeys.RouteIndex < _journeys.Route.Count)
         {
-            int previousStreet = _heroStreet;
-            float previousLateral = _heroLateral;
-            AdvanceReconstructedRouteStep(_route, ref _heroStreet, ref _heroLateral, ref _routeIndex);
-            _routeStepsApplied++;
-            if (_heroStreet != previousStreet)
+            int previousStreet = _journeys.HeroStreet;
+            float previousLateral = _journeys.HeroLateral;
+            int routeIndex = _journeys.RouteIndex;
+            int heroStreet = _journeys.HeroStreet;
+            float heroLateral = _journeys.HeroLateral;
+            AdvanceReconstructedRouteStep(_journeys.Route, ref heroStreet, ref heroLateral, ref routeIndex);
+            _journeys.HeroStreet = heroStreet;
+            _journeys.HeroLateral = heroLateral;
+            _journeys.RouteIndex = routeIndex;
+            _journeys.RouteStepsApplied++;
+            if (_journeys.HeroStreet != previousStreet)
             {
-                _heroCarrier?.Walk(_heroStreet > previousStreet ? Vector2.Up : Vector2.Down);
-                _heroWalking = true;
-                _depthTarget = _heroStreet;
+                _journeys.HeroCarrier?.Walk(_journeys.HeroStreet > previousStreet ? Vector2.Up : Vector2.Down);
+                _journeys.HeroWalking = true;
+                _journeys.DepthTarget = _journeys.HeroStreet;
                 moved = true;
             }
-            else if (!Mathf.IsEqualApprox(_heroLateral, previousLateral))
+            else if (!Mathf.IsEqualApprox(_journeys.HeroLateral, previousLateral))
             {
-                _heroCarrier?.Walk(_heroLateral > previousLateral ? Vector2.Right : Vector2.Left);
-                _heroWalking = true;
+                _journeys.HeroCarrier?.Walk(_journeys.HeroLateral > previousLateral ? Vector2.Right : Vector2.Left);
+                _journeys.HeroWalking = true;
                 moved = true;
             }
         }
@@ -2609,7 +2316,7 @@ public partial class MacroStreetLiveView : Node2D
             TrampleHeroTile();
             QueueRedraw();
         }
-        if (_routeIndex >= _route.Count) CompleteRoute();
+        if (_journeys.RouteIndex >= _journeys.Route.Count) CompleteRoute();
     }
 
     /// <summary>
@@ -2619,57 +2326,57 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void AdvanceHeroRouteOneStep()
     {
-        if (_depthTarget.HasValue) return; // mid street transition
-        if (_route is null || _routeIndex >= _route.Count)
+        if (_journeys.DepthTarget.HasValue) return; // mid street transition
+        if (_journeys.Route is null || _journeys.RouteIndex >= _journeys.Route.Count)
         {
             CompleteRoute();
             return;
         }
-        StreetRoutePlanner.Waypoint waypoint = _route[_routeIndex];
-        if (waypoint.Street != _heroStreet)
+        StreetRoutePlanner.Waypoint waypoint = _journeys.Route[_journeys.RouteIndex];
+        if (waypoint.Street != _journeys.HeroStreet)
         {
-            int direction = Mathf.Sign(waypoint.Street - _heroStreet);
-            _heroCarrier?.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
-            _heroWalking = true;
-            _heroStreet += direction;
-            _depthTarget = _heroStreet;
+            int direction = Mathf.Sign(waypoint.Street - _journeys.HeroStreet);
+            _journeys.HeroCarrier?.Walk(direction > 0 ? Vector2.Up : Vector2.Down);
+            _journeys.HeroWalking = true;
+            _journeys.HeroStreet += direction;
+            _journeys.DepthTarget = _journeys.HeroStreet;
             TrampleHeroTile();
             QueueRedraw();
             return;
         }
-        if (Mathf.Abs(waypoint.Lateral - _heroLateral) >= 1f)
+        if (Mathf.Abs(waypoint.Lateral - _journeys.HeroLateral) >= 1f)
         {
-            float direction = Mathf.Sign(waypoint.Lateral - _heroLateral);
-            _heroCarrier?.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
-            _heroWalking = true;
-            _heroLateral = Mathf.MoveToward(_heroLateral, waypoint.Lateral, PixelMotion.StepPixels);
+            float direction = Mathf.Sign(waypoint.Lateral - _journeys.HeroLateral);
+            _journeys.HeroCarrier?.Walk(direction > 0f ? Vector2.Right : Vector2.Left);
+            _journeys.HeroWalking = true;
+            _journeys.HeroLateral = Mathf.MoveToward(_journeys.HeroLateral, waypoint.Lateral, PixelMotion.StepPixels);
             TrampleHeroTile();
             QueueRedraw();
             return;
         }
-        _routeIndex++;
-        if (_routeIndex >= _route.Count) CompleteRoute();
+        _journeys.RouteIndex++;
+        if (_journeys.RouteIndex >= _journeys.Route.Count) CompleteRoute();
     }
 
     private void CompleteRoute()
     {
-        if (_heroAmbientRoute)
+        if (_journeys.HeroAmbientRoute)
         {
-            _heroAmbientRoute = false;
-            _route = null;
-            _routeIndex = 0;
-            _heroWalking = false;
-            _heroNextAmbientDecisionTick = _controller.CurrentTick + 30;
-            _heroCarrier?.Idle(Vector2.Down);
+            _journeys.HeroAmbientRoute = false;
+            _journeys.Route = null;
+            _journeys.RouteIndex = 0;
+            _journeys.HeroWalking = false;
+            _journeys.HeroNextAmbientDecisionTick = _controller.CurrentTick + 30;
+            _journeys.HeroCarrier?.Idle(Vector2.Down);
             return;
         }
-        _route = null;
-        _routeIndex = 0;
-        _heroWalking = false;
-        _routePacingStartTick = null;
-        if (_pendingReturnHome)
+        _journeys.Route = null;
+        _journeys.RouteIndex = 0;
+        _journeys.HeroWalking = false;
+        _journeys.RoutePacingStartTick = null;
+        if (_journeys.PendingReturnHome)
         {
-            _pendingReturnHome = false;
+            _journeys.PendingReturnHome = false;
             CitizenId founderId = _controller.GetHeroId()!.Value;
             BuildingId? homeId = _controller.GetPrimaryHomeId();
             LogCitizenTravel("arrived", founderId, homeId, returningHome: true);
@@ -2677,33 +2384,33 @@ public partial class MacroStreetLiveView : Node2D
             // carrier disappears inside; a later order remounts the same
             // flyweight before planning its next route. The domain already
             // recorded the arrival on the tick this route was paced to end on.
-            _heroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            _journeys.HeroCarrier?.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             return;
         }
-        if (_pendingAssignment is BuildingId workplace)
+        if (_journeys.PendingAssignment is BuildingId workplace)
         {
             LogCitizenTravel(
                 "arrived",
                 _controller.GetHeroId()!.Value,
                 workplace,
                 returningHome: false);
-            _pendingAssignment = null;
+            _journeys.PendingAssignment = null;
             // Facing "into" the workplace (deeper on this row), matching
             // the gather pose's own orientation once arrived.
-            _heroCarrier?.Idle(Vector2.Up);
+            _journeys.HeroCarrier?.Idle(Vector2.Up);
             return;
         }
-        (int ForestId, int UnitId)? pending = _pendingGather;
-        _pendingGather = null;
+        (int ForestId, int UnitId)? pending = _journeys.PendingGather;
+        _journeys.PendingGather = null;
         if (pending is null)
         {
-            _heroCarrier?.Idle(Vector2.Down);
+            _journeys.HeroCarrier?.Idle(Vector2.Down);
             return;
         }
         // The tree stands behind the hero's road (deeper), so swing away
         // from the viewer, then settle back to idle after the one-shot.
-        _heroCarrier?.Slash(Vector2.Up);
-        TreeBox? target = _trees.FirstOrDefault(tree =>
+        _journeys.HeroCarrier?.Slash(Vector2.Up);
+        TreeBox? target = _renderer.Trees.FirstOrDefault(tree =>
             tree.ForestId == pending.Value.ForestId && tree.UnitId == pending.Value.UnitId);
         NaturalResourceGatherResult gatherResult = _controller.TryGatherFromPatch(
             pending.Value.ForestId,
@@ -2736,9 +2443,9 @@ public partial class MacroStreetLiveView : Node2D
         }
         GetTree().CreateTimer(0.6).Timeout += () =>
         {
-            if (IsInstanceValid(this) && _route is null && IsInstanceValid(_heroCarrier))
+            if (IsInstanceValid(this) && _journeys.Route is null && IsInstanceValid(_journeys.HeroCarrier))
             {
-                _heroCarrier?.Idle(Vector2.Up);
+                _journeys.HeroCarrier?.Idle(Vector2.Up);
             }
         };
     }
@@ -2752,7 +2459,7 @@ public partial class MacroStreetLiveView : Node2D
     private ResourceFeedbackAnchor ResolveFoundingStoragePopupAnchor()
     {
         PlotBox? storagePlot = null;
-        foreach (PlotBox plot in _plots)
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.Kind != BuildingKind.Home) continue;
             if (!plot.IsUnderConstruction)
@@ -2764,7 +2471,7 @@ public partial class MacroStreetLiveView : Node2D
         if (storagePlot is null
             && _controller.GetFoundingStorageBuildingId() is BuildingId foundingBuildingId)
         {
-            foreach (PlotBox plot in _plots)
+            foreach (PlotBox plot in _renderer.Plots)
             {
                 if (plot.BuildingId != foundingBuildingId.Value) continue;
                 storagePlot = plot;
@@ -2784,11 +2491,11 @@ public partial class MacroStreetLiveView : Node2D
                 Vector2.Zero);
         }
 
-        if (IsInstanceValid(_heroCarrier))
+        if (IsInstanceValid(_journeys.HeroCarrier))
         {
             return new ResourceFeedbackAnchor(
                 Vector2.Zero,
-                _heroCarrier,
+                _journeys.HeroCarrier,
                 Vector2.Up * 72f);
         }
 
@@ -2835,10 +2542,10 @@ public partial class MacroStreetLiveView : Node2D
 
     private void BeginVerticalCameraPan(int direction)
     {
-        if (_verticalPanDirection == direction) return;
-        _verticalPanDirection = direction;
-        _verticalPanHoldSeconds = 0f;
-        _verticalPanRepeatAccumulator = 0f;
+        if (_camera.VerticalPanDirection == direction) return;
+        _camera.VerticalPanDirection = direction;
+        _camera.VerticalPanHoldSeconds = 0f;
+        _camera.VerticalPanRepeatAccumulator = 0f;
         PanCameraStreet(direction);
     }
 
@@ -2850,25 +2557,25 @@ public partial class MacroStreetLiveView : Node2D
             ResetVerticalCameraPanHold();
             return;
         }
-        if (direction != _verticalPanDirection)
+        if (direction != _camera.VerticalPanDirection)
         {
             BeginVerticalCameraPan(direction);
             return;
         }
 
-        _verticalPanHoldSeconds += PixelMotion.CadenceSeconds;
-        _verticalPanRepeatAccumulator += PixelMotion.CadenceSeconds;
-        float repeatSeconds = VerticalPanRepeatSeconds(_verticalPanHoldSeconds);
-        if (_verticalPanRepeatAccumulator < repeatSeconds) return;
-        _verticalPanRepeatAccumulator -= repeatSeconds;
+        _camera.VerticalPanHoldSeconds += PixelMotion.CadenceSeconds;
+        _camera.VerticalPanRepeatAccumulator += PixelMotion.CadenceSeconds;
+        float repeatSeconds = VerticalPanRepeatSeconds(_camera.VerticalPanHoldSeconds);
+        if (_camera.VerticalPanRepeatAccumulator < repeatSeconds) return;
+        _camera.VerticalPanRepeatAccumulator -= repeatSeconds;
         PanCameraStreet(direction);
     }
 
     private void ResetVerticalCameraPanHold()
     {
-        _verticalPanDirection = 0;
-        _verticalPanHoldSeconds = 0f;
-        _verticalPanRepeatAccumulator = 0f;
+        _camera.VerticalPanDirection = 0;
+        _camera.VerticalPanHoldSeconds = 0f;
+        _camera.VerticalPanRepeatAccumulator = 0f;
     }
 
     internal static float VerticalPanRepeatSeconds(float holdSeconds)
@@ -2922,22 +2629,22 @@ public partial class MacroStreetLiveView : Node2D
     /// <see cref="CompleteRoute"/>'s gather branch calls
     /// <c>TryGatherFromPatch</c>
     /// (itself a synchronous <c>BuildingStateChanged</c>) the instant after
-    /// <see cref="_route"/> is cleared, undoing the arrival Slash animation
+    /// <see cref="_journeys.Route"/> is cleared, undoing the arrival Slash animation
     /// before the player ever sees it.</description></item>
     /// </list>
-    /// <see cref="_heroIsGatheringOutsideHome"/> is cleared once a real
+    /// <see cref="_journeys.HeroIsGatheringOutsideHome"/> is cleared once a real
     /// domain-tracked journey takes over (<see cref="BeginWalkToAssignment"/>/
     /// <see cref="BeginWalkHome"/>/departing on an expedition).
     /// </summary>
     private void EnsureHeroCarrierReadyToMove()
     {
-        _heroIsGatheringOutsideHome = true;
-        if (_heroCarrier is null) return;
-        if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
+        _journeys.HeroIsGatheringOutsideHome = true;
+        if (_journeys.HeroCarrier is null) return;
+        if (_journeys.HeroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
-            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
+            _journeys.HeroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
         }
-        _heroCarrier.CancelMotion();
+        _journeys.HeroCarrier.CancelMotion();
     }
 
     /// <summary>
@@ -2947,10 +2654,10 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void StepFreeCameraStreet(int direction)
     {
-        int nextStreet = Mathf.Clamp(_freeCameraStreet + direction, 0, _streetCount - 1);
-        if (nextStreet == _freeCameraStreet) return;
-        _freeCameraStreet = nextStreet;
-        _cameraDepthTarget = _freeCameraStreet;
+        int nextStreet = Mathf.Clamp(_camera.FreeCameraStreet + direction, 0, _streetCount - 1);
+        if (nextStreet == _camera.FreeCameraStreet) return;
+        _camera.FreeCameraStreet = nextStreet;
+        _camera.CameraDepthTarget = _camera.FreeCameraStreet;
     }
 
     /// <summary>
@@ -2991,18 +2698,18 @@ public partial class MacroStreetLiveView : Node2D
         if (direction == 0f) return false;
         EnsureFreeCameraForManualPan();
         float next = Mathf.Clamp(
-            _freeCameraLateral + direction * PixelMotion.StepPixels,
+            _camera.FreeCameraLateral + direction * PixelMotion.StepPixels,
             -_lateralHalfWidthPx,
             _lateralHalfWidthPx);
-        if (next == _freeCameraLateral) return false;
-        _freeCameraLateral = next;
+        if (next == _camera.FreeCameraLateral) return false;
+        _camera.FreeCameraLateral = next;
         QueueRedraw();
         return true;
     }
 
     private void EnsureFreeCameraForManualPan()
     {
-        if (_cameraFollowsHero) SetCameraFollowsHero(false);
+        if (_camera.CameraFollowsHero) SetCameraFollowsHero(false);
     }
 
     /// <summary>
@@ -3033,12 +2740,12 @@ public partial class MacroStreetLiveView : Node2D
     /// sprite; docs/ARCHITECTURE.md §7b).
     ///
     /// Assignment-aware: when the hero is (or becomes) assigned to a
-    /// building, this stops treating <see cref="_heroStreet"/>/
-    /// <see cref="_heroLateral"/> as free-roam camera state and instead
+    /// building, this stops treating <see cref="_journeys.HeroStreet"/>/
+    /// <see cref="_journeys.HeroLateral"/> as free-roam camera state and instead
     /// walks them to the workplace's own calle/lateral — matching the flat
     /// view's model, where an assigned worker's macro-view position is
     /// their workplace, not wherever they last wandered. A NEW assignment
-    /// (tracked via <see cref="_lastKnownAssignment"/>) triggers exactly
+    /// (tracked via <see cref="_journeys.LastKnownAssignment"/>) triggers exactly
     /// one route; without that guard, every world tick re-resolved this
     /// method and repeatedly yanked the carrier back into free-roam Macro
     /// state / re-triggered a walk, fighting whatever else (the
@@ -3060,22 +2767,22 @@ public partial class MacroStreetLiveView : Node2D
             {
                 awayCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
             }
-            _lastKnownAssignment = null;
-            _lastKnownHeroLocation = null;
-            _heroIsGatheringOutsideHome = false;
+            _journeys.LastKnownAssignment = null;
+            _journeys.LastKnownHeroLocation = null;
+            _journeys.HeroIsGatheringOutsideHome = false;
             return;
         }
-        if (!Visible && heroState.Location != CitizenLocation.InTransit && _route is null) return;
-        _heroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
+        if (!Visible && heroState.Location != CitizenLocation.InTransit && _journeys.Route is null) return;
+        _journeys.HeroCarrier = CitizenSpriteBank.Instance.GetOrCreate(
             hero.Id, hero.Lineage, hero.Gender, hero.Appearance);
-        CitizenSpriteBank.Instance.Mount(_heroCarrier, this);
+        CitizenSpriteBank.Instance.Mount(_journeys.HeroCarrier, this);
         // The city sits on the site the founder's fall reached. Resolved here
         // because this is where the founder first becomes known to the view;
         // it changes nothing mechanical, only which ground tiles are drawn.
-        _groundBiome = TerrainAtlas.BiomeFor(hero.Lineage);
-        if (!_heroPositionInitialized)
+        _renderer.SetGroundBiomeForLineage(hero.Lineage);
+        if (!_journeys.HeroPositionInitialized)
         {
-            _heroStreet = FoundingLayout.InitialParcelRow
+            _journeys.HeroStreet = FoundingLayout.InitialParcelRow
                 * ParcelGrid.ConstructionRowsPerParcel
                 + FoundingLayout.FounderRowWithinParcel;
             float totalFrontageColumns =
@@ -3084,18 +2791,18 @@ public partial class MacroStreetLiveView : Node2D
                 * ParcelGrid.FrontageColumnsPerParcel
                 + FoundingLayout.FounderFrontageColumnWithinParcel
                 + 0.5f;
-            _heroLateral = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
-            _depthAnchor = _heroStreet;
-            _heroPositionInitialized = true;
+            _journeys.HeroLateral = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            _journeys.DepthAnchor = _journeys.HeroStreet;
+            _journeys.HeroPositionInitialized = true;
         }
         BuildingId? currentAssignment = heroState.CurrentAssignment;
         CitizenLocation heroLocation = heroState.Location;
-        if (heroLocation == CitizenLocation.InTransit && _heroAmbientRoute)
+        if (heroLocation == CitizenLocation.InTransit && _journeys.HeroAmbientRoute)
         {
-            _heroAmbientRoute = false;
-            _route = null;
-            _routeIndex = 0;
-            _heroWalking = false;
+            _journeys.HeroAmbientRoute = false;
+            _journeys.Route = null;
+            _journeys.RouteIndex = 0;
+            _journeys.HeroWalking = false;
         }
         bool hasShelter = snapshot.Buildings.Any(building =>
             building.Kind == BuildingKind.Home && !building.IsUnderConstruction);
@@ -3106,31 +2813,31 @@ public partial class MacroStreetLiveView : Node2D
             currentAssignment,
             heroLocation,
             hasShelter,
-            hasRoute: _route is not null,
-            pendingReturnHome: _pendingReturnHome,
-            isGatheringOutsideHome: _heroIsGatheringOutsideHome)
+            hasRoute: _journeys.Route is not null,
+            pendingReturnHome: _journeys.PendingReturnHome,
+            isGatheringOutsideHome: _journeys.HeroIsGatheringOutsideHome)
             && !shouldRemainVisibleAtHome)
         {
-            _heroCarrier.CancelMotion();
-            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
-            _lastKnownAssignment = null;
-            _lastKnownHeroLocation = heroLocation;
+            _journeys.HeroCarrier.CancelMotion();
+            _journeys.HeroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            _journeys.LastKnownAssignment = null;
+            _journeys.LastKnownHeroLocation = heroLocation;
             return;
         }
         if (currentAssignment.HasValue && heroLocation == CitizenLocation.AtWork)
         {
-            _heroCarrier.CancelMotion();
-            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
-            _lastKnownAssignment = currentAssignment;
-            _lastKnownHeroLocation = heroLocation;
-            _pendingAssignment = null;
-            _pendingReturnHome = false;
-            _route = null;
-            _routeIndex = 0;
-            _heroWalking = false;
+            _journeys.HeroCarrier.CancelMotion();
+            _journeys.HeroCarrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
+            _journeys.LastKnownAssignment = currentAssignment;
+            _journeys.LastKnownHeroLocation = heroLocation;
+            _journeys.PendingAssignment = null;
+            _journeys.PendingReturnHome = false;
+            _journeys.Route = null;
+            _journeys.RouteIndex = 0;
+            _journeys.HeroWalking = false;
             return;
         }
-        if (_heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
+        if (_journeys.HeroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
             // Same leftover-GoTo hazard as the ambient worker loop below:
             // a building-detail exit animation interrupted before its
@@ -3138,26 +2845,26 @@ public partial class MacroStreetLiveView : Node2D
             // carrier toward an interior-space target while this class's
             // own UpdateHeroVisual snaps it back to the macro position
             // every frame.
-            _heroCarrier.CancelMotion();
-            _heroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
-            _heroCarrier.Idle(Vector2.Down);
+            _journeys.HeroCarrier.CancelMotion();
+            _journeys.HeroCarrier.SetState(CitizenSpriteCarrier.VisualState.Macro);
+            _journeys.HeroCarrier.Idle(Vector2.Down);
         }
 
-        if (heroLocation == CitizenLocation.AtHome && _route is null)
+        if (heroLocation == CitizenLocation.AtHome && _journeys.Route is null)
         {
             PlotBox? shelter = FindHomePlot();
             if (shelter is { } home
-                && (_lastKnownHeroLocation != CitizenLocation.AtHome
+                && (_journeys.LastKnownHeroLocation != CitizenLocation.AtHome
                     || heroState.Activity == CitizenRoutineActivity.Recovering))
             {
                 BuildingVisualAnchors anchors = VisualAnchorsFor(home);
                 StreetVisualAnchor anchor = heroState.Activity == CitizenRoutineActivity.Recovering
                     ? anchors.Waiting
                     : anchors.Entrance;
-                _heroStreet = anchor.Street;
-                _heroLateral = anchor.Lateral;
-                _depthAnchor = _heroStreet;
-                _depthTarget = null;
+                _journeys.HeroStreet = anchor.Street;
+                _journeys.HeroLateral = anchor.Lateral;
+                _journeys.DepthAnchor = _journeys.HeroStreet;
+                _journeys.DepthTarget = null;
             }
             if (mayWander && shelter is { } wanderAnchor)
             {
@@ -3165,9 +2872,9 @@ public partial class MacroStreetLiveView : Node2D
             }
         }
 
-        if (currentAssignment != _lastKnownAssignment)
+        if (currentAssignment != _journeys.LastKnownAssignment)
         {
-            _lastKnownAssignment = currentAssignment;
+            _journeys.LastKnownAssignment = currentAssignment;
         }
         // The domain can reverse a journey underneath the drawn route: a trip
         // that comes due after the workday turns back toward Home, keeping the
@@ -3176,28 +2883,28 @@ public partial class MacroStreetLiveView : Node2D
         // notice that the route it is drawing points the wrong way and drop it,
         // so the branches below can plan the journey the domain actually has.
         if (heroLocation == CitizenLocation.InTransit
-            && _route is not null
-            && !_heroAmbientRoute
-            && _pendingGather is null
+            && _journeys.Route is not null
+            && !_journeys.HeroAmbientRoute
+            && _journeys.PendingGather is null
             && RouteContradictsDomain(
                 heroState.IsReturningHome,
-                routeTargetsAssignment: _pendingAssignment is not null,
-                routeTargetsHome: _pendingReturnHome))
+                routeTargetsAssignment: _journeys.PendingAssignment is not null,
+                routeTargetsHome: _journeys.PendingReturnHome))
         {
-            _route = null;
-            _routeIndex = 0;
-            _routePacingStartTick = null;
-            _routeStepsApplied = 0;
-            _pendingAssignment = null;
-            _pendingReturnHome = false;
-            _heroWalking = false;
+            _journeys.Route = null;
+            _journeys.RouteIndex = 0;
+            _journeys.RoutePacingStartTick = null;
+            _journeys.RouteStepsApplied = 0;
+            _journeys.PendingAssignment = null;
+            _journeys.PendingReturnHome = false;
+            _journeys.HeroWalking = false;
         }
 
         if (currentAssignment.HasValue
             && heroLocation == CitizenLocation.InTransit
             && heroState.IsReturningHome
-            && _route is null
-            && !_pendingReturnHome)
+            && _journeys.Route is null
+            && !_journeys.PendingReturnHome)
         {
             BeginWalkHome(heroState.TransitStartedAtTick);
         }
@@ -3205,9 +2912,9 @@ public partial class MacroStreetLiveView : Node2D
                 currentAssignment,
                 heroState.Location,
                 heroState.IsReturningHome,
-                hasRoute: _route is not null)
+                hasRoute: _journeys.Route is not null)
             && currentAssignment is BuildingId unsettledWorkplace
-            && _route is null)
+            && _journeys.Route is null)
         {
             // A view transition can replace the flyweight carrier's previous
             // movement callback. If the domain still says InTransit after the
@@ -3215,7 +2922,7 @@ public partial class MacroStreetLiveView : Node2D
             // the citizen permanently assigned but non-productive.
             BeginWalkToAssignment(unsettledWorkplace, heroState.TransitStartedAtTick);
         }
-        _lastKnownHeroLocation = heroLocation;
+        _journeys.LastKnownHeroLocation = heroLocation;
         UpdateHeroVisual();
     }
 
@@ -3323,7 +3030,7 @@ public partial class MacroStreetLiveView : Node2D
             activeCitizenIds.Add(citizen.Id.Value);
             if (!Visible
                 && citizen.Location != CitizenLocation.InTransit
-                && (!_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing)
+                && (!_journeys.Journeys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing)
                     || existing.Route is null))
             {
                 continue;
@@ -3332,7 +3039,7 @@ public partial class MacroStreetLiveView : Node2D
         }
 
         List<int>? staleCitizenIds = null;
-        foreach (int citizenId in _citizenJourneys.Keys)
+        foreach (int citizenId in _journeys.Journeys.Keys)
         {
             if (activeCitizenIds.Contains(citizenId)) continue;
             (staleCitizenIds ??= new List<int>()).Add(citizenId);
@@ -3341,9 +3048,9 @@ public partial class MacroStreetLiveView : Node2D
         {
             foreach (int citizenId in staleCitizenIds)
             {
-                CitizenJourney journey = _citizenJourneys[citizenId];
+                CitizenJourney journey = _journeys.Journeys[citizenId];
                 journey.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
-                _citizenJourneys.Remove(citizenId);
+                _journeys.Journeys.Remove(citizenId);
             }
         }
         UpdateCitizenJourneyVisuals();
@@ -3355,7 +3062,7 @@ public partial class MacroStreetLiveView : Node2D
     {
         if (citizen.IsOnExpedition)
         {
-            if (_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? away))
+            if (_journeys.Journeys.TryGetValue(citizen.Id.Value, out CitizenJourney? away))
             {
                 StopJourney(away);
                 away.Carrier.SetState(CitizenSpriteCarrier.VisualState.Hidden);
@@ -3449,7 +3156,7 @@ public partial class MacroStreetLiveView : Node2D
         PlotBox? homePlot,
         PlotBox? assignmentPlot)
     {
-        if (_citizenJourneys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing))
+        if (_journeys.Journeys.TryGetValue(citizen.Id.Value, out CitizenJourney? existing))
         {
             return existing;
         }
@@ -3461,8 +3168,8 @@ public partial class MacroStreetLiveView : Node2D
         float lateral = origin?.LateralOffset ?? 0f;
         CitizenSpriteCarrier carrier = CitizenSpriteBank.Instance.GetOrCreate(
             citizen.Id, citizen.Lineage, citizen.Gender, citizen.Appearance);
-        var created = new CitizenJourney(citizen.Id, carrier, street, lateral);
-        _citizenJourneys.Add(citizen.Id.Value, created);
+        var created = new CitizenJourney(_journeys, citizen.Id, carrier, street, lateral);
+        _journeys.Journeys.Add(citizen.Id.Value, created);
         return created;
     }
 
@@ -3616,7 +3323,7 @@ public partial class MacroStreetLiveView : Node2D
         bool advancedAnyJourney = false;
         int currentTick = _controller.CurrentTick;
         double tickPhase = _controller.CurrentTickPhase;
-        foreach ((int citizenId, CitizenJourney journey) in _citizenJourneys.ToArray())
+        foreach ((int citizenId, CitizenJourney journey) in _journeys.Journeys.ToArray())
         {
             if (journey.Route is null) continue;
             if (journey.PacingStartTick is int startedAt)
@@ -3792,7 +3499,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private void UpdateCitizenJourneyVisuals()
     {
-        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        foreach (CitizenJourney journey in _journeys.Journeys.Values)
         {
             if (!IsInstanceValid(journey.Carrier)
                 || journey.Carrier.State != CitizenSpriteCarrier.VisualState.Macro)
@@ -3824,14 +3531,14 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void UpdateCitizenHitRects()
     {
-        if (_heroCarrier is not null && IsVisibleMacroCarrier(_heroCarrier))
+        if (_journeys.HeroCarrier is not null && IsVisibleMacroCarrier(_journeys.HeroCarrier))
         {
-            _clickableCitizenRects.Add((CitizenHoverRect(_heroCarrier), _heroCarrier.Id));
+            _hitRects.CitizenClickableRects.Add((CitizenHoverRect(_journeys.HeroCarrier), _journeys.HeroCarrier.Id));
         }
-        foreach (CitizenJourney journey in _citizenJourneys.Values)
+        foreach (CitizenJourney journey in _journeys.Journeys.Values)
         {
             if (!IsVisibleMacroCarrier(journey.Carrier)) continue;
-            _clickableCitizenRects.Add((CitizenHoverRect(journey.Carrier), journey.CitizenId));
+            _hitRects.CitizenClickableRects.Add((CitizenHoverRect(journey.Carrier), journey.CitizenId));
         }
     }
 
@@ -3875,7 +3582,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private PlotBox? FindHomePlot()
     {
-        foreach (PlotBox plot in _plots)
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.Kind == BuildingKind.Home && !plot.IsUnderConstruction) return plot;
         }
@@ -3884,7 +3591,7 @@ public partial class MacroStreetLiveView : Node2D
 
     private PlotBox? FindPlot(BuildingId buildingId)
     {
-        foreach (PlotBox plot in _plots)
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.BuildingId == buildingId.Value) return plot;
         }
@@ -3917,23 +3624,23 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>
     /// Routes the hero from wherever they currently are to their new
     /// workplace's calle/lateral, reusing the same quantized
-    /// <see cref="StreetRoutePlanner"/>/<see cref="_route"/> machinery as
+    /// <see cref="StreetRoutePlanner"/>/<see cref="_journeys.Route"/> machinery as
     /// gather. Once the route completes, <see cref="CompleteRoute"/> just
     /// settles them into an idle "at work" pose instead of gathering wood.
     /// </summary>
     private void BeginWalkToAssignment(BuildingId workplace, int? transitStartedAtTick = null)
     {
-        _heroAmbientRoute = false;
-        _heroIsGatheringOutsideHome = false;
+        _journeys.HeroAmbientRoute = false;
+        _journeys.HeroIsGatheringOutsideHome = false;
         // The canonical flyweight may still carry a GoTo started by the
         // building-detail slot where the assignment was requested. Once the
         // macro view takes route ownership, that interior movement must stop:
         // otherwise CitizenSpriteCarrier._Process and UpdateHeroVisual write
         // the same Position concurrently and the sprite oscillates just short
         // of the entrance without either completion callback winning.
-        _heroCarrier?.CancelMotion();
+        _journeys.HeroCarrier?.CancelMotion();
         PlotBox? target = null;
-        foreach (PlotBox plot in _plots)
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.BuildingId != workplace.Value) continue;
             target = plot;
@@ -3946,12 +3653,12 @@ public partial class MacroStreetLiveView : Node2D
                 $"assignment={workplace.Value}, tick={_controller.CurrentTick}.");
             return;
         }
-        _pendingGather = null;
-        _pendingReturnHome = false;
-        _pendingAssignment = workplace;
+        _journeys.PendingGather = null;
+        _journeys.PendingReturnHome = false;
+        _journeys.PendingAssignment = workplace;
         int entranceStreet = WorkplaceEntranceStreet(target.Value.Street);
-        _route = PlanCitizenRoute(_heroStreet, _heroLateral, entranceStreet, target.Value.LateralOffset);
-        _routeIndex = 0;
+        _journeys.Route = PlanCitizenRoute(_journeys.HeroStreet, _journeys.HeroLateral, entranceStreet, target.Value.LateralOffset);
+        _journeys.RouteIndex = 0;
         AnchorHeroRoutePacing(transitStartedAtTick);
         LogCitizenTravel(
             "started",
@@ -3968,39 +3675,39 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void BeginWalkHome(int? transitStartedAtTick = null)
     {
-        _heroAmbientRoute = false;
-        _heroIsGatheringOutsideHome = false;
+        _journeys.HeroAmbientRoute = false;
+        _journeys.HeroIsGatheringOutsideHome = false;
         // Route ownership can also transfer from an interior exit animation.
         // Keep exactly one position writer for the shared citizen carrier.
-        _heroCarrier?.CancelMotion();
+        _journeys.HeroCarrier?.CancelMotion();
         PlotBox? shelter = null;
-        foreach (PlotBox plot in _plots)
+        foreach (PlotBox plot in _renderer.Plots)
         {
             if (plot.Kind != BuildingKind.Home || plot.IsUnderConstruction) continue;
             shelter = plot;
             break;
         }
 
-        _pendingGather = null;
-        _pendingAssignment = null;
-        _routeIndex = 0;
-        _heroWalking = false;
+        _journeys.PendingGather = null;
+        _journeys.PendingAssignment = null;
+        _journeys.RouteIndex = 0;
+        _journeys.HeroWalking = false;
         if (shelter is null)
         {
-            _pendingReturnHome = false;
-            _route = null;
-            _heroCarrier?.Idle(Vector2.Down);
+            _journeys.PendingReturnHome = false;
+            _journeys.Route = null;
+            _journeys.HeroCarrier?.Idle(Vector2.Down);
             GD.PushWarning(
                 $"Citizen return route unresolved: citizen={_controller.GetHeroId()!.Value.Value}, " +
                 $"tick={_controller.CurrentTick}, reason=no completed Shelter.");
             return;
         }
 
-        _pendingReturnHome = true;
+        _journeys.PendingReturnHome = true;
         int entranceStreet = WorkplaceEntranceStreet(shelter.Value.Street);
-        _route = PlanCitizenRoute(
-            _heroStreet,
-            _heroLateral,
+        _journeys.Route = PlanCitizenRoute(
+            _journeys.HeroStreet,
+            _journeys.HeroLateral,
             entranceStreet,
             shelter.Value.LateralOffset);
         AnchorHeroRoutePacing(transitStartedAtTick);
@@ -4019,33 +3726,33 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void AnchorHeroRoutePacing(int? transitStartedAtTick)
     {
-        _routePacingStartTick = null;
-        _routeTotalSteps = 0;
-        _routeStepsApplied = 0;
-        if (_route is null || transitStartedAtTick is not int startedAt) return;
+        _journeys.RoutePacingStartTick = null;
+        _journeys.RouteTotalSteps = 0;
+        _journeys.RouteStepsApplied = 0;
+        if (_journeys.Route is null || transitStartedAtTick is not int startedAt) return;
 
-        _routePacingStartTick = startedAt;
-        _routeTotalSteps = CountRouteSteps(_route, _heroStreet, _heroLateral);
+        _journeys.RoutePacingStartTick = startedAt;
+        _journeys.RouteTotalSteps = CountRouteSteps(_journeys.Route, _journeys.HeroStreet, _journeys.HeroLateral);
         if (_controller.CurrentTick <= startedAt) return;
 
         ReconstructedRoutePosition reconstructed = ReconstructRouteProgress(
-            _route,
-            _heroStreet,
-            _heroLateral,
+            _journeys.Route,
+            _journeys.HeroStreet,
+            _journeys.HeroLateral,
             _controller.CurrentTick - startedAt,
             CityEconomyRules.AbstractTravelTicks);
-        _heroStreet = reconstructed.Street;
-        _heroLateral = reconstructed.Lateral;
-        _depthAnchor = reconstructed.Street;
-        _depthTarget = null;
-        _routeIndex = reconstructed.RouteIndex;
-        _routeStepsApplied = reconstructed.StepsApplied;
+        _journeys.HeroStreet = reconstructed.Street;
+        _journeys.HeroLateral = reconstructed.Lateral;
+        _journeys.DepthAnchor = reconstructed.Street;
+        _journeys.DepthTarget = null;
+        _journeys.RouteIndex = reconstructed.RouteIndex;
+        _journeys.RouteStepsApplied = reconstructed.StepsApplied;
     }
 
     private void TryStartHeroAmbientRoute(PlotBox anchor)
     {
         int currentTick = _controller.CurrentTick;
-        if (_route is not null || currentTick < _heroNextAmbientDecisionTick) return;
+        if (_journeys.Route is not null || currentTick < _journeys.HeroNextAmbientDecisionTick) return;
         int founderId = _controller.GetHeroId()?.Value ?? 1;
         int phase = Math.Abs(founderId * 37 + currentTick / 30);
         int targetStreet = Mathf.Clamp(
@@ -4057,16 +3764,16 @@ public partial class MacroStreetLiveView : Node2D
             anchor.LateralOffset + direction * PixelMotion.StepPixels * (2 + phase % 3),
             -_lateralHalfWidthPx,
             _lateralHalfWidthPx);
-        _route = PlanCitizenRoute(
-            _heroStreet,
-            _heroLateral,
+        _journeys.Route = PlanCitizenRoute(
+            _journeys.HeroStreet,
+            _journeys.HeroLateral,
             targetStreet,
             targetLateral);
-        _routeIndex = 0;
-        _heroAmbientRoute = true;
+        _journeys.RouteIndex = 0;
+        _journeys.HeroAmbientRoute = true;
         // Wandering answers to nothing in the domain; it keeps the cadence gait.
         AnchorHeroRoutePacing(null);
-        _heroNextAmbientDecisionTick = currentTick + 20 + phase % 31;
+        _journeys.HeroNextAmbientDecisionTick = currentTick + 20 + phase % 31;
     }
 
     /// <summary>
@@ -4090,7 +3797,7 @@ public partial class MacroStreetLiveView : Node2D
     private List<StreetRoutePlanner.Waypoint> PlanCitizenRoute(
         int fromStreet, float fromLateral, int toStreet, float toLateral)
     {
-        List<StreetRoutePlanner.Waypoint>? navmeshRoute = _navmeshPlanner?.Plan(
+        List<StreetRoutePlanner.Waypoint>? navmeshRoute = _journeys.NavmeshPlanner?.Plan(
             fromStreet,
             fromLateral,
             toStreet,
@@ -4127,38 +3834,29 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void UpdateHeroVisual()
     {
-        if (_heroCarrier is null
-            || !IsInstanceValid(_heroCarrier)
-            || _heroCarrier.GetParent() != this
-            || _heroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
+        if (_journeys.HeroCarrier is null
+            || !IsInstanceValid(_journeys.HeroCarrier)
+            || _journeys.HeroCarrier.GetParent() != this
+            || _journeys.HeroCarrier.State != CitizenSpriteCarrier.VisualState.Macro)
         {
             return;
         }
-        float depth = _depthAnchor - CameraDepthAnchor;
-        _heroCarrier.Visible = IsProjectedDepthVisible(depth);
-        if (!_heroCarrier.Visible) return;
-        float lateralOffset = _heroLateral - CameraLateral;
+        float depth = _journeys.DepthAnchor - CameraDepthAnchor;
+        _journeys.HeroCarrier.Visible = IsProjectedDepthVisible(depth);
+        if (!_journeys.HeroCarrier.Visible) return;
+        float lateralOffset = _journeys.HeroLateral - CameraLateral;
         (Vector2 position, Vector2 scale) = ProjectDepth(depth, lateralOffset);
-        _heroCarrier.Scale =
+        _journeys.HeroCarrier.Scale =
             CitizenSpriteCarrier.ScaleForState(CitizenSpriteCarrier.VisualState.Macro) * scale;
-        _heroCarrier.ZIndex = CitizenZ(depth);
-        _heroCarrier.Position = PixelMotion.Snap(new Vector2(
+        _journeys.HeroCarrier.ZIndex = CitizenZ(depth);
+        _journeys.HeroCarrier.Position = PixelMotion.Snap(new Vector2(
             position.X,
             position.Y - HeroFootOffsetMacroPx * scale.Y));
     }
 
     public override void _Draw()
     {
-        _clickableRects.Clear();
-        _clickableTreeRects.Clear();
-        _clickableCitizenRects.Clear();
-        _clickablePlacementRects.Clear();
-        _storageFullBadgeRects.Clear();
-        for (int street = _streetCount - 1; street >= 0; street--)
-        {
-            if (!IsProjectedDepthVisible(street - CameraDepthAnchor)) continue;
-            DrawStreetGround(street);
-        }
+        _renderer.Draw(this, _hitRects);
         SyncStreetBandLayers();
         UpdateHeroVisual();
         UpdateCitizenJourneyVisuals();
@@ -4169,9 +3867,7 @@ public partial class MacroStreetLiveView : Node2D
     /// Vertical spacing between consecutive street bands in z. Leaves room for
     /// a citizen to land between two bands rather than tying with one.
     /// </summary>
-    private const int BandZStep = 4;
-
-    private readonly List<StreetBandLayer> _bandLayers = new();
+    private const int BandZStep = MacroViewConstants.BandZStep;
 
     /// <summary>
     /// Turns a projected depth into a draw order. Nearer to camera means a
@@ -4179,10 +3875,8 @@ public partial class MacroStreetLiveView : Node2D
     /// citizen carriers — which is the whole point: before this they were
     /// ordered on two incomparable axes, so a citizen always won.
     /// </summary>
-    private int DepthToZ(float depth) => Mathf.Clamp(
-        Mathf.RoundToInt((_streetCount - (depth + CameraDepthAnchor)) * BandZStep),
-        -4000,
-        4000);
+    private int DepthToZ(float depth) =>
+        MacroProjectionHelpers.DepthToZ(depth, _streetCount, CameraDepthAnchor);
 
     /// <summary>
     /// Draw order for a citizen. A citizen stands on the walkable front band
@@ -4190,58 +3884,29 @@ public partial class MacroStreetLiveView : Node2D
     /// band's order plus one step. Anything on a nearer band still wins,
     /// which is the case that was broken.
     /// </summary>
-    private int CitizenZ(float depth) => DepthToZ(depth) + 1;
+    private int CitizenZ(float depth) =>
+        MacroProjectionHelpers.CitizenZ(depth, _streetCount, CameraDepthAnchor);
 
     /// <summary>
     /// Creates one obstacle layer per street and keeps their z in step with
     /// the camera. Layers are reused across redraws; only their count follows
-    /// <c>_streetCount</c>.
+    /// <c>_streetCount</c>. The renderer owns the layer list now; this
+    /// method is a thin forwarder so the view's _Draw body keeps its shape.
     /// </summary>
-    private void SyncStreetBandLayers()
-    {
-        // The scene tree cannot be edited while drawing, so a count change
-        // schedules the rebuild for after the frame and this pass only
-        // refreshes the layers that already exist.
-        if (_bandLayers.Count != _streetCount)
-        {
-            Callable.From(RebuildStreetBandLayers).CallDeferred();
-        }
+    private void SyncStreetBandLayers() =>
+        _renderer.SyncBandLayers(_streetCount, CameraDepthAnchor);
 
-        for (int street = 0; street < _bandLayers.Count; street++)
-        {
-            StreetBandLayer layer = _bandLayers[street];
-            layer.Street = street;
-            layer.Visible = IsProjectedDepthVisible(street - CameraDepthAnchor);
-            layer.ZIndex = DepthToZ(street - CameraDepthAnchor);
-            if (layer.Visible) layer.QueueRedraw();
-        }
-    }
-
-    /// <summary>Brings the layer count in line with the street count, off-frame.</summary>
+    /// <summary>Brings the layer count in line with the street count, off-frame.
+    /// The renderer owns the rebuild pass; this is a forwarder.</summary>
     private void RebuildStreetBandLayers()
     {
-        while (_bandLayers.Count < _streetCount)
-        {
-            var layer = new StreetBandLayer
-            {
-                Name = $"StreetBand{_bandLayers.Count}",
-                Painter = DrawStreetObstacles,
-            };
-            AddChild(layer);
-            _bandLayers.Add(layer);
-        }
-        while (_bandLayers.Count > _streetCount)
-        {
-            StreetBandLayer extra = _bandLayers[^1];
-            _bandLayers.RemoveAt(_bandLayers.Count - 1);
-            extra.QueueFree();
-        }
+        _renderer.RequestBandLayerRebuild(_streetCount);
         QueueRedraw();
     }
 
     /// <summary>
     /// Every lateral offset is relative to the hero's own
-    /// <see cref="_heroLateral"/> — the vanishing point follows the viewer,
+    /// <see cref="_journeys.HeroLateral"/> — the vanishing point follows the viewer,
     /// the fix validated in the earlier isolated prototype. The floor
     /// spans the lot's full tile depth as a tiled ground
     /// (<see cref="DrawTiledFloor"/>). Buildings/trees/lots anchor at
@@ -4255,7 +3920,7 @@ public partial class MacroStreetLiveView : Node2D
     /// the horizontal scale wrong relative to the tiles actually underneath
     /// the sprite, so buildings visibly drift off the tile grid as the
     /// camera's lateral offset changes — the drift scales with
-    /// <see cref="_heroLateral"/>, which is why it only became obvious once
+    /// <see cref="_journeys.HeroLateral"/>, which is why it only became obvious once
     /// walking sideways.
     /// </summary>
     /// <summary>
@@ -4264,10 +3929,10 @@ public partial class MacroStreetLiveView : Node2D
     /// everything; the obstacles that need depth-ordering against citizens
     /// live in <see cref="DrawStreetObstacles"/> instead.
     /// </summary>
-    private void DrawStreetGround(int street)
+    internal void DrawStreetGround(int street)
     {
         float depth = street - CameraDepthAnchor;
-        DrawTiledFloor(street, depth);
+        _renderer.DrawTiledFloor(this, street, depth, CameraLateral);
         // Territory tint per parcel column: visualises the locked /
         // reconnoitred / route-secured / available state so the player
         // can see what the world still hides and what an expedition
@@ -4276,7 +3941,7 @@ public partial class MacroStreetLiveView : Node2D
         // reads as overlay, not as the ground itself.
         DrawParcelTerritoryTints(street, depth);
 
-        if (_placementActive)
+        if (_placement.PlacementActive)
         {
             DrawPlacementLots(street, depth);
         }
@@ -4288,123 +3953,11 @@ public partial class MacroStreetLiveView : Node2D
     /// <c>ZIndex</c> encodes the band's depth, so citizens can be ordered
     /// against them.
     /// </summary>
-    private void DrawStreetObstacles(CanvasItem canvas, int street)
-    {
-        float depth = street - CameraDepthAnchor;
-        float anchorDepth = AnchorDepth(depth);
+    private void DrawStreetObstacles(CanvasItem canvas, int street) =>
+        _renderer.DrawStreetObstacles(this, canvas, street, CameraDepthAnchor, CameraLateral, _hitRects);
 
-        foreach (PlotBox plot in _plots)
-        {
-            if (plot.Street != street) continue;
-            float relativeOffset = plot.LateralOffset - CameraLateral;
-            (Vector2 position, Vector2 scale) = ProjectDepth(anchorDepth, relativeOffset);
-            var size = new Vector2(plot.Width * scale.X, plot.Height * scale.Y);
-            var rect = new Rect2(
-                new Vector2(position.X - size.X * 0.5f, position.Y - size.Y),
-                size);
-            if (plot.CultivationState is CultivationPlotState cultivationState)
-            {
-                DrawCultivationSite(canvas, rect, cultivationState);
-                if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
-                continue;
-            }
-            Texture2D? texture = GetBuildingTexture(plot.Kind);
-            if (texture is not null)
-            {
-                canvas.DrawTextureRect(
-                    texture,
-                    rect,
-                    tile: false,
-                    modulate: plot.IsUnderConstruction ? UnderConstructionModulate : Colors.White);
-            }
-            else
-            {
-                canvas.DrawRect(rect, BuildingColor);
-            }
-            if (plot.IsClickable) _clickableRects.Add((rect, plot.BuildingId));
-            if (plot.IsStorageFull)
-            {
-                DrawStorageFullBadge(canvas, rect, plot);
-            }
-        }
-
-        foreach (TreeBox tree in _trees)
-        {
-            if (tree.Street != street) continue;
-            float treeRelativeOffset = tree.LateralOffset - CameraLateral;
-            (Vector2 treePosition, Vector2 treeScale) =
-                ProjectDepth(anchorDepth, treeRelativeOffset);
-            var treeSize = new Vector2(
-                ResourceUnitBaseSizePx * treeScale.X,
-                ResourceUnitBaseSizePx * treeScale.Y);
-            var treeRect = new Rect2(
-                new Vector2(treePosition.X - treeSize.X * 0.5f, treePosition.Y - treeSize.Y),
-                treeSize);
-            DrawNaturalResourceUnit(canvas, tree, treeRect);
-            _clickableTreeRects.Add((treeRect, tree));
-        }
-    }
-
-    private void DrawCultivationSite(CanvasItem canvas, Rect2 rect, CultivationPlotState state)
-    {
-        Color soil = state == CultivationPlotState.Prepared
-            ? new Color("#71513a")
-            : new Color("#59412f");
-        canvas.DrawRect(rect, soil);
-        float lineWidth = Mathf.Max(2f, rect.Size.X * 0.035f);
-        for (int row = 1; row <= 3; row++)
-        {
-            float y = Mathf.Round(rect.Position.Y + rect.Size.Y * row / 4f);
-            canvas.DrawLine(
-                new Vector2(rect.Position.X + rect.Size.X * 0.12f, y),
-                new Vector2(rect.End.X - rect.Size.X * 0.12f, y),
-                new Color("#3d2b22"),
-                lineWidth,
-                antialiased: false);
-        }
-        if (state == CultivationPlotState.Prepared) return;
-
-        Color plant = state switch
-        {
-            CultivationPlotState.Sown => new Color("#b89a52"),
-            CultivationPlotState.Growing => new Color("#6f9f48"),
-            CultivationPlotState.Ready => new Color("#d2b24c"),
-            CultivationPlotState.Spent => new Color("#8a7457"),
-            _ => Colors.White,
-        };
-        int markerCount = state == CultivationPlotState.Sown ? 3 : 5;
-        float markerSize = Mathf.Max(3f, rect.Size.X * 0.075f);
-        for (int marker = 0; marker < markerCount; marker++)
-        {
-            float x = rect.Position.X
-                + rect.Size.X * (marker + 1f) / (markerCount + 1f);
-            float height = state switch
-            {
-                CultivationPlotState.Sown => markerSize,
-                CultivationPlotState.Growing => markerSize * 2f,
-                CultivationPlotState.Ready => markerSize * 3f,
-                _ => markerSize * 1.4f,
-            };
-            canvas.DrawRect(
-                new Rect2(
-                    new Vector2(
-                        Mathf.Round(x - markerSize * 0.5f),
-                        Mathf.Round(rect.End.Y - rect.Size.Y * 0.22f - height)),
-                    new Vector2(markerSize, height)),
-                plant);
-        }
-        if (state == CultivationPlotState.Ready)
-        {
-            float badge = Mathf.Max(5f, rect.Size.X * 0.12f);
-            canvas.DrawCircle(
-                new Vector2(rect.End.X - badge, rect.Position.Y + badge),
-                badge * 0.55f,
-                new Color("#f2d35f"),
-                filled: true,
-                width: -1f,
-                antialiased: false);
-        }
-    }
+    internal void DrawCultivationSite(CanvasItem canvas, Rect2 rect, CultivationPlotState state) =>
+        _renderer.DrawCultivationSite(canvas, rect, state);
 
     /// <summary>
     /// Draws one gatherable ground unit from the shared terrain atlas.
@@ -4416,58 +3969,17 @@ public partial class MacroStreetLiveView : Node2D
     /// and told the player nothing about what they were about to gather.
     /// </para>
     /// </summary>
-    private void DrawNaturalResourceUnit(CanvasItem canvas, TreeBox unit, Rect2 rect)
-    {
-        if (unit.ResourceType != ResourceType.Wood)
-        {
-            canvas.DrawTextureRectRegion(
-                _terrainAtlas,
-                rect,
-                TerrainAtlas.ResourceRegion(unit.ResourceType, unit.ForestId, unit.UnitId));
-            return;
-        }
+    internal void DrawNaturalResourceUnit(CanvasItem canvas, TreeBox unit, Rect2 rect) =>
+        _renderer.DrawNaturalResourceUnit(canvas, unit, rect, _terrainAtlas);
 
-        // A tree is two tiles tall. Drawn at the shared one-tile footprint it
-        // came out the same size as a berry bush, so the canopy grows upward
-        // out of the rect while the trunk keeps the rect's own ground line —
-        // the plot footprint, and therefore the click target, is unchanged.
-        // Which tree grows here comes from the biome, so a cactus stands in the
-        // sand and a fruiting broadleaf does not. A cactus is a single tile and
-        // simply has no canopy above the rect.
-        TerrainAtlas.TreeVariant variant =
-            TerrainAtlas.TreeFor(_groundBiome, unit.ForestId, unit.UnitId);
-        if (variant.IsTall)
-        {
-            var canopy = new Rect2(
-                new Vector2(rect.Position.X, rect.Position.Y - rect.Size.Y),
-                rect.Size);
-            canvas.DrawTextureRectRegion(
-                _terrainAtlas, canopy, TerrainAtlas.RegionOfId(variant.CanopyId));
-        }
-        canvas.DrawTextureRectRegion(
-            _terrainAtlas,
-            new Rect2(rect.Position, rect.Size),
-            TerrainAtlas.RegionOfId(variant.TrunkId));
-    }
+    internal void DrawStorageFullBadge(CanvasItem canvas, Rect2 buildingRect, PlotBox plot) =>
+        _renderer.DrawStorageFullBadge(canvas, buildingRect, plot, _storageFullIcon, _hitRects);
 
-    private void DrawStorageFullBadge(CanvasItem canvas, Rect2 buildingRect, PlotBox plot)
-    {
-        var badgeRect = new Rect2(
-            new Vector2(
-                buildingRect.End.X - StatusBadgeSize,
-                buildingRect.Position.Y - StatusBadgeSize * 0.5f),
-            new Vector2(StatusBadgeSize, StatusBadgeSize));
-        var borderRect = badgeRect.Grow(StatusBadgeBorder);
-        canvas.DrawRect(borderRect, LineageThemeRegistry.IconAccent);
-        canvas.DrawRect(badgeRect, new Color(0.06f, 0.05f, 0.04f, 0.94f));
-        canvas.DrawTextureRect(_storageFullIcon, badgeRect, tile: false);
-        _storageFullBadgeRects.Add((borderRect, plot));
-    }
 
     /// <summary>Depth at which sprites anchor within their calle's lot: half a tile
     /// behind the calle's own near edge, i.e. near the lot's front rather than its back.</summary>
     private static float AnchorDepth(float streetDepth) =>
-        streetDepth + 0.5f / ParcelGrid.TilesPerStandardLot;
+        MacroProjectionHelpers.AnchorDepth(streetDepth);
 
     /// <summary>
     /// Draws one calle's floor as a full <see cref="ParcelGrid.TilesPerStandardLot"/>-deep
@@ -4485,7 +3997,7 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void DrawTiledFloor(int street, float depth)
     {
-        TerrainAtlas.GroundBiome biome = _groundBiome;
+        TerrainAtlas.GroundBiome biome = _renderer.GroundBiome;
         int totalTiles = Mathf.RoundToInt(2f * _lateralHalfWidthPx / TileUnitPx);
         int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         for (int tileRow = 0; tileRow < ParcelGrid.TilesPerStandardLot; tileRow++)
@@ -4501,7 +4013,7 @@ public partial class MacroStreetLiveView : Node2D
             for (int tileIndex = 0; tileIndex < totalTiles; tileIndex++)
             {
                 int parcelColumn = tileIndex / ParcelGrid.FrontageColumnsPerParcel;
-                if (!_parcelTerritory.ContainsKey((parcelRow, parcelColumn))) continue;
+                if (!_renderer.ParcelTerritory.ContainsKey((parcelRow, parcelColumn))) continue;
                 float tileCenterGlobal = (tileIndex + 0.5f) * TileUnitPx - _lateralHalfWidthPx;
                 float leftGlobal = tileCenterGlobal - TileUnitPx * 0.5f - CameraLateral;
                 float rightGlobal = tileCenterGlobal + TileUnitPx * 0.5f - CameraLateral;
@@ -4527,7 +4039,7 @@ public partial class MacroStreetLiveView : Node2D
                     CenterX + leftGlobal * scaleFar, CenterX + rightGlobal * scaleFar,
                     _terrainAtlas, TerrainAtlas.RegionOfId(biome.Fill[variant]));
 
-                float wear = tileRow == 0 ? _terrainWear.WearAt(street, tileIndex) : 0f;
+                float wear = tileRow == 0 ? _renderer.WearAt(street, tileIndex) : 0f;
                 if (wear <= 0f) continue;
                 // Reveal a narrow dirt trace first, then widen it with traffic.
                 // One passage affects only a couple of snapped pixels instead
@@ -4553,13 +4065,13 @@ public partial class MacroStreetLiveView : Node2D
     /// (phase 2) overrides this per-tile in <see cref="DrawTiledFloor"/> for
     /// trampled tiles, without touching this method.
     /// </summary>
-    private TerrainAtlas.GroundBiome _groundBiome = TerrainAtlas.BiomeFor(LineageId.Ardhen);
+    // A4: ground biome moved to MacroStreetRenderer.
 
     /// <summary>
     /// Which lateral tile index (the same granularity <see cref="DrawTiledFloor"/>
     /// tiles the floor at) a global lateral offset falls into — used to mark
     /// the hero's own footprint for <see cref="_terrainWear"/>, independent
-    /// of camera position (same "global" lateral space <c>_heroLateral</c>
+    /// of camera position (same "global" lateral space <c>_journeys.HeroLateral</c>
     /// and <see cref="StreetRoutePlanner"/> already use).
     /// </summary>
     private int TileIndexAtLateral(float lateral)
@@ -4570,7 +4082,8 @@ public partial class MacroStreetLiveView : Node2D
     }
 
     /// <summary>Marks the tile under the hero's current feet as trampled (S-1.3 phase 2).</summary>
-    private void TrampleHeroTile() => _terrainWear.Trample(_heroStreet, TileIndexAtLateral(_heroLateral));
+    private void TrampleHeroTile() =>
+        _renderer.TrampleHeroTile(_journeys.HeroStreet, TileIndexAtLateral(_journeys.HeroLateral));
 
     /// <summary>
     /// Approximates a perspective trapezoid as a "staircase" of small,
@@ -4621,16 +4134,11 @@ public partial class MacroStreetLiveView : Node2D
         }
     }
 
-    private static float SnapPixel(float value) => Mathf.Round(value / PixelStepPx) * PixelStepPx;
+    private static float SnapPixel(float value) =>
+        MacroProjectionHelpers.SnapPixel(value, PixelStepPx);
 
-    private Texture2D? GetBuildingTexture(BuildingKind kind)
-    {
-        if (_buildingTextureCache.TryGetValue(kind, out Texture2D? cached)) return cached;
-        string? path = BuildingArt.GetTexturePath(kind);
-        Texture2D? texture = path is null ? null : GD.Load<Texture2D>(path);
-        _buildingTextureCache[kind] = texture;
-        return texture;
-    }
+    private Texture2D? GetBuildingTexture(BuildingKind kind) =>
+        _renderer.GetBuildingTexture(kind);
 
     /// <summary>
     /// Renders each available three-column frontage window as its real 3x3
@@ -4641,98 +4149,17 @@ public partial class MacroStreetLiveView : Node2D
     /// becoming an axis-aligned screen rectangle after projecting only its
     /// centre.
     /// </summary>
-    private void DrawPlacementLots(int street, float streetDepth)
-    {
-        foreach (PlacementCellBox cell in _placementCells)
-        {
-            if (cell.Street != street) continue;
-            ProjectPlacementFootprint(
-                cell.LateralOffset,
-                cell.Width,
-                streetDepth,
-                out Vector2 nearLeft,
-                out Vector2 nearRight,
-                out Vector2 farRight,
-                out Vector2 farLeft);
-            bool blocked = cell.Cell.State != FrontageCellState.Available;
-            DrawSteppedPlacementFootprint(
-                nearLeft,
-                nearRight,
-                farRight,
-                farLeft,
-                blocked ? PlacementBlockedCellColor : PlacementAvailableColor,
-                PlacementGridColor,
-                frontageDivisions: 1,
-                depthDivisions: BuildingReservation.RequiredDepthRows,
-                drawInvalidMarker: blocked);
-        }
-
-        foreach (PlacementLotBox lot in _placementLots)
-        {
-            if (lot.Street != street) continue;
-            ProjectPlacementFootprint(
-                lot.LateralOffset,
-                lot.Width,
-                streetDepth,
-                out Vector2 nearLeft,
-                out Vector2 nearRight,
-                out Vector2 farRight,
-                out Vector2 farLeft);
-            Vector2 boundsMin = new(
-                Mathf.Min(Mathf.Min(nearLeft.X, nearRight.X), Mathf.Min(farLeft.X, farRight.X)),
-                Mathf.Min(nearLeft.Y, farLeft.Y));
-            Vector2 boundsMax = new(
-                Mathf.Max(Mathf.Max(nearLeft.X, nearRight.X), Mathf.Max(farLeft.X, farRight.X)),
-                Mathf.Max(nearLeft.Y, farLeft.Y));
-            _clickablePlacementRects.Add((new Rect2(boundsMin, boundsMax - boundsMin), lot));
-        }
-
-        PlacementLotBox? preview = _hoveredPlacementLot is PlacementLotBox hovered
-            && hovered.Street == street
-                ? hovered
-                : null;
-        if (preview is null && _selectedPlacementLot is ConstructionLot selected)
-        {
-            foreach (PlacementLotBox candidate in _placementLots)
-            {
-                if (candidate.Street != street || candidate.Window.Lot != selected) continue;
-                preview = candidate;
-                break;
-            }
-        }
-        if (preview is not PlacementLotBox highlighted) return;
-        ProjectPlacementFootprint(
-            highlighted.LateralOffset,
-            highlighted.Width,
+    private void DrawPlacementLots(int street, float streetDepth) =>
+        _renderer.DrawPlacementLots(
+            this,
+            street,
             streetDepth,
-            out Vector2 previewNearLeft,
-            out Vector2 previewNearRight,
-            out Vector2 previewFarRight,
-            out Vector2 previewFarLeft);
-        bool isSelected = _selectedPlacementLot is ConstructionLot selectedLot
-            && selectedLot == highlighted.Window.Lot
-            && _hoveredPlacementLot is null;
-        Color previewFill = !highlighted.Window.IsValid
-            ? PlacementHoveredInvalidColor
-            : isSelected
-                ? PlacementSelectedColor
-                : PlacementHoveredValidColor;
-        Color previewOutline = !highlighted.Window.IsValid
-            ? new Color("#ff7777")
-            : isSelected
-                ? new Color("#ffe08a")
-                : new Color("#8dffad");
-        DrawSteppedPlacementFootprint(
-            previewNearLeft,
-            previewNearRight,
-            previewFarRight,
-            previewFarLeft,
-            previewFill,
-            previewOutline,
-            frontageDivisions: highlighted.Window.Lot.FrontageColumns,
-            depthDivisions: BuildingReservation.RequiredDepthRows,
-            drawInvalidMarker: !highlighted.Window.IsValid);
-    }
+            _camera.CameraLateral,
+            _placement.PlacementCells,
+            _placement.PlacementLots,
+            _placement.HoveredPlacementLot,
+            _placement.SelectedPlacementLot,
+            _hitRects);
 
     private void ProjectPlacementFootprint(
         float lateralOffset,
@@ -4741,21 +4168,10 @@ public partial class MacroStreetLiveView : Node2D
         out Vector2 nearLeft,
         out Vector2 nearRight,
         out Vector2 farRight,
-        out Vector2 farLeft)
-    {
-        float lotLeft = lateralOffset - width * 0.5f - CameraLateral;
-        float lotRight = lotLeft + width;
-        float depthNear = streetDepth;
-        float depthFar = streetDepth + 1f;
-        float yNear = ProjectedRowScreenY(depthNear);
-        float yFar = ProjectedRowScreenY(depthFar);
-        float scaleNear = ProjectedHorizontalScale(depthNear);
-        float scaleFar = ProjectedHorizontalScale(depthFar);
-        nearLeft = new Vector2(CenterX + lotLeft * scaleNear, yNear);
-        nearRight = new Vector2(CenterX + lotRight * scaleNear, yNear);
-        farRight = new Vector2(CenterX + lotRight * scaleFar, yFar);
-        farLeft = new Vector2(CenterX + lotLeft * scaleFar, yFar);
-    }
+        out Vector2 farLeft) =>
+        _renderer.ProjectPlacementFootprint(
+            lateralOffset, width, streetDepth, _camera.CameraLateral,
+            out nearLeft, out nearRight, out farRight, out farLeft);
 
     /// <summary>
     /// Per-parcel-column tint driven by <see cref="CityParcel.TerritoryState"/>.
@@ -4767,68 +4183,22 @@ public partial class MacroStreetLiveView : Node2D
     /// stepped trapezoid that already projects the floor, so the tint
     /// shares the same vanishing point and lateral camera offset.
     /// </summary>
-    private void DrawParcelTerritoryTints(int street, float streetDepth)
-    {
-        float totalLotColumns = _worldParcelColumns * ParcelGrid.LotsPerAxis;
-        int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
-        float depthNear = streetDepth;
-        float depthFar = streetDepth + 1f;
-        float yNear = ProjectedRowScreenY(depthNear);
-        float yFar = ProjectedRowScreenY(depthFar);
-        float scaleNear = ProjectedHorizontalScale(depthNear);
-        float scaleFar = ProjectedHorizontalScale(depthFar);
-        foreach (((int Row, int Column) coordinate, ParcelTerritoryState territoryState) in _parcelTerritory)
-        {
-            if (coordinate.Row != parcelRow) continue;
-            Color fill = territoryState switch
-            {
-                ParcelTerritoryState.Locked => LockedParcelColor,
-                ParcelTerritoryState.Reconnoitred => ReconnoitredParcelColor,
-                ParcelTerritoryState.RouteSecured => RouteSecuredParcelColor,
-                ParcelTerritoryState.Available => Colors.Transparent,
-                _ => Colors.Transparent,
-            };
-            if (fill.A == 0) continue;
-            float parcelLeftColumn = coordinate.Column * ParcelGrid.LotsPerAxis;
-            float parcelLeft = (parcelLeftColumn - totalLotColumns * 0.5f) * LotUnitPx
-                - CameraLateral;
-            float parcelRight = parcelLeft
-                + ParcelGrid.LotsPerAxis * LotUnitPx;
-            var nearLeft = new Vector2(CenterX + parcelLeft * scaleNear, yNear);
-            var nearRight = new Vector2(CenterX + parcelRight * scaleNear, yNear);
-            var farRight = new Vector2(CenterX + parcelRight * scaleFar, yFar);
-            var farLeft = new Vector2(CenterX + parcelLeft * scaleFar, yFar);
-            DrawSteppedTintTrapezoid(nearLeft, nearRight, farRight, farLeft, fill);
-        }
-    }
+    private void DrawParcelTerritoryTints(int street, float streetDepth) =>
+        _renderer.DrawParcelTerritoryTints(
+            this,
+            street,
+            streetDepth,
+            _camera.CameraLateral,
+            _worldParcelColumns);
 
     private void DrawSteppedTintTrapezoid(
         Vector2 nearLeft,
         Vector2 nearRight,
         Vector2 farRight,
         Vector2 farLeft,
-        Color fill)
-    {
-        float height = Mathf.Abs(farLeft.Y - nearLeft.Y);
-        int stripes = Mathf.Max(1, Mathf.CeilToInt(height / PixelStepPx));
-        for (int index = 0; index < stripes; index++)
-        {
-            float t0 = index / (float)stripes;
-            float t1 = (index + 1) / (float)stripes;
-            Vector2 left0 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t0));
-            Vector2 right0 = PixelMotion.Snap(nearRight.Lerp(farRight, t0));
-            Vector2 left1 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t1));
-            Vector2 right1 = PixelMotion.Snap(nearRight.Lerp(farRight, t1));
-            float top = Mathf.Min(left0.Y, left1.Y);
-            float bottom = Mathf.Max(left0.Y, left1.Y);
-            float left = Mathf.Min(left0.X, left1.X);
-            float right = Mathf.Max(right0.X, right1.X);
-            DrawRect(new Rect2(
-                new Vector2(left, top),
-                new Vector2(Mathf.Max(1f, right - left), Mathf.Max(1f, bottom - top))),
-                fill);
-        }
-    }
+        Color fill) =>
+        _renderer.DrawSteppedTintTrapezoid(
+            this, nearLeft, nearRight, farRight, farLeft, fill);
 
     private void DrawSteppedPlacementFootprint(
         Vector2 nearLeft,
@@ -4839,79 +4209,15 @@ public partial class MacroStreetLiveView : Node2D
         Color outline,
         int frontageDivisions,
         int depthDivisions,
-        bool drawInvalidMarker)
-    {
-        const float stripeHeight = 2f;
-        float height = Mathf.Abs(farLeft.Y - nearLeft.Y);
-        int stripes = Mathf.Max(1, Mathf.CeilToInt(height / stripeHeight));
-        Vector2 previousLeft = PixelMotion.Snap(nearLeft);
-        Vector2 previousRight = PixelMotion.Snap(nearRight);
-        DrawLine(previousLeft, previousRight, outline, 2f, antialiased: false);
-
-        for (int index = 0; index < stripes; index++)
-        {
-            float t0 = index / (float)stripes;
-            float t1 = (index + 1) / (float)stripes;
-            Vector2 left0 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t0));
-            Vector2 right0 = PixelMotion.Snap(nearRight.Lerp(farRight, t0));
-            Vector2 left1 = PixelMotion.Snap(nearLeft.Lerp(farLeft, t1));
-            Vector2 right1 = PixelMotion.Snap(nearRight.Lerp(farRight, t1));
-            float top = Mathf.Min(left0.Y, left1.Y);
-            float bottom = Mathf.Max(left0.Y, left1.Y);
-            DrawRect(new Rect2(
-                new Vector2(Mathf.Min(left0.X, left1.X), top),
-                new Vector2(
-                    Mathf.Max(right0.X, right1.X) - Mathf.Min(left0.X, left1.X),
-                    Mathf.Max(1f, bottom - top))), fill);
-
-            DrawLine(previousLeft, new Vector2(left1.X, previousLeft.Y), outline, 2f, false);
-            DrawLine(new Vector2(left1.X, previousLeft.Y), left1, outline, 2f, false);
-            DrawLine(previousRight, new Vector2(right1.X, previousRight.Y), outline, 2f, false);
-            DrawLine(new Vector2(right1.X, previousRight.Y), right1, outline, 2f, false);
-            previousLeft = left1;
-            previousRight = right1;
-        }
-        DrawLine(previousLeft, previousRight, outline, 2f, antialiased: false);
-
-        for (int column = 1; column < frontageDivisions; column++)
-        {
-            float t = column / (float)frontageDivisions;
-            Vector2 near = PixelMotion.Snap(nearLeft.Lerp(nearRight, t));
-            Vector2 far = PixelMotion.Snap(farLeft.Lerp(farRight, t));
-            DrawSteppedPlacementEdge(near, far, stripes, outline);
-        }
-        for (int row = 1; row < depthDivisions; row++)
-        {
-            float t = row / (float)depthDivisions;
-            Vector2 left = PixelMotion.Snap(nearLeft.Lerp(farLeft, t));
-            Vector2 right = PixelMotion.Snap(nearRight.Lerp(farRight, t));
-            DrawLine(left, right, outline, 2f, antialiased: false);
-        }
-        if (drawInvalidMarker)
-        {
-            Vector2 topLeft = PixelMotion.Snap(nearLeft.Lerp(farLeft, 0.75f));
-            Vector2 topRight = PixelMotion.Snap(nearRight.Lerp(farRight, 0.75f));
-            Vector2 bottomLeft = PixelMotion.Snap(nearLeft.Lerp(farLeft, 0.25f));
-            Vector2 bottomRight = PixelMotion.Snap(nearRight.Lerp(farRight, 0.25f));
-            DrawLine(topLeft.Lerp(topRight, 0.2f), bottomLeft.Lerp(bottomRight, 0.8f), outline, 3f, false);
-            DrawLine(topRight.Lerp(topLeft, 0.2f), bottomRight.Lerp(bottomLeft, 0.8f), outline, 3f, false);
-        }
-    }
+        bool drawInvalidMarker) =>
+        _renderer.DrawSteppedPlacementFootprint(
+            this, nearLeft, nearRight, farRight, farLeft,
+            fill, outline, frontageDivisions, depthDivisions, drawInvalidMarker);
 
     private void DrawSteppedPlacementEdge(
         Vector2 from,
         Vector2 to,
         int steps,
-        Color color)
-    {
-        Vector2 previous = from;
-        for (int index = 1; index <= steps; index++)
-        {
-            Vector2 next = PixelMotion.Snap(from.Lerp(to, index / (float)steps));
-            Vector2 corner = new(next.X, previous.Y);
-            DrawLine(previous, corner, color, 2f, false);
-            DrawLine(corner, next, color, 2f, false);
-            previous = next;
-        }
-    }
+        Color color) =>
+        _renderer.DrawSteppedPlacementEdge(this, from, to, steps, color);
 }

@@ -17,6 +17,66 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## A4: el macro view empieza a dejar de ser una mega-clase
+
+**2026-08-11** · arquitectura · sin cambio de schema · 1206 pruebas superadas
+y 1 omitida sobre 1207
+
+Lo que se nota: la macro view ya no declara en línea 41 constantes, 11 colores
+y 3 rutas de escena — viven en `MacroViewConstants`, su única fuente de
+verdad. Las 8 funciones puras de proyección viven en `MacroProjectionHelpers`. La
+geometría de obstáculos vive en `MacroObstacleGeometry`. La
+construcción de texto de selección de ciudadano vive en
+`MacroSelectionTextBuilder`. Los records `PlotBox` / `TreeBox` viven en
+`MacroStreetRenderer`; `PlacementLotBox` / `PlacementCellBox` viven en
+`PlacementPresenter`. `MacroHitRects` y `MacroPlotLookup` son las costuras
+de records-bag entre renderer, interaction y journey. El renderer owns el
+band-layer stack, la Painter abstraction, la caché de texturas de edificio,
+el terreno gastado, la biome del suelo, las listas de plots/trees, los
+estados de citizen, el territory map, el band occupancy, y el world
+envelope. `MacroInteractionController` owns selection + hover state +
+`WorldStatusBubble` + cursor. `CitizenJourneyPresenter` owns el founder
+state + el journey dictionary + `StreetNavigationServerPlanner`. `MacroCameraController`
+owns zoom + free/follow + lateral/depth anchor + pan + transition timing +
+building-entry push. `PlacementPresenter` owns el estado de placement: el
+flag activo, el tipo elegido, los lotes y celdas proyectados, y el lote
+bajo el cursor o seleccionado. La macro view pasa de **4917 a 4223
+líneas** (Δ –694, –14.1%).
+
+Lo que NO se nota: lo movido son constantes, helpers puros, records,
+costuras, estado de rendering, estado de interaction, estado de journey,
+estado de camera, estado de placement, los `Draw*` methods del placement,
+los de los obstacles (`DrawPlacementLots`, `ProjectPlacementFootprint`,
+`DrawParcelTerritoryTints`, `DrawSteppedTintTrapezoid`,
+`DrawSteppedPlacementFootprint`, `DrawSteppedPlacementEdge`,
+`DrawNaturalResourceUnit`, `DrawStorageFullBadge`) y `DrawCultivationSite`.
+Los métodos de interaction (TryClick, TryRightClick, UpdateWorldHover,
+OpenGatherMenu, OpenCultivationMenu, etc.) siguen embebidos en la vista.
+El comportamiento (píxeles, autoridad A2, frontera dominio/presentación,
+scheduling) no cambia. `PacedRouteSteps` y `ReconstructRouteProgress`
+siguen paces contra la ventana del dominio.
+`ArchitectureBoundaryTests.Presentation_DoesNotConfirmCitizenArrival`
+sigue con la allowlist vacía. Los `internal static` que las pruebas
+tocan siguen siendo accesibles a través de forwarders de una línea.
+
+Los 12 archivos colaboradores suman **~2.2k líneas**, cada uno con su
+única responsabilidad: renderer, interaction, journey, camera, placement,
+y los helpers puros (constants, projection, obstacle geometry, selection
+text) más las dos costuras de records-bag (hit rects, plot lookup).
+
+**Sin schema.** No hay migration; no cambia la persistencia.
+
+**Verificado con clicks reales, no leyendo código.** Los fixtures
+`construction-placement`, `construction-placement-hover-invalid` y
+`construction-placement-confirm-click` se capturaron contra este árbol y
+contra HEAD en un worktree limpio: los frames coinciden, y el click de
+puntero real sigue autorizando la construcción (Farm en curso, madera
+7→5, dock primario restaurado). El refactor movió la búsqueda del lote
+más cercano —duplicada literalmente en la ruta de hover y en la de
+click— a un único `PlacementPresenter.TryFindNearestLot`.
+
+---
+
 ## A2: el viaje de un ciudadano lo termina el reloj, no el sprite
 
 **2026-08-11** · arquitectura · schema v34 (sin cambio) · 1206 pruebas superadas
