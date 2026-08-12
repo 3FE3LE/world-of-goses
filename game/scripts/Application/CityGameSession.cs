@@ -191,6 +191,92 @@ public sealed class CityGameSession
     public void MarkDirty() => _isDirty = true;
 
     // ------------------------------------------------------------------------
+    // Reads that used to bypass the session
+    //
+    // The final A0–A12 exit gate audited every `_session.World` reach in the
+    // controller and classified each one as persistence boundary, visual
+    // fixture, debug tooling, transient presentation, or accidental gameplay
+    // bypass. The members below existed only as the last category: production
+    // paths that reached through the ownership seam because it happened to be
+    // reachable. They are use cases now, so the seam is left to the callers
+    // that genuinely need it.
+    // ------------------------------------------------------------------------
+
+    /// <summary>
+    /// Construction lots the player may currently build on. Read by
+    /// <c>PlacementPresenter</c> during placement mode.
+    ///
+    /// <para><c>internal</c> because <see cref="ConstructionLot"/> is a domain
+    /// type and <c>Presentation_DoesNotExposeMutableDomainEntities</c> forbids
+    /// publishing domain types on a public presentation surface. The type is
+    /// an immutable record struct, so the practical risk is nil — but the rule
+    /// is enforced by shape, not by case-by-case judgement.</para>
+    /// </summary>
+    internal IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
+        _world.AvailableConstructionLots();
+
+    /// <summary>
+    /// Debug projection of one citizen's routine. Callers gate this on
+    /// <c>OS.IsDebugBuild()</c>; it exists so a developer can read why a
+    /// citizen is where they are without a view holding the entity.
+    ///
+    /// <para>Built here rather than in the controller because
+    /// <see cref="CitizenDebugSnapshot"/> is an Application read model, and
+    /// assembling it in Presentation meant reaching the aggregate for two
+    /// fields.</para>
+    /// </summary>
+    public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
+    {
+        Citizen? citizen = _world.GetCitizen(citizenId);
+        CitizenRoutineSnapshot? routine = _world.GetCitizenRoutine(citizenId);
+        if (citizen is null || routine is null) return null;
+        return new CitizenDebugSnapshot(
+            citizen.Id,
+            citizen.Name,
+            routine,
+            citizen.CurrentAssignment,
+            PrimaryHomeId,
+            GameClock.IsWorkday(CurrentTick),
+            LastSimulationProcessedAt.ToUnixTimeMilliseconds());
+    }
+
+    /// <summary>
+    /// Builds the restarted city that keeps the founder and discards
+    /// everything else. Returns the new aggregate; the controller owns the
+    /// persistence round-trip that installs it, because the Application
+    /// assembly deliberately does not reference Persistence.
+    ///
+    /// <para>This is a gameplay command — "start over with the same founder" —
+    /// and it used to run as <c>_session.World.CreateRestartedCityKeepingHero()</c>
+    /// straight from the pause menu's path, which is a production surface
+    /// driving the aggregate directly.</para>
+    /// </summary>
+    internal CityWorld CreateRestartedCityKeepingHero() =>
+        _world.CreateRestartedCityKeepingHero();
+
+    /// <summary>
+    /// Formats the EG-0 calibration report. The controller writes the file;
+    /// composing its text needs the metrics and the clock, which are the
+    /// session's to read.
+    /// </summary>
+    public string FormatEarlyGameMetricsReport() =>
+        EarlyGameMetricsReport.Format(_world.Metrics, _world.CurrentTick);
+
+    /// <summary>
+    /// Id of the first active expedition, or <c>null</c> when none is away.
+    /// Lets the fixture seam cancel "the current expedition" without
+    /// enumerating the aggregate from Presentation.
+    /// </summary>
+    internal ExpeditionId? FirstActiveExpeditionId()
+    {
+        foreach (Expedition expedition in _world.Expeditions.Values)
+        {
+            if (expedition.Status == ExpeditionStatus.Active) return expedition.Id;
+        }
+        return null;
+    }
+
+    // ------------------------------------------------------------------------
     // Onboarding and citizen lifecycle
     // ------------------------------------------------------------------------
 

@@ -566,17 +566,9 @@ public partial class CityWorldController : Node
     /// Fixture command: cancels the first active expedition. Returns
     /// <c>true</c> when one was cancelled.
     /// </summary>
-    internal bool CancelFirstActiveExpeditionForFixture()
-    {
-        foreach (Expedition expedition in _session.World.Expeditions.Values)
-        {
-            if (expedition.Status == ExpeditionStatus.Active)
-            {
-                return _session.CancelExpedition(expedition.Id);
-            }
-        }
-        return false;
-    }
+    internal bool CancelFirstActiveExpeditionForFixture() =>
+        _session.FirstActiveExpeditionId() is ExpeditionId active
+        && _session.CancelExpedition(active);
 
     private static bool IsVisualCaptureMode =>
         string.Equals(
@@ -647,9 +639,7 @@ public partial class CityWorldController : Node
             string path = Path.Combine(
                 WorldPersistence.SaveDirectory,
                 "eg0-report.txt");
-            File.WriteAllText(
-                path,
-                EarlyGameMetricsReport.Format(_session.World.Metrics, _session.World.CurrentTick));
+            File.WriteAllText(path, _session.FormatEarlyGameMetricsReport());
         }
         catch (Exception ex)
         {
@@ -684,7 +674,7 @@ public partial class CityWorldController : Node
         if (!PersistenceWritesEnabled || !_session.HasHero) return false;
         try
         {
-            CityWorld restarted = _session.World.CreateRestartedCityKeepingHero();
+            CityWorld restarted = _session.CreateRestartedCityKeepingHero();
             WorldPersistence.ApplyTo(_session.World, WorldPersistence.Capture(restarted));
             if (!TrySaveNow())
             {
@@ -826,20 +816,8 @@ public partial class CityWorldController : Node
 
     public CityPolicySnapshot GetCityPolicySnapshot() => _session.GetCityPolicySnapshot();
 
-    public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId)
-    {
-        Citizen? citizen = _session.World.GetCitizen(citizenId);
-        CitizenRoutineSnapshot? routine = _session.World.GetCitizenRoutine(citizenId);
-        if (citizen is null || routine is null) return null;
-        return new CitizenDebugSnapshot(
-            citizen.Id,
-            citizen.Name,
-            routine,
-            citizen.CurrentAssignment,
-            _session.PrimaryHomeId,
-            GameClock.IsWorkday(_session.CurrentTick),
-            _session.LastSimulationProcessedAt.ToUnixTimeMilliseconds());
-    }
+    public CitizenDebugSnapshot? GetCitizenDebugSnapshot(CitizenId citizenId) =>
+        _session.GetCitizenDebugSnapshot(citizenId);
 
     public HeroProfileSnapshot? GetHeroProfileSnapshot() => _session.GetHeroProfileSnapshot();
 
@@ -1062,7 +1040,7 @@ public partial class CityWorldController : Node
     }
 
     internal IReadOnlyList<ConstructionLot> AvailableConstructionLots() =>
-        _session.World.AvailableConstructionLots();
+        _session.AvailableConstructionLots();
 
     public void SetProjectEnabled(BuildingId projectId, bool enabled) =>
         _session.SetProjectEnabled(projectId, enabled);

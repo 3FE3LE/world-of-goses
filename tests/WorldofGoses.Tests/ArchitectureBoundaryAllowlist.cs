@@ -21,39 +21,24 @@ public static class ArchitectureBoundaryAllowlist
     /// entity-binding requirements or fixture-only seam (renamed to A3
     /// fixtures — see the inline comments).
     /// </summary>
+    /// <remarks>
+    /// <para><strong>Empty, and that is the finding.</strong> This list
+    /// carried three entries — <c>AstralOnboardingView</c>,
+    /// <c>CombatDebugPanel</c> and <c>CityPrototype</c> — each with a comment
+    /// explaining why it could not be closed yet. A8–A12 closed all three by
+    /// routing the reads through the session and the narrow
+    /// <c>GetFixtureWorld()</c> seam, but nobody deleted the entries, so the
+    /// A0–A12 report still counted three exemptions the code no longer used.
+    /// The final exit gate verified every entry against the guard's own
+    /// pattern and found zero matches in all three files.</para>
+    ///
+    /// <para>The property stays (rather than the guard losing its allowlist
+    /// parameter) so a future exemption has an obvious, reviewed place to
+    /// go. Adding one back means writing down why presentation must hold the
+    /// aggregate — which, for gameplay, it must not.</para>
+    /// </remarks>
     public static IReadOnlyCollection<string> PresentationDirectWorldAccess { get; } =
-        new[]
-        {
-            // game/scripts/AstralOnboardingView.cs — hands the live
-            // founder <c>Citizen</c> to <c>FounderArrivalSequence.Begin</c>,
-            // which reads profile.Gender, profile.Lineage, and
-            // appearanceVariant. The arrival sequence is documented as
-            // transient placeholder art; A1 keeps it on the allowlist so
-            // the animation shape is not coupled to a new snapshot. Move
-            // during Architecture Hardening A3.
-            "game/scripts/AstralOnboardingView.cs",
-
-            // game/scripts/CombatDebugPanel.cs — passes the live
-            // <c>CityWorld</c> to <c>CombatExpeditionService.Run(party, plan)</c>
-            // and writes back through <c>service.ApplyResult(party, result)</c>.
-            // The write-back requirement is real; A1 keeps the panel on the
-            // allowlist. Move during Architecture Hardening A3.
-            "game/scripts/CombatDebugPanel.cs",
-
-            // game/scripts/CityPrototype.cs — dev-only fixture scene that
-            // builds deterministic worlds for visual regression and offline
-            // tests. A1 added <c>internal</c> fixture commands on the
-            // controller (<c>SeedFixtureWorld</c>, <c>RegisterFixtureCitizen</c>,
-            // <c>RecordFixtureLogEvent</c>, <c>DepositToFixtureInventory</c>,
-            // <c>TryConsumeFixtureResource</c>, <c>GetFixtureHero</c>, …)
-            // and migrated the bulk of the setup, but a handful of fixture
-            // functions still capture <c>controller.World</c> to a local
-            // and operate on it for stage-bound setup. Closing the rest is a
-            // fixture-seam extraction that belongs to A3; until then, this
-            // file is gated by the dev command-line flags and never runs in
-            // production.
-            "game/scripts/CityPrototype.cs",
-        };
+        System.Array.Empty<string>();
 
     /// <summary>
     /// Files under Presentation that import or reference types in
