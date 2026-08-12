@@ -385,14 +385,63 @@ public sealed class StableSaveIdContractTests
 
     // -------- Mapper must be the single source of truth --------
 
+    /// <summary>
+    /// Every persisted enum family must be fully covered by the frozen wire-id
+    /// tables above.
+    ///
+    /// <para>This closes the one hole the exit gate found in A7's guarantee.
+    /// The frozen <c>[InlineData]</c> tables genuinely protect against a
+    /// <em>rename</em>: change <c>ToolKind.PrimitiveAxe</c> to
+    /// <c>ToolKind.Axe</c> and <c>ToId</c> starts returning "Axe" while the
+    /// table still expects "PrimitiveAxe", so the suite goes red. But 27 of
+    /// the 30 mappers end in <c>_ =&gt; value.ToString()</c>, so a newly
+    /// <em>added</em> member silently takes its C# name as its wire id, with
+    /// no frozen row to contradict it and nothing to fail. The first save
+    /// written with that value bakes the accident into the format.</para>
+    ///
+    /// <para>The exit gate checked every family below and found the frozen
+    /// tables complete today — so the exposure is future-only, which is
+    /// exactly what a tripwire is for. Adding a member fails here until
+    /// someone adds its row above and thereby decides its wire id
+    /// deliberately. Making the mappers exhaustive so the fallback cannot
+    /// exist at all is the real fix and is tracked separately.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(ResourceType), 9)]
+    [InlineData(typeof(BuildingKind), 8)]
+    [InlineData(typeof(ToolKind), 1)]
+    [InlineData(typeof(FoundingSiteModule), 4)]
+    [InlineData(typeof(ParcelTerritoryState), 4)]
+    [InlineData(typeof(BuildingOrientation), 4)]
+    [InlineData(typeof(CitizenOrigin), 2)]
+    [InlineData(typeof(CitizenVitalStatus), 3)]
+    [InlineData(typeof(WoundSeverity), 2)]
+    [InlineData(typeof(GenderId), 2)]
+    public void PersistedEnumFamily_HasNoUnfrozenMembers(Type enumType, int frozenMemberCount)
+    {
+        int actual = Enum.GetValues(enumType).Length;
+        Assert.True(
+            actual == frozenMemberCount,
+            $"{enumType.Name} now has {actual} members but only {frozenMemberCount} have a frozen "
+            + "wire id in StableSaveIdContractTests. A member without a frozen row takes its wire "
+            + "id from the mapper's `_ => value.ToString()` fallback — i.e. from its C# name — and "
+            + "the first save written with it makes that permanent. Add an [InlineData] row with "
+            + "the id you intend, add the explicit arm to the mapper, and update this count.");
+    }
+
     [Fact]
     public void NoCaptureOrApplier_CallsEnumToStringDirectly_ForPersistedEnums()
     {
-        // Architectural guardrail: every Capture/Restore site for a
-        // persisted enum goes through its stable ID mapper. This test
-        // fails the build if a future refactor reintroduces a raw
-        // Enum.ToString() call on a save-side code path. We use a
-        // regex against the source files (not IL) so the failure
+        // Architectural guardrail for the capture/restore surfaces
+        // specifically — NOT for the Ids/ mappers, which still carry
+        // `_ => value.ToString()` fallbacks (see
+        // PersistedEnumFamily_HasNoUnfrozenMembers). ARCHITECTURE.md used to
+        // describe this test as proof that "the raw Enum.ToString() calls
+        // that used to drive persistence are gone"; it only ever scanned the
+        // two files below, and only for the `EnumType.Member.ToString()`
+        // shape. The doc now says what this actually covers.
+        //
+        // We use a regex against the source files (not IL) so the failure
         // message is readable and the rule is reviewable.
         string repoRoot = TestHelpers.FindRepositoryRoot();
         string[] files =

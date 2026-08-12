@@ -240,19 +240,86 @@ not silently change the save format. The pattern is one small static
 mapper per enum family under
 `src/WorldofGoses.Persistence/Ids/` (e.g. `BuildingKindSaveIds`,
 `ResourceTypeSaveIds`, `FirstNightStageSaveIds`). Every Capture and
-Restore site for a persisted enum now goes through its `*SaveIds.ToId`
-or `*SaveIds.TryParse`; the raw `Enum.ToString()` calls that used to
-drive persistence are gone. `StableSaveIdContractTests` (96 cases) freezes
-the wire strings of every persisted value and includes a source-text
-guardrail that fails the build if a future refactor reintroduces a raw
-`Enum.ToString()` call on a persisted enum.
+Restore site for a persisted enum goes through its `*SaveIds.ToId`
+or `*SaveIds.TryParse`.
 
-A7 also introduces the `WorldRestoreState` semantic type in Domain.
-Persistence owns the mapping between JSON-shaped `WorldSave` and that
-semantic state; the world-state contract is `WorldRestoreState` plus
-its `RestoredX` records (all domain-typed: `BuildingKind`, `ResourceType`,
-`ParcelTerritoryState`, etc.). Renaming a C# enum never reaches Domain
-through this path — only through the ID mapper in Persistence.
+**Precisely what is enforced, corrected by the exit gate.** This paragraph
+used to claim that "the raw `Enum.ToString()` calls that used to drive
+persistence are gone". They are not: 27 of the 30 mappers under
+`Persistence/Ids/` still end in `_ => value.ToString()`, and five derive
+every id that way. The source-text guardrail
+(`NoCaptureOrApplier_CallsEnumToStringDirectly_ForPersistedEnums`) scans two
+files — `WorldPersistence.cs` and `WorldSaveApplier.cs` — for the
+`EnumType.Member.ToString()` shape, and never looked at the mappers at all.
+
+What actually protects the invariant is the frozen value table.
+`StableSaveIdContractTests` pins the exact wire string of every persisted
+value with `[InlineData]`, so **renaming** a C# enum member makes `ToId`
+return the new name while the table still expects the old one, and the suite
+goes red. That is the guarantee A7 exists to give, and it holds.
+
+The hole was **adding** a member: with no frozen row and a `ToString()`
+fallback, a new value silently took its C# name as its wire id and the first
+save written with it made that permanent.
+`PersistedEnumFamily_HasNoUnfrozenMembers` closes it by asserting each
+family's member count against its frozen-row count, so a new member fails
+until someone decides its id deliberately. The gate verified every covered
+family's table is complete today.
+
+Making the mappers exhaustive — so the fallback cannot exist — remains open
+debt rather than a claimed guarantee.
+
+A7 also introduced a `WorldRestoreState` semantic type in Domain, with
+the intended flow `WorldSave` → Persistence translation →
+`WorldRestoreState` → Domain restore. **That type was never wired up and
+has been removed.** It had zero references outside its own file for the
+whole of A7–A12 while the actual restore ran through
+`WorldSaveApplier`, and a documented architecture that is not the
+architecture executing is worse than no document.
+
+The restore flow that actually runs, and is now the documented one:
+
+```
+WorldSave (JSON DTO, Persistence)
+    │  WorldPersistence.Validate  → schema + migration chain (v2 → v34)
+    ▼
+WorldSaveApplier.ApplyValidatedTo
+    │  *SaveIds.TryParse per persisted enum family
+    │  EconomicBalanceVersion fixups for pre-balance saves
+    │  preflight rehydration into an isolated candidate world
+    ▼
+CityWorld internal collections (Domain)
+```
+
+The exit gate considered completing the `WorldRestoreState` boundary
+instead of deleting it, and rejected it on ownership and maintainability
+grounds rather than effort:
+
+- **Ownership is already correct and compiler-enforced.** Domain has no
+  `ProjectReference` to Persistence, knows nothing of `WorldSave`, JSON,
+  or save IDs, and never reaches outward. `WorldSaveApplier` reaches *in*
+  through `InternalsVisibleTo`. Inserting `WorldRestoreState` would not
+  change who depends on whom; it would only change the shape of the write.
+- **It would be a third parallel object model.** `RestoredBuilding`
+  duplicated `BuildingSave` field for field, and roughly thirty such
+  records duplicated the rest. Every new persisted field would need four
+  edits (DTO, mapper, restore record, domain restore) instead of two, and
+  every drift between the three models is a silent load bug.
+- **No validation would move.** The migration-era fixups keyed on
+  `EconomicBalanceVersion` are persistence concerns about old saves on
+  disk. They would still run while building the restore record, so Domain
+  would receive already-migrated data either way.
+
+What the deletion costs is that `CityWorld`'s collections stay `internal`
+rather than `private`. That is a visibility nicety already fenced by an
+assembly boundary whose `InternalsVisibleTo` grants are exactly two
+(`WorldofGoses.Tests`, `WorldofGoses.Persistence`), both listed in
+§"Remaining internal seams".
+
+The invariant A7 actually delivers stands unchanged and is the one worth
+having: renaming a C# enum value cannot change the save format, because
+every persisted enum goes through a `*SaveIds` mapper and
+`StableSaveIdContractTests` freezes the wire strings.
 
 **A9 — First Night typed integration.** A9 closes the last dynamic
 dispatch seam between presentation scenes. `FirstNightScene` used to

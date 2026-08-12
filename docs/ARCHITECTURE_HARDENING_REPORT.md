@@ -1,8 +1,56 @@
 # Architecture Hardening Report
 
-> Final state after A0–A12. No new layers; no large refactors;
-> only the debt transversal to gameplay that closed the seams A0–A11
-> opened.
+> Final state after A0–A12 and the exit gate that closed it. No new layers;
+> no large refactors; only the debt transversal to gameplay that closed the
+> seams A0–A11 opened.
+
+## 0. What the exit gate changed, and why it was needed
+
+A0–A12 left the repository in a state where the build was green, 1323 tests
+passed, and every architecture guard held — while the shipped game could not
+boot at all. That regression (A9's recursive `_Ready`) was found by a human
+launching the game, not by the pipeline, because nothing in the pipeline ever
+launched it. The exit gate's job was to close that class of gap: places where
+the verification told a comfortable story that the artifact did not support.
+
+**What each level of enforcement actually means here**, since the distinction
+is the point:
+
+| Enforcement | Means | Examples |
+|---|---|---|
+| **Compiler** | A violation does not build. Strongest; no maintenance. | Domain/Application/Persistence cannot `using Godot` (no GodotSharp reference). Domain cannot see Persistence (no `ProjectReference`). `ResourceTypeLocalizer.Key` throws on an unmapped value. |
+| **Test (semantic)** | A violation fails a test that reasons about behaviour. | Live/offline equivalence, exactly-once expedition resolution, stable save IDs, i18n keys present in every catalog. |
+| **Test (source-text)** | A violation fails a regex scan of the sources. Catches shapes the type system cannot express; can be fooled by an unusual spelling. | `Presentation_DoesNotAccessCityWorldDirectly`, `Ui_DoesNotHardcodeInputActionStrings`, `ProductionUi_DoesNotComposeStaticHierarchyInCode`. |
+| **Allowlist** | The rule holds everywhere *except* named files. Debt, unless the comment says otherwise. | §8. |
+| **Process (CI)** | Enforced by running the real thing. | Normal Godot boot; zero-warning build. |
+| **Review only** | Written down, not mechanised. | Compact-HUD metric tokens (see `UI_PATTERNS.md` §5.0). |
+
+Gaps the gate closed, each of which had been reported as done:
+
+- **The game boot was never checked.** `tools/Test-GodotBoot.ps1` now launches
+  the real production main scene headless with the capture harness off, and
+  fails on abnormal exit (naming `STATUS_STACK_OVERFLOW` explicitly, since
+  that is how A9 died), on `ERROR`/`SCRIPT ERROR`, on an unhandled managed
+  exception, and on a scene that never reaches its startup path. CI runs it
+  after the tests; `New-SessionSnapshot -Mode Full` runs the same script
+  rather than a second, subtly different one. Verified by reintroducing the
+  A9 recursion and confirming the check goes red.
+- **The build baseline could not lie.** The Full snapshot built incrementally
+  over a warm tree, recompiled nothing, and recorded "0 errors, 0 warnings".
+  It now builds `--no-incremental`, and CI additionally builds
+  `-warnaserror`. The 22 warnings a forced rebuild actually exposed are
+  fixed at the root, not suppressed — including a genuine reachable null
+  dereference behind 16 of them.
+- **The offline coverage was fictional.** `VerticalLoopPersistenceTests` had
+  `if (offline) world.AdvanceWorldTick(); else world.AdvanceWorldTick();`.
+  See §"Invariants" and GitHub #1.
+- **The i18n and input contracts had no guards.** Both rows in the invariant
+  table said "guard pending". Writing them found two live call sites, one of
+  which shipped an untranslated string in the English build.
+- **`WorldRestoreState` documented an architecture that never ran.** Removed;
+  `ARCHITECTURE.md` now describes the restore flow that executes.
+- **The golden-frame harness could photograph another application.** See
+  `VISUAL_REGRESSION.md`; GitHub #2.
 
 ## 1. Final physical architecture
 
@@ -180,18 +228,23 @@ because every fixture method is gated on `IsActive` which is
 
 ## 8. Remaining allowlists
 
+Counts below were re-derived from `ArchitectureBoundaryAllowlist.cs` at the
+close of the exit gate. The previous version of this table was written from
+intent rather than from the source and disagreed with it in two places, which
+is exactly the drift the gate existed to remove.
+
 | Allowlist | Entries | Justification |
 |---|---|---|
-| `PresentationDirectWorldAccess` | 3 (AstralOnboardingView, CombatDebugPanel, CityPrototype) | Documented in inline comments; fixture-only or transient animation seams. Closing them is fixture-seam extraction. |
-| `PresentationPersistenceReference` | 4 (controller, CityPrototype, LocaleManager, RealCityStreetPreview) | Controller is the boundary class; the others are dev tooling. |
-| `PresentationFirstNightFixtureSeam` | 1 (CityPrototype) | The rule itself. |
-| `PresentationMutableEntityReturn` | 1 (IconPaths) | False-match safety net. |
-| `PresentationEntityMutator` | 2 (CityPrototype, CombatDebugPanel) | Dev-only fixture scenes. |
-| `PresentationInstantiatesWorld` | 2 (CityPrototype, RealCityStreetPreview) | Dev-only fixture scenes. |
-| `ProductionUiStaticStructureInCode` | 14 (A/B/D/E classifications) | A-class pending .tscn migration (GitHub #9). B/D/E are legitimate. |
+| `PresentationDirectWorldAccess` | **0** | Was 3 (AstralOnboardingView, CombatDebugPanel, CityPrototype). A8–A12 closed all three; the entries were never deleted, so the report counted exemptions the code had stopped using. Verified against the guard's own pattern: zero matches in all three files. The property remains as an empty array so a future exemption has a reviewed place to go. |
+| `PresentationPersistenceReference` | 4 (controller, CityPrototype, LocaleManager, RealCityStreetPreview) | Controller is the boundary class; the others are dev tooling. All four still match. |
+| `PresentationFirstNightFixtureSeam` | 1 (CityPrototype) | The rule itself, not debt. Still matches. |
+| `PresentationMutableEntityReturn` | 1 (IconPaths) | False-match safety net for a `const string Building`. |
+| `PresentationEntityMutator` | 2 (CityPrototype, CombatDebugPanel) | Dev-only fixture scenes. Both still match. |
+| `PresentationInstantiatesWorld` | 2 (CityPrototype, RealCityStreetPreview) | Dev-only fixture scenes. Both still match. |
+| `ProductionUiStaticStructureInCode` | **17** (10 A + 3 B + 1 D + 3 E) | Reported as 14; the source has always listed 17. Only the 10 A-class entries are debt (GitHub #9); B/D/E are legitimate and are not scheduled for migration. |
 
-Every entry has an inline comment naming its justification. No
-allowlist is "A0–A4 leftover"; every entry is owed to A8–A11.
+Every remaining entry has an inline comment naming its justification, and
+every one was checked against the guard's pattern rather than assumed.
 
 ## 9. Public testing seams remaining
 
@@ -222,7 +275,7 @@ future regressions.
 | ~12 `WOG_VISUAL_CAPTURE` env-var reads in scene trees | Each gates a behaviour dev-only (frame-time sampling, debug toggles); folding them through `VisualRegressionHarness.IsActive` is documented as the next slice. GitHub #6. |
 | Arbitrary timers in `Capture-VisualMatrix.ps1` and `CityPrototype` | Each documents why it is not yet a real-condition wait; replacement belongs to its own visual-regression pass. GitHub #7. |
 | `SampleFrameTimeForVisualCapture` on `CityWorldController` | Already dev-only; could move to `VisualRegressionProfiler` for purity but is not worth the move today. GitHub #8. |
-| `ResourceInventoryPanel` and `ProductionPanel` still use `enum.ToString().ToLowerInvariant()` for one or two paths | A12 introduced `ResourceTypeLocalizer` for the high-churn paths; the remaining call sites are low-churn and will migrate as their panels move to .tscn. |
+| ~~`ResourceInventoryPanel` / `ProductionPanel` still derive i18n keys from enum names~~ | **Closed.** The remaining call sites were `ResourceActionMenu`, `ExpeditionPanel` and `HeroProfileView`. The `ExpeditionPanel` one was a live defect, not latent debt: it asked `en.po` for a msgid `"Wood"` that does not exist, so the English build rendered the raw enum name into the dispatch error. All three now go through an explicit mapper, and `Ui_DoesNotDeriveTranslationKeysFromValueNames` prevents the shape returning. |
 | `CityPrototype.cs` (2624 lines) | Largest class in the codebase by far. Mostly fixture setup. Refactor belongs to the catalog-migration slice (GitHub #5); splitting today would not improve clarity. |
 
 ## 11. Large classes that stay
@@ -295,8 +348,11 @@ future regressions.
 | Presentation doesn't expose mutable domain entities | Public method regex | `Presentation_DoesNotExposeMutableDomainEntities` | Allowlist: IconPaths (false-match safety net) |
 | Removed wrappers don't return | Source-text grep | `Presentation_DoesNotCallRemovedEntityAccessorWrappers` | (none) |
 | View doesn't confirm citizen arrival | Source-text grep | `Presentation_DoesNotConfirmCitizenArrival` | (none) |
-| I18n keys not derived from enum names | Source-text grep | (A12: `ResourceTypeLocalizer` established; guard pending) | (none) |
-| Input actions not hardcoded as strings | Source-text grep | (A12: `UiInputActions` established; guard pending) | (none) |
+| I18n keys not derived from value names | Source-text grep | `Ui_DoesNotDeriveTranslationKeysFromValueNames` | (none — allowlist is empty) |
+| Every `ResourceType`/`GenderId` has an explicit, catalogued key | Enum enumeration + PO parse | `ResourceTypeLocalizationContractTests` (4 facts) | (none) |
+| Canonical UI input actions not hardcoded | Source-text grep | `Ui_DoesNotHardcodeInputActionStrings` | `UiInputActions.cs` (the definition) |
+| Normal Godot boot succeeds | Real headless launch of the production main scene | `tools/Test-GodotBoot.ps1`, run by CI and by `New-SessionSnapshot -Mode Full` | (none) |
+| Live and offline advancement agree | Batched catch-up vs stepped advance across reloads | `VerticalLoopPersistenceTests` (both facts; asserts ticks were actually batched) | (none) |
 | Theme variations not duplicated at call sites | Theme registry + tokens | `HudThemeVariationTests`, `ScreenVariations_AreUnchangedByTheHudProfile` | (none) |
 
 ## 15. Done

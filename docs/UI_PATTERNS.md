@@ -404,6 +404,31 @@ that separation fails silently otherwise: reaching for "the body size" and
 editing `BodyText` instead of `HudBody` restyles every modal in the game with
 nothing to notice it.
 
+**The metrics are separate too, not just the type scale.** `Ui/Tokens.cs`
+carries a `Hud*` metric family alongside the `Hud*` text variations:
+
+| Token | Value | What it sizes |
+| --- | ---: | --- |
+| `Tokens.HudRowHeight` | 24 | one compact metric/resource row |
+| `Tokens.HudBadgeHeight` | 18 | a state badge inside a row |
+| `Tokens.HudGlyphCell` | 16 | the icon cell a row's glyph occupies |
+
+These belong to the compact profile and nothing else. Their only consumers are
+compact surfaces — `HudBadge`, `HudMetricRow`, `HudResourceRow`,
+`HudStateBadge`, `StatChip`, `ExpeditionCompactCard`, `CollapsiblePanelHeader`,
+`ConstructionQueueItem`, `CityStatusPanel` — plus the dev showcase. A main
+screen that wants a row height wants a screen token, not `HudRowHeight`; the
+two scales exist precisely because a screen read while stopped and a HUD read
+while playing have different budgets. Borrowing across them is how a HUD
+tuning change silently reflows a modal.
+
+Unlike the type-scale rule, the metric rule is enforced by review rather than
+by a test: the tokens are plain `int` constants, so a guard would have to
+assert on call sites by name and would then have to be maintained per-surface.
+The exit gate verified the separation by enumerating every `Tokens.Hud*`
+reference; that check is cheap to repeat and belongs in review of any new HUD
+surface.
+
 ### 5.1 Surface variations
 
 Alongside the text variations the theme registers the surfaces
