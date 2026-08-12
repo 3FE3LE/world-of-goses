@@ -66,6 +66,16 @@ text) más las dos costuras de records-bag (hit rects, plot lookup).
 
 **Sin schema.** No hay migration; no cambia la persistencia.
 
+El enrutamiento de clicks también se unifica: el orden de prioridad
+(árbol → ciudadano → edificio) estaba escrito dos veces, una en
+`TryClick` y otra en `TryRightClick`, de modo que los dos botones podían
+separarse en silencio y el click derecho actuar sobre algo distinto de lo
+que el izquierdo habría seleccionado en el mismo píxel. Ahora ambos
+resuelven el objetivo con un único `MacroInteractionController.HitTest`,
+y sólo difieren en qué hacen con él. La vista conserva el "qué hacer"
+(inspector, menús, entrada a edificio); el controller sólo responde
+"qué hay ahí".
+
 **Verificado con clicks reales, no leyendo código.** Los fixtures
 `construction-placement`, `construction-placement-hover-invalid` y
 `construction-placement-confirm-click` se capturaron contra este árbol y
@@ -74,6 +84,13 @@ puntero real sigue autorizando la construcción (Farm en curso, madera
 7→5, dock primario restaurado). El refactor movió la búsqueda del lote
 más cercano —duplicada literalmente en la ruta de hover y en la de
 click— a un único `PlacementPresenter.TryFindNearestLot`.
+
+El enrutamiento se verificó igual, inyectando clicks reales del sistema
+operativo sobre el mundo: click izquierdo en un árbol lo selecciona
+("Wood · 8 units of wood remain", con el sprite del árbol clicado);
+click derecho sobre el mismo píxel lo selecciona y además abre el menú de
+recolección; y en un píxel donde se solapan un recurso y un ciudadano
+gana el recurso, que es el orden de prioridad de siempre.
 
 ---
 

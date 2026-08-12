@@ -13,6 +13,7 @@ using TreeBox = WorldofGoses.Prototypes.MacroStreetRenderer.TreeBox;
 using PlacementLotBox = WorldofGoses.Prototypes.PlacementPresenter.PlacementLotBox;
 using PlacementCellBox = WorldofGoses.Prototypes.PlacementPresenter.PlacementCellBox;
 using CitizenJourney = WorldofGoses.Prototypes.CitizenJourneyPresenter.JourneyState;
+using MacroHitKind = WorldofGoses.Prototypes.MacroInteractionController.MacroHitKind;
 
 namespace WorldofGoses.Prototypes;
 
@@ -1704,23 +1705,17 @@ public partial class MacroStreetLiveView : Node2D
             if (nearest is PlacementLotBox selected) SelectPlacementLot(selected);
             return;
         }
-        foreach ((Rect2 rect, TreeBox tree) in _hitRects.TreeClickableRects)
+        switch (_interaction.HitTest(clickPosition, _hitRects))
         {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectTree(tree);
-            return;
-        }
-        foreach ((Rect2 rect, CitizenId citizenId) in _hitRects.CitizenClickableRects)
-        {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectCitizen(citizenId);
-            return;
-        }
-        foreach ((Rect2 rect, int buildingId) in _hitRects.BuildingClickableRects)
-        {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectBuildingPlot(buildingId);
-            return;
+            case { Kind: MacroHitKind.Tree } hit:
+                SelectTree(hit.Tree);
+                return;
+            case { Kind: MacroHitKind.Citizen } hit:
+                SelectCitizen(hit.Citizen);
+                return;
+            case { Kind: MacroHitKind.Building } hit:
+                SelectBuildingPlot(hit.BuildingId);
+                return;
         }
         // Clicked empty ground: nothing selected any more.
         ClearSelection();
@@ -1737,31 +1732,25 @@ public partial class MacroStreetLiveView : Node2D
     private void TryRightClick(Vector2 clickPosition)
     {
         if (_placement.PlacementActive) return;
-        foreach ((Rect2 rect, TreeBox tree) in _hitRects.TreeClickableRects)
+        switch (_interaction.HitTest(clickPosition, _hitRects))
         {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectTree(tree);
-            OpenGatherMenu(tree, rect);
-            return;
-        }
-        foreach ((Rect2 rect, CitizenId citizenId) in _hitRects.CitizenClickableRects)
-        {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectCitizen(citizenId);
-            return;
-        }
-        foreach ((Rect2 rect, int buildingId) in _hitRects.BuildingClickableRects)
-        {
-            if (!rect.HasPoint(clickPosition)) continue;
-            SelectBuildingPlot(buildingId);
-            PlotBox? plot = FindPlot(new BuildingId(buildingId));
-            if (plot is { CultivationState: CultivationPlotState state })
-            {
-                OpenCultivationMenu(plot.Value, state, rect);
+            case { Kind: MacroHitKind.Tree } hit:
+                SelectTree(hit.Tree);
+                OpenGatherMenu(hit.Tree, hit.Rect);
                 return;
-            }
-            BeginBuildingEntry(new BuildingId(buildingId), clickPosition);
-            return;
+            case { Kind: MacroHitKind.Citizen } hit:
+                SelectCitizen(hit.Citizen);
+                return;
+            case { Kind: MacroHitKind.Building } hit:
+                SelectBuildingPlot(hit.BuildingId);
+                PlotBox? plot = FindPlot(new BuildingId(hit.BuildingId));
+                if (plot is { CultivationState: CultivationPlotState state })
+                {
+                    OpenCultivationMenu(plot.Value, state, hit.Rect);
+                    return;
+                }
+                BeginBuildingEntry(new BuildingId(hit.BuildingId), clickPosition);
+                return;
         }
         if (_actionMenu.Visible) _actionMenu.Hide();
         if (_cultivationActionMenu.Visible) _cultivationActionMenu.Hide();

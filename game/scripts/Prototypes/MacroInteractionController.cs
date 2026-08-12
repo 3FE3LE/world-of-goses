@@ -16,6 +16,62 @@ namespace WorldofGoses.Prototypes;
 /// </summary>
 internal sealed class MacroInteractionController
 {
+    /// <summary>What the pointer landed on in the world. The order of the
+    /// members is the resolution order: a tree in front of a building wins
+    /// the click, because the tree is what the player sees there.</summary>
+    public enum MacroHitKind
+    {
+        None,
+        Tree,
+        Citizen,
+        Building,
+    }
+
+    /// <summary>One resolved pointer hit. Only the field matching
+    /// <see cref="Kind"/> carries meaning; the rest are default. A record
+    /// struct rather than three out-parameters so the call sites can
+    /// pattern-match on <see cref="Kind"/> and read the payload in one
+    /// step.</summary>
+    public readonly record struct MacroHit(
+        MacroHitKind Kind,
+        Rect2 Rect,
+        MacroStreetRenderer.TreeBox Tree,
+        CitizenId Citizen,
+        int BuildingId)
+    {
+        /// <summary>The pointer hit nothing: empty ground.</summary>
+        public static MacroHit None => new(MacroHitKind.None, default, default, default, 0);
+    }
+
+    /// <summary>Resolves what the pointer at <paramref name="position"/>
+    /// landed on, testing trees, then citizens, then buildings.
+    ///
+    /// <para>Left click and right click resolve the same target — they only
+    /// differ in what they then do with it (select vs act). Keeping one
+    /// hit-test is what guarantees that: before A4 the priority order was
+    /// written out twice, so the two buttons could silently drift apart and
+    /// a right click could act on something other than what a left click in
+    /// the same pixel would have selected.</para></summary>
+    public MacroHit HitTest(Vector2 position, MacroHitRects hitRects)
+    {
+        foreach ((Rect2 rect, MacroStreetRenderer.TreeBox tree) in hitRects.TreeClickableRects)
+        {
+            if (rect.HasPoint(position))
+                return new MacroHit(MacroHitKind.Tree, rect, tree, default, 0);
+        }
+        foreach ((Rect2 rect, CitizenId citizenId) in hitRects.CitizenClickableRects)
+        {
+            if (rect.HasPoint(position))
+                return new MacroHit(MacroHitKind.Citizen, rect, default, citizenId, 0);
+        }
+        foreach ((Rect2 rect, int buildingId) in hitRects.BuildingClickableRects)
+        {
+            if (rect.HasPoint(position))
+                return new MacroHit(MacroHitKind.Building, rect, default, default, buildingId);
+        }
+        return MacroHit.None;
+    }
+
     private MacroStreetRenderer.TreeBox? _selectedTree;
     private int? _selectedBuildingId;
     private CitizenId? _selectedCitizenId;

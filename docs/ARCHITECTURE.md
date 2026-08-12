@@ -217,7 +217,10 @@ old authority from returning, with an allowlist that is empty by construction.
 **A4 — macro view composition.** `MacroStreetLiveView` composes five
 single-responsibility collaborators plus three pure-helper classes (A4):
 `MacroStreetRenderer` (records + per-street draw + band-layer stack + hit-rect
-publication), `MacroInteractionController` (selection + hover state),
+publication), `MacroInteractionController` (selection + hover state + the one
+`HitTest` that resolves a pointer position to a tree, a citizen or a building —
+left and right click share it, so the two buttons cannot drift to different
+targets for the same pixel),
 `CitizenJourneyPresenter` (founder state + per-citizen journey dictionary +
 `StreetNavigationServerPlanner`), `MacroCameraController` (zoom + free/follow
 mode + lateral/depth anchor + pan + transition timing + building-entry push),
