@@ -84,8 +84,28 @@ compressed, and not negotiable.
   skipped, say so.
 - **Never invent schemas or rules absent from the docs.** If something is
   not documented, surface the gap, do not fabricate.
-- **No `using Godot` under `game/scripts/Domain/`.** Enforced by
-  `DomainBoundaryTests`.
+- **No `using Godot` under `game/scripts/Domain/` or
+  `game/scripts/Application/`.** Both compile into engine-free assemblies
+  (`src/WorldofGoses.Domain`, `src/WorldofGoses.Application`), so this is a
+  build error before it is a test failure. Do not "fix" one by adding a
+  GodotSharp reference — move the engine-facing part to presentation. A
+  snapshot in particular cannot call `UiText`; translate at the `Control`
+  that displays the value.
+- **`internal` in the domain is a boundary, not a hint.** If presentation
+  needs something `internal`, either promote it with a doc comment saying
+  why it is safe, or move the operation into the domain. Do not widen
+  `InternalsVisibleTo`; it is for the test project.
+- **Static styling belongs in Scene/Theme/StyleBox, not C#.** Padding,
+  spacing, typography, colours and static layout go to
+  `game/assets/ui/default_theme.tres` or the scene. Reach for a semantic
+  Theme type variation before a local override, and for a `Container`
+  before arithmetic on a `Control`'s position. C# is for behaviour, state
+  and binding. See `docs/ARCHITECTURE.md` §2 "Godot vs C#".
+- **Do not build a static scene tree in C# without a reason.** A structure
+  that always has the same children is a `.tscn`. Programmatic construction
+  is for content whose shape comes from data.
+- **No new global managers or event buses.** Signals between a real
+  publisher and its subscribers, and explicit dependencies otherwise.
 - **No secret.** Never read, add, or commit secrets, API keys, tokens,
   signing keys, keystores, or credentials.
 - **No premature backend.** Local-only persistence. No database, server,

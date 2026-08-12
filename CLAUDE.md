@@ -100,8 +100,16 @@ another line. They mirror `AGENTS.md` §3.
   compiling, testing, or observing it.
 - **Never invent schemas or rules absent from the docs.** Surface gaps
   instead.
-- **No `using Godot` under `game/scripts/Domain/`.** Enforced by
-  `DomainBoundaryTests`.
+- **No `using Godot` under `game/scripts/Domain/` or
+  `game/scripts/Application/`.** Both are engine-free assemblies, so this
+  is a build error. Never add a GodotSharp reference to either; move the
+  engine-facing part to presentation instead.
+- **`internal` in the domain is a boundary.** Promote with a reason or move
+  the operation into the domain. `InternalsVisibleTo` is for tests only.
+- **Static styling belongs in Scene/Theme/StyleBox.** Semantic Theme type
+  variation before a local override; `Container` before manual positioning;
+  no static scene trees built in C#; no new global managers or event buses.
+  See `docs/ARCHITECTURE.md` §2 "Godot vs C#".
 - **No secret.** Never read, add, or commit secrets.
 - **No premature backend.** Local-only persistence.
 - **No unjustified dependencies.** Justify every NuGet / plugin / SDK.

@@ -17,6 +17,49 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## A5: las capas dejan de ser una convención y pasan a ser ensamblados
+
+**2026-08-11** · arquitectura · sin cambio de schema · 1209 pruebas superadas
+y 1 omitida sobre 1210
+
+Lo que se nota: en el panel de ciudad, con el juego en español y una
+construcción en curso, "3 días", "Activa", "60%" y todas las cantidades de
+recursos se dibujaban con la última letra partida por la mitad. Ya no. La
+barra de scroll vertical de Godot no reserva ancho: se dibuja **encima** del
+borde derecho del contenido, y esa columna alinea todo a la derecha. Hacían
+falta dos condiciones a la vez —que el panel fuese lo bastante alto para
+scrollear y que el valor llegase al borde— y por eso sobrevivió tanto: el
+fixture de ciudad ociosa cabe y se ve perfecto, y en inglés las etiquetas son
+más cortas. Cada fixture existente mostraba una condición, ninguno las dos.
+
+Lo que NO se nota, y es el grueso del trabajo: `Domain` y `Application` son
+ahora ensamblados propios (`src/WorldofGoses.Domain`,
+`src/WorldofGoses.Application`), proyectos `Microsoft.NET.Sdk` sin referencia
+a GodotSharp. `using Godot` en cualquiera de los dos es un **error de
+compilación**, comprobado añadiendo uno y viendo fallar el build. Antes la
+regla la sostenía un test que hacía grep de las fuentes: detecta el error
+honesto y nada más. Las fuentes no se movieron de sitio salvo los 15
+read models, que pasan a `game/scripts/Application/`.
+
+Levantar la frontera destapó seis miembros del dominio a los que la
+presentación llegaba de tapadillo, invisibles mientras un solo ensamblado
+hacía que `internal` no significara nada. Ninguno se abrió en bloque:
+`IsLaborTime`, `RegisterCitizen` y `SustainWound` pasan a `public` porque son
+consultas y comandos legítimos; `Gather` sigue `internal` —su documentación
+dice que nadie fuera del dominio drena un parche, y el controlador lo estaba
+haciendo en bucle— y el bucle se mudó dentro de `CityWorld`; el setter de
+`ConstructionProject.Progress` sigue `internal`, así que en juego real una
+obra sólo avanza por el tick, y los fixtures usan
+`SeedProgressForFixture`, que clampa; `ConcludeFirstNightForFixtures` pasa a
+`public` y la intención que llevaba su `internal` se mudó a un test que fija
+los sitios de llamada, que es más estricto que lo anterior.
+
+**Sin schema.** No hay migration; no cambia la persistencia. Godot arranca en
+headless y carga el mundo del slot; los dos ensamblados nuevos se despliegan
+junto al del juego.
+
+---
+
 ## A4: el macro view empieza a dejar de ser una mega-clase
 
 **2026-08-11** · arquitectura · sin cambio de schema · 1206 pruebas superadas

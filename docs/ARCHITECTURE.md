@@ -30,24 +30,62 @@ The architecture has three goals, in order:
 
 ## 2. Layers
 
-The project is conceptually separated into five layers:
+The layers are **assemblies**, not a convention. Three projects, and the
+arrows are the only direction references are allowed to point:
 
 ```
-┌───────────────────────────────────────────────────────────────┐
-│  Domain and simulation   (C#, no Godot types)                 │
-├───────────────────────────────────────────────────────────────┤
-│  Godot representation    (scenes, nodes, animations, input)  │
-├───────────────────────────────────────────────────────────────┤
-│  Assets                  (PNG / sprite sheets / audio)        │
-├───────────────────────────────────────────────────────────────┤
-│  Local persistence       (versioned JSON snapshots)           │
-├───────────────────────────────────────────────────────────────┤
-│  Tests                   (xUnit domain/persistence suite)      │
-└───────────────────────────────────────────────────────────────┘
+  src/WorldofGoses.Domain          Microsoft.NET.Sdk · no GodotSharp
+  (game/scripts/Domain/)           the rules, the clock, the persistence
+          ▲                        format. BCL only.
+          │
+  src/WorldofGoses.Application     Microsoft.NET.Sdk · no GodotSharp
+  (game/scripts/Application/)      the snapshots: read models that project
+          ▲                        domain state into what a view renders.
+          │
+  game/World of Goses.csproj       Godot.NET.Sdk
+  (everything else under           scenes, nodes, input, animation, audio,
+   game/scripts/)                  and the controller that drives the world.
 ```
 
-The simulation does **not** depend directly on sprites, cameras, or
-animations. The visual representation reacts to domain state.
+`using Godot` in either of the top two projects is a **compile error**, not a
+review comment. That is the whole reason they are separate: the rule used to
+be a test that grepped the sources, which catches the honest mistake and
+nothing else.
+
+Two consequences worth knowing before you fight them:
+
+- **`internal` in the domain now means something.** It is invisible to
+  presentation. Six members were being reached into from the HUD when the
+  boundary went up; each was then either promoted to `public` with a doc
+  comment saying why, or kept `internal` with the operation moved inside the
+  domain where it belonged. Do the same with the next one rather than
+  reaching for `InternalsVisibleTo`, which is granted to the test project
+  only.
+- **A snapshot cannot call `UiText`.** It needs Godot's `TranslationServer`,
+  so it will not compile in the application assembly. Translate at the
+  `Control` that displays the value. This used to be a runtime crash in the
+  Godot-free unit tests; it is now caught at build time.
+
+The simulation does **not** depend on sprites, cameras, or animations. The
+visual representation reacts to domain state.
+
+### Godot vs C#
+
+Two questions, and they have different answers.
+
+**Scene, Theme, StyleBox, Inspector** — for what a thing *is*: static layout,
+containers, typography, padding and spacing, colours, borders, reusable
+styles, assets, and any value a designer should be able to change without a
+compiler. A `Control` whose position is arithmetic in `_Ready` is almost
+always a `Container` someone did not reach for.
+
+**C#** — for what a thing *does*: behaviour, state, orchestration, calls into
+the application layer, runtime binding, genuinely dynamic UI (lists whose
+length comes from data), and engine lifecycle integration.
+
+The dividing line is not "how much C#" but whether the value is a decision or
+a consequence. `Tokens.ScrollGutter` is a decision and is named once;
+where a row ends up on screen is a consequence and belongs to a container.
 
 ## 3. Technology choices
 
