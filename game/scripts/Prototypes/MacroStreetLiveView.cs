@@ -1509,19 +1509,19 @@ public partial class MacroStreetLiveView : Node2D
                 return;
             }
         }
-        if (_placement.PlacementActive && @event.IsActionPressed("ui_cancel"))
+        if (_placement.PlacementActive && @event.IsActionPressed(UiInputActions.Cancel))
         {
             CancelPlacement();
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (_actionMenu.Visible && @event.IsActionPressed("ui_cancel"))
+        if (_actionMenu.Visible && @event.IsActionPressed(UiInputActions.Cancel))
         {
             _actionMenu.Hide();
             GetViewport().SetInputAsHandled();
             return;
         }
-        if (_cultivationActionMenu.Visible && @event.IsActionPressed("ui_cancel"))
+        if (_cultivationActionMenu.Visible && @event.IsActionPressed(UiInputActions.Cancel))
         {
             _cultivationActionMenu.Hide();
             GetViewport().SetInputAsHandled();

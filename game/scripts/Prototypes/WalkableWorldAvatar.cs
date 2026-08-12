@@ -2,6 +2,8 @@
 using Godot;
 using WorldofGoses;
 
+using WorldofGoses.Ui;
+
 namespace WorldofGoses.Prototypes;
 
 /// <summary>
@@ -65,10 +67,10 @@ public partial class WalkableWorldAvatar : CharacterBody2D
 
     private static Vector2 ReadDirection()
     {
-        if (Input.IsActionPressed("ui_left")) return Vector2.Left;
-        if (Input.IsActionPressed("ui_right")) return Vector2.Right;
-        if (Input.IsActionPressed("ui_up")) return Vector2.Up;
-        if (Input.IsActionPressed("ui_down")) return Vector2.Down;
+        if (Input.IsActionPressed(UiInputActions.Left)) return Vector2.Left;
+        if (Input.IsActionPressed(UiInputActions.Right)) return Vector2.Right;
+        if (Input.IsActionPressed(UiInputActions.Up)) return Vector2.Up;
+        if (Input.IsActionPressed(UiInputActions.Down)) return Vector2.Down;
         return Vector2.Zero;
     }
 }

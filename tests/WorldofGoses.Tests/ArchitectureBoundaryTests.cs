@@ -773,6 +773,79 @@ public sealed class ArchitectureBoundaryTests
         Assert.Empty(offending);
     }
 
+    /// <summary>
+    /// A translation lookup whose msgid is produced by calling
+    /// <c>ToString()</c> on a value. Architecture Hardening A12 introduced
+    /// <see cref="WorldofGoses.Ui.ResourceTypeLocalizer"/> to stop this, but
+    /// left the rule to a convention; the final exit gate found two live
+    /// call sites still doing it, one of which
+    /// (<c>UiText.Get(supplyResource.Value.ToString())</c>) asked
+    /// <c>en.po</c> for a msgid that does not exist and rendered the raw
+    /// enum name into the dispatch error.
+    ///
+    /// <para>The defect class is not "a resource label is wrong". It is
+    /// that a C# rename silently changes a PO key, so the failure appears
+    /// in shipped UI in one language and nowhere in the test suite. The
+    /// replacement contract is an explicit, exhaustive mapper per value
+    /// family (<c>ResourceTypeLocalizer</c>, <c>GenderIdLocalizer</c>).</para>
+    ///
+    /// <para>Scoped to <c>UiText.Get</c>/<c>UiText.Format</c> so ordinary
+    /// <c>ToString()</c> use — debug text, path building, numeric
+    /// formatting — is untouched.</para>
+    /// </summary>
+    private static readonly Regex TranslationKeyFromValueNamePattern = new(
+        @"\bUiText\.(?:Get|Format)\(\s*[A-Za-z_][A-Za-z0-9_.?]*\.ToString\(\)",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Ui_DoesNotDeriveTranslationKeysFromValueNames()
+    {
+        IReadOnlyList<string> offending = ScanPresentationForViolations(
+            TranslationKeyFromValueNamePattern,
+            Array.Empty<string>(),
+            "(no allowlist — route the value through an explicit localizer)");
+
+        Assert.Empty(offending);
+    }
+
+    /// <summary>
+    /// A canonical UI input action named by its raw engine string rather
+    /// than through <see cref="WorldofGoses.Ui.UiInputActions"/>.
+    ///
+    /// <para>A12 created the constants and the doc comment on
+    /// <c>UiInputActions</c> already promised this guard by name; the guard
+    /// itself was never written, and production code kept accumulating
+    /// literal <c>"ui_cancel"</c>. One misspelling in a string literal is a
+    /// silently dead keybinding — the engine has no idea the action was
+    /// meant to exist.</para>
+    ///
+    /// <para>Deliberately scoped to the canonical <c>ui_*</c> family that
+    /// <c>UiInputActions</c> owns. Gameplay actions belonging to other input
+    /// systems (camera pan, macro navigation) are a different contract and
+    /// are not banned here.</para>
+    /// </summary>
+    private static readonly Regex HardcodedUiInputActionPattern = new(
+        @"""ui_(?:cancel|accept|left|right|up|down|text_completion|text_newline)""",
+        RegexOptions.CultureInvariant);
+
+    [Fact]
+    public void Ui_DoesNotHardcodeInputActionStrings()
+    {
+        string repositoryRoot = FindRepositoryRoot();
+        string definitionPath =
+            Path.Combine(repositoryRoot, "game", "scripts", "Ui", "UiInputActions.cs")
+                .Replace('\\', '/');
+
+        IReadOnlyList<string> offending = ScanPresentationForViolations(
+            HardcodedUiInputActionPattern,
+            // The definition itself is the one place the literals belong;
+            // that is not an allowlisted violation, it is the contract.
+            new[] { ToRepositoryRelative(repositoryRoot, definitionPath) },
+            nameof(WorldofGoses.Ui.UiInputActions));
+
+        Assert.Empty(offending);
+    }
+
     private static IReadOnlyList<string> ScanPresentationForViolations(
         Regex pattern,
         IReadOnlyCollection<string> allowlist,

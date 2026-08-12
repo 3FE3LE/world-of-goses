@@ -30,7 +30,7 @@ public partial class OctagonalSkillSlot : Control
     [Signal]
     public delegate void ActivatedEventHandler(int slotNumber);
 
-    private const string UiAcceptAction = "ui_accept";
+    private const string UiAcceptAction = UiInputActions.Accept;
     private static readonly Vector2[] Octagon =
     {
         new(BorderInset + CornerCut, BorderInset),

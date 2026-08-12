@@ -126,7 +126,7 @@ public partial class PauseMenu : Control
         //  - Modal hosted by ModalHost closes itself and eats the input
         //    before this fires (ModalHost is deeper in the tree), so
         //    by the time we get here no modal is open.
-        if (!@event.IsActionPressed("ui_cancel")) return;
+        if (!@event.IsActionPressed(UiInputActions.Cancel)) return;
         if (Visible)
         {
             if (_resetConfirmation.Visible) HideResetConfirmation();

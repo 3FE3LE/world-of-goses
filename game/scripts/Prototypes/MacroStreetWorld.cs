@@ -2,6 +2,8 @@
 using Godot;
 using WorldofGoses;
 
+using WorldofGoses.Ui;
+
 namespace WorldofGoses.Prototypes;
 
 /// <summary>
@@ -120,8 +122,8 @@ public partial class MacroStreetWorld : Node2D
 
     private static float ReadLateralDirection()
     {
-        if (Input.IsActionPressed("ui_left")) return -1f;
-        if (Input.IsActionPressed("ui_right")) return 1f;
+        if (Input.IsActionPressed(UiInputActions.Left)) return -1f;
+        if (Input.IsActionPressed(UiInputActions.Right)) return 1f;
         return 0f;
     }
 

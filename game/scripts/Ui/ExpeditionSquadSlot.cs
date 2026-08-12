@@ -22,7 +22,7 @@ public partial class ExpeditionSquadSlot : PanelContainer
     [Signal]
     public delegate void SelectedEventHandler(int slotNumber);
 
-    private const string UiAcceptAction = "ui_accept";
+    private const string UiAcceptAction = UiInputActions.Accept;
 
     private Label _slotNumberLabel = null!;
     private TextureRect _portrait = null!;

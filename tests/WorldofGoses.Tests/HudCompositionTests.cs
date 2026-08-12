@@ -355,7 +355,7 @@ public sealed class HudCompositionTests
         // PlacementPresenter; the guard is the same guard, read through
         // the presenter instead of a local field.
         Assert.Contains(
-            "_placement.PlacementActive && @event.IsActionPressed(\"ui_cancel\")",
+            "_placement.PlacementActive && @event.IsActionPressed(UiInputActions.Cancel)",
             source,
             StringComparison.Ordinal);
         Assert.Contains("CancelPlacement();", source, StringComparison.Ordinal);
@@ -1111,8 +1111,10 @@ public sealed class HudCompositionTests
         Assert.Contains(
             "_statusPanel.MenuButton.Pressed += OnUtilityClusterMenuPressed",
             macroSource, StringComparison.Ordinal);
-        // The ESC path still opens the menu from _UnhandledInput.
-        Assert.Contains("if (!@event.IsActionPressed(\"ui_cancel\")) return;",
+        // The ESC path still opens the menu from _UnhandledInput. Named
+        // through UiInputActions since the exit gate closed the A12 input
+        // contract; the action is the same "ui_cancel", the literal is not.
+        Assert.Contains("if (!@event.IsActionPressed(UiInputActions.Cancel)) return;",
             pauseSource, StringComparison.Ordinal);
     }
 

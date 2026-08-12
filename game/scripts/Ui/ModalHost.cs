@@ -178,7 +178,7 @@ public partial class ModalHost : Control
     public override void _UnhandledInput(InputEvent @event)
     {
         if (!IsOpen) return;
-        if (@event.IsActionPressed("ui_cancel"))
+        if (@event.IsActionPressed(UiInputActions.Cancel))
         {
             Close();
             GetViewport().SetInputAsHandled();
