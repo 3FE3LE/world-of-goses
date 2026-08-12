@@ -43,6 +43,8 @@ public sealed class PanelSceneMigrationTests
         ["game/scripts/PoliciesPanel.cs", "game/scenes/Components/PoliciesPanel.tscn", "PoliciesPanel"],
         ["game/scripts/ExpeditionLiveView.cs", "game/scenes/expeditions/ExpeditionLiveView.tscn", "ExpeditionLiveView"],
         ["game/scripts/AstralOnboardingView.cs", "game/scenes/OnboardingView.tscn", "OnboardingView"],
+        ["game/scripts/HeroProfileView.cs", "game/scenes/HeroProfileView.tscn", "HeroProfileView"],
+        ["game/scripts/ConstructionPanel.cs", "game/scenes/Components/ConstructionPanel.tscn", "ConstructionPanel"],
     ];
 
     /// <summary>

@@ -206,153 +206,38 @@ public partial class ConstructionPanel : PanelContainer
 
     private void BuildShell()
     {
-        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        // A11: the shell is authored in game/scenes/Components/ConstructionPanel.tscn.
+        // The body is wrapped in a ScrollContainer so long descriptions, big
+        // assignment lists, or text 50 %+ longer than designed do not push the
+        // footer out of the viewport; header and footer stay fixed.
+        _header = GetNode<PanelHeader>("Margin/Shell/Header");
+        _header.CloseRequested += OnHeaderCloseRequested;
 
-        var margin = new MarginContainer();
-        margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        margin.AddThemeConstantOverride("margin_left", Tokens.SpacingBlock);
-        margin.AddThemeConstantOverride("margin_right", Tokens.SpacingBlock);
-        margin.AddThemeConstantOverride("margin_top", Tokens.SpacingSection);
-        margin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingSection);
-        AddChild(margin);
+        _bodyScroll = GetNode<ScrollContainer>("Margin/Shell/BodyScroll");
+        _bodyContent = GetNode<VBoxContainer>("Margin/Shell/BodyScroll/BodyContent");
+        _constructionPreview = GetNode<TextureRect>("Margin/Shell/BodyScroll/BodyContent/Preview");
+        _title = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Title");
+        _description = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Description");
+        _phaseLabel = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Phase");
+        _progress = GetNode<ProgressBar>("Margin/Shell/BodyScroll/BodyContent/Progress");
+        _statusLabel = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Status");
+        _contributors = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Contributors");
+        _requirementsLabel = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Requirements");
 
-        var shell = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        shell.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
-        margin.AddChild(shell);
+        // Collapsed by default: expanded, this list filled the short scroll
+        // body and pushed the phase, the status and the module costs out of
+        // view — exactly what the player needs while the site waits for its
+        // next module. The collapsed header still reports how many resource
+        // types are carried, and one click opens the detail.
+        _foundingResourcesPanel = GetNode<ResourceInventoryPanel>(
+            "Margin/Shell/BodyScroll/BodyContent/FoundingResources");
 
-        _header = new PanelHeader { Title = string.Empty };
-        _header.CloseRequested += () => EmitSignal(SignalName.CloseRequested);
-        shell.AddChild(_header);
+        _assignList = GetNode<VBoxContainer>("Margin/Shell/BodyScroll/BodyContent/Lists/AssignList");
+        _availableList = GetNode<VBoxContainer>("Margin/Shell/BodyScroll/BodyContent/Lists/AvailableList");
+        _unavailableList = GetNode<VBoxContainer>("Margin/Shell/BodyScroll/BodyContent/Lists/UnavailableList");
+        _errorLabel = GetNode<Label>("Margin/Shell/BodyScroll/BodyContent/Error");
 
-        // Body is wrapped in a ScrollContainer so long descriptions, big
-        // assignment lists, or text 50 %+ longer than designed do not push
-        // the footer out of the viewport. Header and footer stay fixed.
-        _bodyScroll = new ScrollContainer
-        {
-            Name = "BodyScroll",
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            CustomMinimumSize = new Vector2(0, 160),
-        };
-        shell.AddChild(_bodyScroll);
-
-        _bodyContent = new VBoxContainer
-        {
-            Name = "BodyContent",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _bodyContent.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
-        _bodyScroll.AddChild(_bodyContent);
-
-        _constructionPreview = new TextureRect
-        {
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            CustomMinimumSize = new Vector2(0, 80),
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            Visible = false,
-        };
-        _bodyContent.AddChild(_constructionPreview);
-
-        _title = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Visible = false,
-        };
-        _title.ThemeTypeVariation = "HudHeader";
-        _bodyContent.AddChild(_title);
-
-        _description = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _description.ThemeTypeVariation = "HudBody";
-        _bodyContent.AddChild(_description);
-
-        _phaseLabel = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        _phaseLabel.ThemeTypeVariation = "HudLabel";
-        _bodyContent.AddChild(_phaseLabel);
-
-        _progress = new ProgressBar
-        {
-            MinValue = 0,
-            MaxValue = 1,
-            Value = 0,
-            ShowPercentage = false,
-            CustomMinimumSize = new Vector2(0, 24),
-        };
-        _progress.ThemeTypeVariation = "HudProgress";
-        _bodyContent.AddChild(_progress);
-
-        _statusLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _statusLabel.ThemeTypeVariation = "HudBody";
-        _bodyContent.AddChild(_statusLabel);
-
-        _contributors = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        _contributors.ThemeTypeVariation = "HudCaption";
-        _bodyContent.AddChild(_contributors);
-
-        _requirementsLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            ThemeTypeVariation = "HudBody",
-        };
-        _bodyContent.AddChild(_requirementsLabel);
-
-        // Before the Shelter exists, resources are the founder's six-unit
-        // load and then the Founding Site Cache. Collapsed by default: expanded,
-        // this list filled the short scroll body and pushed the phase, the status
-        // and the module costs out of view — exactly the information the player
-        // needs while the site waits for the next module. The collapsed header
-        // still reports how many resource types are carried, and one click opens
-        // the detail.
-        _foundingResourcesPanel = new ResourceInventoryPanel(expandedByDefault: false);
-        _bodyContent.AddChild(_foundingResourcesPanel);
-
-        var lists = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        lists.AddThemeConstantOverride("separation", Tokens.SpacingWide);
-        _bodyContent.AddChild(lists);
-
-        _assignList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _assignList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        lists.AddChild(_assignList);
-
-        _availableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _availableList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        lists.AddChild(_availableList);
-
-        _unavailableList = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ExpandFill };
-        _unavailableList.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        lists.AddChild(_unavailableList);
-
-        _errorLabel = new Label
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        _errorLabel.ThemeTypeVariation = "ErrorText";
-        _bodyContent.AddChild(_errorLabel);
-
-        var footer = new HFlowContainer
-        {
-            Alignment = FlowContainer.AlignmentMode.End,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        footer.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        shell.AddChild(footer);
+        HFlowContainer footer = GetNode<HFlowContainer>("Margin/Shell/Footer");
 
         _authorizeButton = NewFooterButton(
             iconPath: IconPaths.Check,
@@ -477,6 +362,8 @@ public partial class ConstructionPanel : PanelContainer
         }
         Refresh(clearError: result.IsSuccess);
     }
+
+    private void OnHeaderCloseRequested() => EmitSignal(SignalName.CloseRequested);
 
     private static IconButton NewFooterButton(string iconPath, string label, string variation) =>
         StandardButtons.IconAction(iconPath, label, variation);
@@ -1039,12 +926,8 @@ public partial class ConstructionPanel : PanelContainer
             _ => UiText.Get("Available"),
         };
 
-    private static void AddSectionHeader(VBoxContainer list, string title)
-    {
-        var label = new Label { Text = title };
-        label.ThemeTypeVariation = "HudLabel";
-        list.AddChild(label);
-    }
+    private static void AddSectionHeader(VBoxContainer list, string title) =>
+        list.AddChild(new HudListHeading(title));
 
     private static AssignmentRow InstantiateAssignmentRow(
         int id,
@@ -1058,16 +941,8 @@ public partial class ConstructionPanel : PanelContainer
         return row;
     }
 
-    private static void AddListLabel(VBoxContainer list, string text)
-    {
-        var label = new Label
-        {
-            Text = text,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            ThemeTypeVariation = "HudCaption",
-        };
-        list.AddChild(label);
-    }
+    private static void AddListLabel(VBoxContainer list, string text) =>
+        list.AddChild(new HudListCaption(text));
 
     private static void ClearList(VBoxContainer list)
     {

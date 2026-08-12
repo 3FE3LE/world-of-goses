@@ -115,6 +115,16 @@ que el resto de la vista puede actuar— y un test que comprueba la dirección
 contra `StreetDepthProjection.RowScreenY`, no contra el signo de un entero.
 Cierra GitHub #14.
 
+**9 de 10 paneles A-class; sólo queda `ExpeditionRail`.** `HeroProfileView` y
+`ConstructionPanel` mueven sus shells a escena. En los dos, lo que el script
+sigue construyendo es el cuerpo que `Render`/`Refresh` vacía y rehace, así que
+`HeroProfileView` pasa de la fila A a la B como el onboarding, y las dos únicas
+líneas de lista que quedaban en `ConstructionPanel` se convierten en primitivas
+`Ui/` reutilizables (`HudListHeading`, `HudListCaption`). El rail se deja
+adrede: su jerarquía no es suya —`ChroniclePanel` construye y cede su header y
+su body— y el orden de hijos del `AccordionHost` **es** el arreglo de
+hit-testing de #12. Reordenarlo sin arnés de captura sería una apuesta.
+
 **8 de 10 paneles A-class.** `AstralOnboardingView` mueve su shell —velo,
 resplandor, safe area, los dos espaciadores que impiden que el pie se salga de
 pantalla y las dos alturas reservadas— a `OnboardingView.tscn`; lo que queda es

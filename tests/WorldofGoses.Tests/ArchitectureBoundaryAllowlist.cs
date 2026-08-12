@@ -207,9 +207,17 @@ public static class ArchitectureBoundaryAllowlist
             // city; the dynamic content is rebuilt on signal. The
             // migration moves the shell to a PackedScene and keeps
             // C# only for the rows that depend on a snapshot.
+            //
+            // One left of the original ten (GitHub #9). The rail is last
+            // deliberately: its hierarchy is not its own. ChroniclePanel
+            // builds the chronicle's header and body and hands both over, the
+            // rail reparents them into the shared AccordionHost, and the
+            // order of that host's children IS the hit-testing fix from #12 —
+            // a real second click on MoreButton reaching the header rather
+            // than the body drawn in front of it. Reordering that without a
+            // working capture harness is a bet, not a migration. Its
+            // accordion grammar and sizing were closed separately in #15.
             "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
-            "game/scripts/HeroProfileView.cs",    // profile columns
-            "game/scripts/ConstructionPanel.cs",  // construction modal shell
 
             // ── B: genuinely dynamic collection ──
             // Static parts are minimal (VBoxContainer + Header);
@@ -222,6 +230,12 @@ public static class ArchitectureBoundaryAllowlist
             // wrapping two loops in primitives that exist only to satisfy the
             // scanner.
             "game/scripts/AstralOnboardingView.cs",
+
+            // Shell migrated to game/scenes/HeroProfileView.tscn; Render()
+            // empties and rebuilds the whole body per hero — headings, stamina
+            // bar, sprite anchor, name row, icon rows. Same B shape as the
+            // onboarding stage slot.
+            "game/scripts/HeroProfileView.cs",
             "game/scripts/AssignmentPanel.cs",     // 3 scrollable sections + rows
             "game/scripts/ExpeditionPanel.cs",     // team list rebuilt per snapshot
             "game/scripts/BuildingPlot.cs",       // one node per plot, fixed per-plot structure

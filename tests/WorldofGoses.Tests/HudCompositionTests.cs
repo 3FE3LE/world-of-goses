@@ -518,6 +518,8 @@ public sealed class HudCompositionTests
         string policiesSource = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "PoliciesPanel.cs"));
         string construction = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "ConstructionPanel.tscn"));
+        string constructionSource = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "ConstructionPanel.cs"));
         string pauseScene = File.ReadAllText(Path.Combine(
             root, "game", "scenes", "PauseMenu.tscn"));
@@ -528,8 +530,9 @@ public sealed class HudCompositionTests
         Assert.Contains("theme_type_variation = \"HudSurface\"", expeditionScene, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = \"HudSurface\"", citizensScene, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = &\"HudSurface\"", policies, StringComparison.Ordinal);
-        Assert.Contains("ThemeTypeVariation = \"HudProgress\"", construction, StringComparison.Ordinal);
-        Assert.DoesNotContain("AddThemeStyleboxOverride(\"panel\"", construction, StringComparison.Ordinal);
+        // A11 moved the progress bar into the component scene.
+        Assert.Contains("theme_type_variation = &\"HudProgress\"", construction, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddThemeStyleboxOverride(\"panel\"", constructionSource, StringComparison.Ordinal);
         Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", expeditionScene, StringComparison.Ordinal);
         Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", citizensScene, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = \"HudSurface\"", pauseScene, StringComparison.Ordinal);

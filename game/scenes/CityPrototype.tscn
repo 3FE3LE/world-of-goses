@@ -9,7 +9,7 @@
 [ext_resource type="Script" uid="uid://cjf0ik16alofu" path="res://scripts/ProductionPanel.cs" id="9_prod"]
 [ext_resource type="PackedScene" path="res://scenes/OnboardingView.tscn" id="10_onboarding"]
 [ext_resource type="PackedScene" path="res://scenes/HeroProfileView.tscn" id="11_profile"]
-[ext_resource type="Script" uid="uid://c5l8jwt4f0bea" path="res://scripts/ConstructionPanel.cs" id="12_construction"]
+[ext_resource type="PackedScene" path="res://scenes/Components/ConstructionPanel.tscn" id="12_construction"]
 [ext_resource type="Script" uid="uid://bo5b2cx83b77t" path="res://scripts/HeroAccessButton.cs" id="14_heroaccess"]
 [ext_resource type="Script" uid="uid://u7jawqyectws" path="res://scripts/IconButton.cs" id="15_iconbtn"]
 [ext_resource type="Script" uid="uid://mywcitsjkael" path="res://scripts/KenneyBackground.cs" id="16_kenbg"]
@@ -165,11 +165,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="ConstructionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/Center" unique_id=2074700493]
+[node name="ConstructionPanel" parent="GameUiShell/ScreenContent/Center" unique_id=2074700493 instance=ExtResource("12_construction")]
 visible = false
 layout_mode = 2
-theme_type_variation = &"HudSurface"
-script = ExtResource("12_construction")
 
 [node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/Center" unique_id=1643693377 instance=ExtResource("27_expedition")]
 layout_mode = 2

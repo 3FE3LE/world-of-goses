@@ -40,113 +40,39 @@ public partial class HeroProfileView : Control
         _controller.HeroCreated -= OnHeroCreated;
     }
 
+    /// <summary>
+    /// Binds the shell authored in <c>game/scenes/HeroProfileView.tscn</c>.
+    /// </summary>
+    /// <remarks>
+    /// The portrait sits on the left at full height with its width computed
+    /// rather than left to an expand mode. The art is authored portrait and
+    /// the set does not share one aspect ratio — nine are 3:4, seven are 4:5 —
+    /// so a fixed frame would letterbox one group or crop the other. Every
+    /// proportional mode derives the width from a height that is still
+    /// unresolved on the first layout pass, so the portrait reports a zero
+    /// minimum width, the row gives it none, and the art loads but is never
+    /// drawn. <see cref="UpdateSplashWidth"/> recomputes it on resize, which
+    /// also keeps it right across window sizes and both aspect groups.
+    ///
+    /// <para>The splash uses linear filtering with mipmaps: it is displayed
+    /// downscaled from its authored size, where nearest reads far worse. A
+    /// deliberate, local exception — in-world pixel art keeps nearest.</para>
+    /// </remarks>
     private void BuildShell()
     {
-        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        _splashColumns = GetNode<HBoxContainer>("SafeArea/Shell/Columns");
+        _splash = GetNode<TextureRect>("SafeArea/Shell/Columns/Splash");
+        _content = GetNode<VBoxContainer>("SafeArea/Shell/Columns/Scroll/ContentMargin/Content");
 
-        var background = new ColorRect
-        {
-            Color = new Color("17202a"),
-            MouseFilter = MouseFilterEnum.Ignore,
-        };
-        background.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(background);
+        GetNode<Label>("SafeArea/Shell/Header/Title").Text =
+            UiText.Get("ui.hero_profile.title");
+        _backButton = GetNode<Button>("SafeArea/Shell/Header/BackButton");
+        _backButton.Pressed += OnBackPressed;
 
-        var margin = new SafeAreaMarginContainer { MinimumInset = 24 };
-        margin.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(margin);
-
-        var shell = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        shell.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        margin.AddChild(shell);
-
-        var header = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        shell.AddChild(header);
-
-        var title = new Label
-        {
-            Text = UiText.Get("ui.hero_profile.title"),
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        title.ThemeTypeVariation = "HudHeader";
-        header.AddChild(title);
-
-        _backButton = StandardButtons.BackToCityButton();
-        _backButton.ThemeTypeVariation = "HudButton";
-        _backButton.Pressed += () => _controller.ReturnToCity();
-        header.AddChild(_backButton);
-
-        // Portrait on the left at full height, text column on the right. The
-        // art is authored portrait, so anchoring it by height and letting its
-        // width follow shows every lineage whole — the set does not share one
-        // aspect ratio (nine are 3:4, seven are 4:5), and a fixed-size frame
-        // would letterbox one group or crop the other.
-        var columns = new HBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        columns.AddThemeConstantOverride("separation", Tokens.SpacingSection);
-        shell.AddChild(columns);
-
-        _splash = new TextureRect
-        {
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            SizeFlagsHorizontal = SizeFlags.ShrinkBegin,
-            MouseFilter = MouseFilterEnum.Ignore,
-            Visible = false,
-        };
-        // The width is computed rather than left to an expand mode. Every
-        // proportional mode derives it from a height that is still unresolved
-        // on the first layout pass, so the portrait reports a zero minimum
-        // width, the HBox gives it none, and the art loads but is never drawn.
-        // Recomputing on resize also keeps it correct across window sizes and
-        // across the two aspect groups in the set.
-        _splashColumns = columns;
-        columns.Resized += UpdateSplashWidth;
-        // The illustration is displayed downscaled from its authored size, so
-        // linear filtering with mipmaps reads far better than the nearest
-        // filter the sprite pipeline uses. This is a deliberate, local
-        // exception for splash illustrations; in-world pixel art keeps
-        // nearest.
-        _splash.TextureFilter = TextureFilterEnum.LinearWithMipmaps;
-        columns.AddChild(_splash);
-
-        var scroll = new ScrollContainer
-        {
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        scroll.AddThemeStyleboxOverride(
-            "panel",
-            new StyleBoxFlat { BgColor = new Color("17202a") });
-        columns.AddChild(scroll);
-
-        var contentMargin = new MarginContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-        };
-        contentMargin.AddThemeConstantOverride("margin_left", Tokens.SpacingBase);
-        contentMargin.AddThemeConstantOverride("margin_right", Tokens.SpacingSection);
-        contentMargin.AddThemeConstantOverride("margin_top", Tokens.SpacingBase);
-        contentMargin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingBase);
-        scroll.AddChild(contentMargin);
-
-        _content = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
-        };
-        _content.AddThemeConstantOverride("separation", Tokens.SpacingRelaxed);
-        contentMargin.AddChild(_content);
+        _splashColumns.Resized += UpdateSplashWidth;
     }
+
+    private void OnBackPressed() => _controller.ReturnToCity();
 
     /// <summary>
     /// Sizes the portrait column to the art's own proportion at the full

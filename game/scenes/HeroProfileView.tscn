@@ -1,6 +1,11 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/HeroProfileView.cs" id="1_profile"]
+[ext_resource type="Script" uid="uid://crg4evm3yqil0" path="res://scripts/Ui/SafeAreaMarginContainer.cs" id="2_safearea"]
+[ext_resource type="PackedScene" path="res://scenes/Components/BackToCityButton.tscn" id="3_backbutton"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_profilescroll"]
+bg_color = Color(0.090196, 0.125490, 0.164706, 1)
 
 [node name="HeroProfileView" type="Control"]
 visible = false
@@ -11,3 +16,79 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_profile")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.090196, 0.125490, 0.164706, 1)
+
+[node name="SafeArea" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_safearea")
+MinimumInset = 24
+
+[node name="Shell" type="VBoxContainer" parent="SafeArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Title" type="Label" parent="SafeArea/Shell/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"HudHeader"
+
+[node name="BackButton" parent="SafeArea/Shell/Header" instance=ExtResource("3_backbutton")]
+layout_mode = 2
+theme_type_variation = &"HudButton"
+
+[node name="Columns" type="HBoxContainer" parent="SafeArea/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="Splash" type="TextureRect" parent="SafeArea/Shell/Columns"]
+visible = false
+texture_filter = 3
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Scroll" type="ScrollContainer" parent="SafeArea/Shell/Columns"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_profilescroll")
+horizontal_scroll_mode = 0
+
+[node name="ContentMargin" type="MarginContainer" parent="SafeArea/Shell/Columns/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 8
+
+[node name="Content" type="VBoxContainer" parent="SafeArea/Shell/Columns/Scroll/ContentMargin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 10

@@ -1,0 +1,131 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" uid="uid://c5l8jwt4f0bea" path="res://scripts/ConstructionPanel.cs" id="1_construction"]
+[ext_resource type="Script" uid="uid://dbia4ye12oyqy" path="res://scripts/Ui/PanelHeader.cs" id="2_header"]
+[ext_resource type="Script" uid="uid://bv0guhat2bymo" path="res://scripts/Ui/ResourceInventoryPanel.cs" id="3_inventory"]
+
+[node name="ConstructionPanel" type="PanelContainer"]
+visible = false
+theme_type_variation = &"HudSurface"
+script = ExtResource("1_construction")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Shell" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Margin/Shell"]
+layout_mode = 2
+script = ExtResource("2_header")
+
+[node name="BodyScroll" type="ScrollContainer" parent="Margin/Shell"]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="BodyContent" type="VBoxContainer" parent="Margin/Shell/BodyScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 1
+theme_override_constants/separation = 10
+
+[node name="Preview" type="TextureRect" parent="Margin/Shell/BodyScroll/BodyContent"]
+visible = false
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Title" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"HudHeader"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Phase" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"HudLabel"
+horizontal_alignment = 1
+
+[node name="Progress" type="ProgressBar" parent="Margin/Shell/BodyScroll/BodyContent"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_type_variation = &"HudProgress"
+max_value = 1.0
+value = 0.0
+show_percentage = false
+
+[node name="Status" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Contributors" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Requirements" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="FoundingResources" type="PanelContainer" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+script = ExtResource("3_inventory")
+
+[node name="Lists" type="HBoxContainer" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16
+
+[node name="AssignList" type="VBoxContainer" parent="Margin/Shell/BodyScroll/BodyContent/Lists"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="AvailableList" type="VBoxContainer" parent="Margin/Shell/BodyScroll/BodyContent/Lists"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="UnavailableList" type="VBoxContainer" parent="Margin/Shell/BodyScroll/BodyContent/Lists"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Error" type="Label" parent="Margin/Shell/BodyScroll/BodyContent"]
+layout_mode = 2
+theme_type_variation = &"ErrorText"
+horizontal_alignment = 1
+
+[node name="Footer" type="HFlowContainer" parent="Margin/Shell"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+alignment = 2
