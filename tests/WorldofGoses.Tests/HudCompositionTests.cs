@@ -1039,9 +1039,7 @@ public sealed class HudCompositionTests
         // division back. The bodies must NOT declare their own; AccordionHost
         // sets that on whatever it adopts, and their height comes from
         // ExpandedBodyHeight.
-        Assert.Equal(
-            1,
-            Regex.Matches(rail, @"SizeFlagsVertical = SizeFlags\.ExpandFill").Count);
+        Assert.Single(Regex.Matches(rail, @"SizeFlagsVertical = SizeFlags\.ExpandFill"));
         Assert.Contains(
             "SizeFlagsVertical = SizeFlags.ExpandFill", host, StringComparison.Ordinal);
         Assert.Contains("_bodyHost = new AccordionHost()", rail, StringComparison.Ordinal);
