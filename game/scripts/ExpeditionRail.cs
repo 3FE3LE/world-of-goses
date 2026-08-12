@@ -14,6 +14,24 @@ public partial class ExpeditionRail : PanelContainer
 {
     public const int PanelWidth = 236;
 
+    /// <summary>
+    /// Height an open body claims, mirroring
+    /// <see cref="CitySummaryPanel.ExpandedBodyHeight"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is what makes the rail's footprint honest (GitHub #15). The rail
+    /// used to be anchored to the parent's bottom edge and forced to
+    /// <see cref="Control.SizeFlags.ExpandFill"/>, so its opaque surface
+    /// claimed the full column height even with every body folded — a black
+    /// rectangle over the map with nothing in it. Simply dropping the anchor
+    /// is what shipped once before and collapsed the rail to a 0 px strip,
+    /// because the bodies had no height of their own and inherited the
+    /// anchored rect's. Giving each body its own minimum is the missing half:
+    /// a hidden body is excluded from its container's minimum, so nothing
+    /// open means header height, and one open means header height plus this.
+    /// </remarks>
+    public const int ExpandedBodyHeight = 536;
+
     [Export] public NodePath ControllerPath { get; set; } = new("../../../CityWorldController");
     [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../Center/ExpeditionPanel");
 
@@ -60,27 +78,27 @@ public partial class ExpeditionRail : PanelContainer
     public ExpeditionId? FirstExpeditionId { get; private set; }
 
     /// <summary>
-    /// Whether the rail body is unfolded. Folding the rail also folds
-    /// the chronicle — its body disappears too, so the rail falls back
-    /// to a slim resume (rail header + chronicle header, two chevron
-    /// toggles, no rows). The chronicle's own collapse lives on its
-    /// own header, independent of this flag, so a fully-opened rail can
-    /// still have its chronicle folded like the city summary.
+    /// Whether the expedition section is the one on screen. Read from the
+    /// accordion host rather than from the header, because the host is the
+    /// authority and the header is a projection of it — see
+    /// <see cref="ShowSection"/>.
     /// </summary>
-    public bool Expanded => _header is null || _header.Expanded;
+    public bool Expanded => _bodyHost is null || _bodyHost.IsShowing(_scroll);
+
+    /// <summary>Whether every section is folded and the rail is just its headers.</summary>
+    public bool AllSectionsCollapsed => _bodyHost is not null && _bodyHost.CurrentBody is null;
 
     public override void _Ready()
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
         MouseFilter = MouseFilterEnum.Stop;
-        // ExpandFill vertical so the rail always claims the full
-        // vertical space between the status bar and the dock. Without
-        // it the PanelContainer collapses to the combined-minimum of
-        // its children (ShrinkBegin default) — when the chronicle body
-        // hides, that minimum shrinks to header-only and the rail
-        // panel itself drops to 80 px, hiding the expedition scroll
-        // inside an empty rail.
-        SizeFlagsVertical = SizeFlags.ExpandFill;
+        // No vertical ExpandFill any more, and the scene no longer anchors the
+        // rail to the parent's bottom edge. The combined minimum of its
+        // children IS the intended footprint now that each body carries
+        // ExpandedBodyHeight: two headers when everything is folded, headers
+        // plus one body otherwise. That is the whole of GitHub #15's "libere
+        // mapa al colapsar" — the previous shape kept a 236 px opaque column
+        // over the city whether or not it had anything to show.
         _controller = GetNode<CityWorldController>(ControllerPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
@@ -146,6 +164,7 @@ public partial class ExpeditionRail : PanelContainer
         _scroll = new ScrollContainer
         {
             Name = "ExpeditionScroll",
+            CustomMinimumSize = new Vector2(0, ExpandedBodyHeight),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             MouseFilter = MouseFilterEnum.Stop,
@@ -171,10 +190,13 @@ public partial class ExpeditionRail : PanelContainer
         _expeditionContent.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         _content.AddChild(_expeditionContent);
 
+        _chronicle.Body.CustomMinimumSize = new Vector2(0, ExpandedBodyHeight);
         _bodyHost.Register(_chronicle.Body);
         _bodyHost.CurrentBodyChanged += OnBodyHostChanged;
-        // The expedition list is the opening protagonist.
-        _bodyHost.ShowOnly(_scroll);
+        // The expedition list is the opening protagonist. Going through
+        // ShowSection rather than the host directly is what makes the two
+        // headers agree with it from the first frame.
+        ShowSection(_scroll);
 
         // ChroniclePanel keeps owning the chronicle's rows, projection and
         // offline report, but it no longer parents either of its own parts.
@@ -411,59 +433,62 @@ public partial class ExpeditionRail : PanelContainer
     }
 
     /// <summary>
-    /// The rail-level header governs the expedition section: clicking
-    /// it expands the expedition scroll. The accordion rule keeps the
-    /// rail and the chronicle mutually exclusive — when the expedition
-    /// becomes the protagonist, the chronicle body folds out and the
-    /// two surfaces never compete for the same column at the same
-    /// time.
+    /// The one place that decides which section is open, and therefore the
+    /// only authority on the question (GitHub #15).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The rail used to keep three: the rail header's <c>Expanded</c>, the
+    /// chronicle header's, and <see cref="AccordionHost.CurrentBody"/> — three
+    /// values for one fact, each written from a different handler. They could
+    /// disagree, and one transition made them disagree by design: closing the
+    /// chronicle while the expedition body was already folded forced
+    /// <c>_header.Expanded = true</c>, so clicking a section's own header to
+    /// close it reopened the other one. Closing expeditions left both folded;
+    /// closing the chronicle did not. Same gesture, two grammars.
+    /// </para>
+    /// <para>
+    /// Now the host holds the state and both headers are told what they are.
+    /// Zero or one section open, a second click on the open header closes it
+    /// and opens nothing, and a new section added to the rail joins the same
+    /// rule by registering a body — no pairwise toggle to write.
+    /// </para>
+    /// </remarks>
+    private void ShowSection(Control? body)
+    {
+        _bodyHost.ShowOnly(body);
+
+        // Assigning a header's Expanded raises ExpandedChanged, which lands
+        // back here. The guard makes that re-entry a no-op instead of a
+        // second, conflicting decision.
+        _syncingSections = true;
+        _header.Expanded = _bodyHost.IsShowing(_scroll);
+        _chronicle.Expanded = _bodyHost.IsShowing(_chronicle.Body);
+        _syncingSections = false;
+
+        // The quick-action button belongs to the expedition section and
+        // follows it, so a folded rail really is just its headers.
+        _expeditionSection.Visible = _bodyHost.IsShowing(_scroll);
+        RebuildFocusables();
+        if (_bodyHost.IsShowing(_chronicle.Body)) _chronicle.ScrollToNewest();
+    }
+
+    private bool _syncingSections;
+
+    /// <summary>
+    /// Either header toggling means the same thing: open me, or — if I was
+    /// the one already open — close everything.
     /// </summary>
     private void OnHeaderExpandedChanged(bool expanded)
     {
-        if (expanded)
-        {
-            // Accordion: when expedition expands, chronicle folds.
-            _chronicle.Expanded = false;
-            _bodyHost.ShowOnly(_scroll);
-        }
-        else if (!_chronicle.Expanded)
-        {
-            // Both folded: the host shows nothing and the rail collapses to
-            // its two headers.
-            _bodyHost.ShowOnly(null);
-        }
-        _expeditionSection.Visible = expanded;
-        RebuildFocusables();
+        if (_syncingSections) return;
+        ShowSection(expanded ? _scroll : null);
     }
 
-    /// <summary>
-    /// The chronicle header is the other half of the accordion. When
-    /// it expands, the expedition body folds out so the chronicle
-    /// takes the whole body host — no overlap, no fighting for
-    /// pixels, no need to re-distribute a vertical layout that was
-    /// trying to fit both at once.
-    /// </summary>
     private void OnChronicleExpanded(bool expanded)
     {
-        if (expanded)
-        {
-            // Accordion: when chronicle expands, expedition folds.
-            // Also collapse the rail header so its chevron matches
-            // the now-hidden expedition body.
-            _expeditionSection.Visible = false;
-            _header.Expanded = false;
-            _bodyHost.ShowOnly(_chronicle.Body);
-        }
-        else if (!_header.Expanded)
-        {
-            // Symmetric accordion transition: closing Chronicle restores the
-            // expedition section instead of leaving both protagonists folded.
-            // Setting the header re-enters OnHeaderExpandedChanged, which
-            // shows the expedition body.
-            _header.Expanded = true;
-        }
-        RebuildFocusables();
-        if (expanded) _chronicle.ScrollToNewest();
+        if (_syncingSections) return;
+        ShowSection(expanded ? _chronicle.Body : null);
     }
 
     /// <summary>

@@ -54,6 +54,28 @@ cierra esa clase entera: comprueba que el padre instancia la escena del
 componente y que **cada** `GetNode<T>("ruta")` del script nombra un nodo que la
 escena declara, leyendo los dos ficheros de texto y diciendo qué nodo falta.
 
+**El rail derecho deja de tapar el mapa cuando no muestra nada.** Estaba anclado
+al borde inferior del padre y forzado a `ExpandFill`, así que su superficie
+opaca reclamaba la columna entera hubiera o no algo abierto: 236 px de negro
+sobre la ciudad. Quitar el anclaje a secas es lo que ya se envió una vez y
+colapsó el rail a una tira de 0 px, porque los bodies no tenían altura propia y
+heredaban la del rect anclado. La mitad que faltaba es `ExpandedBodyHeight` en
+cada body: un body oculto queda fuera del mínimo de su contenedor, así que nada
+abierto son los dos headers y uno abierto son los headers más eso. Medido en el
+juego corriendo: `608 px` abierto → **`68 px` todo cerrado** → `612 px` al
+reabrir.
+
+**Y una sola gramática para plegar.** El rail tenía tres autoridades sobre la
+misma pregunta —el `Expanded` de cada header y `AccordionHost.CurrentBody`—
+escritas desde manejadores distintos, y una transición las hacía discrepar por
+diseño: cerrar la Crónica con el body de expediciones ya plegado forzaba
+`_header.Expanded = true`, de modo que pulsar el header de una sección para
+cerrarla reabría la otra. Cerrar Expediciones dejaba las dos plegadas; cerrar
+Crónica no. El mismo gesto, dos gramáticas. Ahora el host es la autoridad y los
+headers son proyección suya: cero o una sección abierta, un segundo click sobre
+el header abierto lo cierra y no abre nada, y una sección nueva se suma a la
+regla registrando un body — sin toggles pairwise que escribir. Cierra GitHub #15.
+
 **La cámara vuelve a subir de calle.** La causa real, medida en el juego
 corriendo: `RefreshParcelEnvelope` derivaba el mundo navegable **sólo** de las
 parcelas poseídas, y una ciudad recién fundada tiene tres parcelas en **una**

@@ -269,14 +269,13 @@ script = ExtResource("34_inspector")
 [node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1368772485]
 visible = false
 layout_mode = 1
-anchors_preset = 11
+anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 1.0
 offset_left = -244.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = -8.0
+offset_bottom = 8.0
 grow_horizontal = 0
 theme_type_variation = &"HudSurface"
 script = ExtResource("38_expeditionrail")

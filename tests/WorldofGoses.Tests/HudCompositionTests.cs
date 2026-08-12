@@ -213,19 +213,39 @@ public sealed class HudCompositionTests
 
         Assert.Contains(rail, line => line.Trim() == "anchor_left = 1.0");
         Assert.Contains(rail, line => line.Trim() == "anchor_right = 1.0");
-        // The rail spans from the parent's top edge to the bottom edge,
-        // mirroring the city-summary panel on the opposite side: anchored
-        // to both top and bottom so the chronicle's scroll has a real
-        // height to fill. Without anchor_bottom the rect collapses to a
-        // 0-px strip and only the collapsible header renders — exactly
-        // what shipped before this guard existed.
-        Assert.Contains(rail, line => line.Trim() == "anchor_bottom = 1.0");
+        // The rail is top-anchored and sizes to its content, mirroring the
+        // city-summary panel on the opposite side (GitHub #15). It used to be
+        // anchored to the parent's bottom edge as well, which meant its opaque
+        // surface claimed the whole column whether or not any body was open —
+        // a 236 px black rectangle over the map with nothing in it.
+        //
+        // Dropping the bottom anchor on its own is what shipped once before
+        // and collapsed the rail to a 0 px strip: the bodies had no height of
+        // their own and inherited the anchored rect's. The missing half, and
+        // the reason this is now safe, is ExpandedBodyHeight on each body —
+        // asserted below, because without it this anchoring is the old bug.
+        Assert.DoesNotContain(rail, line => line.Trim() == "anchor_bottom = 1.0");
         Assert.Contains(rail, line => line.Trim() == "offset_left = -244.0");
         Assert.Contains(rail, line => line.Trim() == "offset_right = -8.0");
         Assert.Contains(rail, line => line.Trim() == "offset_top = 8.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_bottom = -8.0");
-        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = 8.0");
+        Assert.Contains(rail, line => line.Trim() == "offset_bottom = 8.0");
+        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -8.0");
         Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -104.0");
+        // The statement form is the rail root claiming the column; the
+        // initialiser form on the layout VBox is a child filling whatever the
+        // panel gets and stays.
+        Assert.DoesNotContain(
+            "SizeFlagsVertical = SizeFlags.ExpandFill;",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "CustomMinimumSize = new Vector2(0, ExpandedBodyHeight)",
+            source,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "_chronicle.Body.CustomMinimumSize = new Vector2(0, ExpandedBodyHeight);",
+            source,
+            StringComparison.Ordinal);
         AssertOwnsPointerInput(rail, "ExpeditionRail");
         Assert.Contains(rail, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
         Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
@@ -1010,13 +1030,15 @@ public sealed class HudCompositionTests
         // VER survived because it sat in a ShrinkBegin sibling with a natural
         // minimum; the card list, the only negotiable node, did not.
         //
-        // Exactly two ExpandFill declarations may remain, and they are a
-        // parent/child chain rather than siblings: the rail PanelContainer
-        // itself, and the layout VBox inside it. A third would mean a new
-        // claimant sibling and the division is back. The bodies must NOT
-        // declare their own — AccordionHost sets that on whatever it adopts.
+        // Exactly one ExpandFill declaration may remain: the layout VBox
+        // filling whatever the panel gets. The rail root dropped its own with
+        // GitHub #15 — it now sizes to its content so a folded rail stops
+        // covering the map. A second sibling claimant would bring the height
+        // division back. The bodies must NOT declare their own; AccordionHost
+        // sets that on whatever it adopts, and their height comes from
+        // ExpandedBodyHeight.
         Assert.Equal(
-            2,
+            1,
             Regex.Matches(rail, @"SizeFlagsVertical = SizeFlags\.ExpandFill").Count);
         Assert.Contains(
             "SizeFlagsVertical = SizeFlags.ExpandFill", host, StringComparison.Ordinal);
@@ -1031,15 +1053,43 @@ public sealed class HudCompositionTests
         Assert.Contains("_bodyHost.AddChild(_chronicle.Header)", rail, StringComparison.Ordinal);
         Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
 
-        // Accordion: expanding either surface shows exactly that body.
-        Assert.Contains("_chronicle.Expanded = false", rail, StringComparison.Ordinal);
-        Assert.Contains("_bodyHost.ShowOnly(_scroll)", rail, StringComparison.Ordinal);
-        Assert.Contains("_bodyHost.ShowOnly(_chronicle.Body)", rail, StringComparison.Ordinal);
-        Assert.Contains("_header.Expanded = false", rail, StringComparison.Ordinal);
-        // Closing Chronicle must restore the initial expedition protagonist.
-        // Without the symmetric branch both bodies remain hidden permanently.
-        Assert.Contains("else if (!_header.Expanded)", rail, StringComparison.Ordinal);
-        Assert.Contains("_header.Expanded = true", rail, StringComparison.Ordinal);
+        // GitHub #15. One authority — the host — and both headers derive from
+        // it. Every route into the decision goes through ShowSection, so the
+        // two headers cannot end up disagreeing with the body that is
+        // actually on screen.
+        Assert.Contains("private void ShowSection(Control? body)", rail, StringComparison.Ordinal);
+        Assert.Contains("_bodyHost.ShowOnly(body);", rail, StringComparison.Ordinal);
+        Assert.Contains(
+            "_header.Expanded = _bodyHost.IsShowing(_scroll);",
+            rail,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "_chronicle.Expanded = _bodyHost.IsShowing(_chronicle.Body);",
+            rail,
+            StringComparison.Ordinal);
+
+        // Symmetric: a second click on the open header closes it and opens
+        // nothing. The old shape forced the expedition body back open when the
+        // chronicle closed, so the same gesture had two grammars depending on
+        // which section you used it on.
+        Assert.Contains(
+            "ShowSection(expanded ? _scroll : null);",
+            rail,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "ShowSection(expanded ? _chronicle.Body : null);",
+            rail,
+            StringComparison.Ordinal);
+        // Executable source: the remarks deliberately quote the forced reopen
+        // they replaced, so a raw match would fail on its own explanation.
+        string railCode = StripComments(rail);
+        Assert.DoesNotContain("else if (!_header.Expanded)", railCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("_header.Expanded = true", railCode, StringComparison.Ordinal);
+        Assert.DoesNotContain("_chronicle.Expanded = false", railCode, StringComparison.Ordinal);
+
+        // Assigning a header's Expanded re-enters the handler; the guard makes
+        // that a no-op rather than a second, conflicting decision.
+        Assert.Contains("if (_syncingSections) return;", rail, StringComparison.Ordinal);
 
         // The relayout incantations are gone and must stay gone. Their return
         // is the signal that the two-claimant fight restarted: nothing needs
