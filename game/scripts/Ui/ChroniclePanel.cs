@@ -268,7 +268,21 @@ public partial class ChroniclePanel : VBoxContainer
             MouseFilter = MouseFilterEnum.Pass,
         };
         _contentContainer.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        _body.AddChild(_contentContainer);
+
+        // Same gutter the city summary needs, for the same reason: once the
+        // log is long enough to scroll, the bar is drawn over the right edge
+        // of the content. Here it costs a wrap point rather than a digit —
+        // the entries autowrap, so without it the last characters of a full
+        // line sit under the bar. See Tokens.ScrollGutter.
+        var gutter = new MarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ShrinkBegin,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        gutter.AddThemeConstantOverride("margin_right", Tokens.ScrollGutter);
+        gutter.AddChild(_contentContainer);
+        _body.AddChild(gutter);
 
         _caption = new Label
         {

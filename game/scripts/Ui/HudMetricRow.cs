@@ -35,6 +35,16 @@ public partial class HudMetricRow : HBoxContainer
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Ignore,
+            // The name yields, the figure never does. A Label's minimum width
+            // is its whole text, so without this the row's minimum width is
+            // label + value and the row simply grows past the 240 px panel —
+            // the ScrollContainer then clips the overflow, which falls on the
+            // value because it sits on the right. That is how "3 días",
+            // "Activa" and "60%" came to render with their last glyph sliced
+            // in half in Spanish while English, whose labels are shorter, fit
+            // and looked fine.
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
         };
         AddChild(_label);
 

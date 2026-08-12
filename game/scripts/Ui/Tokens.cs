@@ -59,6 +59,24 @@ public static class Tokens
     // component showcase open.
 
     /// <summary>
+    /// Width a scrollable panel keeps clear on its right edge for the vertical
+    /// scrollbar.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="Godot.ScrollContainer"/> does not reserve this for you: the
+    /// bar is drawn over the right edge of the content, so anything aligned
+    /// hard right disappears underneath it the moment the content grows tall
+    /// enough for the bar to appear. The city summary showed this as values
+    /// sliced in half — "3 días", "Activa", "60%" — but only once a
+    /// construction was running and the column overflowed, which is why it
+    /// survived so long: the fixtures that render an idle city fit, and looked
+    /// perfect. Putting the margin on the ScrollContainer's own StyleBox does
+    /// not work, because the bar then simply moves inward with the viewport;
+    /// the gutter has to sit inside the scrolled content.
+    /// </remarks>
+    public const int ScrollGutter = 16;
+
+    /// <summary>
     /// Edge length of an inline icon, and of the cell reserved for it.
     /// </summary>
     /// <remarks>

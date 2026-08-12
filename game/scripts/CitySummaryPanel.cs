@@ -98,7 +98,19 @@ public partial class CitySummaryPanel : PanelContainer
             MouseFilter = MouseFilterEnum.Pass,
         };
         _content.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        _body.AddChild(_content);
+
+        // The gutter the vertical scrollbar draws over. It has to wrap the
+        // content rather than inset the ScrollContainer, because the bar is
+        // positioned against the viewport's right edge and follows any margin
+        // put there. See Tokens.ScrollGutter.
+        var gutter = new MarginContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Pass,
+        };
+        gutter.AddThemeConstantOverride("margin_right", Tokens.ScrollGutter);
+        gutter.AddChild(_content);
+        _body.AddChild(gutter);
     }
 
     public void Refresh(CityStatusSnapshot snapshot)

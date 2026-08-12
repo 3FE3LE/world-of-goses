@@ -46,6 +46,11 @@ public partial class HudSectionHeader : PanelContainer
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Ignore,
+            // Same rule the metric and resource rows follow: the heading
+            // yields so its trailing count stays readable, and so a long
+            // translation cannot widen the column past its panel.
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
         };
         row.AddChild(_title);
 

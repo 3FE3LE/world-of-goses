@@ -65,6 +65,12 @@ public partial class HudResourceRow : HBoxContainer
             VerticalAlignment = VerticalAlignment.Center,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             MouseFilter = MouseFilterEnum.Ignore,
+            // Same rule as HudMetricRow: the name yields, the amount never
+            // does. Without it this row's minimum width is icon + full name +
+            // amount, which is what made the whole summary column wider than
+            // the panel it lives in once the names were translated.
+            ClipText = true,
+            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
         });
 
         _amount = new Label
