@@ -211,7 +211,6 @@ public static class ArchitectureBoundaryAllowlist
             "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
             "game/scripts/AstralOnboardingView.cs", // astral onboarding full screen
             "game/scripts/HeroProfileView.cs",    // profile columns
-            "game/scripts/PoliciesPanel.cs",      // policy list shell
             "game/scripts/ProductionPanel.cs",    // production + stock shell
             "game/scripts/BuildingDetailView.cs", // building-detail shell
             "game/scripts/ConstructionPanel.cs",  // construction modal shell

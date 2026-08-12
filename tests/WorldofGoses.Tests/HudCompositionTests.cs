@@ -501,6 +501,8 @@ public sealed class HudCompositionTests
         string citizensScene = File.ReadAllText(Path.Combine(
             root, "game", "scenes", "Components", "MigrantPanel.tscn"));
         string policies = File.ReadAllText(Path.Combine(
+            root, "game", "scenes", "Components", "PoliciesPanel.tscn"));
+        string policiesSource = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "PoliciesPanel.cs"));
         string construction = File.ReadAllText(Path.Combine(
             root, "game", "scripts", "ConstructionPanel.cs"));
@@ -512,7 +514,7 @@ public sealed class HudCompositionTests
 
         Assert.Contains("theme_type_variation = \"HudSurface\"", expeditionScene, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = \"HudSurface\"", citizensScene, StringComparison.Ordinal);
-        Assert.Contains("ThemeTypeVariation = \"HudSurface\"", policies, StringComparison.Ordinal);
+        Assert.Contains("theme_type_variation = &\"HudSurface\"", policies, StringComparison.Ordinal);
         Assert.Contains("ThemeTypeVariation = \"HudProgress\"", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("AddThemeStyleboxOverride(\"panel\"", construction, StringComparison.Ordinal);
         Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", expeditionScene, StringComparison.Ordinal);
@@ -521,7 +523,7 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("theme_type_variation = \"OverlayPanel\"", pauseScene, StringComparison.Ordinal);
         Assert.DoesNotContain("AddThemeStyleboxOverride", pauseSource, StringComparison.Ordinal);
         Assert.Contains("theme_type_variation = &\"HudCard\"", cityScene, StringComparison.Ordinal);
-        Assert.Contains("_modalHost.Open(this);", policies, StringComparison.Ordinal);
+        Assert.Contains("_modalHost.Open(this);", policiesSource, StringComparison.Ordinal);
         Assert.Contains("public void Open(ExpeditionId expeditionId)", File.ReadAllText(Path.Combine(
             root, "game", "scripts", "ExpeditionPanel.cs")), StringComparison.Ordinal);
     }

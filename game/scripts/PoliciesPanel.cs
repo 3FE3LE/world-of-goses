@@ -5,7 +5,17 @@ using WorldofGoses.Ui;
 
 namespace WorldofGoses;
 
-/// <summary>Central, read-only first surface for city-wide policies.</summary>
+/// <summary>
+/// Central, read-only first surface for city-wide policies.
+///
+/// <para>Architecture Hardening A11: the static hierarchy —
+/// <c>Surface</c> → <c>Margin</c> → <c>Layout</c> → <c>Header</c> +
+/// <c>Scroll</c> → <c>Body</c> with its five title/value pairs — is authored
+/// in <c>game/scenes/Components/PoliciesPanel.tscn</c>, which
+/// <c>CityPrototype.tscn</c> instances. The script resolves those nodes,
+/// fills them from <see cref="CityPolicySnapshot"/>, and owns the modal
+/// open/close and the responsive bounds.</para>
+/// </summary>
 [GlobalClass]
 public partial class PoliciesPanel : Control
 {
@@ -47,68 +57,35 @@ public partial class PoliciesPanel : Control
         _modalHost.Open(this);
     }
 
+    /// <summary>
+    /// Binds the authored nodes and writes the text the catalogue owns. The
+    /// scene carries the shape and the theme variations; every string still
+    /// comes from <see cref="UiText"/>, because a literal in a <c>.tscn</c>
+    /// is a string no locale switch can reach.
+    /// </summary>
     private void Build()
     {
-        var surface = new PanelContainer { ThemeTypeVariation = "HudSurface" };
-        surface.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        AddChild(surface);
+        const string body = "Surface/Margin/Layout/Scroll/Body";
+        var header = GetNode<PanelHeader>("Surface/Margin/Layout/Header");
+        header.SetTitle(UiText.Get("ui.policies.title"));
+        header.CloseRequested += OnCloseRequested;
 
-        var margin = new MarginContainer();
-        margin.AddThemeConstantOverride("margin_left", Tokens.SpacingSection);
-        margin.AddThemeConstantOverride("margin_top", Tokens.SpacingWide);
-        margin.AddThemeConstantOverride("margin_right", Tokens.SpacingSection);
-        margin.AddThemeConstantOverride("margin_bottom", Tokens.SpacingSection);
-        surface.AddChild(margin);
+        _scheduleValue = BindPolicy(body, "Workday", "ui.policies.workday");
+        _dayStateValue = BindPolicy(body, "CurrentState", "ui.policies.current_state");
+        _productionValue = BindPolicy(body, "Production", "ui.policies.production");
+        _offDutyValue = BindPolicy(body, "OffDuty", "ui.policies.off_duty");
+        _constructionValue = BindPolicy(body, "Construction", "ui.policies.construction");
 
-        var layout = new VBoxContainer();
-        layout.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        margin.AddChild(layout);
-
-        var header = new PanelHeader { Title = UiText.Get("ui.policies.title") };
-        header.CloseRequested += () => _modalHost.Close();
-        layout.AddChild(header);
-
-        var scroll = new ScrollContainer
-        {
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-        };
-        layout.AddChild(scroll);
-        var body = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        body.AddThemeConstantOverride("separation", Tokens.SpacingComfortable);
-        scroll.AddChild(body);
-
-        _scheduleValue = AddPolicy(body, "ui.policies.workday");
-        _dayStateValue = AddPolicy(body, "ui.policies.current_state");
-        _productionValue = AddPolicy(body, "ui.policies.production");
-        _offDutyValue = AddPolicy(body, "ui.policies.off_duty");
-        _constructionValue = AddPolicy(body, "ui.policies.construction");
-
-        var future = new Label
-        {
-            Text = UiText.Get("ui.policies.future"),
-            ThemeTypeVariation = "HudCaption",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        body.AddChild(future);
+        GetNode<Label>($"{body}/Future").Text = UiText.Get("ui.policies.future");
     }
 
-    private static Label AddPolicy(VBoxContainer layout, string titleKey)
+    private Label BindPolicy(string bodyPath, string rowName, string titleKey)
     {
-        var title = new Label
-        {
-            Text = UiText.Get(titleKey),
-            ThemeTypeVariation = "HudLabel",
-        };
-        layout.AddChild(title);
-        var value = new Label
-        {
-            ThemeTypeVariation = "HudBody",
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        };
-        layout.AddChild(value);
-        return value;
+        GetNode<Label>($"{bodyPath}/{rowName}Title").Text = UiText.Get(titleKey);
+        return GetNode<Label>($"{bodyPath}/{rowName}Value");
     }
+
+    private void OnCloseRequested() => _modalHost.Close();
 
     private void Refresh()
     {

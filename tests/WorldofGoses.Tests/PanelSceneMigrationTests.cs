@@ -40,6 +40,7 @@ public sealed class PanelSceneMigrationTests
     public static IEnumerable<object[]> MigratedPanels =>
     [
         ["game/scripts/CitySummaryPanel.cs", "game/scenes/Components/CitySummaryPanel.tscn", "CitySummaryPanel"],
+        ["game/scripts/PoliciesPanel.cs", "game/scenes/Components/PoliciesPanel.tscn", "PoliciesPanel"],
     ];
 
     [Theory]

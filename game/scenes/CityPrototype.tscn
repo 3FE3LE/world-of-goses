@@ -21,7 +21,7 @@
 [ext_resource type="PackedScene" path="res://scenes/Components/ExpeditionPanel.tscn" id="27_expedition"]
 [ext_resource type="Script" uid="uid://grhfjvibk8re" path="res://scripts/Ui/PrimaryNavDock.cs" id="29_primarynav"]
 [ext_resource type="Script" uid="uid://gx867xv7uegx" path="res://scripts/Prototypes/MacroStreetLiveView.cs" id="30_streetlive"]
-[ext_resource type="Script" uid="uid://jedqt2wq4x81" path="res://scripts/PoliciesPanel.cs" id="31_policies"]
+[ext_resource type="PackedScene" path="res://scenes/Components/PoliciesPanel.tscn" id="31_policies"]
 [ext_resource type="PackedScene" path="res://scenes/Components/MigrantPanel.tscn" id="32_migrant"]
 [ext_resource type="Script" uid="uid://d1hkrd20c0shp" path="res://scripts/TimeOfDayFilter.cs" id="33_timeoffilter"]
 [ext_resource type="Script" uid="uid://b5f0ai5c71i6m" path="res://scripts/Ui/ContextInspector.cs" id="34_inspector"]
@@ -88,11 +88,9 @@ script = ExtResource("12_construction")
 layout_mode = 2
 ModalHostPath = NodePath("../../ModalHost")
 
-[node name="PoliciesPanel" type="Control" parent="GameUiShell/ScreenContent" unique_id=602712654]
+[node name="PoliciesPanel" parent="GameUiShell/ScreenContent" unique_id=602712654 instance=ExtResource("31_policies")]
 visible = false
 layout_mode = 1
-anchors_preset = 0
-script = ExtResource("31_policies")
 
 [node name="MigrantPanel" parent="GameUiShell/ScreenContent" unique_id=514887703 instance=ExtResource("32_migrant")]
 anchors_preset = 0
