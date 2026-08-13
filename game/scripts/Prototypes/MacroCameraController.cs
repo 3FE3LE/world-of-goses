@@ -278,15 +278,36 @@ internal sealed class MacroCameraController
         }
     }
 
-    /// <summary>Mutation helper for the view's per-frame transition.
-    /// The view's <c>AdvanceTransition</c> takes <c>ref</c> parameters;
-    /// because the source fields are properties on this controller, the
-    /// view reads them into locals, calls <c>AdvanceTransition</c>, and
-    /// writes the result back through this single setter.</summary>
-    public void UpdateCameraTransition(float depthAnchor, float? depthTarget, float accumulator)
+    /// <summary>
+    /// Walks <see cref="CameraDepthAnchor"/> one step per elapsed cadence tick
+    /// toward <see cref="CameraDepthTarget"/>, clearing the target on arrival.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The controller advances its own three fields rather than handing copies
+    /// to the view, which is the seam GitHub #14 turned out to be. A4 moved
+    /// the camera's depth state here but left the per-frame advance in
+    /// <c>MacroStreetLiveView._Process</c>, reading the three properties into
+    /// locals and stepping those. The founder's equivalent stored its result
+    /// back through <c>UpdateFounderTransition</c>; the camera's had no such
+    /// call, so every frame restarted from the controller's unchanged anchor.
+    /// </para>
+    /// <para>
+    /// Nothing about that was visible from either side. <c>StepFreeCameraStreet</c>
+    /// really did move <see cref="FreeCameraStreet"/> and set the target, the
+    /// input really did arrive, and the projection really did read
+    /// <see cref="CameraDepthAnchor"/> — which simply never moved. It reads as
+    /// "the camera does not pan" and sends you looking at input and clamps,
+    /// where the last three attempts went.
+    /// </para>
+    /// </remarks>
+    public void AdvanceDepthTransition(double delta, float stepSize)
     {
-        _cameraDepthAnchor = depthAnchor;
-        _cameraDepthTarget = depthTarget;
-        _cameraTransitionAccumulator = accumulator;
+        SteppedDepthTransition.Advance(
+            ref _cameraDepthAnchor,
+            ref _cameraDepthTarget,
+            ref _cameraTransitionAccumulator,
+            delta,
+            stepSize);
     }
 }

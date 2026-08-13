@@ -1436,13 +1436,10 @@ public partial class MacroStreetLiveView : Node2D
         float heroTransitionAccumulator = _journeys.TransitionAccumulator;
         AdvanceTransition(ref heroDepthAnchor, ref heroDepthTarget, ref heroTransitionAccumulator, delta);
         _journeys.UpdateFounderTransition(heroDepthAnchor, heroDepthTarget, heroTransitionAccumulator);
-        float cameraDepthAnchor = _camera.CameraDepthAnchor;
-        float? cameraDepthTarget = _camera.CameraDepthTarget;
-        float cameraTransitionAccumulator = _camera.CameraTransitionAccumulator;
-        AdvanceTransition(
-            ref cameraDepthAnchor,
-            ref cameraDepthTarget,
-            ref cameraTransitionAccumulator,
+        // The controller advances its own state. This used to read the three
+        // properties into locals, step those, and drop them — so the anchor
+        // the projection reads never actually moved (GitHub #14).
+        _camera.AdvanceDepthTransition(
             delta,
             DepthStepSize * VerticalPanTransitionMultiplier(_camera.VerticalPanHoldSeconds));
         bool citizenDepthAnimating = false;
@@ -2762,25 +2759,8 @@ public partial class MacroStreetLiveView : Node2D
         ref float? target,
         ref float accumulator,
         double delta,
-        float stepSize = DepthStepSize)
-    {
-        if (!target.HasValue) return;
-        accumulator += (float)delta;
-        while (accumulator >= PixelMotion.CadenceSeconds && target.HasValue)
-        {
-            accumulator -= PixelMotion.CadenceSeconds;
-            float value = target.Value;
-            if (Mathf.Abs(value - anchor) <= stepSize)
-            {
-                anchor = value;
-                target = null;
-            }
-            else
-            {
-                anchor += Mathf.Sign(value - anchor) * stepSize;
-            }
-        }
-    }
+        float stepSize = DepthStepSize) =>
+        SteppedDepthTransition.Advance(ref anchor, ref target, ref accumulator, delta, stepSize);
 
     /// <summary>Manual lateral input pans only the camera.</summary>
     private bool TryPanCameraLateral()

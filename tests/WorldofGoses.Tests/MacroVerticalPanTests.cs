@@ -300,6 +300,110 @@ public sealed class MacroVerticalPanTests
     }
 
     /// <summary>
+    /// The defect the first three attempts missed. A4 moved the camera's depth
+    /// state onto <see cref="MacroCameraController"/> but left the per-frame
+    /// advance in the view, which read the three properties into locals,
+    /// stepped those, and dropped them. The founder's equivalent stored its
+    /// result back; the camera's did not, so the anchor the projection reads
+    /// restarted from the same value every frame while the target was set
+    /// correctly.
+    ///
+    /// <para>
+    /// This exercises the controller's own state, so it fails if the advance
+    /// ever goes back to operating on copies: the anchor simply would not
+    /// move.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void AdvancingTheDepthTransitionPersistsOnTheController()
+    {
+        var camera = new MacroCameraController
+        {
+            CameraDepthAnchor = 2f,
+            CameraDepthTarget = 4f,
+        };
+
+        // One cadence tick at the transition's own step size.
+        camera.AdvanceDepthTransition(PixelMotion.CadenceSeconds, MacroViewConstants.DepthStepSize);
+
+        Assert.True(
+            camera.CameraDepthAnchor > 2f,
+            "The anchor must advance on the controller, not on a copy the caller drops.");
+        Assert.Equal(4f, camera.CameraDepthTarget);
+
+        // And it must arrive, clearing the target rather than orbiting it.
+        int safety = 1000;
+        while (camera.CameraDepthTarget.HasValue && safety-- > 0)
+        {
+            camera.AdvanceDepthTransition(PixelMotion.CadenceSeconds, MacroViewConstants.DepthStepSize);
+        }
+
+        Assert.True(safety > 0, "The depth transition never reached its target.");
+        Assert.Equal(4f, camera.CameraDepthAnchor);
+        Assert.Null(camera.CameraDepthTarget);
+    }
+
+    /// <summary>
+    /// The opposite direction persists identically — a camera walking back
+    /// toward the viewer must not be a special case.
+    /// </summary>
+    [Fact]
+    public void TheDepthTransitionPersistsInBothDirections()
+    {
+        var camera = new MacroCameraController
+        {
+            CameraDepthAnchor = 5f,
+            CameraDepthTarget = 3f,
+        };
+
+        int safety = 1000;
+        while (camera.CameraDepthTarget.HasValue && safety-- > 0)
+        {
+            camera.AdvanceDepthTransition(PixelMotion.CadenceSeconds, MacroViewConstants.DepthStepSize);
+        }
+
+        Assert.True(safety > 0);
+        Assert.Equal(3f, camera.CameraDepthAnchor);
+    }
+
+    /// <summary>
+    /// A completed transition is inert. Without the null-target guard the
+    /// accumulator would keep growing and the next real transition would jump
+    /// its whole backlog in one frame instead of walking it.
+    /// </summary>
+    [Fact]
+    public void ACompletedTransitionDoesNotDriftOrBankTime()
+    {
+        var camera = new MacroCameraController { CameraDepthAnchor = 3f };
+
+        camera.AdvanceDepthTransition(10.0, MacroViewConstants.DepthStepSize);
+
+        Assert.Equal(3f, camera.CameraDepthAnchor);
+        Assert.Null(camera.CameraDepthTarget);
+        Assert.Equal(0f, camera.CameraTransitionAccumulator);
+    }
+
+    /// <summary>
+    /// The view must not go back to stepping copies: the advance belongs to
+    /// whoever owns the fields.
+    /// </summary>
+    [Fact]
+    public void TheViewDelegatesTheCameraAdvanceToTheController()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+
+        Assert.Contains(
+            "_camera.AdvanceDepthTransition(",
+            source,
+            System.StringComparison.Ordinal);
+        Assert.DoesNotMatch(
+            new Regex(@"float\s+cameraDepthAnchor\s*=\s*_camera\.CameraDepthAnchor"),
+            source);
+    }
+
+    /// <summary>
     /// The lateral axis is untouched by #14 and must stay that way: A/← move
     /// one way, D/→ the other, and neither is expressed through the vertical
     /// convention.
