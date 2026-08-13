@@ -1621,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
 msgid "Strength"
@@ -2372,9 +2372,6 @@ msgid "ui.expedition_rail.phase.retreating"
 msgstr ""
 
 msgid "ui.expedition_rail.phase.returning"
-msgstr ""
-
-msgid "ui.expedition_rail.title"
 msgstr ""
 
 msgid "ui.expedition_rail.view"

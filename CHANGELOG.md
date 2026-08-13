@@ -17,6 +17,28 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## El último panel deja de componerse a mano
+
+**2026-08-13** · presentación · schema v35 (sin cambio) · 1634 pruebas superadas
+
+**Nada cambia para el jugador, y esa es la prueba.** El `ExpeditionRail` era el
+décimo y último panel que construía su jerarquía estática en C#. Su forma vive
+ahora en `game/scenes/Components/ExpeditionRail.tscn` y el script conserva lo
+único que una escena no puede decir: que la cabecera del cronicón la construye
+otro panel, se adopta en el host del acordeón y se mueve al frente — porque un
+nodo reparentado en runtime cae al final, y al final significa debajo del
+cuerpo abierto.
+
+Llevaba dos sesiones apartado a propósito. El riesgo era el orden de esos hijos,
+que es el arreglo de hit-testing de #12, y no había arnés de captura con el que
+comprobar el resultado. Ahora sí: un clic real sobre «REGISTRO» pliega el rail a
+sus dos cabeceras y libera el mapa, y un segundo clic real lo reabre.
+
+Con esto la fila A del allowlist de arquitectura queda vacía. Un panel nuevo que
+componga su shell en C# falla el guard y ya no tiene dónde ser excusado.
+
+---
+
 ## El camino de expedición empieza a moverse de verdad
 
 **2026-08-13** · expedición · schema v35 (sin cambio) · 1632 pruebas superadas

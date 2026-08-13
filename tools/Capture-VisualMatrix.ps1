@@ -212,22 +212,23 @@ foreach ($resolution in $resolutions) {
         # Clicks derived from bootstrap geometry would land nowhere near their
         # target, so this has to be settled before any coordinate is computed.
         #
-        # Settled means *proportional to* the requested resolution, not equal
-        # to it. On a HiDPI desktop the window manager hands back physical
-        # pixels — 2560x1442 for a 1280x720 request at 200% scale — and the
-        # old equality check rejected every capture on such a machine, which
-        # is how visual sign-off went dark for several sessions. Nothing
-        # downstream needs the rect to be 1:1: clicks are normalized and
-        # multiplied by the measured size, and the golden frame comes from the
-        # engine's own viewport, which reports the size it truly rendered and
-        # is asserted against the slug further down. What must still be
-        # rejected is the bootstrap rect, and its square 1:1 aspect is what
-        # separates it from a legitimately scaled window.
+        # Settled means the exact requested size, and it has to: every click
+        # below is a normalized coordinate multiplied by this measurement, so
+        # a rect that is merely the right shape puts the pointer somewhere
+        # else entirely. Accepting a proportional rect once seemed harmless
+        # and was not — the fullscreen 2560x1440 rect passed the aspect check
+        # while the engine went on to resize itself to 1280x720, and clicks
+        # were computed from the stale number.
+        #
+        # What makes equality reachable is that the engine pins its own window
+        # (--wog-visual-capture-size). Without that, a project shipping
+        # fullscreen borderless ignores --resolution and takes the desktop's
+        # size, which is what left this assertion failing on every fixture for
+        # several sessions.
         $rect = New-Object VisualMatrixWindowCapture+Rect
         $origin = New-Object VisualMatrixWindowCapture+Point
         $actualWidth = 0
         $actualHeight = 0
-        $requestedAspect = $resolution.Width / $resolution.Height
         $settleDeadline = [DateTime]::UtcNow.AddMilliseconds($StartupSettleMilliseconds)
         do {
             if (![VisualMatrixWindowCapture]::GetClientRect($process.MainWindowHandle, [ref]$rect) `
@@ -236,19 +237,13 @@ foreach ($resolution in $resolutions) {
             }
             $actualWidth = $rect.Right - $rect.Left
             $actualHeight = $rect.Bottom - $rect.Top
-            if ($actualWidth -ge $resolution.Width -and $actualHeight -gt 0) {
-                $aspectDrift = [Math]::Abs(($actualWidth / $actualHeight) - $requestedAspect)
-                if ($aspectDrift -le ($requestedAspect * 0.02)) { break }
-            }
+            if ($actualWidth -eq $resolution.Width -and $actualHeight -eq $resolution.Height) { break }
             Start-Sleep -Milliseconds 100
         } while (!$process.HasExited -and [DateTime]::UtcNow -lt $settleDeadline)
 
-        $settledAspect = if ($actualHeight -gt 0) { $actualWidth / $actualHeight } else { 0 }
-        if ($actualWidth -lt $resolution.Width `
-            -or [Math]::Abs($settledAspect - $requestedAspect) -gt ($requestedAspect * 0.02)) {
-            throw ("Godot client settled at ${actualWidth}x${actualHeight}, which is not " +
-                "proportional to the requested $slug for $StateName. Clicks and geometry " +
-                "cannot be derived from a bootstrap rect.")
+        if ($actualWidth -ne $resolution.Width -or $actualHeight -ne $resolution.Height) {
+            throw ("Godot client settled at ${actualWidth}x${actualHeight}, expected $slug " +
+                "for $StateName. Clicks and geometry cannot be derived from a bootstrap rect.")
         }
 
         # The scene still needs a moment to compose once the window is the

@@ -1,0 +1,57 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" uid="uid://dexpeditionrail06" path="res://scripts/ExpeditionRail.cs" id="1_rail"]
+[ext_resource type="Script" uid="uid://cw1mplhubcunb" path="res://scripts/Ui/CollapsiblePanelHeader.cs" id="2_header"]
+[ext_resource type="Script" uid="uid://bmkjvtawxj7k6" path="res://scripts/Ui/AccordionHost.cs" id="3_accordion"]
+[ext_resource type="Script" uid="uid://dchroniclepanel06" path="res://scripts/Ui/ChroniclePanel.cs" id="4_chronicle"]
+
+[node name="ExpeditionRail" type="PanelContainer"]
+visible = false
+size_flags_vertical = 0
+theme_type_variation = &"HudSurface"
+script = ExtResource("1_rail")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+mouse_filter = 1
+theme_override_constants/separation = 4
+
+[node name="Header" type="Button" parent="Layout"]
+layout_mode = 2
+script = ExtResource("2_header")
+
+[node name="ExpeditionQuickActions" type="VBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 8
+
+[node name="BodyHost" type="VBoxContainer" parent="Layout"]
+layout_mode = 2
+script = ExtResource("3_accordion")
+
+[node name="ExpeditionScroll" type="ScrollContainer" parent="Layout/BodyHost"]
+layout_mode = 2
+mouse_filter = 0
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 2
+
+[node name="Content" type="VBoxContainer" parent="Layout/BodyHost/ExpeditionScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+mouse_filter = 1
+theme_override_constants/separation = 8
+
+[node name="ExpeditionSummary" type="VBoxContainer" parent="Layout/BodyHost/ExpeditionScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 1
+theme_override_constants/separation = 8
+
+[node name="Chronicle" type="VBoxContainer" parent="Layout"]
+visible = false
+layout_mode = 2
+script = ExtResource("4_chronicle")

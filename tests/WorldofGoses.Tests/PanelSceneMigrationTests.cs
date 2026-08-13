@@ -45,6 +45,7 @@ public sealed class PanelSceneMigrationTests
         ["game/scripts/AstralOnboardingView.cs", "game/scenes/OnboardingView.tscn", "OnboardingView"],
         ["game/scripts/HeroProfileView.cs", "game/scenes/HeroProfileView.tscn", "HeroProfileView"],
         ["game/scripts/ConstructionPanel.cs", "game/scenes/Components/ConstructionPanel.tscn", "ConstructionPanel"],
+        ["game/scripts/ExpeditionRail.cs", "game/scenes/Components/ExpeditionRail.tscn", "ExpeditionRail"],
     ];
 
     /// <summary>

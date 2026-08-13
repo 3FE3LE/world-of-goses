@@ -203,21 +203,24 @@ public static class ArchitectureBoundaryAllowlist
         new[]
         {
             // ── A: static authored structure, migrate to .tscn ──
-            // Each panel's static hierarchy is identical for every
-            // city; the dynamic content is rebuilt on signal. The
-            // migration moves the shell to a PackedScene and keeps
-            // C# only for the rows that depend on a snapshot.
             //
-            // One left of the original ten (GitHub #9). The rail is last
-            // deliberately: its hierarchy is not its own. ChroniclePanel
-            // builds the chronicle's header and body and hands both over, the
-            // rail reparents them into the shared AccordionHost, and the
-            // order of that host's children IS the hit-testing fix from #12 —
-            // a real second click on MoreButton reaching the header rather
-            // than the body drawn in front of it. Reordering that without a
-            // working capture harness is a bet, not a migration. Its
-            // accordion grammar and sizing were closed separately in #15.
-            "game/scripts/ExpeditionRail.cs",     // rail shell + chronicle accordion
+            // Empty. All ten panels of GitHub #9 are migrated or
+            // reclassified. The last of them, ExpeditionRail, was held
+            // back because its hierarchy is not entirely its own —
+            // ChroniclePanel builds the chronicle's header and body and
+            // hands both over, and their position among the accordion
+            // host's children is load-bearing. What that needed was a
+            // capture harness to check the result against, not a
+            // different design: the shell is now
+            // game/scenes/Components/ExpeditionRail.tscn and the script
+            // keeps the one thing a scene cannot state, which is that a
+            // node built by another panel is adopted and moved to the
+            // front of the host.
+            //
+            // A new panel that composes its static shell in C# fails
+            // ProductionUi_DoesNotComposeStaticHierarchyInCode. Adding
+            // it here to make the build pass is the wrong move; the
+            // rows below are classifications, not exemptions.
 
             // ── B: genuinely dynamic collection ──
             // Static parts are minimal (VBoxContainer + Header);

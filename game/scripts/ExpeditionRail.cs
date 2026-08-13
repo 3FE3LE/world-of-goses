@@ -93,85 +93,42 @@ public partial class ExpeditionRail : PanelContainer
         // way they fold the city summary, while the rail-level header
         // folds the whole body together — including the chronicle's
         // body, so a folded rail is just two stacked headers.
-        var layout = new VBoxContainer
-        {
-            MouseFilter = MouseFilterEnum.Pass,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-        };
-        layout.AddThemeConstantOverride("separation", Tokens.SpacingTight);
-        _layout = layout;
-        AddChild(_layout);
+        //
+        // That whole shape is identical for every city, so it is
+        // authored in ExpeditionRail.tscn (GitHub #9). What stays here
+        // is what a scene cannot state: which bodies the accordion
+        // swaps between, and the fact that the chronicle's two halves
+        // are built by ChroniclePanel and adopted from it.
+        _layout = GetNode<VBoxContainer>("Layout");
+        _header = GetNode<CollapsiblePanelHeader>("Layout/Header");
+        _expeditionSection = GetNode<VBoxContainer>("Layout/ExpeditionQuickActions");
+        _bodyHost = GetNode<AccordionHost>("Layout/BodyHost");
+        _scroll = GetNode<ScrollContainer>("Layout/BodyHost/ExpeditionScroll");
+        _content = GetNode<VBoxContainer>("Layout/BodyHost/ExpeditionScroll/Content");
+        _expeditionContent = GetNode<VBoxContainer>(
+            "Layout/BodyHost/ExpeditionScroll/Content/ExpeditionSummary");
+        _chronicle = GetNode<ChroniclePanel>("Layout/Chronicle");
 
-        _header = new CollapsiblePanelHeader(UiText.Get("ui.expedition_rail.title"));
-        _layout.AddChild(_header);
-
-        _expeditionSection = new VBoxContainer
-        {
-            Name = "ExpeditionQuickActions",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _expeditionSection.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        _layout.AddChild(_expeditionSection);
         _header.ExpandedChanged += OnHeaderExpandedChanged;
-
-        // The chronicle's header is a sibling of the expedition header, not
-        // a child of the body host: both headers stay on screen at all times
-        // and only the bodies beneath them swap.
-        _chronicle = new ChroniclePanel();
         _chronicle.SetController(_controller);
         _chronicle.ExpandedChanged += OnChronicleExpanded;
         _chronicle.FocusablesChanged += OnChronicleFocusablesChanged;
+        _scroll.GuiInput += OnScrollGuiInput;
+
+        // The chronicle's header is adopted into the body host and then
+        // moved to the front of it. Both headers stay on screen at all
+        // times while only the bodies beneath them swap, so the header
+        // has to precede whichever body is the current protagonist —
+        // and a node reparented at runtime lands at the end. The scene
+        // cannot author this child because ChroniclePanel builds it.
+        _bodyHost.AddChild(_chronicle.Header);
+        _bodyHost.MoveChild(_chronicle.Header, 0);
 
         // One host, one ExpandFill, one visible body. Registering both
         // bodies here is what removes the old two-claimant negotiation: the
         // expedition list and the chronicle can no longer starve each other,
         // because only one of them is ever measured.
-        _bodyHost = new AccordionHost();
-        _layout.AddChild(_bodyHost);
-
-        // Issue #12 fix: the chronicle header lives inside the body host as
-        // the LAST child, so Godot draws it on top of whichever body is the
-        // current protagonist. The previous layout had the header as a
-        // sibling of bodyHost, which made bodyHost's children (the chronicle
-        // body ScrollContainer) draw on top of the header — a real pointer
-        // click on the MoreButton was absorbed by the body in front of it
-        // once the chronicle was open, so the toggle's second click never
-        // reached the header. With the header as the topmost child of the
-        // host, the click lands on the header, the body still gets the
-        // wheel events it needs (its own gui_input, same MouseFilter), and
-        // the visual position is unchanged.
-        _bodyHost.AddChild(_chronicle.Header);
-
-        _scroll = new ScrollContainer
-        {
-            Name = "ExpeditionScroll",
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
-            MouseFilter = MouseFilterEnum.Stop,
-        };
-        _scroll.GuiInput += OnScrollGuiInput;
         _bodyHost.Register(_scroll);
-
-        _content = new VBoxContainer
-        {
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ShrinkBegin,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _content.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        _scroll.AddChild(_content);
-
-        _expeditionContent = new VBoxContainer
-        {
-            Name = "ExpeditionSummary",
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Pass,
-        };
-        _expeditionContent.AddThemeConstantOverride("separation", Tokens.SpacingBase);
-        _content.AddChild(_expeditionContent);
-
         _bodyHost.Register(_chronicle.Body);
         _bodyHost.CurrentBodyChanged += OnBodyHostChanged;
         // The expedition list is the opening protagonist. Going through
@@ -180,11 +137,9 @@ public partial class ExpeditionRail : PanelContainer
         ShowSection(_scroll);
 
         // ChroniclePanel keeps owning the chronicle's rows, projection and
-        // offline report, but it no longer parents either of its own parts.
-        // It stays in the tree, hidden and empty, purely so its lifetime is
+        // offline report, but it does not parent either of its own parts.
+        // It sits in the scene hidden and empty, purely so its lifetime is
         // managed with the rail's; nothing renders through it.
-        _chronicle.Visible = false;
-        _layout.AddChild(_chronicle);
 
         _controller.WorldTickAdvanced += OnWorldTickAdvanced;
         _controller.ExpeditionStateChanged += OnExpeditionStateChanged;
@@ -347,7 +302,8 @@ public partial class ExpeditionRail : PanelContainer
 
         if (_snapshot.ActiveExpeditions.Count == 0)
         {
-            _expeditionContent.AddChild(Caption(UiText.Get("ui.expedition_rail.none_active")));
+            _expeditionContent.AddChild(
+                new HudListCaption(UiText.Get("ui.expedition_rail.none_active")));
         }
         else
         {
@@ -389,14 +345,6 @@ public partial class ExpeditionRail : PanelContainer
 
     public void GrabDefaultFocus() =>
         (FirstViewButton ?? FirstDetailsButton ?? MoreButton).GrabFocus();
-
-    private static Label Caption(string text) => new()
-    {
-        Text = text,
-        ThemeTypeVariation = "HudCaption",
-        AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        MouseFilter = MouseFilterEnum.Ignore,
-    };
 
     private void OpenDetails(ExpeditionId id) => _expeditionPanel.Open(id);
 

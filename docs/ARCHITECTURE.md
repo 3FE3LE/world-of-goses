@@ -484,15 +484,21 @@ applies to `OnboardingView`, `HeroProfileView`, `MigrantPanel`,
 `OctagonalSkillSlot`, `ExpeditionSquadSlot`, `ExpeditionSquadStrip`,
 `ExpeditionSkillStrip`.
 
-The migration order (high churn → low churn) lives in the GitHub
-issue tracker: `CitySummaryPanel` → `CityStatusPanel` →
-`ExpeditionRail` → `HeroProfileView` → `AstralOnboardingView` →
-`PoliciesPanel` / `ProductionPanel` / `ConstructionPanel` →
-`BuildingInspector` (replaces fullscreen `BuildingDetailView`) →
-`ExpeditionLiveView`. Each slice creates the
-`.tscn`, moves the static shell there, keeps C# for signal wiring
-and dynamic rows, and removes the entry from the allowlist when
-the guard stays green.
+That migration is **finished** (GitHub #9). All ten panels are either
+authored in a `.tscn` or classified as genuinely dynamic; the A row of
+`ProductionUiStaticStructureInCode` is empty, and a new panel that
+composes its static shell in C# now fails the guard with nowhere to be
+excused to. Each slice created the `.tscn`, moved the static shell
+there, kept C# for signal wiring and dynamic rows, and removed the
+entry from the allowlist once the guard stayed green.
+
+The last of them, `ExpeditionRail`, was held back for two sessions
+because its hierarchy is not entirely its own: `ChroniclePanel` builds
+the chronicle's header and body, and where the header lands among the
+accordion host's children decides whether a second real click on it
+reaches the header or the body. What that needed was a capture harness
+to check the result against — the answer is a click, not an argument —
+not a different design.
 
 The single documented exception to "no inline spacing numbers"
 is `Tokens.ScrollGutter`: the gutter has to sit inside the

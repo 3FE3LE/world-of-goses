@@ -285,8 +285,18 @@ public sealed class HudCompositionTests
         string card = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ExpeditionCompactCard.cs"));
 
+        string railScene = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scenes", "Components", "ExpeditionRail.tscn"));
+
         Assert.Contains("_expeditionPanel.Open(id);", rail, StringComparison.Ordinal);
-        Assert.Contains("new ChroniclePanel()", rail, StringComparison.Ordinal);
+        // The rail still owns the chronicle; the chronicle is just authored
+        // in the scene now rather than constructed in _Ready (GitHub #9).
+        Assert.Contains("ChroniclePanel.cs", railScene, StringComparison.Ordinal);
+        Assert.Contains(
+            "GetNode<ChroniclePanel>(\"Layout/Chronicle\")",
+            rail,
+            StringComparison.Ordinal);
         Assert.Contains("_controller.LastOfflineReport", rail, StringComparison.Ordinal);
         Assert.Contains("GetExpeditionRailSnapshot", rail, StringComparison.Ordinal);
         Assert.Contains("ChronicleEventProjection.MeaningfulEvents", chronicle, StringComparison.Ordinal);
@@ -1097,7 +1107,18 @@ public sealed class HudCompositionTests
         string host = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "AccordionHost.cs"));
 
-        Assert.Contains("new CollapsiblePanelHeader", rail, StringComparison.Ordinal);
+        string railScene = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(),
+            "game", "scenes", "Components", "ExpeditionRail.tscn"));
+
+        // Both headers and the shared host are authored (GitHub #9); the
+        // script binds them and keeps the toggle grammar.
+        Assert.Contains("CollapsiblePanelHeader.cs", railScene, StringComparison.Ordinal);
+        Assert.Contains("AccordionHost.cs", railScene, StringComparison.Ordinal);
+        Assert.Contains(
+            "GetNode<CollapsiblePanelHeader>(\"Layout/Header\")",
+            rail,
+            StringComparison.Ordinal);
         Assert.Contains("ExpandedChanged", rail, StringComparison.Ordinal);
         Assert.Contains("public bool Expanded =>", rail, StringComparison.Ordinal);
 
@@ -1114,20 +1135,29 @@ public sealed class HudCompositionTests
         // GitHub #15 — it now sizes to its content so a folded rail stops
         // covering the map. A second sibling claimant would bring the height
         // division back. The bodies must NOT declare their own; AccordionHost
-        // sets that on whatever it adopts, and their height comes from
-        // ExpandedBodyHeight.
-        Assert.Single(Regex.Matches(rail, @"SizeFlagsVertical = SizeFlags\.ExpandFill"));
+        // sets that on whatever it adopts.
+        //
+        // Asserted against the scene since #9 moved the shell there. A
+        // second `size_flags_vertical = 3` authored in ExpeditionRail.tscn
+        // reintroduces the two-claimant split as surely as a second line of
+        // C# ever did.
+        Assert.Single(Regex.Matches(railScene, @"(?m)^size_flags_vertical = 3$"));
         Assert.Contains(
             "SizeFlagsVertical = SizeFlags.ExpandFill", host, StringComparison.Ordinal);
-        Assert.Contains("_bodyHost = new AccordionHost()", rail, StringComparison.Ordinal);
+        Assert.Contains(
+            "GetNode<AccordionHost>(\"Layout/BodyHost\")", rail, StringComparison.Ordinal);
         Assert.Contains("_bodyHost.Register(_scroll)", rail, StringComparison.Ordinal);
         Assert.Contains("_bodyHost.Register(_chronicle.Body)", rail, StringComparison.Ordinal);
 
-        // Both headers stay on screen when their body folds; the chronicle
-        // header is the LAST child of the body host (issue #12) so a real
-        // click on MoreButton reaches it instead of being absorbed by the
-        // body in front of it.
+        // Both headers stay on screen when their body folds. The chronicle
+        // header is built by ChroniclePanel, so it cannot be authored in the
+        // scene; it is adopted into the body host and moved to the front,
+        // because a node reparented at runtime lands last and the host is a
+        // VBoxContainer — last would put the header below whichever body is
+        // open.
         Assert.Contains("_bodyHost.AddChild(_chronicle.Header)", rail, StringComparison.Ordinal);
+        Assert.Contains(
+            "_bodyHost.MoveChild(_chronicle.Header, 0)", rail, StringComparison.Ordinal);
         Assert.DoesNotContain("_content.AddChild(_chronicle)", rail, StringComparison.Ordinal);
 
         // GitHub #15. One authority — the host — and both headers derive from

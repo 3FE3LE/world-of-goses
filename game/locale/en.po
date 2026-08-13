@@ -2883,9 +2883,6 @@ msgstr "Rules"
 msgid "ui.nav.citizens_short"
 msgstr "People"
 
-msgid "ui.expedition_rail.title"
-msgstr "EXPEDITIONS"
-
 msgid "ui.expedition_rail.header"
 msgstr "EXPEDITIONS · {0}"
 

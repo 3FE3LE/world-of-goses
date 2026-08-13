@@ -3036,9 +3036,6 @@ msgstr "Norma"
 msgid "ui.nav.citizens_short"
 msgstr "Gente"
 
-msgid "ui.expedition_rail.title"
-msgstr "EXPEDICIONES"
-
 msgid "ui.expedition_rail.header"
 msgstr "EXPEDICIONES · {0}"
 
