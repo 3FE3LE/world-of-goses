@@ -70,6 +70,10 @@ public partial class ExpeditionStage : Control
             throw new ArgumentOutOfRangeException(nameof(domainMaximumX));
         _domainMinimumX = domainMinimumX;
         _domainMaximumX = domainMaximumX;
+        // Encounter: keep the same chunk pool (#24) so the path
+        // does not reset to a fresh window when combat starts.
+        // The world scroll pauses because Travel.PositionX is no
+        // longer advancing while combat controls the timeline.
         _objectiveVisible = false;
         _objectiveReached = false;
 

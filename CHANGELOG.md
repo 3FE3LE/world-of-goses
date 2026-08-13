@@ -17,6 +17,22 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Combate en el mismo path chunked
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**Entrar en encuentro no rompe el escenario.** Al aparecer un
+`CombatState`, el `ExpeditionStage` mantiene el mismo chunk pool de
+#22/#23; el world scroll se detiene mientras el combate controla el
+tiempo, los combatants se proyectan sobre la banda jugable
+existente y, al terminar, el stage reanuda desde el
+`Travel.PositionX` autoritativo sin recrear nada. El array de
+chunks nunca crece al alternar 100 ticks de travel y 100 de
+encuentro. El objetivo del Spirit Trail queda anclado al chunk
+original todo el rato. Cierra #24.
+
+---
+
 ## Viaje y regreso del camino mueven el mismo world scroll
 
 **2026-08-12** · presentación · sin cambio de schema
