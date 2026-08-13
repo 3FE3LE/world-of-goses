@@ -276,6 +276,16 @@ public partial class MacroStreetLiveView : Node2D
     private int _worldParcelRows = DefaultWorldParcelRows;
     // A4: _citizenStates and _parcelTerritory moved to MacroStreetRenderer.
 
+    // GitHub #31: the last camera projection the placement hover was
+    // resolved against. The next process tick compares against the
+    // current camera state and clears the hover when the camera moved
+    // without the mouse following, so the ActionDock cannot display
+    // a highlight or instruction computed for a previous frame.
+    private float _lastHoverResolvedCameraLateral;
+    private float _lastHoverResolvedCameraDepth;
+    private float _lastHoverResolvedCameraZoom;
+    private bool _lastHoverResolvedCameraInitialised;
+
     // A4: founder's physical position and journey state moved to
     // CitizenJourneyPresenter. The view's selection state also moved
     // to MacroInteractionController above.
@@ -1085,6 +1095,67 @@ public partial class MacroStreetLiveView : Node2D
                 ? UiText.Get("ui.construction.placement_selected")
                 : _placement.PlacementBaseInstruction;
         QueueRedraw();
+        RememberHoverResolvedCamera();
+    }
+
+    /// <summary>
+    /// GitHub #31: when the camera moves, the placement rects the
+    /// hover was resolved against are no longer under the cursor, so
+    /// the highlight and the dock instruction describe a lot the
+    /// player is not actually looking at. Clear the hover and let the
+    /// next real mouse motion re-resolve it; the `SelectedPlacementLot`
+    /// is a logical <see cref="ConstructionLot"/> and survives the
+    /// camera move.
+    /// </summary>
+    private void ClearStalePlacementHover()
+    {
+        if (!_placement.PlacementActive) return;
+        if (!_placement.HoveredPlacementLot.HasValue) return;
+        _placement.SetHoveredLot(null);
+        _actionDock.InstructionText = _placement.SelectedPlacementLot.HasValue
+            ? UiText.Get("ui.construction.placement_selected")
+            : _placement.PlacementBaseInstruction;
+        QueueRedraw();
+    }
+
+    /// <summary>
+    /// Detects a camera projection change since the last time the
+    /// placement hover was resolved. Called from the camera mutation
+    /// sites and from the process loop so a vertical/zoom/transition
+    /// tick that did not go through the explicit mutation sites still
+    /// invalidates the hover.
+    /// </summary>
+    private void InvalidatePlacementHoverIfCameraChanged()
+    {
+        if (!_placement.PlacementActive)
+        {
+            _lastHoverResolvedCameraInitialised = false;
+            return;
+        }
+        if (!_lastHoverResolvedCameraInitialised)
+        {
+            // The first call after placement begins seeds the
+            // baseline; without this, every motion tick would clear
+            // the hover because the initial values are zero.
+            RememberHoverResolvedCamera();
+            return;
+        }
+        if (_camera.FreeCameraLateral == _lastHoverResolvedCameraLateral
+            && _camera.CameraDepthAnchor == _lastHoverResolvedCameraDepth
+            && _camera.ZoomLevel == _lastHoverResolvedCameraZoom)
+        {
+            return;
+        }
+        ClearStalePlacementHover();
+        RememberHoverResolvedCamera();
+    }
+
+    private void RememberHoverResolvedCamera()
+    {
+        _lastHoverResolvedCameraLateral = _camera.FreeCameraLateral;
+        _lastHoverResolvedCameraDepth = _camera.CameraDepthAnchor;
+        _lastHoverResolvedCameraZoom = _camera.ZoomLevel;
+        _lastHoverResolvedCameraInitialised = true;
     }
 
     private static string PlacementHoverText(FrontageCellState state) =>
@@ -1477,6 +1548,7 @@ public partial class MacroStreetLiveView : Node2D
         _camera.AdvanceDepthTransition(
             delta,
             DepthStepSize * VerticalPanTransitionMultiplier(_camera.VerticalPanHoldSeconds));
+        InvalidatePlacementHoverIfCameraChanged();
         bool citizenDepthAnimating = false;
         foreach (CitizenJourney journey in _journeys.Journeys.Values)
         {
@@ -1527,10 +1599,16 @@ public partial class MacroStreetLiveView : Node2D
 
     public override void _Input(InputEvent @event)
     {
+        // GitHub #31: placement must not block camera navigation.
+        // The gate is `CanUseCameraNavigationInput`, which deliberately
+        // drops the `PlacementActive` clause that used to live here —
+        // arrows are a world-camera binding even while the player is
+        // choosing a lot. The world-interaction gate still closes
+        // placement, so a left click during placement does not gather
+        // or open a BuildingInspector.
         if (!Visible
             || _pauseMenu.Visible
             || _modalHost?.IsOpen == true
-            || _placement.PlacementActive
             || _actionMenu.Visible
             || _cultivationActionMenu.Visible
             || @event is not InputEventKey { Pressed: true } key
@@ -1591,13 +1669,31 @@ public partial class MacroStreetLiveView : Node2D
         key.Keycode is Key.Left or Key.Right or Key.Up or Key.Down
         || key.PhysicalKeycode is Key.Left or Key.Right or Key.Up or Key.Down;
 
-    private bool CanUseWorldNavigationInput =>
-        Visible
-        && !_pauseMenu.Visible
-        && !_modalHost.IsOpen
-        && !_placement.PlacementActive
-        && !_actionMenu.Visible
-        && !_cultivationActionMenu.Visible;
+    private bool CanUseCameraNavigationInput =>
+        MacroInputPolicy.CanUseCameraNavigationInput(
+            viewVisible: Visible,
+            pauseMenuVisible: _pauseMenu.Visible,
+            modalHostOpen: _modalHost.IsOpen,
+            actionMenuVisible: _actionMenu.Visible,
+            cultivationActionMenuVisible: _cultivationActionMenu.Visible,
+            buildingEntryPushActive: _camera.PendingBuildingEntry is not null);
+
+    private bool CanUseWorldInteraction =>
+        MacroInputPolicy.CanUseWorldInteraction(
+            viewVisible: Visible,
+            pauseMenuVisible: _pauseMenu.Visible,
+            modalHostOpen: _modalHost.IsOpen,
+            actionMenuVisible: _actionMenu.Visible,
+            cultivationActionMenuVisible: _cultivationActionMenu.Visible,
+            buildingEntryPushActive: _camera.PendingBuildingEntry is not null,
+            placementActive: _placement.PlacementActive);
+
+    // Kept as a thin alias because the existing arrow-routing path
+    // names the world-navigation gate, not the world-interaction
+    // gate; the body is identical and the test surface still reads
+    // it by its old name. New code should call
+    // `CanUseCameraNavigationInput` directly.
+    private bool CanUseWorldNavigationInput => CanUseCameraNavigationInput;
 
     public override void _UnhandledInput(InputEvent @event)
     {
@@ -1694,6 +1790,7 @@ public partial class MacroStreetLiveView : Node2D
         if (Mathf.IsEqualApprox(newZoom, _camera.ZoomLevel)) return;
         ZoomTowardPivot(newZoom, new Vector2(CenterX, CameraZoomPivotY));
         NotifyWorldDialogueAnchorsChanged();
+        InvalidatePlacementHoverIfCameraChanged();
     }
 
     /// <summary>
@@ -2658,6 +2755,7 @@ public partial class MacroStreetLiveView : Node2D
     {
         EnsureFreeCameraForManualPan();
         StepFreeCameraStreet(direction);
+        InvalidatePlacementHoverIfCameraChanged();
     }
 
     private void BeginVerticalCameraPan(int direction)
@@ -2689,6 +2787,7 @@ public partial class MacroStreetLiveView : Node2D
         if (_camera.VerticalPanRepeatAccumulator < repeatSeconds) return;
         _camera.VerticalPanRepeatAccumulator -= repeatSeconds;
         PanCameraStreet(direction);
+        InvalidatePlacementHoverIfCameraChanged();
     }
 
     private void ResetVerticalCameraPanHold()
@@ -2811,6 +2910,7 @@ public partial class MacroStreetLiveView : Node2D
         _camera.FreeCameraLateral = next;
         NotifyWorldDialogueAnchorsChanged();
         QueueRedraw();
+        InvalidatePlacementHoverIfCameraChanged();
         return true;
     }
 

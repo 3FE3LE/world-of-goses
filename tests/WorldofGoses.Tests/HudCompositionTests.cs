@@ -413,14 +413,21 @@ public sealed class HudCompositionTests
     {
         string source = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroStreetLiveView.cs"));
+        string policySource = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Prototypes", "MacroInputPolicy.cs"));
 
         Assert.Contains("public override void _Input(InputEvent @event)", source, StringComparison.Ordinal);
         Assert.Contains("IsWorldNavigationArrow(key)", source, StringComparison.Ordinal);
         Assert.Contains("GetViewport().SetInputAsHandled();", source, StringComparison.Ordinal);
         Assert.Contains("key.Keycode is Key.Left or Key.Right or Key.Up or Key.Down", source, StringComparison.Ordinal);
-        Assert.Contains("|| _pauseMenu.Visible", source, StringComparison.Ordinal);
+        // The pause-menu gate moved out of the view into
+        // `MacroInputPolicy` after GitHub #31 split the camera and
+        // world-interaction gates. The view's `_Input` still routes
+        // through the helper, so the literal clause lives next to the
+        // other gates there.
+        Assert.Contains("pauseMenuVisible: _pauseMenu.Visible", source, StringComparison.Ordinal);
+        Assert.Contains("!pauseMenuVisible", policySource, StringComparison.Ordinal);
         Assert.Contains("MotionTick(allowCameraInput: CanUseWorldNavigationInput);", source, StringComparison.Ordinal);
-        Assert.Contains("&& !_pauseMenu.Visible", source, StringComparison.Ordinal);
         Assert.Contains("InputEventJoypadButton", File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "CityPrototype.cs")), StringComparison.Ordinal);
         Assert.Contains("case \"macro-arrow-focus-isolation\":", File.ReadAllText(Path.Combine(

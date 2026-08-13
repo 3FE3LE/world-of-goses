@@ -17,6 +17,53 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## La cámara se mueve durante placement sin romper el modo
+
+**2026-08-13** · presentación · input · schema v35 (sin cambio) · 1664 pruebas superadas
+
+**El jugador puede panear con la cámara mientras escoge lote.** Entrar al
+modo de placement congelaba el desplazamiento manual de la cámara
+porque el predicado `CanUseWorldNavigationInput` mezclaba dos
+preguntas distintas: ¿puedo interactuar con el mundo? y ¿puedo mover
+la cámara? Durante placement la respuesta correcta a la primera es
+NO y a la segunda SÍ, y el código respondía NO a las dos. El cierre
+es `MacroInputPolicy`, una primitiva pura con dos métodos
+(`CanUseCameraNavigationInput` y `CanUseWorldInteraction`) que
+separan las preguntas. Las cuatro rutas de cámara —arrow keys en
+`_Input`, W/S/F en `_UnhandledInput`, A/D + repeat vertical en
+`MotionTick(allowCameraInput: CanUseWorldNavigationInput)`, y el
+toggle de follow—leen ahora del gate de cámara. La pausa, el modal y
+el building-entry push siguen bloqueando ambos.
+
+**El hover stale se invalida cuando la cámara se mueve sin que el
+mouse la acompañe.** Si el jugador deja el puntero quieto sobre un
+lote y luego panea con teclado, la celda del strip que el highlight
+describía ya no está bajo el cursor: la retícula de placement se
+proyecta contra la cámara y se mueve con ella. `ClearStalePlacementHover`
+limpia el hover cuando los tres valores (lateral, profundidad, zoom)
+cambian desde el último resolve, los cuatro sitios de mutación de
+cámara lo invocan, y la `SelectedPlacementLot` lógica sobrevive — es
+un `ConstructionLot`, no una proyección.
+
+**Sin refactor de cámaras ni regresión de #14.** El gate nuevo
+respeta el contrato de `_Input`: las arrows se reclaman y se actúan en
+el mismo método antes de `SetInputAsHandled`, así que la primera
+tecla sigue surtiendo efecto (W/S siguen llegando por
+`_UnhandledInput` con el mismo intent). El `SelectedPlacementLot`
+lógico sobrevive a pan y zoom, y un click sobre otro lote lo cambia
+sin reiniciar el modo.
+
+**Sin schema bump.** Tests nuevos: `MacroInputPolicyTests` (17)
+cubre el contrato puro del helper, las cláusulas del guard de
+`_Input`, el gate que recibe `MotionTick`, y la presencia de los
+cinco call sites de invalidación (4 sitios de cámara + 1 en la
+transición de profundidad). El test estructural existente
+`HudCompositionTests.MacroArrowKeys_MoveWorldWithoutMovingHudFocus`
+se actualizó para reflejar que la cláusula `pause` vive ahora en
+`MacroInputPolicy`. Build 0/0, tests 1664/1664.
+
+---
+
 ## La retícula de placement y los recursos se alinean a la misma celda
 
 **2026-08-13** · presentación · schema v35 (sin cambio) · 1647 pruebas superadas

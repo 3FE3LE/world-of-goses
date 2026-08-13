@@ -443,6 +443,25 @@ superados en 2026-07-30; ver §8.)_
 
 ### 2026-08-13
 
+- **#31 — La cámara se mueve durante placement sin romper el modo.**
+  Antes, el predicado compartido `CanUseWorldNavigationInput`
+  cerraba el acceso a la cámara al entrar en placement, así que
+  inspeccionar una ciudad que excede el encuadre obligaba a
+  cancelar placement, mover la cámara y volver a abrir el dock
+  de construcción. La nueva primitiva pura `MacroInputPolicy`
+  separa `CanUseCameraNavigationInput` (placement no bloquea) de
+  `CanUseWorldInteraction` (placement sí bloquea) y mantiene
+  intactos los bloqueos de pausa, modal y building-entry push.
+  Las cuatro rutas de cámara —arrow keys, W/S/F, A/D + repeat
+  vertical, toggle de follow—leen del gate de cámara. El hover
+  stale se invalida cuando la cámara se mueve sin que el puntero
+  la acompañe (`ClearStalePlacementHover`); el `SelectedPlacementLot`
+  lógico sobrevive. Sin schema bump. Tests nuevos:
+  `MacroInputPolicyTests` (17). El test estructural existente
+  `HudCompositionTests.MacroArrowKeys_MoveWorldWithoutMovingHudFocus`
+  se actualizó para reflejar que la cláusula `pause` vive en
+  `MacroInputPolicy`. Build 0/0, tests 1664/1664.
+
 - **#30 — La retícula de placement y los recursos del suelo se alinean a la misma celda.**
   La capa de availability de placement pintaba cada `ConstructionRowId`
   con tres subceldas internas porque heredó `depthDivisions: 3` del
