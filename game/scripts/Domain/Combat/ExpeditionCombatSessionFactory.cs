@@ -39,6 +39,26 @@ public static class ExpeditionCombatSessionFactory
             ProvisionalElementalResonance);
     }
 
+    /// <summary>
+    /// Whether this encounter is the guided opening and therefore carries the
+    /// tutorial stat floor. A property of the route, not of the party: the
+    /// Spirit Trail is the first thing a founder ever fights, and it protects
+    /// them whether they arrive armed or not.
+    /// </summary>
+    internal static bool IsOpeningTutorialEncounter(Expedition expedition) =>
+        expedition.ResourceOpportunityKind == ResourceOpportunityKind.SpiritTrailSearch
+        && expedition.CombatRulesVersion >= CurrentRulesVersion;
+
+    /// <summary>
+    /// Whether a citizen has to borrow the deterministic non-persistent
+    /// profile because they own no weapon. Compatibility only: a founder
+    /// created through onboarding materialises a real one, and a legacy save
+    /// that was genuinely unarmed stays unarmed rather than growing a weapon
+    /// its player never chose.
+    /// </summary>
+    internal static bool NeedsLegacyWeaponFallback(Citizen citizen) =>
+        citizen.EquipmentLoadout.Weapon is null;
+
     public static CombatSession Create(
         Expedition expedition,
         IReadOnlyDictionary<CitizenId, Citizen> citizens)
@@ -60,12 +80,19 @@ public static class ExpeditionCombatSessionFactory
             }
             CombatantState member = service.PrepareSessionMember(
                 citizen,
-                openingBaseline: citizen.EquipmentLoadout.Weapon is null
+                // Two independent questions that used to share one answer
+                // (#26). "Which weapon profile does this combatant fight
+                // with" is about the citizen; "does the opening protect the
+                // player" is about the expedition. Keying both on
+                // `Weapon is null` meant that giving the founder a real
+                // weapon would silently take the tutorial floor away with it
+                // — the fallback and the protection were the same branch, so
+                // removing the fallback removed the protection.
+                openingBaseline: NeedsLegacyWeaponFallback(citizen)
                     ? OpeningBaselineFor(expedition.Id, expedition.StartTick)
                     : null,
                 applyOpeningTutorialBaseline:
-                    citizen.EquipmentLoadout.Weapon is null
-                    && expedition.CombatRulesVersion >= CurrentRulesVersion,
+                    IsOpeningTutorialEncounter(expedition),
                 positionX: balance.PartyStartingX + index * balance.PartyStartingSpacing);
             party.Add(member);
             plans[member.Id] = new CombatantPlan(

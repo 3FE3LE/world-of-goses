@@ -3061,3 +3061,54 @@ msgstr "Silent Forest"
 
 msgid "ui.expedition_live.founder_short"
 msgstr "Founder"
+
+msgid "ui.astral.weapon.progress"
+msgstr "The form is ready. One thing is still missing."
+
+msgid "ui.astral.weapon.title"
+msgstr "What takes shape in your hands"
+
+msgid "ui.astral.weapon.body"
+msgstr "The reconstruction leaves a weight your body already knows how to hold. Two shapes answer to it. Choose the one that solidifies."
+
+msgid "ui.astral.weapon.confirm"
+msgstr "Let it solidify"
+
+msgid "ui.astral.weapon.choose_one"
+msgstr "Choose one of the two shapes."
+
+msgid "ui.weapon_family.mace"
+msgstr "Mace"
+
+msgid "ui.weapon_family.orb"
+msgstr "Orb"
+
+msgid "ui.weapon_family.sword"
+msgstr "Sword"
+
+msgid "ui.weapon_family.daggers"
+msgstr "Daggers"
+
+msgid "ui.weapon_family.bow"
+msgstr "Bow"
+
+msgid "ui.weapon_family.darts"
+msgstr "Darts"
+
+msgid "ui.weapon_family.whip"
+msgstr "Whip"
+
+msgid "ui.weapon_family.gauntlets"
+msgstr "Gauntlets"
+
+msgid "ui.weapon_family.hammer"
+msgstr "Hammer"
+
+msgid "ui.weapon_family.axe"
+msgstr "Axe"
+
+msgid "ui.weapon_family.spear"
+msgstr "Spear"
+
+msgid "ui.weapon_family.staff"
+msgstr "Staff"

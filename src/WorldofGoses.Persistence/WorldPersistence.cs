@@ -229,6 +229,7 @@ public static class WorldPersistence
                 StaminaMax = citizen.MaxStamina,
                 WellFedRemainingTicks = citizen.WellFedRemainingTicks,
                 EquipmentLoadout = CaptureEquipmentLoadout(citizen.EquipmentLoadout),
+                PersonalEquipment = CapturePersonalEquipment(citizen.PersonalEquipment),
                 CurrentHealthAndCondition = new CurrentHealthAndConditionSave
                 {
                     CurrentHealth = citizen.CurrentHealthAndCondition.CurrentHealth,
@@ -580,6 +581,67 @@ public static class WorldPersistence
         Domain = cube.Domain,
         Reach = cube.Reach,
     };
+
+    internal static PersonalEquipmentSave CapturePersonalEquipment(PersonalEquipment equipment)
+    {
+        var save = new PersonalEquipmentSave();
+        foreach (WeaponItemInstance weapon in equipment.Items.Values)
+        {
+            save.Weapons.Add(new WeaponItemInstanceSave
+            {
+                Id = weapon.Id.PersistenceLabel,
+                Family = weapon.Family.ToString(),
+                Channels = WeaponChannelProfileSave.From(weapon.Channels),
+                Origin = (int)weapon.Origin,
+            });
+        }
+        save.EquippedWeaponId = equipment.EquippedWeaponId?.PersistenceLabel;
+        return save;
+    }
+
+    /// <summary>
+    /// Restores <see cref="PersonalEquipment"/> onto a freshly
+    /// constructed citizen. The registry may be empty (older saves
+    /// that did not own any item ids, or migrated legacy saves that
+    /// came over without an equipped weapon).
+    /// </summary>
+    internal static void RestorePersonalEquipment(Citizen citizen, PersonalEquipmentSave? save)
+    {
+        if (citizen is null) throw new ArgumentNullException(nameof(citizen));
+        citizen.PersonalEquipment.Items.Clear();
+        citizen.PersonalEquipment.EquippedWeaponId = null;
+        if (save is null) return;
+        foreach (WeaponItemInstanceSave weapon in save.Weapons)
+        {
+            if (!WeaponFamilySaveIds.TryParse(
+                weapon.Family, out Domain.WeaponFamily family))
+            {
+                continue;
+            }
+            var item = new Domain.WeaponItemInstance(
+                Domain.ItemInstanceId.From(weapon.Id),
+                family,
+                RestoreWeaponChannelProfile(weapon.Channels),
+                Enum.IsDefined(typeof(Domain.WeaponOrigin), weapon.Origin)
+                    ? (Domain.WeaponOrigin)weapon.Origin
+                    : Domain.WeaponOrigin.Loot);
+            citizen.PersonalEquipment.Items[item.Id] = item;
+            if (!string.IsNullOrEmpty(save.EquippedWeaponId)
+                && save.EquippedWeaponId == weapon.Id)
+            {
+                citizen.PersonalEquipment.EquippedWeaponId = item.Id;
+            }
+        }
+    }
+
+    /// <summary>Stub helper for symmetry — actual channel restore is
+    /// handled through the existing <c>WeaponChannelProfileSave</c>
+    /// loader. Kept so the new code is self-contained.</summary>
+    private static Domain.WeaponChannelProfile RestoreWeaponChannelProfile(
+        WeaponChannelProfileSave save)
+    {
+        return WeaponChannelProfileSave.ToChannel(save);
+    }
 
     internal static EquipmentLoadoutSave CaptureEquipmentLoadout(EquipmentLoadout loadout) => new()
     {
@@ -2108,6 +2170,7 @@ public static class WorldPersistence
                 31 => MigrateV31ToV32(save),
                 32 => MigrateV32ToV33(save),
                 33 => MigrateV33ToV34(save),
+                34 => MigrateV34ToV35(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -3141,6 +3204,49 @@ public static class WorldPersistence
         }
 
         save.Version = 34;
+        return save;
+    }
+
+    /// <summary>
+    /// v34 → v35 migration introduced in issue #26. Founder weapons
+    /// gain an item-backed identity so the inventory/equipment seam
+    /// has a real anchor. The pre-existing
+    /// <see cref="EquipmentLoadoutSave.Weapon"/> migrates into a
+    /// single <see cref="WeaponItemInstanceSave"/> with a fresh
+    /// <see cref="Domain.ItemInstanceId"/>. Founders without a real
+    /// weapon keep <c>null</c> equipment — the legacy
+    /// <c>OpeningBaselineFor</c> path is reserved for them — because
+    /// no save should invent a weapon the player never chose.
+    /// </summary>
+    public static WorldSave MigrateV34ToV35(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 34)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV34ToV35 expects version 34 but found {save.Version}.");
+        }
+        foreach (CitizenSave citizen in save.Citizens)
+        {
+            PersonalEquipmentSave equipment = citizen.PersonalEquipment ?? new PersonalEquipmentSave();
+            WeaponChannelProfileSave? weapon = citizen.EquipmentLoadout?.Weapon;
+            if (weapon is null)
+            {
+                citizen.PersonalEquipment = equipment;
+                continue;
+            }
+            var item = new WeaponItemInstanceSave
+            {
+                Id = Domain.ItemInstanceId.NewId().PersistenceLabel,
+                Family = weapon.Family,
+                Channels = weapon,
+                Origin = (int)Domain.WeaponOrigin.FounderMaterialization,
+            };
+            equipment.Weapons.Add(item);
+            equipment.EquippedWeaponId = item.Id;
+            citizen.PersonalEquipment = equipment;
+        }
+        save.Version = 35;
         return save;
     }
 

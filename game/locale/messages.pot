@@ -757,10 +757,10 @@ msgstr ""
 msgid "firstnight.strip.sleep"
 msgstr ""
 
-msgid "Food"
+msgid "food"
 msgstr ""
 
-msgid "food"
+msgid "Food"
 msgstr ""
 
 msgid "Forest"
@@ -1621,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
 msgid "Strength"
@@ -1787,6 +1787,21 @@ msgid "ui.astral.result_element"
 msgstr ""
 
 msgid "ui.astral.result_traits"
+msgstr ""
+
+msgid "ui.astral.weapon.body"
+msgstr ""
+
+msgid "ui.astral.weapon.choose_one"
+msgstr ""
+
+msgid "ui.astral.weapon.confirm"
+msgstr ""
+
+msgid "ui.astral.weapon.progress"
+msgstr ""
+
+msgid "ui.astral.weapon.title"
 msgstr ""
 
 msgid "ui.building_detail.assignment_rejected"
@@ -3023,6 +3038,42 @@ msgid "ui.town_hall.prospect_detail"
 msgstr ""
 
 msgid "ui.tree.regrows_at"
+msgstr ""
+
+msgid "ui.weapon_family.axe"
+msgstr ""
+
+msgid "ui.weapon_family.bow"
+msgstr ""
+
+msgid "ui.weapon_family.daggers"
+msgstr ""
+
+msgid "ui.weapon_family.darts"
+msgstr ""
+
+msgid "ui.weapon_family.gauntlets"
+msgstr ""
+
+msgid "ui.weapon_family.hammer"
+msgstr ""
+
+msgid "ui.weapon_family.mace"
+msgstr ""
+
+msgid "ui.weapon_family.orb"
+msgstr ""
+
+msgid "ui.weapon_family.spear"
+msgstr ""
+
+msgid "ui.weapon_family.staff"
+msgstr ""
+
+msgid "ui.weapon_family.sword"
+msgstr ""
+
+msgid "ui.weapon_family.whip"
 msgstr ""
 
 msgid "ui.world_status.expedition"

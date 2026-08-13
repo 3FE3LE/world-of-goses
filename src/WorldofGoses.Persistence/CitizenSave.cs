@@ -46,6 +46,14 @@ public sealed class CitizenSave
     public CurrentHealthAndConditionSave? CurrentHealthAndCondition { get; set; }
     public List<RoleSave> Roles { get; set; } = new();
 
+    /// <summary>Additive v35: per-citizen personal-equipment state.
+    /// Pre-v35 saves deserialize as <c>null</c>; the loader back-fills
+    /// an empty registry and migrates the existing
+    /// <see cref="EquipmentLoadoutSave.Weapon"/> into a single
+    /// <see cref="WeaponItemInstanceSave"/> so the founder keeps the
+    /// same weapon profile, just under an item id.</summary>
+    public PersonalEquipmentSave? PersonalEquipment { get; set; }
+
     /// <summary>
     /// Current stamina for this citizen. Old saves (no
     /// <see cref="StaminaMax"/>) deserialize as 0; the restore path

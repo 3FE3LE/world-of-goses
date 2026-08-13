@@ -208,7 +208,7 @@ touched — regardless of which domain owns the feature.
 - **Required skills:** `presentation-experience`, `city-simulation`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`
 - **Canonical docs:** `docs/ARCHITECTURE.md` §10 "Spatial grammar" (BuildingDetailView retirement), `docs/UI_PATTERNS.md` §5
-- **Code:** `game/scripts/Application/BuildingDetailSnapshot.cs`, `game/scripts/BuildingDetailView.cs` (fullscreen, to be retired in #20), `game/scripts/Ui/ContextInspector.cs`, `AssignmentPanel.cs`, `ProductionPanel.cs`, `ResourceInventoryPanel.cs`
+- **Code:** `game/scripts/Application/BuildingDetailSnapshot.cs`, `game/scripts/BuildingInspector.cs` (the contextual inspector that replaced the fullscreen `BuildingDetailView` in #20), `game/scripts/Ui/ContextInspector.cs`, `AssignmentPanel.cs`, `ProductionPanel.cs`, `ResourceInventoryPanel.cs`
 - **Hard rule:** the inspector is a contextual overlay over the macro; it must not replace the macro with a fullscreen top-level scene. Reuse the canonical `BuildingDetailSnapshot`; do not fork it into a second read model.
 
 ---

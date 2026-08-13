@@ -17,6 +17,38 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## El arma del Founder deja de ser un fantasma del combate
+
+**2026-08-12** · onboarding · schema v34 → v35 · 1613 pruebas superadas
+
+**El jugador elige con qué se materializa.** Tras la Founder Card, un beat nuevo
+ofrece exactamente las dos familias que `NaturalWeaponFamilies` da para su
+expresión física, y al confirmar nace un arma real —un item con identidad
+propia— equipada a la vez que el Founder existe. Volver atrás a releer la carta
+no borra el nombre, el género ni la elección. Cierra el fallback que
+`OpeningBaselineFor` inventaba al azar dentro del combate, que llevaba escrita
+su fecha de caducidad desde que se escribió.
+
+**Y sigue protegido en su primera salida.** Ése era el refactor delicado:
+`applyOpeningTutorialBaseline` estaba enganchado a `EquipmentLoadout.Weapon is
+null`, así que darle un arma real le habría quitado el suelo de stats del Spirit
+Trail junto con el fallback que sustituye — el mismo `if` respondía a dos
+preguntas distintas. Ahora `IsOpeningTutorialEncounter` mira la ruta y
+`NeedsLegacyWeaponFallback` mira al ciudadano: la protección es del encuentro
+guiado, el arma es de quien la lleva.
+
+**Una sola autoridad sobre lo equipado.** `PersonalEquipment` guarda los items y
+el id equipado; `EquipmentLoadout` —lo que leen Statistics y Combat— se
+republica desde ahí en vez de escribirse al lado, de modo que no pueden
+discrepar. `CitizenEquipmentService` es el único mutador.
+
+**v35.** El arma de cada save existente se convierte en un `WeaponItemInstance`
+conservando familia y canales; un save legado genuinamente desarmado sigue
+desarmado y usa la ruta de compatibilidad, porque inventarle un arma sería
+tomar retroactivamente una decisión que el jugador nunca tomó.
+
+---
+
 ## Vestido del bioma y parallax por capas
 
 **2026-08-12** · presentación · sin cambio de schema

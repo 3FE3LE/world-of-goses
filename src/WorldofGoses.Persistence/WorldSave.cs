@@ -60,6 +60,7 @@ public sealed class WorldSave
     ///   <item><description>v32 — renames the third cube face from <c>Mastery</c> to <c>Domain</c> on disk to free the name for weapon-family mastery tiers. The legacy field is preserved one schema bump as a nullable bridge so a v31 save loads without losing the founder's cube.</description></item>
     ///   <item><description>v33 — active observable expedition combat persists its logical step and replayable AUTO/manual command history.</description></item>
     ///   <item><description>v34 — expeditions persist optional supply/reward resources and objective arrival; the active Spirit Trail migrates to no supply, Discovery outcome and a four-hour route without persisting placeholder equipment.</description></item>
+    ///   <item><description>v35 — founder's equipped weapon gains an item-backed identity: every existing EquipmentLoadout.Weapon migrates to a WeaponItemInstance registered under an ItemInstanceId; founders without a weapon stay weaponless (they reach the opening baseline through the legacy compatibility path). Legacy saves therefore never lose a weapon, but neither can they retroactively grow one.</description></item>
     /// </list>
     /// <para>
     /// The v30 note above described the combat expression as derived from the
@@ -69,7 +70,7 @@ public sealed class WorldSave
     /// date loads with a different expression than it used to.
     /// </para>
     /// </summary>
-    public const int CurrentVersion = 34;
+    public const int CurrentVersion = 35;
 
     public int Version { get; set; } = CurrentVersion;
 

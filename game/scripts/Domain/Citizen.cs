@@ -31,6 +31,14 @@ public sealed class Citizen
     public FounderCubeProfile CubeProfile => Profile.CubeProfile;
     public CombatNature CombatNature => Profile.CombatNature;
     public EquipmentLoadout EquipmentLoadout { get; private set; }
+
+    /// <summary>The citizen's <see cref="PersonalEquipment"/>
+    /// instance registry. Future slots (helmet, chest…) extend the
+    /// same seam without touching the existing
+    /// <see cref="EquipmentLoadout"/>. Populated eagerly because
+    /// armour work already needs the registry to be reachable for
+    /// every citizen, even when it is empty.</summary>
+    public PersonalEquipment PersonalEquipment { get; } = new();
     public CurrentHealthAndCondition CurrentHealthAndCondition { get; private set; }
     public CitizenOrigin Origin { get; }
     public CitizenCommitment Commitment { get; private set; } = CitizenCommitment.None;

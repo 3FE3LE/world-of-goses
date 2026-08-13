@@ -3211,3 +3211,54 @@ msgstr "Bosque Silente"
 
 msgid "ui.expedition_live.founder_short"
 msgstr "Founder"
+
+msgid "ui.astral.weapon.progress"
+msgstr "La forma está lista. Todavía falta una cosa."
+
+msgid "ui.astral.weapon.title"
+msgstr "Lo que toma forma en tus manos"
+
+msgid "ui.astral.weapon.body"
+msgstr "La reconstrucción deja un peso que tu cuerpo ya sabe sostener. Dos formas le responden. Elige la que se solidifica."
+
+msgid "ui.astral.weapon.confirm"
+msgstr "Que se solidifique"
+
+msgid "ui.astral.weapon.choose_one"
+msgstr "Elige una de las dos formas."
+
+msgid "ui.weapon_family.mace"
+msgstr "Maza"
+
+msgid "ui.weapon_family.orb"
+msgstr "Orbe"
+
+msgid "ui.weapon_family.sword"
+msgstr "Espada"
+
+msgid "ui.weapon_family.daggers"
+msgstr "Dagas"
+
+msgid "ui.weapon_family.bow"
+msgstr "Arco"
+
+msgid "ui.weapon_family.darts"
+msgstr "Dardos"
+
+msgid "ui.weapon_family.whip"
+msgstr "Látigo"
+
+msgid "ui.weapon_family.gauntlets"
+msgstr "Guanteletes"
+
+msgid "ui.weapon_family.hammer"
+msgstr "Martillo"
+
+msgid "ui.weapon_family.axe"
+msgstr "Hacha"
+
+msgid "ui.weapon_family.spear"
+msgstr "Lanza"
+
+msgid "ui.weapon_family.staff"
+msgstr "Bastón"

@@ -23,6 +23,7 @@ public partial class AstralOnboardingView : Control
         Question,
         Identity,
         FounderCard,
+        WeaponChoice,
         FalseQuestion,
     }
 
@@ -53,6 +54,13 @@ public partial class AstralOnboardingView : Control
     private FounderOnboardingResult? _result;
     private string _founderName = string.Empty;
     private GenderId? _gender;
+    /// <summary>
+    /// The family the player picked on the weapon beat. Held here, beside the
+    /// name and the gender, because it is the same kind of thing: a choice
+    /// that must survive stepping back and forward and is only spent when the
+    /// founder is finally created.
+    /// </summary>
+    private WeaponFamily? _weaponChoice;
     private LineEdit? _nameEdit;
     private Control? _spriteFrame;
     private LocaleManager? _localeManager;
@@ -197,6 +205,9 @@ public partial class AstralOnboardingView : Control
             case Stage.FounderCard:
                 RenderIdentity();
                 return;
+            case Stage.WeaponChoice:
+                RenderFounderCard();
+                return;
             default:
                 return;
         }
@@ -230,6 +241,9 @@ public partial class AstralOnboardingView : Control
             case Stage.FounderCard:
                 RenderFounderCard();
                 break;
+            case Stage.WeaponChoice:
+                RenderWeaponChoice();
+                break;
             case Stage.FalseQuestion:
                 break;
             default:
@@ -255,6 +269,9 @@ public partial class AstralOnboardingView : Control
                 RenderFounderCard();
                 return;
             case Stage.FounderCard:
+                RenderWeaponChoice();
+                return;
+            case Stage.WeaponChoice:
                 OnConfirmIdentity();
                 return;
             case Stage.FalseQuestion:
@@ -394,6 +411,92 @@ public partial class AstralOnboardingView : Control
         _next.GrabFocus();
     }
 
+    /// <summary>
+    /// The materialisation beat: the two weapon families the founder's
+    /// physical expression reaches, offered once the body is known and before
+    /// the founder exists persistently.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The pair is read from <see cref="NaturalWeaponFamilies"/> on every
+    /// render rather than cached, and the expression it derives from is
+    /// already settled by the twelve questions — so stepping back to the
+    /// founder card and forward again offers the same two, never a re-rolled
+    /// pair. The previous selection is restored for the same reason: a player
+    /// who steps back to re-read the card has not withdrawn their choice.
+    /// </para>
+    /// <para>
+    /// The view only carries the choice. Whether the family is legal for the
+    /// expression is re-decided in the domain, because a UI that offers two
+    /// options is not a guarantee that only two can arrive.
+    /// </para>
+    /// </remarks>
+    private void RenderWeaponChoice()
+    {
+        if (_result is null) return;
+        _currentStage = Stage.WeaponChoice;
+        ClearStage();
+        BuildFragments();
+        SetText(_progress, TrKey("ui.astral.weapon.progress"));
+        SetText(_title, TrKey("ui.astral.weapon.title"));
+        SetText(_narrative, TrKey("ui.astral.weapon.body"));
+        SetText(_consequence, string.Empty);
+        SetText(_error, string.Empty);
+        _footer.Show();
+        _back.Disabled = false;
+        _next.Text = TrKey("ui.astral.weapon.confirm");
+
+        (WeaponFamily first, WeaponFamily second) = NaturalWeaponFamilies.For(
+            CubeExpression.Derive(_result.CubeProfile));
+        _weaponButtons.Clear();
+        var group = new ButtonGroup();
+        AddWeaponChoice(first, group);
+        AddWeaponChoice(second, group);
+        ValidateWeaponChoice();
+    }
+
+    private void AddWeaponChoice(WeaponFamily family, ButtonGroup group)
+    {
+        var button = new OnboardingChoiceButton
+        {
+            Text = TrKey(WeaponFamilyTextKey(family)),
+            ButtonGroup = group,
+            Selected = _weaponChoice == family,
+        };
+        button.Pressed += () => OnWeaponChosen(family);
+        _stageSlot.AddChild(button);
+        _weaponButtons[family] = button;
+    }
+
+    private readonly Dictionary<WeaponFamily, OnboardingChoiceButton> _weaponButtons = new();
+
+    /// <summary>
+    /// Localisation key for a weapon family's player-facing name. Derived
+    /// rather than switched so a new family cannot be added to the domain and
+    /// silently arrive here with no name at all — the catalogue validator sees
+    /// the missing key instead.
+    /// </summary>
+    internal static string WeaponFamilyTextKey(WeaponFamily family) =>
+        "ui.weapon_family." + family.ToString().ToLowerInvariant();
+
+    private void OnWeaponChosen(WeaponFamily family)
+    {
+        _weaponChoice = family;
+        foreach ((WeaponFamily candidate, OnboardingChoiceButton button) in _weaponButtons)
+        {
+            button.Selected = candidate == family;
+        }
+        ValidateWeaponChoice();
+    }
+
+    private void ValidateWeaponChoice()
+    {
+        _next.Disabled = _weaponChoice is null;
+        SetReservedText(
+            _error,
+            _next.Disabled ? TrKey("ui.astral.weapon.choose_one") : string.Empty);
+    }
+
     private void ReturnToLastQuestion()
     {
         _step = FounderNarrativeCatalog.Questions.Count - 1;
@@ -415,7 +518,13 @@ public partial class AstralOnboardingView : Control
 
     private void OnConfirmIdentity()
     {
-        if (_result is null || !_gender.HasValue || !IsFounderNameValid(_founderName)) return;
+        if (_result is null
+            || !_gender.HasValue
+            || _weaponChoice is null
+            || !IsFounderNameValid(_founderName))
+        {
+            return;
+        }
         FounderOnboardingResult final = _result;
         CitizenProfile profile = CitizenProfile.CreateFounder(final, _gender.Value);
         // Treat a repeated UI activation as idempotent. The first activation
@@ -430,7 +539,12 @@ public partial class AstralOnboardingView : Control
         }
         _next.Disabled = true;
         HeroCreationResult creation = _controller.TryCompleteOnboarding(
-            new HeroCreationRequest(_founderName.Trim(), profile, _gender.Value, final));
+            new HeroCreationRequest(
+                _founderName.Trim(),
+                profile,
+                _gender.Value,
+                final,
+                _weaponChoice.Value));
         if (!creation.IsSuccess)
         {
             SetText(_error, UiText.Format("ui.astral.creation_failed", creation.Outcome));
@@ -576,6 +690,7 @@ public partial class AstralOnboardingView : Control
     {
         foreach (Node child in _stageSlot.GetChildren()) child.QueueFree();
         _choiceButtons.Clear();
+        _weaponButtons.Clear();
         _nameEdit = null;
         _spriteFrame = null;
     }

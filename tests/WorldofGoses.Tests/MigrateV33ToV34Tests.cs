@@ -47,8 +47,12 @@ public sealed class MigrateV33ToV34Tests
             };
 
         WorldSave migrated = WorldPersistence.MigrateV33ToV34(v33);
-
+        // #26: chain the new v34 -> v35 migration so the save passes
+        // Validate under the current schema version.
         Assert.Equal(34, migrated.Version);
+        migrated = WorldPersistence.MigrateV34ToV35(migrated);
+
+        Assert.Equal(35, migrated.Version);
         Assert.Null(expedition.SupplyResource);
         Assert.Equal(0, expedition.SupplyAmount);
         Assert.Null(expedition.ReservationId);

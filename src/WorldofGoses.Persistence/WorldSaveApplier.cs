@@ -259,6 +259,11 @@ internal static class WorldSaveApplier
                 equipmentLoadout: restoredLoadout,
                 currentHealthAndCondition: restoredHealth,
                 weaponCompetencies: restoredWeaponCompetencies);
+            // #26: the item registry and the equipped id are the durable
+            // facts; the loadout above is the projection rebuilt from them.
+            // Restoring the registry after construction keeps the citizen's
+            // constructor free of an equipment concept it does not own.
+            WorldPersistence.RestorePersonalEquipment(citizen, cs.PersonalEquipment);
             CitizenCommitment commitment = RestoreCitizenCommitment(save, cs);
             CitizenVitalStatus vitalStatus = CitizenVitalStatusSaveIds.TryParse(
                 cs.VitalStatus,

@@ -907,11 +907,57 @@ public sealed class CityWorld
             origin: CitizenOrigin.AstralFounder);
         hero.GrantRole(RoleId.Hero, _tick);
         RegisterCitizen(hero);
+        // #26: when the request carries the founder's chosen weapon
+        // family, materialise a real WeaponItemInstance and equip it
+        // before the world accepts the founder. The application
+        // already validates the family belongs to the PhysicalExpression;
+        // the domain re-validates and silently skips a mismatched
+        // request so a buggy UI can never smuggle a third family in.
+        if (request.MaterializedWeaponFamily is { } chosenFamily)
+        {
+            MaterializeFounderWeapon(hero.Id, chosenFamily);
+        }
         // The authored first night begins where the manifestation ends, with no
         // extra scene and no clock change: a fresh world is already at Day 1
         // 00:00, which is night.
         _firstNight = new FirstNightState(startedAtTick: _tick);
         return HeroCreationResult.Success(hero.Id, founderProfile.FounderOnboardingResult);
+    }
+
+    /// <summary>
+    /// Materialises and equips the founder's starter weapon, or returns
+    /// <c>null</c> when the request names a family the founder's physical
+    /// expression does not reach.
+    /// </summary>
+    /// <remarks>
+    /// The domain re-validates rather than trusting the caller: the onboarding
+    /// view offers exactly two families, but "the UI only offers two" is not a
+    /// rule, it is a hope. A third family arriving here is refused whether it
+    /// came from a bug, a replayed request or a hand-edited save.
+    /// </remarks>
+    public ItemInstanceId? MaterializeFounderWeapon(CitizenId founderId, WeaponFamily weaponFamily)
+    {
+        if (Hero is null || Hero.Id != founderId) return null;
+        if (!NaturalWeaponFamilies.Contains(
+                Hero.CombatNature.PhysicalExpression,
+                weaponFamily))
+        {
+            return null;
+        }
+        return _equipment.MaterializeStarterWeapon(Hero, weaponFamily).Id;
+    }
+
+    private readonly CitizenEquipmentService _equipment = new();
+
+    /// <summary>Returns the founder's currently equipped weapon id,
+    /// or <c>null</c> if the founder exists and is unequipped.</summary>
+    public ItemInstanceId? FounderEquippedWeaponId()
+    {
+        if (Hero is null)
+        {
+            return null;
+        }
+        return Hero.PersonalEquipment.EquippedWeaponId;
     }
 
     /// <summary>
