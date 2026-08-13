@@ -87,6 +87,14 @@ public partial class ExpeditionStage : Control
         double? healthRatio,
         int worldTick)
     {
+        // Travel.PositionX is the authoritative 1D world offset for
+        // the expedition. The infinite-path recycler (#22) drives
+        // off this value; outbound advances it forward, the
+        // return leg pulls it back. The stage never invents a
+        // parallel offset of its own.
+        _worldOffsetUnits = (long)System.Math.Round(travel.PositionX);
+        _chunkPool ??= new ExpeditionPathChunkPool(seed: worldTick);
+        _chunkPool.SetWorldOffset(_worldOffsetUnits);
         double maximumHealth = 100;
         double currentHealth = maximumHealth * Math.Clamp(healthRatio ?? 1, 0, 1);
         var founder = new CombatParticipantState(
@@ -130,6 +138,18 @@ public partial class ExpeditionStage : Control
         };
         Configure(party, enemies, Array.Empty<CombatLogEntry>(), 0, 0, 1000);
     }
+
+    /// <summary>Test seam: returns the chunk pool driving the world
+    /// scroll, or <c>null</c> when the stage has not yet received a
+    /// Travel snapshot. Lives behind a read-only getter so the test
+    /// assembly can verify the recycler state without leaking the
+    /// pool across the public surface.</summary>
+    internal ExpeditionPathChunkPool? ChunkPool => _chunkPool;
+
+    /// <summary>The most recent world offset driven by the
+    /// authoritative Travel.PositionX. Returns 0 before the first
+    /// ConfigureTravel call.</summary>
+    internal long WorldOffsetUnits => _worldOffsetUnits;
 
     public void ClearCombatants()
     {
@@ -211,6 +231,8 @@ public partial class ExpeditionStage : Control
     }
 
     private Texture2D? _terrainAtlas;
+    private ExpeditionPathChunkPool? _chunkPool;
+    private long _worldOffsetUnits;
 
     /// <summary>Custom <c>_Ready</c> extension: load the shared terrain
     /// atlas once so the new depth-band rendering does not instantiate

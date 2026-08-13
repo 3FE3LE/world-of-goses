@@ -74,22 +74,27 @@ public sealed class ExpeditionPathChunkPool
     /// </summary>
     public void SetWorldOffset(long worldOffsetUnits)
     {
-        _worldOffsetUnits = worldOffsetUnits;
+        // Snap to the nearest chunk boundary. Travel.PositionX can be
+        // any coordinate; the recycler only owns an exact grid of
+        // chunks. Snapping keeps the contract that "two snapshots
+        // with the same PositionX produce the same world offset"
+        // without inventing partial chunks for sub-boundary offsets.
+        long snappedOffset = (worldOffsetUnits / (long)ChunkWidthUnits) * (long)ChunkWidthUnits;
+        _worldOffsetUnits = snappedOffset;
+
         long focusOffset = _chunks[FocusChunkIndex].OffsetUnits;
-        while (_chunks[FocusChunkIndex].OffsetUnits != worldOffsetUnits)
+        long delta = (snappedOffset - focusOffset) / (long)ChunkWidthUnits;
+        if (delta == 0) return;
+        int sign = delta > 0 ? 1 : -1;
+        long steps = System.Math.Abs(delta);
+        for (long s = 0; s < steps; s++)
         {
-            long remaining = worldOffsetUnits - _chunks[FocusChunkIndex].OffsetUnits;
-            int sign = remaining > 0 ? 1 : -1;
             long step = sign * (long)ChunkWidthUnits;
             for (int i = 0; i < _chunks.Length; i++)
             {
                 _chunks[i].OffsetUnits += step;
             }
             _focusLogicalIndex += sign;
-            // The chunk that just left the focus window needs a
-            // logical index at the opposite end of the new window.
-            // Recompute every chunk's logical index from its offset
-            // so the set stays contiguous at all times.
             for (int i = 0; i < _chunks.Length; i++)
             {
                 long relativeSlots = _chunks[i].OffsetUnits / (long)ChunkWidthUnits;

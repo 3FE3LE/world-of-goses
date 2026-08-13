@@ -17,6 +17,20 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Viaje y regreso del camino mueven el mismo world scroll
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El jugador recorre el camino con el mismo foco.** La autoridad
+espacial sigue siendo `Travel.PositionX`; el offset del mundo es
+derivado y se redondea a la frontera del chunk más cercano. El
+recycler acepta viajes hacia adelante, objetivo fijo, regreso y
+regreso parcial sin que crezca el array de chunks. El marcador del
+Spirit Trail permanece sobre el chunk que le corresponde tras un
+ida-y-vuelta completo. Cierra #23.
+
+---
+
 ## Camino de expedición infinito mediante reciclado de chunks
 
 **2026-08-12** · presentación · sin cambio de schema
