@@ -287,10 +287,33 @@ public sealed class CityGameSession
     /// starting forests plus the four rudimentary ground opportunities, and
     /// persists.
     /// </summary>
+    /// <remarks>
+    /// GitHub #29 closed the opening regression introduced in
+    /// <c>f41eef74</c>: the case-use previously only called
+    /// <see cref="CityWorld.TryCreateHero"/> and left the world empty, so
+    /// a fresh onboarding reached the Founder arrival with no terrain,
+    /// forests or ground resources to gather. The seeders used to live on
+    /// <c>CityWorldController.TryCompleteOnboarding</c> and were correctly
+    /// removed when persistence left the domain, but the new owner has to
+    /// re-issue them. They are idempotent — a save/load pair already
+    /// running them through <c>TryLoadFromPrimarySlot</c> would not
+    /// double-seed — so calling them here is safe even for slots that
+    /// later round-trip through persistence.
+    /// </remarks>
     public HeroCreationResult CompleteOnboarding(HeroCreationRequest request)
     {
         HeroCreationResult result = _world.TryCreateHero(request);
-        if (result.IsSuccess) _isDirty = true;
+        if (result.IsSuccess)
+        {
+            // Issue #29: the opening was an empty world because the
+            // case-use stopped at the hero. The seeder order matters —
+            // forests reference parcels that
+            // <see cref="CityWorld.SeedStartingForests"/> ensures exist
+            // before the natural-resource layout planner runs.
+            _world.SeedStartingForests();
+            _world.SeedStartingOpportunities();
+            _isDirty = true;
+        }
         return result;
     }
 

@@ -441,6 +441,24 @@ superados en 2026-07-30; ver §8.)_
 
 ## 7. Hechas recientes
 
+### 2026-08-13
+
+- **#29 — El opening vuelve a tener mundo por el que jugar.** Regresión
+  introducida en `f41eef74`: `CityGameSession.CompleteOnboarding()` sólo
+  llamaba a `TryCreateHero()` y dejaba el world vacío. El comentario del
+  método afirmaba que sembraba bosques + oportunidades, pero la
+  implementación no. Cierre: el caso de uso absorbe los dos seeders en
+  ese orden (`SeedStartingForests()` antes que
+  `SeedStartingOpportunities()` porque el layout planner de recursos
+  necesita las parcelas que crea el primer seeder). El load path que
+  re-ejecuta los seeders sigue siendo idempotente — los seeders ya lo
+  eran. Tres tests nuevos en `OpeningWorldSeedTests` blindan el
+  contrato: mundo post-onboarding tiene 2 Forests + 4 patches
+  EG-A0 + 3 Branches/2 Small Stone suficientes para el Campfire,
+  arma materializada sigue equipada y `FirstNightState` arranca, y
+  un round-trip save/load + re-seed no duplica topología. Sin schema
+  bump. Build 0/0, tests 1637/1637.
+
 ### 2026-08-06
 
 - **H-33 + H-34 + M-26 — Primera noche del fundador jugable.** Tres ítems

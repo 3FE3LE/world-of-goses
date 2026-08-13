@@ -17,6 +17,40 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## El opening vuelve a tener mundo por el que jugar
+
+**2026-08-13** · onboarding · schema v35 (sin cambio) · 1637 pruebas superadas
+
+**El jugador llega a un terreno jugable, no a una ciudad vacía.** El refactor
+`f41eef74` movió la persistencia fuera del dominio y dejó el caso de uso de
+`CityGameSession.CompleteOnboarding()` creando al Founder pero sin sembrar
+los bosques ni las oportunidades iniciales. El comentario del método decía
+que sí lo hacía; el código no. El resultado era un playthrough fresco que
+llegaba al espíritu pero veía un mapa sin terreno, sin ramas y sin piedras.
+El cierre del Workaround era reabrir el slot — `TryLoadFromPrimarySlot()`
+sí re-ejecuta los seeders, así que los saves viejos quedaban reparados al
+recargar.
+
+**La orquestación del seed vive en Application, no vuelve a Presentation.**
+`CityGameSession.CompleteOnboarding()` llama a `SeedStartingForests()` y
+`SeedStartingOpportunities()` después de `TryCreateHero()`, en ese orden
+porque el layout planner de recursos necesita las parcelas que crea el
+primer seeder. Los seeders ya eran idempotentes, así que el load path que
+los re-ejecuta después de restaurar no duplica parcelas, bosques ni
+patches — `OpeningWorldSeedTests.CompleteOnboarding_RoundTripsThroughSaveAndLoadWithoutDoublingTopology`
+lo prueba.
+
+**El arma materializada y la primera noche siguen intactas.** El nuevo
+arreglo sólo añade los seeders; el arma equipada (#26) y el `FirstNightState`
+arrancando al confirmar el Founder quedan exactamente como estaban.
+`OpeningWorldSeedTests.CompleteOnboarding_SeedsForestsAndGroundPatchesBeforeReturning`
+falla si alguno de los dos se rompe, y
+`CompleteOnboarding_ProducesEnoughBranchesAndStoneForFirstCampfire` verifica
+que el presupuesto mínimo del Campfire (3 Branches + 2 Small Stone) sigue
+ahí antes del primer save.
+
+---
+
 ## La carta del Founder dice ahora con qué se materializa
 
 **2026-08-13** · onboarding · presentación · schema v35 (sin cambio) · 1634 pruebas superadas
