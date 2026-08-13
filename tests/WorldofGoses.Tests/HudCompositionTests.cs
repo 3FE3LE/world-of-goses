@@ -200,9 +200,11 @@ public sealed class HudCompositionTests
         string[] summary = NodeBlock("CitySummaryPanel");
         string[] inspector = NodeBlock("ContextInspector");
 
-        Assert.Contains(summary, line => line.Trim() == "offset_left = 8.0");
-        Assert.Contains(summary, line => line.Trim() == "offset_right = 248.0");
-        Assert.Contains(summary, line => line.Trim() == "offset_top = 8.0");
+        // GitHub #17: the slot is the host's, the surface is the panel's.
+        string[] summaryHost = NodeBlock("CitySummaryHost");
+        Assert.Contains(summaryHost, line => line.Trim() == "offset_left = 8.0");
+        Assert.Contains(summaryHost, line => line.Trim() == "offset_right = 248.0");
+        Assert.Contains(summaryHost, line => line.Trim() == "offset_top = 8.0");
         Assert.Contains(summary, line => line.Trim() == "theme_type_variation = &\"HudSurface\"");
         Assert.Contains(inspector, line => line.Trim() == "offset_left = 256.0");
         Assert.Contains(inspector, line => line.Trim() == "offset_right = 476.0");
@@ -218,39 +220,43 @@ public sealed class HudCompositionTests
         string chronicle = File.ReadAllText(Path.Combine(
             TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "ChroniclePanel.cs"));
 
-        Assert.Contains(rail, line => line.Trim() == "anchor_left = 1.0");
-        Assert.Contains(rail, line => line.Trim() == "anchor_right = 1.0");
-        // The rail is top-anchored and sizes to its content, mirroring the
-        // city-summary panel on the opposite side (GitHub #15). It used to be
-        // anchored to the parent's bottom edge as well, which meant its opaque
-        // surface claimed the whole column whether or not any body was open —
-        // a 236 px black rectangle over the map with nothing in it.
-        //
-        // Dropping the bottom anchor on its own is what shipped once before
-        // and collapsed the rail to a 0 px strip: the bodies had no height of
-        // their own and inherited the anchored rect's. The missing half, and
-        // the reason this is now safe, is ExpandedBodyHeight on each body —
-        // asserted below, because without it this anchoring is the old bug.
+        // GitHub #17: the anchoring moved to the shared SidePanelHost, which
+        // spans the envelope both side panels may reach. The panel inside it
+        // shrink-wraps or fills through its own vertical size flag, so its
+        // outer height no longer depends on how many headers it has.
+        string[] railHost = NodeBlock("ExpeditionRailHost");
+        Assert.Contains(railHost, line => line.Trim() == "anchor_left = 1.0");
+        Assert.Contains(railHost, line => line.Trim() == "anchor_right = 1.0");
+        Assert.Contains(railHost, line => line.Trim() == "anchor_bottom = 1.0");
+        Assert.Contains(rail, line => line.Trim() == "size_flags_vertical = 0");
+        // The rail itself carries no anchoring and no offsets: it is a child
+        // of a Container now, so its size comes from its own size flag.
         Assert.DoesNotContain(rail, line => line.Trim() == "anchor_bottom = 1.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_left = -244.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_right = -8.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_top = 8.0");
-        Assert.Contains(rail, line => line.Trim() == "offset_bottom = 8.0");
-        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -8.0");
-        Assert.DoesNotContain(rail, line => line.Trim() == "offset_bottom = -104.0");
-        // The statement form is the rail root claiming the column; the
-        // initialiser form on the layout VBox is a child filling whatever the
-        // panel gets and stays.
+        Assert.Contains(railHost, line => line.Trim() == "offset_left = -244.0");
+        Assert.Contains(railHost, line => line.Trim() == "offset_right = -8.0");
+        Assert.Contains(railHost, line => line.Trim() == "offset_top = 8.0");
+
+        // Both side panels leave the same clearance at both ends, which is
+        // what makes their expanded rects line up. Asserted against the
+        // summary host so the two cannot drift apart silently.
+        string[] summaryHostBlock = NodeBlock("CitySummaryHost");
+        Assert.Contains(summaryHostBlock, line => line.Trim() == "offset_top = 8.0");
+        Assert.Contains(summaryHostBlock, line => line.Trim() == "offset_bottom = -8.0");
+        Assert.Contains(railHost, line => line.Trim() == "offset_bottom = -8.0");
+        Assert.Equal(8, WorldofGoses.Ui.SidePanelHost.Inset);
+
+        // No fixed body height anywhere: that is what made the content the
+        // accidental authority on the outer envelope, so a two-header rail and
+        // a one-header summary produced different outer heights from the same
+        // number (GitHub #17).
+        Assert.DoesNotContain("ExpandedBodyHeight", source, StringComparison.Ordinal);
         Assert.DoesNotContain(
-            "SizeFlagsVertical = SizeFlags.ExpandFill;",
-            source,
+            "ExpandedBodyHeight",
+            File.ReadAllText(Path.Combine(
+                TestHelpers.FindRepositoryRoot(), "game", "scripts", "CitySummaryPanel.cs")),
             StringComparison.Ordinal);
         Assert.Contains(
-            "CustomMinimumSize = new Vector2(0, ExpandedBodyHeight)",
-            source,
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "_chronicle.Body.CustomMinimumSize = new Vector2(0, ExpandedBodyHeight);",
+            "SizeFlagsVertical = SidePanelHost.PanelSizing(",
             source,
             StringComparison.Ordinal);
         AssertOwnsPointerInput(rail, "ExpeditionRail");

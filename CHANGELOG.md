@@ -54,6 +54,26 @@ cierra esa clase entera: comprueba que el padre instancia la escena del
 componente y que **cada** `GetNode<T>("ruta")` del script nombra un nodo que la
 escena declara, leyendo los dos ficheros de texto y diciendo qué nodo falta.
 
+**Los dos side panels comparten un envelope y dejan de negociarlo con su
+contenido.** El contrato de #15 era una altura fija de 536 px en cada *body*, lo
+que convertía al contenido en autoridad accidental del tamaño exterior: el rail
+derecho tiene dos headers persistentes y el panel izquierdo uno, así que el
+mismo número producía alturas exteriores distintas, y añadir una sección al rail
+habría obligado a recalcular la constante para no salirse del viewport. Ahora
+cada panel vive dentro de un `SidePanelHost` —un contenedor transparente que
+abarca el envelope compartido— y su propio size flag decide cuánto toma:
+`ShrinkBegin` plegado, `ExpandFill` abierto, con el body activo absorbiendo el
+resto y haciendo scroll. Ningún sitio calcula `envelope − headers × alto`; lo
+resuelve el árbol de contenedores. Medido en el juego corriendo:
+
+```
+expandidos      rail 64→1272 (h=1208)   summary 64→1272 (h=1208)
+rail plegado    rail h=68 (2 headers)   summary h=1208
+ambos plegados  rail h=68               summary h=40 (1 header)
+```
+
+Cierra GitHub #17.
+
 **El rail derecho deja de tapar el mapa cuando no muestra nada.** Estaba anclado
 al borde inferior del padre y forzado a `ExpandFill`, así que su superficie
 opaca reclamaba la columna entera hubiera o no algo abierto: 236 px de negro

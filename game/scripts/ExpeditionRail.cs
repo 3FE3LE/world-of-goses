@@ -14,26 +14,8 @@ public partial class ExpeditionRail : PanelContainer
 {
     public const int PanelWidth = 236;
 
-    /// <summary>
-    /// Height an open body claims, mirroring
-    /// <see cref="CitySummaryPanel.ExpandedBodyHeight"/>.
-    /// </summary>
-    /// <remarks>
-    /// This is what makes the rail's footprint honest (GitHub #15). The rail
-    /// used to be anchored to the parent's bottom edge and forced to
-    /// <see cref="Control.SizeFlags.ExpandFill"/>, so its opaque surface
-    /// claimed the full column height even with every body folded — a black
-    /// rectangle over the map with nothing in it. Simply dropping the anchor
-    /// is what shipped once before and collapsed the rail to a 0 px strip,
-    /// because the bodies had no height of their own and inherited the
-    /// anchored rect's. Giving each body its own minimum is the missing half:
-    /// a hidden body is excluded from its container's minimum, so nothing
-    /// open means header height, and one open means header height plus this.
-    /// </remarks>
-    public const int ExpandedBodyHeight = 536;
-
-    [Export] public NodePath ControllerPath { get; set; } = new("../../../CityWorldController");
-    [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../Center/ExpeditionPanel");
+    [Export] public NodePath ControllerPath { get; set; } = new("../../../../CityWorldController");
+    [Export] public NodePath ExpeditionPanelPath { get; set; } = new("../../Center/ExpeditionPanel");
 
     private CityWorldController _controller = null!;
     private ExpeditionPanel _expeditionPanel = null!;
@@ -92,13 +74,14 @@ public partial class ExpeditionRail : PanelContainer
     {
         OverlayLayers.Apply(this, OverlayLayers.Hud);
         MouseFilter = MouseFilterEnum.Stop;
-        // No vertical ExpandFill any more, and the scene no longer anchors the
-        // rail to the parent's bottom edge. The combined minimum of its
-        // children IS the intended footprint now that each body carries
-        // ExpandedBodyHeight: two headers when everything is folded, headers
-        // plus one body otherwise. That is the whole of GitHub #15's "libere
-        // mapa al colapsar" — the previous shape kept a 236 px opaque column
-        // over the city whether or not it had anything to show.
+        // The rail sits inside a SidePanelHost that spans the shared vertical
+        // envelope, and its own vertical size flag decides how much of it to
+        // take: its headers when everything is folded (GitHub #15's "libere
+        // mapa al colapsar"), the whole envelope when a section is open, with
+        // the open body scrolling inside it (GitHub #17). No body carries a
+        // fixed height any more — that made the content the accidental
+        // authority on the outer size, so this rail's two headers and the
+        // summary's one produced different outer heights from the same number.
         _controller = GetNode<CityWorldController>(ControllerPath);
         _expeditionPanel = GetNode<ExpeditionPanel>(ExpeditionPanelPath);
         _localeManager = GetNode<LocaleManager>("/root/LocaleManager");
@@ -164,7 +147,6 @@ public partial class ExpeditionRail : PanelContainer
         _scroll = new ScrollContainer
         {
             Name = "ExpeditionScroll",
-            CustomMinimumSize = new Vector2(0, ExpandedBodyHeight),
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
             VerticalScrollMode = ScrollContainer.ScrollMode.Auto,
             MouseFilter = MouseFilterEnum.Stop,
@@ -190,7 +172,6 @@ public partial class ExpeditionRail : PanelContainer
         _expeditionContent.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         _content.AddChild(_expeditionContent);
 
-        _chronicle.Body.CustomMinimumSize = new Vector2(0, ExpandedBodyHeight);
         _bodyHost.Register(_chronicle.Body);
         _bodyHost.CurrentBodyChanged += OnBodyHostChanged;
         // The expedition list is the opening protagonist. Going through
@@ -469,6 +450,11 @@ public partial class ExpeditionRail : PanelContainer
         // The quick-action button belongs to the expedition section and
         // follows it, so a folded rail really is just its headers.
         _expeditionSection.Visible = _bodyHost.IsShowing(_scroll);
+        // Zero bodies open means the rail shrinks to its header stack; one
+        // open means it claims the shared envelope and that body scrolls
+        // inside it. The container tree resolves the split — nothing here
+        // subtracts header heights from a maximum.
+        SizeFlagsVertical = SidePanelHost.PanelSizing(body is not null);
         RebuildFocusables();
         if (_bodyHost.IsShowing(_chronicle.Body)) _chronicle.ScrollToNewest();
     }

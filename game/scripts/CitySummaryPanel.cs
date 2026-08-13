@@ -32,9 +32,8 @@ namespace WorldofGoses;
 public partial class CitySummaryPanel : PanelContainer
 {
     public const int PanelWidth = 240;
-    public const int ExpandedBodyHeight = 536;
 
-    [Export] public NodePath ControllerPath { get; set; } = "../../../CityWorldController";
+    [Export] public NodePath ControllerPath { get; set; } = "../../../../CityWorldController";
 
     private CityWorldController _controller = null!;
     private LocaleManager? _localeManager;
@@ -55,6 +54,7 @@ public partial class CitySummaryPanel : PanelContainer
         _body = GetNode<ScrollContainer>("Layout/SummaryBody");
         _content = GetNode<VBoxContainer>("Layout/SummaryBody/Gutter/SummaryContent");
         _header.ExpandedChanged += OnHeaderExpandedChanged;
+        OnHeaderExpandedChanged(_header.Expanded);
         _controller = GetNode<CityWorldController>(ControllerPath);
         _controller.WorldTickAdvanced += OnStateChanged;
         _controller.BuildingStateChanged += OnStateChanged;
@@ -69,13 +69,24 @@ public partial class CitySummaryPanel : PanelContainer
     }
 
     /// <summary>
-    /// Folding the section hides its body. The scene keeps the
-    /// <c>Gutter</c> — the margin the vertical scrollbar draws over — inside
-    /// the scrolled content rather than insetting <c>SummaryBody</c> itself,
-    /// because the bar is positioned against the viewport's right edge and
-    /// would follow any margin put there. See <see cref="Tokens.ScrollGutter"/>.
+    /// Folding the section hides its body and lets the panel shrink to its
+    /// header; unfolding gives it the side-panel envelope and the body takes
+    /// whatever is left under the header, scrolling if the content exceeds it
+    /// (GitHub #17). No height is computed here — the container tree resolves
+    /// it, which is what stops the number of headers from deciding the outer
+    /// size.
+    ///
+    /// <para>The scene keeps the <c>Gutter</c> — the margin the vertical
+    /// scrollbar draws over — inside the scrolled content rather than
+    /// insetting <c>SummaryBody</c> itself, because the bar is positioned
+    /// against the viewport's right edge and would follow any margin put
+    /// there. See <see cref="Tokens.ScrollGutter"/>.</para>
     /// </summary>
-    private void OnHeaderExpandedChanged(bool expanded) => _body.Visible = expanded;
+    private void OnHeaderExpandedChanged(bool expanded)
+    {
+        _body.Visible = expanded;
+        SizeFlagsVertical = SidePanelHost.PanelSizing(expanded);
+    }
 
     public override void _ExitTree()
     {

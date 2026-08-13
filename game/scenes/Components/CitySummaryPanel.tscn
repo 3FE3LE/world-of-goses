@@ -19,8 +19,8 @@ layout_mode = 2
 script = ExtResource("2_header")
 
 [node name="SummaryBody" type="ScrollContainer" parent="Layout"]
-custom_minimum_size = Vector2(0, 536)
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 0
 horizontal_scroll_mode = 0
 

@@ -31,6 +31,7 @@
 [ext_resource type="PackedScene" path="res://scenes/expeditions/ExpeditionLiveView.tscn" id="39_expedition_live"]
 [ext_resource type="Script" uid="uid://bv0guhat2bymo" path="res://scripts/Ui/ResourceInventoryPanel.cs" id="40_resourceinventory"]
 [ext_resource type="Script" uid="uid://bdc3he180rh0o" path="res://scripts/SpeedButton.cs" id="41_speedbtn"]
+[ext_resource type="Script" uid="uid://0pj14bgdbfbi" path="res://scripts/Ui/SidePanelHost.cs" id="42_sidepanelhost"]
 
 [node name="CityPrototype" type="Node" unique_id=595270477]
 script = ExtResource("1_root")
@@ -492,13 +493,22 @@ grow_vertical = 0
 theme_type_variation = &"HudDock"
 script = ExtResource("35_actiondock")
 
-[node name="CitySummaryPanel" parent="GameUiShell/ScreenContent" unique_id=952075053 instance=ExtResource("36_summary")]
-visible = false
+[node name="CitySummaryHost" type="VBoxContainer" parent="GameUiShell/ScreenContent" unique_id=952075054]
 layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 248.0
-offset_bottom = 8.0
+offset_bottom = -8.0
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("42_sidepanelhost")
+
+[node name="CitySummaryPanel" parent="GameUiShell/ScreenContent/CitySummaryHost" unique_id=952075053 instance=ExtResource("36_summary")]
+visible = false
+layout_mode = 2
+size_flags_vertical = 0
 theme_type_variation = &"HudSurface"
 
 [node name="ContextInspector" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=215122816]
@@ -516,17 +526,25 @@ mouse_filter = 2
 theme_type_variation = &"HudCard"
 script = ExtResource("34_inspector")
 
-[node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent" unique_id=1368772485]
-visible = false
+[node name="ExpeditionRailHost" type="VBoxContainer" parent="GameUiShell/ScreenContent" unique_id=1368772486]
 layout_mode = 1
-anchors_preset = 1
+anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
+anchor_bottom = 1.0
 offset_left = -244.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = 8.0
+offset_bottom = -8.0
 grow_horizontal = 0
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("42_sidepanelhost")
+
+[node name="ExpeditionRail" type="PanelContainer" parent="GameUiShell/ScreenContent/ExpeditionRailHost" unique_id=1368772485]
+visible = false
+layout_mode = 2
+size_flags_vertical = 0
 theme_type_variation = &"HudSurface"
 script = ExtResource("38_expeditionrail")
 

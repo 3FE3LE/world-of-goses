@@ -266,7 +266,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 break;
             case "offline-report":
                 GetNode<ExpeditionRail>(
-                    "GameUiShell/ScreenContent/ExpeditionRail")
+                    "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail")
                     .ShowVisualRegressionReport(BuildVisualOfflineReport());
                 break;
             case "pause-menu":
@@ -1602,7 +1602,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 ResourceLoader.Load<Texture2D>(IconPaths.User),
                 "Inspector",
                 UiText.Get("ui.city_summary.inspector_fixture_detail"));
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
     }
@@ -1629,7 +1629,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         }
         world.Resources.DepositToCityInventory(ResourceType.WildFood, 1);
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
     }
@@ -1667,7 +1667,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             }
         }
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
     }
@@ -1681,7 +1681,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         ShowTopStatusForVisualRegression(locale);
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
         GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
     }
@@ -1719,9 +1719,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         }
 
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel")
+        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRail").Refresh();
+        GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail").Refresh();
 
         ContextInspector inspector = GetNode<ContextInspector>(
             "GameUiShell/ScreenContent/ContextInspector");
@@ -2124,7 +2124,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         SeedHermeticFounderForExpeditionRailFixture(controller);
         CityWorld world = controller.GetFixtureWorld();
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
 
         if (world.Hero?.CurrentAssignment is BuildingId assignment)
         {
@@ -2198,7 +2198,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             "GameUiShell/ScreenContent/ExpeditionLiveView");
         liveView.UseStableFounderLabelForVisualRegression();
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         rail.Refresh();
         if (exitWithCancel)
         {
@@ -2359,8 +2359,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         bool passed = liveView.Visible
             && liveView.PresentedExpeditionId.HasValue
             && !macro.Visible
-            && !GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryPanel").Visible
-            && !GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRail").Visible
+            && !GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel").Visible
+            && !GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail").Visible
             && !GetNode<PrimaryNavDock>("GameUiShell/ScreenContent/PrimaryNavDock").Visible
             && !GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Visible
             && !GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock").Visible
@@ -2464,7 +2464,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     {
         ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         CallDeferred(MethodName.SendExpeditionRailPointerForVisualRegression, action, rail);
     }
 
@@ -2502,7 +2502,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseExpeditionRailFocusForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         rail.SetExpandedForVisualRegression(expanded: false);
         rail.SetExpandedForVisualRegression(expanded: true);
         CallDeferred(MethodName.ExerciseExpandedExpeditionRailFocusForVisualRegression);
@@ -2511,7 +2511,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseExpandedExpeditionRailFocusForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         rail.GrabDefaultFocus();
         if (GetViewport().GuiGetFocusOwner() != rail.FirstViewButton)
         {
@@ -2526,7 +2526,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailFocusForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         Control? focused = GetViewport().GuiGetFocusOwner();
         if (focused != rail.FirstDetailsButton)
         {
@@ -2556,7 +2556,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailCancelForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         if (GetNode<CityWorldController>("CityWorldController")
                 .GetExpeditionRailSnapshot().ActiveExpeditions.Count != 0
             || rail.FirstDetailsButton is not null)
@@ -2570,7 +2570,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailMoreForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         if (!rail.Visible || !rail.ChronicleExpanded)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-MORE] Chronicle did not open.");
@@ -2582,7 +2582,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseExpeditionRailChronicleRoundTripForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         // Both edges are real pointer clicks, and both wait on the button's
         // layout actually settling rather than on a fixed delay. The fixture
         // is named "roundtrip" because it proves the player can open the
@@ -2611,7 +2611,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailChronicleRoundTripForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         // Height, not visibility, and a threshold with meaning. The bug this
         // fixture exists to catch left the cards Visible with their own 25 px
         // height while the body around them was squeezed to 2 px: laid out
@@ -2641,7 +2641,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseExpeditionRailPhaseFocusForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         rail.GrabDefaultFocus();
         CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
         controller.AdvanceWorldTickForFixtureHarness();
@@ -2658,7 +2658,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ForceExpeditionRailProtagonistForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         // Collapse the chronicle body so the accordion hands the
         // column back to the expedition scroll, then expand the rail
         // header so the cards become visible.
@@ -2682,7 +2682,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailProtagonistForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         if (!rail.Expanded
             || rail.FirstViewButton is null
             || !rail.FirstViewButton.IsVisibleInTree()
@@ -2706,7 +2706,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ValidateExpeditionRailPhaseFocusForVisualRegression()
     {
         ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRail");
+            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
         if (GetViewport().GuiGetFocusOwner() != rail.FirstDetailsButton)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] focus lost on phase tick.");

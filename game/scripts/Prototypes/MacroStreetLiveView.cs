@@ -197,8 +197,8 @@ public partial class MacroStreetLiveView : Node2D
     /// buttons, so moving a button inside it no longer breaks the world view.
     /// </summary>
     [Export] public NodePath PrimaryNavDockPath { get; set; } = "../PrimaryNavDock";
-    [Export] public NodePath CitySummaryPanelPath { get; set; } = "../CitySummaryPanel";
-    [Export] public NodePath ExpeditionRailPath { get; set; } = "../ExpeditionRail";
+    [Export] public NodePath CitySummaryPanelPath { get; set; } = "../CitySummaryHost/CitySummaryPanel";
+    [Export] public NodePath ExpeditionRailPath { get; set; } = "../ExpeditionRailHost/ExpeditionRail";
     /// <summary>
     /// The contextual selection surface. Authored in the scene rather than
     /// constructed here, so its placement is anchors instead of a per-frame
