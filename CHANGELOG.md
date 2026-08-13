@@ -17,6 +17,25 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## Salir del juego deja de ser cosa del aspa de la ventana
+
+**2026-08-12** · presentación · schema v35 (sin cambio) · 1614 pruebas superadas
+
+**El jugador puede irse desde el menú.** El menú ESC gana «Salir del juego»
+junto a las acciones de reinicio, y salir por ahí guarda la ciudad igual que
+cerrar la ventana: ambas rutas llaman al mismo `SaveBeforeExit`, así que no
+pueden divergir. Antes sólo se guardaba al cerrar la ventana; irse por
+cualquier otro camino habría perdido hasta un intervalo de autoguardado de
+ciudad. La puerta que abre ese método es la del autoguardado —sucia y fuera
+de onboarding—, y por eso salir en mitad del onboarding no puede escribir una
+ciudad vacía encima de la partida. No hay confirmación a propósito: reiniciar
+destruye una ciudad y pregunta; salir la conserva.
+
+Comprobado con un clic sintético en headless, no leyendo el código: el evento
+llega al botón, el handler corre y el archivo del slot se reescribe.
+
+---
+
 ## El arma del Founder deja de ser un fantasma del combate
 
 **2026-08-12** · onboarding · schema v34 → v35 · 1613 pruebas superadas

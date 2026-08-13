@@ -146,6 +146,17 @@ script = ExtResource("2_icon_button")
 icon_path = "res://assets/ui/icons/24/reload.svg"
 button_text = "Restart city — keep founder"
 
+[node name="QuitButton" type="Button" parent="Center/Card/Margin/Shell/MainActions"]
+custom_minimum_size = Vector2(160, 44)
+layout_mode = 2
+focus_mode = 2
+tooltip_text = "Save and close the game."
+text = "Quit game"
+theme_type_variation = "HudButton"
+script = ExtResource("2_icon_button")
+icon_path = "res://assets/ui/icons/24/close.svg"
+button_text = "Quit game"
+
 [node name="ResetConfirmation" type="VBoxContainer" parent="Center/Card/Margin/Shell"]
 visible = false
 layout_mode = 2

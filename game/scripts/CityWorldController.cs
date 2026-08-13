@@ -346,9 +346,23 @@ public partial class CityWorldController : Node
         if (!PersistenceWritesEnabled) return;
         if (what == WmCloseRequest)
         {
-            TryAutoSave();
+            SaveBeforeExit();
         }
     }
+
+    /// <summary>
+    /// Persists the city on the way out, if there is anything worth
+    /// persisting. Both exit routes call this — the window's close button
+    /// through <see cref="_Notification"/>, and the pause menu's quit action —
+    /// so leaving by either means the same thing.
+    /// </summary>
+    /// <remarks>
+    /// It goes through the same dirty/onboarding gate as the autosave loop
+    /// rather than calling <see cref="TrySaveNow"/>. Saving unconditionally
+    /// would write an empty city over the slot when a player quits during
+    /// onboarding, which is the one moment there is no city to keep.
+    /// </remarks>
+    public void SaveBeforeExit() => TryAutoSave();
 
     private const int WmCloseRequest = 1006;
 

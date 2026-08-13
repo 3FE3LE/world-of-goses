@@ -26,6 +26,7 @@ public partial class PauseMenu : Control
     private IconButton _confirmResetButton = null!;
     private Button _cancelResetButton = null!;
     private IconButton _languageButton = null!;
+    private IconButton _quitButton = null!;
     private IconButton _openButton = null!;
     private LocaleManager? _localeManager;
     private bool _scrimPressStarted;
@@ -51,6 +52,8 @@ public partial class PauseMenu : Control
             "Center/Card/Margin/Shell/MainActions/SoftResetButton");
         _languageButton = GetNode<IconButton>(
             "Center/Card/Margin/Shell/MainActions/LanguageButton");
+        _quitButton = GetNode<IconButton>(
+            "Center/Card/Margin/Shell/MainActions/QuitButton");
         _confirmResetButton = GetNode<IconButton>(
             "Center/Card/Margin/Shell/ResetConfirmation/ConfirmResetButton");
         _cancelResetButton = GetNode<Button>(
@@ -69,6 +72,7 @@ public partial class PauseMenu : Control
         _softResetButton.Pressed += ShowSoftResetConfirmation;
         _confirmResetButton.Pressed += ConfirmReset;
         _cancelResetButton.Pressed += HideResetConfirmation;
+        _quitButton.Pressed += OnQuitPressed;
         // The open button lives in the city-status utility cluster and
         // is also reached by the macro view's primary navigation — that
         // view already subscribes its Pressed to Toggle. Subscribing
@@ -78,6 +82,31 @@ public partial class PauseMenu : Control
         RefreshLocalizedText();
         _scrim.GuiInput += OnScrimGuiInput;
         Hide();
+    }
+
+    /// <summary>
+    /// Leaves the game, saving on the way out.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The save is the reason this is not a bare <c>Quit()</c>. Closing the
+    /// window sends <c>WM_CLOSE_REQUEST</c>, which the controller answers by
+    /// persisting; <c>Quit()</c> sends nothing and terminates. Without the
+    /// explicit call, leaving through the menu would silently lose up to one
+    /// autosave interval of city while leaving through the window's own close
+    /// button kept it — the same intent, two different outcomes.
+    /// </para>
+    /// <para>
+    /// No confirmation step, deliberately. The reset actions above ask
+    /// because they destroy a city; quitting keeps it, and the player resumes
+    /// where they left off. A confirmation here would be friction guarding
+    /// nothing.
+    /// </para>
+    /// </remarks>
+    private void OnQuitPressed()
+    {
+        _controller.SaveBeforeExit();
+        GetTree().Quit();
     }
 
     private void OnLanguageButtonPressed()
@@ -107,6 +136,7 @@ public partial class PauseMenu : Control
         if (_confirmResetButton is not null) _confirmResetButton.Pressed -= ConfirmReset;
         if (_cancelResetButton is not null) _cancelResetButton.Pressed -= HideResetConfirmation;
         if (_languageButton is not null) _languageButton.Pressed -= OnLanguageButtonPressed;
+        if (_quitButton is not null) _quitButton.Pressed -= OnQuitPressed;
         if (_scrim is not null) _scrim.GuiInput -= OnScrimGuiInput;
         if (_localeManager is not null) _localeManager.LocaleChanged -= OnLocaleChanged;
     }
@@ -235,6 +265,8 @@ public partial class PauseMenu : Control
         _languageButton.SetIconAndLabel(IconPaths.Cog, GetLanguageLabel());
         _resetButton.SetIconAndLabel(IconPaths.Trash, T("ui.pause.reset.action"));
         _softResetButton.SetIconAndLabel(IconPaths.Reload, T("ui.pause.soft_reset.action"));
+        _quitButton.SetIconAndLabel(IconPaths.Close, T("ui.pause.quit"));
+        _quitButton.TooltipText = T("ui.pause.quit_tooltip");
         _openButton.SetIconAndLabel(IconPaths.Menu, T("ui.pause.open"));
         _cancelResetButton.Text = T("ui.pause.cancel_reset");
         _languageButton.TooltipText = T("ui.common.language.tooltip");

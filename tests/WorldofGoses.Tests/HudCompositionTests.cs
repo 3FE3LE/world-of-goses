@@ -834,6 +834,51 @@ public sealed class HudCompositionTests
         Assert.DoesNotContain("PlayPauseButton", source, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The ESC menu can leave the game, and leaving that way saves.
+    /// </summary>
+    /// <remarks>
+    /// The save is the whole point of the assertion. Closing the window sends
+    /// <c>WM_CLOSE_REQUEST</c>, which the controller answers by persisting;
+    /// <c>Quit()</c> sends nothing. A bare quit here would silently lose up to
+    /// one autosave interval of city while the window's own close button kept
+    /// it — the same intent with two different outcomes. Both routes go
+    /// through <c>SaveBeforeExit</c>, which carries the dirty/onboarding gate
+    /// so quitting mid-onboarding cannot write an empty city over the slot.
+    /// </remarks>
+    [Fact]
+    public void PauseMenu_CanQuitTheGameAndSavesOnTheWayOut()
+    {
+        string root = TestHelpers.FindRepositoryRoot();
+        string[] scene = File.ReadAllLines(Path.Combine(root, "game", "scenes", "PauseMenu.tscn"));
+        string menu = File.ReadAllText(Path.Combine(root, "game", "scripts", "PauseMenu.cs"));
+        string controller = File.ReadAllText(
+            Path.Combine(root, "game", "scripts", "CityWorldController.cs"));
+
+        Assert.Contains(
+            scene,
+            line => line.StartsWith("[node name=\"QuitButton\"", StringComparison.Ordinal));
+
+        int save = menu.IndexOf("_controller.SaveBeforeExit();", StringComparison.Ordinal);
+        int quit = menu.IndexOf("GetTree().Quit();", StringComparison.Ordinal);
+        Assert.True(save > 0, "The quit action must persist the city before leaving.");
+        Assert.True(quit > save, "The save must happen before the process ends.");
+
+        // One exit path, two doors: the window's close notification and the
+        // menu both call the same method, so they cannot drift apart.
+        Assert.Contains("SaveBeforeExit();", controller, StringComparison.Ordinal);
+        Assert.Contains("public void SaveBeforeExit()", controller, StringComparison.Ordinal);
+        // The label is translated rather than baked into the scene text.
+        Assert.Contains("T(\"ui.pause.quit\")", menu, StringComparison.Ordinal);
+        foreach (string locale in new[] { "en.po", "es.po" })
+        {
+            Assert.Contains(
+                "msgid \"ui.pause.quit\"",
+                File.ReadAllText(Path.Combine(root, "game", "locale", locale)),
+                StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void PauseMenu_OpenButtonPath_RedirectsToUtilityClusterMenu()
     {

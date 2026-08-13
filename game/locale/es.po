@@ -3262,3 +3262,9 @@ msgstr "Lanza"
 
 msgid "ui.weapon_family.staff"
 msgstr "Bastón"
+
+msgid "ui.pause.quit"
+msgstr "Salir del juego"
+
+msgid "ui.pause.quit_tooltip"
+msgstr "Guarda y cierra el juego. La ciudad sigue avanzando mientras no estás."

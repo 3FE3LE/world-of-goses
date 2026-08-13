@@ -3112,3 +3112,9 @@ msgstr "Spear"
 
 msgid "ui.weapon_family.staff"
 msgstr "Staff"
+
+msgid "ui.pause.quit"
+msgstr "Quit game"
+
+msgid "ui.pause.quit_tooltip"
+msgstr "Save and close the game. The city keeps running while you are away."

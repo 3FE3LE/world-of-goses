@@ -258,6 +258,11 @@ and §17 acceptance test are complete.
 - Dirty-aware autosave runs every three real minutes and on close when
   needed; explicit saves remain possible through existing actions. There is no
   pause trigger any more: no surface can freeze the simulation.
+- The ESC menu can leave the game. Both exit routes — the window's close
+  request and the menu's own quit action — go through the same
+  `SaveBeforeExit`, so they cannot save differently; the gate inside it is the
+  autosave gate, which is why quitting during onboarding cannot write an empty
+  city over the slot.
 
 ### Presentation and input
 
