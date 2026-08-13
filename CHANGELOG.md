@@ -17,6 +17,22 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Camino de expedición infinito mediante reciclado de chunks
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El jugador puede recorrer una distancia arbitraria sin que el
+escenario se quede sin memoria.** `ExpeditionPathChunkPool` mantiene
+7 chunks vivos; el recycler los desliza por unidad de mundo y reusa
+el que cae fuera del foco con un nuevo índice lógico. El vestido
+determinista sale de `(seed, logicalIndex)`. Tras 2000 saltos y un
+10 000x de la unidad de chunk, el array se queda en 7 entradas y
+los índices lógicos se mantienen contiguos. El reciclaje funciona
+en ambas direcciones (ida y regreso). Ningún chunk entra al save.
+1572 tests pasan (eran 1564). Cierra #22.
+
+---
+
 ## ExpeditionPathRenderer dibuja la expedición sobre bandas de profundidad
 
 **2026-08-12** · presentación · sin cambio de schema
