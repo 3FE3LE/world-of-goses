@@ -17,6 +17,25 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Gramática espacial canónica para ciudad y expedición
+
+**2026-08-12** · documentación · sin cambio de schema
+
+**El jugador obtiene una sola gramática espacial.** Ciudad y expedición
+proyectan sobre las mismas bandas de profundidad pseudo-3D (la misma gramática
+que ya vivía en `StreetDepthProjection`/Macro). Cambia solo la **política
+de cámara**: macro libre/follow, expedición mayormente bloqueada. La
+profundidad nunca introduce `PositionY`, lanes, navmesh ni un mundo
+infinito persistido. El "lateral battlefield" deja de ser la dirección
+final de la expedición y queda registrado como prototipo transitorio. El
+shell fullscreen `BuildingDetailView` queda marcado para retiro (issue
+#20); sus capacidades — `AssignmentPanel`, `ProductionPanel`,
+`ResourceInventoryPanel`, capacidad/descanso del hogar, crafteo del
+Primitive Axe, prospect/recruit del Town Hall — sobreviven en un
+inspector contextual sobre el macro. Cierra #18.
+
+---
+
 ## Paneles A-class a `.tscn` y un control de velocidad que cabe en su celda
 
 **2026-08-12** · presentación · sin cambio de schema (v34)

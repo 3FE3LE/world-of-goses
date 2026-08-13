@@ -6,14 +6,25 @@ Las expediciones permiten explorar, abrir rutas, revelar recursos, encontrar pla
 
 ## Presentación
 
-Vista lateral con ilusión de desplazamiento. El grupo permanece aproximadamente estable mientras se mueven terreno, fondos, vegetación, obstáculos y enemigos.
+La expedición se proyecta sobre la **misma gramática espacial de bandas de
+profundidad que la ciudad macro** (ver `docs/ARCHITECTURE.md` §10 "Spatial
+grammar"). Compartimos vocabulario de profundidad y muestreo de terreno con
+el macro pero **no** el renderer concreto: ciudad y expedición conservan
+políticas de cámara independientes.
+
+El recorrido es una franja en perspectiva (no 2.5D real, no 3D): rear depth
+bands, banda jugable, foreground band. El grupo permanece aproximadamente
+estable mientras el mundo se desplaza bajo él. El infinito del camino es
+una ilusión visual lograda con reciclado de segmentos, nunca un mundo
+infinito persistido.
 
 Las expediciones contienen los sprites y animaciones más detallados.
 
-La inspiración estructural para esta lectura lateral es *Taskbar Hero*: combate
-automático legible dentro de una franja persistente. No se copian assets,
-interfaz, personajes, nombres ni contenido. La composición final debe ser
-original y obedecer la identidad visual de este proyecto.
+La inspiración estructural para la legibilidad de combate es
+*Taskbar Hero*: combate automático legible dentro de una franja persistente.
+No se copian assets, interfaz, personajes, nombres ni contenido. La
+composición final debe ser original y obedecer la identidad visual de este
+proyecto.
 
 ## Estructura
 
@@ -116,7 +127,8 @@ consume Food solo por existir. Su recompensa material definitiva permanece
 abierta; no debe inventarse una conversión provisional para llenar ese vacío.
 
 La ciudad, el viaje y el combate continúan avanzando en paralelo bajo el único
-reloj del mundo. Entrar o salir de la vista lateral no modifica la velocidad.
+reloj del mundo. Entrar o salir del stage de expedición no modifica la
+velocidad.
 
 ## Equipo
 

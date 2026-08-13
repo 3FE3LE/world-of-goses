@@ -487,8 +487,9 @@ applies to `OnboardingView`, `HeroProfileView`, `MigrantPanel`,
 The migration order (high churn → low churn) lives in the GitHub
 issue tracker: `CitySummaryPanel` → `CityStatusPanel` →
 `ExpeditionRail` → `HeroProfileView` → `AstralOnboardingView` →
-`PoliciesPanel` / `ProductionPanel` / `BuildingDetailView` /
-`ConstructionPanel` → `ExpeditionLiveView`. Each slice creates the
+`PoliciesPanel` / `ProductionPanel` / `ConstructionPanel` →
+`BuildingInspector` (replaces fullscreen `BuildingDetailView`) →
+`ExpeditionLiveView`. Each slice creates the
 `.tscn`, moves the static shell there, keeps C# for signal wiring
 and dynamic rows, and removes the entry from the allowlist when
 the guard stays green.
@@ -668,7 +669,9 @@ stores only `InTransit` or `AtWork`, never pixel coordinates.
 `MacroStreetLiveView` draws journeys; it does not end them. The founding hero
 and every other citizen use the same `StreetRoutePlanner`, obstacle topology and
 quantized cadence; the founder keeps a dedicated carrier path only for
-founder-specific actions such as gathering. `BuildingDetailView` renders only
+founder-specific actions such as gathering. The contextual `BuildingInspector`
+(formerly a top-level `BuildingDetailView` shell, retired per issue #20)
+continues to read the same `BuildingDetailSnapshot` and renders only
 citizens already at `AtWork`.
 
 A drawn route is paced against the domain's own window rather than against the
@@ -1281,7 +1284,75 @@ Pixelify Sans is imported with grayscale antialiasing, light hinting, disabled
 subpixel positioning, and fixed 1.0 oversampling. The reference viewport is
 explicitly 1280×720 with `canvas_items` stretch and `expand` aspect handling.
 
-## 10. Planned event-based simulation
+## 10. Spatial grammar (macro & expedition)
+
+World of Goses projects both city and expedition through **one
+shared depth-band grammar**: a 2D presentation that simulates pseudo-3D
+perspective via non-uniform trapezoidal bands, not actual 3D, not
+2.5D elevation. The grammar is **presentation only**; gameplay
+remains 1D in both pillars.
+
+```text
+shared depth-band primitives (presentation)
+        │
+        ├── MacroStreetRenderer            (urban: parcels, buildings,
+        │                                   territory, wear, navigation)
+        │
+        └── ExpeditionPathRenderer         (path + chunks + parallax)
+
+Travel.PositionX            ──► world offset of the path renderer
+Combat Combatant.PositionX  ──► projection of combatants on the playable band
+```
+
+The two renderers share **vocabulary**, not instances: they consume
+common projection / terrain primitives (see `StreetDepthProjection`,
+`TerrainAtlas`, the band geometry exposed for the expedition in #19)
+and they each keep their own domain semantics. `MacroStreetRenderer`
+remains explicitly urban; `ExpeditionPathRenderer` does not know
+about plots, buildings, navigation or territory.
+
+The two renderers **never** share a configurable boolean (no
+`isExpedition`, `drawBuildings=false`, etc.) to keep semantics apart.
+Adding a generic `GodRenderer` flag seam is forbidden; this is one of
+the explicit decisions of issue #18/#19.
+
+**Camera policies** differ:
+
+- **Macro** — free camera by default with `MacroCameraController`;
+  pan + zoom; the focus shifts and the depth window follows; a
+  citizen-selection toggle adds observation follow without becoming
+  movement control.
+- **Expedition** — mostly locked framing. The party stays near a
+  stable focal point on the playable band; the path's *world offset*
+  is driven by the same domain `Travel.PositionX` (or, during
+  encounter, the combat positions) and never becomes a second
+  authoritative position. Parallax is a function of the same offset,
+  not a separate clock.
+
+**Invariants registered by #18 (do not reopen):**
+
+1. Depth-band projection is a 2D presentation primitive; it never
+   introduces `PositionY`, `DepthPosition`, lanes or a navmesh.
+2. Expedition domain positions stay 1D (`Travel.PositionX`,
+   `Combatant.PositionX`). Visual depth is presentation state only.
+3. `Travel.PositionX` remains the authoritative travel progress;
+   combat `PositionX` remains the authoritative encounter progress;
+   the world scroll is **derived** from those and never persists a
+   parallel offset.
+4. The expedition path is **visually** infinite through recycled
+   segments; no chunk ever enters domain persistence.
+5. `BuildingDetailView` as a fullscreen top-level navigation is
+   retired (issue #20). Its capabilities — `BuildingDetailSnapshot`,
+   `AssignmentPanel`, `ProductionPanel`, `ResourceInventoryPanel`,
+   Home capacity/resting, Primitive Axe crafting, Town Hall
+   prospect/recruit — survive inside a contextual `BuildingInspector`
+   that sits over the visible macro without hiding it.
+6. No `LateralBattlefield`, no fallback stage. Encounter and travel
+   share the same `ExpeditionPathRenderer`/stage; the
+   "lateral expedition" framing was a transient prototype and is not
+   the direction of record.
+
+## 11. Planned event-based simulation
 
 `WorldTimeAdvance` is now the single domain seam used by offline catch-up to
 advance an elapsed tick range. It performs one batch for a world without
@@ -1326,7 +1397,7 @@ This section is the evolution contract. The current consolidation provides the
 advance seam and event cursor only; active-world event scheduling remains a
 future slice and must be introduced incrementally.
 
-## 11. What is explicitly out of scope
+## 12. What is explicitly out of scope
 
 The following are out of scope for the initial architecture and any
 system work that follows:
@@ -1343,7 +1414,7 @@ These are listed so that the next agent or contributor does not
 "helpfully" add them. The README and `AGENTS.md` repeat the same
 boundary.
 
-## 12. Evolution of the architecture
+## 13. Evolution of the architecture
 
 The architecture is allowed to evolve. The rules for evolving it are:
 

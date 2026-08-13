@@ -245,8 +245,8 @@ Use a factory when the widget is:
 - Created entirely from C# (no `.tscn` editor reuse).
 - Repeated across multiple script files (the diagnostic that lit up
   this guide: `HeroProfileView._backButton` was a plain `Button` while
-  `BuildingDetailView.BackButton` was an `IconButton` with an arrow,
-  and `HeroAccessButton` shipped without its user icon).
+  another surface used an `IconButton` with an arrow, and
+  `HeroAccessButton` shipped without its user icon).
 - Cheap to construct (single Control instance).
 
 Targets: every action button, every chip, every small row whose
@@ -254,11 +254,15 @@ look-and-feel must be identical.
 
 ```csharp
 public static class StandardButtons {
-    public static IconButton BackToCityButton() { /* consistent shape */ }
     public static IconButton ViewHeroButton() { /* consistent shape */ }
     public static IconButton PauseResumeButton(bool running) { /* … */ }
 }
 ```
+
+> Note: `BuildingDetailView` retired per issue #20. There is no
+> `BackToCityButton` left in the building surface; back navigation is
+> handled by ESC + the canonical close action on the contextual
+> `BuildingInspector`.
 
 When you find two callsites creating the same kind of widget with
 slightly different properties, **promote them to a factory**.

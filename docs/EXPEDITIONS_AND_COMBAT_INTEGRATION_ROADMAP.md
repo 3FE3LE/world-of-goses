@@ -64,10 +64,14 @@ Su orden interno de implementación es:
    ocupado por el Founder y slots 2–4 bloqueados. Cuatro slots octogonales de
    Active Skills; solo Skill 1 conectada mediante `expedition_skill_1`, con
    `expedition_skill_2`–`4` reservados.
-3. **Encuentro lateral mínimo.** Basic Attack automática, avance solo hasta
-   `AttackRange`, sin kiting, knockback permitido, `Stability` reduciendo el
-   desplazamiento e `Impulse` pudiendo aumentarlo. Presentación original con
-   inspiración estructural en *Taskbar Hero*.
+3. **Encuentro sobre depth-band stage.** El encuentro se renderiza sobre
+   el mismo `ExpeditionPathRenderer`/depth-band stage que el viaje
+   (ver `docs/ARCHITECTURE.md` §10 "Spatial grammar"): ninguna escena
+   lateral paralela. Basic Attack automática, avance solo hasta
+   `AttackRange`, sin kiting, knockback permitido, `Stability`
+   reduciendo el desplazamiento e `Impulse` pudiendo aumentarlo.
+   La inspiración estructural en *Taskbar Hero* aplica a la legibilidad
+   automática, no al tipo de stage.
 4. **Continuación y regreso.** El encuentro no resuelve la expedición: la vista
    muestra la continuación al objetivo y el retorno, mientras la ciudad sigue
    avanzando. Entrar o salir de `ExpeditionLiveView` conserva la velocidad.

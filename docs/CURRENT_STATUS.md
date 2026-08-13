@@ -291,7 +291,8 @@ and §17 acceptance test are complete.
   start to matter — is an open product question, not settled here.
 - ESC closes overlays iteratively: ModalHost (topmost modal first), then
   PauseMenu (close only — open path is the dedicated button), then the
-  hero profile / building detail view via
+  hero profile / contextual `BuildingInspector` (the fullscreen
+  `BuildingDetailView` shell retired in issue #20) via
   `CityWorldController.ReturnToCity()` from `CityPrototype._UnhandledInput`.
   `ModalHost.CompleteClose` no longer throws when its content is freed
   mid-animation.
@@ -355,7 +356,7 @@ and §17 acceptance test are complete.
 - Assigned-work offline catch-up still steps ticks; recovery, expedition and now
   citizen travel use semantic boundaries.
 - Expedition planning/status remains in the city rail, while active expeditions
-  can open the lateral `ExpeditionLiveView` without owning their runtime state.
+  can open the depth-band `ExpeditionLiveView` without owning their runtime state.
   Its provisional `CombatantView` actors project authoritative session
   positions, facing, HP, action/hit feedback and knockback; sprites remain
   placeholders.
@@ -480,7 +481,10 @@ de cualquier cambio de UI.
 - Main scene: `game/scenes/CityPrototype.tscn`
 - Macro city/navigation: `game/scripts/Prototypes/MacroStreetLiveView.cs`
 - Construction/building UI: `game/scripts/ConstructionPanel.cs`,
-  `game/scripts/BuildingDetailView.cs`
+  `game/scripts/BuildingInspector.cs` (replaces fullscreen
+  `BuildingDetailView` per issue #20 — same snapshot, signals and
+  commands, contextual overlay over the macro instead of a top-level
+  scene).
 - Citizens: `game/scripts/MigrantPanel.cs`, citizen snapshots/routines
 - Expedition: `game/scripts/ExpeditionPanel.cs`, expedition domain files
 - Chronicle: `game/scripts/Ui/ChroniclePanel.cs`,

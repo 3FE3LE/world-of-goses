@@ -203,6 +203,14 @@ touched — regardless of which domain owns the feature.
 - **Code:** `game/scripts/Domain/Building.cs`, `BuildingKind.cs`, `ConstructionRules.cs`
 - **Consult `citizens-rpg` when:** the shelter hosts recovery or bounds population.
 
+### Building inspector (contextual)
+- **Primary agent:** `presentation-experience`
+- **Required skills:** `presentation-experience`, `city-simulation`
+- **Conditional skills:** `citizens-rpg`, `technical-foundation`
+- **Canonical docs:** `docs/ARCHITECTURE.md` §10 "Spatial grammar" (BuildingDetailView retirement), `docs/UI_PATTERNS.md` §5
+- **Code:** `game/scripts/Application/BuildingDetailSnapshot.cs`, `game/scripts/BuildingDetailView.cs` (fullscreen, to be retired in #20), `game/scripts/Ui/ContextInspector.cs`, `AssignmentPanel.cs`, `ProductionPanel.cs`, `ResourceInventoryPanel.cs`
+- **Hard rule:** the inspector is a contextual overlay over the macro; it must not replace the macro with a fullscreen top-level scene. Reuse the canonical `BuildingDetailSnapshot`; do not fork it into a second read model.
+
 ---
 
 ## Expeditions and territory
@@ -238,6 +246,14 @@ touched — regardless of which domain owns the feature.
 - **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
 - **Code:** `game/scripts/Domain/Expedition.cs`, `ExpeditionPhase.cs`, `CityResourceLedger.cs`
 - **Hard rule:** an expedition includes the return leg. Survivors come back carrying their consequences.
+
+### Expedition path & spatial stage
+- **Primary agent:** `presentation-experience`
+- **Required skills:** `presentation-experience`, `expeditions-territory`
+- **Conditional skills:** `technical-foundation` (only if the boundary between presentation and the snapshot layer is touched)
+- **Canonical docs:** `docs/ARCHITECTURE.md` §10 "Spatial grammar", `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
+- **Code:** `game/scripts/Prototypes/MacroStreetRenderer.cs` (shared primitives consumer), `game/scripts/Ui/TerrainAtlas.cs`, `game/scripts/Prototypes/StreetDepthProjection.cs`, `game/scripts/Ui/ExpeditionStage.cs`, `game/scripts/ExpeditionLiveView.cs`
+- **Hard rule:** the path is presentation; the world offset is **derived** from `Travel.PositionX` and combat positions, never a second authoritative state. No `PositionY`/lane/navmesh and no persistence of path chunks or parallax factors.
 
 ### Territory
 - **Primary agent:** `expeditions-territory`

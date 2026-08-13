@@ -108,10 +108,16 @@ introduced.
 Prefer a small end-to-end expedition over a broad expedition skeleton:
 an objective, members, supplies, one configurable policy, deterministic
 causal resolution, a return, and a visible consequence for the city.
-`DEC-0020` makes the first lateral combat encounter part of proving that seam,
+`DEC-0020` makes the first combat encounter part of proving that seam,
 not a later reward for closing it. Broader combat, equipment, routes,
 diplomacy, and exploration still wait until the end-to-end Founder Spirit
 Trail is proven.
+
+The first encounter occurs over the same expedition depth-band stage
+(see `docs/ARCHITECTURE.md` §10 "Spatial grammar"): travel and combat
+share the projection, only the camera policy changes. The former
+"lateral battlefield" stage exists only as a transient prototype and
+must not be reintroduced.
 
 ---
 
@@ -243,8 +249,9 @@ implementation.
 The active proof is **EG-5V — Founder Spirit Trail visual vertical**. From a
 clean slot, the player must move through astral onboarding, the authored first
 night and `SpiritDeparted`, dispatch the Founder, see the first automatic
-lateral encounter within roughly five minutes of gameplay, continue to the
-objective and return to the city.
+encounter within roughly five minutes of gameplay, continue to the
+objective and return to the city. The encounter occurs over the same expedition
+depth-band stage as travel (per `docs/ARCHITECTURE.md` §10 "Spatial grammar").
 
 The proof keeps one unpausable world clock: city, travel and combat advance in
 parallel; switching to `ExpeditionLiveView` preserves the current 1x / 2x / 4x

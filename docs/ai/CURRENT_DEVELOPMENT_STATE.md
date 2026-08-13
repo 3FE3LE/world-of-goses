@@ -77,11 +77,12 @@ domain. Treat each as a hard "do not regress" target.
   `time-midnight`/`time-dawn`/`time-noon`/`time-dusk` visual fixtures.
 - Ambient tint scope: the tint is an immersion effect for the **map only**.
   It renders on `OverlayLayers.AmbientTint` (5), below `OverlayLayers.Hud`
-  (6), which the status strip, macro action bar, `BuildingDetailView` and
-  `HeroProfileView` all claim; and it mirrors `MacroStreetLiveView.Visible`
-  so full-screen views that replace the map are untinted even if they never
-  touch the catalog. HUD chrome that renders tinted is HUD chrome that
-  forgot to claim its layer.
+  (6), which the status strip, macro action bar, the contextual
+  `BuildingInspector` (replaces fullscreen `BuildingDetailView`,
+  issue #20) and `HeroProfileView` all claim; and it mirrors
+  `MacroStreetLiveView.Visible` so full-screen views that replace the
+  map are untinted even if they never touch the catalog. HUD chrome that
+  renders tinted is HUD chrome that forgot to claim its layer.
 - EG-0 opening measurement (`EarlyGameMetrics` + `EarlyGameMetricsReport`,
   schema v20): time to first shelter, resources gathered/spent, idle
   citizen-days, Food horizon, expedition absence. Counters are event- or
