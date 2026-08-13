@@ -17,6 +17,46 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## La retícula de placement y los recursos se alinean a la misma celda
+
+**2026-08-13** · presentación · schema v35 (sin cambio) · 1647 pruebas superadas
+
+**El jugador ve un strip por celda, no tres subceldas con estados fantasma.**
+La capa de availability en placement pintaba cada `ConstructionRowId` con
+`depthDivisions: 3`, dibujando dos líneas horizontales que partían un
+frontage cell en tres. La unidad mecánica del dominio es un frontage cell
+(`BuildingReservation.RequiredDepthRows = 3` codifica la profundidad
+completa, no tres estados independientes) y
+`NaturalResourceUnitPosition` no tiene coordenada de profundidad: el
+recurso ocupa la primera tercera parte de la fila. La preview 3×3 del
+Basic Shelter sí se queda en `depthDivisions: 3` porque ese footprint
+realmente mide 3×3. La availability baja a `depthDivisions: 1` y
+`frontageDivisions: 1` — un strip uniforme, sin subdivision visual.
+
+**Una sola primitiva para la proyección lateral del suelo.**
+`MacroStreetRenderer.AddTree`, `AddPlot` y la inicialización de la
+placement cell en `MacroStreetLiveView.Begin` reconstruían por separado
+la misma fórmula `(frontageCenter - totalFrontageColumns/2) * TileUnitPx`.
+El renderer de árboles hasta recibía su parámetro como `totalLotColumns`
+en vez de `totalParcelColumns` — exactamente el off-by-parcel que
+producía la deriva de un tile entre donde se dibujaba el asset y donde
+la retícula marcaba la celda. `MacroGroundProjection` es ahora la única
+función pura: `LateralOffsetForCell`, `LateralOffsetForWindow` y
+`ResourceAnchor` devuelven el mismo valor que antes, pero los tres
+callers leen del mismo sitio, así que una futura divergencia rompe un
+test en vez de pasar inadvertida en pantalla.
+
+**Las celdas ocupadas coinciden con los assets visibles.**
+`ResourcePlacementAlignmentTests` añade tres pruebas de regresión: el
+snapshot de placement expone exactamente un `CellItem NaturalResource`
+por unidad viva (no tres por unidad), la celda y el asset comparten
+`ResourceAnchor`, y gatherear la unidad voltea la celda a `Available`
+sin recargar. La fixture `macro-resource-placement-alignment` queda
+registrada en `VISUAL_REGRESSION.md` y firmada a 1280×720 y 1920×1080
+en `UI_AUDIT.md`.
+
+---
+
 ## El opening vuelve a tener mundo por el que jugar
 
 **2026-08-13** · onboarding · schema v35 (sin cambio) · 1637 pruebas superadas

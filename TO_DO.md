@@ -443,6 +443,27 @@ superados en 2026-07-30; ver §8.)_
 
 ### 2026-08-13
 
+- **#30 — La retícula de placement y los recursos del suelo se alinean a la misma celda.**
+  La capa de availability de placement pintaba cada `ConstructionRowId`
+  con tres subceldas internas porque heredó `depthDivisions: 3` del
+  helper de pixel-art. La unidad mecánica del dominio es una
+  `frontage cell` 1×1 con un footprint de profundidad 3 — no tres
+  estados de occupancy. `NaturalResourceUnitPosition` no lleva
+  coordenada de profundidad: el asset vive en el primer tercio de la
+  fila, así que la subdivision visual era un estado fantasma que no
+  correspondía a nada. Cierre: `depthDivisions: 1` para la
+  availability; `depthDivisions: 3` se queda en la preview 3×3 del
+  edificio (que sí mide 3×3). Además se extrae `MacroGroundProjection`
+  con `LateralOffsetForCell`/`LateralOffsetForWindow`/`ResourceAnchor`
+  — `AddTree`, `AddPlot` y la inicialización de placement cells
+  antes copiaban la fórmula lateral cada uno por su lado, y el
+  renderer de árboles la recibía como `totalLotColumns` en vez de
+  `totalParcelColumns` (el off-by-parcel que producía la deriva de
+  un tile entre asset y strip). Sin schema bump. Tests nuevos:
+  `MacroGroundProjectionTests` (7) y `ResourcePlacementAlignmentTests`
+  (3). Fixture visual nueva: `macro-resource-placement-alignment`,
+  firmada a 1280×720 y 1920×1080. Build 0/0, tests 1647/1647.
+
 - **#29 — El opening vuelve a tener mundo por el que jugar.** Regresión
   introducida en `f41eef74`: `CityGameSession.CompleteOnboarding()` sólo
   llamaba a `TryCreateHero()` y dejaba el world vacío. El comentario del

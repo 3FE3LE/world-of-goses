@@ -211,6 +211,14 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             case "macro-hud-active-construction":
                 ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveConstruction);
                 break;
+            // GitHub #30: the resource/placement alignment fixture.
+            // Captures the Basic Shelter placement overlay over the
+            // opening resources so a reviewer can verify that every
+            // visible asset is anchored to the same frontage cell the
+            // grid marks as `NaturalResource`.
+            case "macro-resource-placement-alignment":
+                ShowResourcePlacementAlignmentForVisualRegression();
+                break;
             case "macro-hud-expedition-active":
                 ShowMacroHudForVisualRegression(MacroHudFixtureState.ActiveExpedition);
                 break;
@@ -1747,6 +1755,26 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         {
             inspector.Hide();
         }
+    }
+
+    /// <summary>
+    /// GitHub #30 — opens the Basic Shelter placement overlay over the
+    /// opening resources so a reviewer can verify that every visible
+    /// asset is anchored to the same frontage cell the placement grid
+    /// marks as <c>NaturalResource</c>. Routing through
+    /// <see cref="MacroStreetLiveView.ShowPlacementOverlayForVisualRegression"/>
+    /// is the same path a real click on the build dock takes, so the
+    /// capture proves what the player sees, not what a script can stage.
+    /// </summary>
+    private void ShowResourcePlacementAlignmentForVisualRegression()
+    {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
+        ShowTopStatusForVisualRegression("en");
+        ShowCitySummaryForVisualRegression("en", blocked: false);
+        GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Hide();
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
+            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        macro.ShowPlacementOverlayForVisualRegression();
     }
 
     /// <summary>

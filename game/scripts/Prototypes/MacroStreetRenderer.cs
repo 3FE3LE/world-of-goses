@@ -322,11 +322,20 @@ internal sealed class MacroStreetRenderer
         NaturalResourceUnitPosition position = forest.ResourceUnitPositions[unitId];
         int street = forest.ParcelRow * ParcelGrid.ConstructionRowsPerParcel
             + position.RowWithinParcel;
-        float totalFrontageColumns = totalLotColumns * ParcelGrid.TilesPerStandardLot;
-        float frontageCenter = forest.ParcelColumn * ParcelGrid.FrontageColumnsPerParcel
-            + position.FrontageColumnWithinParcel
-            + 0.5f;
-        float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * MacroViewConstants.TileUnitPx;
+        int globalFrontageColumn = forest.ParcelColumn * ParcelGrid.FrontageColumnsPerParcel
+            + position.FrontageColumnWithinParcel;
+        // GitHub #30: the lateral projection used to be a hand-rolled
+        // formula that was also computed independently by the placement
+        // underlay. Both sites passed `worldParcelColumns` semantically
+        // (one called it `totalLotColumns`), but the field's name on the
+        // snapshot side is parcel columns — that mismatch is exactly
+        // the kind of off-by-parcel that hid the bug. Route through
+        // the shared helper so the resource anchor and the
+        // corresponding placement cell can no longer drift.
+        int worldParcelColumns = totalLotColumns / ParcelGrid.LotsPerAxis;
+        float lateralOffset = MacroGroundProjection.ResourceAnchor(
+            globalFrontageColumn,
+            worldParcelColumns);
         _trees.Add(new TreeBox(
             street,
             lateralOffset,
@@ -354,9 +363,12 @@ internal sealed class MacroStreetRenderer
         int totalParcelColumns)
     {
         int street = item.RowId;
-        float totalFrontageColumns = totalParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
-        float frontageCenter = item.StartColumn + item.FrontageColumns * 0.5f;
-        float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * MacroViewConstants.TileUnitPx;
+        // GitHub #30: keep the lateral projection on the same shared
+        // helper the resource and the placement underlay read.
+        float lateralOffset = MacroGroundProjection.LateralOffsetForWindow(
+            item.StartColumn,
+            item.FrontageColumns,
+            totalParcelColumns);
         float width = item.FrontageColumns * MacroViewConstants.TileUnitPx;
         _plots.Add(new PlotBox(
             street,
@@ -374,7 +386,7 @@ internal sealed class MacroStreetRenderer
             item.ReadyAtTick));
         StreetRoutePlanner.Interval obstacle = MacroObstacleGeometry.BuildingObstacleInterval(
             item,
-            totalFrontageColumns,
+            MacroGroundProjection.TotalFrontageColumns(totalParcelColumns),
             MacroViewConstants.TileUnitPx);
         AddBandInterval(street, obstacle.Start, obstacle.End);
     }
@@ -565,13 +577,20 @@ internal sealed class MacroStreetRenderer
                 out Vector2 nearLeft, out Vector2 nearRight,
                 out Vector2 farRight, out Vector2 farLeft);
             bool blocked = cell.Cell.State != WorldofGoses.Domain.FrontageCellState.Available;
+            // GitHub #30: the availability underlay represents one
+            // frontage cell, not three. A 1×3 strip with internal
+            // depth sub-divisions made the grid look like it tracked
+            // three independent states when the domain only knows
+            // about one. The 3×3 building preview below keeps
+            // `depthDivisions: 3` because the shelter footprint
+            // actually spans three depth tiles.
             DrawSteppedPlacementFootprint(
                 canvas,
                 nearLeft, nearRight, farRight, farLeft,
                 blocked ? MacroViewConstants.PlacementBlockedCellColor : MacroViewConstants.PlacementAvailableColor,
                 MacroViewConstants.PlacementGridColor,
                 frontageDivisions: 1,
-                depthDivisions: 3,
+                depthDivisions: 1,
                 drawInvalidMarker: blocked);
         }
 

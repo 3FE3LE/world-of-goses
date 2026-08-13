@@ -577,12 +577,16 @@ public partial class MacroStreetLiveView : Node2D
     {
         int street = FoundingLayout.InitialParcelRow * ParcelGrid.ConstructionRowsPerParcel
             + FoundingLayout.FounderRowWithinParcel;
-        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
-        float frontageCenter = FoundingLayout.InitialParcelColumn
+        // GitHub #30: the founder arrival coordinate is a frontage
+        // cell center, not a custom anchor. Routing through the
+        // shared helper keeps the lateral projection in lockstep
+        // with the placement and the resource renderers.
+        int globalFrontageColumn = FoundingLayout.InitialParcelColumn
             * ParcelGrid.FrontageColumnsPerParcel
-            + FoundingLayout.FounderFrontageColumnWithinParcel
-            + 0.5f;
-        float lateral = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            + FoundingLayout.FounderFrontageColumnWithinParcel;
+        float lateral = MacroGroundProjection.LateralOffsetForCell(
+            globalFrontageColumn,
+            _worldParcelColumns);
         (Vector2 position, _) = ProjectDepth(
             AnchorDepth(street - CameraDepthAnchor),
             lateral - CameraLateral);
@@ -805,6 +809,30 @@ public partial class MacroStreetLiveView : Node2D
         ActivatePerspective();
     }
 
+    /// <summary>
+    /// Opens the Basic Shelter placement overlay so a fixture can capture
+    /// the underlay and the building preview together (GitHub #30).
+    /// The fixture name is <c>macro-resource-placement-alignment</c> and
+    /// it is what a human reviewer uses to confirm that every visible
+    /// ground resource aligns with the same frontage cell the placement
+    /// grid marks as <c>NaturalResource</c>.
+    /// </summary>
+    internal void ShowPlacementOverlayForVisualRegression()
+    {
+        if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
+        ActivatePerspective();
+        ConstructionPlacementSnapshot placement =
+            _controller.GetConstructionPlacementSnapshot();
+        if (!placement.Windows.Any(window => window.IsValid))
+        {
+            GD.PushError(
+                "Resource-placement-alignment fixture found no buildable lot "
+                + "to open placement against.");
+            return;
+        }
+        BeginPlacement(ConstructionKind.BasicShelter, placement);
+    }
+
     internal void ShowCitizenStatusForVisualRegression(CitizenId citizenId)
     {
         RefreshPlots();
@@ -990,30 +1018,37 @@ public partial class MacroStreetLiveView : Node2D
         _interaction.SelectedTree = null;
         _interaction.SelectedBuildingId = null;
         ClearTreeHover();
-        float totalFrontageColumns = _worldParcelColumns * ParcelGrid.FrontageColumnsPerParcel;
+        // GitHub #30: every lateral offset here is now read from the
+        // shared `MacroGroundProjection` helper. The cell width and
+        // height also come from the helper so a future tweak to the
+        // strip geometry cannot leave the placement code in the
+        // old shape.
         foreach (ConstructionPlacementSnapshot.WindowItem window in placement.Windows)
         {
             ConstructionLot lot = window.Lot;
             int street = lot.RowId.Value;
-            float frontageCenter = lot.StartColumn + lot.FrontageColumns * 0.5f;
-            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            float lateralOffset = MacroGroundProjection.LateralOffsetForWindow(
+                lot.StartColumn,
+                lot.FrontageColumns,
+                _worldParcelColumns);
             _placement.AddLot(new PlacementLotBox(
                 window,
                 street,
                 lateralOffset,
                 lot.FrontageColumns * TileUnitPx,
-                BuildingReservation.RequiredDepthRows * TileUnitPx));
+                MacroGroundProjection.ConstructionRowHeightPx));
         }
         foreach (ConstructionPlacementSnapshot.CellItem cell in placement.Cells)
         {
-            float frontageCenter = cell.FrontageColumn + 0.5f;
-            float lateralOffset = (frontageCenter - totalFrontageColumns * 0.5f) * TileUnitPx;
+            float lateralOffset = MacroGroundProjection.LateralOffsetForCell(
+                cell.FrontageColumn,
+                _worldParcelColumns);
             _placement.AddCell(new PlacementCellBox(
                 cell,
                 cell.RowId.Value,
                 lateralOffset,
-                TileUnitPx,
-                BuildingReservation.RequiredDepthRows * TileUnitPx));
+                MacroGroundProjection.CellWidthPx,
+                MacroGroundProjection.ConstructionRowHeightPx));
         }
         QueueRedraw();
     }
