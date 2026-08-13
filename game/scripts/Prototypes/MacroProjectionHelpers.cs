@@ -1,6 +1,7 @@
 #nullable enable
 using Godot;
 using WorldofGoses.Domain;
+using WorldofGoses.Ui;
 
 namespace WorldofGoses.Prototypes;
 
@@ -49,9 +50,11 @@ internal static class MacroProjectionHelpers
     /// <summary>Snaps a value to the nearest grid step. The chunky pixel
     /// step is deliberately coarser than the underlying geometry so the
     /// floor's staircase edges climb in whole-pixel treads instead of
-    /// betraying the pixel art with a smooth diagonal.</summary>
+    /// betraying the pixel art with a smooth diagonal. Forwards to
+    /// <see cref="SharedDepthBands.SnapPixel"/> so the macro and the
+    /// future expedition path renderer share one snap helper.</summary>
     public static float SnapPixel(float value, float pixelStepPx) =>
-        Mathf.Round(value / pixelStepPx) * pixelStepPx;
+        SharedDepthBands.SnapPixel(value, pixelStepPx);
 
     /// <summary>Draw order for a street band at a given depth. Nearer to
     /// camera means a larger z, and it is the <em>same</em> function for

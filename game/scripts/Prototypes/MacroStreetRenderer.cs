@@ -526,40 +526,20 @@ internal sealed class MacroStreetRenderer
 
     /// <summary>Approximates a perspective trapezoid as a "staircase" of
     /// small, axis-aligned, pixel-snapped rectangles (see the moved
-    /// view doc for the full rationale).</summary>
+    /// view doc for the full rationale). Forwards to
+    /// <see cref="SharedDepthBands.DrawStaircaseTrapezoid"/> so the
+    /// expedition path renderer can consume the same primitive in
+    /// #21 without copy/paste.</summary>
     public void DrawPixelStaircaseTrapezoid(
         CanvasItem canvas,
         float yNear, float yFar,
         float xLeftNear, float xRightNear,
         float xLeftFar, float xRightFar,
-        Texture2D atlas, Rect2 sourceRegion)
-    {
-        float height = yNear - yFar;
-        int stripes = Mathf.Clamp(Mathf.RoundToInt(height / MacroViewConstants.PixelStepPx), 1, 32);
-        for (int i = 0; i < stripes; i++)
-        {
-            float tNear = i / (float)stripes;
-            float tFar = (i + 1) / (float)stripes;
-            float stripeBottom = MacroProjectionHelpers.SnapPixel(
-                Mathf.Lerp(yNear, yFar, tNear), MacroViewConstants.PixelStepPx);
-            float stripeTop = MacroProjectionHelpers.SnapPixel(
-                Mathf.Lerp(yNear, yFar, tFar), MacroViewConstants.PixelStepPx);
-            float left = MacroProjectionHelpers.SnapPixel(
-                Mathf.Lerp(xLeftNear, xLeftFar, tNear), MacroViewConstants.PixelStepPx);
-            float right = MacroProjectionHelpers.SnapPixel(
-                Mathf.Lerp(xRightNear, xRightFar, tNear), MacroViewConstants.PixelStepPx);
-            if (right <= left || stripeBottom <= stripeTop) continue;
-            var stripeSource = new Rect2(
-                sourceRegion.Position.X,
-                sourceRegion.Position.Y + sourceRegion.Size.Y * tNear,
-                sourceRegion.Size.X,
-                sourceRegion.Size.Y * (tFar - tNear));
-            canvas.DrawTextureRectRegion(
-                atlas,
-                new Rect2(new Vector2(left, stripeTop), new Vector2(right - left, stripeBottom - stripeTop)),
-                stripeSource);
-        }
-    }
+        Texture2D atlas, Rect2 sourceRegion) =>
+        SharedDepthBands.DrawStaircaseTrapezoid(
+            canvas, yNear, yFar,
+            xLeftNear, xRightNear, xLeftFar, xRightFar,
+            atlas, sourceRegion, MacroViewConstants.PixelStepPx);
 
     /// <summary>Render the placement footprint for a single street.
     /// The view supplies the placement cells / lots / hover / selected

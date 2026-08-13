@@ -17,6 +17,21 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Primitivas de profundidad compartidas sin urbanizar la expedición
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El jugador hereda un motor de dibujo más pequeño y sin ruido futuro.**
+La rasterización del trapezoide en escalera de píxeles y el `SnapPixel`
+viven ahora en `SharedDepthBands` (`game/scripts/Ui/`) — un módulo
+estrictamente neutro, sin parcelas, sin edificios, sin `CityMacroSnapshot`.
+`MacroStreetRenderer` y la futura `ExpeditionPathRenderer` consumen
+ambos desde ahí. No se introducen flags `isExpedition`; el vocabulario
+queda compartido pero cada renderer conserva su semántica. 1548 tests
+pasan (eran 1522), 0 warnings. Cierra #19.
+
+---
+
 ## Gramática espacial canónica para ciudad y expedición
 
 **2026-08-12** · documentación · sin cambio de schema
