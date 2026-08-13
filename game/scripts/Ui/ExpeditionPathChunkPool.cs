@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 
 namespace WorldofGoses.Ui;
@@ -24,6 +25,16 @@ namespace WorldofGoses.Ui;
 /// </para>
 ///
 /// <para>
+/// A chunk's logical index is its absolute position on the world
+/// grid — <c>OffsetUnits / ChunkWidthUnits</c>, always. That is what
+/// makes <c>seed + logicalIndex -> dressing</c> mean something: walk
+/// away from a stretch of path and come back, and the same stretch
+/// wears the same biome and the same prop count, because it is the
+/// same index. An index counted relative to the focus would have
+/// re-dressed the world every time the party moved.
+/// </para>
+///
+/// <para>
 /// Nothing in here persists across the stage lifetime. Chunks are
 /// presentation state and die with the stage (issue #22 acceptance).
 /// </para>
@@ -39,22 +50,25 @@ public sealed class ExpeditionPathChunkPool
     /// <summary>The chunk holding the world offset focus.</summary>
     public const int FocusChunkIndex = 3;
 
+    private const long ChunkWidth = (long)ChunkWidthUnits;
+
     private readonly ExpeditionPathChunk[] _chunks;
+    private readonly int _seed;
     private long _worldOffsetUnits;
-    private long _focusLogicalIndex;
 
     public ExpeditionPathChunkPool(int seed)
     {
+        _seed = seed;
         _chunks = new ExpeditionPathChunk[ChunkCount];
         for (int i = 0; i < ChunkCount; i++)
         {
-            long relativeSlots = i - FocusChunkIndex;
-            long logicalIndex = -relativeSlots;
-            long offsetUnits = relativeSlots * (long)ChunkWidthUnits;
-            _chunks[i] = new ExpeditionPathChunk(seed: seed, logicalIndex: logicalIndex, offsetUnits: offsetUnits);
+            long offsetUnits = (i - FocusChunkIndex) * ChunkWidth;
+            _chunks[i] = new ExpeditionPathChunk(
+                seed: seed,
+                logicalIndex: offsetUnits / ChunkWidth,
+                offsetUnits: offsetUnits);
         }
-        _focusLogicalIndex = 0;
-        _worldOffsetUnits = _chunks[FocusChunkIndex].OffsetUnits;
+        _worldOffsetUnits = 0;
     }
 
     /// <summary>All chunks, in array order.</summary>
@@ -64,13 +78,13 @@ public sealed class ExpeditionPathChunkPool
     public long FocusOffsetUnits => _worldOffsetUnits;
 
     /// <summary>Logical index of the focus chunk.</summary>
-    public long FocusLogicalIndex => _focusLogicalIndex;
+    public long FocusLogicalIndex => _chunks[FocusChunkIndex].LogicalIndex;
 
     /// <summary>
     /// Drives the recycler. The input is the desired focus chunk
-    /// world offset (1D, monotonic with travel progress). The pool
-    /// may move 0, 1 or more chunks at a time depending on how far
-    /// the offset advanced.
+    /// world offset (1D, monotonic with travel progress). However
+    /// far the offset jumps, the work is the same: the window is
+    /// recentred once, not stepped chunk by chunk.
     /// </summary>
     public void SetWorldOffset(long worldOffsetUnits)
     {
@@ -79,28 +93,23 @@ public sealed class ExpeditionPathChunkPool
         // chunks. Snapping keeps the contract that "two snapshots
         // with the same PositionX produce the same world offset"
         // without inventing partial chunks for sub-boundary offsets.
-        long snappedOffset = (worldOffsetUnits / (long)ChunkWidthUnits) * (long)ChunkWidthUnits;
-        _worldOffsetUnits = snappedOffset;
+        // Floor rather than truncate so the grid does not fold around
+        // zero on a return leg: -1 belongs to chunk -1, not chunk 0.
+        long focusIndex = FloorDiv(worldOffsetUnits, ChunkWidth);
+        _worldOffsetUnits = focusIndex * ChunkWidth;
+        if (FocusLogicalIndex == focusIndex) return;
 
-        long focusOffset = _chunks[FocusChunkIndex].OffsetUnits;
-        long delta = (snappedOffset - focusOffset) / (long)ChunkWidthUnits;
-        if (delta == 0) return;
-        int sign = delta > 0 ? 1 : -1;
-        long steps = System.Math.Abs(delta);
-        for (long s = 0; s < steps; s++)
+        for (int i = 0; i < _chunks.Length; i++)
         {
-            long step = sign * (long)ChunkWidthUnits;
-            for (int i = 0; i < _chunks.Length; i++)
-            {
-                _chunks[i].OffsetUnits += step;
-            }
-            _focusLogicalIndex += sign;
-            for (int i = 0; i < _chunks.Length; i++)
-            {
-                long relativeSlots = _chunks[i].OffsetUnits / (long)ChunkWidthUnits;
-                _chunks[i].LogicalIndex = _focusLogicalIndex + relativeSlots;
-            }
+            long index = focusIndex + (i - FocusChunkIndex);
+            _chunks[i].Recycle(_seed, index, index * ChunkWidth);
         }
+    }
+
+    private static long FloorDiv(long value, long divisor)
+    {
+        long quotient = value / divisor;
+        return value % divisor != 0 && (value < 0) != (divisor < 0) ? quotient - 1 : quotient;
     }
 }
 
@@ -120,8 +129,18 @@ public sealed class ExpeditionPathChunk
     }
 
     public int Seed { get; private set; }
-    public long LogicalIndex { get; set; }
-    public long OffsetUnits { get; set; }
+
+    /// <summary>
+    /// Absolute chunk index on the world grid. Settable only through
+    /// <see cref="Recycle"/>: the index and the dressing derived from
+    /// it have to move in the same step, or a recycled chunk wears
+    /// the previous index's biome — which is exactly how the
+    /// deterministic-dressing contract was being broken.
+    /// </summary>
+    public long LogicalIndex { get; private set; }
+
+    public long OffsetUnits { get; private set; }
+
     public int PropCount { get; private set; }
 
     /// <summary>Stable dressing biome id derived from
@@ -130,12 +149,37 @@ public sealed class ExpeditionPathChunk
     /// time the chunk is recycled.</summary>
     public int BiomeId { get; private set; }
 
-    public void Reset(int seed, long logicalIndex, long offsetUnits)
+    /// <summary>Moves this chunk to a new place on the world grid and
+    /// re-derives its dressing in the same step.</summary>
+    public void Recycle(int seed, long logicalIndex, long offsetUnits)
     {
         Seed = seed;
         LogicalIndex = logicalIndex;
         OffsetUnits = offsetUnits;
         RecomputeDressing();
+    }
+
+    /// <summary>World-space X where this chunk starts.</summary>
+    public long WorldStartUnits => OffsetUnits;
+
+    /// <summary>World-space X where this chunk ends.</summary>
+    public long WorldEndUnits => OffsetUnits + (long)ExpeditionPathChunkPool.ChunkWidthUnits;
+
+    /// <summary>
+    /// World-space X of prop <paramref name="propIndex"/> inside this
+    /// chunk. Props are spread evenly rather than jittered: the
+    /// spacing is a pure function of the index, so a chunk that
+    /// leaves the window and comes back puts its props back exactly
+    /// where they were.
+    /// </summary>
+    public double PropWorldX(int propIndex)
+    {
+        if (propIndex < 0 || propIndex >= PropCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(propIndex));
+        }
+        double step = ExpeditionPathChunkPool.ChunkWidthUnits / (PropCount + 1d);
+        return WorldStartUnits + step * (propIndex + 1);
     }
 
     private void RecomputeDressing()
@@ -145,8 +189,13 @@ public sealed class ExpeditionPathChunk
         // cardinality and the same biome id — this is the seam that
         // lets the chunk pool survive a recycle without ever
         // re-randomising the world.
+        // Biome and prop count read different bits of the hash. Reading
+        // the same two bits made PropCount a restatement of BiomeId, so
+        // every chunk of a given biome carried exactly the same number
+        // of props and the dressing repeated on a four-chunk cycle.
         int hash = unchecked((int)((Seed * 397) ^ LogicalIndex));
-        PropCount = 1 + (hash & 0x3);
+        hash = unchecked(hash * -1521134295 ^ (hash >>> 13));
+        PropCount = 1 + ((hash >>> 5) & 0x3);
         BiomeId = hash & 0x3;
     }
 }

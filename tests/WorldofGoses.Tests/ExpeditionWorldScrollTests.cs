@@ -1,120 +1,164 @@
+using System;
+using System.Collections.Generic;
+using Godot;
 using WorldofGoses.Ui;
 using Xunit;
 
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// #23 contract: <see cref="Travel.PositionX"/> drives the world
-/// scroll. Two snapshots with the same PositionX produce the same
-/// world offset; the recycler never grows. We exercise the link
-/// through the chunk pool (the presentation sink) and through the
-/// pure mapping function the stage uses, so the tests stay
-/// Godot-free.
+/// #23 contract: <c>Travel.PositionX</c> moves the world, and the
+/// party holds a focal position while it goes past.
+///
+/// <para>
+/// The reopening put it exactly: the offset was being computed and fed
+/// to a chunk pool nothing drew, while the founder was projected
+/// straight onto screen X. So the party crossed a world that never
+/// moved — the reverse of the contract, with a green suite on top
+/// because the tests only ever asked the pool about itself. These
+/// assertions read screen coordinates out of the same composition the
+/// stage draws.
+/// </para>
 /// </summary>
 public class ExpeditionWorldScrollTests
 {
+    private static readonly ExpeditionPathAnchor Anchor =
+        ExpeditionPathAnchor.For(new Vector2(800f, 460f));
+    private const long ChunkWidth = (long)ExpeditionPathChunkPool.ChunkWidthUnits;
+
     [Fact]
-    public void TwoSnapshotsSamePositionX_ProduceSameWorldOffset()
+    public void SamePositionX_ProducesTheSamePicture()
     {
-        // Same authoritative 1D value should yield the same chunk
-        // pool state. A presentation-only mapping must be a pure
-        // function of the snapshot.
-        long positionA = 640;
-        long positionB = 640;
-        var poolA = MakeScrolledPool(positionA, seed: 7);
-        var poolB = MakeScrolledPool(positionB, seed: 7);
-        Assert.Equal(poolA.FocusOffsetUnits, poolB.FocusOffsetUnits);
+        // Presentation derived from a snapshot has to be a pure
+        // function of it; anything else means a hidden clock.
+        var first = new ExpeditionPathCamera();
+        var second = new ExpeditionPathCamera();
+        first.FollowTravel(640.4, seed: 7);
+        second.FollowTravel(640.4, seed: 7);
+
+        Assert.Equal(first.WorldOffsetUnits, second.WorldOffsetUnits);
+        Assert.Equal(Seams(first), Seams(second));
     }
 
     [Fact]
-    public void WorldOffset_IsMonotonicWithPositionX()
+    public void SustainedTravel_MovesTheTerrainAndNotTheParty()
     {
-        // Outbound → larger offset; return → smaller. The pool
-        // never invents an offset that contradicts the input.
-        long initial = 0;
-        var pool = new ExpeditionPathChunkPool(seed: 1);
-        pool.SetWorldOffset(initial);
-        long chunk = (long)ExpeditionPathChunkPool.ChunkWidthUnits;
+        // The heart of #23, stated as two measurements taken at the
+        // same moments: where the ground is, and where the founder is.
+        var camera = new ExpeditionPathCamera();
+        var groundPositions = new List<float>();
+        var partyPositions = new List<float>();
 
-        long outbound = initial + chunk * 30;
-        pool.SetWorldOffset(outbound);
-        Assert.True(pool.FocusOffsetUnits > initial);
-        Assert.Equal(outbound, pool.FocusOffsetUnits);
+        for (double positionX = 100; positionX <= 900; positionX += 37)
+        {
+            camera.FollowTravel(positionX, seed: 11);
+            groundPositions.Add(ExpeditionPathRenderer.PlayableScreenX(
+                850, camera.WorldOffsetUnits, Anchor));
+            partyPositions.Add(ExpeditionPathRenderer.PlayableScreenX(
+                positionX, camera.WorldOffsetUnits, Anchor));
+        }
 
-        long turningPoint = outbound + chunk * 10;
-        pool.SetWorldOffset(turningPoint);
-        Assert.Equal(turningPoint, pool.FocusOffsetUnits);
-
-        long returning = turningPoint - chunk * 8;
-        pool.SetWorldOffset(returning);
-        Assert.Equal(returning, pool.FocusOffsetUnits);
-        Assert.True(returning < turningPoint);
+        Assert.True(
+            groundPositions[^1] < groundPositions[0] - 700f,
+            "Eight hundred units of travel must move the world by roughly as much.");
+        foreach (float partyX in partyPositions)
+        {
+            // "A stable focus", made specific: within a pixel of the
+            // anchor's centre, the sub-unit remainder of PositionX
+            // being the only permitted anticipation.
+            Assert.InRange(partyX, Anchor.CenterX - 1f, Anchor.CenterX + 1f);
+        }
     }
 
     [Fact]
-    public void HundredsOfPositionXUpdates_DoNotGrowThePool()
+    public void ObjectiveIsProjectedInWorldSpace_AndApproaches()
     {
-        // The acceptance criterion for #23: assert no growth across
-        // a long outbound + multiple chunk recycles + a return.
-        var pool = new ExpeditionPathChunkPool(seed: 19);
-        long chunk = (long)ExpeditionPathChunkPool.ChunkWidthUnits;
-        long initial = pool.FocusOffsetUnits;
-        int initialCount = pool.Chunks.Count;
-        // Outbound: a thousand chunks of travel.
+        // Not pinned to a fraction of the stage: it is a place, and it
+        // gets nearer because the party gets nearer to it.
+        var camera = new ExpeditionPathCamera();
+        camera.FollowTravel(200, seed: 2);
+        float far = ExpeditionPathRenderer.PlayableScreenX(850, camera.WorldOffsetUnits, Anchor);
+
+        camera.FollowTravel(600, seed: 2);
+        float near = ExpeditionPathRenderer.PlayableScreenX(850, camera.WorldOffsetUnits, Anchor);
+
+        camera.FollowTravel(850, seed: 2);
+        float arrived = ExpeditionPathRenderer.PlayableScreenX(
+            850, camera.WorldOffsetUnits, Anchor);
+
+        Assert.True(near < far);
+        Assert.True(arrived < near);
+        // Standing on it means standing on it: the marker meets the
+        // party at the focus.
+        Assert.Equal(Anchor.CenterX, arrived, precision: 3);
+    }
+
+    [Fact]
+    public void OutboundAndReturn_InvertThroughOneAuthority()
+    {
+        var camera = new ExpeditionPathCamera();
+        camera.FollowTravel(300, seed: 4);
+        IReadOnlyList<float> outbound = Seams(camera);
+
+        camera.FollowTravel(900, seed: 4);
+        camera.FollowTravel(300, seed: 4);
+
+        // No second clock and no persisted offset: the same
+        // PositionX yields the same frame whichever leg produced it.
+        Assert.Equal(outbound, Seams(camera));
+    }
+
+    [Fact]
+    public void ThousandsOfUpdates_DoNotGrowThePool()
+    {
+        var camera = new ExpeditionPathCamera();
+        camera.FollowTravel(0, seed: 19);
+        ExpeditionPathChunkPool pool = camera.Chunks!;
+
         for (int step = 1; step <= 1000; step++)
         {
-            pool.SetWorldOffset(initial + chunk * step);
+            camera.FollowTravel(step * ChunkWidth, seed: 19);
+            Assert.Equal(ExpeditionPathChunkPool.ChunkCount, camera.Chunks!.Chunks.Count);
         }
-        Assert.Equal(initialCount, pool.Chunks.Count);
-
-        long destination = pool.FocusOffsetUnits;
-        // Stay at the objective.
-        pool.SetWorldOffset(destination);
-        Assert.Equal(destination, pool.FocusOffsetUnits);
-
-        // Return: half-way back.
         for (int step = 999; step >= 500; step--)
         {
-            pool.SetWorldOffset(initial + chunk * step);
+            camera.FollowTravel(step * ChunkWidth, seed: 19);
         }
-        Assert.Equal(initialCount, pool.Chunks.Count);
+
+        Assert.Same(pool, camera.Chunks);
+        Assert.Equal(ExpeditionPathChunkPool.ChunkCount, camera.Chunks!.Chunks.Count);
     }
 
     [Fact]
-    public void ObjectiveMarker_StaysAtItsLogicalPosition_ThroughTheRecycle()
+    public void AStretchOfWorld_KeepsItsChunkIndexAcrossARecycle()
     {
-        // The Spirit Trail objective also maps through PositionX;
-        // after a long scroll + a return, asking the same PositionX
-        // back must place it on the same chunk index it had on the
-        // outbound leg. This protects the markers attached to a
-        // chunk from drifting when chunks recycle.
-        var pool = new ExpeditionPathChunkPool(seed: 13);
-        long chunk = (long)ExpeditionPathChunkPool.ChunkWidthUnits;
-        long initial = pool.FocusOffsetUnits;
-        long objective = initial + chunk * 25;
-        pool.SetWorldOffset(objective);
-        long chunkIndexAtObjective = FindChunkIndexForOffset(pool, objective);
+        var camera = new ExpeditionPathCamera();
+        long objective = 25 * ChunkWidth;
+        camera.FollowTravel(objective, seed: 13);
+        long indexAtObjective = camera.Chunks!.FocusLogicalIndex;
 
-        // Scroll past, then return.
-        for (int s = 26; s <= 200; s++)
-            pool.SetWorldOffset(initial + chunk * s);
-        for (int s = 200; s >= 25; s--)
-            pool.SetWorldOffset(initial + chunk * s);
+        for (int s = 26; s <= 200; s++) camera.FollowTravel(s * ChunkWidth, seed: 13);
+        for (int s = 200; s >= 25; s--) camera.FollowTravel(s * ChunkWidth, seed: 13);
 
-        long chunkIndexAfterReturn = FindChunkIndexForOffset(pool, objective);
-        Assert.Equal(chunkIndexAtObjective, chunkIndexAfterReturn);
+        Assert.Equal(indexAtObjective, camera.Chunks!.FocusLogicalIndex);
+        Assert.Equal(objective, camera.WorldOffsetUnits);
     }
 
-    private static long FindChunkIndexForOffset(ExpeditionPathChunkPool pool, long offsetUnits)
+    [Fact]
+    public void ScrollIsQuantisedToWholeUnits()
     {
-        long relative = offsetUnits / (long)ExpeditionPathChunkPool.ChunkWidthUnits;
-        return pool.FocusLogicalIndex + relative;
+        // Travel arrives on ticks and the world is pixel art; the
+        // offset is a whole number of units so the ground steps rather
+        // than sliding sub-pixel.
+        var camera = new ExpeditionPathCamera();
+        foreach (double positionX in new[] { 100.2, 100.5, 100.9, 101.4 })
+        {
+            camera.FollowTravel(positionX, seed: 1);
+            Assert.Equal(Math.Round(positionX), camera.WorldOffsetUnits);
+        }
     }
 
-    private static ExpeditionPathChunkPool MakeScrolledPool(long positionX, int seed)
-    {
-        var pool = new ExpeditionPathChunkPool(seed);
-        pool.SetWorldOffset(positionX);
-        return pool;
-    }
+    private static IReadOnlyList<float> Seams(ExpeditionPathCamera camera) =>
+        ExpeditionPathComposition.ChunkSeams(
+            camera.Chunks!.Chunks, camera.WorldOffsetUnits, Anchor);
 }

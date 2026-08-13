@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Godot;
 using WorldofGoses.Ui;
 using Xunit;
 
@@ -128,5 +130,41 @@ public class ExpeditionPathParallaxTests
         {
             Assert.InRange(chunk.PropCount, 1, 4);
         }
+    }
+
+    [Fact]
+    public void TheFactorsHaveAProductionConsumer()
+    {
+        // The reopening of #25 found the helper and its tests alone in
+        // the world: nothing in the renderer called LayerOffset, so
+        // there was no parallax however well the ratios were covered.
+        // Every factor now reaches the screen through
+        // ExpeditionPathRenderer's world-to-screen rule.
+        var anchor = ExpeditionPathAnchor.For(new Vector2(800f, 460f));
+        float withHelper = 400f
+            + (600f - ExpeditionPathParallax.LayerOffset(200, ExpeditionPathParallax.RearFactor));
+        float throughRenderer = ExpeditionPathRenderer.WorldToScreenX(
+            600 / ExpeditionPathParallax.RearFactor,
+            200,
+            ExpeditionPathParallax.RearFactor,
+            anchor);
+
+        Assert.Equal(400f, anchor.CenterX, precision: 3);
+        Assert.Equal(withHelper, throughRenderer, precision: 3);
+    }
+
+    [Fact]
+    public void EveryLayerIsReachableFromADepth()
+    {
+        // Four planes, and each one has a depth that names it. A layer
+        // no depth maps to is a layer nothing can draw.
+        var seen = new HashSet<ExpeditionPathLayer>();
+        for (float depth = ExpeditionPathRenderer.ForegroundDepth;
+            depth < ExpeditionPathRenderer.RowCount;
+            depth += 1f)
+        {
+            seen.Add(ExpeditionPathRenderer.LayerForDepth(depth));
+        }
+        Assert.Equal(4, seen.Count);
     }
 }

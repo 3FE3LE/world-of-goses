@@ -26,21 +26,24 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public partial class ExpeditionStage : Control
 {
-    private const int HorizontalPadding = 44;
     private const int CombatantWidth = 64;
     private const int CombatantHeight = 96;
     private const int GroundRatioPercent = 68;
     private const string CombatantScenePath = "res://scenes/Components/CombatantView.tscn";
     private const string TerrainAtlasPath =
         "res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png";
-    private const int EarthFillTileId = 786; // seam-free fill from the shared atlas
-    private const int PathTileId = 538; // worn-footprint tile reused from the same atlas
+    // Which of these is the road decides how the whole stage reads.
+    // While the playable band was the row nearest the horizon (#27),
+    // 538's green covered it and the trodden earth covered everything
+    // else — a strip of grass at the skyline with the party walking on
+    // bare ground. The names now say what each one draws.
+    private const int TroddenPathTileId = 786; // worn earth, the road itself
+    private const int GroundCoverTileId = 538; // green cover either side of it
 
     private readonly Dictionary<string, CombatantView> _views = new();
+    private readonly List<PlacedParticipant> _placed = new();
     private PackedScene _combatantScene = null!;
     private int _lastPresentedStep = -1;
-    private double _domainMinimumX;
-    private double _domainMaximumX = 1000;
     private bool _objectiveVisible;
     private bool _objectiveReached;
     private double _objectivePositionX;
@@ -52,10 +55,34 @@ public partial class ExpeditionStage : Control
         ClipContents = true;
         _combatantScene = ResourceLoader.Load<PackedScene>(CombatantScenePath);
         EnsureTerrainAtlas();
+        Resized += OnResized;
         QueueRedraw();
     }
 
+    public override void _ExitTree() => Resized -= OnResized;
+
     public void Configure(
+        IReadOnlyList<CombatParticipantState> party,
+        IReadOnlyList<CombatParticipantState> enemies,
+        IReadOnlyList<CombatLogEntry> log,
+        int step,
+        double domainMinimumX,
+        double domainMaximumX)
+    {
+        // An encounter frames itself. The chunk window and the world
+        // grid are untouched — the same chunks keep their logical
+        // indices and their dressing, so the fight happens on the
+        // stretch of path the party walked in on (#24) — but the
+        // camera settles on the middle of the arena so both sides are
+        // on screen. Travel left the offset at the party's own
+        // position, which would have put the enemies past the right
+        // edge. Framing is a camera decision; it is not a second
+        // source of truth for where anything *is*.
+        _camera.FrameEncounter(domainMinimumX, domainMaximumX, seed: step);
+        ConfigureCore(party, enemies, log, step, domainMinimumX, domainMaximumX);
+    }
+
+    private void ConfigureCore(
         IReadOnlyList<CombatParticipantState> party,
         IReadOnlyList<CombatParticipantState> enemies,
         IReadOnlyList<CombatLogEntry> log,
@@ -68,16 +95,11 @@ public partial class ExpeditionStage : Control
         ArgumentNullException.ThrowIfNull(log);
         if (domainMaximumX <= domainMinimumX)
             throw new ArgumentOutOfRangeException(nameof(domainMaximumX));
-        _domainMinimumX = domainMinimumX;
-        _domainMaximumX = domainMaximumX;
-        // Encounter: keep the same chunk pool (#24) so the path
-        // does not reset to a fresh window when combat starts.
-        // The world scroll pauses because Travel.PositionX is no
-        // longer advancing while combat controls the timeline.
         _objectiveVisible = false;
         _objectiveReached = false;
 
         var activeIds = new HashSet<string>(StringComparer.Ordinal);
+        _placed.Clear();
         ApplyParticipants(party, CombatSide.Party, activeIds, log, step);
         ApplyParticipants(enemies, CombatSide.Enemy, activeIds, log, step);
         RemoveMissing(activeIds);
@@ -96,9 +118,15 @@ public partial class ExpeditionStage : Control
         // off this value; outbound advances it forward, the
         // return leg pulls it back. The stage never invents a
         // parallel offset of its own.
-        _worldOffsetUnits = (long)System.Math.Round(travel.PositionX);
-        _chunkPool ??= new ExpeditionPathChunkPool(seed: worldTick);
-        _chunkPool.SetWorldOffset(_worldOffsetUnits);
+        //
+        // The offset moves the world, not the party. Everything with a
+        // world coordinate — terrain, chunk seams, dressing, the
+        // objective — is projected through it, so advancing it slides
+        // all of them leftward past a founder who stays at the anchor's
+        // centre. Before #23 was reconnected this value fed a pool
+        // nothing drew, while the founder was projected straight onto
+        // screen X: the party crossed a world that never moved.
+        _camera.FollowTravel(travel.PositionX, seed: worldTick);
         double maximumHealth = 100;
         double currentHealth = maximumHealth * Math.Clamp(healthRatio ?? 1, 0, 1);
         var founder = new CombatParticipantState(
@@ -115,7 +143,7 @@ public partial class ExpeditionStage : Control
             travel.Activity,
             0,
             CombatStature.Standard);
-        Configure(
+        ConfigureCore(
             [founder],
             Array.Empty<CombatParticipantState>(),
             Array.Empty<CombatLogEntry>(),
@@ -148,12 +176,12 @@ public partial class ExpeditionStage : Control
     /// Travel snapshot. Lives behind a read-only getter so the test
     /// assembly can verify the recycler state without leaking the
     /// pool across the public surface.</summary>
-    internal ExpeditionPathChunkPool? ChunkPool => _chunkPool;
+    internal ExpeditionPathChunkPool? ChunkPool => _camera.Chunks;
 
     /// <summary>The most recent world offset driven by the
     /// authoritative Travel.PositionX. Returns 0 before the first
     /// ConfigureTravel call.</summary>
-    internal long WorldOffsetUnits => _worldOffsetUnits;
+    internal long WorldOffsetUnits => _camera.WorldOffsetUnits;
 
     public void ClearCombatants()
     {
@@ -174,69 +202,136 @@ public partial class ExpeditionStage : Control
         Color distance = GetThemeColor("fill_cooldown");
         Color ground = GetThemeColor("border_disabled");
         Color outline = GetThemeColor("border_locked");
+        ExpeditionPathAnchor anchor = PathAnchor;
         // Sky: solid colour is still the right call (no perspective on
         // the void); everything from the rear band down uses the
         // shared depth-band rasterizer.
         DrawRect(new Rect2I(0, 0, logicalSize.X, logicalSize.Y), sky);
 
-        // Bands grow as depth increases; row 0 sits in the rear and
-        // the playable band is the last one (ExpeditionPathRenderer.RowCount-1).
+        // Farthest plane first. The blocks belong to world positions,
+        // so they crawl leftward as the party advances rather than
+        // sitting still behind a moving foreground.
+        foreach (ExpeditionPathProp block in ExpeditionPathComposition.DistanceBlocks(
+            _camera.WorldOffsetUnits, logicalSize.X, anchor))
+        {
+            DrawProp(block, distance.Darkened(0.15f + block.BiomeId * 0.08f));
+        }
+
+        // Ground rows, far to near, so nearer bands overdraw the seam
+        // of the one behind them. Which row gets the worn-path tile is
+        // asked, not inferred: IsPlayable is the same authority the
+        // combatants and the objective resolve their Y through (#27).
+        IReadOnlyList<ExpeditionPathBand> bands = ExpeditionPathComposition.Bands(anchor);
         if (_terrainAtlas is not null)
         {
-            for (int depth = 0; depth < ExpeditionPathRenderer.RowCount; depth++)
+            for (int i = bands.Count - 1; i >= 0; i--)
             {
-                float depthNear = depth;
-                float depthFar = depth + 1f;
-                float yNear = ExpeditionPathRenderer.RowScreenY(depthNear);
-                float yFar = ExpeditionPathRenderer.RowScreenY(depthFar);
-                float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
-                float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
-                float halfWidth = ExpeditionPathRenderer.HalfWidthPx;
-                float center = ExpeditionPathRenderer.CenterX;
-                float leftNear = center - halfWidth * scaleNear;
-                float rightNear = center + halfWidth * scaleNear;
-                float leftFar = center - halfWidth * scaleFar;
-                float rightFar = center + halfWidth * scaleFar;
-                int tileId = depth == ExpeditionPathRenderer.RowCount - 1
-                    ? PathTileId
-                    : EarthFillTileId;
+                ExpeditionPathBand band = bands[i];
                 SharedDepthBands.DrawStaircaseTrapezoid(
                     this,
-                    yNear, yFar,
-                    leftNear, rightNear,
-                    leftFar, rightFar,
+                    band.ScreenYNear, band.ScreenYFar,
+                    band.LeftNear, band.RightNear,
+                    band.LeftFar, band.RightFar,
                     _terrainAtlas,
-                    TerrainAtlas.RegionOfId(tileId),
+                    TerrainAtlas.RegionOfId(
+                        band.IsPlayable ? TroddenPathTileId : GroundCoverTileId),
                     ExpeditionPathRenderer.PixelStep);
             }
         }
 
-        // Outline on the horizon line keeps the staged silhouette the
-        // previous projection provided, drawn as a 2 px line at the
-        // playable band's near edge so it never crosses the bands.
-        float playableY = ExpeditionPathRenderer.RowScreenY(
-            ExpeditionPathRenderer.PlayableDepth);
-        DrawLine(
-            new Vector2I(0, Mathf.RoundToInt(playableY)),
-            new Vector2I(logicalSize.X, Mathf.RoundToInt(playableY)),
-            outline,
-            width: 2,
-            antialiased: false);
-        // Legacy silhouette is preserved where bands do not yet cover
-        // the upper region (depth 0 still gives a 580-ish row, the
-        // silhouette was painted above the ground line so it can stay
-        // as a small overlap with the empty sky band).
+        float playableY = ExpeditionPathRenderer.PlayableScreenY(anchor);
+        DrawRearDressing(ground, playableY);
+
+        // Tread marks at the chunk boundaries. A road of identical
+        // tiles slides under the party without a pixel appearing to
+        // move; these are what make the scroll legible on the playable
+        // band itself rather than only on the dressing beside it.
+        if (_camera.Chunks is not null)
+        {
+            int treadTop = Mathf.RoundToInt(playableY) - 3;
+            foreach (float seamX in ExpeditionPathComposition.ChunkSeams(
+                _camera.Chunks.Chunks, _camera.WorldOffsetUnits, anchor))
+            {
+                if (seamX < 0 || seamX > logicalSize.X) continue;
+                DrawRect(
+                    new Rect2I(Mathf.RoundToInt(seamX) - 1, treadTop, 3, 7),
+                    ground.Darkened(0.35f));
+            }
+        }
+
+        // No horizon rule across the playable band any more. It was
+        // drawn when the terrain ended there and the void began; now
+        // the fringe continues the ground toward the camera, and a
+        // full-width line across it only cut one continuous surface in
+        // half. The band already reads as the road because it is the
+        // one wearing the trodden tile.
         if (_terrainAtlas is null)
         {
             int horizon = logicalSize.Y * GroundRatioPercent / 100;
             DrawLandscapeSilhouette(logicalSize, horizon, outline);
         }
         if (_objectiveVisible) DrawSpiritTrailManifestation(Mathf.RoundToInt(playableY));
+        DrawForegroundDressing(ground);
     }
 
+    /// <summary>The anchor for the size this Control actually has.
+    /// Falls back to the authored 1280x720 anchor before the first
+    /// layout pass, when Size is still zero.</summary>
+    private ExpeditionPathAnchor PathAnchor =>
+        Size.X > 1f && Size.Y > 1f
+            ? ExpeditionPathAnchor.For(Size)
+            : ExpeditionPathAnchor.Default;
+
+    private void DrawRearDressing(Color ground, float playableY)
+    {
+        if (_camera.Chunks is null) return;
+        foreach (ExpeditionPathProp prop in ExpeditionPathComposition.Props(
+            _camera.Chunks.Chunks, _camera.WorldOffsetUnits, PathAnchor))
+        {
+            if (prop.Layer != ExpeditionPathLayer.Rear) continue;
+            if (prop.ScreenBaseY >= playableY) continue;
+            DrawProp(prop, BiomeTint(ground, prop.BiomeId));
+        }
+    }
+
+    private void DrawForegroundDressing(Color ground)
+    {
+        if (_camera.Chunks is null) return;
+        foreach (ExpeditionPathProp prop in ExpeditionPathComposition.Props(
+            _camera.Chunks.Chunks, _camera.WorldOffsetUnits, PathAnchor))
+        {
+            if (prop.Layer != ExpeditionPathLayer.Foreground) continue;
+            // The fringe is drawn after the combatants, so it must not
+            // be allowed to sit on top of them: it lives below the
+            // playable band, where only the ground is.
+            DrawProp(prop, BiomeTint(ground, prop.BiomeId).Darkened(0.45f));
+        }
+    }
+
+    private void DrawProp(in ExpeditionPathProp prop, Color color)
+    {
+        int width = Mathf.Max(1, Mathf.RoundToInt(prop.WidthPx));
+        int height = Mathf.Max(1, Mathf.RoundToInt(prop.HeightPx));
+        int left = Mathf.RoundToInt(prop.ScreenX) - width / 2;
+        int top = Mathf.RoundToInt(prop.ScreenBaseY) - height;
+        DrawRect(new Rect2I(left, top, width, height), color);
+        // A second, narrower block on top turns a bar into a silhouette
+        // without paying for a sprite the dressing does not have yet.
+        DrawRect(
+            new Rect2I(left + width / 4, top - height / 3, Mathf.Max(1, width / 2), height / 3),
+            color.Darkened(0.2f));
+    }
+
+    private static Color BiomeTint(Color ground, int biomeId) => biomeId switch
+    {
+        0 => ground.Darkened(0.1f),
+        1 => ground.Lightened(0.12f),
+        2 => ground.Darkened(0.3f),
+        _ => ground.Lightened(0.28f),
+    };
+
     private Texture2D? _terrainAtlas;
-    private ExpeditionPathChunkPool? _chunkPool;
-    private long _worldOffsetUnits;
+    private readonly ExpeditionPathCamera _camera = new();
 
     /// <summary>Custom <c>_Ready</c> extension: load the shared terrain
     /// atlas once so the new depth-band rendering does not instantiate
@@ -267,18 +362,19 @@ public partial class ExpeditionStage : Control
 
             int baselineOffset = ((index % 3) - 1) * 4;
             // Project the authoritative one-dimensional PositionX onto
-            // the playable band of the depth-band stage. The Y is the
+            // the playable band of the depth-band stage, through the
+            // same world-to-screen rule the terrain uses. The Y is the
             // stage's playable row — never a domain Y, never a combat
             // position — and the X is the read-only projection of the
             // domain coordinate. The stage is still 1D; the rendering
             // is what gives the playable band depth.
-            float stageX = ExpeditionPathRenderer.ProjectDomainXToStageX(
-                _domainMinimumX, _domainMaximumX, participant.PositionX);
-            float playableY = ExpeditionPathRenderer.RowScreenY(
-                ExpeditionPathRenderer.PlayableDepth);
-            Vector2I target = new(
-                Mathf.RoundToInt(stageX) - CombatantWidth / 2,
-                Mathf.RoundToInt(playableY) - CombatantHeight + baselineOffset);
+            //
+            // During travel this is what keeps the party at a stable
+            // focus: the offset tracks the founder's own PositionX, so
+            // the difference between them is what is drawn, and it is
+            // ~0. The founder holds the centre and the world goes past.
+            _placed.Add(new PlacedParticipant(participant.Id, participant.PositionX, index));
+            Vector2I target = PlacementFor(participant.PositionX, baselineOffset);
             bool animate = _lastPresentedStep >= 0 && step > _lastPresentedStep;
             view.ApplySnapshot(
                 participant,
@@ -290,17 +386,37 @@ public partial class ExpeditionStage : Control
         }
     }
 
-    private int ProjectPosition(double domainX)
+    private Vector2I PlacementFor(double worldX, int baselineOffset)
     {
-        double ratio = Math.Clamp(
-            (domainX - _domainMinimumX) / (_domainMaximumX - _domainMinimumX),
-            0,
-            1);
-        int width = Math.Max(1, Mathf.RoundToInt(Size.X) - HorizontalPadding * 2);
-        return HorizontalPadding + Mathf.RoundToInt((float)(ratio * width));
+        ExpeditionPathAnchor anchor = PathAnchor;
+        float stageX = ExpeditionPathRenderer.PlayableScreenX(
+            worldX, _camera.WorldOffsetUnits, anchor);
+        float playableY = ExpeditionPathRenderer.PlayableScreenY(anchor);
+        return new Vector2I(
+            Mathf.RoundToInt(stageX) - CombatantWidth / 2,
+            Mathf.RoundToInt(playableY) - CombatantHeight + baselineOffset);
     }
 
-    private int GroundY() => Mathf.RoundToInt(Size.Y) * GroundRatioPercent / 100;
+    /// <summary>
+    /// Re-places the combatants when the Control changes size.
+    /// The anchor is derived from that size, so without this the views
+    /// would keep the coordinates of the previous layout while the
+    /// terrain moved under them.
+    /// </summary>
+    private void OnResized()
+    {
+        foreach (PlacedParticipant placed in _placed)
+        {
+            if (!_views.TryGetValue(placed.Id, out CombatantView? view)) continue;
+            view.Position = PlacementFor(placed.WorldX, ((placed.Index % 3) - 1) * 4);
+        }
+        QueueRedraw();
+    }
+
+    /// <summary>What the stage needs to put a combatant back where it
+    /// belongs after a resize: who, where in the world, and which slot
+    /// in its side's ordering (the slot decides the baseline jitter).</summary>
+    private readonly record struct PlacedParticipant(string Id, double WorldX, int Index);
 
     private static IReadOnlyList<CombatLogEntry> EventsFor(
         string participantId,
@@ -349,8 +465,13 @@ public partial class ExpeditionStage : Control
 
     private void DrawSpiritTrailManifestation(int horizon)
     {
-        float stageX = ExpeditionPathRenderer.ProjectDomainXToStageX(
-            _domainMinimumX, _domainMaximumX, _objectivePositionX);
+        // The objective is a place in the world, so it is projected the
+        // way every other place is: through the world offset, on the
+        // playable band. It therefore approaches as the party walks
+        // toward it instead of hanging at a fixed fraction of the
+        // stage.
+        float stageX = ExpeditionPathRenderer.PlayableScreenX(
+            _objectivePositionX, _camera.WorldOffsetUnits, PathAnchor);
         int centerX = Mathf.RoundToInt(stageX);
         int centerY = horizon - 54;
         Color border = GetThemeColor(_objectiveReached ? "border_ready" : "border_locked");

@@ -1351,6 +1351,25 @@ the explicit decisions of issue #18/#19.
    share the same `ExpeditionPathRenderer`/stage; the
    "lateral expedition" framing was a transient prototype and is not
    the direction of record.
+7. **One playable band, and consumers ask for it.** Terrain, party,
+   enemies, objective and dressing all resolve their row through
+   `ExpeditionPathRenderer.PlayableDepth` / `IsPlayableDepth`. No
+   caller may re-derive it from a row index. It was derived twice
+   once — the terrain painted `depth == RowCount - 1` while gameplay
+   stood on depth 0 — and the result was a path at the horizon with
+   the party walking beside it (#27).
+8. **What the renderer computes, it computes in one place.**
+   `ExpeditionPathComposition` turns (chunks, world offset, anchor)
+   into the exact screen geometry `ExpeditionStage._Draw` paints, and
+   `ExpeditionPathCamera` owns the world offset across the Travel →
+   Encounter → Return sequence. Both are pure and Godot-free because
+   the stage is a `Control` and cannot be instantiated in the test
+   assembly: without them, a test of "the path scrolls" can only
+   re-enact the calls it believes the stage makes. It is how #22-#25
+   came to be closed with a recycler, parallax factors and
+   deterministic dressing that between them reached no pixel — every
+   part covered, nothing connected. A change that moves a drawing
+   decision back into `_Draw` puts it beyond reach of the suite.
 
 ## 11. Planned event-based simulation
 

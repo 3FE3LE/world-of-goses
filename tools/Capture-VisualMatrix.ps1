@@ -170,10 +170,19 @@ foreach ($resolution in $resolutions) {
             "--path", $projectPath.Path,
             "--log-file", $logPath,
             $ScenePath,
+            # --windowed before --resolution, and both before the scene runs.
+            # The project ships fullscreen borderless (display/window/size/mode
+            # = 3), and a fullscreen window ignores --resolution outright: it
+            # takes the desktop's size instead. That is how a 2560x1440 desktop
+            # silently turned every golden frame into a 2560x1440 render that
+            # no longer matched the matrix slug. The harness has to pin its own
+            # window rather than inherit however the game happens to ship.
+            "--windowed",
             "--resolution", $slug,
             "--position", "0,0",
             "--", "--wog-visual-capture",
-            "--wog-visual-capture-out=$framePath"
+            "--wog-visual-capture-out=$framePath",
+            "--wog-visual-capture-size=$slug"
         )
         if (![string]::IsNullOrWhiteSpace($VisualFixture)) {
             $arguments += "--wog-visual-fixture=$VisualFixture"
@@ -196,17 +205,29 @@ foreach ($resolution in $resolutions) {
             throw "Godot did not expose a window for $StateName at $slug."
         }
 
-        # Poll until the client rect is actually the requested size, rather
-        # than sleeping a fixed interval and asserting once. Godot reports a
-        # 50x50 bootstrap client for the first frames of a cold start; the
-        # old fixed sleep meant a slow machine failed the assertion outright
-        # and a fast one raced it. Clicks derived from bootstrap geometry
-        # would land nowhere near their target, so this has to be settled
-        # before any coordinate is computed.
+        # Poll until the client rect has settled, rather than sleeping a fixed
+        # interval and asserting once. Godot reports a 50x50 bootstrap client
+        # for the first frames of a cold start; the old fixed sleep meant a
+        # slow machine failed the assertion outright and a fast one raced it.
+        # Clicks derived from bootstrap geometry would land nowhere near their
+        # target, so this has to be settled before any coordinate is computed.
+        #
+        # Settled means *proportional to* the requested resolution, not equal
+        # to it. On a HiDPI desktop the window manager hands back physical
+        # pixels — 2560x1442 for a 1280x720 request at 200% scale — and the
+        # old equality check rejected every capture on such a machine, which
+        # is how visual sign-off went dark for several sessions. Nothing
+        # downstream needs the rect to be 1:1: clicks are normalized and
+        # multiplied by the measured size, and the golden frame comes from the
+        # engine's own viewport, which reports the size it truly rendered and
+        # is asserted against the slug further down. What must still be
+        # rejected is the bootstrap rect, and its square 1:1 aspect is what
+        # separates it from a legitimately scaled window.
         $rect = New-Object VisualMatrixWindowCapture+Rect
         $origin = New-Object VisualMatrixWindowCapture+Point
         $actualWidth = 0
         $actualHeight = 0
+        $requestedAspect = $resolution.Width / $resolution.Height
         $settleDeadline = [DateTime]::UtcNow.AddMilliseconds($StartupSettleMilliseconds)
         do {
             if (![VisualMatrixWindowCapture]::GetClientRect($process.MainWindowHandle, [ref]$rect) `
@@ -215,13 +236,19 @@ foreach ($resolution in $resolutions) {
             }
             $actualWidth = $rect.Right - $rect.Left
             $actualHeight = $rect.Bottom - $rect.Top
-            if ($actualWidth -eq $resolution.Width -and $actualHeight -eq $resolution.Height) { break }
+            if ($actualWidth -ge $resolution.Width -and $actualHeight -gt 0) {
+                $aspectDrift = [Math]::Abs(($actualWidth / $actualHeight) - $requestedAspect)
+                if ($aspectDrift -le ($requestedAspect * 0.02)) { break }
+            }
             Start-Sleep -Milliseconds 100
         } while (!$process.HasExited -and [DateTime]::UtcNow -lt $settleDeadline)
 
-        if ($actualWidth -ne $resolution.Width -or $actualHeight -ne $resolution.Height) {
-            throw ("Godot client settled at ${actualWidth}x${actualHeight}, expected $slug " +
-                "for $StateName. Clicks and geometry cannot be derived from a bootstrap rect.")
+        $settledAspect = if ($actualHeight -gt 0) { $actualWidth / $actualHeight } else { 0 }
+        if ($actualWidth -lt $resolution.Width `
+            -or [Math]::Abs($settledAspect - $requestedAspect) -gt ($requestedAspect * 0.02)) {
+            throw ("Godot client settled at ${actualWidth}x${actualHeight}, which is not " +
+                "proportional to the requested $slug for $StateName. Clicks and geometry " +
+                "cannot be derived from a bootstrap rect.")
         }
 
         # The scene still needs a moment to compose once the window is the

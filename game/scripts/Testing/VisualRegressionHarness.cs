@@ -51,11 +51,13 @@ public static class VisualRegressionHarness
     private const string CommandLineFlag = "--wog-visual-capture";
     private const string FixtureCommandLinePrefix = "--wog-visual-fixture=";
     private const string CapturePathCommandLinePrefix = "--wog-visual-capture-out=";
+    private const string CaptureSizeCommandLinePrefix = "--wog-visual-capture-size=";
 
     private static bool _isActive;
     private static string? _fixtureName;
     private static string? _longTerrariumCapturePath;
     private static string? _viewportCapturePath;
+    private static Vector2I? _captureSize;
 
     /// <summary>
     /// True once <see cref="Activate"/> has run and confirmed the
@@ -99,7 +101,34 @@ public static class VisualRegressionHarness
     {
         ArgumentNullException.ThrowIfNull(host);
         if (!_isActive || _viewportCapturePath is null) return;
+        ApplyCaptureWindowSize();
         host.AddChild(new ViewportCaptureService(_viewportCapturePath));
+    }
+
+    /// <summary>
+    /// Pins the window to the size the matrix asked for, in windowed mode.
+    /// </summary>
+    /// <remarks>
+    /// The golden frame is the viewport, and the viewport is the window: with
+    /// <c>stretch/mode = canvas_items</c> and <c>aspect = expand</c>, a
+    /// larger window renders more world rather than the same world larger, so
+    /// the window size is part of what the frame means. The project ships
+    /// fullscreen borderless, and a fullscreen window ignores
+    /// <c>--resolution</c> outright — it takes the desktop's size. On a
+    /// 2560x1440 desktop every capture therefore rendered 2560x1440 while the
+    /// matrix asked for 1280x720, and the run failed at the size assertion
+    /// instead of producing evidence. Asking the display server directly is
+    /// the only place the answer cannot be overridden by a project setting.
+    /// Dev-only: nothing reaches here unless a capture was requested.
+    /// </remarks>
+    private static void ApplyCaptureWindowSize()
+    {
+        if (_captureSize is not { } size) return;
+        if (DisplayServer.WindowGetMode() != DisplayServer.WindowMode.Windowed)
+        {
+            DisplayServer.WindowSetMode(DisplayServer.WindowMode.Windowed);
+        }
+        if (DisplayServer.WindowGetSize() != size) DisplayServer.WindowSetSize(size);
     }
 
     /// <summary>
@@ -128,6 +157,11 @@ public static class VisualRegressionHarness
             {
                 _viewportCapturePath = argument[CapturePathCommandLinePrefix.Length..];
             }
+            else if (argument.StartsWith(CaptureSizeCommandLinePrefix, StringComparison.Ordinal))
+            {
+                _captureSize = ParseCaptureSize(
+                    argument[CaptureSizeCommandLinePrefix.Length..]);
+            }
         }
 
         // Long terrarium probe is opt-in via its own flag and does
@@ -138,6 +172,20 @@ public static class VisualRegressionHarness
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Reads a <c>WxH</c> slug. Returns <c>null</c> for anything that is not
+    /// two positive integers, so a malformed flag leaves the window alone
+    /// rather than resizing it to nonsense the frame would then be judged on.
+    /// </summary>
+    private static Vector2I? ParseCaptureSize(string slug)
+    {
+        string[] parts = slug.Split('x', StringSplitOptions.TrimEntries);
+        if (parts.Length != 2) return null;
+        if (!int.TryParse(parts[0], out int width) || width <= 0) return null;
+        if (!int.TryParse(parts[1], out int height) || height <= 0) return null;
+        return new Vector2I(width, height);
     }
 
     /// <summary>

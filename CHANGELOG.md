@@ -17,6 +17,38 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## El camino de expedición empieza a moverse de verdad
+
+**2026-08-13** · expedición · schema v35 (sin cambio) · 1632 pruebas superadas
+
+**El jugador ve avanzar el mundo, no cruzarlo.** El Founder mantiene el foco y
+el terreno, la maleza, el horizonte y el objetivo se deslizan a cuatro
+velocidades distintas contra él, todo derivado del mismo `Travel.PositionX`. Al
+volver, el mismo tramo trae la misma vegetación: el vestido de cada chunk es
+función de su índice absoluto en la rejilla del mundo, y reciclarlo ya
+recalcula ese vestido en el mismo paso en vez de arrastrar el del tramo
+anterior. El encuentro ocurre sobre esa misma tira de camino, con la ventana de
+chunks intacta.
+
+**Y el camino es el camino.** La banda jugable estaba definida dos veces: el
+terreno pintaba la huella en la fila del horizonte mientras el grupo, los
+enemigos y el objetivo se plantaban en la fila más cercana. Se veía una franja
+verde en el cielo y el Founder andando sobre tierra pelada. Ahora hay una sola
+autoridad y todos preguntan por ella.
+
+Lo que faltaba no era diseño sino cable: el recycler, los factores de parallax y
+el dressing determinista existían, estaban probados, y no llegaba ninguno a un
+píxel. Las decisiones de dibujo viven ahora en `ExpeditionPathComposition` y
+`ExpeditionPathCamera`, puros y sin Godot, para que una prueba pueda ejecutar la
+misma llamada que hace el stage en vez de una imitación suya.
+
+**El arnés visual vuelve a funcionar.** Llevaba varias sesiones rechazando toda
+captura con `Godot client settled at 2560x1442`: el proyecto pasó a fullscreen
+borderless y una ventana fullscreen ignora `--resolution`. El arnés fija ahora
+su propia ventana desde el motor.
+
+---
+
 ## Salir del juego deja de ser cosa del aspa de la ventana
 
 **2026-08-12** · presentación · schema v35 (sin cambio) · 1614 pruebas superadas

@@ -1,3 +1,4 @@
+using Godot;
 using WorldofGoses.Prototypes;
 using WorldofGoses.Ui;
 using Xunit;
@@ -5,88 +6,148 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// Regression coverage for the new <see cref="ExpeditionPathRenderer"/>
-/// introduced in #21. The renderer consumes
-/// <see cref="StreetDepthProjection"/> and <see cref="SharedDepthBands"/>
-/// without copying either formula, leaves the macro output untouched,
-/// and projects the canonical 1D domain coordinates onto the playable
-/// band without inventing a second authority.
+/// Regression coverage for <see cref="ExpeditionPathRenderer"/>: the
+/// single authority for which band of the expedition path is playable
+/// and how a world coordinate reaches the screen.
+///
+/// <para>
+/// The tests that matter here are the ones about the playable band
+/// (#27). It was defined twice — <c>PlayableDepth = 0</c> for anyone
+/// who asked, and <c>depth == RowCount - 1</c> inside the stage's own
+/// terrain loop — so the worn-path tile was painted on the row nearest
+/// the horizon while the party stood on the row nearest the camera.
+/// Constants agreeing with each other never caught that; only real
+/// coordinates do.
+/// </para>
 /// </summary>
 public class ExpeditionPathRendererTests
 {
-    [Fact]
-    public void RowCount_IsStatic_ForSlice21()
-    {
-        // The slice still owns a finite strip; #22 swaps in the
-        // recycler.
-        Assert.Equal(6, ExpeditionPathRenderer.RowCount);
-    }
+    private static readonly ExpeditionPathAnchor Anchor =
+        ExpeditionPathAnchor.For(new Vector2(800f, 460f));
 
     [Fact]
     public void RowScreenY_ForwardsToStreetDepthProjection()
     {
-        float ourY = ExpeditionPathRenderer.RowScreenY(2f);
-        float sharedY = StreetDepthProjection.RowScreenY(2f, ExpeditionPathRenderer.BaseY);
+        float ourY = ExpeditionPathRenderer.RowScreenY(2f, Anchor);
+        float sharedY = StreetDepthProjection.RowScreenY(2f, Anchor.BaseY);
         Assert.Equal(sharedY, ourY);
     }
 
     [Fact]
-    public void PlayableDepth_IsDepthZero()
+    public void PlayableDepth_IsTheRowNearestTheCamera()
     {
-        Assert.Equal(0f, ExpeditionPathRenderer.PlayableDepth);
+        // Depth 0 is the near row: every other row sits higher on
+        // screen. If this inverts, "playable band" silently means the
+        // horizon and the party walks on the sky.
+        float playableY = ExpeditionPathRenderer.PlayableScreenY(Anchor);
+        for (float depth = 1f; depth < ExpeditionPathRenderer.RowCount; depth += 1f)
+        {
+            Assert.True(
+                ExpeditionPathRenderer.RowScreenY(depth, Anchor) < playableY,
+                $"Depth {depth} should sit above the playable band.");
+        }
     }
 
     [Fact]
-    public void ProjectDomainXToStageX_MonotonicAndClampedToThePlayableBand()
+    public void IsPlayableDepth_AnswersForExactlyOneRow()
     {
-        // The renderer must project the authoritative 1D combat /
-        // travel PositionX onto the playable band. Order is preserved
-        // and the projection sits inside the stage's horizontal band.
-        float left = ExpeditionPathRenderer.ProjectDomainXToStageX(0, 1000, 0);
-        float middle = ExpeditionPathRenderer.ProjectDomainXToStageX(0, 1000, 500);
-        float right = ExpeditionPathRenderer.ProjectDomainXToStageX(0, 1000, 1000);
-
-        Assert.True(left < middle);
-        Assert.True(middle < right);
-        float playableHorizontalScale = ExpeditionPathRenderer.PlayableHorizontalScale();
-        float halfWidth = ExpeditionPathRenderer.HalfWidthPx * playableHorizontalScale;
-        Assert.InRange(left, ExpeditionPathRenderer.CenterX - halfWidth - 0.01f,
-            ExpeditionPathRenderer.CenterX - halfWidth + 0.01f);
-        Assert.InRange(right, ExpeditionPathRenderer.CenterX + halfWidth - 0.01f,
-            ExpeditionPathRenderer.CenterX + halfWidth + 0.01f);
+        int playableRows = 0;
+        for (float depth = ExpeditionPathRenderer.ForegroundDepth;
+            depth < ExpeditionPathRenderer.RowCount;
+            depth += 1f)
+        {
+            if (ExpeditionPathRenderer.IsPlayableDepth(depth)) playableRows++;
+        }
+        Assert.Equal(1, playableRows);
+        Assert.True(ExpeditionPathRenderer.IsPlayableDepth(
+            ExpeditionPathRenderer.PlayableDepth));
+        Assert.False(ExpeditionPathRenderer.IsPlayableDepth(
+            ExpeditionPathRenderer.RowCount - 1f));
     }
 
     [Fact]
-    public void ProjectDomainXToStageX_ThrowsWhenDomainIsDegenerate()
+    public void LayerForDepth_OrdersTheFourPlanes()
     {
-        // An invalid domain envelope (max <= min) is a programming
-        // error; we surface it loudly rather than divide by zero.
-        Assert.Throws<System.ArgumentOutOfRangeException>(
-            () => ExpeditionPathRenderer.ProjectDomainXToStageX(100, 100, 50));
+        Assert.Equal(
+            ExpeditionPathLayer.Foreground,
+            ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.ForegroundDepth));
+        Assert.Equal(
+            ExpeditionPathLayer.Playable,
+            ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.PlayableDepth));
+        Assert.Equal(ExpeditionPathLayer.Rear, ExpeditionPathRenderer.LayerForDepth(2f));
+        Assert.Equal(
+            ExpeditionPathLayer.Distance,
+            ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.RowCount - 1f));
     }
 
     [Fact]
-    public void IsRowVisible_AcceptsTheStaticWindow()
+    public void ParallaxFactors_IncreaseFromTheHorizonToTheFringe()
     {
-        Assert.True(ExpeditionPathRenderer.IsRowVisible(0f));
+        float distance = ExpeditionPathRenderer.ParallaxFactorForDepth(
+            ExpeditionPathRenderer.RowCount - 1f);
+        float rear = ExpeditionPathRenderer.ParallaxFactorForDepth(2f);
+        float playable = ExpeditionPathRenderer.ParallaxFactorForDepth(
+            ExpeditionPathRenderer.PlayableDepth);
+        float foreground = ExpeditionPathRenderer.ParallaxFactorForDepth(
+            ExpeditionPathRenderer.ForegroundDepth);
+
+        Assert.True(distance < rear, "The backdrop must crawl behind the rear rows.");
+        Assert.True(rear < playable, "Rear rows must trail the band the party stands on.");
+        Assert.True(playable < foreground, "The fringe must outrun the playable band.");
+    }
+
+    [Fact]
+    public void WorldToScreenX_SlidesTheWorldByExactlyTheOffsetOnThePlayableBand()
+    {
+        // The playable band moves 1:1 with the offset. This is what
+        // "the world moves, the party does not" reduces to.
+        float atRest = ExpeditionPathRenderer.PlayableScreenX(600, 0, Anchor);
+        float advanced = ExpeditionPathRenderer.PlayableScreenX(600, 250, Anchor);
+        Assert.Equal(atRest - 250f, advanced, precision: 3);
+    }
+
+    [Fact]
+    public void PlayableScreenX_KeepsTheTravellerAtTheAnchorCentre()
+    {
+        // The founder's world X *is* the offset during travel, so the
+        // difference the projection draws is zero whatever the number.
+        foreach (long positionX in new long[] { 0, 137, 486, 999 })
+        {
+            Assert.Equal(
+                Anchor.CenterX,
+                ExpeditionPathRenderer.PlayableScreenX(positionX, positionX, Anchor),
+                precision: 3);
+        }
+    }
+
+    [Fact]
+    public void WorldToScreenX_MovesSlowerLayersLessForTheSameTravel()
+    {
+        const long travelled = 400;
+        float playableShift = ShiftFor(ExpeditionPathRenderer.PlayableDepth, travelled);
+        float rearShift = ShiftFor(2f, travelled);
+        float distanceShift = ShiftFor(ExpeditionPathRenderer.RowCount - 1f, travelled);
+        float foregroundShift = ShiftFor(ExpeditionPathRenderer.ForegroundDepth, travelled);
+
+        Assert.True(distanceShift < rearShift);
+        Assert.True(rearShift < playableShift);
+        Assert.True(playableShift < foregroundShift);
+        Assert.Equal((float)travelled, playableShift, precision: 3);
+    }
+
+    [Fact]
+    public void IsRowVisible_SpansTheFringeThroughTheHorizon()
+    {
+        Assert.True(ExpeditionPathRenderer.IsRowVisible(
+            ExpeditionPathRenderer.ForegroundDepth));
+        Assert.True(ExpeditionPathRenderer.IsRowVisible(
+            ExpeditionPathRenderer.PlayableDepth));
         Assert.True(ExpeditionPathRenderer.IsRowVisible(
             ExpeditionPathRenderer.RowCount - 1f));
-        Assert.False(ExpeditionPathRenderer.IsRowVisible(-0.01f));
+        Assert.False(ExpeditionPathRenderer.IsRowVisible(
+            ExpeditionPathRenderer.ForegroundDepth - 0.01f));
         Assert.False(ExpeditionPathRenderer.IsRowVisible(
             ExpeditionPathRenderer.RowCount));
-    }
-
-    [Fact]
-    public void PlayableBandY_IsGreaterThanRearBandY()
-    {
-        // Rear bands (smaller depth) sit higher on screen (smaller
-        // Y) than the playable band — pins the convergence direction
-        // the macro established.
-        float rearY = ExpeditionPathRenderer.RowScreenY(
-            ExpeditionPathRenderer.RowCount - 2f);
-        float playableY = ExpeditionPathRenderer.RowScreenY(
-            ExpeditionPathRenderer.PlayableDepth);
-        Assert.True(rearY < playableY);
     }
 
     [Fact]
@@ -95,5 +156,13 @@ public class ExpeditionPathRendererTests
         Assert.Equal(
             StreetDepthProjection.HorizontalScale(0f),
             ExpeditionPathRenderer.PlayableHorizontalScale());
+    }
+
+    private static float ShiftFor(float depth, long travelled)
+    {
+        float factor = ExpeditionPathRenderer.ParallaxFactorForDepth(depth);
+        float atRest = ExpeditionPathRenderer.WorldToScreenX(600, 0, factor, Anchor);
+        float advanced = ExpeditionPathRenderer.WorldToScreenX(600, travelled, factor, Anchor);
+        return atRest - advanced;
     }
 }

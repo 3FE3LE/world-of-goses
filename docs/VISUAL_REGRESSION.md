@@ -98,9 +98,26 @@ PowerShell preserves the string array:
 The Windows harness opens a real Godot window because Movie Maker always uses
 the project's logical 1280×720 viewport and is not compatible with the headless
 dummy renderer. It renders at 1280×720 and 1920×1080, polls until the client
-rect actually reaches the requested size before deriving any coordinate (the
-50×50 bootstrap client used to race a fixed sleep), rejects missing, empty, or
-incorrectly sized PNGs, and writes a JSON manifest. Captures are review artifacts and are
+rect settles into something *proportional to* the requested size before deriving
+any coordinate (the 50×50 bootstrap client used to race a fixed sleep), rejects
+missing, empty, or incorrectly sized PNGs, and writes a JSON manifest.
+
+Two things the harness must control itself, both learned by losing several
+sessions of visual sign-off to them:
+
+- **The window mode.** The project ships fullscreen borderless
+  (`display/window/size/mode = 3`), and a fullscreen window ignores
+  `--resolution` — it takes the desktop's size. On a 2560×1440 desktop every
+  golden frame was therefore a 2560×1440 render that failed the slug assertion,
+  and the harness reported `Godot client settled at 2560x1442` on every fixture.
+  The engine-side harness now pins the window itself through
+  `--wog-visual-capture-size=WxH`, which the display server honours whatever the
+  project setting says.
+- **Proportional, not equal.** The client rect only ever needed to be usable for
+  deriving clicks, and clicks are normalized and multiplied by the *measured*
+  size. Demanding equality rejected legitimately scaled windows for no gain. The
+  bootstrap rect is still rejected: its square 1:1 aspect is what separates it
+  from a scaled one. Captures are review artifacts and are
 not committed by default. Use a distinct `StateName` for every prepared state.
 The default scene is `CityPrototype.tscn`; `-ScenePath` may target a reusable
 component scene. The harness sets `WOG_VISUAL_CAPTURE=1`: the controller still
