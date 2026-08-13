@@ -13,7 +13,20 @@ other questions and must not be duplicated into this file:
 **Contract.** Every session that produces a commit adds or extends the entry
 for its increment, in the same commit. An entry states what a player can now
 do that they could not before, the schema range it crossed, and the measured
-baseline — not a list of touched files, which `git log` already owns.
+baseline — not a list of touched files, `git log` already owns.
+
+---
+
+## Vestido del bioma y parallax por capas
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El escenario se siente como mundo.** El parallax sale del mismo
+world offset que ya conduce el chunk pool — distancia/rear se
+desplazan más lento que la banda jugable y el foreground más rápido,
+todo sin escribir nada nuevo al combate. Cada chunk lleva un
+`BiomeId` determinista derivado de `(seed, logicalIndex)`; reciclado
+no randomiza el vestido. 1589 tests pasan (eran 1582). Cierra #25.
 
 ---
 

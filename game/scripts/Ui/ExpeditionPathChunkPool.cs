@@ -116,7 +116,7 @@ public sealed class ExpeditionPathChunk
         Seed = seed;
         LogicalIndex = logicalIndex;
         OffsetUnits = offsetUnits;
-        RecomputePropCount();
+        RecomputeDressing();
     }
 
     public int Seed { get; private set; }
@@ -124,21 +124,29 @@ public sealed class ExpeditionPathChunk
     public long OffsetUnits { get; set; }
     public int PropCount { get; private set; }
 
+    /// <summary>Stable dressing biome id derived from
+    /// <c>(seed, logicalIndex)</c>; issue #25 pins that the same
+    /// chunk index on the same seed yields the same biome every
+    /// time the chunk is recycled.</summary>
+    public int BiomeId { get; private set; }
+
     public void Reset(int seed, long logicalIndex, long offsetUnits)
     {
         Seed = seed;
         LogicalIndex = logicalIndex;
         OffsetUnits = offsetUnits;
-        RecomputePropCount();
+        RecomputeDressing();
     }
 
-    private void RecomputePropCount()
+    private void RecomputeDressing()
     {
-        // Deterministic dressing cardinality: each chunk hosts
-        // between one and four decorative props, keyed on a stable
-        // hash so the same seed + logical index yields the same
-        // count across the player's session and across reloads.
+        // Stable hash from seed + logical index. Two chunks with the
+        // same seed and index must always yield the same dressing
+        // cardinality and the same biome id — this is the seam that
+        // lets the chunk pool survive a recycle without ever
+        // re-randomising the world.
         int hash = unchecked((int)((Seed * 397) ^ LogicalIndex));
         PropCount = 1 + (hash & 0x3);
+        BiomeId = hash & 0x3;
     }
 }
