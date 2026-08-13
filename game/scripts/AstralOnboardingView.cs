@@ -775,13 +775,25 @@ public partial class AstralOnboardingView : Control
     /// A12 closes the seam: <c>internal</c> and gated on the
     /// visual-regression harness. Production scenes never call this.
     /// </summary>
+    /// <remarks>
+    /// Step values map onto the stages in <see cref="Stage"/>:
+    /// <list type="bullet">
+    ///   <item><c>0..n-1</c> — the n narrative questions.</item>
+    ///   <item><c>n</c> — identity (the naming beat).</item>
+    ///   <item><c>n+1</c> — founder card.</item>
+    ///   <item><c>n+2</c> — weapon choice (issue #28/#26). Closes the gap
+    ///         the prior harness had: the beat existed in code but had no
+    ///         way to be reached from <c>--wog-visual-fixture=</c>, so
+    ///         the sign-off capture was never produced.</item>
+    /// </list>
+    /// </remarks>
     internal void ShowForVisualRegression(int step)
     {
         if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         int questionStep = Math.Clamp(
             step,
             0,
-            FounderNarrativeCatalog.Questions.Count + 1);
+            FounderNarrativeCatalog.Questions.Count + 2);
         for (int index = 0;
              index < Math.Min(questionStep, FounderNarrativeCatalog.Questions.Count);
              index++)
@@ -803,6 +815,22 @@ public partial class AstralOnboardingView : Control
         // One past the last question is the naming beat; two past it is the
         // founder card, which cannot be reached from a save and therefore
         // needs its own entry point.
-        if (questionStep > FounderNarrativeCatalog.Questions.Count) RenderFounderCard();
+        if (questionStep == FounderNarrativeCatalog.Questions.Count + 1)
+        {
+            RenderFounderCard();
+            return;
+        }
+        // Three past the last question is the weapon-choice beat. The
+        // fixture selects the first of the two natural families so the
+        // captured frame shows the highlight state, not an empty button
+        // group.
+        if (questionStep >= FounderNarrativeCatalog.Questions.Count + 2)
+        {
+            RenderFounderCard();
+            (WeaponFamily first, _) = NaturalWeaponFamilies.For(
+                CubeExpression.Derive(_result.CubeProfile));
+            _weaponChoice = first;
+            RenderWeaponChoice();
+        }
     }
 }

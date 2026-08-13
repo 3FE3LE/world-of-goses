@@ -251,6 +251,31 @@ public sealed class ExpeditionCombatSessionIntegrationTests
         return (world, opportunity);
     }
 
+    /// <summary>
+    /// Spirit Trail fixture where the founder is armed with the first of
+    /// the two families their physical expression reaches. The route,
+    /// encounter, and reservations are unchanged from
+    /// <see cref="PrepareSpiritTrailWorld"/>; only the registry and the
+    /// loadout differ, because the post-#26 opening is armed by
+    /// construction, not by the combat-time fallback.
+    /// </summary>
+    internal static (CityWorld World, ResourceOpportunity Opportunity) PrepareArmedSpiritTrailWorld()
+    {
+        CityWorld world = TestHelpers.NewHeroWorld();
+        // The fixture's NewHeroWorld defaults to the Ardhen line. The
+        // domain re-validates the family against the founder's
+        // expression, so we have to read it from the same source rather
+        // than guessing.
+        (WeaponFamily chosen, _) = NaturalWeaponFamilies.For(
+            world.Hero!.CombatNature.PhysicalExpression);
+        Assert.NotNull(world.MaterializeFounderWeapon(world.Hero.Id, chosen));
+        world.SeedStartingForests();
+        world.SeedStartingOpportunities();
+        DriveNightToDawn(world);
+        ResourceOpportunity opportunity = world.ResourceOpportunities.Values.Single(
+            item => item.Kind == ResourceOpportunityKind.SpiritTrailSearch);
+        return (world, opportunity);
+    }
     internal static void DriveNightToDawn(CityWorld world)
     {
         FirstNightState night = world.FirstNight!;

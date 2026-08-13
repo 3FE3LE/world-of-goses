@@ -534,6 +534,17 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 GetNode<AstralOnboardingView>("OnboardingView")
                     .ShowForVisualRegression(13);
                 break;
+            // Two past the naming beat. The weapon choice is what makes
+            // the founder actually materialise an equipped weapon —
+            // GitHub #28 closed the omission in the hero profile, and
+            // #26 made this beat the source of that weapon. The fixture
+            // captures the stage with the first natural family
+            // pre-selected so the highlight state is what the sign-off
+            // reviews.
+            case "astral-weapon-choice":
+                GetNode<AstralOnboardingView>("OnboardingView")
+                    .ShowForVisualRegression(14);
+                break;
             case "founder-arrival":
                 ShowFounderArrivalForVisualRegression();
                 break;

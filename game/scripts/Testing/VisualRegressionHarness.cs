@@ -262,6 +262,14 @@ public static class VisualRegressionHarness
         {
             return VisualFixtureKind.ExpeditionRail;
         }
+        // Astral onboarding stages. The classification is a coarse
+        // category — the script dispatches on the full fixture name.
+        // Kept here so a fixture that resolves to "Other" still gets
+        // the harness's own logging rather than being misfiled.
+        if (name.StartsWith("astral", StringComparison.Ordinal))
+        {
+            return VisualFixtureKind.Other;
+        }
         return VisualFixtureKind.Other;
     }
 }

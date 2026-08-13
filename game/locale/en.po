@@ -2499,7 +2499,13 @@ msgid " · awaiting module"
 msgstr " · awaiting module"
 
 msgid "ui.hero_profile.natural_weapons_hint"
-msgstr "Natural families train at full rate; any other weapon trains at a tenth. Equipment is not yet available."
+msgstr "Natural families train at full rate; any other weapon trains at a tenth."
+
+msgid "ui.hero_profile.equipped_weapon"
+msgstr "Equipped weapon: {0}"
+
+msgid "ui.hero_profile.unarmed"
+msgstr "Unarmed"
 
 msgid "ui.construction.module_choice"
 msgstr "{0}: {1}"

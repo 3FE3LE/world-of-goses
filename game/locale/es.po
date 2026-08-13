@@ -2651,7 +2651,13 @@ msgid " · awaiting module"
 msgstr " · falta elegir módulo"
 
 msgid "ui.hero_profile.natural_weapons_hint"
-msgstr "Las familias naturales entrenan a ritmo completo; cualquier otra arma, a una décima parte. Todavía no hay equipamiento disponible."
+msgstr "Las familias naturales entrenan a ritmo completo; cualquier otra arma, a una décima parte."
+
+msgid "ui.hero_profile.equipped_weapon"
+msgstr "Arma equipada: {0}"
+
+msgid "ui.hero_profile.unarmed"
+msgstr "Sin arma"
 
 msgid "ui.construction.module_choice"
 msgstr "{0}: {1}"

@@ -149,6 +149,15 @@ public partial class HeroProfileView : Control
             "ui.citizen.natural_weapons",
             UiText.Get(hero.NaturalWeaponFamilies[0]),
             UiText.Get(hero.NaturalWeaponFamilies[1])));
+        // #28: the equipped weapon — a real WeaponItemInstance since #26 —
+        // belongs on the same affinity card. The legacy v34 unarmed save
+        // lands here with a null name; the placeholder keeps the row's
+        // height stable so the rest of the card does not reflow.
+        AddBody(UiText.Format(
+            "ui.hero_profile.equipped_weapon",
+            hero.EquippedWeaponName is { } equippedName
+                ? UiText.Get(equippedName)
+                : UiText.Get("ui.hero_profile.unarmed")));
         AddBody(UiText.Get("ui.hero_profile.natural_weapons_hint"));
         AddBody(UiText.Format("ui.hero_profile.gender", GenderIdLocalizer.Label(hero.Gender)));
 

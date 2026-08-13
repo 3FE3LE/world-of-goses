@@ -1621,10 +1621,10 @@ msgstr ""
 msgid "Stewards of exchange, reserves, hospitality and the movement of value."
 msgstr ""
 
-msgid "Stone"
+msgid "stone"
 msgstr ""
 
-msgid "stone"
+msgid "Stone"
 msgstr ""
 
 msgid "Strength"
@@ -2599,6 +2599,9 @@ msgstr ""
 msgid "ui.hero_profile.elemental_affinity"
 msgstr ""
 
+msgid "ui.hero_profile.equipped_weapon"
+msgstr ""
+
 msgid "ui.hero_profile.gender"
 msgstr ""
 
@@ -2633,6 +2636,9 @@ msgid "ui.hero_profile.title"
 msgstr ""
 
 msgid "ui.hero_profile.traits"
+msgstr ""
+
+msgid "ui.hero_profile.unarmed"
 msgstr ""
 
 msgid "ui.hero_profile.weapon_preferences"
@@ -3166,10 +3172,10 @@ msgstr ""
 msgid "wildfood"
 msgstr ""
 
-msgid "wood"
+msgid "Wood"
 msgstr ""
 
-msgid "Wood"
+msgid "wood"
 msgstr ""
 
 msgid "Wood remains"

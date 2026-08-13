@@ -17,6 +17,37 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## La carta del Founder dice ahora con qué se materializa
+
+**2026-08-13** · onboarding · presentación · schema v35 (sin cambio) · 1634 pruebas superadas
+
+**El jugador lee en la carta el arma que eligió, no una promesa futura.**
+`HeroProfileSnapshot` carga la familia realmente equipada desde
+`PersonalEquipment.EquippedWeapon`; la vista la pinta en su propia fila, justo
+debajo de las dos familias naturales, y un Founder migrado desde v34 que sigue
+desarmado aparece como «Sin arma» en vez de como línea vacía. El comentario
+viejo que decía que las familias eran afinidades y que «nothing equips a weapon
+yet» se cae — ahora equipan.
+
+**El vertical del Spirit Trail valida al Founder armado, no al fantasma.** Los
+tres tests fundacionales (`ArmedFounderCompletesTutorialEncounterForEveryFounderLineage`,
+`DispatchAfterSpiritDeparted_NeedsNeitherCacheNorFoodNorReservation`,
+`ArmedOpeningPreservesWoundedHealthRatioAndNeverHealsFounder`) materializan el
+arma en el `HeroCreationRequest` y comprueban al final que el loadout la sigue
+teniendo. La prueba legacy que afirmaba `EquipmentLoadout.Weapon is null`
+validaba la ruta del fallback, no la del Founder nuevo: era el opuesto exacto
+del incremento.
+
+**El beat de Weapon Choice ya es un fixture del arnés visual.** El harness
+reconocía `astral-start`, `astral-ground`, `astral-identity` y
+`astral-founder-card`, pero nunca ofreció la pantalla donde el Founder decide
+con qué se materializa — `AstralOnboardingView.ShowForVisualRegression` no
+alcanzaba ese `Stage`, así que el sign-off nunca existió aunque el código sí.
+`astral-weapon-choice` llega hasta el beat, pre-selecciona la primera familia
+natural y deja la captura lista para revisar a 1280×720 y 1920×1080.
+
+---
+
 ## El último panel deja de componerse a mano
 
 **2026-08-13** · presentación · schema v35 (sin cambio) · 1634 pruebas superadas

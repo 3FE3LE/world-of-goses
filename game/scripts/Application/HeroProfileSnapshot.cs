@@ -31,9 +31,22 @@ public sealed record HeroProfileSnapshot(
     /// <summary>
     /// The two weapon families the physical expression makes natural. These are
     /// learning affinities, not equipment: a natural family accrues competency at
-    /// full rate and a foreign one at a tenth. Nothing equips a weapon yet.
+    /// full rate and a foreign one at a tenth. They stay on the profile because
+    /// they are still how the player reads the founder's aptitude, even after
+    /// <see cref="EquippedWeaponName"/> lands.
     /// </summary>
     IReadOnlyList<string> NaturalWeaponFamilies,
+    /// <summary>
+    /// The display name of the weapon the founder currently has equipped, or
+    /// <c>null</c> when the founder is unarmed. Issue #26 landed the founder's
+    /// starter weapon as a real <see cref="WeaponItemInstance"/>; this field
+    /// carries the family of that instance to the view layer. A legacy save
+    /// migrated from v34 with no item — see
+    /// <see cref="MigrateV34ToV35Tests"/> — stays unarmed and surfaces here
+    /// as <c>null</c>; the view renders an "unarmed" placeholder rather than
+    /// hiding the line.
+    /// </summary>
+    string? EquippedWeaponName,
     string CombatStyle,
     IReadOnlyList<string> WeaponPreferences,
     IReadOnlyList<string> PersonalityTraits,
@@ -86,6 +99,13 @@ public sealed record HeroProfileSnapshot(
                 ProfileCatalog.DisplayName(first),
                 ProfileCatalog.DisplayName(second),
             },
+            // #28: the equipped weapon is read from the personal-equipment
+            // registry so the projection and the registry cannot disagree.
+            // The legacy v34 unarmed path returns null here, which the view
+            // renders as a placeholder rather than an empty row.
+            hero.PersonalEquipment?.EquippedWeapon is { } equippedWeapon
+                ? ProfileCatalog.DisplayName(equippedWeapon.Family)
+                : null,
             string.IsNullOrWhiteSpace(profile.CombatStyle.Value)
                 ? string.Empty
                 : ProfileCatalog.DisplayName(profile.CombatStyle),
