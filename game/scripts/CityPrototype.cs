@@ -1470,7 +1470,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         controller.SeedFixtureWorld(fixture);
         GetNode<AstralOnboardingView>("OnboardingView").Hide();
         controller.SelectBuilding(shelterId);
-        GetNode<BuildingDetailView>("GameUiShell/ScreenContent/BuildingDetailView")
+        GetNode<BuildingInspector>("GameUiShell/ScreenContent/BuildingInspector")
             .ExpandShelterResourcesForVisualRegression();
     }
 

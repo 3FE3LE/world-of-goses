@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://bpf10ffu5565l" path="res://scripts/CityPrototype.cs" id="1_root"]
 [ext_resource type="Script" uid="uid://c3fagjr4ji2fn" path="res://scripts/CityWorldController.cs" id="2_ctrl"]
 [ext_resource type="Script" uid="uid://dg08s8ridt3cc" path="res://scripts/CityStatusPanel.cs" id="5_status"]
-[ext_resource type="Script" uid="uid://c6us0i8on0g81" path="res://scripts/BuildingDetailView.cs" id="6_detail"]
+[ext_resource type="Script" uid="uid://b1gdrfdmrj4zw" path="res://scripts/BuildingInspector.cs" id="6_detail"]
 [ext_resource type="Script" uid="uid://c0cqvsl8xg311" path="res://scripts/VisibleWorkerSlots.cs" id="7_slots"]
 [ext_resource type="Script" uid="uid://dc5226ctlr3ew" path="res://scripts/AssignmentPanel.cs" id="8_assign"]
 [ext_resource type="Script" uid="uid://cjf0ik16alofu" path="res://scripts/ProductionPanel.cs" id="9_prod"]
@@ -189,27 +189,23 @@ script = ExtResource("30_streetlive")
 [node name="ExpeditionLiveView" parent="GameUiShell/ScreenContent" unique_id=1050699462 instance=ExtResource("39_expedition_live")]
 layout_mode = 1
 
-[node name="BuildingDetailView" type="Control" parent="GameUiShell/ScreenContent" unique_id=113990765]
+[node name="BuildingInspector" type="Control" parent="GameUiShell/ScreenContent" unique_id=113990765]
 visible = false
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
+offset_left = -460.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
 grow_vertical = 2
 script = ExtResource("6_detail")
 
-[node name="DetailBackground" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1645245703]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-script = ExtResource("16_kenbg")
-
-[node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingDetailView" unique_id=1087183704]
+[node name="SafeArea" type="MarginContainer" parent="GameUiShell/ScreenContent/BuildingInspector" unique_id=1087183704]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -218,26 +214,26 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("20_safearea")
 
-[node name="Layout" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea" unique_id=40546750]
+[node name="Layout" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea" unique_id=40546750]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Header" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout" unique_id=1347794521]
+[node name="Header" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout" unique_id=1347794521]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=924062929]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Header" unique_id=924062929]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"HudHeader"
 text = "Building"
 vertical_alignment = 1
 
-[node name="BackButton" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Header" unique_id=1925650650 instance=ExtResource("19_backbutton")]
+[node name="CloseButton" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Header" unique_id=1925650650 instance=ExtResource("19_backbutton")]
 layout_mode = 2
 theme_type_variation = &"HudButton"
 
-[node name="Content" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout" unique_id=136504885]
+[node name="Content" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout" unique_id=136504885]
 custom_minimum_size = Vector2(824, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -245,18 +241,18 @@ size_flags_vertical = 3
 theme_override_constants/separation = 24
 alignment = 1
 
-[node name="Main" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content" unique_id=1660492331]
+[node name="Main" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content" unique_id=1660492331]
 custom_minimum_size = Vector2(460, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="VisualStage" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=2030585767]
+[node name="VisualStage" type="Control" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main" unique_id=2030585767]
 custom_minimum_size = Vector2(460, 256)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=2051222363]
+[node name="BuildingArtHeader" type="TextureRect" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main/VisualStage" unique_id=2051222363]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -268,7 +264,7 @@ mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ProvisionalArt" type="ColorRect" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310031]
+[node name="ProvisionalArt" type="ColorRect" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310031]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -279,7 +275,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.42, 0.27, 0.16, 1)
 
-[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage/ProvisionalArt" unique_id=903310032]
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main/VisualStage/ProvisionalArt" unique_id=903310032]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -291,7 +287,7 @@ theme_type_variation = &"HudLabel"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310030]
+[node name="VisibleWorkerSlots" type="Control" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main/VisualStage" unique_id=903310030]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -302,11 +298,11 @@ grow_horizontal = 2
 grow_vertical = 0
 script = ExtResource("7_slots")
 
-[node name="LeftSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=367411498]
+[node name="LeftSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main" unique_id=367411498]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Main" unique_id=581695296]
+[node name="AssignmentPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Main" unique_id=581695296]
 custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -314,42 +310,42 @@ size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("8_assign")
 
-[node name="Details" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content" unique_id=43386981]
+[node name="Details" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content" unique_id=43386981]
 custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="RightSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=2068385061]
+[node name="RightSpacer" type="Control" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details" unique_id=2068385061]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224296]
+[node name="ProductionPanel" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details" unique_id=875224296]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
 theme_type_variation = &"HudCard"
 script = ExtResource("9_prod")
 
-[node name="Root" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel" unique_id=875224310]
+[node name="Root" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel" unique_id=875224310]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224311]
+[node name="Title" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224311]
 layout_mode = 2
 theme_type_variation = &"HudHeader"
 horizontal_alignment = 1
 
-[node name="StockRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224312]
+[node name="StockRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224312]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Stock" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224313]
+[node name="Stock" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224313]
 layout_mode = 2
 theme_type_variation = &"HudBody"
 
-[node name="EnabledToggle" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224314]
+[node name="EnabledToggle" type="Button" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/StockRow" unique_id=875224314]
 custom_minimum_size = Vector2(160, 44)
 layout_mode = 2
 focus_mode = 2
@@ -357,49 +353,49 @@ theme_type_variation = &"ButtonText"
 toggle_mode = true
 script = ExtResource("15_iconbtn")
 
-[node name="StockBar" type="ProgressBar" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224315]
+[node name="StockBar" type="ProgressBar" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224315]
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
 max_value = 1.0
 value = 0.0
 
-[node name="Rate" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224316]
+[node name="Rate" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224316]
 layout_mode = 2
 theme_type_variation = &"NumericText"
 
-[node name="Inputs" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224317]
+[node name="Inputs" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224317]
 layout_mode = 2
 theme_type_variation = &"HudCaption"
 
-[node name="Status" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224318]
+[node name="Status" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224318]
 layout_mode = 2
 theme_type_variation = &"HudCaption"
 
-[node name="PolicySeparator" type="HSeparator" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224319]
+[node name="PolicySeparator" type="HSeparator" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224319]
 layout_mode = 2
 
-[node name="PolicyHeader" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224320]
+[node name="PolicyHeader" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224320]
 layout_mode = 2
 theme_type_variation = &"HudHeader"
 horizontal_alignment = 1
 
-[node name="PolicyRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224321]
+[node name="PolicyRow" type="HBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224321]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="MinColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224322]
+[node name="MinColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224322]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224323]
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224323]
 layout_mode = 2
 theme_type_variation = &"HudCaption"
 horizontal_alignment = 1
 
-[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224324]
+[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MinColumn" unique_id=875224324]
 custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
 focus_mode = 2
@@ -407,17 +403,17 @@ theme_type_variation = &"LineEdit"
 max_value = 999.0
 rounded = true
 
-[node name="MaxColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224325]
+[node name="MaxColumn" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow" unique_id=875224325]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224326]
+[node name="Caption" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224326]
 layout_mode = 2
 theme_type_variation = &"HudCaption"
 horizontal_alignment = 1
 
-[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224327]
+[node name="Box" type="SpinBox" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root/PolicyRow/MaxColumn" unique_id=875224327]
 custom_minimum_size = Vector2(96, 0)
 layout_mode = 2
 focus_mode = 2
@@ -425,51 +421,51 @@ theme_type_variation = &"LineEdit"
 max_value = 999.0
 rounded = true
 
-[node name="PolicyError" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224328]
+[node name="PolicyError" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/ProductionPanel/Root" unique_id=875224328]
 layout_mode = 2
 theme_type_variation = &"ErrorText"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="TownHallProspect" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224297]
+[node name="TownHallProspect" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details" unique_id=875224297]
 visible = false
 layout_mode = 2
 theme_type_variation = &"HudCard"
 
-[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect" unique_id=875224298]
+[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/TownHallProspect" unique_id=875224298]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Prospect" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224299]
+[node name="Prospect" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224299]
 layout_mode = 2
 theme_type_variation = &"HudBody"
 autowrap_mode = 3
 
-[node name="AcceptButton" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224300]
+[node name="AcceptButton" type="Button" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/TownHallProspect/Rows" unique_id=875224300]
 layout_mode = 2
 focus_mode = 2
 theme_type_variation = &"HudButtonSelected"
 
-[node name="HomeSummary" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details" unique_id=875224301]
+[node name="HomeSummary" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details" unique_id=875224301]
 visible = false
 layout_mode = 2
 theme_type_variation = &"HudCard"
 
-[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary" unique_id=875224302]
+[node name="Rows" type="VBoxContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/HomeSummary" unique_id=875224302]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Capacity" type="Label" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224303]
+[node name="Capacity" type="Label" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224303]
 layout_mode = 2
 theme_type_variation = &"HudBody"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="ShelterResources" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224304]
+[node name="ShelterResources" type="PanelContainer" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224304]
 layout_mode = 2
 script = ExtResource("40_resourceinventory")
 
-[node name="CraftAxeButton" type="Button" parent="GameUiShell/ScreenContent/BuildingDetailView/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224305]
+[node name="CraftAxeButton" type="Button" parent="GameUiShell/ScreenContent/BuildingInspector/SafeArea/Layout/Content/Details/HomeSummary/Rows" unique_id=875224305]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 focus_mode = 2

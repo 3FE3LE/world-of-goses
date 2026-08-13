@@ -208,7 +208,7 @@ public partial class MacroStreetLiveView : Node2D
     /// <summary>The contextual action tray, shown only while a mode needs it.</summary>
     [Export] public NodePath ActionDockPath { get; set; } = "../ActionDock";
     [Export] public NodePath PauseMenuPath { get; set; } = "../../../PauseMenu";
-    [Export] public NodePath BuildingDetailViewPath { get; set; } = "../BuildingDetailView";
+    [Export] public NodePath BuildingInspectorPath { get; set; } = "../BuildingInspector";
 
     private CityWorldController _controller = null!;
     private LocaleManager _localeManager = null!;
@@ -227,7 +227,7 @@ public partial class MacroStreetLiveView : Node2D
     private PrimaryNavDock _primaryNavDock = null!;
     private CitySummaryPanel _citySummaryPanel = null!;
     private ExpeditionRail _expeditionRail = null!;
-    private BuildingDetailView _buildingDetailView = null!;
+    private BuildingInspector _buildingDetailView = null!;
     private IconButton _cameraModeButton = null!;
     private CursorController? _cursorController;
     private Texture2D _terrainAtlas = null!;
@@ -350,7 +350,7 @@ public partial class MacroStreetLiveView : Node2D
         _cameraModeButton = _statusPanel.CameraButton;
         _statusPanel.MenuButton.Pressed += OnUtilityClusterMenuPressed;
         _statusPanel.SpeedButton.AttachController(_controller);
-        _buildingDetailView = GetNode<BuildingDetailView>(BuildingDetailViewPath);
+        _buildingDetailView = GetNode<BuildingInspector>(BuildingInspectorPath);
         _cursorController = GetNodeOrNull<CursorController>("/root/CursorController");
         _terrainAtlas = GD.Load<Texture2D>(ResourceTree.TerrainAtlasPath);
         _renderer.LoadTerrainAtlas(ResourceTree.TerrainAtlasPath);

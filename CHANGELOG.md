@@ -17,6 +17,22 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## Inspector contextual sobre el macro en lugar de interior fullscreen
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El jugador selecciona un edificio sin abandonar el mapa.** Click →
+`BuildingInspector` se abre anclado al borde derecho del macro sin
+reemplazarlo. La cámara no se resetea, el fondo Kenney de "interior
+ficticio" y el `BackToCityButton` desaparecen; las capacidades del
+viejo shell — `AssignmentPanel`, `ProductionPanel`,
+`ResourceInventoryPanel`, resumen del Home con descanso/capacidad y
+crafteo del Primitive Axe, prospect/recruit del Town Hall — sobreviven
+en el nuevo inspector y siguen consumiendo el mismo `BuildingDetailSnapshot`
+y los mismos comandos. 1556 tests pasan (eran 1548). Cierra #20.
+
+---
+
 ## Primitivas de profundidad compartidas sin urbanizar la expedición
 
 **2026-08-12** · presentación · sin cambio de schema

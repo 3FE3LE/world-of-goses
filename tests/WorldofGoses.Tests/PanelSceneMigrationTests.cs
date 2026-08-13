@@ -57,7 +57,7 @@ public sealed class PanelSceneMigrationTests
     /// </summary>
     public static IEnumerable<object[]> PanelsAuthoredInTheParentScene =>
     [
-        ["game/scripts/BuildingDetailView.cs", "BuildingDetailView"],
+        ["game/scripts/BuildingInspector.cs", "BuildingInspector"],
         ["game/scripts/ProductionPanel.cs", "ProductionPanel"],
         ["game/scripts/CityStatusPanel.cs", "CityStatusPanel"],
     ];
