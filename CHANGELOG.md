@@ -17,6 +17,22 @@ baseline — not a list of touched files, which `git log` already owns.
 
 ---
 
+## ExpeditionPathRenderer dibuja la expedición sobre bandas de profundidad
+
+**2026-08-12** · presentación · sin cambio de schema
+
+**El jugador ve la expedición y el combate sobre el mismo lenguaje de
+profundidad.** `ExpeditionPathRenderer` pinta las mismas bandas que la
+ciudad macro usando `StreetDepthProjection` y `SharedDepthBands`; los
+combatientes caen en la banda jugable desde su `PositionX` 1D. La
+autoridad espacial sigue siendo 1D (viaje y combate); la profundidad
+es pura presentación. El fondo lateral plano es reemplazado por una
+estratificación finita de seis bandas; el reciclaje infinito (#22) y
+el scroll al `Travel.PositionX` (#23) llegan en sus respectivos
+issues. 1564 tests pasan (eran 1556). Cierra #21.
+
+---
+
 ## Inspector contextual sobre el macro en lugar de interior fullscreen
 
 **2026-08-12** · presentación · sin cambio de schema

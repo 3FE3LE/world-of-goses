@@ -3,13 +3,26 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain.Combat;
+using WorldofGoses.Prototypes;
 
 namespace WorldofGoses.Ui;
 
 /// <summary>
-/// Lateral battlefield projection. It maps authoritative one-dimensional session
-/// positions onto the authored HUD bounds and interpolates views without writing
-/// anything back into combat.
+/// Depth-band projection for the expedition. Maps authoritative
+/// one-dimensional session positions onto the authored HUD bounds and
+/// interpolates views without writing anything back into combat.
+///
+/// <para>
+/// The stage (#21) lives on the same depth-band grammar as the macro
+/// street view: rear/sky bands, foreground bands, the playable band.
+/// It consumes <see cref="StreetDepthProjection"/> and
+/// <see cref="SharedDepthBands"/> for the trapezoid rasterizer so
+/// the expedition and the macro never diverge on geometry. The
+/// authority remains 1D — <see cref="Travel.PositionX"/> in
+/// <see cref="ConfigureTravel"/> and combat
+/// <c>CombatParticipantState.PositionX</c> in <see cref="Configure"/>
+/// drive the screen position read-only.
+/// </para>
 /// </summary>
 public partial class ExpeditionStage : Control
 {
@@ -18,6 +31,10 @@ public partial class ExpeditionStage : Control
     private const int CombatantHeight = 96;
     private const int GroundRatioPercent = 68;
     private const string CombatantScenePath = "res://scenes/Components/CombatantView.tscn";
+    private const string TerrainAtlasPath =
+        "res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png";
+    private const int EarthFillTileId = 786; // seam-free fill from the shared atlas
+    private const int PathTileId = 538; // worn-footprint tile reused from the same atlas
 
     private readonly Dictionary<string, CombatantView> _views = new();
     private PackedScene _combatantScene = null!;
@@ -34,6 +51,7 @@ public partial class ExpeditionStage : Control
         TextureFilter = TextureFilterEnum.Nearest;
         ClipContents = true;
         _combatantScene = ResourceLoader.Load<PackedScene>(CombatantScenePath);
+        EnsureTerrainAtlas();
         QueueRedraw();
     }
 
@@ -132,13 +150,75 @@ public partial class ExpeditionStage : Control
         Color distance = GetThemeColor("fill_cooldown");
         Color ground = GetThemeColor("border_disabled");
         Color outline = GetThemeColor("border_locked");
+        // Sky: solid colour is still the right call (no perspective on
+        // the void); everything from the rear band down uses the
+        // shared depth-band rasterizer.
         DrawRect(new Rect2I(0, 0, logicalSize.X, logicalSize.Y), sky);
-        int horizon = logicalSize.Y * GroundRatioPercent / 100;
-        DrawRect(new Rect2I(0, horizon - 48, logicalSize.X, 48), distance);
-        DrawRect(new Rect2I(0, horizon, logicalSize.X, logicalSize.Y - horizon), ground);
-        DrawLandscapeSilhouette(logicalSize, horizon, outline);
-        if (_objectiveVisible) DrawSpiritTrailManifestation(horizon);
+
+        // Bands grow as depth increases; row 0 sits in the rear and
+        // the playable band is the last one (ExpeditionPathRenderer.RowCount-1).
+        if (_terrainAtlas is not null)
+        {
+            for (int depth = 0; depth < ExpeditionPathRenderer.RowCount; depth++)
+            {
+                float depthNear = depth;
+                float depthFar = depth + 1f;
+                float yNear = ExpeditionPathRenderer.RowScreenY(depthNear);
+                float yFar = ExpeditionPathRenderer.RowScreenY(depthFar);
+                float scaleNear = StreetDepthProjection.HorizontalScale(depthNear);
+                float scaleFar = StreetDepthProjection.HorizontalScale(depthFar);
+                float halfWidth = ExpeditionPathRenderer.HalfWidthPx;
+                float center = ExpeditionPathRenderer.CenterX;
+                float leftNear = center - halfWidth * scaleNear;
+                float rightNear = center + halfWidth * scaleNear;
+                float leftFar = center - halfWidth * scaleFar;
+                float rightFar = center + halfWidth * scaleFar;
+                int tileId = depth == ExpeditionPathRenderer.RowCount - 1
+                    ? PathTileId
+                    : EarthFillTileId;
+                SharedDepthBands.DrawStaircaseTrapezoid(
+                    this,
+                    yNear, yFar,
+                    leftNear, rightNear,
+                    leftFar, rightFar,
+                    _terrainAtlas,
+                    TerrainAtlas.RegionOfId(tileId),
+                    ExpeditionPathRenderer.PixelStep);
+            }
+        }
+
+        // Outline on the horizon line keeps the staged silhouette the
+        // previous projection provided, drawn as a 2 px line at the
+        // playable band's near edge so it never crosses the bands.
+        float playableY = ExpeditionPathRenderer.RowScreenY(
+            ExpeditionPathRenderer.PlayableDepth);
+        DrawLine(
+            new Vector2I(0, Mathf.RoundToInt(playableY)),
+            new Vector2I(logicalSize.X, Mathf.RoundToInt(playableY)),
+            outline,
+            width: 2,
+            antialiased: false);
+        // Legacy silhouette is preserved where bands do not yet cover
+        // the upper region (depth 0 still gives a 580-ish row, the
+        // silhouette was painted above the ground line so it can stay
+        // as a small overlap with the empty sky band).
+        if (_terrainAtlas is null)
+        {
+            int horizon = logicalSize.Y * GroundRatioPercent / 100;
+            DrawLandscapeSilhouette(logicalSize, horizon, outline);
+        }
+        if (_objectiveVisible) DrawSpiritTrailManifestation(Mathf.RoundToInt(playableY));
     }
+
+    private Texture2D? _terrainAtlas;
+
+    /// <summary>Custom <c>_Ready</c> extension: load the shared terrain
+    /// atlas once so the new depth-band rendering does not instantiate
+    /// it per <c>_Draw</c>. Visual-regression guard keeps the existing
+    /// legacy render path when no atlas is available so tests built
+    /// before the migration can still cover the silhouette.</summary>
+    private void EnsureTerrainAtlas() =>
+        _terrainAtlas ??= ResourceLoader.Load<Texture2D>(TerrainAtlasPath);
 
     private void ApplyParticipants(
         IReadOnlyList<CombatParticipantState> participants,
@@ -160,9 +240,19 @@ public partial class ExpeditionStage : Control
             }
 
             int baselineOffset = ((index % 3) - 1) * 4;
+            // Project the authoritative one-dimensional PositionX onto
+            // the playable band of the depth-band stage. The Y is the
+            // stage's playable row — never a domain Y, never a combat
+            // position — and the X is the read-only projection of the
+            // domain coordinate. The stage is still 1D; the rendering
+            // is what gives the playable band depth.
+            float stageX = ExpeditionPathRenderer.ProjectDomainXToStageX(
+                _domainMinimumX, _domainMaximumX, participant.PositionX);
+            float playableY = ExpeditionPathRenderer.RowScreenY(
+                ExpeditionPathRenderer.PlayableDepth);
             Vector2I target = new(
-                ProjectPosition(participant.PositionX) - CombatantWidth / 2,
-                GroundY() - CombatantHeight + baselineOffset);
+                Mathf.RoundToInt(stageX) - CombatantWidth / 2,
+                Mathf.RoundToInt(playableY) - CombatantHeight + baselineOffset);
             bool animate = _lastPresentedStep >= 0 && step > _lastPresentedStep;
             view.ApplySnapshot(
                 participant,
@@ -233,7 +323,9 @@ public partial class ExpeditionStage : Control
 
     private void DrawSpiritTrailManifestation(int horizon)
     {
-        int centerX = ProjectPosition(_objectivePositionX);
+        float stageX = ExpeditionPathRenderer.ProjectDomainXToStageX(
+            _domainMinimumX, _domainMaximumX, _objectivePositionX);
+        int centerX = Mathf.RoundToInt(stageX);
         int centerY = horizon - 54;
         Color border = GetThemeColor(_objectiveReached ? "border_ready" : "border_locked");
         var octagon = new Vector2[]
