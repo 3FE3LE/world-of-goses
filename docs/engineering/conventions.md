@@ -50,14 +50,28 @@ pwsh ./scripts/Validate-AgentContext.ps1
 To open the project in Godot, launch Godot 4.7 `.NET` and import
 `game/project.godot`.
 
-There is no linter or CI configured yet. Do not invent commands. Do not
-install global tools.
+CI runs on `push` and `pull_request` to `main` via
+`.github/workflows/ci.yml`. Each run executes:
+
+- `pwsh ./scripts/Sync-AgentContext.ps1 -Apply` and
+  `pwsh ./scripts/Validate-AgentContext.ps1` (agent-context guards),
+- `dotnet build --configuration Debug --no-incremental -warnaserror`
+  in `game/`,
+- the xUnit suite in `tests/WorldofGoses.Tests`,
+- `pwsh ./tools/Test-GodotBoot.ps1` (production-scene smoke boot),
+- `pwsh ./tools/Test-DocsConsistency.ps1` (drift guard — schema,
+  state-file presence, CI/document coherence),
+- `pwsh ./tools/Test-LocalizationCatalog.ps1`.
+
+Local verification follows `tools/Get-VerificationPlan.ps1`. Do not
+invent commands and do not install global tools.
 
 ## 4. Directory structure
 
 ```
 world-of-goses/
 ├── .git/
+├── .github/workflows/   # CI: only ci.yml, runs on push/PR to main
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md

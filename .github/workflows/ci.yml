@@ -94,3 +94,10 @@ jobs:
       - name: Validate localization catalog
         shell: pwsh
         run: pwsh ./tools/Test-LocalizationCatalog.ps1
+
+      # Cheap drift guard for the docs that the rest of the repo cites as
+      # truth (schema number, CI surface acknowledgement, session-state
+      # baseline). Sub-second; no Godot, no network. Issues #57 closed.
+      - name: Validate documentation consistency
+        shell: pwsh
+        run: pwsh ./tools/Test-DocsConsistency.ps1
