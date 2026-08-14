@@ -51,32 +51,37 @@ public static class ArchitectureBoundaryAllowlist
     public static IReadOnlyCollection<string> PresentationPersistenceReference { get; } =
         new[]
         {
-            // game/scripts/CityWorldController.cs — the boundary class
-            // owns the save/load seam (autosave, slot reset, slot import).
-            // The next slice must extract WorldPersistence calls into a
-            // dedicated persistence adapter behind the controller. Remove
-            // during Architecture Hardening A3.
+            // game/scripts/CityWorldController.cs — Architecture
+            // Hardening A8 documents the controller as the slot/save
+            // orchestrator. The seam is the documented boundary until
+            // A7's CityGameSession facade migration; every other
+            // presentation file routes through it. This entry is the
+            // only one A8 itself places; the others below are
+            // irreducible for separate, scope-local reasons.
             "game/scripts/CityWorldController.cs",
 
-            // game/scripts/CityPrototype.cs — the prototype scene drives
-            // the dev-only load and restore fixture flow. Once the
-            // persistence adapter lands, CityPrototype should call the
-            // adapter, not WorldPersistence directly. Remove during
-            // Architecture Hardening A3.
+            // game/scripts/CityPrototype.cs — the dev-only fixture
+            // scene's `AddTerrariumRowsForVisualRegression` and
+            // `ResizeTerrariumForVisualRegression` helpers take a
+            // `WorldSave` parameter, so the `WorldSave` token leaks
+            // into the file even after the `using` is removed. Closing
+            // this cleanly requires moving the helpers to the
+            // controller's internal seam so callers receive a
+            // controller-injected mutation, plus test updates for
+            // `MacroStreetLiveViewTests.LongTerrariumFixture_…`. That
+            // belongs to a future architecture slice, not #56.
             "game/scripts/CityPrototype.cs",
 
-            // game/scripts/Ui/LocaleManager.cs — reads the save-slot path
-            // to decide where to write its own settings file. Move into
-            // the persistence adapter. Remove during Architecture
-            // Hardening A3.
+            // game/scripts/Ui/LocaleManager.cs — the autoload runs
+            // before the controller's `_Ready` and persists a sidecar
+            // settings file at the save-slot directory's sibling.
+            // Routing through the controller is not possible until
+            // the controller is constructed and the slot is known, by
+            // which time the autoload has already written its
+            // settings. Closes when a `LoadOrder` change or a
+            // settings file path shim removes the timing
+            // dependency.
             "game/scripts/Ui/LocaleManager.cs",
-
-            // game/scripts/Prototypes/RealCityStreetPreview.cs — dev-only
-            // preview that loads a real save to render the macro layout.
-            // Collapse to a controller command once the snapshot pipeline
-            // can produce the same preview. Remove during Architecture
-            // Hardening A3.
-            "game/scripts/Prototypes/RealCityStreetPreview.cs",
         };
 
     /// <summary>
@@ -164,12 +169,16 @@ public static class ArchitectureBoundaryAllowlist
             // flag and never runs in production.
             "game/scripts/CityPrototype.cs",
 
-            // game/scripts/Prototypes/RealCityStreetPreview.cs —
-            // dev-only preview that loads a real save through
-            // WorldPersistence and authors a fresh CityWorld to render
-            // the macro layout. Closing the seam is fixture-seam
-            // extraction that lives behind a future slice.
-            "game/scripts/Prototypes/RealCityStreetPreview.cs",
+            // game/scripts/CityWorldController.cs — the read-only
+            // preview seam `LoadPrimarySlotAsMacroSnapshot` authors a
+            // throwaway CityWorld precisely so the preview can never
+            // write back the primary slot during its load-migrate
+            // chain. Moving the helper out of the controller would
+            // require a domain-pure path that has no other
+            // consumer; the controller's session already owns the
+            // only production `CityWorld`, so this one is
+            // intentional.
+            "game/scripts/CityWorldController.cs",
         };
 
     /// <summary>

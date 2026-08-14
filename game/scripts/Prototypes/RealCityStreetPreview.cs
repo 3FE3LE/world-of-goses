@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Godot;
 using WorldofGoses.Domain;
-using WorldofGoses.Persistence;
 
 using WorldofGoses.Ui;
 
@@ -69,21 +68,17 @@ public partial class RealCityStreetPreview : Node2D
     }
 
     /// <summary>
-    /// Hydrates the primary slot in memory only — mirrors the
-    /// <c>world.Restore(save)</c> + <c>CityMacroSnapshot.From(world)</c>
-    /// pattern <c>CityWorldController</c> uses internally, but skips its
-    /// migration save-back step so this preview can never write the real
-    /// slot. Leaves the preview empty (no crash) if no save exists yet.
+    /// Hydrates the primary slot through the controller's read-only
+    /// preview seam (no save-back step). Leaves the preview empty (no
+    /// crash) if no save exists yet.
     /// </summary>
     private void LoadRealPlots()
     {
-        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot)) return;
-        WorldSave save = WorldPersistence.LoadFromSlot(WorldPersistence.PrimarySaveSlot);
-        save = WorldPersistence.MigrateToCurrent(save);
-        WorldPersistence.Validate(save);
-        var world = new CityWorld();
-        WorldPersistence.ApplyTo(world, save);
-        CityMacroSnapshot snapshot = CityMacroSnapshot.From(world);
+        var controller = GetTree().Root.GetNodeOrNull<CityWorldController>(
+            "CityWorldController");
+        if (controller is null) return;
+        CityMacroSnapshot? snapshot = controller.LoadPrimarySlotAsMacroSnapshot();
+        if (snapshot is null) return;
 
         AddPlots(snapshot.Buildings, isProject: false);
         AddPlots(snapshot.Projects, isProject: true);

@@ -436,6 +436,46 @@ public partial class CityWorldController : Node
     }
 
     /// <summary>
+    /// Returns the absolute path of the primary save slot's JSON file
+    /// so callers (e.g. <c>LocaleManager</c>'s settings sidecar) can
+    /// derive a sibling path without touching
+    /// <see cref="WorldPersistence"/> directly. Returns <c>null</c> if
+    /// the slot directory cannot be resolved.
+    /// </summary>
+    internal string? TryGetPrimarySaveSlotPath()
+    {
+        try
+        {
+            string slotFile = WorldPersistence.SlotPath(WorldPersistence.PrimarySaveSlot);
+            string? slotDir = System.IO.Path.GetDirectoryName(slotFile);
+            return !string.IsNullOrEmpty(slotDir) ? slotFile : null;
+        }
+        catch (System.Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Loads the primary slot, applies the canonical migration/validation
+    /// chain, restores into a throwaway <see cref="CityWorld"/>, and
+    /// returns the matching <see cref="CityMacroSnapshot"/> for read-only
+    /// preview rendering. Returns <c>null</c> if the slot is empty. The
+    /// throwaway world intentionally bypasses the controller's normal
+    /// load path so this preview never writes back a migrated save.
+    /// </summary>
+    internal CityMacroSnapshot? LoadPrimarySlotAsMacroSnapshot()
+    {
+        if (!WorldPersistence.SlotExists(WorldPersistence.PrimarySaveSlot)) return null;
+        WorldSave save = WorldPersistence.LoadFromSlot(WorldPersistence.PrimarySaveSlot);
+        save = WorldPersistence.MigrateToCurrent(save);
+        WorldPersistence.Validate(save);
+        var world = new CityWorld();
+        WorldPersistence.ApplyTo(world, save);
+        return CityMacroSnapshot.From(world);
+    }
+
+    /// <summary>
     /// Fixture command: advances the world by one tick. Same effect as
     /// <see cref="AdvanceWorldTickForVisualRegression"/> but unconditional,
     /// since the fixtures that use it run their own gating.
