@@ -273,19 +273,17 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 ShowExpeditionLiveForVisualRegression(ExpeditionLiveFixtureState.Return);
                 break;
             case "offline-report":
-                GetNode<ExpeditionRail>(
-                    "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail")
+                GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail)
                     .ShowVisualRegressionReport(BuildVisualOfflineReport());
                 break;
             case "pause-menu":
-                GetNode<PauseMenu>("PauseMenu").ShowForVisualRegression(confirmReset: false);
+                GetNode<PauseMenu>(CityNodePaths.PauseMenu).ShowForVisualRegression(confirmReset: false);
                 break;
             case "pause-menu-reset":
-                GetNode<PauseMenu>("PauseMenu").ShowForVisualRegression(confirmReset: true);
+                GetNode<PauseMenu>(CityNodePaths.PauseMenu).ShowForVisualRegression(confirmReset: true);
                 break;
             case "primary-nav-focus":
-                PrimaryNavDock navDock = GetNode<PrimaryNavDock>(
-                    "GameUiShell/ScreenContent/PrimaryNavDock");
+                PrimaryNavDock navDock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
                 navDock.Show();
                 navDock.GrabDefaultFocus();
                 Callable.From(() =>
@@ -297,10 +295,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 break;
             case "macro-arrow-focus-isolation":
                 ShowTopStatusForVisualRegression("en");
-                PrimaryNavDock arrowDock = GetNode<PrimaryNavDock>(
-                    "GameUiShell/ScreenContent/PrimaryNavDock");
-                MacroStreetLiveView arrowMacro = GetNode<MacroStreetLiveView>(
-                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                PrimaryNavDock arrowDock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+                MacroStreetLiveView arrowMacro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
                 arrowDock.HeroButton.GrabFocus();
                 float cameraBefore = arrowMacro.CameraLateralForVisualRegression;
                 Callable.From(() =>
@@ -315,9 +311,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 break;
             case "pause-arrow-focus":
                 ShowTopStatusForVisualRegression("en");
-                PauseMenu arrowPause = GetNode<PauseMenu>("PauseMenu");
-                MacroStreetLiveView pausedMacro = GetNode<MacroStreetLiveView>(
-                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                PauseMenu arrowPause = GetNode<PauseMenu>(CityNodePaths.PauseMenu);
+                MacroStreetLiveView pausedMacro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
                 arrowPause.ShowForVisualRegression(confirmReset: false);
                 float pausedCameraBefore = pausedMacro.CameraLateralForVisualRegression;
                 Callable.From(() =>
@@ -332,13 +327,11 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 break;
             case "construction-hero-route":
                 ShowTopStatusForVisualRegression("en");
-                MacroStreetLiveView heroRouteMacro = GetNode<MacroStreetLiveView>(
-                    "GameUiShell/ScreenContent/MacroStreetLiveView");
+                MacroStreetLiveView heroRouteMacro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
                 heroRouteMacro.ShowConstructionForVisualRegression(placement: false);
                 GetTree().CreateTimer(0.25).Timeout += () =>
                 {
-                    ConstructionPanel construction = GetNode<ConstructionPanel>(
-                        "GameUiShell/ScreenContent/Center/ConstructionPanel");
+                    ConstructionPanel construction = GetNode<ConstructionPanel>(CityNodePaths.ConstructionPanel);
                     SendPointerClickForVisualRegression(construction.ViewHeroButtonForVisualRegression);
                     GetTree().CreateTimer(0.5).Timeout +=
                         ValidateConstructionHeroRouteForVisualRegression;
@@ -347,8 +340,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             case "simulation-controls-focus":
                 // Speed control now lives in the status bar's utility
                 // cluster; grab focus on it directly.
-                CityStatusPanel speedPanel = GetNode<CityStatusPanel>(
-                    "GameUiShell/CityStatusPanel");
+                CityStatusPanel speedPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
                 speedPanel.SpeedButton.GrabFocus();
                 Callable.From(() =>
                 {
@@ -358,20 +350,19 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 }).CallDeferred();
                 break;
             case "construction-scroll":
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowConstructionForVisualRegression(placement: false);
                 break;
             case "construction-placement":
                 ShowTopStatusForVisualRegression("en");
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowConstructionForVisualRegression(placement: true);
                 break;
             case "action-dock-focus":
                 ShowTopStatusForVisualRegression("en");
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowConstructionForVisualRegression(placement: true);
-                ActionDock actionDock = GetNode<ActionDock>(
-                    "GameUiShell/ScreenContent/ActionDock");
+                ActionDock actionDock = GetNode<ActionDock>(CityNodePaths.ActionDock);
                 actionDock.ConfirmButton.GrabFocus();
                 Callable.From(() =>
                 {
@@ -382,7 +373,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 break;
             case "construction-placement-escape":
                 ShowTopStatusForVisualRegression("en");
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowConstructionForVisualRegression(placement: true);
                 // A real ui_cancel through the input queue, not a direct call to
                 // CancelPlacement: the point is to prove the key reaches
@@ -403,7 +394,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 ExerciseActionDockPointerForVisualRegression(confirm: false);
                 break;
             case "construction-placement-hover-invalid":
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowConstructionPlacementHoverForVisualRegression(valid: false);
                 break;
             case "founding-blueprint":
@@ -524,22 +515,22 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 ValidateModalLayoutAndClosePaths();
                 break;
             case "astral-start":
-                GetNode<AstralOnboardingView>("OnboardingView")
+                GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView)
                     .ShowForVisualRegression(0);
                 break;
             case "astral-ground":
-                GetNode<AstralOnboardingView>("OnboardingView")
+                GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView)
                     .ShowForVisualRegression(10);
                 break;
             case "astral-identity":
-                GetNode<AstralOnboardingView>("OnboardingView")
+                GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView)
                     .ShowForVisualRegression(12);
                 break;
             // One past the naming beat. The founder card is only reachable by
             // confirming a name, which would create a hero, so capture mode
             // needs its own entry point into it.
             case "astral-founder-card":
-                GetNode<AstralOnboardingView>("OnboardingView")
+                GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView)
                     .ShowForVisualRegression(13);
                 break;
             // Two past the naming beat. The weapon choice is what makes
@@ -550,7 +541,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             // pre-selected so the highlight state is what the sign-off
             // reviews.
             case "astral-weapon-choice":
-                GetNode<AstralOnboardingView>("OnboardingView")
+                GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView)
                     .ShowForVisualRegression(14);
                 break;
             case "founder-arrival":
@@ -575,17 +566,17 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 PinTimeOfDayForVisualRegression(0.771);
                 break;
             case "language-selector":
-                GetNode<PauseMenu>("PauseMenu").Open();
+                GetNode<PauseMenu>(CityNodePaths.PauseMenu).Open();
                 break;
             case "forest-depleted":
-                GetNode<CityWorldController>("CityWorldController")
+                GetNode<CityWorldController>(CityNodePaths.Controller)
                     .DrainAllForestsForFixture();
                 break;
             case "citizen-travel":
                 ShowCitizenTravelForVisualRegression();
                 break;
             case "camera-depth-third-row":
-                GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+                GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
                     .ShowThirdStreetDepthForVisualRegression();
                 break;
             case "long-terrarium-20-rows":
@@ -598,13 +589,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 ShowTerrariumWindowForVisualRegression(rows: 8, columns: 9);
                 break;
             case "policies":
-                GetNode<PoliciesPanel>("GameUiShell/ScreenContent/PoliciesPanel").Open();
+                GetNode<PoliciesPanel>(CityNodePaths.PoliciesPanel).Open();
                 break;
             case "combat-debug":
                 ShowCombatDebugForVisualRegression();
                 break;
             case "migrant":
-                GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
+                GetNode<MigrantPanel>(CityNodePaths.MigrantPanel)
                     .ShowForVisualRegression();
                 break;
             case "migrant-cube":
@@ -615,13 +606,10 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ExercisePrimaryNavPointerForVisualRegression(string action)
     {
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         macro.ShowEarlyGameResourcesForVisualRegression();
-        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
-            "GameUiShell/ScreenContent/PrimaryNavDock");
-        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
-            "GameUiShell/CityStatusPanel");
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
         IconButton button = action switch
         {
             "hero" => dock.HeroButton,
@@ -743,10 +731,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidatePrimaryNavFocusForVisualRegression()
     {
-        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
-            "GameUiShell/ScreenContent/PrimaryNavDock");
-        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
-            "GameUiShell/CityStatusPanel");
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
         Rect2 dockRect = dock.GetGlobalRect();
         if (dockRect.Size != PrimaryNavDockSize
             || dockRect.Intersects(statusPanel.GetGlobalRect()))
@@ -770,10 +756,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateMacroArrowFocusIsolationForVisualRegression(float cameraBefore)
     {
-        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
-            "GameUiShell/ScreenContent/PrimaryNavDock");
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         Control? focus = GetViewport().GuiGetFocusOwner();
         if (focus != dock.HeroButton || macro.CameraLateralForVisualRegression <= cameraBefore)
         {
@@ -788,9 +772,16 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidatePauseArrowFocusForVisualRegression(float cameraBefore)
     {
-        PauseMenu pause = GetNode<PauseMenu>("PauseMenu");
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        PauseMenu pause = GetNode<PauseMenu>(CityNodePaths.PauseMenu);
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
+        // PauseMenu's SettingsButton is a deep-internal child of its
+        // authored shell; this fixture reaches it directly. The path
+        // is intentionally NOT in CityNodePaths because moving the
+        // deep-internal layout into a public property on PauseMenu
+        // belongs to a separate slice (the surface is privacy, not
+        // string centralization). For now, this single-use literal is
+        // documented; an allowlist entry on the guard test keeps it
+        // from regressing to "no magic strings".
         IconButton settings = pause.GetNode<IconButton>(
             "Center/Card/Margin/Shell/MainActions/SettingsButton");
         Control? focus = GetViewport().GuiGetFocusOwner();
@@ -807,11 +798,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateConstructionHeroRouteForVisualRegression()
     {
-        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
-        ConstructionPanel construction = GetNode<ConstructionPanel>(
-            "GameUiShell/ScreenContent/Center/ConstructionPanel");
-        HeroProfileView hero = GetNode<HeroProfileView>(
-            "GameUiShell/ScreenContent/HeroProfileView");
+        ModalHost modalHost = GetNode<ModalHost>(CityNodePaths.ModalHost);
+        ConstructionPanel construction = GetNode<ConstructionPanel>(CityNodePaths.ConstructionPanel);
+        HeroProfileView hero = GetNode<HeroProfileView>(CityNodePaths.HeroProfileView);
         if (modalHost.IsOpen || construction.Visible || !hero.Visible)
         {
             GD.PushError(
@@ -824,7 +813,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateActionDockFocusForVisualRegression()
     {
-        ActionDock dock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
+        ActionDock dock = GetNode<ActionDock>(CityNodePaths.ActionDock);
         if (GetViewport().GuiGetFocusOwner() != dock.CancelButton)
         {
             Control? owner = GetViewport().GuiGetFocusOwner();
@@ -839,8 +828,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateSimulationControlsFocusForVisualRegression()
     {
-        CityStatusPanel speedPanel = GetNode<CityStatusPanel>(
-            "GameUiShell/CityStatusPanel");
+        CityStatusPanel speedPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
         if (GetViewport().GuiGetFocusOwner() != speedPanel.SpeedButton)
         {
             Control? owner = GetViewport().GuiGetFocusOwner();
@@ -854,17 +842,14 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidatePrimaryNavPointerForVisualRegression(string action)
     {
-        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
-        PrimaryNavDock dock = GetNode<PrimaryNavDock>(
-            "GameUiShell/ScreenContent/PrimaryNavDock");
-        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
-            "GameUiShell/CityStatusPanel");
+        ModalHost modalHost = GetNode<ModalHost>(CityNodePaths.ModalHost);
+        PrimaryNavDock dock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
         bool passed = action switch
         {
-            "hero" => GetNode<HeroProfileView>(
-                "GameUiShell/ScreenContent/HeroProfileView").Visible,
+            "hero" => GetNode<HeroProfileView>(CityNodePaths.HeroProfileView).Visible,
             "construction" => modalHost.IsOpen && modalHost.Content?.Name == "ConstructionPanel",
-            "menu" => GetNode<PauseMenu>("PauseMenu").Visible,
+            "menu" => GetNode<PauseMenu>(CityNodePaths.PauseMenu).Visible,
             "expedition" => modalHost.IsOpen && modalHost.Content?.Name == "ExpeditionPanel",
             "policies" => modalHost.IsOpen && modalHost.Content?.Name == "PoliciesPanel",
             "citizens" => modalHost.IsOpen && modalHost.Content?.Name == "MigrantPanel",
@@ -886,12 +871,11 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseActionDockPointerForVisualRegression(bool confirm)
     {
         ShowTopStatusForVisualRegression("en");
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         if (confirm) macro.PreparePlacementConfirmationForVisualRegression();
         else macro.ShowConstructionForVisualRegression(placement: true);
 
-        ActionDock actionDock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
+        ActionDock actionDock = GetNode<ActionDock>(CityNodePaths.ActionDock);
         Control target = confirm ? actionDock.ConfirmButton : actionDock.CancelButton;
         Callable.From(() =>
         {
@@ -903,10 +887,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateActionDockExitForVisualRegression(bool confirm, string input)
     {
-        PrimaryNavDock primaryDock = GetNode<PrimaryNavDock>(
-            "GameUiShell/ScreenContent/PrimaryNavDock");
-        ActionDock actionDock = GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock");
-        ModalHost modalHost = GetNode<ModalHost>("GameUiShell/ScreenContent/ModalHost");
+        PrimaryNavDock primaryDock = GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock);
+        ActionDock actionDock = GetNode<ActionDock>(CityNodePaths.ActionDock);
+        ModalHost modalHost = GetNode<ModalHost>(CityNodePaths.ModalHost);
         bool passed = primaryDock.Visible
             && !actionDock.Visible
             && (confirm
@@ -932,10 +915,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
                 nameof(action), action,
                 "Only the 'speed' simulation action remains; pause is gone.");
         }
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Normal);
-        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(
-            "GameUiShell/CityStatusPanel");
+        CityStatusPanel statusPanel = GetNode<CityStatusPanel>(CityNodePaths.StatusPanel);
         Control target = statusPanel.SpeedButton;
         Callable.From(() =>
         {
@@ -980,7 +962,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ShowLongTerrariumForVisualRegression(int additionalRows)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         Citizen? loadedFounder = controller.GetFixtureHero();
         var fixture = new CityWorld();
         if (loadedFounder is not null)
@@ -1001,13 +983,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         WorldSave save = WorldPersistence.Capture(fixture);
         AddTerrariumRowsForVisualRegression(save, additionalRows);
         controller.RestoreFixtureWorld(save);
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowLongTerrariumForVisualRegression();
     }
 
     private void ShowTerrariumWindowForVisualRegression(int rows, int columns)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         Citizen? loadedFounder = controller.GetFixtureHero();
         var fixture = new CityWorld();
         if (loadedFounder is not null)
@@ -1028,7 +1010,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         WorldSave save = WorldPersistence.Capture(fixture);
         ResizeTerrariumForVisualRegression(save, rows, columns);
         controller.RestoreFixtureWorld(save);
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowLongTerrariumForVisualRegression();
     }
 
@@ -1148,7 +1130,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ShowFoundingSiteForVisualRegression(bool moduleChoice, bool blockedCargo)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
@@ -1198,7 +1180,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         }
 
         controller.SeedFixtureWorld(fixture);
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowConstructionForVisualRegression(placement: false);
     }
 
@@ -1213,7 +1195,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     /// </summary>
     private void ShowFirstNightForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CitizenProfile nightProfile = NewFounderProfile(LineageId.Ardhen);
         var fixture = new CityWorld();
         HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
@@ -1228,7 +1210,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
     }
 
     /// <summary>
@@ -1266,7 +1248,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     /// </summary>
     private void ShowBiomeForVisualRegression(string lineageName)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         LineageId? lineage = lineageName.ToLowerInvariant() switch
         {
             "ardhen" => LineageId.Ardhen,
@@ -1297,12 +1279,12 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
     }
 
     private void ShowEarlyGameResourcesForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         bool profileCreated = CitizenProfile.TryCreate(
             LineageId.Ardhen,
             GenderId.Masculine,
@@ -1335,8 +1317,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         fixture.SeedStartingForests();
         fixture.SeedStartingOpportunities();
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowEarlyGameResourcesForVisualRegression();
     }
 
@@ -1352,7 +1334,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     /// </summary>
     private void ShowMigrantCubeForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         if (controller.GetFixtureHero() is not Citizen loadedFounder)
         {
             GD.PushError("Migrant cube fixture requires a loaded founder profile.");
@@ -1398,8 +1380,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         }
 
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
-        GetNode<MigrantPanel>("GameUiShell/ScreenContent/MigrantPanel")
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
+        GetNode<MigrantPanel>(CityNodePaths.MigrantPanel)
             .ShowMigrantCubeForVisualRegression(migrantId);
     }
 
@@ -1449,7 +1431,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ShowShelterResourcesForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
@@ -1487,9 +1469,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         fixture.Resources.DepositToCityInventory(ResourceType.WildFood, 4);
 
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
         controller.SelectBuilding(shelterId);
-        GetNode<BuildingInspector>("GameUiShell/ScreenContent/BuildingInspector")
+        GetNode<BuildingInspector>(CityNodePaths.BuildingInspector)
             .ExpandShelterResourcesForVisualRegression();
     }
 
@@ -1500,7 +1482,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     /// </summary>
     private void ShowTopStatusForVisualRegression(string locale)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CitizenProfile profile = NewFounderProfile(LineageId.Kovari);
         var fixture = new CityWorld();
         HeroCreationResult heroResult = fixture.TryCreateHero(new HeroCreationRequest(
@@ -1548,10 +1530,10 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             + GameClock.TicksPerInGameDay / 2;
         controller.RestoreFixtureWorld(save);
         LineageThemeRegistry.ActiveLineage = LineageThemeRegistry.IdOf(profile.Lineage);
-        GetNode<LocaleManager>("/root/LocaleManager")
+        GetNode<LocaleManager>(CityNodePaths.LocaleManager)
             .SetLocaleForVisualRegression(locale);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
     }
 
     /// <summary>
@@ -1565,7 +1547,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowCitizenInTransitForVisualRegression()
     {
         ShowTopStatusForVisualRegression("en");
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         ConstructionAuthorizationResult authorization =
             controller.TryAuthorizeConstruction(ConstructionKind.Farm);
         if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
@@ -1592,7 +1574,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowCitySummaryForVisualRegression(string locale, bool blocked)
     {
         ShowTopStatusForVisualRegression(locale);
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         ConstructionAuthorizationResult authorization =
             controller.TryAuthorizeConstruction(ConstructionKind.Farm);
         if (!authorization.IsSuccess || authorization.ProjectId is not BuildingId projectId)
@@ -1616,14 +1598,14 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             }
         }
 
-        GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector")
+        GetNode<ContextInspector>(CityNodePaths.ContextInspector)
             .ShowSelection(
                 ResourceLoader.Load<Texture2D>(IconPaths.User),
                 "Inspector",
                 UiText.Get("ui.city_summary.inspector_fixture_detail"));
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
+        GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel)
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
     }
 
     /// <summary>
@@ -1633,7 +1615,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowCitySummaryLowFoodForVisualRegression(string locale)
     {
         ShowTopStatusForVisualRegression(locale);
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CityWorld world = controller.GetFixtureWorld();
         Citizen? hero = world.Hero;
         if (hero is null)
@@ -1648,9 +1630,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         }
         world.Resources.DepositToCityInventory(ResourceType.WildFood, 1);
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
+        GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel)
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
     }
 
     /// <summary>
@@ -1660,7 +1642,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowCitySummaryHousingFullForVisualRegression(string locale)
     {
         ShowTopStatusForVisualRegression(locale);
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CityWorld world = controller.GetFixtureWorld();
         Citizen? hero = world.Hero;
         if (hero is null)
@@ -1686,9 +1668,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             }
         }
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
+        GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel)
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
     }
 
     /// <summary>
@@ -1698,11 +1680,11 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowCitySummaryNoConstructionForVisualRegression(string locale)
     {
         ShowTopStatusForVisualRegression(locale);
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
 
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
+        GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel)
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
     }
 
     private enum MacroHudFixtureState
@@ -1721,14 +1703,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ShowMacroHudForVisualRegression(MacroHudFixtureState state)
     {
         ShowTopStatusForVisualRegression("en");
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         macro.ShowEarlyGameResourcesForVisualRegression();
 
         if (state == MacroHudFixtureState.ActiveConstruction)
         {
             ShowCitySummaryForVisualRegression("en", blocked: false);
-            GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Hide();
+            GetNode<ContextInspector>(CityNodePaths.ContextInspector).Hide();
             return;
         }
 
@@ -1737,13 +1718,12 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
         }
 
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel")
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
+        GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel)
             .Refresh(controller.GetCityStatusSnapshot());
-        GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail").Refresh();
+        GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail).Refresh();
 
-        ContextInspector inspector = GetNode<ContextInspector>(
-            "GameUiShell/ScreenContent/ContextInspector");
+        ContextInspector inspector = GetNode<ContextInspector>(CityNodePaths.ContextInspector);
         if (state == MacroHudFixtureState.Selection)
         {
             inspector.ShowSelection(
@@ -1771,9 +1751,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ShowTopStatusForVisualRegression("en");
         ShowCitySummaryForVisualRegression("en", blocked: false);
-        GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Hide();
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        GetNode<ContextInspector>(CityNodePaths.ContextInspector).Hide();
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         macro.ShowPlacementOverlayForVisualRegression();
     }
 
@@ -1789,12 +1768,12 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     {
         if (!WorldofGoses.Testing.VisualRegressionHarness.IsActive) return;
         ShowMacroHudForVisualRegression(MacroHudFixtureState.Default);
-        GetNode<CityWorldController>("CityWorldController").SetSimulationSpeed(speed);
+        GetNode<CityWorldController>(CityNodePaths.Controller).SetSimulationSpeed(speed);
     }
 
     private void ShowCultivationForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         Citizen? loadedFounder = controller.GetFixtureHero();
         if (loadedFounder is null)
         {
@@ -1845,17 +1824,16 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         while (!GameClock.IsDaytime(fixture.CurrentTick)) fixture.AdvanceWorldTick();
 
         controller.SeedFixtureWorld(fixture);
-        GetNode<AstralOnboardingView>("OnboardingView").Hide();
-        GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Refresh(controller);
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<AstralOnboardingView>(CityNodePaths.OnboardingView).Hide();
+        GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Refresh(controller);
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowEarlyGameResourcesForVisualRegression();
     }
 
     private void ShowCitizenTravelForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder)
         {
@@ -1911,13 +1889,10 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private async void ValidateModalLayoutAndClosePaths()
     {
         GD.Print("Modal layout/close fixture started.");
-        Control city = GetNode<Control>("GameUiShell/ScreenContent");
-        ModalHost host = GetNode<ModalHost>(
-            "GameUiShell/ScreenContent/ModalHost");
-        ExpeditionPanel expedition = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
-        ConstructionPanel construction = GetNode<ConstructionPanel>(
-            "GameUiShell/ScreenContent/Center/ConstructionPanel");
+        Control city = GetNode<Control>(CityNodePaths.ScreenContent);
+        ModalHost host = GetNode<ModalHost>(CityNodePaths.ModalHost);
+        ExpeditionPanel expedition = GetNode<ExpeditionPanel>(CityNodePaths.CenterExpeditionPanel);
+        ConstructionPanel construction = GetNode<ConstructionPanel>(CityNodePaths.ConstructionPanel);
 
         expedition.Open();
         // Issue #7: wait for the modal's own signal instead of an
@@ -1928,7 +1903,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         expedition.Close();
         await ToSignal(host, ModalHost.SignalName.Closed);
 
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowConstructionForVisualRegression(placement: false);
         await ToSignal(host, ModalHost.SignalName.Opened);
         ValidateContained("ConstructionPanel", construction, city);
@@ -1960,15 +1935,14 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void PinTimeOfDayForVisualRegression(double dayFraction)
     {
-        GetNode<TimeOfDayFilter>("GameUiShell/ScreenContent/TimeOfDayFilter")
+        GetNode<TimeOfDayFilter>(CityNodePaths.TimeOfDayFilter)
             .PinDayFractionForVisualRegression(dayFraction);
     }
 
     private void ShowFounderArrivalForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         if (controller.GetFixtureHero() is not Citizen founder) return;
         city.PrepareFounderArrival();
         var arrival = new FounderArrivalSequence();
@@ -2005,7 +1979,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ShowHeroIncorporationForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         if (controller.GetFixtureHero() is not Citizen founder) return;
         if (controller.GetRosterSnapshot().Entries.All(entry => entry.IsHero))
         {
@@ -2021,7 +1995,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ShowWoundRecoveryForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         if (controller.GetFixtureHero() is not Citizen founder) return;
         int nextId = controller.NextFixtureCitizenIdByMax();
         var patient = new Citizen(
@@ -2038,13 +2012,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             (int)WoundSeverity.Moderate);
         patient.SustainWound(WoundSeverity.Moderate, woundEvent.Id);
         controller.DepositToFixtureInventory(ResourceType.Food, 2);
-        GetNode<ExpeditionPanel>("GameUiShell/ScreenContent/Center/ExpeditionPanel")
+        GetNode<ExpeditionPanel>(CityNodePaths.CenterExpeditionPanel)
             .ShowWoundRecoveryForVisualRegression();
     }
 
     private void ShowWorldStatusTreatmentForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
 
@@ -2065,7 +2039,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         world.Resources.DepositToCityInventory(ResourceType.Food, WoundRules.ModerateFoodCost);
         if (!world.TryBeginWoundRecovery(patient.Id).IsSuccess) return;
 
-        GetNode<MacroStreetLiveView>("GameUiShell/ScreenContent/MacroStreetLiveView")
+        GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView)
             .ShowCitizenStatusForVisualRegression(patient.Id);
     }
 
@@ -2077,7 +2051,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         // pointer overlay and the at-a-glance summary arrive when the
         // player clicks a citizen — not just when the macro view paints
         // the bubble for a known citizen by hand.
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         CityWorld world = controller.GetFixtureWorld();
         if (world.Hero is not Citizen founder || world.PrimaryHome is null) return;
 
@@ -2088,16 +2062,14 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
             appearanceSeed: nextId * 11,
             profile: founder.Profile);
         world.RegisterCitizen(inspector);
-        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        MacroStreetLiveView city = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         city.TriggerCitizenClickForVisualRegression(inspector.Id);
     }
 
     private void ShowExpeditionForVisualRegression(ExpeditionFixtureState state)
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(CityNodePaths.CenterExpeditionPanel);
         if (controller.GetFixtureHero()?.CurrentAssignment is BuildingId assignment)
         {
             CitizenId heroId = controller.GetFixtureHero()!.Id;
@@ -2129,9 +2101,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionPanelContained()
     {
-        Control screen = GetNode<Control>("GameUiShell/ScreenContent");
-        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
+        Control screen = GetNode<Control>(CityNodePaths.ScreenContent);
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(CityNodePaths.CenterExpeditionPanel);
         Rect2 screenRect = screen.GetGlobalRect();
         Rect2 panelRect = panel.GetGlobalRect();
         if (!panel.IsVisibleInTree() || !screenRect.Encloses(panelRect))
@@ -2155,14 +2126,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     {
         if (locale is not null)
         {
-            GetNode<LocaleManager>("/root/LocaleManager")
+            GetNode<LocaleManager>(CityNodePaths.LocaleManager)
                 .SetLocaleForVisualRegression(locale);
         }
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         SeedHermeticFounderForExpeditionRailFixture(controller);
         CityWorld world = controller.GetFixtureWorld();
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
 
         if (world.Hero?.CurrentAssignment is BuildingId assignment)
         {
@@ -2228,15 +2198,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     {
         _expeditionLiveEscapeFixture = exitWithCancel;
         _expeditionLiveFixtureState = state;
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         if (!PrepareSpiritTrailVisualFixture(controller, out ExpeditionId expeditionId)) return;
         AdvanceSpiritTrailVisualFixture(controller.GetFixtureWorld(), expeditionId, state);
         controller.SetSimulationSpeed(CityWorldController.SpeedChoice.Fast);
-        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
-            "GameUiShell/ScreenContent/ExpeditionLiveView");
+        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(CityNodePaths.ExpeditionLiveView);
         liveView.UseStableFounderLabelForVisualRegression();
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         rail.Refresh();
         if (exitWithCancel)
         {
@@ -2380,11 +2348,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionLiveForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
-        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(
-            "GameUiShell/ScreenContent/ExpeditionLiveView");
-        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(
-            "GameUiShell/ScreenContent/MacroStreetLiveView");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
+        ExpeditionLiveView liveView = GetNode<ExpeditionLiveView>(CityNodePaths.ExpeditionLiveView);
+        MacroStreetLiveView macro = GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView);
         CombatSessionSnapshot? combat = liveView.PresentedExpeditionId is ExpeditionId expeditionId
             ? controller.GetCombatSessionSnapshot(expeditionId)
             : null;
@@ -2397,13 +2363,13 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         bool passed = liveView.Visible
             && liveView.PresentedExpeditionId.HasValue
             && !macro.Visible
-            && !GetNode<CitySummaryPanel>("GameUiShell/ScreenContent/CitySummaryHost/CitySummaryPanel").Visible
-            && !GetNode<ExpeditionRail>("GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail").Visible
-            && !GetNode<PrimaryNavDock>("GameUiShell/ScreenContent/PrimaryNavDock").Visible
-            && !GetNode<ContextInspector>("GameUiShell/ScreenContent/ContextInspector").Visible
-            && !GetNode<ActionDock>("GameUiShell/ScreenContent/ActionDock").Visible
-            && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").Visible
-            && GetNode<CityStatusPanel>("GameUiShell/CityStatusPanel").SpeedButton.IsVisibleInTree()
+            && !GetNode<CitySummaryPanel>(CityNodePaths.CitySummaryPanel).Visible
+            && !GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail).Visible
+            && !GetNode<PrimaryNavDock>(CityNodePaths.PrimaryNavDock).Visible
+            && !GetNode<ContextInspector>(CityNodePaths.ContextInspector).Visible
+            && !GetNode<ActionDock>(CityNodePaths.ActionDock).Visible
+            && GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).Visible
+            && GetNode<CityStatusPanel>(CityNodePaths.StatusPanel).SpeedButton.IsVisibleInTree()
             && GetViewport().GuiGetFocusOwner() == liveView.BackButton
             && liveView.HasReferenceLayout
             && (expectsCombat
@@ -2438,13 +2404,11 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionLiveEscapeForVisualRegression()
     {
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         bool passed = controller.CurrentSelection == CityWorldController.Selection.MacroView
-            && GetNode<MacroStreetLiveView>(
-                "GameUiShell/ScreenContent/MacroStreetLiveView").Visible
-            && !GetNode<ExpeditionLiveView>(
-                "GameUiShell/ScreenContent/ExpeditionLiveView").Visible
-            && !GetNode<PauseMenu>("PauseMenu").Visible
+            && GetNode<MacroStreetLiveView>(CityNodePaths.MacroLiveView).Visible
+            && !GetNode<ExpeditionLiveView>(CityNodePaths.ExpeditionLiveView).Visible
+            && !GetNode<PauseMenu>(CityNodePaths.PauseMenu).Visible
             && controller.CurrentSpeed == CityWorldController.SpeedChoice.Fast
             && controller.GetExpeditionRailSnapshot().ActiveExpeditions.Count == 1;
         if (!passed)
@@ -2501,8 +2465,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     private void ExerciseExpeditionRailPointerForVisualRegression(string action)
     {
         ShowExpeditionRailForVisualRegression(ExpeditionRailFixtureState.Outbound);
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         CallDeferred(MethodName.SendExpeditionRailPointerForVisualRegression, action, rail);
     }
 
@@ -2539,8 +2502,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ExerciseExpeditionRailFocusForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         rail.SetExpandedForVisualRegression(expanded: false);
         rail.SetExpandedForVisualRegression(expanded: true);
         CallDeferred(MethodName.ExerciseExpandedExpeditionRailFocusForVisualRegression);
@@ -2548,8 +2510,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ExerciseExpandedExpeditionRailFocusForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         rail.GrabDefaultFocus();
         if (GetViewport().GuiGetFocusOwner() != rail.FirstViewButton)
         {
@@ -2563,8 +2524,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailFocusForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         Control? focused = GetViewport().GuiGetFocusOwner();
         if (focused != rail.FirstDetailsButton)
         {
@@ -2578,8 +2538,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailDetailsForVisualRegression(int expectedId)
     {
-        ExpeditionPanel panel = GetNode<ExpeditionPanel>(
-            "GameUiShell/ScreenContent/Center/ExpeditionPanel");
+        ExpeditionPanel panel = GetNode<ExpeditionPanel>(CityNodePaths.CenterExpeditionPanel);
         if (panel.PresentedExpeditionId?.Value != expectedId)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-DETAILS] clicked ID was not presented.");
@@ -2593,9 +2552,8 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailCancelForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
-        if (GetNode<CityWorldController>("CityWorldController")
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
+        if (GetNode<CityWorldController>(CityNodePaths.Controller)
                 .GetExpeditionRailSnapshot().ActiveExpeditions.Count != 0
             || rail.FirstDetailsButton is not null)
         {
@@ -2607,8 +2565,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailMoreForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         if (!rail.Visible || !rail.ChronicleExpanded)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-MORE] Chronicle did not open.");
@@ -2619,8 +2576,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ExerciseExpeditionRailChronicleRoundTripForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         // Both edges are real pointer clicks, and both wait on the button's
         // layout actually settling rather than on a fixed delay. The fixture
         // is named "roundtrip" because it proves the player can open the
@@ -2648,8 +2604,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailChronicleRoundTripForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         // Height, not visibility, and a threshold with meaning. The bug this
         // fixture exists to catch left the cards Visible with their own 25 px
         // height while the body around them was squeezed to 2 px: laid out
@@ -2678,10 +2633,9 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ExerciseExpeditionRailPhaseFocusForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         rail.GrabDefaultFocus();
-        CityWorldController controller = GetNode<CityWorldController>("CityWorldController");
+        CityWorldController controller = GetNode<CityWorldController>(CityNodePaths.Controller);
         controller.AdvanceWorldTickForFixtureHarness();
         controller.AdvanceWorldTickForFixtureHarness();
         CallDeferred(MethodName.DeferExpeditionRailPhaseFocusValidation);
@@ -2695,8 +2649,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
     /// </summary>
     private void ForceExpeditionRailProtagonistForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         // Collapse the chronicle body so the accordion hands the
         // column back to the expedition scroll, then expand the rail
         // header so the cards become visible.
@@ -2719,8 +2672,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailProtagonistForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         if (!rail.Expanded
             || rail.FirstViewButton is null
             || !rail.FirstViewButton.IsVisibleInTree()
@@ -2743,8 +2695,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
 
     private void ValidateExpeditionRailPhaseFocusForVisualRegression()
     {
-        ExpeditionRail rail = GetNode<ExpeditionRail>(
-            "GameUiShell/ScreenContent/ExpeditionRailHost/ExpeditionRail");
+        ExpeditionRail rail = GetNode<ExpeditionRail>(CityNodePaths.ExpeditionRail);
         if (GetViewport().GuiGetFocusOwner() != rail.FirstDetailsButton)
         {
             GD.PushError("[WOG-EXPEDITION-RAIL-PHASE-FOCUS] focus lost on phase tick.");

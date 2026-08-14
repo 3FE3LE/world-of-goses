@@ -172,6 +172,10 @@ layout_mode = 2
 
 [node name="ExpeditionPanel" parent="GameUiShell/ScreenContent/Center" unique_id=1643693377 instance=ExtResource("27_expedition")]
 layout_mode = 2
+; Relative path stays in-tcn because the ModalHost child is loaded
+; in the same authored composition (its host depth is fixed by the
+; static scene tree, not the code). A scene-side NodePath belongs to
+; the layout author, not to CityNodePaths. Close #51 leaves it alone.
 ModalHostPath = NodePath("../../ModalHost")
 
 [node name="PoliciesPanel" parent="GameUiShell/ScreenContent" unique_id=602712654 instance=ExtResource("31_policies")]
@@ -180,6 +184,10 @@ layout_mode = 1
 
 [node name="MigrantPanel" parent="GameUiShell/ScreenContent" unique_id=514887703 instance=ExtResource("32_migrant")]
 anchors_preset = 0
+; Relative path is load-bearing for MigrantPanel's authored
+; position above GameUiShell/ScreenContent; switching to absolute
+; /root/... would couple the scene to its instantiation host. Close
+; #51 keeps the relative depth in-tcn and documents it.
 ControllerPath = NodePath("../../../CityWorldController")
 
 [node name="MacroStreetLiveView" type="Node2D" parent="GameUiShell/ScreenContent" unique_id=1900000001]
@@ -572,6 +580,9 @@ tooltip_text = "Open the hero profile"
 theme_type_variation = &"HudButton"
 text = "View hero"
 script = ExtResource("14_heroaccess")
+; Same load-bearing relative path as MigrantPanelControllerPath,
+; one extra level up because the view-hero button is nested deeper
+; in the layout. Close #51 keeps the relative depth in-tcn.
 ControllerPath = NodePath("../../../../../CityWorldController")
 IconPath = "res://assets/ui/icons/24/user.svg"
 ButtonText = "View hero"
