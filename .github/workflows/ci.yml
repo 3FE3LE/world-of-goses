@@ -95,6 +95,17 @@ jobs:
 
       # AGENTS.md §5 core check: run the xUnit domain/persistence suite.
       # --no-build because the previous step already produced binaries.
+      #
+      # First-time imports are an xUnit concern. The
+      # PromotedSpeedGlyphs guard asserts the existence of three
+      # `.import` siblings that `.gitignore` correctly keeps out of
+      # source control; without a canonical reimport the guard would
+      # fail simply because the runner had no prior Godot session.
+      # Reimport first, then test.
+      - name: Canonical import of game assets
+        shell: pwsh
+        run: pwsh ./tools/Import-GameAssets.ps1
+
       - name: Run xUnit tests
         working-directory: tests/WorldofGoses.Tests
         run: dotnet test --no-build --configuration Debug
