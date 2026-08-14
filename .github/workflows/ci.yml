@@ -35,17 +35,40 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # Godot 4.7.1 mono is required because game/ uses
-      # Godot.NET.Sdk/4.7.1 and the test project's ProjectReference
-      # pulls the game project in. CI installs Godot fresh on every
-      # run; the local machine keeps its own copy under C:\Tools\Godot\.
+      # Godot 4.7.1 .NET is required because game/ uses Godot.NET.Sdk/4.7.1
+      # and the test project's ProjectReference pulls the game project
+      # in. CI installs Godot fresh on every run; the local machine
+      # keeps its own copy under C:\Tools\Godot\.
+      #
+      # The action's current action.yml (v1.5.6, SHA d3fbddf…) honors
+      # `use-dotnet` (default true) and `include-templates` (default
+      # false). The legacy `mono`, `include-export-templates` and
+      # `include-dotnet` inputs no longer exist; pinning to a tagged
+      # release means the toolchain does not silently change when
+      # upstream ships another v1.
       - name: Setup Godot 4.7.1 (mono)
-        uses: chickensoft-games/setup-godot@v1
+        uses: chickensoft-games/setup-godot@v1.5.6
         with:
           version: 4.7.1
-          mono: enabled
-          include-export-templates: false
-          include-dotnet: false
+          use-dotnet: true
+
+      # Make the resolved toolchain visible in the CI log instead of
+      # trusting action defaults. If `use-dotnet` ever stops working as
+      # a build of the .NET-enabled binary, `godot --version` plus
+      # `dotnet --list-sdks` makes the regression obvious before a
+      # silent xUnit failure points at it. `$env:GODOT` is what the
+      # setup-godot action exports; bare `godot` falls back to PATH.
+      - name: Verify Godot and .NET toolchain
+        shell: pwsh
+        run: |
+          $godot = $env:GODOT
+          if (-not $godot) { $godot = (Get-Command godot -ErrorAction SilentlyContinue).Source }
+          if (-not $godot) { Write-Error "godot executable not found in PATH and $env:GODOT not set"; exit 1 }
+          Write-Output "Godot binary: $godot"
+          & $godot --version
+          $sdk = dotnet --list-sdks | Select-String '^8\.'
+          if (-not $sdk) { Write-Error ".NET 8 SDK required but absent from 'dotnet --list-sdks'"; exit 1 }
+          Write-Output "Dotnet 8 SDK entries:"; $sdk | ForEach-Object { Write-Output ("  " + $_) }
 
       # AGENTS.md §5 path-gated check for any diff touching the agent
       # context layer. Cheap (sub-second) when nothing drifted; runs
