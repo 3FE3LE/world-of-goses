@@ -322,7 +322,7 @@ public class MobilizationTests
         // confirming its stock survives a tick unchanged.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
-        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity);
         quarry.AddStock(50);
 
         int before = quarry.Stock;

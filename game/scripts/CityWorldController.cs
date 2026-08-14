@@ -1052,8 +1052,8 @@ public partial class CityWorldController : Node
 
     public int AdvanceProduction(BuildingId buildingId) => _session.AdvanceProduction(buildingId);
 
-    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority) =>
-        _session.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock) =>
+        _session.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock);
 
     public void SetProductionEnabled(BuildingId buildingId, bool enabled) =>
         _session.SetProductionEnabled(buildingId, enabled);

@@ -240,12 +240,11 @@ public class BuildingTests
     {
         var building = NewBuilding(storageCapacity: 20);
 
-        building.ConfigureProductionPolicy(enabled: false, minStock: 2, maxStock: 7, priority: 3);
+        building.ConfigureProductionPolicy(enabled: false, minStock: 2, maxStock: 7);
 
         Assert.False(building.ProductionEnabled);
         Assert.Equal(2, building.MinStock);
         Assert.Equal(7, building.MaxStock);
-        Assert.Equal(3, building.Priority);
         Assert.False(building.CanProduce);
     }
 
@@ -254,7 +253,7 @@ public class BuildingTests
     {
         var building = NewBuilding(storageCapacity: 20);
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => building.ConfigureProductionPolicy(enabled: true, minStock: 0, maxStock: 21, priority: 0));
+            () => building.ConfigureProductionPolicy(enabled: true, minStock: 0, maxStock: 21));
     }
 
     [Fact]
@@ -262,14 +261,6 @@ public class BuildingTests
     {
         var building = NewBuilding(storageCapacity: 20);
         Assert.Throws<ArgumentOutOfRangeException>(
-            () => building.ConfigureProductionPolicy(enabled: true, minStock: 10, maxStock: 5, priority: 0));
-    }
-
-    [Fact]
-    public void ConfigureProductionPolicy_NegativePriority_Throws()
-    {
-        var building = NewBuilding(storageCapacity: 20);
-        Assert.Throws<ArgumentOutOfRangeException>(
-            () => building.ConfigureProductionPolicy(enabled: true, minStock: 0, maxStock: 20, priority: -1));
+            () => building.ConfigureProductionPolicy(enabled: true, minStock: 10, maxStock: 5));
     }
 }

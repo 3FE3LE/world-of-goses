@@ -132,16 +132,15 @@ internal static class WorldSaveApplier
                 resourceUnit: string.IsNullOrEmpty(bs.ResourceUnit) ? "units" : bs.ResourceUnit,
                 initialStock: bs.Stock,
                 productionEnabled: bs.ProductionEnabled);
-            // v3 fields default to (0, StorageCapacity, 0) for v2 saves
-            // that predate the policy triplet. A legacy TargetStock is
-            // treated as MaxStock so old saves behave identically.
+            // v3 fields default to (0, StorageCapacity) for v2 saves that predate
+            // the policy pair. A legacy TargetStock is treated as
+            // MaxStock so old saves behave identically.
             int savedMaxStock = bs.MaxStock ?? bs.TargetStock ?? bs.StorageCapacity;
             int maxStock = savedMaxStock == bs.StorageCapacity
                 ? balancedStorageCapacity
                 : savedMaxStock;
             int minStock = bs.MinStock ?? 0;
-            int priority = bs.Priority ?? 0;
-            building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock, priority);
+            building.ConfigureProductionPolicy(bs.ProductionEnabled, minStock, maxStock);
 
             // Old saves predate the wood-gathering slice and have no
             // WoodReserve field; for Forest plots, seed them with

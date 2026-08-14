@@ -54,7 +54,7 @@ public sealed class ArchitectureBoundaryTests
     /// restricts the match to actual call sites (method invocation).
     /// </summary>
     private static readonly Regex DirectEntityAccessorPattern = new(
-        @"\b_?controller\??\.(HeroOrNull|Citizens|CitizensByPriority|GetBuilding|PrimaryBuilding|PrimaryBuildingOrNull|AvailableCitizens|AvailableCitizensByPriority|GetProject|Projects|GetCitizen)\s*\(",
+        @"\b_?controller\??\.(HeroOrNull|Citizens|CitizensByPriority|GetBuilding|PrimaryBuilding|PrimaryBuildingOrNull|AvailableCitizens|AvailableCitizensSortedByName|AvailableCitizensByPriority|GetProject|Projects|GetCitizen)\s*\(",
         RegexOptions.CultureInvariant);
 
     /// <summary>

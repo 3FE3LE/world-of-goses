@@ -64,8 +64,8 @@ public class DayNightProductionTests
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
         var farm = world.GetBuilding(new BuildingId(2))!;
-        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity, priority: 0);
-        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
+        quarry.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: quarry.StorageCapacity);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity);
 
         var bran = world.GetCitizen(new CitizenId(1))!;
         bran.ConsumeStamina(40); // 60/100
@@ -115,7 +115,7 @@ public class DayNightProductionTests
         // never refresh his buff). Buff must decrement every tick.
         var world = TestHelpers.NewProductionWorld();
         var farm = world.GetBuilding(new BuildingId(2))!;
-        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity);
         var bran = world.GetCitizen(new CitizenId(1))!;
         bran.RefreshWellFedBuff();
         int startBuff = bran.WellFedRemainingTicks;
@@ -134,7 +134,7 @@ public class DayNightProductionTests
         // Disable Farm so the buff never refreshes via eating.
         var world = TestHelpers.NewProductionWorld();
         var farm = world.GetBuilding(new BuildingId(2))!;
-        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity, priority: 0);
+        farm.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: farm.StorageCapacity);
         var bran = world.GetCitizen(new CitizenId(1))!;
         bran.RefreshWellFedBuff();
 

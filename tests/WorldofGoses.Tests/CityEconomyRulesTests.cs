@@ -28,7 +28,7 @@ public class CityEconomyRulesTests
         CityWorld world = TestHelpers.NewProductionWorld();
         Building quarry = world.GetBuilding(new BuildingId(1))!;
         Building farm = world.GetBuilding(new BuildingId(2))!;
-        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity, 0);
+        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
         world.DepositFood(20);
         int foodBefore = world.FoodStock;
 

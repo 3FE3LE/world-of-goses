@@ -198,7 +198,7 @@ public sealed class CitizenTravelAuthorityTests
     {
         (CityWorld live, Citizen hero, _) = AssignedWorld(8106);
         Building farm = live.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
-        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity, 0);
+        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
         AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
 

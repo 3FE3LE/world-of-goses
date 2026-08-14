@@ -1883,8 +1883,7 @@ public partial class CityPrototype : Node, WorldofGoses.Testing.IVisualFixtureHo
         workplace.ConfigureProductionPolicy(
             enabled: true,
             minStock: 0,
-            maxStock: workplace.StorageCapacity,
-            priority: workplace.Priority);
+            maxStock: workplace.StorageCapacity);
 
         int nextId = world.Citizens.Keys.Max(id => id.Value) + 1;
         var traveller = new Citizen(

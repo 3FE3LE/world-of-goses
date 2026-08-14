@@ -21,12 +21,10 @@ namespace WorldofGoses.Domain;
 /// the seed/factory.
 ///
 /// <para>
-/// The reactive production policy is a triplet: <see cref="MinStock"/>,
-/// <see cref="MaxStock"/>, and <see cref="Priority"/>. The building
-/// produces until it reaches <see cref="MaxStock"/>, then stops. It
-/// resumes automatically when stock drops to <see cref="MinStock"/>
-/// (or below). <see cref="Priority"/> is a sort hint stored today
-/// for future auto-assignment; the domain does not act on it.
+/// The reactive production policy is a pair: <see cref="MinStock"/>
+/// and <see cref="MaxStock"/>. The building produces until it reaches
+/// <see cref="MaxStock"/>, then stops. It resumes automatically when
+/// stock drops to <see cref="MinStock"/> (or below).
 /// </para>
 /// </summary>
 public sealed class Building
@@ -82,7 +80,6 @@ public sealed class Building
     public bool ProductionEnabled { get; private set; }
     public int MinStock { get; private set; }
     public int MaxStock { get; private set; }
-    public int Priority { get; private set; }
 
     /// <summary>
     /// Materials the operating building still owes the city in order
@@ -146,7 +143,6 @@ public sealed class Building
         ProductionEnabled = productionEnabled;
         MinStock = 0;
         MaxStock = storageCapacity;
-        Priority = 0;
     }
 
     /// <summary>
@@ -242,12 +238,12 @@ public sealed class Building
 
     /// <summary>
     /// Configures the reactive production policy. Validation:
-    /// <c>0 &lt;= minStock &lt;= maxStock &lt;= StorageCapacity</c> and
-    /// <c>priority &gt;= 0</c>. <see cref="MinStock"/> equal to
-    /// <see cref="MaxStock"/> is allowed: the building oscillates
-    /// between full and one-below-full each tick.
+    /// <c>0 &lt;= minStock &lt;= maxStock &lt;= StorageCapacity</c>.
+    /// <see cref="MinStock"/> equal to <see cref="MaxStock"/> is
+    /// allowed: the building oscillates between full and one-below-full
+    /// each tick.
     /// </summary>
-    public void ConfigureProductionPolicy(bool enabled, int minStock, int maxStock, int priority)
+    public void ConfigureProductionPolicy(bool enabled, int minStock, int maxStock)
     {
         if (minStock < 0 || minStock > StorageCapacity)
         {
@@ -262,15 +258,10 @@ public sealed class Building
             throw new ArgumentOutOfRangeException(nameof(minStock),
                 $"MinStock ({minStock}) cannot exceed MaxStock ({maxStock}).");
         }
-        if (priority < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(priority));
-        }
 
         ProductionEnabled = enabled;
         MinStock = minStock;
         MaxStock = maxStock;
-        Priority = priority;
     }
 
     /// <summary>

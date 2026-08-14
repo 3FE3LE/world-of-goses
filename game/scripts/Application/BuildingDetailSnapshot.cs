@@ -18,7 +18,6 @@ public sealed record BuildingDetailSnapshot(
     bool ProductionEnabled,
     int MinStock,
     int MaxStock,
-    int Priority,
     ProductionStopCause StopCause,
     int WorkerCapacity,
     int VisibleWorkerCount,
@@ -82,7 +81,7 @@ public sealed record BuildingDetailSnapshot(
         }
 
         var available = new List<CitizenItem>();
-        foreach (var citizen in world.AvailableCitizensByPriority()) available.Add(ToItem(citizen));
+        foreach (var citizen in world.AvailableCitizensSortedByName()) available.Add(ToItem(citizen));
 
         var visible = new List<CitizenItem>();
         foreach (var id in world.GetCurrentlyVisibleOccupants(building))
@@ -145,7 +144,7 @@ public sealed record BuildingDetailSnapshot(
             building.Kind, building.ResourceLabel, building.ResourceUnit, building.Stock,
             building.StorageCapacity, world.CurrentProductionRate(building.Id), CityEconomyRules.ProductionCycleTicks,
             building.ProductionEnabled,
-            building.MinStock, building.MaxStock, building.Priority, building.StopCause,
+            building.MinStock, building.MaxStock, building.StopCause,
             building.WorkerCapacity, building.VisibleWorkerCount, building.HiddenWorkerCount,
             building.WoodReserve,
             world.HasTool(ToolKind.PrimitiveAxe),

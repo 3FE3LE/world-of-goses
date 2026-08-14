@@ -442,10 +442,9 @@ public sealed class CityGameSession
         BuildingId buildingId,
         bool enabled,
         int minStock,
-        int maxStock,
-        int priority)
+        int maxStock)
     {
-        _world.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock, priority);
+        _world.ConfigureProductionPolicy(buildingId, enabled, minStock, maxStock);
         _isDirty = true;
     }
 

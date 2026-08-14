@@ -5,24 +5,23 @@ namespace WorldofGoses.Tests;
 
 /// <summary>
 /// Reactive range policy: <see cref="Building.ConfigureProductionPolicy"/>
-/// validates the min/max/priority triplet, stores the values, and the
-/// building produces until <see cref="Building.MaxStock"/>, then stops.
+/// validates the min/max pair, stores the values, and the building
+/// produces until <see cref="Building.MaxStock"/>, then stops.
 /// <see cref="Building.MinStock"/> equal to <see cref="Building.MaxStock"/>
 /// is the "fixed stockpile" pattern and is allowed.
 /// </summary>
 public class ProductionPolicyRangeTests
 {
     [Fact]
-    public void ConfigureProductionPolicy_StoresAllThreeFields()
+    public void ConfigureProductionPolicy_StoresBothFields()
     {
         var building = TestHelpers.NewBuilding(storageCapacity: 20);
 
-        building.ConfigureProductionPolicy(enabled: true, minStock: 5, maxStock: 15, priority: 2);
+        building.ConfigureProductionPolicy(enabled: true, minStock: 5, maxStock: 15);
 
         Assert.True(building.ProductionEnabled);
         Assert.Equal(5, building.MinStock);
         Assert.Equal(15, building.MaxStock);
-        Assert.Equal(2, building.Priority);
     }
 
     [Fact]
@@ -30,7 +29,7 @@ public class ProductionPolicyRangeTests
     {
         var building = TestHelpers.NewBuilding(storageCapacity: 20);
         Assert.Throws<System.ArgumentOutOfRangeException>(
-            () => building.ConfigureProductionPolicy(true, minStock: 10, maxStock: 5, priority: 0));
+            () => building.ConfigureProductionPolicy(true, minStock: 10, maxStock: 5));
     }
 
     [Fact]
@@ -39,7 +38,7 @@ public class ProductionPolicyRangeTests
         // Fixed-cap policy: produce exactly 8 stone and stop. The
         // building oscillates each tick (full → missing-1 → full).
         var building = TestHelpers.NewBuilding(storageCapacity: 20);
-        building.ConfigureProductionPolicy(true, minStock: 8, maxStock: 8, priority: 0);
+        building.ConfigureProductionPolicy(true, minStock: 8, maxStock: 8);
 
         Assert.Equal(8, building.MinStock);
         Assert.Equal(8, building.MaxStock);
@@ -54,7 +53,7 @@ public class ProductionPolicyRangeTests
         // tick should clear the TargetReached sentinel and produce.
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
-        quarry.ConfigureProductionPolicy(true, minStock: 3, maxStock: 10, priority: 0);
+        quarry.ConfigureProductionPolicy(true, minStock: 3, maxStock: 10);
 
         // Fill the quarry.
         while (quarry.Stock < quarry.MaxStock)

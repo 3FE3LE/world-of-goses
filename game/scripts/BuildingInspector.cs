@@ -367,8 +367,7 @@ public partial class BuildingInspector : Control
 		var snapshot = _controller.GetBuildingDetailSnapshot(_currentBuilding);
 		if (snapshot is null) return;
 		bool enabled = snapshot.ProductionEnabled;
-		int priority = snapshot.Priority;
-		_controller.ConfigureProductionPolicy(_currentBuilding, enabled, minStock, maxStock, priority);
+		_controller.ConfigureProductionPolicy(_currentBuilding, enabled, minStock, maxStock);
 	}
 
 	/// <summary>

@@ -5,19 +5,19 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// Persistence v3-v6 schema. The reactive policy triplet (MinStock/MaxStock/Priority)
+/// Persistence v3-v6 schema. The reactive policy pair (MinStock/MaxStock)
 /// was added in v3; explicit <see cref="GenderId"/> identity was added
-/// in v4. Older saves must upgrade via MigrateV2ToV3 and
-/// MigrateV3ToV4, MigrateV4ToV5, and MigrateV5ToV6 so the load path is non-fatal.
+/// in v4. Older saves must upgrade via MigrateV2ToV3 and the rest of the
+/// chain so the load path is non-fatal.
 /// </summary>
 public class WorldPersistenceV3Tests
 {
     [Fact]
-    public void Roundtrip_PreservesMinMaxPriorityAndGender()
+    public void Roundtrip_PreservesMinMaxAndGender()
     {
         var world = TestHelpers.NewProductionWorld();
         var quarry = world.GetBuilding(new BuildingId(1))!;
-        quarry.ConfigureProductionPolicy(true, minStock: 4, maxStock: 12, priority: 7);
+        quarry.ConfigureProductionPolicy(true, minStock: 4, maxStock: 12);
 
         var save = WorldPersistence.Capture(world);
         Assert.Equal(WorldSave.CurrentVersion, save.Version);
@@ -27,12 +27,11 @@ public class WorldPersistenceV3Tests
 
         Assert.Equal(4, restored.GetBuilding(new BuildingId(1))!.MinStock);
         Assert.Equal(12, restored.GetBuilding(new BuildingId(1))!.MaxStock);
-        Assert.Equal(7, restored.GetBuilding(new BuildingId(1))!.Priority);
         Assert.Equal(GenderId.Masculine, restored.Hero!.Profile.Gender);
     }
 
     [Fact]
-    public void LoadV2Save_DefaultsMinMaxPriorityAfterUpgrade()
+    public void LoadV2Save_DefaultsMinMaxAfterUpgrade()
     {
         // Capture a v4 save then downgrade to v2 and strip the new
         // fields via JSON mutation. MigrateV2ToV3 + MigrateV3ToV4
@@ -46,8 +45,6 @@ public class WorldPersistenceV3Tests
             json, "\"MinStock\":\\s*\\d+,?", string.Empty);
         json = System.Text.RegularExpressions.Regex.Replace(
             json, "\"MaxStock\":\\s*\\d+,?", string.Empty);
-        json = System.Text.RegularExpressions.Regex.Replace(
-            json, "\"Priority\":\\s*\\d+,?", string.Empty);
         json = System.Text.RegularExpressions.Regex.Replace(
             json, "\"DepositedInputs\":\\s*\\{\\s*\\},?", string.Empty);
         json = System.Text.RegularExpressions.Regex.Replace(
@@ -102,7 +99,7 @@ public class WorldPersistenceV3Tests
         var v15Save = WorldPersistence.MigrateV14ToV15(v14Save);
         Assert.Equal(15, v15Save.Version);
 
-        var v16Save = WorldPersistence.MigrateV15ToV16(v15Save);
+        var v16Save = WorldPersistence.MigrateV15ToV16(v14Save);
         Assert.Equal(16, v16Save.Version);
 
         var v17Save = WorldPersistence.MigrateV16ToV17(v16Save);
@@ -117,7 +114,6 @@ public class WorldPersistenceV3Tests
         var quarry = restored.GetBuilding(new BuildingId(1))!;
         Assert.Equal(0, quarry.MinStock);
         Assert.Equal(quarry.StorageCapacity, quarry.MaxStock);
-        Assert.Equal(0, quarry.Priority);
         Assert.Equal(GenderId.Masculine, restored.Hero!.Profile.Gender);
     }
 
@@ -127,15 +123,6 @@ public class WorldPersistenceV3Tests
         var save = MakeCurrentSave();
         save.Buildings[0].MinStock = 10;
         save.Buildings[0].MaxStock = 5;
-
-        Assert.Throws<System.InvalidOperationException>(() => WorldPersistence.Validate(save));
-    }
-
-    [Fact]
-    public void Validate_NegativePriority_Throws()
-    {
-        var save = MakeCurrentSave();
-        save.Buildings[0].Priority = -1;
 
         Assert.Throws<System.InvalidOperationException>(() => WorldPersistence.Validate(save));
     }

@@ -43,7 +43,7 @@ public class CitizenAutonomyTests
         CityWorld world = TestHelpers.WorldWithHome();
         Citizen hero = world.Hero!;
         Building farm = world.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
-        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity, 0);
+        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
         Building quarry = TestHelpers.NewBuilding(new BuildingId(50));
         quarry.DepositIron(100);
         world.RegisterBuilding(quarry);
@@ -69,7 +69,7 @@ public class CitizenAutonomyTests
         CityWorld world = TestHelpers.WorldWithHome();
         Citizen hero = world.Hero!;
         Building farm = world.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
-        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity, 0);
+        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
         Building quarry = TestHelpers.NewBuilding(new BuildingId(51));
         quarry.DepositIron(100);
         world.RegisterBuilding(quarry);
@@ -169,7 +169,7 @@ public class CitizenAutonomyTests
         CityWorld live = TestHelpers.WorldWithHome();
         Citizen hero = live.Hero!;
         Building farm = live.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
-        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity, 0);
+        farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
         Building quarry = TestHelpers.NewBuilding(new BuildingId(54));
         quarry.DepositIron(100);
         live.RegisterBuilding(quarry);

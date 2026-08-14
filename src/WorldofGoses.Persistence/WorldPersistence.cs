@@ -122,7 +122,6 @@ public static class WorldPersistence
                 ProductionEnabled = building.ProductionEnabled,
                 MinStock = building.MinStock,
                 MaxStock = building.MaxStock,
-                Priority = building.Priority,
                 AssignedCitizenIds = new List<int>(building.AssignedCitizenIds.Count),
                 FoundingSiteOriginModules = building.FoundingSiteOriginModules
                     .Select(FoundingSiteModuleSaveIds.ToId)
@@ -1402,11 +1401,6 @@ public static class WorldPersistence
                 throw new InvalidOperationException(
                     $"Building {b.Id}: MinStock ({minVal}) cannot exceed MaxStock ({maxVal}).");
             }
-            if (b.Priority is int priority && priority < 0)
-            {
-                throw new InvalidOperationException(
-                    $"Building {b.Id}: Priority must be non-negative (got {priority}).");
-            }
             if (b.AssignedCitizenIds is null)
             {
                 throw new InvalidOperationException($"Building {b.Id}: AssignedCitizenIds is null.");
@@ -2118,10 +2112,9 @@ public static class WorldPersistence
 
     /// <summary>
     /// Upgrades a v2 save to v3 in-place. Missing
-    /// <see cref="BuildingSave.MinStock"/>/<see cref="BuildingSave.MaxStock"/>/
-    /// <see cref="BuildingSave.Priority"/> fields default to
-    /// <c>0</c>/<see cref="BuildingSave.StorageCapacity"/>/<c>0</c>. The legacy
-    /// <see cref="BuildingSave.TargetStock"/> field is preserved for
+    /// <see cref="BuildingSave.MinStock"/>/<see cref="BuildingSave.MaxStock"/>
+    /// fields default to <c>0</c>/<see cref="BuildingSave.StorageCapacity"/>.
+    /// The legacy <see cref="BuildingSave.TargetStock"/> field is preserved for
     /// compatibility but no longer drives production. Returns the
     /// upgraded save so the caller can persist it before the next
     /// catch-up cycle.
@@ -2198,7 +2191,6 @@ public static class WorldPersistence
                 bs.MaxStock = legacy;
             }
             bs.MinStock ??= 0;
-            bs.Priority ??= 0;
         }
 
         save.Version = 3;

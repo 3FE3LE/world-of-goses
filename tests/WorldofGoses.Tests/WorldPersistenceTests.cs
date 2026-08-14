@@ -65,7 +65,7 @@ public class WorldPersistenceTests
     public void Roundtrip_PreservesProductionPolicyIncludingZeroRange()
     {
         var world = TestHelpers.NewProductionWorld();
-        world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: 0, priority: 0);
+        world.PrimaryBuilding.ConfigureProductionPolicy(enabled: false, minStock: 0, maxStock: 0);
 
         var save = WorldPersistence.Capture(world);
         var restored = WorldPersistence.FromSave(
@@ -74,7 +74,6 @@ public class WorldPersistenceTests
         Assert.False(restored.PrimaryBuilding.ProductionEnabled);
         Assert.Equal(0, restored.PrimaryBuilding.MinStock);
         Assert.Equal(0, restored.PrimaryBuilding.MaxStock);
-        Assert.Equal(0, restored.PrimaryBuilding.Priority);
     }
 
     [Fact]
@@ -551,7 +550,6 @@ public class WorldPersistenceTests
             Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
             Assert.Equal(em.MinStock, am.MinStock);
             Assert.Equal(em.MaxStock, am.MaxStock);
-            Assert.Equal(em.Priority, am.Priority);
             Assert.Equal(em.WoodUnitReserves, am.WoodUnitReserves);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
@@ -603,7 +601,6 @@ public class WorldPersistenceTests
             Assert.Equal(em.ProductionEnabled, am.ProductionEnabled);
             Assert.Equal(em.MinStock, am.MinStock);
             Assert.Equal(em.MaxStock, am.MaxStock);
-            Assert.Equal(em.Priority, am.Priority);
             Assert.Equal(em.AssignedCitizenIds, am.AssignedCitizenIds);
         }
 

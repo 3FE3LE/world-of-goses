@@ -2457,27 +2457,18 @@ public sealed class CityWorld
     }
 
     /// <summary>
-    /// Same set as <see cref="AvailableCitizens"/> but ordered so the
-    /// highest-priority productive building shows first. The domain
-    /// owns the policy; consumers (the assignment panel) just render.
-    /// When no productive building exists, falls back to insertion
-    /// order.
+    /// Same set as <see cref="AvailableCitizens"/>, sorted by
+    /// <see cref="Citizen.Name"/> ascending so the assignment panel
+    /// has a stable, deterministic order. The named "by priority"
+    /// variant that previously lived here read
+    /// <see cref="Building.Priority"/> but discarded the value and
+    /// sorted by name anyway; both the field and the misleading
+    /// method have been retired in #53.
     /// </summary>
-    public IReadOnlyList<Citizen> AvailableCitizensByPriority()
+    public IReadOnlyList<Citizen> AvailableCitizensSortedByName()
     {
         var list = new List<Citizen>(AvailableCitizens());
-        int topPriority = -1;
-        foreach (var b in _buildings.Values)
-        {
-            if (b.Priority > topPriority) topPriority = b.Priority;
-        }
-        // When there is a productive building, the most relevant
-        // priority ranks first; the panel renders this order. With
-        // no productive building the list stays in insertion order.
-        if (topPriority >= 0)
-        {
-            list.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.Ordinal));
-        }
+        list.Sort((a, b) => string.Compare(a.Name, b.Name, System.StringComparison.Ordinal));
         return list;
     }
 
@@ -4172,6 +4163,12 @@ public sealed class CityWorld
         // "abstract city upkeep" that previously drained Quarry stone
         // for no playable reason. Re-enable here AND in
         // TryAdvanceQuiescentTicks when real demand exists.
+        // Until then the dormant seam cannot accidentally regain a
+        // passive consumer — invoking ApplyUpkeep fails loudly so a
+        // regression that routes through it cannot stay green in
+        // CI for long. Activation lands with EG-5C (#32).
+        throw new InvalidOperationException(
+            "Upkeep is dormant. Activate the seam with the building-driven demand landing in EG-5C (#32).");
     }
 
     private void ApplyNightRest(Building building)
@@ -4302,23 +4299,23 @@ public sealed class CityWorld
         return building;
     }
 
-    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock, int priority)
+    public void ConfigureProductionPolicy(BuildingId buildingId, bool enabled, int minStock, int maxStock)
     {
         if (!_buildings.TryGetValue(buildingId, out var building))
         {
             return;
         }
 
-        building.ConfigureProductionPolicy(enabled, minStock, maxStock, priority);
+        building.ConfigureProductionPolicy(enabled, minStock, maxStock);
         RaiseBuildingChanged(buildingId);
     }
 
     /// <summary>
     /// Flips a building's <see cref="Building.ProductionEnabled"/>
-    /// flag without touching its reactive <c>MinStock</c>/<c>MaxStock</c>/
-    /// <c>Priority</c> triplet. The presentation layer uses this when the
+    /// flag without touching its reactive <c>MinStock</c>/
+    /// <c>MaxStock</c> pair. The presentation layer uses this when the
     /// player toggles the simple on/off button. Future slices that
-    /// expose the triplet as a UI again will revert to
+    /// expose the pair as a UI again will revert to
     /// <see cref="ConfigureProductionPolicy"/>.
     /// </summary>
     public void SetProductionEnabled(BuildingId buildingId, bool enabled)
@@ -4331,8 +4328,7 @@ public sealed class CityWorld
         building.ConfigureProductionPolicy(
             enabled,
             building.MinStock,
-            building.MaxStock,
-            building.Priority);
+            building.MaxStock);
         RaiseBuildingChanged(buildingId);
     }
 
