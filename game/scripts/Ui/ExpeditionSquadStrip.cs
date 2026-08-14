@@ -84,13 +84,9 @@ public partial class ExpeditionSquadStrip : PanelContainer
 
     private void WireFocus()
     {
-        for (int i = 0; i < _slots.Length; i++)
-        {
-            ExpeditionSquadSlot current = _slots[i];
-            ExpeditionSquadSlot previous = _slots[(i + _slots.Length - 1) % _slots.Length];
-            ExpeditionSquadSlot next = _slots[(i + 1) % _slots.Length];
-            current.FocusNeighborLeft = current.GetPathTo(previous);
-            current.FocusNeighborRight = current.GetPathTo(next);
-        }
+        // Squad strip exposes only horizontal neighbors for a
+        // D-pad left/right cycle. Rerouted through the shared helper
+        // for symmetry with the rest of the surfaces; Close #52.
+        FocusRing.WireHorizontal(_slots);
     }
 }

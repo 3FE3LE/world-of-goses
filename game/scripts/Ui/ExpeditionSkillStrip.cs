@@ -53,13 +53,9 @@ public partial class ExpeditionSkillStrip : PanelContainer
 
     private void WireFocus()
     {
-        for (int i = 0; i < _slots.Length; i++)
-        {
-            OctagonalSkillSlot current = _slots[i];
-            OctagonalSkillSlot previous = _slots[(i + _slots.Length - 1) % _slots.Length];
-            OctagonalSkillSlot next = _slots[(i + 1) % _slots.Length];
-            current.FocusNeighborLeft = current.GetPathTo(previous);
-            current.FocusNeighborRight = current.GetPathTo(next);
-        }
+        // Skill strip is horizontal-only; routed through the shared
+        // helper for symmetry with the rest of the surfaces;
+        // Close #52.
+        FocusRing.WireHorizontal(_slots);
     }
 }

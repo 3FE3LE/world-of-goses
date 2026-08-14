@@ -449,17 +449,12 @@ public partial class ExpeditionRail : PanelContainer
 
     private void WireFocus()
     {
-        if (_focusables.Count == 0) return;
-        for (int i = 0; i < _focusables.Count; i++)
-        {
-            Control current = _focusables[i];
-            Control previous = _focusables[(i - 1 + _focusables.Count) % _focusables.Count];
-            Control next = _focusables[(i + 1) % _focusables.Count];
-            current.FocusNeighborTop = previous.GetPath();
-            current.FocusNeighborBottom = next.GetPath();
-            current.FocusPrevious = previous.GetPath();
-            current.FocusNext = next.GetPath();
-        }
+        // Rerouted through the shared FocusRing helper, which uses
+        // relative GetPathTo() paths. The previous implementation
+        // resolved absolute paths via GetPath() — fine until the rail
+        // was reparented, then the targets silently turned into
+        // broken focus jumps. Close #52.
+        FocusRing.WireVertical(_focusables);
     }
 
     private void RestorePendingFocus()

@@ -114,15 +114,9 @@ public partial class ActionDock : PanelContainer
 
         _confirmButton.FocusMode = FocusModeEnum.All;
         _cancelButton.FocusMode = FocusModeEnum.All;
-        NodePath confirmPath = _cancelButton.GetPathTo(_confirmButton);
-        NodePath cancelPath = _confirmButton.GetPathTo(_cancelButton);
-        _confirmButton.FocusNeighborLeft = cancelPath;
-        _confirmButton.FocusNeighborRight = cancelPath;
-        _confirmButton.FocusPrevious = cancelPath;
-        _confirmButton.FocusNext = cancelPath;
-        _cancelButton.FocusNeighborLeft = confirmPath;
-        _cancelButton.FocusNeighborRight = confirmPath;
-        _cancelButton.FocusPrevious = confirmPath;
-        _cancelButton.FocusNext = confirmPath;
+        // 2-button focus ring routed through the shared helper so
+        // the orientation and path-resolution decisions live in
+        // one place. Close #52.
+        FocusRing.WireHorizontal(new[] { _confirmButton, _cancelButton });
     }
 }

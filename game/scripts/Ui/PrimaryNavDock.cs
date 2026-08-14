@@ -88,15 +88,10 @@ public partial class PrimaryNavDock : PanelContainer
 
     private static void WireHorizontalFocus(Control[] controls)
     {
-        for (int i = 0; i < controls.Length; i++)
-        {
-            Control current = controls[i];
-            Control previous = controls[(i + controls.Length - 1) % controls.Length];
-            Control next = controls[(i + 1) % controls.Length];
-            current.FocusNeighborLeft = current.GetPathTo(previous);
-            current.FocusNeighborRight = current.GetPathTo(next);
-            current.FocusPrevious = current.GetPathTo(previous);
-            current.FocusNext = current.GetPathTo(next);
-        }
+        // Wiring now delegated to the shared FocusRing helper; this
+        // thin wrapper keeps the call site unchanged but routes
+        // through the helper so renames and orientation changes
+        // (e.g. vertical cycle) don't fork across surfaces. Close #52.
+        FocusRing.WireHorizontal(controls);
     }
 }

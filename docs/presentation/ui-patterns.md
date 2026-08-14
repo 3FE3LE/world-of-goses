@@ -639,6 +639,18 @@ Mouse + gamepad coexistence is the default expectation: hover
 triggers tooltips, but gamepad focus also drives the selection ring
 without collision. Keep `FocusMode = All` on every action control.
 
+7. **Internal focus cycles go through `Ui/FocusRing`.** New HUD
+   surfaces write no inline `FocusNeighbor*` literals; the wiring
+   helper owns the orientation and the relative-path convention.
+   Horizontal ring for top bar / action dock / slot strips
+   (`FocusRing.WireHorizontal(controls)`); vertical ring for the
+   expedition rail (`FocusRing.WireVertical(controls)`). The
+   helper uses `GetPathTo` so the cycle survives surface
+   reparenting. Inter-surface focus traversal (top bar → rail →
+   dock → modal) is not owned by the helper; each surface decides
+   a default that yields to its successor when its `GrabFocus` is
+   called from a known cross-surface command.
+
 ## 8. Anti-patterns — never do these
 
 | Anti-pattern | Why it bites | Fix |

@@ -269,8 +269,12 @@ public sealed class HudCompositionTests
         Assert.Contains("if (_refreshQueued) return;", source, StringComparison.Ordinal);
         Assert.Contains("if (focusedIndex >= 0) _pendingFocusIndex = focusedIndex;", source, StringComparison.Ordinal);
         Assert.Contains("_localeManager.LocaleChanged += OnLocaleChanged", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborTop", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborBottom", source, StringComparison.Ordinal);
+        // The vertical focus-neighbor literals moved to FocusRing.cs
+        // during #52; the rail surface now only routes the call.
+        string focusRingRail = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "FocusRing.cs"));
+        Assert.Contains("FocusNeighborTop", focusRingRail, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborBottom", focusRingRail, StringComparison.Ordinal);
         Assert.DoesNotContain("ui.expedition_rail.queue", source, StringComparison.Ordinal);
         Assert.DoesNotMatch(@"override\s+void\s+_Process\s*\(", source);
     }
@@ -364,8 +368,13 @@ public sealed class HudCompositionTests
         Assert.Contains("button.ClipText = false", source, StringComparison.Ordinal);
         Assert.Contains("IconPaths.Backpack", source, StringComparison.Ordinal);
         Assert.Contains("IconPaths.ClipboardNote", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborLeft", source, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborRight", source, StringComparison.Ordinal);
+        Assert.Contains("FocusRing.WireHorizontal", source, StringComparison.Ordinal);
+        // The literals now live in the shared helper, not in the
+        // surface. Close #52.
+        string focusRing = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "FocusRing.cs"));
+        Assert.Contains("FocusNeighborLeft", focusRing, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", focusRing, StringComparison.Ordinal);
         Assert.Contains("public IconButton ConstructionButton", source, StringComparison.Ordinal);
         Assert.DoesNotContain("public IconButton CameraButton", source, StringComparison.Ordinal);
         // Menu no longer belongs in the dock; the menu button moved to the
@@ -402,10 +411,15 @@ public sealed class HudCompositionTests
             source,
             StringComparison.Ordinal);
         Assert.Contains("CancelPlacement();", source, StringComparison.Ordinal);
-        Assert.Contains("_confirmButton.FocusNeighborLeft", actionDockSource, StringComparison.Ordinal);
-        Assert.Contains("_confirmButton.FocusNeighborRight", actionDockSource, StringComparison.Ordinal);
-        Assert.Contains("_cancelButton.FocusNeighborLeft", actionDockSource, StringComparison.Ordinal);
-        Assert.Contains("_cancelButton.FocusNeighborRight", actionDockSource, StringComparison.Ordinal);
+        // ActionDock's per-button focus literals moved to the shared
+        // FocusRing helper during #52; the ActionDock file now
+        // only carries the call site. The literal asserts live on
+        // FocusRing.cs instead.
+        Assert.Contains("FocusRing.WireHorizontal", actionDockSource, StringComparison.Ordinal);
+        string focusRingAction = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "FocusRing.cs"));
+        Assert.Contains("FocusNeighborLeft", focusRingAction, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", focusRingAction, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1510,10 +1524,15 @@ public sealed class HudCompositionTests
         Assert.Contains("SlotState.Ready", skillSource, StringComparison.Ordinal);
         Assert.Contains("SlotState.Locked", skillSource, StringComparison.Ordinal);
         Assert.Contains("ConfigureFounderFixture", squadSource, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborLeft", skillSource, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborRight", skillSource, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborLeft", squadSource, StringComparison.Ordinal);
-        Assert.Contains("FocusNeighborRight", squadSource, StringComparison.Ordinal);
+        // FocusNeighbor* literals moved to FocusRing.cs during #52.
+        // The strips now route the call through the helper; the
+        // property asserts live on the helper file instead.
+        Assert.Contains("FocusRing.WireHorizontal", skillSource, StringComparison.Ordinal);
+        Assert.Contains("FocusRing.WireHorizontal", squadSource, StringComparison.Ordinal);
+        string focusRingStrips = File.ReadAllText(Path.Combine(
+            TestHelpers.FindRepositoryRoot(), "game", "scripts", "Ui", "FocusRing.cs"));
+        Assert.Contains("FocusNeighborLeft", focusRingStrips, StringComparison.Ordinal);
+        Assert.Contains("FocusNeighborRight", focusRingStrips, StringComparison.Ordinal);
         Assert.DoesNotContain("using WorldofGoses.Domain", skillSource, StringComparison.Ordinal);
         Assert.DoesNotContain("using WorldofGoses.Domain", squadSource, StringComparison.Ordinal);
         Assert.DoesNotContain("_Process", skillSource, StringComparison.Ordinal);
