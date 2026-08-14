@@ -7,7 +7,7 @@ namespace WorldofGoses.Tests;
 
 /// <summary>
 /// Locks the EG-0 measurement contract
-/// (`docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §15). These numbers
+/// (the opening measurement contract). These numbers
 /// exist to decide whether the EG-A0 balance hypothesis survives contact with
 /// a real run, so a measurement that silently drifts is worse than no
 /// measurement at all: it would be used to approve numbers it never actually

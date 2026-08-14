@@ -7,7 +7,7 @@ description: >
   text, or UI copy that must be coherent with the world's cultures. This
   skill may not invent mechanics or bonuses.
 license: World of Goses project license
-compatibility: Documentation-only; references the design bible and game locale catalogs.
+compatibility: Documentation-only; references docs/world/ canon and the game locale catalogs.
 metadata:
   domain: narrative
   layer: domain
@@ -32,27 +32,27 @@ proposes implications; mechanics decide.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/01_GAME_VISION.md` — fantasy and naming
+- `docs/world/vision-and-pillars.md` — fantasy and naming
   discipline.
-- `docs/world-of-goses-design-bible/06_LINEAGES.md` — lineage index.
-- `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md` — per-lineage
+- `docs/world/lineages.md` — lineage index.
+- `docs/systems/14-21_LINEAGES_*.md` — per-lineage
   cultural identity (detail).
-- `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md` —
+- `docs/systems/onboarding-and-founder.md` —
   founder, astral arrival, profile composition.
-- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — canonical cube
+- `docs/systems/kovari-cube.md` — canonical cube
   mechanics; relevant when writing founder-related copy or dialogue
   that touches the cube profile, elemental affinity or line signature.
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 5
+- `docs/world/vision-and-pillars.md` pillar 5
   (environment).
-- `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` — per-lineage
+- `docs/presentation/audio.md` — per-lineage
   sonic identity, when relevant.
-- `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — for expedition
+- `docs/systems/expeditions.md` — for expedition
   narration.
-- `docs/UI_PATTERNS.md` — for UI copy rules.
-- `docs/LICENSING_AND_ATTRIBUTION.md` — when naming external references.
+- `docs/presentation/ui-patterns.md` — for UI copy rules.
+- `docs/presentation/licensing-and-attribution.md` — when naming external references.
 
 ## Core invariants
 
@@ -97,7 +97,7 @@ proposes implications; mechanics decide.
   deleted on 2026-08-05: the former had no instantiator, the latter carried
   hand-written copy that contradicted the real recipes. Authored guidance now
   belongs to the first-night surface
-  (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`); never reintroduce a static step
+  (`docs/systems/first-night.md`); never reintroduce a static step
   list, and derive every quantity from the real recipe.
 - Localization: `game/locale/{messages.pot,en.po,es.po}`.
 - Tests: `tests/WorldofGoses.Tests/FounderNarrativeTests.cs`,

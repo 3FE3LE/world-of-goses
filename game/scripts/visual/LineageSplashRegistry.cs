@@ -16,7 +16,7 @@ namespace WorldofGoses.Visual;
 ///
 /// <para>Sizing: the art is authored portrait and displayed at the full 720 px
 /// logical height of the base canvas. See
-/// <c>docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md</c>
+/// <c>docs/presentation/visual-language.md</c>
 /// and the note in <see cref="SplashLogicalHeight"/>.</para>
 /// </summary>
 public static class LineageSplashRegistry

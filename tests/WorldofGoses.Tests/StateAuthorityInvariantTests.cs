@@ -10,7 +10,7 @@ namespace WorldofGoses.Tests;
 
 /// <summary>
 /// Cross-domain invariants for the state-authority model documented in
-/// <c>docs/STATE_AUTHORITY.md</c>. These assert relationships between
+/// <c>docs/engineering/state-authority.md</c>. These assert relationships between
 /// authorities that no single owner can check on its own — a citizen's
 /// commitment against the expedition it names, transit metadata against the
 /// location that implies it, a projection against the facts it claims to be

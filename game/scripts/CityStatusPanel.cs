@@ -126,7 +126,7 @@ public partial class CityStatusPanel : PanelContainer
         // A11: the row lives in CityPrototype.tscn. The SafeAreaMarginContainer
         // above it is why the chips stay inside the OS safe area on notched or
         // rounded displays; wrapping the OUTER panel instead rendered a visible
-        // grey band and was reverted (TO_DO.md 2026-07-22), which is why the
+        // grey band and was reverted (reverted 2026-07-22; see the git history), which is why the
         // margin sits on this inner node and not on the surface.
         _row = GetNode<HBoxContainer>(RowPath);
 

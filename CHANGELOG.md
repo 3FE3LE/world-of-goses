@@ -4,9 +4,8 @@ Narrative history of what the connected game gained, lost or reshaped, one
 entry per increment. It answers *how we got here*; three neighbours answer
 other questions and must not be duplicated into this file:
 
-- `docs/CURRENT_STATUS.md` — what the code does **today** and what is approved
-  next.
-- `docs/ai/CURRENT_DEVELOPMENT_STATE.md` — the do-not-regress inventory.
+- **GitHub Issues** — what is still to be done. `gh issue list`.
+- `docs/` — what each system is and what rules bind it.
 - `docs/session-state/STATE.txt` — the generated, machine-measured baseline of
   the session in progress.
 
@@ -14,6 +13,49 @@ other questions and must not be duplicated into this file:
 for its increment, in the same commit. An entry states what a player can now
 do that they could not before, the schema range it crossed, and the measured
 baseline — not a list of touched files, `git log` already owns.
+
+---
+
+## La documentación deja de ser un segundo backlog
+
+**2026-08-13** · documentación · tooling · schema v35 (sin cambio) · 1667 pruebas superadas
+
+**Nada cambia para el jugador; cambia dónde vive la verdad.** El repositorio
+mantenía dos colas de trabajo en paralelo: los GitHub Issues y un árbol de
+documentos que también prometía entregas. `TO_DO.md` tenía 866 líneas de
+estados, prioridades y triggers; `docs/CURRENT_STATUS.md` y
+`docs/ai/CURRENT_DEVELOPMENT_STATE.md` mantenían a mano el slice activo, el
+schema, el número de pruebas y dos inventarios distintos de "qué está hecho";
+un proposal y un roadmap ordenaban increments; cuatro reportes fechados
+(hardening, HUD, workflow, auditoría de rutinas) conservaban hallazgos como si
+fueran contratos. Los tres primeros ya se contradecían entre sí y con la
+medición.
+
+La regla nueva es explícita en `AGENTS.md`, `CLAUDE.md` y `docs/README.md`:
+**GitHub Issues** es el trabajo futuro, **código y tests** la implementación,
+**`docs/`** la explicación de lo que existe, **git y este archivo** la
+historia. El backlog que debía sobrevivir vive en los issues #32–#50.
+
+**El árbol se reorganizó por función, no por número de capítulo.** La biblia
+numerada (24 capítulos) y la raíz plana de `docs/` se convirtieron en
+`systems/` (qué es cada sistema y sus invariantes), `world/` (visión, pilares,
+linajes), `presentation/`, `engineering/` y `history/`. Diecinueve documentos
+se eliminaron; el Cubo Kovari, el onboarding y las expediciones se reescribieron
+contra el HEAD —incluida el arma materializada item-backed de #26, que la
+documentación seguía describiendo como pendiente— y las afinidades elementales
+pasaron de 2 445 líneas de fases futuras a 230 de canon vigente. La cadena de
+migraciones dejó de narrarse en prosa: ahora la documentación apunta a la XML
+doc de `WorldSave.CurrentVersion`, que es el único lugar que no puede
+desfasarse del código.
+
+**Un guard impide que vuelva.** `scripts/docs/classify.ps1` añade una cuarta
+comprobación —ningún documento canónico abre una cola accionable— y
+`DocumentationBacklogGuardTests` la duplica en xUnit con dos pruebas que
+verifican que el patrón sigue detectando lo prohibido y sigue ignorando la
+prosa normal. Las excepciones (CHANGELOG, `history/`, ficheros generados, y el
+formulario de handoff) son líneas revisables del ledger, no un regex oculto.
+El árbol quedó con 0 enlaces rotos: 222 documentos clasificados, indexados y
+sin referencias colgadas.
 
 ---
 
@@ -596,7 +638,7 @@ las reglas normales siguen intactas, incluido el coste en Food. Cierra
 GitHub #13. La regresión barre las configuraciones de Founder que el onboarding
 produce de verdad — ocho linajes por seis afinidades —, no una afinidad fija.
 
-**El código gana un solo dueño por verdad.** `docs/STATE_AUTHORITY.md` es ahora
+**El código gana un solo dueño por verdad.** `docs/engineering/state-authority.md` es ahora
 canónico: cinco categorías (lifecycle state, condición ortogonal,
 intención/orden, proyección derivada, estado de presentación) y un registro por
 concepto con propietario, persistencia, escritores, invariantes y
@@ -2603,7 +2645,7 @@ ahora ignora el código antes de buscar enlaces: 129 enlaces, **0 rotos**.
 
 El detector de marcadores buscaba subcadenas. Contaba «deferred disposal» como
 trabajo diferido, «future attachments» como plan, y encontraba `owed` dentro de
-`allowed` y de `reflowed`. Sobre esos conteos se acusó a `docs/ARCHITECTURE.md`
+`allowed` y de `reflowed`. Sobre esos conteos se acusó a `docs/engineering/architecture.md`
 de mezclar arquitectura con roadmap. Con coincidencia por palabra completa el
 repositorio pasa de 124 documentos con backlog a 84, y los 14 que le quedan a
 `ARCHITECTURE.md` son todos el adjetivo «future» dentro de prosa descriptiva.
@@ -2903,7 +2945,7 @@ las cuatro secciones que el repo había superado:
   de lo activo (EG-5) y lo pendiente (EG-6).
 - La sección **15 (Founding hero and first night)** deja de
   presentar al Basic Shelter como primera decisión de obra y
-  apunta a `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md` y al
+  apunta a `docs/systems/first-night.md` y al
   acceptance test EG-A0 del proposal §17.
 
 Lo demás del archivo (game vision, pilares, stack, plataforma,
@@ -3024,7 +3066,7 @@ volver a cumplir. No hay regalos ni retro-tutorial.
 
 Lo que el jugador todavía no ve: el espíritu, sus diálogos y el motivo de la
 primera expedición. Quedan como fases 2 a 4 en `TO_DO.md` §3. El contrato que
-las gobierna está en `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, y mantiene
+las gobierna está en `docs/systems/first-night.md`, y mantiene
 separados los tres niveles de guía — noche autoral, directivas derivadas del
 estado real, y Camino de solo lectura — sin fusionarlos en una lista de misiones.
 
@@ -3078,7 +3120,7 @@ módulo a módulo.
   retorno que `FallenWoodSearch` (4 / 6 / 8 Wood) y duración 180
   ticks. El botón se desbloquea sólo cuando `SpiritDeparted` está en
   el log, vía `ExpeditionPlanningSnapshot.SpiritTrailUnlocked`.
-- **Documentación canónica**: `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`
+- **Documentación canónica**: `docs/systems/first-night.md`
   pasa de "Propuesta canónica" a "Aceptada" (DEC-0014). El bloque
   "First night" se añade a `CROSS_DOMAIN_INVARIANTS.md` y la ruta
   "First night / fire spirit" se añade a `CONTEXT_MAP.md`. Cuatro
@@ -3388,7 +3430,7 @@ headless boot clean · agent context 437 checks · schema v28.
 
 ### Direction
 
-Recorded in `docs/world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`,
+Recorded in `docs/systems/frontage-and-corridors.md`,
 which supersedes the rigid nine-lot partition previously described in chapter 03.
 
 ---
@@ -3440,7 +3482,7 @@ design bible.
   under `docs/_archive/ravatha-source-2026-08-04/` as a historical
   source, including the two `.zip` originals. The README in the
   archive maps every archived file to its bible destination.
-- `DEC-0013` is added to `docs/ai/DECISION_LOG.md` and records:
+- `DEC-0013` is added to `docs/history/decisions.md` and records:
   onboarding output is the cube profile only (no Traits,
   WeaponPreferences, ProfessionalAffinities, CombatStyle,
   PoliticalOrientation, SpiritualPosture, LeadershipStyle or

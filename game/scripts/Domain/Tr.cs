@@ -191,7 +191,7 @@ public static class Tr
 
     /// <summary>
     /// Translation keys for the authored first night
-    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). Body keys are
+    /// (<c>docs/systems/first-night.md</c>). Body keys are
     /// emitted by node × lineage: every main-dialogue node carries one
     /// variant per <see cref="LineageId"/>, so the spirit reacts
     /// without ever branching the route or exposing internal labels

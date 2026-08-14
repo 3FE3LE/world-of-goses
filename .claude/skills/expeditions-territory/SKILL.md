@@ -35,20 +35,17 @@ caused by expeditions, not an arbitrary unlock list.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — the canonical
+- `docs/systems/expeditions.md` — the canonical
   chapter.
-- `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md` — for
+- `docs/systems/city-and-territory.md` — for
   parcel and territory.
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → "Expeditions".
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- `docs/systems/citizens.md`
   — for expedition eligibility and personal consequences.
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 2.
-- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3, §8.4 and §13. The
-  old G3/G4/G6/G7 gap IDs pointed at `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`,
-  discarded 2026-07-31.
+- `docs/world/vision-and-pillars.md` pillar 2.
 
 ## Core invariants
 

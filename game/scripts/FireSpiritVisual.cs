@@ -6,7 +6,7 @@ namespace WorldofGoses;
 
 /// <summary>
 /// The fire spirit of the authored first night
-/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>): a small manifestation of
+/// (<c>docs/systems/first-night.md</c>): a small manifestation of
 /// flame that hovers beside the founder before the campfire is built and
 /// settles into the fire afterwards.
 ///
@@ -17,7 +17,7 @@ namespace WorldofGoses;
 /// <c>art/exports/ui/</c> ships a free-standing flame: the closest art is a
 /// hearth or brazier, which carries its own stonework and reads as furniture.
 /// Cropping a flame out of one of those would mean hand-editing an exported
-/// PNG, which <c>docs/ART_PIPELINE.md</c> §10 forbids. So the shape is
+/// PNG, which <c>docs/presentation/art-pipeline.md</c> §10 forbids. So the shape is
 /// authored here — layered flame polygons in the fire palette — until real
 /// art exists.
 /// </para>

@@ -17,7 +17,7 @@ namespace WorldofGoses.Domain;
 /// </para>
 /// <para>
 /// The face-to-expression table is canon
-/// (<c>docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md</c>).
+/// (<c>docs/systems/statistics-and-combat.md</c>).
 /// That chapter publishes one table with three columns — face, elemental
 /// affinity, physical expression — and an earlier implementation read it as a
 /// chain, deriving the expression from the affinity. The columns are three

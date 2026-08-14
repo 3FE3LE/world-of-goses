@@ -37,7 +37,7 @@ The verified upstream .NET provider (Microsoft, `dotnet/skills`) is
 the only authoritative source for diagnostic CLI usage. The repo's
 working subset is `dotnet-msbuild` (build/quality) plus
 `dotnet-diag` (perf/diagnostics) on demand; both are recorded in
-`docs/ai/SKILL_MIGRATION.md`.
+the provider registered by `Install-GodotDotNetSkills.ps1`.
 
 ## Core invariants
 
@@ -50,7 +50,7 @@ working subset is `dotnet-msbuild` (build/quality) plus
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
+- `docs/engineering/architecture.md`.
 - `docs/ai/CONTEXT_MAP.md` → Technical → Architecture changes.
 
 ## Workflow

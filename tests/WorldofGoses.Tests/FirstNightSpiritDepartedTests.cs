@@ -11,7 +11,7 @@ namespace WorldofGoses.Tests;
 /// <see cref="FirstNightStage.Sleeping"/> to
 /// <see cref="FirstNightStage.Concluded"/>. The event unlocks the
 /// <c>SpiritTrailSearch</c> expedition and is the moment the chronicle
-/// marks the spirit's exit (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>
+/// marks the spirit's exit (<c>docs/systems/first-night.md</c>
 /// §11–12). These tests guard the event's presence, significance,
 /// and round-trip persistence.
 /// </summary>

@@ -23,7 +23,7 @@ model: inherit
 - **Default mode:** `SURGICAL` for cosmetic tweaks, `FEATURE` for new
   surfaces or reusable patterns, `RELEASE` only when the change
   crosses into a domain rule. See
-  [`docs/ai/WORKFLOW_MODES.md`](../../../docs/ai/WORKFLOW_MODES.md).
+  `docs/ai/WORKFLOW_MODES.md`.
 
 ## When to use this agent
 
@@ -50,7 +50,7 @@ model: inherit
 - `citizens-rpg`, `city-simulation`, or `expeditions-territory`
   **only when the UI writes to domain state**. Reading existing
   state does not activate the domain (see
-  [`docs/ai/DOMAIN_CONSULTATION.md`](../../../docs/ai/DOMAIN_CONSULTATION.md)).
+  `docs/ai/DOMAIN_CONSULTATION.md`).
 - `technical-foundation` whenever a snapshot, a presentation adapter,
   or a layer-boundary concern is introduced.
 
@@ -58,21 +58,20 @@ model: inherit
 
 - `godot-presentation` whenever a Godot Control, theme, animation, or
   audio API is needed. Delegates to the verified upstream provider
-  installed by `Install-GodotDotNetSkills.ps1` (see
-  [`docs/ai/SKILL_MIGRATION.md`](../../../docs/ai/SKILL_MIGRATION.md)).
+  installed by `Install-GodotDotNetSkills.ps1`.
 - `godot-dotnet` whenever the presentation is implemented in C#.
 - `repo-navigation` for every task — symbol-first retrieval guidance.
 
 ## Working procedure
 
 1. Decide the workflow mode (`SURGICAL` / `FEATURE` / `RELEASE`) using
-   [`docs/ai/RISK_MODEL.md`](../../../docs/ai/RISK_MODEL.md).
+   `docs/ai/RISK_MODEL.md`.
 2. Decide whether the change is a **state read** (presentation only)
    or a **state write** (raise to the owning domain agent).
-3. For UI: follow `docs/UI_PATTERNS.md`. Reuse `GameUiShell`,
+3. For UI: follow `docs/presentation/ui-patterns.md`. Reuse `GameUiShell`,
    `ModalHost`, `PanelHeader`, `SafeAreaMarginContainer`,
    `StandardButtons`, `TooltipPanel`.
-4. For pixel art: follow `docs/ART_PIPELINE.md`. Source in
+4. For pixel art: follow `docs/presentation/art-pipeline.md`. Source in
    `art/source/<category>/`. Export to `art/exports/<category>/`.
    Imported asset under `game/assets/<category>/`. Do not hand-edit
    exported PNGs.
@@ -85,7 +84,7 @@ model: inherit
 8. Verify the change with a **real click**, not just code review or a
    headless boot.
 9. Apply the
-   [documentation impact gate](../../../docs/ai/DOCUMENTATION_IMPACT_GATE.md).
+   documentation impact gate (`docs/ai/DOCUMENTATION_IMPACT_GATE.md`).
 
 ## Hard rules
 

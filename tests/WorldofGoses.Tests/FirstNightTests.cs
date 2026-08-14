@@ -6,7 +6,7 @@ using Xunit;
 namespace WorldofGoses.Tests;
 
 /// <summary>
-/// The authored first night (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`). It runs
+/// The authored first night (`docs/systems/first-night.md`). It runs
 /// from the manifestation to dawn, teaches the founder why the ground materials
 /// matter, and must never be losable: no stage expires, nothing depends on the
 /// player reading quickly, and no required resource needs a tool.

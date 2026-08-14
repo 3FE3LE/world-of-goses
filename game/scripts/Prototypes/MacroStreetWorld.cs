@@ -14,7 +14,7 @@ namespace WorldofGoses.Prototypes;
 /// transition (never a continuous scroll); horizontal movement is
 /// cadence-quantized and confined to the current street. Not the real city
 /// — see
-/// docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md,
+/// docs/presentation/visual-language.md,
 /// "Ciudad macro (perspectiva por calles)".
 /// </summary>
 public partial class MacroStreetWorld : Node2D

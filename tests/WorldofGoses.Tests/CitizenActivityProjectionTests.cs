@@ -25,7 +25,7 @@ namespace WorldofGoses.Tests;
 /// the shadow enum against being driven wrong by a stamina change. Stamina no
 /// longer drives any activity value, so
 /// <see cref="StaminaNeverMovesTheActivityProjection"/> asserts the stronger
-/// property directly. See <c>docs/STATE_AUTHORITY.md</c>.
+/// property directly. See <c>docs/engineering/state-authority.md</c>.
 /// </para>
 /// </summary>
 public sealed class CitizenActivityProjectionTests

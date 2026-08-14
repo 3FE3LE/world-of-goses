@@ -976,7 +976,7 @@ public sealed class CityWorld
     public const int StartingForestStorageCapacity = StartingForestWoodReserve;
 
     /// <summary>
-    /// EG-1 carry cap. Per <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md
+    /// EG-1 carry cap. Per <c>docs/systems/city-and-territory.md
     /// §4</c>, the founder can carry at most six collected units of the
     /// four rudimentary ground resources (Branches, Plant Fiber, Small
     /// Stone, Wild Food) before the Cache exists. Wood, Stone, Food and
@@ -1295,7 +1295,7 @@ public sealed class CityWorld
 
     /// <summary>
     /// EG-1 part two: seeds the four rudimentary ground resources from
-    /// <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §4</c>:
+    /// <c>docs/systems/city-and-territory.md §4</c>:
     /// 14 Branches (7 bundles × 2), 6 Plant Fiber (3 × 2), 6 Small
     /// Stone (3 × 2), 8 Wild Food (4 × 2). Units occupy independent frontage
     /// cells in deterministic scatter and may share a parcel with other resource
@@ -1902,7 +1902,7 @@ public sealed class CityWorld
     /// shelter: solo-survival construction and gathering proceed at any time
     /// of day, and only after the first Home registers does the 08:00–16:00
     /// labour window apply to subsequent buildings and projects. See
-    /// docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §5 — the founding
+    /// docs/systems/city-and-territory.md — the founding
     /// camp is manual survival labour, not city labour, so a freshly authored
     /// city whose clock starts at midnight can still build its first shelter
     /// before the first dawn.

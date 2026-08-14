@@ -12,7 +12,7 @@ namespace WorldofGoses.Domain;
 /// <para>Deliberately not localized and not a UI surface. This is a diagnostic
 /// artifact read by whoever is calibrating the early game, in the same spirit
 /// as the visual-regression captures: it exists to be read once against
-/// <c>docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md</c> and thrown away.
+/// the opening calibration pass and thrown away.
 /// Putting it in the player-facing UI would mean translating and maintaining a
 /// screen full of numbers that mean nothing to a player.</para>
 /// </summary>

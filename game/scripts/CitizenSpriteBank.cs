@@ -8,7 +8,7 @@ namespace WorldofGoses;
 /// <summary>
 /// Autoload that owns the long-lived sprite instances for every
 /// citizen. One citizen, one sprite, period — see
-/// `docs/ARCHITECTURE.md §7b` for the design rationale. Views
+/// `docs/engineering/architecture.md §7b` for the design rationale. Views
 /// (building-detail slots, macro markers, future hero profile) ask
 /// the bank for the carrier and position it; they never create
 /// sprites of their own.

@@ -9,7 +9,7 @@ namespace WorldofGoses;
 
 /// <summary>
 /// Expedition preparation panel: the player picks a 1-2 citizen team from
-/// the real roster (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3) before
+/// the real roster (docs/systems/expeditions.md) before
 /// dispatching a reconnaissance or a prospect-seeking expedition. The panel
 /// reuses <see cref="ModalHost"/> for scrim/close semantics.
 /// </summary>

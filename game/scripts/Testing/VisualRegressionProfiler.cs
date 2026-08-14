@@ -9,7 +9,7 @@ namespace WorldofGoses.Testing;
 /// <see cref="FrameTimeLogTail"/> samples from the run's log file
 /// after warm-up, so the screenshot capture does not have to
 /// self-time its own sleep loops (which were blind to any real stall
-/// inside the Godot process — see TO_DO.md S-1.7's 2026-07-27
+/// inside the Godot process — see the 2026-07-27
 /// audit).
 ///
 /// <para>Architecture Hardening issue #8 lifted this from
@@ -80,7 +80,7 @@ public sealed partial class VisualRegressionProfiler : Node
         // the harness parses this with double.TryParse(InvariantCulture)
         // and a comma-decimal locale (e.g. es-*) silently broke every
         // sample otherwise (found via a real capture run, not by reading
-        // the code — see TO_DO.md S-1.7).
+        // the code — see docs/engineering/performance.md).
         GD.Print($"{FrameTimeLogTag} {processMs.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)}");
     }
 }

@@ -11,7 +11,7 @@ namespace WorldofGoses.Tests;
 /// Structural architectural boundary tests for the A0 hardening slice.
 ///
 /// Each <see cref="Fact"/> enforces one rule from
-/// <c>docs/ARCHITECTURE.md</c>. Where existing code still violates a
+/// <c>docs/engineering/architecture.md</c>. Where existing code still violates a
 /// rule, the corresponding property on
 /// <see cref="ArchitectureBoundaryAllowlist"/> exempts the legacy debt
 /// and the comment names the slice that must remove the entry.

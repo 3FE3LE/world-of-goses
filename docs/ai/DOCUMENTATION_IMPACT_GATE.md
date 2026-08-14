@@ -23,16 +23,16 @@ For each doc, ask: did this change alter the doc's contract?
 
 | If the change is … | Update |
 | --- | --- |
-| Reusable UI contract (new pattern, new widget, renamed widget) | `docs/UI_PATTERNS.md` |
-| Architecture / boundary change (new layer, new ownership rule) | `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md` |
-| Canonical game design change (new mechanic, new fantasy, new pillar) | `docs/world-of-goses-design-bible/` |
-| New asset promoted (`art/source` → `art/exports` → `game/assets`) | `docs/ASSET_INVENTORY.md`, `docs/LICENSING_AND_ATTRIBUTION.md` |
-| New visual regression surface or fixture | `docs/VISUAL_REGRESSION.md` |
-| New persistent field, schema bump, migration | `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`, design bible as relevant |
-| Active milestone / status changed | `docs/CURRENT_STATUS.md`, `docs/ai/CURRENT_DEVELOPMENT_STATE.md` |
-| Canonical decision changed (DEC-#### entries) | `docs/ai/DECISION_LOG.md` |
-| New agent or skill added / removed | `docs/ai/SKILL_MIGRATION.md`, `docs/ai/CONTEXT_MAP.md`, `docs/ai/AGENT_DISPATCH.md` |
-| Repository convention change | `docs/REPOSITORY_CONVENTIONS.md` |
+| Reusable UI contract (new pattern, new widget, renamed widget) | `docs/presentation/ui-patterns.md` |
+| Architecture / boundary change (new layer, new ownership rule) | `docs/engineering/architecture.md`, `docs/engineering/state-authority.md` |
+| Canonical game design change (new mechanic, new fantasy, new pillar) | the owning file under `docs/systems/` or `docs/world/` |
+| New asset promoted (`art/source` → `art/exports` → `game/assets`) | `docs/presentation/asset-inventory.md`, `docs/presentation/licensing-and-attribution.md` |
+| New visual regression surface or fixture | `docs/engineering/visual-regression.md` |
+| New persistent field, schema bump, migration | `WorldSave.CurrentVersion` XML docs, `docs/engineering/architecture.md` §8 |
+| Work started, finished or reprioritised | the GitHub issue — **never** a document |
+| Canonical decision changed (DEC-#### entries) | `docs/history/decisions.md` |
+| New agent or skill added / removed | `docs/ai/CONTEXT_MAP.md`, `docs/ai/AGENT_DISPATCH.md` |
+| Repository convention change | `docs/engineering/conventions.md` |
 | Otherwise | **NO DOCUMENT UPDATE** |
 
 ## Anti-patterns
@@ -40,12 +40,12 @@ For each doc, ask: did this change alter the doc's contract?
 - **Documentation sweeps.** Opening every doc the change touches to
   "keep them in sync" is not maintenance; it is noise. The gate is
   designed to stop this.
-- **Editing the design bible to reflect the implementation.** The
-  design bible is the source of truth, not the implementation log.
-  If the implementation contradicts the bible, fix the
+- **Editing canon to reflect the implementation.** A canonical
+  document is the source of truth, not the implementation log.
+  If the implementation contradicts canon, fix the
   implementation.
-- **Editing `CURRENT_STATUS.md` on a `SURGICAL` change.** Status is
-  for milestones, not for every commit.
+- **Recording progress in a document.** Status, milestones and next steps
+  belong to GitHub Issues and `CHANGELOG.md`, never to canon.
 - **Adding a CHANGELOG entry for a test-only fix or a typo.** See
   [`WORKFLOW_MODES.md`](WORKFLOW_MODES.md) for the CHANGELOG policy.
 - **Re-reading the whole `docs/` tree "to be safe".** That is what
@@ -57,19 +57,19 @@ For each doc, ask: did this change alter the doc's contract?
 | --- | --- |
 | SURGICAL | Apply the gate; almost always results in **no** doc update. |
 | FEATURE | Apply the gate once at closure; expect one or two targeted doc updates if a contract moved. |
-| RELEASE | Apply the gate at every step where a contract moved; expect several targeted doc updates plus `CURRENT_STATUS.md` and `CHANGELOG.md`. |
+| RELEASE | Apply the gate at every step where a contract moved; expect several targeted doc updates plus a `CHANGELOG.md` entry. |
 
 ## Worked examples
 
 | Change | Docs updated |
 | --- | --- |
 | 8 px HUD spacing tweak | none (no contract change) |
-| Rename `NavigationRail` to `PrimaryNavDock` | `UI_PATTERNS.md` (if it referenced the old name) |
-| New save field with migration | `ARCHITECTURE.md`, `CURRENT_STATUS.md`, `CHANGELOG.md` |
-| New fixture in the visual regression matrix | `VISUAL_REGRESSION.md` |
-| Promotion of `art/source/foo.svg` → `game/assets/foo.png` | `ASSET_INVENTORY.md`, `LICENSING_AND_ATTRIBUTION.md` |
-| Bump a hard rule about expedition return | `world-of-goses-design-bible/05_EXPEDITIONS.md` |
-| New CITIZEN.md convention | `REPOSITORY_CONVENTIONS.md` |
+| Rename `NavigationRail` to `PrimaryNavDock` | `presentation/ui-patterns.md` (if it referenced the old name) |
+| New save field with migration | `WorldSave.CurrentVersion` XML docs, `CHANGELOG.md` |
+| New fixture in the visual regression matrix | `engineering/visual-regression.md` |
+| Promotion of `art/source/foo.svg` → `game/assets/foo.png` | `presentation/asset-inventory.md`, `presentation/licensing-and-attribution.md` |
+| Bump a hard rule about expedition return | `systems/expeditions.md` |
+| New naming convention | `engineering/conventions.md` |
 | Test-only fix | none |
 | Mechanical rename of a private field | none |
 

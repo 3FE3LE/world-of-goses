@@ -14,7 +14,7 @@ public sealed record ExpeditionPlanningSnapshot(
     /// <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
     /// objective is meaningful — the trail cannot be read while the
     /// spirit is still present
-    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). The
+    /// (<c>docs/systems/first-night.md</c> §11–12). The
     /// Spirit Trail is a narrative objective and therefore does not share the
     /// Campfire + Cache gate used by material sorties. This gate must remain
     /// false until the night concludes.

@@ -10,7 +10,7 @@ namespace WorldofGoses.Prototypes;
 /// spacing itself compresses with depth so distant streets read as
 /// converging rather than merely shrinking. Still pure 2D (sprites/tiles
 /// rescaled by code) — never a 3D/2.5D projection. See
-/// docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md,
+/// docs/presentation/visual-language.md,
 /// "Ciudad macro (perspectiva por calles)".
 ///
 /// <paramref name="depth"/> is a continuous float, not the integer street

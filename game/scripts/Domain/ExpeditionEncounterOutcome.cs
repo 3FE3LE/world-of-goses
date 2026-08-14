@@ -2,7 +2,7 @@ namespace WorldofGoses.Domain;
 
 /// <summary>
 /// Result of the single deterministic encounter every expedition passes
-/// through (docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4). Deliberately has no
+/// through (docs/systems/expeditions.md). Deliberately has no
 /// "total loss"/death tier: a wound or death consequence belongs to VS-3
 /// (persistent conditions), not this slice. <see cref="Setback"/> is the
 /// worst outcome here and only means "no reward this time, team returns

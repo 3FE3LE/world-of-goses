@@ -72,7 +72,7 @@ namespace WorldofGoses.Prototypes;
 /// nearest-to-viewer row; no <c>BuildingDetailView</c> assignment surface
 /// exists purpose-built for this view yet (it reuses the shared,
 /// view-agnostic one via <see cref="CityWorldController.SelectBuilding"/>).
-/// See docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md,
+/// See docs/engineering/architecture.md,
 /// "Cámara y mundo caminable".
 /// </summary>
 public partial class MacroStreetLiveView : Node2D
@@ -1259,7 +1259,7 @@ public partial class MacroStreetLiveView : Node2D
         // Flooring here restores what _Ready already used before the first
         // snapshot arrived and overrode it downward. Streets beyond the owned
         // parcels render as plain ground, which is the "moving thirteen-street
-        // window through a larger semantic city" docs/CURRENT_STATUS.md
+        // window through a larger semantic city" docs/presentation/visual-language.md
         // describes — not an unlock: territory is still painted per real
         // parcel by SetParcelTerritory above.
         _worldParcelColumns = Math.Max(DefaultWorldParcelColumns, maximumColumn + 1);
@@ -2941,7 +2941,7 @@ public partial class MacroStreetLiveView : Node2D
     /// Mounts the founder's canonical sprite carrier into this view. Only
     /// while visible — the flat view and the detail slots mount the same
     /// carrier, and whichever view is active owns it (one citizen, one
-    /// sprite; docs/ARCHITECTURE.md §7b).
+    /// sprite; docs/engineering/architecture.md §7b).
     ///
     /// Assignment-aware: when the hero is (or becomes) assigned to a
     /// building, this stops treating <see cref="_journeys.HeroStreet"/>/

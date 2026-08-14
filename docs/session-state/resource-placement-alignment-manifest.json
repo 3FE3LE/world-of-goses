@@ -1,0 +1,24 @@
+[
+  {
+    "State": "resource-placement-alignment",
+    "Width": 1280,
+    "Height": 720,
+    "Scene": "res://scenes/CityPrototype.tscn",
+    "VisualFixture": "macro-resource-placement-alignment",
+    "NormalizedClicks": [],
+    "File": "resource-placement-alignment-1280x720.png",
+    "Bytes": 51964,
+    "CapturedAtUtc": "2026-08-13T16:31:16.8534301+00:00"
+  },
+  {
+    "State": "resource-placement-alignment",
+    "Width": 1920,
+    "Height": 1080,
+    "Scene": "res://scenes/CityPrototype.tscn",
+    "VisualFixture": "macro-resource-placement-alignment",
+    "NormalizedClicks": [],
+    "File": "resource-placement-alignment-1920x1080.png",
+    "Bytes": 67065,
+    "CapturedAtUtc": "2026-08-13T16:31:22.9185561+00:00"
+  }
+]

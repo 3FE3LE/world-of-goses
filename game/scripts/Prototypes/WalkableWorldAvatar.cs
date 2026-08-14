@@ -12,7 +12,7 @@ namespace WorldofGoses.Prototypes;
 /// "pixel-motion grammar") against the level-edge collision built by
 /// <see cref="ElevationTestLayout"/>. This is not the real hero/citizen —
 /// see
-/// docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md,
+/// docs/engineering/architecture.md,
 /// "Cámara y mundo caminable".
 /// </summary>
 public partial class WalkableWorldAvatar : CharacterBody2D

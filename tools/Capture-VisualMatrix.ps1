@@ -378,8 +378,8 @@ foreach ($resolution in $resolutions) {
 
         # Frame-time sampling (S-1.7, reworked 2026-07-27). The prior
         # version measured PowerShell host Start-Sleep interval drift —
-        # blind to any real stall inside the Godot process (see TO_DO.md
-        # S-1.7's audit). CityWorldController.SampleFrameTimeForVisualCapture
+        # blind to any real stall inside the Godot process.
+        # CityWorldController.SampleFrameTimeForVisualCapture
         # instead prints the engine's own Performance.Monitor.TimeProcess
         # every frame (tagged, capped at 300 samples) whenever
         # WOG_VISUAL_CAPTURE is set. By now the process has been running

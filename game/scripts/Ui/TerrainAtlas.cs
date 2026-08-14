@@ -13,7 +13,7 @@ namespace WorldofGoses.Ui;
 /// the row and column re-typed as literals directly under the named constants
 /// that already held them), <c>MacroStreetLiveView.DrawNaturalResourceUnit</c>
 /// and <c>MacroStreetLiveView.SelectTree</c> — each re-deriving the same
-/// parity hash. `docs/VISUAL_REGRESSION.md` records that two coordinates once
+/// parity hash. `docs/engineering/visual-regression.md` records that two coordinates once
 /// slipped and rendered water tiles instead of trees; three copies of the
 /// arithmetic is how that happens.
 /// </para>

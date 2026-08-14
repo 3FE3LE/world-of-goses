@@ -1,7 +1,7 @@
 namespace WorldofGoses.Domain;
 
 /// <summary>
-/// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4: an active expedition is a journey
+/// docs/systems/expeditions.md: an active expedition is a journey
 /// with a shape, not an opaque timer. Each phase spans one quarter of the
 /// expedition's duration; the terminal <see cref="Resolved"/> phase is set
 /// together with <see cref="ExpeditionStatus"/> leaving Active. There is no

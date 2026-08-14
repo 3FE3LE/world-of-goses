@@ -10,9 +10,8 @@ and what it looked like. Nothing here is hand-written.
 
 ## Why it exists
 
-`docs/CURRENT_STATUS.md` and `docs/ai/CURRENT_DEVELOPMENT_STATE.md` are written
-by hand, so they drift: on 2026-08-03 they claimed 728 and 721 passing tests
-against a real 730, and 761 template IDs against a real 804. A hand-maintained
+Prose drifts from the build. Documents once claimed 728 and 721 passing tests
+against a real 730, and 761 template ids against a real 804. A hand-maintained
 number is a claim; this directory holds the measurement. When the two disagree,
 the measurement wins and the prose gets corrected.
 
@@ -37,7 +36,7 @@ at pixel-art densities.
 
 The matching `1920×1080` frame and the capture manifest stay in
 `%TEMP%\wog-session-<date>\` as review artifacts, per
-`docs/VISUAL_REGRESSION.md`. Committing both resolutions would double permanent
+`docs/engineering/visual-regression.md`. Committing both resolutions would double permanent
 history growth in a repository with no Git LFS to prove nothing the baseline
 does not already prove.
 
@@ -64,5 +63,5 @@ pwsh ./tools/New-SessionSnapshot.ps1 -Mode Full -SkipCapture
 
 The capture needs a real Godot window; the headless dummy renderer cannot
 produce one. On a desktop where the harness reports a `50×50` client — a known
-intermittent failure documented in `docs/VISUAL_REGRESSION.md` — the script
+intermittent failure documented in `docs/engineering/visual-regression.md` — the script
 records the failure in `STATE.txt` and continues. It never aborts a session.

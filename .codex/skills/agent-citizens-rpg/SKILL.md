@@ -65,7 +65,7 @@ metadata:
 
 ## Working procedure
 
-1. Read `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`.
+1. Read `docs/systems/citizens.md`.
 2. Read the relevant code in `game/scripts/Domain/`: `Citizen.cs`,
    `CitizenCommitment.cs`, `CitizenCommitmentKind.cs`,
    `CitizenAvailabilityReason.cs`, `CitizenVitalStatus.cs`, `Role.cs`,

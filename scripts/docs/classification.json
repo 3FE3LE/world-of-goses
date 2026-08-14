@@ -1,20 +1,16 @@
 {
-  "about": "Hand-authored classification ledger. Phase 2 of the documentation migration. scripts/docs/classify.ps1 merges it into the inventory produced by scripts/docs/inventory.ps1 and fails when a document is missing an entry, when an entry names a document that no longer exists, or when a live document under docs/ is absent from docs/README.md. Deciding what a document IS remains a judgement: it is written here so a reviewer can disagree with a line, not buried in a regex.",
-  "updated": "2026-08-07 (phase 3: the split and merge proposals resolved)",
+  "about": "Hand-authored classification ledger. scripts/docs/classify.ps1 merges it into the inventory produced by scripts/docs/inventory.ps1 and fails when a document has no entry, when an entry names a document that no longer exists, when a live document under docs/ is missing from docs/README.md, or when a canonical document holds an actionable backlog. Deciding what a document IS remains a judgement: it is written here so a reviewer can disagree with a line, not buried in a regex. Most documents are covered by a directory rule; a document earns its own entry only when it is an exception.",
+  "updated": "2026-08-13 (docs reorganised by function; the second backlog removed and replaced by GitHub Issues)",
   "vocabulary": {
     "proposed_type": {
-      "canon": "Design truth. Lives in the design bible exactly once.",
-      "spec": "Implementation-facing description of what the code does or must do.",
-      "roadmap": "Sequencing and dependency order. Says when, not what.",
-      "guideline": "How to do something: pipeline, conventions, patterns.",
+      "canon": "Design truth about a system or about the product. Lives in exactly one document.",
+      "guideline": "How to do something: pipeline, conventions, patterns, design language.",
+      "spec": "Implementation-facing description of what the code does.",
       "process": "How the team and its agents work.",
       "routing": "Decides who works and what they read. Not a design source.",
-      "record": "Dated audit, report, or decision history. Read-only after the fact.",
-      "backlog": "Live task queue.",
+      "record": "Dated history, read-only after the fact.",
       "generated": "Produced by a script. Never hand-edited.",
-      "pointer": "Stub whose content moved; maps old sections to their new home.",
       "index": "Table of contents for a directory.",
-      "archive": "Historical source, consulted but never edited.",
       "license": "Legal text or attribution data."
     },
     "authority": {
@@ -35,12 +31,84 @@
 
   "rules": [
     {
-      "path_prefix": "docs/_archive/",
-      "proposed_type": "archive",
-      "authority": "historical",
+      "path_prefix": "docs/systems/",
+      "proposed_type": "canon",
+      "authority": "canonical",
+      "domains": ["gameplay"],
+      "action": "keep",
+      "note": "One document per game system: what it is, the problem it solves for the player, its authority in code, its invariants, how it manifests, who consumes it. No sequencing and no future work."
+    },
+    {
+      "path_prefix": "docs/world/",
+      "proposed_type": "canon",
+      "authority": "canonical",
       "domains": ["narrative", "lineages"],
       "action": "keep",
-      "note": "Original Ravatha package, consolidated into bible chapters 06 and 13-21. Kept as the audit trail of that consolidation. Do not edit."
+      "note": "Product-level canon: the fantasy, the pillars, the guardrails, and the eight lineages."
+    },
+    {
+      "path_prefix": "docs/presentation/",
+      "proposed_type": "guideline",
+      "authority": "canonical",
+      "domains": ["presentation"],
+      "action": "keep",
+      "note": "Design language and asset pipeline. A guideline may say 'use X for Y'; it may not say 'implement X later'."
+    },
+    {
+      "path_prefix": "docs/presentation/licenses/",
+      "proposed_type": "license",
+      "authority": "canonical",
+      "domains": ["presentation"],
+      "action": "keep",
+      "note": "Upstream license text and LPC credit data. A distribution obligation, not documentation."
+    },
+    {
+      "path_prefix": "docs/presentation/MANIFEST.json",
+      "proposed_type": "generated",
+      "authority": "generated",
+      "domains": ["presentation"],
+      "action": "keep",
+      "note": "Machine-readable manifest for the 16 imported lineage character scenes."
+    },
+    {
+      "path_prefix": "docs/engineering/",
+      "proposed_type": "spec",
+      "authority": "canonical",
+      "domains": ["technical"],
+      "action": "keep",
+      "note": "The code's own contracts: layers and their enforcement, state ownership, conventions, verification, performance budgets, review guide."
+    },
+    {
+      "path_prefix": "docs/ai/",
+      "proposed_type": "routing",
+      "authority": "derived",
+      "domains": ["meta"],
+      "action": "keep",
+      "note": "Routing layer. Decides which agent and which skills handle a request. Never a design source."
+    },
+    {
+      "path_prefix": "docs/history/",
+      "proposed_type": "record",
+      "authority": "historical",
+      "domains": ["meta"],
+      "action": "keep",
+      "note": "Decision records, kept only where a current rule is counterintuitive and the reason is not visible in the code."
+    },
+    {
+      "path_prefix": "docs/session-state/",
+      "proposed_type": "generated",
+      "authority": "generated",
+      "domains": ["meta"],
+      "action": "keep",
+      "note": "Written by tools/New-SessionSnapshot.ps1. The measured baseline plus a dated frame. Never hand-edited."
+    },
+    {
+      "path_prefix": ".github/",
+      "proposed_type": "process",
+      "authority": "canonical",
+      "domains": ["meta"],
+      "action": "keep",
+      "note": "CI definition."
     },
     {
       "path_prefix": ".agents/",
@@ -48,7 +116,7 @@
       "authority": "canonical",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Canonical, tool-neutral skills and agent definitions. Governed by scripts/Sync-AgentContext.ps1 and Validate-AgentContext.ps1, not by this migration."
+      "note": "Canonical skills and agent definitions. Mirrors under .claude/ and .codex/ are generated from these."
     },
     {
       "path_prefix": ".claude/",
@@ -56,7 +124,7 @@
       "authority": "generated",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Mirror of .agents/ for Claude Code. Never hand-edit."
+      "note": "Generated mirror. Never hand-edit; run scripts/Sync-AgentContext.ps1."
     },
     {
       "path_prefix": ".codex/",
@@ -64,31 +132,7 @@
       "authority": "generated",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Mirror of .agents/ for Codex CLI. Never hand-edit."
-    },
-    {
-      "path_prefix": ".github/",
-      "proposed_type": "process",
-      "authority": "derived",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Repository configuration."
-    },
-    {
-      "path_prefix": "docs/world-of-goses-design-bible/",
-      "proposed_type": "canon",
-      "authority": "canonical",
-      "domains": ["vision"],
-      "action": "keep",
-      "note": "Default for every bible chapter. Chapters with a narrower domain override this entry below."
-    },
-    {
-      "path_prefix": "docs/licenses/",
-      "proposed_type": "license",
-      "authority": "canonical",
-      "domains": ["presentation"],
-      "action": "keep",
-      "note": "Upstream license text and LPC credit data. Distribution obligation, not documentation."
+      "note": "Generated mirror. Never hand-edit; run scripts/Sync-AgentContext.ps1."
     }
   ],
 
@@ -98,7 +142,7 @@
       "authority": "derived",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Public face of the repository. Follows CURRENT_STATUS for the active increment."
+      "note": "Public face of the repository. Points at the docs index and at GitHub Issues; carries no status of its own."
     },
     "AGENTS.md": {
       "proposed_type": "process",
@@ -121,379 +165,36 @@
       "authority": "historical",
       "domains": ["meta"],
       "action": "keep",
-      "note": "One entry per increment: what a player can now do, the schema range crossed, the measured baseline."
+      "note": "One entry per increment: what a player can now do that they could not before, and the schema range crossed. Exempt from the backlog guard because history legitimately describes work that was once pending."
     },
-    "TO_DO.md": {
-      "proposed_type": "backlog",
-      "authority": "derived",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "The single live task queue. 32 backlog markers here are the file working as intended, unlike the same markers inside a canon document."
-    },
-
     "docs/README.md": {
       "proposed_type": "index",
       "authority": "canonical",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Authority rules plus the complete index. Rule 7 makes completeness enforceable; classify.ps1 enforces it."
+      "note": "The documentation index and the authority rules. Completeness is enforced: classify.ps1 fails when a live document under docs/ is not listed here."
     },
-    "docs/ARCHITECTURE.md": {
-      "proposed_type": "spec",
-      "authority": "canonical",
-      "domains": ["technical"],
-      "action": "keep",
-      "related_code": ["game/scripts/Domain/", "game/scripts/"],
-      "duplicates_or_overlaps": ["docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md"],
-      "note": "Proposed for a split on the strength of 17 backlog markers; the evidence did not survive. Every one of them was a substring false positive — 'future attachments', 'deferred disposal', 'owed' found inside 'allowed' and 'reflowed'. With whole-word matching 14 remain and all are the adjective 'future' inside descriptive prose. This document describes the code that exists, start to finish, and is not split. Its real defect is staleness, not structure: §8 narrates migrations to v28 while the code is at v31. Tracked as M-28 in TO_DO.md."
-    },
-    "docs/ARCHITECTURE_HARDENING_REPORT.md": {
+    "docs/engineering/visual-regression.md": {
       "proposed_type": "record",
-      "authority": "historical",
-      "domains": ["technical"],
-      "action": "keep",
-      "related_code": ["src/", "game/scripts/Application/", "tests/WorldofGoses.Tests/ArchitectureBoundaryTests.cs"],
-      "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
-      "note": "Dated final state of the A0-A12 hardening: the assembly graph after Persistence and Application left the Godot project, CityWorld's owner, the stable save IDs, and the guards that keep the boundary compiler-enforced. Overlaps ARCHITECTURE.md by design and loses to it: that document says what the architecture IS, this one records how these seams were closed and stops being edited."
-    },
-    "docs/STATE_AUTHORITY.md": {
-      "proposed_type": "spec",
-      "authority": "canonical",
-      "domains": ["technical", "citizens", "expeditions", "city", "narrative"],
-      "action": "keep",
-      "related_code": ["game/scripts/Domain/", "src/WorldofGoses.Persistence/", "tests/WorldofGoses.Tests/StateAuthorityInvariantTests.cs"],
-      "duplicates_or_overlaps": ["docs/ARCHITECTURE.md"],
-      "note": "Canonical for ownership: which type holds each mutable truth, which of the five categories it belongs to, whether it is persisted, and how it is rebuilt from a save. Splits cleanly from ARCHITECTURE.md, which owns the assembly boundaries and the folder layout; that document links here rather than restating the registry. Also holds the not-yet-built animation boundary so the contract exists before the code does."
-    },
-    "docs/CURRENT_STATUS.md": {
-      "proposed_type": "spec",
-      "authority": "canonical",
-      "domains": ["meta"],
-      "action": "keep",
-      "duplicates_or_overlaps": ["docs/session-state/STATE.txt"],
-      "note": "Hand-written claims about the live slice. Loses to session-state/STATE.txt on any measured number; the prose gets corrected in the same change."
-    },
-    "docs/UI_PATTERNS.md": {
-      "proposed_type": "guideline",
-      "authority": "canonical",
-      "domains": ["presentation"],
-      "action": "keep",
-      "related_code": ["game/scripts/Ui/", "game/scenes/"],
-      "note": "Read before authoring any screen or widget."
-    },
-    "docs/UI_AUDIT.md": {
-      "proposed_type": "record",
-      "authority": "derived",
-      "domains": ["presentation"],
-      "action": "keep",
-      "note": "Split executed 2026-08-07. The reusable checklist and the sign-off rule moved to VISUAL_REGRESSION.md, which already owned the human sign-off contract; this file keeps the record — current state, visual evidence, presentation debt, signature history. Its 26 markers were unchecked boxes, a real signal unlike ARCHITECTURE's: a checklist living inside a record reads as a backlog nobody owns. The dangling reference to the deleted FIRST_PLAYABLE_LOOP_AUDIT.md went with it."
-    },
-    "docs/VALIDATION.md": {
-      "proposed_type": "record",
-      "authority": "derived",
-      "domains": ["vision", "meta"],
-      "action": "keep",
-      "note": "Cross-check of the slice against the bible, with ranked gaps. Honest by construction: it exists to say what is missing."
-    },
-    "docs/VISUAL_REGRESSION.md": {
-      "proposed_type": "guideline",
       "authority": "canonical",
       "domains": ["presentation", "technical"],
       "action": "keep",
-      "related_code": ["tools/Capture-VisualMatrix.ps1"],
-      "note": "Capture harness, required UI-state matrix, human sign-off contract."
-    },
-    "docs/PERFORMANCE_BUDGETS.md": {
-      "proposed_type": "guideline",
-      "authority": "canonical",
-      "domains": ["technical", "presentation"],
-      "action": "keep",
-      "related_code": ["tools/Capture-VisualMatrix.ps1"],
-      "note": "Frame-time targets and how the harness reacts when one is exceeded."
-    },
-    "docs/ART_PIPELINE.md": {
-      "proposed_type": "guideline",
-      "authority": "canonical",
-      "domains": ["presentation"],
-      "action": "keep",
-      "related_code": ["art/", "game/assets/"],
-      "note": "Pixelorama to PNG to Godot, naming, wiring, anti-patterns."
-    },
-    "docs/ASSET_INVENTORY.md": {
-      "proposed_type": "record",
-      "authority": "derived",
-      "domains": ["presentation"],
-      "action": "keep",
-      "note": "Inventory and licensing triage of downloaded packs, plus the staged integration plan."
-    },
-    "docs/LINEAGE_DESIGN_MATRIX.md": {
-      "proposed_type": "guideline",
-      "authority": "derived",
-      "domains": ["presentation", "lineages"],
-      "action": "keep",
-      "related_code": ["game/scripts/visual/CharacterVisualRegistry.cs"],
-      "note": "Visual translation matrix for the LPC lineage pack. Derives from bible chapters 06 and 08; must not invent lineage meaning."
-    },
-    "docs/MANIFEST.json": {
-      "proposed_type": "generated",
-      "authority": "generated",
-      "domains": ["presentation"],
-      "action": "keep",
-      "note": "Machine-readable manifest for the 16 imported lineage character scenes."
-    },
-    "docs/LICENSING_AND_ATTRIBUTION.md": {
-      "proposed_type": "license",
-      "authority": "canonical",
-      "domains": ["presentation"],
-      "action": "keep",
-      "note": "LPC provenance, transformations, distribution obligations."
-    },
-    "docs/PRODUCT_DIRECTION.md": {
-      "proposed_type": "process",
-      "authority": "canonical",
-      "domains": ["meta", "vision"],
-      "action": "keep",
-      "note": "Core loop, validation sequence, drift checklist. Points to the bible for design answers."
-    },
-    "docs/REPOSITORY_CONVENTIONS.md": {
-      "proposed_type": "process",
-      "authority": "derived",
-      "domains": ["meta", "technical"],
-      "action": "keep",
-      "duplicates_or_overlaps": ["AGENTS.md", "CLAUDE.md"],
-      "note": "The full prose behind the root routers. Explicitly loses to AGENTS.md on conflict."
-    },
-    "docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md": {
-      "proposed_type": "spec",
-      "authority": "canonical",
-      "domains": ["city", "expeditions", "citizens"],
-      "action": "keep",
-      "note": "Approved direction for the opening arc. Cited as canonical by several CONTEXT_MAP routes, so it is canon for early-game numbers even though it is titled a proposal. EG-A0 figures remain provisional."
-    },
-    "docs/EXPEDITIONS_AND_COMBAT_INTEGRATION_ROADMAP.md": {
-      "proposed_type": "roadmap",
-      "authority": "derived",
-      "domains": ["expeditions", "citizens", "technical"],
-      "action": "keep",
-      "note": "Was docs/13_, which collided with bible chapter 13. It sequences work; the design it sequences is canon in bible chapters 05, 11 and 22. Sequencing is why it stays out of the bible."
-    },
-    "docs/CITIZEN_OFFLINE_ROUTINE_AUDIT.md": {
-      "proposed_type": "record",
-      "authority": "historical",
-      "domains": ["citizens", "technical"],
-      "action": "keep",
-      "related_code": ["game/scripts/Domain/OfflineProgression.cs"],
-      "note": "Dated 2026-07-29, schema v19. Describes a past stabilisation pass; the current schema is v31. Never cite it for present behaviour."
-    },
-    "docs/technical/sprite-generator-feasibility.md": {
-      "proposed_type": "record",
-      "authority": "historical",
-      "domains": ["presentation", "technical"],
-      "action": "keep",
-      "note": "Feasibility report, 2026-07-23. Separates verified facts from inferences and recommendations. Not an approved plan."
-    },
-    "docs/GAME_VISION.md": {
-      "proposed_type": "pointer",
-      "authority": "derived",
-      "domains": ["vision"],
-      "action": "keep",
-      "note": "Content moved to bible chapter 01. Kept as the old-section-to-new-home map."
-    },
-    "docs/LINEAGES_AND_PROFESSIONAL_AFFINITIES.md": {
-      "proposed_type": "pointer",
-      "authority": "derived",
-      "domains": ["lineages", "citizens"],
-      "action": "keep",
-      "note": "Content moved to bible chapters 04 and 06."
-    },
-    "docs/DESIGN_INFLUENCES.md": {
-      "proposed_type": "pointer",
-      "authority": "derived",
-      "domains": ["vision"],
-      "action": "keep",
-      "note": "IP boundary and naming discipline moved to bible chapter 01; the retired MVP shorthand stays here as a historical note."
-    },
-
-    "docs/_archive/design-bible-10-prototype-roadmap-2026-08-07.md": {
-      "proposed_type": "archive",
-      "authority": "historical",
-      "domains": ["technical"],
-      "action": "keep",
-      "note": "The roadmap half of bible chapter 10, extracted 2026-08-07. Archived rather than relocated to a live roadmap: the governing sequence is the proposal's EG-0 to EG-6, and a second canonical sequence competing with it is worse than one stale plan. Do not edit."
-    },
-    "docs/session-state/README.md": {
-      "proposed_type": "guideline",
-      "authority": "canonical",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Explains what the generated baseline is and why it must not be hand-edited."
-    },
-    "docs/session-state/STATE.txt": {
-      "proposed_type": "generated",
-      "authority": "generated",
-      "domains": ["meta"],
-      "action": "keep",
-      "related_code": ["tools/New-SessionSnapshot.ps1"],
-      "note": "The measured baseline. Overwritten at every session start; wins over prose on any number it reports."
-    },
-
-    "docs/ai/README.md": {
-      "proposed_type": "index",
-      "authority": "derived",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Entry point of the routing layer."
-    },
-    "docs/ai/CONTEXT_MAP.md": {
-      "proposed_type": "routing",
-      "authority": "canonical",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Canonical for who works and what they read; never for what the game is. A route that does not exist must be added, not improvised."
-    },
-    "docs/ai/AGENT_DISPATCH.md": {
-      "proposed_type": "routing",
-      "authority": "canonical",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Keyword and symptom table feeding CONTEXT_MAP."
-    },
-    "docs/ai/CROSS_DOMAIN_INVARIANTS.md": {
-      "proposed_type": "canon",
-      "authority": "canonical",
-      "domains": ["vision", "technical"],
-      "action": "keep",
-      "note": "Hard constraints with their sources. Canon even though it sits outside the bible: it states what no change may violate, gathered across pillars."
-    },
-    "docs/ai/DECISION_LOG.md": {
-      "proposed_type": "record",
-      "authority": "canonical",
-      "domains": ["meta", "vision"],
-      "action": "keep",
-      "note": "Versioned decisions. Canonical because authority rule 1 is 'the most recent explicit decision wins', and this is where that decision is recorded. DEC-0011 is still Proposed."
-    },
-    "docs/ai/AGENT_COLLABORATION_PROTOCOL.md": {
-      "proposed_type": "process",
-      "authority": "canonical",
-      "domains": ["meta"],
-      "action": "keep",
-      "note": "Single-writer rule, bug workflow, feature workflow, reviewer rule."
-    },
-    "docs/ai/CURRENT_DEVELOPMENT_STATE.md": {
-      "proposed_type": "spec",
-      "authority": "derived",
-      "domains": ["meta"],
-      "action": "keep",
-      "duplicates_or_overlaps": ["docs/CURRENT_STATUS.md"],
-      "note": "Partial merge executed 2026-08-07. Only the duplication was folded away: the 'At a glance' table restated the measured baseline (claiming 730 tests and v28 against a measured 914 and v31) and the active increment, which STATE.txt and CURRENT_STATUS own. What remains is the do-not-regress inventory — functional, partial, placeholder, out of scope — which no other document holds and which is not a duplicate. Its remaining overlap with CURRENT_STATUS §3 'Connected functionality' is real but unresolved: merging two hand-written functional lists needs each claim verified against code, not a text move."
+      "note": "Two jobs in one file, deliberately: the required fixture matrix and sign-off checklist are a contract, and the dated review record below them is history. The record is what makes a signature meaningful, so it stays beside the checklist rather than in docs/history/."
     },
     "docs/ai/FEATURE_HANDOFF_TEMPLATE.md": {
       "proposed_type": "process",
-      "authority": "derived",
+      "authority": "canonical",
       "domains": ["meta"],
       "action": "keep",
-      "note": "Handoff format between agents."
+      "backlog_exempt": true,
+      "note": "A form, not a queue. Its unchecked boxes are the blanks a person fills in per handoff; they name no work the repository owes."
     },
-
-    "docs/world-of-goses-design-bible/README.md": {
-      "proposed_type": "index",
+    "docs/session-state/README.md": {
+      "proposed_type": "process",
       "authority": "canonical",
-      "domains": ["vision"],
+      "domains": ["meta"],
       "action": "keep",
-      "note": "Chapter order, authority hierarchy, and what is still open. The numbering note records why 11, 22 and 23 arrived late."
-    },
-    "docs/world-of-goses-design-bible/01_GAME_VISION.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["vision"], "action": "keep",
-      "note": "Fantasy, single-city rule, absence rule, 14 principles, IP boundary."
-    },
-    "docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["vision"], "action": "keep",
-      "note": "The nine pillars every slice is measured against."
-    },
-    "docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["city", "expeditions"], "action": "keep",
-      "note": "Macro view, parcel states, expansion, eight axes of growth."
-    },
-    "docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["citizens"], "action": "keep",
-      "note": "The single Citizen entity, five competence layers, twelve professional families, hero as a rank."
-    },
-    "docs/world-of-goses-design-bible/05_EXPEDITIONS.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["expeditions"], "action": "keep",
-      "note": "Automatic control, configuration surface, defeat consequences, the return leg."
-    },
-    "docs/world-of-goses-design-bible/06_LINEAGES.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages", "narrative"], "action": "keep",
-      "note": "Index chapter for the eight lineages; the detail lives in 14-21."
-    },
-    "docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["narrative", "citizens"], "action": "keep",
-      "note": "Onboarding tone, the twelve choices, profile schema, founder influence."
-    },
-    "docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["presentation"], "action": "keep",
-      "note": "Three visual scales, typography hierarchy, Sixteen Pixel Perfect, per-lineage identity."
-    },
-    "docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["presentation"], "action": "keep",
-      "note": "Synthetic retro direction and bus layout. No buses are wired yet; the chapter is ahead of the code."
-    },
-    "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["technical"], "action": "keep",
-      "note": "Split executed 2026-08-07, and the only one of the four the marker count did not drive — its old title said 'y roadmap' outright. The stack, layer separation, simulation rules, pixel-perfect rules, walkable-camera direction and guard-rails stayed. The suggested scene map and the fifteen-step order were archived: the scene map described a folder structure the implementation never adopted, so presenting it as canon made it a wrong instruction. Three 'open questions' that were really owned work went to TO_DO.md as M-27. The file lost AND_ROADMAP from its name; the chapter number did not change."
-    },
-    "docs/world-of-goses-design-bible/11_ELEMENTAL_AFFINITIES_AND_WORLD_INTERACTIONS.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["vision", "citizens", "city", "expeditions"], "action": "keep",
-      "note": "Arrived from docs/11_ on 2026-08-07 into the slot the bible had left empty. Defines the common contract for the six affinities so no system turns them into six damage schools."
-    },
-    "docs/world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["city"], "action": "keep",
-      "note": "Frontage rows, reservations, footprints, corridors, and their persistence contract."
-    },
-    "docs/world-of-goses-design-bible/13_KOVARI_CUBE.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages", "citizens"], "action": "keep",
-      "note": "The shared mechanical system: three axes, six faces, eight vertices, derived stats, shadow mode."
-    },
-    "docs/world-of-goses-design-bible/14_LINEAGES_ARDHEN.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages"], "action": "keep",
-      "note": "Ardhen: culture, Anchors, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/15_LINEAGES_EIRUNE.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages"], "action": "keep",
-      "note": "Eirune: culture, Corolla, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/16_LINEAGES_KOVARI.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages"], "action": "keep",
-      "note": "Kovari: culture, Cube applied to stats and builds, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/17_LINEAGES_MYRVEN.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages"], "action": "keep",
-      "note": "Myrven: culture, Masks, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/18_LINEAGES_VAELUN.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages", "expeditions"], "action": "keep",
-      "note": "Vaelun: culture, Compass, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/19_LINEAGES_ORVETH.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages", "city"], "action": "keep",
-      "note": "Orveth: culture, Reliquary, Cube vertex. Kept its number; the first-night document is the one that moved."
-    },
-    "docs/world-of-goses-design-bible/20_LINEAGES_CAELITH.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages"], "action": "keep",
-      "note": "Caelith: culture, Cycle, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/21_LINEAGES_THERYN.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["lineages", "presentation"], "action": "keep",
-      "note": "Theryn: culture, Octagram, Cube vertex."
-    },
-    "docs/world-of-goses-design-bible/22_STATISTICS_PROGRESSION_AND_COMBAT_FORMULAS.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["citizens", "expeditions"], "action": "keep",
-      "note": "Was docs/12_, renumbered on 2026-08-07 because bible chapter 12 was taken. Canon for the shape of the stats; the v0.1 coefficients are balance and belong in configuration."
-    },
-    "docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md": {
-      "proposed_type": "canon", "authority": "canonical", "domains": ["narrative", "city", "expeditions"], "action": "keep",
-      "related_code": ["game/scripts/Domain/FirstNightState.cs", "game/scripts/Domain/FirstNightRules.cs", "game/scripts/FirstNightScene.cs"],
-      "note": "Was docs/19_, which collided with chapter 19 Orveth. Accepted 2026-08-06 under DEC-0014, and the only bible chapter currently cited by name from game code."
+      "note": "Explains why the directory exists and why STATE.txt must never be hand-edited. The only non-generated file under session-state/."
     }
   }
 }

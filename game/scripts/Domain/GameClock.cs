@@ -11,7 +11,7 @@ namespace WorldofGoses.Domain;
 /// <see cref="TicksPerInGameDay"/> real seconds, so
 /// <see cref="TicksPerInGameDay"/> = 3600 means "1 real hour per
 /// in-game day". All values are provisional tuning — see
-/// <c>docs/PRODUCT_DIRECTION.md §5</c>.
+/// <c>docs/engineering/design-review.md §5</c>.
 /// </para>
 /// </summary>
 public static class GameClock

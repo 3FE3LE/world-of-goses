@@ -45,7 +45,7 @@ adds latency and obscures ownership.
 ## Working procedure
 
 1. Read `docs/ai/CONTEXT_MAP.md` and identify every route that applies.
-2. Read `docs/world-of-goses-design-bible/01_GAME_VISION.md` and
+2. Read `docs/world/vision-and-pillars.md` and
    `02_CORE_GAMEPLAY_PILLARS.md`. State the fantasy in one sentence and
    name the affected pillars.
 3. Read `docs/ai/CROSS_DOMAIN_INVARIANTS.md`. List every invariant the

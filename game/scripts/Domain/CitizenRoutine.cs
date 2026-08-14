@@ -14,7 +14,7 @@ namespace WorldofGoses.Domain;
 /// by its own state machine and copied verbatim onto
 /// <see cref="CitizenRoutineSnapshot"/> — a second authority for the same
 /// question, mutated from different call sites and able to disagree with the
-/// facts around it. See <c>docs/STATE_AUTHORITY.md</c>.
+/// facts around it. See <c>docs/engineering/state-authority.md</c>.
 /// </para>
 /// </summary>
 public enum CitizenRoutineActivity

@@ -1,0 +1,24 @@
+[
+  {
+    "State": "weapon-choice",
+    "Width": 1280,
+    "Height": 720,
+    "Scene": "res://scenes/CityPrototype.tscn",
+    "VisualFixture": "astral-weapon-choice",
+    "NormalizedClicks": [],
+    "File": "weapon-choice-1280x720.png",
+    "Bytes": 35483,
+    "CapturedAtUtc": "2026-08-13T15:01:04.5708161+00:00"
+  },
+  {
+    "State": "weapon-choice",
+    "Width": 1920,
+    "Height": 1080,
+    "Scene": "res://scenes/CityPrototype.tscn",
+    "VisualFixture": "astral-weapon-choice",
+    "NormalizedClicks": [],
+    "File": "weapon-choice-1920x1080.png",
+    "Bytes": 46158,
+    "CapturedAtUtc": "2026-08-13T15:01:09.6601428+00:00"
+  }
+]

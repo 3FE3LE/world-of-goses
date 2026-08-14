@@ -35,24 +35,21 @@ visible. Make consequences persist.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- `docs/systems/citizens.md`
   — the canonical chapter.
-- `docs/world-of-goses-design-bible/01_GAME_VISION.md` — principles 6, 7, 8
+- `docs/world/vision-and-pillars.md` — principles 6, 7, 8
   (no instant healing; people are not numbers).
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → "Citizens".
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — when a citizen can
+- `docs/systems/expeditions.md` — when a citizen can
   depart on an expedition.
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 6
+- `docs/world/vision-and-pillars.md` pillar 6
   — when designing injury and recovery.
-- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3 and §13 — the
-  current diagnosis this skill closes against. The old G0/G2/G5 gap IDs
-  pointed at `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, discarded 2026-07-31.
-- `docs/world-of-goses-design-bible/06_LINEAGES.md` — when lineage affects
+- `docs/world/lineages.md` — when lineage affects
   the change. Read `lineages-and-cultures` for cross-cutting rules.
-- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — when the
+- `docs/systems/kovari-cube.md` — when the
   founder profile, the cube profile, the elemental affinity, the
   equipment model or combat-derived stats are touched. Read
   `lineages-and-cultures` for the cube-as-cultural-system angle.
@@ -66,7 +63,7 @@ visible. Make consequences persist.
   construction, expedition, rest, recovery are mutually exclusive. *(G0)*
 - Persistent injuries are not depleted stamina. The separation between
   wounds and stamina is **Proposed, not Accepted** — see
-  `docs/ai/DECISION_LOG.md` → DEC-0011. Do not assume a separate wound
+  `docs/history/decisions.md` → DEC-0011. Do not assume a separate wound
   subsystem exists; read the current `StaminaRules` first.
 - The visual representation is not the persistent entity. `Citizen` is data;
   `CitizenView` is a temporary visual. No per-citizen `_Process`, no
@@ -142,6 +139,6 @@ visible. Make consequences persist.
 - The change preserves the single `Citizen` entity and its accumulations.
 - Commitments remain mutually exclusive and serialized correctly.
 - If a wound model is introduced, the relationship to stamina is recorded
-  in `docs/ai/DECISION_LOG.md` and cited in the handoff.
+  in `docs/history/decisions.md` and cited in the handoff.
 - Tests cover exclusivity and persistence round-trip.
 - Documentation updated if a rule, decision, or current state changed.

@@ -33,7 +33,7 @@ runtime's `ResourceLoader` / `ResourceSaver` and file-system calls.
 The verified upstream provider is the only authoritative source for
 Godot 4 persistence APIs. It is installed by
 `Install-GodotDotNetSkills.ps1` and recorded in
-`docs/ai/SKILL_MIGRATION.md`.
+the provider registered by `Install-GodotDotNetSkills.ps1`.
 
 ## Core invariants
 
@@ -47,8 +47,8 @@ Godot 4 persistence APIs. It is installed by
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
-- `docs/ARCHITECTURE.md`.
+- `docs/engineering/architecture.md`.
+- `docs/engineering/architecture.md`.
 - `docs/ai/CONTEXT_MAP.md` → Technical → Persistence.
 
 ## Workflow

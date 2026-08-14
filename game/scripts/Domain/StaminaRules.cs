@@ -11,7 +11,7 @@ namespace WorldofGoses.Domain;
 /// <para>
 /// The constants are provisional tuning values for the current
 /// prototype. They are not product rules. See
-/// <c>docs/PRODUCT_DIRECTION.md §5</c>.
+/// <c>docs/engineering/design-review.md §5</c>.
 /// </para>
 ///
 /// <para>

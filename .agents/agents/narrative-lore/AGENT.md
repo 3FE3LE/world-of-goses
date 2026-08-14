@@ -45,7 +45,7 @@
 
 ## Working procedure
 
-1. Read `docs/world-of-goses-design-bible/01_GAME_VISION.md`,
+1. Read `docs/world/vision-and-pillars.md`,
    `06_LINEAGES.md` (index), the relevant `14-21_LINEAGES_*.md`
    chapter(s), `07_ONBOARDING_AND_FOUNDER.md`, and
    `13_KOVARI_CUBE.md` when founder/cube copy is touched.

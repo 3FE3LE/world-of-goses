@@ -43,7 +43,7 @@ public static class ArchitectureBoundaryAllowlist
     /// <summary>
     /// Files under Presentation that import or reference types in
     /// <c>WorldofGoses.Domain.Persistence</c>. The boundary rule
-    /// (AGENTS.md §3 / docs/ARCHITECTURE.md §5) keeps persistence types
+    /// (AGENTS.md §3 / docs/engineering/architecture.md §5) keeps persistence types
     /// behind the controller so the snapshot pipeline stays
     /// presentation-owned.
     /// Remove during Architecture Hardening A3.
@@ -84,7 +84,7 @@ public static class ArchitectureBoundaryAllowlist
     /// mutable Domain entities as return types. Parameter positions
     /// (e.g. <c>From(CityWorld world)</c> on snapshot factories) are
     /// NOT covered here — they are the documented consumption seam in
-    /// <c>docs/ARCHITECTURE.md §5</c>. The replacement contract is
+    /// <c>docs/engineering/architecture.md §5</c>. The replacement contract is
     /// read-only snapshots.
     /// Remove during Architecture Hardening A3.
     /// </summary>

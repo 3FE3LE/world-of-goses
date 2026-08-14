@@ -34,20 +34,20 @@ audio, sprite animations, and feedback. Domain logic stays in
 
 ## Required documentation (always loaded with this skill)
 
-- `docs/REPOSITORY_CONVENTIONS.md` → §7 (Godot conventions) and §9
+- `docs/engineering/conventions.md` → §7 (Godot conventions) and §9
   (asset rules).
 
 ## Conditional documentation (load only when the trigger fires)
 
 | Trigger | Load |
 | --- | --- |
-| UI layout, panel, screen flow, focus, modal | `docs/UI_PATTERNS.md`, `docs/UI_AUDIT.md` |
-| New asset, sprite, atlas, source/export | `docs/ART_PIPELINE.md`, `docs/ASSET_INVENTORY.md`, `docs/LICENSING_AND_ATTRIBUTION.md` |
-| Audio asset, bus, music, SFX, voice | `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` |
-| New visual regression surface or fixture | `docs/VISUAL_REGRESSION.md` |
-| Performance claim, frame budget, animation cost | `docs/PERFORMANCE_BUDGETS.md` |
-| Per-lineage visual or audio variation | `docs/lineage_design_matrix.md` |
-| Visual identity or theme work | `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md` |
+| UI layout, panel, screen flow, focus, modal | `docs/presentation/ui-patterns.md` |
+| New asset, sprite, atlas, source/export | `docs/presentation/art-pipeline.md`, `docs/presentation/asset-inventory.md`, `docs/presentation/licensing-and-attribution.md` |
+| Audio asset, bus, music, SFX, voice | `docs/presentation/audio.md` |
+| New visual regression surface or fixture | `docs/engineering/visual-regression.md` |
+| Performance claim, frame budget, animation cost | `docs/engineering/performance.md` |
+| Per-lineage visual or audio variation | `docs/world/lineages.md` |
+| Visual identity or theme work | `docs/presentation/visual-language.md` |
 
 Do not load any of these unless the trigger fires. A spacing tweak
 does not need `ART_PIPELINE.md`; a font swap does not need

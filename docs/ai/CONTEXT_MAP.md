@@ -27,8 +27,7 @@ question, or any symbol-retrieval question. The adapter layer never
 duplicates a project-domain skill; project rules always come from
 `technical-foundation` and the relevant domain skill. Engine API
 specifics are delegated to the verified upstream provider installed
-by `Install-GodotDotNetSkills.ps1`; see
-[`SKILL_MIGRATION.md`](SKILL_MIGRATION.md).
+by `Install-GodotDotNetSkills.ps1`.
 
 ## How to use this file
 
@@ -36,7 +35,7 @@ by `Install-GodotDotNetSkills.ps1`; see
    task is cross-domain — use `gameplay-integrator`.
 2. **Read the primary skill in full.**
 3. **Read a conditional skill only when its trigger applies.**
-4. **Open the canonical docs the skill names, not the whole bible.**
+4. **Open the canonical docs the skill names, not the whole tree.**
 5. **Inspect the code listed before proposing a change.**
 6. **Apply the documentation impact gate** before touching any doc.
 
@@ -68,7 +67,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `lineages-and-cultures`, `presentation-experience`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`, `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`
+- **Canonical docs:** `docs/systems/onboarding-and-founder.md`, `docs/systems/kovari-cube.md`
 - **Code:** `game/scripts/Domain/FounderNarrativeCatalog.cs`, `FounderNarrativeSession.cs`, `FounderNarrativeScorer.cs`, `FounderNarrativeModels.cs`, `game/scripts/AstralOnboardingView.cs`, `OnboardingView.cs`
 - **Consult `citizens-rpg` when:** the produced profile, aptitudes, or competencies change.
 - **Consult `lineages-and-cultures` when:** lineage is inferred, presented, or selected.
@@ -78,7 +77,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md`, `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`
+- **Canonical docs:** `docs/systems/onboarding-and-founder.md`, `docs/systems/kovari-cube.md`
 - **Code:** `game/scripts/FounderArrivalSequence.cs`, `game/scripts/Domain/HeroCreationRequest.cs`, `HeroCreationResult.cs`, `CitizenProfile.cs`
 - **Hard rule:** the founder must not become a permanent global bonus. See `CROSS_DOMAIN_INVARIANTS.md` → Citizens.
 
@@ -86,7 +85,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`, `presentation-experience`
 - **Conditional skills:** `city-simulation` (Founding Site modules and recipes), `lineages-and-cultures` (per-lineage reactions), `technical-foundation` (persistence seam, schema version)
-- **Canonical docs:** `docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`, `docs/ai/DECISION_LOG.md` → DEC-0014, `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → First night
+- **Canonical docs:** `docs/systems/first-night.md`, `docs/history/decisions.md` → DEC-0014, `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → First night
 - **Code:** `game/scripts/Domain/FirstNightState.cs`, `FirstNightStage.cs`, `FirstNightRules.cs`, `FoundingSiteRules.cs`, `FireSpiritDialogueCatalog.cs`, `game/scripts/FirstNightSpeechBubble.cs`, `FirstNightScene.cs`, `FireSpiritVisual.cs`, `FirstNightEmbers.cs`, `FirstNightContextCommentary.cs`, `CityWorldController.cs` (`FirstNightStageChanged` signal), `ExpeditionPanel.cs` (`SpiritTrailObjectiveButtonPath`), `ExpeditionPlanningSnapshot.cs` (`SpiritTrailUnlocked`), `game/locale/en.po` + `es.po` (`firstnight.*` keys)
 - **Hard rule:** the route is strictly linear; variations per `LineageId` are textual reactions only, never route branches. `DialogueRunner.RunAsync` is **not** used here — `FirstNightState.CurrentDialogueNodeId` is the persistence seam. Quantities come from `FoundingSiteRules.InputsFor`, never from a hardcoded msgid. The night advances on a closed dialogue node or a completed module, never on the clock.
 - **Consult `city-simulation` when:** the campfire, bedroll, cache, or canopy recipes change — the night's quantities must follow.
@@ -99,13 +98,13 @@ touched — regardless of which domain owns the feature.
 - **Conditional skills:** _(none yet)_
 - **Canonical docs:** _(none yet)_
 - **Code:** _(none yet)_
-- **Note:** inserted per the route-must-not-be-invented rule (see `docs/README.md` → "Authority hierarchy"). The current EG-5 backlog does not touch this surface; if a future agent acts here, it should populate the primary / required / conditional sections before opening work. Backlog items that imply tools or inventory (M-22 asset promotion, a future inventory UI) should land in this route, not as ad-hoc presentation code.
+- **Note:** the route exists so a task about tools or inventory has a home, rather than becoming ad-hoc presentation code. Nothing is wired to it yet: an agent acting here fills in the primary / required / conditional sections first.
 
 ### Recruitment
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `city-simulation`, `narrative-lore`, `lineages-and-cultures`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
+- **Canonical docs:** `docs/systems/citizens.md`
 - **Code:** `game/scripts/Domain/CitizenProspect.cs`, `CitizenOrigin.cs`, `game/scripts/MigrantPanel.cs`
 - **Consult `city-simulation` when:** housing capacity, consumption, or production is affected.
 - **Consult `narrative-lore` when:** there is dialogue, an origin story, or a historical event.
@@ -119,7 +118,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `technical-foundation`, `city-simulation`, `expeditions-territory`
-- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- **Canonical docs:** `docs/systems/citizens.md`
 - **Code:** `game/scripts/Domain/Citizen.cs`, `CitizenId.cs`, `CitizenCommitment.cs`, `CitizenCommitmentKind.cs`, `CitizenAvailabilityReason.cs`, `CitizenAssignmentService.cs`, `Availability.cs`
 - **Single-writer:** `Citizen.cs` is a shared-area file. See `AGENT_COLLABORATION_PROTOCOL.md`.
 
@@ -127,7 +126,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `lineages-and-cultures`, `city-simulation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md` (twelve professional families, five competence layers)
+- **Canonical docs:** `docs/systems/citizens.md` (twelve professional families, five competence layers)
 - **Code:** `game/scripts/Domain/CompetencyId.cs`, `CompetencyEntry.cs`, `ProfessionFamilyId.cs`, `Role.cs`, `RoleId.cs`
 - **Hard rule:** professions are accumulated state on `Citizen`, never a subclass.
 
@@ -135,7 +134,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `expeditions-territory`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- **Canonical docs:** `docs/systems/citizens.md`
 - **Code:** `game/scripts/Domain/Role.cs`, `RoleId.cs`, `Citizen.cs`
 - **Hard rule:** hero is a rank/recognition on a citizen, not an entity.
 
@@ -143,15 +142,15 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `expeditions-territory`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (pillar 6), `05_EXPEDITIONS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
+- **Canonical docs:** `docs/world/vision-and-pillars.md` (pillar 6), `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Domain/CitizenVitalStatus.cs`, `StaminaRules.cs`
-- **Open question:** the relationship between persistent wounds and the existing stamina model is **not settled**. See `DECISION_LOG.md` → DEC-0011 (Proposed). Do not assume a wound subsystem exists; read the gap statement first.
+- **Rule:** a wound is not depleted stamina. It caps usable stamina and blocks expeditions, but rest never cures it — see `docs/history/decisions.md` → DEC-0011.
 
 ### Recovery
 - **Primary agent:** `citizens-rpg`
 - **Required skills:** `citizens-rpg`, `core-game-vision`
 - **Conditional skills:** `city-simulation`, `technical-foundation`, `presentation-experience`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (no instant healing), `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13
+- **Canonical docs:** `docs/world/vision-and-pillars.md` (no instant healing)
 - **Code:** `game/scripts/Domain/CitizenVitalStatus.cs`, `Building.cs` (Basic Shelter), `CitizenNeedsRules.cs`
 - **Consult `city-simulation` when:** recovery consumes beds, staff, food, or medicine.
 
@@ -163,7 +162,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`, `presentation-experience`
-- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`
+- **Canonical docs:** `docs/systems/city-and-territory.md`
 - **Code:** `game/scripts/Domain/ConstructionProject.cs`, `ConstructionRules.cs`, `ConstructionSimulation.cs`, `ConstructionStopCause.cs`, `ConstructionAuthorizationResult.cs`, `game/scripts/ConstructionPanel.cs`
 - **Hard rule:** construction is collaborative, phased work whose duration emerges from assigned citizens and conditions — not a fixed timer.
 
@@ -171,7 +170,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`, `lineages-and-cultures`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` (pillar 4, causal production)
+- **Canonical docs:** `docs/world/vision-and-pillars.md` (pillar 4, causal production)
 - **Code:** `game/scripts/Domain/BuildingProductionCalculator.cs`, `BuildingProductionSimulation.cs`, `Recipes.cs`, `ProductionStopCause.cs`, `game/scripts/ProductionPanel.cs`
 - **Hard rule:** a building does not produce merely by existing. Every stop cause must be visible.
 
@@ -179,7 +178,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §2.3 / §7 (Food horizon seam, EG-3)
+- **Canonical docs:** `docs/world/vision-and-pillars.md`, `docs/systems/city-and-territory.md`
 - **Code:** `game/scripts/Domain/Upkeep.cs`, `CitizenNeedsRules.cs`, `CityEconomyRules.cs`, `CityInventory.cs`, `CityResourceLedger.cs`
 - **Note:** `Upkeep.ApplyUpkeep` is currently an intentional no-op. Confirm before assuming upkeep runs.
 
@@ -207,7 +206,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `presentation-experience`
 - **Required skills:** `presentation-experience`, `city-simulation`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`
-- **Canonical docs:** `docs/ARCHITECTURE.md` §10 "Spatial grammar" (BuildingDetailView retirement), `docs/UI_PATTERNS.md` §5
+- **Canonical docs:** `docs/engineering/architecture.md` §10 "Spatial grammar" (BuildingDetailView retirement), `docs/presentation/ui-patterns.md` §5
 - **Code:** `game/scripts/Application/BuildingDetailSnapshot.cs`, `game/scripts/BuildingInspector.cs` (the contextual inspector that replaced the fullscreen `BuildingDetailView` in #20), `game/scripts/Ui/ContextInspector.cs`, `AssignmentPanel.cs`, `ProductionPanel.cs`, `ResourceInventoryPanel.cs`
 - **Hard rule:** the inspector is a contextual overlay over the macro; it must not replace the macro with a fullscreen top-level scene. Reuse the canonical `BuildingDetailSnapshot`; do not fork it into a second read model.
 
@@ -219,7 +218,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `city-simulation`, `technical-foundation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
+- **Canonical docs:** `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Domain/Expedition.cs`, `ExpeditionId.cs`, `ExpeditionStatus.cs`, `ExpeditionPhase.cs`, `ExpeditionRequest.cs`, `game/scripts/ExpeditionPanel.cs`
 - **Mandatory consultation:** `citizens-rpg` for personal effects, `city-simulation` for costs/rewards/unlocks, `technical-foundation` for persistence and offline behavior.
 
@@ -227,7 +226,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `technical-foundation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §8.4 (resource sortie cohesion)
+- **Canonical docs:** `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Domain/ExpeditionEncounterOutcome.cs`
 - **Hard rule:** the encounter must be deterministic and reproducible from persisted state.
 
@@ -235,7 +234,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`
 - **Conditional skills:** `citizens-rpg`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
+- **Canonical docs:** `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Domain/ExpeditionPhase.cs`, `ExpeditionStatus.cs`
 - **Hard rule:** retreat is a configured posture, not a failure state without consequence.
 
@@ -243,7 +242,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `core-game-vision`
 - **Conditional skills:** `citizens-rpg`, `city-simulation`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
+- **Canonical docs:** `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Domain/Expedition.cs`, `ExpeditionPhase.cs`, `CityResourceLedger.cs`
 - **Hard rule:** an expedition includes the return leg. Survivors come back carrying their consequences.
 
@@ -251,7 +250,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `presentation-experience`
 - **Required skills:** `presentation-experience`, `expeditions-territory`
 - **Conditional skills:** `technical-foundation` (only if the boundary between presentation and the snapshot layer is touched)
-- **Canonical docs:** `docs/ARCHITECTURE.md` §10 "Spatial grammar", `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`
+- **Canonical docs:** `docs/engineering/architecture.md` §10 "Spatial grammar", `docs/systems/expeditions.md`
 - **Code:** `game/scripts/Prototypes/MacroStreetRenderer.cs` (shared primitives consumer), `game/scripts/Ui/TerrainAtlas.cs`, `game/scripts/Prototypes/StreetDepthProjection.cs`, `game/scripts/Ui/ExpeditionStage.cs`, `game/scripts/ExpeditionLiveView.cs`
 - **Hard rule:** the path is presentation; the world offset is **derived** from `Travel.PositionX` and combat positions, never a second authoritative state. No `PositionY`/lane/navmesh and no persistence of path chunks or parallax factors.
 
@@ -259,14 +258,14 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `expeditions-territory`
 - **Required skills:** `expeditions-territory`, `city-simulation`
 - **Conditional skills:** `core-game-vision`, `technical-foundation`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`, `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §13 (territory advances as part of EG-4 resource sorties)
+- **Canonical docs:** `docs/systems/city-and-territory.md`, `docs/systems/expeditions.md` (territory advances through resource sorties)
 - **Code:** `game/scripts/Domain/CityParcel.cs`, `ParcelGrid.cs`, `ParcelId.cs`, `ParcelPlacement.cs`
 
 ### Parcels
 - **Primary agent:** `city-simulation`
 - **Required skills:** `city-simulation`
 - **Conditional skills:** `expeditions-territory`, `presentation-experience`, `technical-foundation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`, `docs/world-of-goses-design-bible/12_DYNAMIC_FRONTAGE_PLOTS_AND_CORRIDORS.md`
+- **Canonical docs:** `docs/systems/city-and-territory.md`, `docs/systems/frontage-and-corridors.md`
 - **Code:** `game/scripts/Domain/CityParcel.cs`, `ParcelGrid.cs`, `ParcelPlacement.cs`, `ConstructionRowId.cs`, `BuildingReservation.cs`, `CorridorReservation.cs`, `PassageClass.cs`, `BuildingFootprintCatalog.cs`
 
 ---
@@ -277,7 +276,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** depends on what changes. Lineages have **no owning agent**.
 - **Required skills:** `lineages-and-cultures`, plus the skill of the domain being changed
 - **Conditional skills:** `narrative-lore`, `citizens-rpg`, `presentation-experience`, `city-simulation`
-- **Canonical docs:** `docs/world-of-goses-design-bible/06_LINEAGES.md` (index), `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md`, the per-lineage chapters `docs/world-of-goses-design-bible/14_LINEAGES_ARDHEN.md` through `docs/world-of-goses-design-bible/21_LINEAGES_THERYN.md`, `docs/LINEAGE_DESIGN_MATRIX.md`
+- **Canonical docs:** `docs/world/lineages.md` (index), `docs/systems/kovari-cube.md`, the per-lineage chapters `docs/world/lineages/ardhen.md` through `docs/world/lineages/theryn.md`, `docs/world/lineages.md`
 - **Code:** `game/scripts/Domain/LineageDefinition.cs`, `LineageId.cs`, `game/scripts/visual/CharacterVisualRegistry.cs`
 - **Hard rule:** lineages are not classes, do not block professions, and must not become automatic multipliers.
 
@@ -285,7 +284,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `narrative-lore`
 - **Required skills:** `narrative-lore`, `core-game-vision`
 - **Conditional skills:** `lineages-and-cultures`, `citizens-rpg`, `presentation-experience`
-- **Canonical docs:** `docs/world-of-goses-design-bible/01_GAME_VISION.md`, `06_LINEAGES.md`, `07_ONBOARDING_AND_FOUNDER.md`, `13_KOVARI_CUBE.md`, `14-21_LINEAGES_*.md`
+- **Canonical docs:** `docs/world/vision-and-pillars.md`, `06_LINEAGES.md`, `07_ONBOARDING_AND_FOUNDER.md`, `13_KOVARI_CUBE.md`, `14-21_LINEAGES_*.md`
 - **Code:** `game/scripts/Domain/Dialogue.cs`, `DialogueRunner.cs`, `FounderNarrativeCatalog.cs`, `game/scripts/Ui/WorldEventTextFormatter.cs`
 - **Hard rule:** `narrative-lore` may not invent mechanics or bonuses. It proposes; the mechanical domain decides.
 
@@ -304,7 +303,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `technical-foundation`
 - **Required skills:** `technical-foundation`
 - **Conditional skills:** the skill of every domain whose state is serialized
-- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`
+- **Canonical docs:** `docs/engineering/architecture.md`, `docs/engineering/architecture.md`
 - **Code:** `src/WorldofGoses.Persistence/WorldSave.cs` (`CurrentVersion`), `WorldPersistence.cs`, `IncompatibleSaveVersionException.cs`, and the `*Save.cs` DTOs
 - **Hard rule:** any new persisted field requires a version decision, round-trip tests, and a documented migration path.
 
@@ -319,14 +318,14 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `technical-foundation`
 - **Required skills:** `technical-foundation`, `core-game-vision`
 - **Conditional skills:** all affected domains; use `gameplay-integrator` if two or more pillars are involved
-- **Canonical docs:** `docs/ARCHITECTURE.md`, `docs/STATE_AUTHORITY.md`, `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`, `docs/REPOSITORY_CONVENTIONS.md`
+- **Canonical docs:** `docs/engineering/architecture.md`, `docs/engineering/state-authority.md`, `docs/engineering/architecture.md`, `docs/engineering/conventions.md`
 - **Escalate:** an architecture change that invalidates saves without a migration strategy must stop and ask.
 
 ### State authority
 - **Primary agent:** `technical-foundation`
 - **Required skills:** `technical-foundation`, plus the skill of every domain whose state is touched
 - **Conditional skills:** `citizens-rpg`, `expeditions-territory`, `city-simulation`, `narrative-lore`
-- **Canonical docs:** `docs/STATE_AUTHORITY.md`, `docs/ai/CROSS_DOMAIN_INVARIANTS.md`
+- **Canonical docs:** `docs/engineering/state-authority.md`, `docs/ai/CROSS_DOMAIN_INVARIANTS.md`
 - **Code:** `game/scripts/Domain/Citizen.cs`, `CitizenRoutine.cs`, `Expedition.cs`, `CultivationSite.cs`, `ResourceOpportunity.cs`, `FirstNightState.cs`, `src/WorldofGoses.Persistence/WorldSaveApplier.cs`
 - **Tests:** `tests/WorldofGoses.Tests/StateAuthorityInvariantTests.cs`, `CitizenActivityProjectionTests.cs`, `OpeningProgressLivenessTests.cs`
 - **Use when:** adding or changing an enum, flag, or field that describes what something *is doing*, *is committed to*, or *is affected by*; or when a projection starts being read as if it were a fact.
@@ -362,7 +361,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `presentation-experience`
 - **Required skills:** `presentation-experience`
 - **Conditional skills:** `core-game-vision`, the domain skill whose state is displayed, `lineages-and-cultures`
-- **Canonical docs:** `docs/UI_PATTERNS.md`, `docs/UI_AUDIT.md`, `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`
+- **Canonical docs:** `docs/presentation/ui-patterns.md`, `docs/presentation/visual-language.md`
 - **Code:** `game/scripts/Ui/`, `game/scenes/`, the `*Snapshot.cs` presentation DTOs
 - **Hard rule:** presentation renders state; it does not decide rules. No domain logic in `_Process`.
 - **Verification:** a click-to-X flow is not done until verified with a real click. Code reading and headless boot are not sufficient.
@@ -371,7 +370,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `presentation-experience`
 - **Required skills:** `presentation-experience`
 - **Conditional skills:** `lineages-and-cultures`, `core-game-vision`
-- **Canonical docs:** `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`, `docs/ART_PIPELINE.md`, `docs/ASSET_INVENTORY.md`, `docs/LICENSING_AND_ATTRIBUTION.md`
+- **Canonical docs:** `docs/presentation/visual-language.md`, `docs/presentation/art-pipeline.md`, `docs/presentation/asset-inventory.md`, `docs/presentation/licensing-and-attribution.md`
 - **Code:** `art/source/`, `art/exports/`, `game/assets/`, `game/scripts/visual/`
 - **Hard rule:** integer scale, nearest filter, no antialiasing. Placeholders are not final direction.
 
@@ -379,7 +378,7 @@ touched — regardless of which domain owns the feature.
 - **Primary agent:** `presentation-experience`
 - **Required skills:** `presentation-experience`
 - **Conditional skills:** `lineages-and-cultures`, `narrative-lore`
-- **Canonical docs:** `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md`, `docs/LICENSING_AND_ATTRIBUTION.md`
+- **Canonical docs:** `docs/presentation/audio.md`, `docs/presentation/licensing-and-attribution.md`
 - **Code:** `game/assets/audio/` (currently empty — no buses are wired yet)
 - **Future:** audio may split into a dedicated `audio-direction` agent. See `README.md` → "Adding a new agent".
 

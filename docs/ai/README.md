@@ -10,8 +10,8 @@
 | --- | --- |
 | Classifying a task | [`CONTEXT_MAP.md`](CONTEXT_MAP.md) |
 | Reading constraints | [`CROSS_DOMAIN_INVARIANTS.md`](CROSS_DOMAIN_INVARIANTS.md) |
-| Checking what is in progress | [`CURRENT_DEVELOPMENT_STATE.md`](CURRENT_DEVELOPMENT_STATE.md) |
-| Reviewing a design choice | [`DECISION_LOG.md`](DECISION_LOG.md) |
+| Checking what is open | `gh issue list` |
+| Reviewing a design choice | [`../history/decisions.md`](../history/decisions.md) |
 | Coordinating agents | [`AGENT_COLLABORATION_PROTOCOL.md`](AGENT_COLLABORATION_PROTOCOL.md) |
 | Handing off a feature or fix | [`FEATURE_HANDOFF_TEMPLATE.md`](FEATURE_HANDOFF_TEMPLATE.md) |
 
@@ -21,8 +21,7 @@
 docs/ai/                       <-- this directory
   CONTEXT_MAP.md               routing table
   CROSS_DOMAIN_INVARIANTS.md   hard constraints, with sources
-  CURRENT_DEVELOPMENT_STATE.md what is built, what is not
-  DECISION_LOG.md              versioned design decisions
+  DOCUMENTATION_IMPACT_GATE.md when a doc must change
   AGENT_COLLABORATION_PROTOCOL.md how agents cooperate
   FEATURE_HANDOFF_TEMPLATE.md  handoff format
   README.md                    you are here
@@ -57,8 +56,8 @@ The full procedure, including which constraints apply, is in
 
 ## What this layer is **not**
 
-- It is not a design source. The design bible
-  (`docs/world-of-goses-design-bible/`) owns design.
+- It is not a design source. Canon under `docs/systems/` and `docs/world/`
+  (`docs/systems/`) owns design.
 - It is not a backend. There is no server; the project is local-only.
 - It is not a replacement for `AGENTS.md`. The root `AGENTS.md` remains the
   always-on contract; the docs in this directory extend and route it.
@@ -66,7 +65,7 @@ The full procedure, including which constraints apply, is in
 ## Versioning
 
 - Changes to a canonical skill or agent must update its body, the relevant
-  `CONTEXT_MAP.md` route, and the affected `DECISION_LOG.md` entry (if any).
+  `CONTEXT_MAP.md` route, and the affected `../history/decisions.md` entry (if any).
 - Changes to a decision must reference the source document.
 - Changes to a context map route must be followed by `Sync-AgentContext.ps1`
   if the change introduces a new agent or skill.

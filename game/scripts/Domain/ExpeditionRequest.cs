@@ -22,7 +22,7 @@ public readonly record struct ExpeditionRequest(
     int PartialReturn = 0)
 {
     /// <summary>
-    /// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G3: "select 1-2 real citizens".
+    /// docs/systems/expeditions.md: an expedition carries real citizen ids, today 1-2.
     /// One authoritative team-size ceiling so validation, UI, and tests
     /// never restate the number separately.
     /// </summary>

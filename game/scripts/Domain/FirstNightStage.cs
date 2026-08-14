@@ -1,7 +1,7 @@
 namespace WorldofGoses.Domain;
 
 /// <summary>
-/// Stages of the authored first night (`docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md`).
+/// Stages of the authored first night (`docs/systems/first-night.md`).
 /// The founder manifests at tick 0, which is Day 1 00:00 and already night, so
 /// the sequence needs no clock manipulation to begin.
 ///

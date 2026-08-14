@@ -4,104 +4,103 @@
 > violates one of these must be redesigned, not approved.
 >
 > Each invariant names its source. If an invariant here ever contradicts the
-> design bible, the bible wins and this file must be corrected.
+> canonical document, the canonical document wins and this file must be corrected.
 
-Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
+Source shorthand: a citation like *(systems/citizens)* means `docs/systems/citizens.md`.
 
 ---
 
 ## Product
 
-- The city is the long-term protagonist. *(bible/01)*
+- The city is the long-term protagonist. *(world/vision)*
 - One game represents one city. No meta-progression between cities, no bonus
-  for restarting. *(bible/01)*
+  for restarting. *(world/vision)*
 - Citizens are the source of decisions, risk, and history. Buildings are
   infrastructure, not the goal of the game.
 - A feature must enable a decision or communicate a consequence. Data that
-  does neither must not be added. *(bible/10, guard-rails)*
+  does neither must not be added. *(world/vision guardrails)*
 - Quantity of content is not a substitute for depth.
 - Do not turn the game into a traditional city builder with anonymous
   inhabitants, and do not turn it into a classic colony simulator.
-  *(bible/10, guard-rails)*
+  *(world/vision guardrails)*
 - A mechanic is not implemented only because it is technically possible.
   *(docs/README.md, authority hierarchy)*
 
 ## Citizens
 
-- There is one principal entity, `Citizen`. *(bible/04)*
+- There is one principal entity, `Citizen`. *(systems/citizens)*
 - Do not create separate entities or subclasses for hero, miner, medic,
   artisan, leader, or adventurer. These are assignments, competencies, ranks,
-  memberships, recognitions, or history. *(bible/04)*
+  memberships, recognitions, or history. *(systems/citizens)*
 - Professions, roles, and heroism are accumulative state on the citizen.
-  Changing profession does not erase the previous life. *(bible/04)*
-- Everyone can develop every competency. *(bible/04)*
+  Changing profession does not erase the previous life. *(systems/citizens)*
+- Everyone can develop every competency. *(systems/citizens)*
 - A citizen cannot hold incompatible commitments simultaneously. Work,
   construction, expedition, rest, and recovery are mutually exclusive.
-  *(docs/FIRST_PLAYABLE_LOOP_AUDIT.md, gap G0)*
+  *(systems/citizens)*
 - One truth has one owner. No two fields may independently answer the same
   question about a citizen — what they are doing is derived from commitment,
   location, transit metadata, wound, vital status, stamina and work order,
-  never stored beside them. *(docs/STATE_AUTHORITY.md)*
+  never stored beside them. *(docs/engineering/state-authority.md)*
 - Personal consequences persist across sessions.
 - There is no general instant healing. A wounded person requires beds, staff,
-  medicine, time, and rehabilitation. *(bible/01 principle 8, bible/02 pillar 6)*
+  medicine, time, and rehabilitation. *(world/vision principle 8, world/vision pillar 6)*
 - The domain never inflicts a durable consequence the city has no legal route
   to resolve. A wound is only inflicted on a city that can already treat it —
   a Basic Shelter and the treatment cost — because the wound itself blocks
   the gathering, construction and expedition work that would earn either.
-  *(docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §8.2 and §16,
-  DEC-0011, GitHub #13)*
+  *(systems/expeditions, DEC-0011, GitHub #13)*
 - The visual representation is not the persistent entity. `Citizen` is
   persistent data; `CitizenView` is a temporary visual representation. There
-  must be no active Godot node per citizen. *(bible/04, bible/10)*
+  must be no active Godot node per citizen. *(systems/citizens, engineering/architecture)*
 - The founder must not become an eternal bonus. They can die, retire, become
-  myth, be questioned, or lose relevance. *(bible/07)*
+  myth, be questioned, or lose relevance. *(systems/onboarding-and-founder)*
 
 ## Lineages
 
-- Lineages are not professions and not combat classes. *(bible/06)*
+- Lineages are not professions and not combat classes. *(world/lineages)*
 - They do not block professions, do not guarantee competence, and do not
-  replace real experience. *(bible/04, bible/06)*
+  replace real experience. *(systems/citizens, world/lineages)*
 - Affinities accelerate learning and transfer; they do not grant exclusive
-  ownership of a trade. *(bible/06)*
+  ownership of a trade. *(world/lineages)*
 - An affinity must not be converted into an automatic production bonus.
-  *(bible/04)*
-- Every profession admits eight approaches, one per lineage. *(bible/06)*
+  *(systems/citizens)*
+- Every profession admits eight approaches, one per lineage. *(world/lineages)*
 - The environmental alignment axis is independent of lineage identity, and must
-  not become binary morality. *(bible/02, bible/10)*
+  not become binary morality. *(world/vision, engineering/architecture)*
 
 ## Expeditions
 
 - Real citizens depart. Only citizens incorporated as heroes participate.
-  *(bible/05)*
+  *(systems/expeditions)*
 - The expedition includes the outbound leg **and** the return. It does not end
   on reaching the objective; it must return or trigger emergency return.
-  *(bible/05)*
-- The player prepares teams but does not manually control movement. *(bible/05)*
+  *(systems/expeditions)*
+- The player prepares teams but does not manually control movement. *(systems/expeditions)*
 - The first Spirit Trail is Founder-only, reaches its first visual encounter
   within roughly the first five minutes of gameplay, continues to its objective,
   and includes the return. Its purpose is narrative trail-following, not a
-  `1 Food → Wood` conversion. *(bible/05, DEC-0020)*
+  `1 Food → Wood` conversion. *(systems/expeditions, DEC-0022)*
 - A combatant advances only to enter `AttackRange`; once able to attack, it does
   not kite backwards. Knockback may move it; `Stability` reduces displacement
-  and `Impulse` may increase it. *(bible/05, DEC-0020)*
+  and `Impulse` may increase it. *(systems/expeditions)*
 - An expedition must affect the city, its citizens, or the territory.
 - Rewards cannot be limited to a timed conversion of resources.
 - Survivors return without equipment and with their wounds. The city must treat
-  them. *(bible/05, bible/02 pillar 6)*
+  them. *(systems/expeditions, world/vision pillar 6)*
 
 ## City
 
 - Production is causal. A building does not produce merely by existing.
   Production depends on accessible resource, workers, competence, tools,
   materials, energy, health, logistics, storage, policy, and risk.
-  *(bible/02 pillar 4)*
+  *(world/vision pillar 4)*
 - Blockers must be visible to the player as stop causes.
 - Delegation executes the player's rules; it does not invent its own.
 - Systemic pressure must be causal, not an arbitrary drain.
 - Buildings are not unlocked by level alone. They require knowledge, plans,
   politics, materials, professionals, territory, infrastructure, and demand.
-  *(bible/03)*
+  *(systems/city-and-territory)*
 - Construction is collaborative, phased work. Its duration emerges from the
   assigned citizens, their skills, conditions, tools, and logistics — it is not
   a fixed countdown.
@@ -110,7 +109,7 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
   building lot; different resource types may share a parcel and row. Buildings
   retain multi-column reservations. Navigation blocks only each authored solid
   footprint and respects its clearances. Trees receive no special exception.
-  *(bible/03, bible/12)*
+  *(systems/city-and-territory, systems/frontage-and-corridors)*
 - Rudimentary ground resources are tool-free, but mature-tree Wood requires a
   persisted forestry capability. The first capability is a durable Primitive
   Axe stored after Shelter completion; repeated input cannot gather a depleted
@@ -123,39 +122,39 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 ## Architecture
 
 - The domain does not depend on Godot nodes, sprites, animations, cameras,
-  frame rate, input, or asset paths. *(bible/10)*
+  frame rate, input, or asset paths. *(engineering/architecture)*
 - Scenes do not decide rules. Input handling is presentation; decision-making
-  is domain. *(bible/01 principle 13, docs/ARCHITECTURE.md)*
-- Do not simulate each citizen per frame. No `_Process` per citizen. *(bible/10)*
+  is domain. *(world/vision principle 13, docs/engineering/architecture.md)*
+- Do not simulate each citizen per frame. No `_Process` per citizen. *(engineering/architecture)*
 - Do not simulate offline progression second by second. Prefer discrete,
-  batched events. *(bible/10)*
+  batched events. *(engineering/architecture)*
 - Live advancement and offline catch-up use the same domain rules.
-  *(docs/PRODUCT_DIRECTION.md)*
+  *(docs/engineering/design-review.md)*
 - A citizen's journey ends when world time reaches its arrival tick, never
   because a view reported an arrival. There is one tick method; presentation
   paces its route to the domain's window and cannot delay, deny or hasten the
   outcome. *(DEC-0023, `CityWorld.CompleteDueTravel`)*
 - There is one world clock. City, travel, and combat advance in parallel. The
   world cannot be paused; the only current global speeds are 1x / 2x / 4x, and
-  changing to or from `ExpeditionLiveView` never changes speed. *(bible/10,
-  DEC-0020)*
+  changing to or from `ExpeditionLiveView` never changes speed.
+  *(engineering/architecture §6)*
 - The simulation is deterministic and reproducible from persisted state.
 - Saves are versioned; migrations are explicit; snapshots are validated before
-  mutating live state. *(bible/10, docs/PRODUCT_DIRECTION.md)*
+  mutating live state. *(engineering/architecture, docs/engineering/design-review.md)*
 - Commands are player authorization; events are the resulting facts. Causal
   information is preserved long enough to produce useful reports.
-  *(docs/PRODUCT_DIRECTION.md)*
+  *(docs/engineering/design-review.md)*
 - Invariants are covered by tests. `DomainBoundaryTests` enforces the Godot
   boundary and must keep passing.
 - No mutable global state, no premature event bus, no pathfinding for invisible
-  population. *(bible/10)*
+  population. *(engineering/architecture)*
 
 ## First night (DEC-0014)
 
 - The post-manifestation period runs from the founder's arrival at tick 0 to
   `FirstNightStage.Concluded` and is absorbing thereafter. Cities that already
   passed their opening (legacy saves or post-soft-reset) enter the period
-  already concluded. *(docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md §17,
+  already concluded. *(docs/systems/first-night.md §17,
   `Domain/FirstNightState.cs`, `Domain/Persistence/WorldPersistence.cs`)*
 - The night advances only on a closed dialogue node or a completed module
   (`FirstNightRules.WaitsForDialogue` / `WaitsForModule`). The clock never
@@ -186,19 +185,19 @@ Source shorthand: `bible/NN` = `docs/world-of-goses-design-bible/NN_*.md`.
 
 ## Presentation
 
-- Pure 2D pixel art. Not 2.5D as the primary direction. *(bible/08)*
+- Pure 2D pixel art. Not 2.5D as the primary direction. *(presentation/visual-language)*
 - Integer scale, nearest filtering, integer positions, no antialiasing on
-  sprites and pixel-art UI, no fractional edge coordinates. *(bible/08, bible/10)*
-- Logical resolution 1280 x 720. *(bible/08, bible/10)*
+  sprites and pixel-art UI, no fractional edge coordinates. *(presentation/visual-language, engineering/architecture)*
+- Logical resolution 1280 x 720. *(presentation/visual-language, engineering/architecture)*
 - Motion uses a discrete cadence grammar. Camera and world navigation use
-  quantized steps, never smooth continuous 1:1 motion. *(bible/08)*
+  quantized steps, never smooth continuous 1:1 motion. *(presentation/visual-language)*
 - Do not communicate a state by color alone.
 - UI is functionally shared across lineages. Lineage themes may change palette,
   borders, corners, fills, shadows, patterns, selection, micro-animations, and
   icon treatment — never navigation, hierarchy, semantics, minimum sizes, or
-  accessibility. *(bible/08)*
-- Provisional assets do not define the final art direction. *(bible/10)*
-- HUD lives on a `CanvasLayer` independent of the world `Camera2D`. *(bible/10)*
+  accessibility. *(presentation/visual-language)*
+- Provisional assets do not define the final art direction. *(engineering/architecture)*
+- HUD lives on a `CanvasLayer` independent of the world `Camera2D`. *(engineering/architecture)*
 
 ---
 

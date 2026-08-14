@@ -111,7 +111,7 @@ $CoreSkills = @(
 # slice actually uses. Adding any of these is justified by a concrete
 # in-scope surface; nothing in here is "just in case". Out-of-slice
 # skills (3D, multiplayer, GDScript, game-AI, 2D movement, router) are
-# removed; see SKILL_MIGRATION.md.
+# removed by the agent-workflow refactor.
 $CurrentSliceSkills = $CoreSkills + @(
     "godot-ui-control",
     "godot-tilemap",

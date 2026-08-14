@@ -11,7 +11,7 @@ namespace WorldofGoses.Domain;
 ///
 /// <para>
 /// The rate is provisional tuning; see
-/// <c>docs/PRODUCT_DIRECTION.md §5</c>.
+/// <c>docs/engineering/design-review.md §5</c>.
 /// </para>
 /// </summary>
 public static class Upkeep
@@ -32,7 +32,7 @@ public static class Upkeep
     /// <summary>
     /// Food consumed once per in-game day, for every resident, whether or
     /// not they worked or lost stamina that day — the "mouths to feed"
-    /// pressure recommended by <c>docs/FIRST_PLAYABLE_LOOP_AUDIT.md</c> §17.
+    /// pressure recommended by <c>docs/world/vision-and-pillars.md</c>.
     /// Unlike <see cref="StonePerTick"/> this has no artificial floor: an
     /// empty city has no demand, because the demand exists to make adding
     /// residents (recruitment, migrants) carry a real ongoing cost, not to

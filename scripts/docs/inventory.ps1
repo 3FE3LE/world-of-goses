@@ -73,7 +73,7 @@ function Get-DocRecord {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
         # Whole words only. Substring matching counted "deferred disposal" as
         # backlog, "future attachments" as a plan, and found "owed" inside
-        # "allowed" and "reflowed" — which is how docs/ARCHITECTURE.md was
+        # "allowed" and "reflowed" — which is how docs/engineering/architecture.md was
         # accused of being half roadmap when it is a description throughout.
         foreach ($marker in $backlogMarkers) {
             if ($line -match ('\b' + [regex]::Escape($marker) + '\b')) {

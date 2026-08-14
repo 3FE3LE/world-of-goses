@@ -69,7 +69,7 @@ Shared areas include:
 - Persistence: `WorldSave`, `WorldPersistence`, all `*Save.cs` DTOs.
 - Main scenes: `game/scenes/CityPrototype.tscn`,
   `game/scenes/OnboardingView.tscn`, `game/scenes/HeroProfileView.tscn`.
-- Canonical documents: anything under `docs/`, the design bible chapters,
+- Canonical documents: anything under `docs/`,
   this protocol, the decision log, the context map.
 - Shared configuration: `AGENTS.md`, `CLAUDE.md`, `skills-lock.json`.
 
@@ -119,7 +119,7 @@ Do not turn a bug into a general refactor.
 2. State the consequence the feature communicates.
 3. Identify the citizen, city, expedition, or territory affected.
 4. Confirm it reinforces the RPG-city-builder-idle identity listed in
-   `docs/ai/CURRENT_DEVELOPMENT_STATE.md`.
+   the affected system document under `docs/systems/`.
 5. Identify persisted data, including offline impact.
 6. Identify presentation required (UI, audio, pixel art).
 7. Identify narrative required, if any.
@@ -151,7 +151,7 @@ Stop and ask the user when you find:
 - A risk of invalidating saves without a migration strategy.
 - A need to remove or replace a central system.
 - A change to the persistent injury / stamina question (see
-  `docs/ai/DECISION_LOG.md` → DEC-0011).
+  `docs/history/decisions.md` → DEC-0011).
 
 ## 9. Adding a new agent
 

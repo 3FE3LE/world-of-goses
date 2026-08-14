@@ -88,8 +88,8 @@ public sealed class WorkflowGateTests
         var domainLayer = AnyPathMatches(paths, "game/scripts/Domain/");
 
         var architecture = AnyPathMatches(paths,
-            "docs/ARCHITECTURE.md",
-            "docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md");
+            "docs/engineering/architecture.md",
+            "docs/engineering/architecture.md");
 
         var subtreesHit = new List<string>();
         foreach (var sub in new[] { "Citizen", "City", "Expedition" })
@@ -316,7 +316,7 @@ public sealed class WorkflowGateTests
     [Fact]
     public void ArchitectureDoc_EscalatesToHigh()
     {
-        var plan = Classify(new[] { "docs/ARCHITECTURE.md" });
+        var plan = Classify(new[] { "docs/engineering/architecture.md" });
         Assert.Equal(Risk.High, plan.Risk);
         Assert.Equal(Mode.Release, plan.Mode);
     }

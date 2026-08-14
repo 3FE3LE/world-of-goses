@@ -33,22 +33,19 @@ buildings are timers and people are multipliers.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` — pillars
+- `docs/world/vision-and-pillars.md` — pillars
   1, 4, 5, 6, 7, 8 (city, causal production, territory, health, environment,
   delegation, organic difficulty).
-- `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`.
+- `docs/systems/city-and-territory.md`.
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → "City" and "Expeditions" (for
   city-side consequences).
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- `docs/systems/citizens.md`
   — when production requires workers.
-- `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — when an expedition
+- `docs/systems/expeditions.md` — when an expedition
   changes the city's state.
-- `docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md` §3 — the current city
-  diagnosis. The old G1/G2/G6 gap IDs pointed at
-  `docs/FIRST_PLAYABLE_LOOP_AUDIT.md`, discarded 2026-07-31.
 
 ## Core invariants
 

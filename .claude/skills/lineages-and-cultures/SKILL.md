@@ -7,7 +7,7 @@ description: >
   is no lineage agent. This skill is consulted by whichever domain is
   changing.
 license: World of Goses project license
-compatibility: Documentation-only; references the design bible and the lineage design matrix.
+compatibility: Documentation-only; references docs/world/lineages.md and the per-lineage documents.
 metadata:
   domain: lineages
   layer: cross-cutting
@@ -31,24 +31,24 @@ never an automatic bonus.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/06_LINEAGES.md` — canonical lineage
+- `docs/world/lineages.md` — canonical lineage
   index (one chapter per lineage follows in bible/14–21).
-- `docs/world-of-goses-design-bible/14-21_LINEAGES_*.md` — detailed
+- `docs/systems/14-21_LINEAGES_*.md` — detailed
   culture + system guideline + signature + cube vertex per lineage.
-- `docs/world-of-goses-design-bible/13_KOVARI_CUBE.md` — canonical cube
+- `docs/systems/kovari-cube.md` — canonical cube
   mechanics (axes, vertices, elemental affinities, stats, equipment,
   shadow mode, migration).
-- `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md`
+- `docs/systems/citizens.md`
   — lineage rules in the citizen chapter.
-- `docs/LINEAGE_DESIGN_MATRIX.md` — visual translation table.
+- `docs/world/lineages.md` — visual translation table.
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md` —
+- `docs/presentation/visual-language.md` —
   for sprite language, borders, palette, and per-lineage UI.
-- `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` — for per-lineage
+- `docs/presentation/audio.md` — for per-lineage
   sonic identity.
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` pillar 5
+- `docs/world/vision-and-pillars.md` pillar 5
   — environmental axis (independent of lineage).
 
 ## Core invariants
@@ -80,7 +80,7 @@ never an automatic bonus.
   proportional to invested time, never a fixed bonus.
 6. Add tests that prove the change does not produce a fixed bonus, a
   blocked profession, or a guaranteed competence.
-7. Update `docs/world-of-goses-design-bible/06_LINEAGES.md` if the
+7. Update `docs/world/lineages.md` if the
   canonical lineage description changed.
 
 ## Files commonly involved

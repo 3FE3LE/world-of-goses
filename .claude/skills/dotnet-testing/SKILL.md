@@ -35,7 +35,7 @@ The verified upstream .NET provider (Microsoft, `dotnet/skills`) is
 the only authoritative source for xUnit and
 Microsoft.Testing.Platform specifics. It is installed by
 `Install-GodotDotNetSkills.ps1` and recorded in
-`docs/ai/SKILL_MIGRATION.md`. The repo's working subset is currently
+the provider registered by `Install-GodotDotNetSkills.ps1`. The working subset is currently
 `dotnet-test` and `dotnet-msbuild`; `dotnet` is on-demand, and
 `dotnet-diag` is deferred until a performance budget is set.
 
@@ -52,7 +52,7 @@ Microsoft.Testing.Platform specifics. It is installed by
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
+- `docs/engineering/architecture.md`.
 - `docs/ai/CONTEXT_MAP.md` → Technical → Tests.
 
 ## Workflow

@@ -2,7 +2,7 @@
 
 > Contract for any AI agent (or human contributor acting as one) working in
 > this repository. The first file an agent should read. The detailed prose
-> it used to contain now lives in [`docs/REPOSITORY_CONVENTIONS.md`](docs/REPOSITORY_CONVENTIONS.md);
+> it used to contain now lives in [`docs/engineering/conventions.md`](docs/engineering/conventions.md);
 > this file is a brief router plus the hard rules that **must** remain
 > always-on, including for Claude Code (see [`CLAUDE.md`](CLAUDE.md)) and
 > Codex CLI.
@@ -15,12 +15,17 @@ game is closed. There is no meta-progression between cities and no bonus
 for restarting. Expeditions are configured and automatic. All current
 names — including the project name itself — are provisional.
 
-The canonical design source is the design bible at
-[`docs/world-of-goses-design-bible/`](docs/world-of-goses-design-bible/README.md).
-The process guide is [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
-The current slice and next starting point are in
-[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
-The architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The documentation index is [`docs/README.md`](docs/README.md): system canon in
+[`docs/systems/`](docs/systems/), product canon in
+[`docs/world/`](docs/world/), presentation in
+[`docs/presentation/`](docs/presentation/), engineering in
+[`docs/engineering/`](docs/engineering/).
+The review guide is [`docs/engineering/design-review.md`](docs/engineering/design-review.md).
+The architecture is in [`docs/engineering/architecture.md`](docs/engineering/architecture.md).
+
+**Open work lives in GitHub Issues, not in the documentation.** `gh issue list`
+is the backlog; `docs/` explains only what exists. Never add a "pending",
+"next steps" or "implementation phases" section to a canonical document.
 
 ## 1. How to use this contract
 
@@ -71,8 +76,8 @@ These are the rules that any agent — Claude Code, Codex, or another tool —
 must follow even if it never reads another line. They are restated,
 compressed, and not negotiable.
 
-- **Documentation and tests are the source of truth.** The design bible,
-  `docs/`, the C# code, and `tests/`. Agent personas only route work; they
+- **Documentation and tests are the source of truth.** `docs/`,
+  the C# code, and `tests/`. Agent personas only route work; they
   do not define the project.
 - **Load under demand.** Never load the whole documentation set to answer a
   narrow question. Use `docs/ai/CONTEXT_MAP.md`.
@@ -100,7 +105,7 @@ compressed, and not negotiable.
   `game/assets/ui/default_theme.tres` or the scene. Reach for a semantic
   Theme type variation before a local override, and for a `Container`
   before arithmetic on a `Control`'s position. C# is for behaviour, state
-  and binding. See `docs/ARCHITECTURE.md` §2 "Godot vs C#".
+  and binding. See `docs/engineering/architecture.md` §2 "Godot vs C#".
 - **Do not build a static scene tree in C# without a reason.** A structure
   that always has the same children is a `.tscn`. Programmatic construction
   is for content whose shape comes from data.
@@ -148,7 +153,7 @@ compressed, and not negotiable.
 
 ## 4. Conventions in one paragraph
 
-See [`docs/REPOSITORY_CONVENTIONS.md`](docs/REPOSITORY_CONVENTIONS.md) for
+See [`docs/engineering/conventions.md`](docs/engineering/conventions.md) for
 the full C# conventions (PascalCase, sealed-by-default, partials only for
 Godot source generators, no magic strings, etc.), the Godot conventions
 (PascalCase node names, `[Export]` for designer-facing values, signals not
@@ -201,12 +206,11 @@ install global tools.
 
 ### 5.1 Session state
 
-`docs/session-state/` holds the *measured* baseline, as opposed to the
-hand-written claims in `CURRENT_STATUS.md` and
-`docs/ai/CURRENT_DEVELOPMENT_STATE.md`. The two drift: on 2026-08-03 the prose
-claimed 728 and 721 passing tests against a real 730, and 761 template IDs
-against a real 804. When they disagree, the measurement wins and the prose
-gets corrected in the same change.
+`docs/session-state/` holds the *measured* baseline. Never restate a build,
+test, schema or catalogue number in prose: hand-copied numbers drift, and they
+did — a document once claimed 728 passing tests against a real 730 and 761
+template ids against a real 804. When a document and the measurement disagree,
+the measurement wins and the prose loses the number entirely.
 
 ```powershell
 # Cheap. Git and source only: no dotnet, no Godot, under a second. Used by
@@ -245,7 +249,7 @@ Then, in that same RELEASE commit:
    Not a list of touched files; `git log` already owns that.
 
 The capture needs a real Godot window and can intermittently report a `50×50`
-client (`docs/VISUAL_REGRESSION.md`). The script records that failure and
+client (`docs/engineering/visual-regression.md`). The script records that failure and
 continues; it never blocks a session. Never hand-edit `STATE.txt` — the next
 run overwrites it, and a state file you can write by hand proves nothing.
 
@@ -256,7 +260,7 @@ Full prose in [`docs/session-state/README.md`](docs/session-state/README.md).
 When two documents disagree:
 
 1. The most recent explicit decision wins.
-2. The product vision (`docs/world-of-goses-design-bible/`) wins over a
+2. The product vision (`docs/systems/`) wins over a
    temporary prototype.
 3. The domain wins over its visual representation.
 4. The player experience wins over an exhaustive-but-empty simulation.
@@ -273,4 +277,4 @@ Stop and ask the user when you find:
 - A risk of invalidating saves without a migration strategy.
 - A need to remove or replace a central system.
 - A change to the persistent-injury / stamina question (see
-  [`docs/ai/DECISION_LOG.md`](docs/ai/DECISION_LOG.md) → DEC-0011).
+  [`docs/history/decisions.md`](docs/history/decisions.md) → DEC-0011).

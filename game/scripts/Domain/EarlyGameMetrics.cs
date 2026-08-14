@@ -5,7 +5,7 @@ namespace WorldofGoses.Domain;
 
 /// <summary>
 /// EG-0 measurement. Accumulates the five quantities
-/// <c>docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md</c> §15 asks for
+/// the opening measurement contract asks for
 /// before the EG-A0 balance numbers may be approved or revised: time to the
 /// first shelter, resources collected and spent, idle time, the Food horizon,
 /// and the opportunity cost of an expedition.

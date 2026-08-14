@@ -48,8 +48,8 @@ the decision not to.
 ## Review depths (pick one)
 
 The depth is set by the change's
-[`WORKFLOW_MODES.md`](../../../docs/ai/WORKFLOW_MODES.md) mode and
-[`RISK_MODEL.md`](../../../docs/ai/RISK_MODEL.md) tier. The reviewer
+`docs/ai/WORKFLOW_MODES.md` mode and
+`docs/ai/RISK_MODEL.md` tier. The reviewer
 never chooses more depth than the change warrants.
 
 ### `PRESENTATION_REVIEW` (FEATURE / UI)

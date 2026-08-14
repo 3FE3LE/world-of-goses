@@ -469,7 +469,7 @@ Write-Host "==> Existing files preserved" -ForegroundColor Cyan
 
 # The pre-existing vendored skills must still be tracked. Out-of-slice
 # skills (3D, multiplayer, game-AI, GDScript, 2D movement, router) were
-# removed by the agent-workflow refactor; see SKILL_MIGRATION.md.
+# removed by the agent-workflow refactor.
 foreach ($expected in @('godot-csharp', 'save-systems')) {
     Check "vendored skill '$expected' still present" (Test-Path -LiteralPath (Join-Path $canonicalSkillsDir $expected 'SKILL.md'))
 }

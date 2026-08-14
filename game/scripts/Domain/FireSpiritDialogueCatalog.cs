@@ -6,7 +6,7 @@ namespace WorldofGoses.Domain;
 
 /// <summary>
 /// Catalog of the authored first night's main dialogue
-/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>). The catalog holds
+/// (<c>docs/systems/first-night.md</c>). The catalog holds
 /// stable <see cref="IDialogueNode.Id"/>s and translation keys only;
 /// the displayed text lives in the .po files keyed by
 /// <see cref="Tr.FirstNight"/>. The UI resolves <see cref="IDialogueNode.BodyKey"/>

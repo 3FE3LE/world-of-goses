@@ -330,7 +330,7 @@ public class ConstructionTickTests
         // authored city whose clock starts at midnight must still be
         // able to make construction progress on its first project; this
         // is the founding camp, not city labour. See
-        // docs/EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md §5.
+        // docs/systems/city-and-territory.md.
         //
         // NewConstructionWorld() builds the in-flight Basic Shelter
         // project end-to-end (hero gathered, authorized, arrived at the

@@ -39,7 +39,7 @@ invariants; engine API specifics are delegated.
 The verified upstream provider is the only authoritative source for
 Godot 4 presentation APIs. It is installed by
 `Install-GodotDotNetSkills.ps1` and recorded in
-`docs/ai/SKILL_MIGRATION.md`. When the provider changes, only this
+the provider registered by `Install-GodotDotNetSkills.ps1`. When it changes, only this
 file and the migration report change.
 
 ## Core invariants
@@ -54,11 +54,11 @@ file and the migration report change.
 
 ## Required documentation
 
-- `docs/UI_PATTERNS.md`, `docs/UI_AUDIT.md`.
-- `docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md`.
-- `docs/ART_PIPELINE.md`, `docs/ASSET_INVENTORY.md`,
-  `docs/LICENSING_AND_ATTRIBUTION.md`.
-- `docs/world-of-goses-design-bible/09_AUDIO_GUIDELINES.md` for audio.
+- `docs/presentation/ui-patterns.md`.
+- `docs/presentation/visual-language.md`.
+- `docs/presentation/art-pipeline.md`, `docs/presentation/asset-inventory.md`,
+  `docs/presentation/licensing-and-attribution.md`.
+- `docs/presentation/audio.md` for audio.
 
 ## Workflow
 

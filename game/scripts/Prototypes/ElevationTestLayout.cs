@@ -10,7 +10,7 @@ namespace WorldofGoses.Prototypes;
 /// required to validate the mechanic. Attached to a <c>YSortEnabled</c>
 /// <see cref="Node2D"/> whose sibling children — the raised layer and the
 /// avatar authored in the scene — are what actually gets sorted. See
-/// docs/world-of-goses-design-bible/08_VISUAL_UI_AND_ASSET_GUIDELINES.md,
+/// docs/presentation/visual-language.md,
 /// "Profundidad y desniveles".
 /// </summary>
 public partial class ElevationTestLayout : Node2D

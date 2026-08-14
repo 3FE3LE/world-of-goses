@@ -7,7 +7,7 @@ namespace WorldofGoses.Tests;
 /// <summary>
 /// The <see cref="ResourceOpportunityKind.SpiritTrailSearch"/>
 /// opportunity is the post-dawn motivation that
-/// <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §12 promises: the
+/// <c>docs/systems/first-night.md</c> §12 promises: the
 /// trail the spirit left becomes the first narrative expedition objective,
 /// not a resource conversion. The kind still round-trips through the
 /// string-serialised opportunity log.

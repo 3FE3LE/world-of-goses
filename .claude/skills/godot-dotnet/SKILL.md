@@ -52,7 +52,7 @@ upstream content; it is a routing hint and a guardrail.
 Engine-specific knowledge (lifecycle, signals, the build pipeline,
 `Godot.NET.Sdk`) is delegated to the upstream provider installed
 by `Install-GodotDotNetSkills.ps1`. See
-`docs/ai/SKILL_MIGRATION.md` for the verified source/IDs. When the
+the provider registered by `Install-GodotDotNetSkills.ps1`. When the
 provider changes, only this file and the migration report change;
 the rest of the project does not.
 

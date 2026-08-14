@@ -9,7 +9,7 @@ description: >
   fixture, equivalent component swap, pure presentation refactor, test-only
   change, mechanical rename, or comment cleanup.
 license: World of Goses project license
-compatibility: Documentation-only; references files under docs/world-of-goses-design-bible/.
+compatibility: Documentation-only; references files under docs/systems/.
 metadata:
   domain: vision
   layer: cross-cutting
@@ -63,22 +63,22 @@ load this skill.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/01_GAME_VISION.md` — fantasy statement,
+- `docs/world/vision-and-pillars.md` — fantasy statement,
   principles 1-14, naming discipline, originality boundary.
-- `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md` — the nine
+- `docs/world/vision-and-pillars.md` — the nine
   pillars and the "causal production" rule.
 - `docs/README.md` — authority hierarchy (vision wins over prototype, domain
   wins over visuals, player experience wins over exhaustive-but-empty sim).
 
 ## Conditional documentation
 
-- `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md` — if the
+- `docs/systems/city-and-territory.md` — if the
   change affects what the city contains or how it grows.
-- `docs/world-of-goses-design-bible/04_CITIZENS_PROFESSIONS_AND_HEROES.md` —
+- `docs/systems/citizens.md` —
   if the change touches citizens, professions, or hero state.
-- `docs/world-of-goses-design-bible/05_EXPEDITIONS.md` — if the change adds or
+- `docs/systems/expeditions.md` — if the change adds or
   modifies expeditions.
-- `docs/PRODUCT_DIRECTION.md` — for the core loop and north star when
+- `docs/engineering/design-review.md` — for the core loop and north star when
   sequencing work.
 
 ## Core invariants
@@ -110,8 +110,8 @@ non-negotiables for this skill are:
 
 ## Files commonly involved
 
-- `docs/world-of-goses-design-bible/` — every chapter.
-- `docs/PRODUCT_DIRECTION.md` — process.
+- `docs/systems/` — every chapter.
+- `docs/engineering/design-review.md` — process.
 - `docs/ai/CONTEXT_MAP.md` — routing.
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` — hard constraints.
 

@@ -59,9 +59,9 @@ metadata:
 
 ## Working procedure
 
-1. Read `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
-2. Read `docs/ARCHITECTURE.md`.
-3. Read `docs/REPOSITORY_CONVENTIONS.md` for naming and style.
+1. Read `docs/engineering/architecture.md`.
+2. Read `docs/engineering/architecture.md`.
+3. Read `docs/engineering/conventions.md` for naming and style.
 4. For any persistence change, run the migration plan by the
    persistence review: name the new DTO fields, the schema version
    bump, the migration code, the round-trip test.

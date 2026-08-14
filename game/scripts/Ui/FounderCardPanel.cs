@@ -12,7 +12,7 @@ namespace WorldofGoses.Ui;
 ///
 /// <para>
 /// Its content is fixed by
-/// <c>docs/world-of-goses-design-bible/07_ONBOARDING_AND_FOUNDER.md</c>
+/// <c>docs/systems/onboarding-and-founder.md</c>
 /// §"Pantalla final del onboarding": name, body presentation, sprite,
 /// lineage, elemental affinity, the three Cube axes and a brief narrative
 /// summary — and nothing from that section's "no mostrar" list, which is why

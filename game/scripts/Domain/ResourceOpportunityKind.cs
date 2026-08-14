@@ -7,7 +7,7 @@ public enum ResourceOpportunityKind
 
     /// <summary>
     /// The trail the fire spirit left when it departed at dawn
-    /// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11–12). Carries
+    /// (<c>docs/systems/first-night.md</c> §11–12). Carries
     /// the same supply cost as <see cref="FallenWoodSearch"/> but
     /// rewards <see cref="ResourceType.Wood"/> in the form of
     /// fire-blackened remnants. Only appears in the expedition panel

@@ -5,7 +5,7 @@ namespace WorldofGoses.Ui;
 
 /// <summary>
 /// Shared, engine-agnostic primitives that draw the depth-band spatial
-/// grammar documented in <c>docs/ARCHITECTURE.md</c> §10 "Spatial
+/// grammar documented in <c>docs/engineering/architecture.md</c> §10 "Spatial
 /// grammar". Anything that paints to a <see cref="CanvasItem"/> using
 /// the same pseudo-3D band projection as the macro and the expedition
 /// path renderer reaches through here, instead of duplicating the

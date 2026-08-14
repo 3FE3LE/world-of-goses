@@ -32,7 +32,7 @@ public sealed class ExpeditionSave
     public int? DeliveredMigrantId { get; set; }
 
     /// <summary>
-    /// docs/FIRST_PLAYABLE_LOOP_AUDIT.md §G4. Absent/empty on v15 and
+    /// docs/systems/expeditions.md. Absent/empty on v15 and
     /// earlier saves; <c>MigrateV15ToV16</c> defaults every still-active
     /// expedition to <see cref="ExpeditionPhase.Outbound"/> (its encounter
     /// simply re-resolves — deterministically, from the same persisted id

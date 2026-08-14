@@ -986,7 +986,7 @@ public partial class CityWorldController : Node
     /// so a save interrupted mid-line resumes on the same line. The
     /// spirit only speaks at stages that wait on dialogue — see
     /// <see cref="Domain.FirstNightRules.WaitsForDialogue"/> and the
-    /// stage map in <c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c>.
+    /// stage map in <c>docs/systems/first-night.md</c>.
     /// </summary>
     public bool TryOpenFirstNightDialogue(string nodeId)
     {

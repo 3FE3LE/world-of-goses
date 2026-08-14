@@ -8,7 +8,7 @@ description: >
   simulation determinism, or any file under game/scripts/Domain/. Also load
   when the change affects build, CI, or test infrastructure.
 license: World of Goses project license
-compatibility: Documentation-only; references the design bible, ARCHITECTURE.md, and C# / Godot 4.7 conventions.
+compatibility: Documentation-only; references docs/engineering/architecture.md and the C# / Godot 4.7 conventions.
 metadata:
   domain: technical
   layer: cross-cutting
@@ -33,19 +33,19 @@ deterministic, and every invariant covered by a test.
 
 ## Required documentation
 
-- `docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md`.
-- `docs/ARCHITECTURE.md`.
-- `docs/REPOSITORY_CONVENTIONS.md` (C# and Godot conventions).
+- `docs/engineering/architecture.md`.
+- `docs/engineering/architecture.md`.
+- `docs/engineering/conventions.md` (C# and Godot conventions).
 - `docs/ai/CROSS_DOMAIN_INVARIANTS.md` → "Architecture".
 
 ## Conditional documentation
 
-- `docs/PRODUCT_DIRECTION.md` — engineering rules.
-- `docs/PERFORMANCE_BUDGETS.md` — when the change affects frame time or
+- `docs/engineering/design-review.md` — engineering rules.
+- `docs/engineering/performance.md` — when the change affects frame time or
   allocations.
-- `docs/VISUAL_REGRESSION.md` — when the change affects the visual
+- `docs/engineering/visual-regression.md` — when the change affects the visual
   regression matrix.
-- `docs/VALIDATION.md` — for the cross-check against the design bible.
+- `docs/engineering/state-authority.md` — for who owns a mutable truth.
 
 ## Core invariants
 
@@ -66,8 +66,8 @@ deterministic, and every invariant covered by a test.
 
 ## Expected workflow
 
-1. Read the relevant chapter in the design bible and the architecture doc.
-2. Read `docs/REPOSITORY_CONVENTIONS.md` for naming and style rules.
+1. Read the owning system document and `docs/engineering/architecture.md`.
+2. Read `docs/engineering/conventions.md` for naming and style rules.
 3. For any persistence change, run the migration plan by the persistence
    review: name the new DTO fields, the schema version bump, the
    migration code, the round-trip test.

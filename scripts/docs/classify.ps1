@@ -8,7 +8,7 @@
     scripts/docs/inventory.ps1 records what exists and leaves the judgement
     fields null on purpose. This script fills them from
     scripts/docs/classification.json — a file a human wrote and a human can
-    disagree with, line by line — and then checks three things:
+    disagree with, line by line — and then checks four things:
 
       1. Every inventoried document is classified. A document nobody has
          classified is a document nobody has read.
@@ -17,6 +17,11 @@
       3. Every live document under docs/ is reachable from docs/README.md.
          The four numbered orphans survived precisely because the index did
          not mention them.
+      4. No canonical document holds an actionable backlog. Future work
+         belongs to GitHub Issues; a document that also carries a queue grows
+         a second, stale one. History, decision records and generated files
+         are exempt, because describing work that was once pending is their
+         job.
 
     Read-only with respect to the documentation: it writes one report under
     .migration/ and nothing else. Idempotent.
@@ -137,6 +142,73 @@ foreach ($r in $records) {
     }
 }
 
+# --- Check 4: no second backlog -------------------------------------------
+
+# The rule: canonical documentation does not keep actionable future work. That
+# work belongs to GitHub Issues.
+#
+# Deliberately narrow. It matches *operational* shapes — a heading that opens a
+# queue, or a line that assigns work — and not the ordinary words "phase" or
+# "pending" inside an explanation. A document may say "the encounter resolves in
+# two phases"; it may not open a section called "Pendientes".
+$backlogHeadingPattern =
+    '^\s{0,3}#{1,6}\s*(?:\d+[.)]\s*)?(?:' +
+    'pendientes?|to\s*do|todo|next\s+steps?|next\s+work|' +
+    'pr[oó]ximos?\s+pasos?|siguiente\s+entrega|' +
+    'backlog|roadmap|' +
+    '(?:fases?|phases?)\s+de\s+implementaci[oó]n|implementation\s+phases?|' +
+    'trabajo\s+(?:pendiente|futuro)|future\s+work|' +
+    'work\s+remaining|remaining\s+work' +
+    ')\b'
+
+# Inline shapes that are an assignment rather than a description.
+$backlogLinePatterns = @(
+    '^\s*[-*]\s+\[ \]\s+\S',                     # unchecked task box
+    '^\s*\|\s*(?:Estado|Status)\s*\|.*\|\s*(?:Prioridad|Priority)\s*\|',
+    '^\s*\*\*(?:Estado|Status)\s*:\*\*\s*(?:Pendiente|Pending|En curso|In progress|Bloqueado|Blocked|Diferido|Deferred)\b',
+    '^\s*\*\*(?:Pendiente|Pending|Next steps?|Pr[oó]ximos pasos)\s*[:.]?\*\*'
+)
+
+# Exempt: history is allowed to describe work that was once pending, generated
+# files are not hand-written, and the guard itself names the patterns it bans.
+$backlogExemptTypes = @('record', 'generated')
+$backlogExemptPaths = @(
+    'CHANGELOG.md',
+    'docs/history/',
+    'docs/session-state/',
+    'scripts/docs/'
+)
+
+$backlogOffenders = @()
+foreach ($r in $classified) {
+    if ($r.path -notmatch '\.md$') { continue }
+    if ($backlogExemptTypes -contains $r.proposed_type) { continue }
+    if ($backlogExemptPaths | Where-Object { $r.path.StartsWith($_) }) { continue }
+
+    # A per-document exemption is a reviewable line in the ledger, not a
+    # pattern nobody can see. Used for forms whose empty boxes are the point.
+    $entry = $entries.PSObject.Properties[$r.path]
+    if ($entry -and (Get-Field $entry.Value 'backlog_exempt' $false)) { continue }
+
+    $full = Join-Path $repoRoot $r.path
+    if (-not (Test-Path -LiteralPath $full)) { continue }
+    $lines = Get-Content -LiteralPath $full
+
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        $line = $lines[$i]
+        if ($line -match $backlogHeadingPattern) {
+            $backlogOffenders += "$($r.path):$($i + 1): heading opens a queue -> $($line.Trim())"
+            continue
+        }
+        foreach ($p in $backlogLinePatterns) {
+            if ($line -match $p) {
+                $backlogOffenders += "$($r.path):$($i + 1): backlog row -> $($line.Trim())"
+                break
+            }
+        }
+    }
+}
+
 # --- Report ---------------------------------------------------------------
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
@@ -150,6 +222,7 @@ $classified | Sort-Object path | ConvertTo-Json -Depth 8 |
     Unclassified    = $unclassified.Count
     StaleEntries    = $stale.Count
     UnindexedInDocs = $unindexed.Count
+    BacklogInCanon  = $backlogOffenders.Count
 } | Format-List
 
 "By type:"
@@ -183,6 +256,10 @@ if ($stale.Count -gt 0) {
 if ($unindexed.Count -gt 0) {
     $failures += "Documents missing from docs/README.md ($($unindexed.Count)). See its authority rule 7:"
     $unindexed | ForEach-Object { $failures += "    $_" }
+}
+if ($backlogOffenders.Count -gt 0) {
+    $failures += "Canonical documentation does not keep actionable future work; that belongs to GitHub Issues ($($backlogOffenders.Count) hit(s)):"
+    $backlogOffenders | ForEach-Object { $failures += "    $_" }
 }
 
 if ($failures.Count -gt 0) {

@@ -50,9 +50,9 @@
 
 ## Working procedure
 
-1. Read `docs/world-of-goses-design-bible/02_CORE_GAMEPLAY_PILLARS.md`
+1. Read `docs/world/vision-and-pillars.md`
    pillars 1, 4, 5, 6, 7, 8.
-2. Read `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`.
+2. Read `docs/systems/city-and-territory.md`.
 3. Read the relevant code in `game/scripts/Domain/`: `Building.cs`,
    `BuildingProductionCalculator.cs`, `BuildingProductionSimulation.cs`,
    `BuildingKind.cs`, `Recipes.cs`, `CityInventory.cs`,

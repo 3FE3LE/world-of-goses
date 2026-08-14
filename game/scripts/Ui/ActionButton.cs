@@ -19,7 +19,7 @@ namespace WorldofGoses.Ui;
 /// Subclasses set only <see cref="Control.ThemeTypeVariation"/>. Everything
 /// visual lives in <c>game/assets/ui/default_theme.tres</c>; nothing here
 /// coins a colour, a stylebox or a font, because
-/// <c>docs/UI_PATTERNS.md</c> §7 reserves that to the theme registry.
+/// <c>docs/presentation/ui-patterns.md</c> §7 reserves that to the theme registry.
 /// </para>
 /// </summary>
 public abstract partial class ActionButton : Button

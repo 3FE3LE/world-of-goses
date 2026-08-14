@@ -7,7 +7,7 @@ namespace WorldofGoses;
 /// <summary>
 /// Presentation placeholder for the embers the campfire leaves behind
 /// once the fire spirit has departed at dawn
-/// (<c>docs/world-of-goses-design-bible/23_FIRST_NIGHT_AND_FIRE_SPIRIT.md</c> §11). The embers
+/// (<c>docs/systems/first-night.md</c> §11). The embers
 /// replace the spirit's inhabited ring on the same screen position,
 /// so the campfire visually transitions from "spirit-present" to
 /// "spirit-departed" without any geometry shift.

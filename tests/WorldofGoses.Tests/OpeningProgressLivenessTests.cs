@@ -30,7 +30,7 @@ namespace WorldofGoses.Tests;
 /// <para>
 /// The tests deliberately drive the losing branch through a legal domain
 /// state — a Founder dispatched unfit, which
-/// <c>EARLY_GAME_RESOURCE_AND_EXPEDITION_PROPOSAL.md</c> §8.2 names as one of
+/// <c>docs/systems/expeditions.md</c> names as one of
 /// the two ways a persistent wound is meant to become possible at all — and
 /// they sweep the Founder configurations onboarding really produces rather
 /// than one fixed affinity per lineage.

@@ -142,8 +142,8 @@ $persistenceHits    = Test-AnyMatch -Paths $paths -Patterns @(
     'game/scripts/Domain/**/WorldMigration*'
 )
 $architectureHits   = Test-AnyMatch -Paths $paths -Patterns @(
-    'docs/ARCHITECTURE.md',
-    'docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md'
+    'docs/engineering/architecture.md',
+    'docs/engineering/state-authority.md'
 )
 $localeHits         = Test-AnyMatch -Paths $paths -Patterns @(
     '*.po',

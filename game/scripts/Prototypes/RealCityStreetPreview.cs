@@ -17,7 +17,7 @@ namespace WorldofGoses.Prototypes;
 /// through <see cref="CityWorldController"/>, which can write back a
 /// migrated save during its normal load path. Not interactive: no building
 /// clicks, no construction, no assignment — see
-/// docs/world-of-goses-design-bible/10_TECHNICAL_ARCHITECTURE.md,
+/// docs/engineering/architecture.md,
 /// "Cámara y mundo caminable".
 /// </summary>
 public partial class RealCityStreetPreview : Node2D

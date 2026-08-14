@@ -1,0 +1,404 @@
+# Visual regression matrix
+
+This document is the reproducible visual-review contract for UI changes. A
+successful headless boot is necessary, but it does not prove layout, focus,
+occlusion, or readable content.
+
+Each launched resolution writes to its own Godot log inside the capture
+directory. This prevents a running editor or another matrix process from
+contending for the default `user://logs` file before the window is exposed.
+
+## Two kinds of fixture
+
+Every fixture is exactly one of these, and the distinction decides what the
+harness guarantees and what a failure means. GitHub #2 closed the gap where
+both were treated as one thing.
+
+**Visual-state fixtures** compose a city and take a picture of it. They pass
+`-VisualFixture <name>` and no `-NormalizedClicks`. The golden frame is
+written by the engine from its own viewport (`ViewportCaptureService`), so it
+needs no window focus and cannot be corrupted by anything else on the
+desktop. These run unattended.
+
+**Input-E2E fixtures** additionally exercise the real pointer route: an OS
+level click, through the window manager, into the engine's input handling —
+the thing that catches a `Stop`-filtered ancestor `Control` silently
+swallowing input, which no amount of code reading or `EmitSignal` will ever
+catch. They pass `-NormalizedClicks` and require an interactive desktop. The
+harness takes the foreground for real (`AttachThreadInput` + friends) and
+then *verifies*, before each click, that the Godot window is both frontmost
+and the owner of the pixel under the cursor. If either check fails the run
+aborts. It does not fall back to clicking anyway.
+
+An E2E fixture that replaces the pointer with a direct `EmitSignal` is not an
+E2E fixture; it is a visual-state fixture with a misleading name, and it
+tests the one edge that was never in doubt.
+
+## Provenance: where a golden frame comes from
+
+The golden PNG is produced *inside* the Godot process by
+`game/scripts/Testing/ViewportCaptureService.cs`, which reads
+`GetViewport().GetTexture().GetImage()` and saves it. The capture script asks
+for the shot with a `<frame>.png.request` file and waits for `.done` (which
+carries the dimensions the engine actually rendered) or `.failed`.
+
+It used to be `Graphics.CopyFromScreen` over the window's screen rectangle —
+a copy of the desktop, not of the game. That is not a theoretical distinction:
+a run captured a Chrome/Google Meet window and filed it as a valid golden
+frame. Raising and focusing the window does not fix the class of bug, because
+`SetForegroundWindow` fails *silently* for a process that does not already own
+the foreground, and another application's always-on-top window outranks a
+topmost one regardless.
+
+There is deliberately **no fallback** to a desktop grab. A capture that cannot
+be taken from the viewport is a failed capture. Restoring a fallback would
+restore the defect.
+
+## Capture command
+
+Run from the repository root with Godot 4.7.1 .NET:
+
+```powershell
+pwsh ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName macro-current
+```
+
+Use normalized client coordinates to prepare an interactive state consistently
+at every resolution. For example, advancing the first night from its dialogue
+balloon:
+
+```powershell
+pwsh ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName firstnight-advanced `
+  -VisualFixture firstnight-manifested `
+  -NormalizedClicks '0.845,0.676'
+```
+
+Coordinates are only as durable as the control they point at: the previous
+example here clicked the status-bar pause button at `0.283,0.025`, and when
+that button was removed the click silently landed on empty panel and the
+capture still "passed". Re-derive coordinates from a current capture whenever a
+surface moves, and assert the resulting state rather than the click.
+
+Invoke the script directly when a fixture needs more than one click so
+PowerShell preserves the string array:
+
+```powershell
+& ./tools/Capture-VisualMatrix.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-visual `
+  -StateName construction-underway `
+  -NormalizedClicks @('0.247,0.102', '0.57,0.75')
+```
+
+The Windows harness opens a real Godot window because Movie Maker always uses
+the project's logical 1280×720 viewport and is not compatible with the headless
+dummy renderer. It renders at 1280×720 and 1920×1080, polls until the client
+rect settles into something *proportional to* the requested size before deriving
+any coordinate (the 50×50 bootstrap client used to race a fixed sleep), rejects
+missing, empty, or incorrectly sized PNGs, and writes a JSON manifest.
+
+Two things the harness must control itself, both learned by losing several
+sessions of visual sign-off to them:
+
+- **The window mode.** The project ships fullscreen borderless
+  (`display/window/size/mode = 3`), and a fullscreen window ignores
+  `--resolution` — it takes the desktop's size. On a 2560×1440 desktop every
+  golden frame was therefore a 2560×1440 render that failed the slug assertion,
+  and the harness reported `Godot client settled at 2560x1442` on every fixture.
+  The engine-side harness now pins the window itself through
+  `--wog-visual-capture-size=WxH`, which the display server honours whatever the
+  project setting says.
+- **Proportional, not equal.** The client rect only ever needed to be usable for
+  deriving clicks, and clicks are normalized and multiplied by the *measured*
+  size. Demanding equality rejected legitimately scaled windows for no gain. The
+  bootstrap rect is still rejected: its square 1:1 aspect is what separates it
+  from a scaled one. Captures are review artifacts and are
+not committed by default. Use a distinct `StateName` for every prepared state.
+The default scene is `CityPrototype.tscn`; `-ScenePath` may target a reusable
+component scene. The harness sets `WOG_VISUAL_CAPTURE=1`: the controller still
+loads the real slot as a fixture but suppresses every persistence write, including
+periodic autosave and window-close save.
+
+Typography has a dedicated in-engine capture because the desktop can
+intermittently expose only Godot's 50×50 bootstrap window to the generic
+window-handle harness. It also verifies that the title crop contains exactly
+two colors (background and solid glyph), making grayscale fringe a terminating
+failure:
+
+```powershell
+pwsh ./tools/Capture-TypographySpecimen.ps1 `
+  -GodotPath C:\Tools\Godot\Godot_v4.7.1-stable_mono_win64.exe `
+  -OutputDirectory $env:TEMP\world-of-goses-typography
+```
+
+States that cannot be reached reliably from an existing slot may use
+`-VisualFixture offline-report`. Wound treatment uses
+`-VisualFixture wound-recovery`; its action can be exercised at every
+resolution with `-NormalizedClicks '0.5,0.48'`.
+
+The `utility-cluster-speed-normal` / `-fast` / `-fastest` fixtures capture the
+top-bar utility cluster at each simulation speed. Three frames rather than one
+because Camera and Menu never change their content while Speed does, so
+"the cluster is aligned" is three claims: a control whose height and optical
+centre only match its neighbours in one of its states is exactly the defect
+GitHub #16 reported, and a single frame signs off whichever state it happened
+to catch. Review them together and check that the three glyphs occupy the same
+cell as the two static buttons beside them.
+
+The `policies` fixture opens the read-only city Policies surface and validates
+its bounded scroll body plus the macro action row at 1280×720 and 1920×1080.
+The `migrant` fixture opens the Citizens roster used to choose the explicit
+camera observation target. The `camera-depth-third-row` fixture places the
+free camera on the final street of the first three-row parcel so near-plane
+occlusion can be reviewed without relying on desktop keyboard focus. The
+`cultivation-prepared` fixture creates a fresh Shelter plus one prepared plot;
+`-NormalizedClicks @('R:0.14,0.658', 'L:0.179,0.636')` exercises the real
+right-click menu and sow action at both official resolutions. The
+`citizen-in-transit` fixture assigns the founder to a worksite at midday and
+deliberately does **not** advance the clock, leaving the journey in flight; it
+is reviewed by capturing it at several `-StartupDelaySeconds` values (3, 10, 20,
+40 is a useful set) and checking that the founder is progressively further along
+the same route, never arrives before the domain's 30-tick window, and is at work
+with the project progressing once past it. All visual fixtures are ignored unless
+`WOG_VISUAL_CAPTURE=1`; they do not alter the normal game flow. The selected
+fixture is written into each manifest entry.
+
+For manual extent comparison, `pwsh ./tools/Show-LongTerrariumProbe.ps1`
+opens the current 8×9 windowed terrarium in a normal Godot window without
+touching the live save. Pass `-Rows 16 -Columns 3` or `-Rows 21 -Columns 3` to
+revisit the historical depth probes.
+
+## Session capture
+
+`tools/New-SessionSnapshot.ps1 -Mode Full` drives this same harness once per
+session and commits the resulting `1280×720` frame to `docs/session-state/`.
+That capture is **not** a matrix row and does not sign off anything: it uses
+the live slot with no fixture and no clicks, so it records what the city
+happened to look like rather than a prepared state. Its purpose is a scrubable
+visual history, not acceptance. The matrix below still owns sign-off, and its
+review artifacts still stay out of the repository.
+
+## Required matrix
+
+| State | Fixture/precondition | Automated capture | Human assertions |
+| --- | --- | --- | --- |
+| Macro, running | Loaded playable slot (`macro-current`) | Yes | Brand, context, real resource quantities and population remain inside the 40 px status bar; the 520×60 labelled primary dock (Héroe / Obra / Exp. / Norma / Gente) is bottom-centred; the top-bar right-edge utility cluster carries Camera, Speed (1x/2x/4x) and Menu; no pause or bottom-right simulation dock exists; plots/Chronicle remain unobstructed |
+| Final Proposal-06 macro HUD | `macro-hud-default`, `macro-hud-selection`, `macro-hud-active-construction`, `macro-hud-expedition-active` | Yes | The authored 40 px top bar, 240 px left rail, full-height 236 px right rail and 520×60 labelled dock frame rather than dominate the world. The logical composition remains identical at 1280×720 and 1920×1080 (1.5×). The 24 px row grid and 1 px HUD frame remain integer-aligned. Direct compact typography is `HudBrand` 20, `HudHeader` 18, `HudBody`/`HudLabel`/`HudNumeric` 16 and `HudCaption` 14. |
+| Utility cluster (camera + speed + menu) | `macro-current`, `top-status-en`, `top-status-es` fixtures | Yes | Camera, Speed and Menu fit at the right edge of the 40 px status bar; Speed cycles 1x/2x/4x and never pauses; `MenuButton` opens `PauseMenu` without changing speed; all fit at 1× and 1.5× without overlapping the resource ticker; tooltips visible. |
+| Macro full-subsurface transition | `primary-nav-click-hero` (`hero-subsurface` evidence) | Yes | A real pointer opens the full hero profile; city summary, expedition rail and primary dock are absent while the shell-owned top status remains. Returning to Macro restores the authored set through perspective routing. |
+| Proposal-06 top status | `top-status-en` and `top-status-es` fixtures | Yes | At day 123, six real resource icons, a reservation, and 3/capacity population fit without names, overlap, fractional scaling or lineage-frame replacement; EN and ES remain readable at both official sizes |
+| Proposal-06 city summary | `city-summary-en` and `city-summary-es-blocked` fixtures; click header at normalized `0.08,0.10` | Yes | The 240 px logical panel stays fixed at 1× and 1.5× from the left safe margin; EN active and ES blocked projects show explicit state text plus progress; six genuine resource rows fit without deltas; the transient inspector is immediately right and bottom-aligned without overlap; the real click collapses to the compact city/lineage header and never persists state |
+| Construction placement | `construction-placement` fixture | Yes | Primary navigation is absent, contextual ActionDock occupies the bottom-centre zone, and placement cells do not overlap the side rails or top utility cluster |
+| Placement cancelled by ESC | `construction-placement-escape` fixture | Yes | ActionDock is gone, placement lots are cleared, and PrimaryNavDock returns with the construction button's close glyph and selected frame. The fixture injects a real `ui_cancel` through `Input.ParseInputEvent` rather than calling `CancelPlacement`, so it proves the key still reaches `_UnhandledInput` while dock buttons can hold focus |
+| Placement confirm/cancel pointer paths | `construction-placement-confirm-click` and `construction-placement-cancel-click` fixtures | Yes | Real injected left-button events hit the existing ActionDock controls; both hide the contextual tray and restore PrimaryNavDock, cancel reopens Construction, and confirm returns to the unobstructed macro view |
+| Primary navigation focus | `primary-nav-focus` fixture | Yes | Hero receives default focus, a real injected `ui_right` moves focus to Construction, and the remaining dock items form an explicit horizontal cycle |
+| Contextual and speed focus | `action-dock-focus` and `simulation-controls-focus` (legacy fixture ID; now Speed only) | Yes | Real injected D-pad-right moves ActionDock Confirm → Cancel; the status-bar Speed control can receive focus without overlapping Camera or Menu |
+| Macro arrow isolation | `macro-arrow-focus-isolation` and `pause-arrow-focus` fixtures | Yes | In unobstructed macro mode a real physical Right key moves the free camera while the focused Hero dock item remains focused. With Pause open, a real Down key moves Resume → Settings and leaves the camera unchanged. Gamepad D-pad behavior remains covered separately. |
+| Construction → Hero route | `construction-hero-route` fixture | Yes | A real pointer click on View Hero requests modal close before selecting the full-screen profile; after the transition Construction and its scrim are hidden and Hero is unobstructed. |
+| Speed pointer path | `simulation-click-speed` | Yes | A real injected left-button event cycles Normal → Fast → Fastest → Normal; no paused state or play/pause control is reachable |
+| Component showcase | `-ScenePath res://scenes/prototypes/ComponentShowcase.tscn` | Yes | Every surface variation visually distinct; the three action roles plus disabled and focus; `StatChip` icons clear of their labels and of the chip below; `AssignmentRow` in all three states; the expedition column composed only of city primitives. **Review this before any change to `Ui/Tokens.cs`, a `StatChip`, or a panel variation** — several primitives appear in no other fixture, because `AssignmentPanel` and `ProductionPanel` hide themselves for homes and the town hall |
+| Compact HUD showcase | `-ScenePath res://scenes/prototypes/HudComponentShowcase.tscn` | Yes | The three surface tiers stay tellable apart both nested and unnested, despite fills only 4 and 8 luminance steps apart; every border is one unbroken pixel at 1× and 1.5×, with no repeating-dot centre and no corner artefact; `HudCaption` at 14 px is solid pixels with no grayscale fringe at **1280×720**; the six button states are distinguishable and none is carried by colour alone; the collapsed and expanded headers differ by chevron; `HudBadge` shows a legible dark figure on filled amber; the blocked `ConstructionQueueItem` carries state in text plus progress; amber appears nowhere except progress fills, selected, danger and the badge. **Review this before changing any `Hud*` variation, a `hud_*` composite, or the compact tokens in `Ui/Tokens.cs`.** Note that `hover` and `pressed` are drawn as *specimens* — the state's stylebox applied as a normal style — because a capture holds one focus and no pointer; they prove the stylebox renders, not that the control reaches it |
+| Macro street depth | `camera-depth-third-row` fixture | Yes | First street has crossed the near plane and is absent; second street remains as a large foreground obstruction; third street is the focal band; farther streets remain readable |
+| Bounded terrarium window | `terrarium-8x9-window` fixture | Yes | Eight parcel rows by nine columns semantically; verify only thirteen construction streets render, the same perspective angle survives minimum zoom, the near/far edges approach the viewport bounds, and camera stepping reveals off-window rows |
+| Orthogonal parcel terrain | Loaded playable slot | Yes | Eight parcel boundaries, integer-scaled ground, trees only, plots readable above terrain |
+| Tree resource menu | `resource-menu` fixture | Yes | Menu anchored near tree, reserve copy, Gather/Close actions, no Forest cards |
+| Tree gathering result | `resource-gather` fixture | Yes | Hero travel completes before +2 wood, reserve/tree count falls, icon + amount follows founder before Cache or appears above storage afterward, and no resource row reaches Chronicle |
+| Shelter resource inventory | `shelter-resources` fixture | After opening detail | Pixel icons and quantities fit; capacity remains legible; chevron expands/collapses the section without disturbing the fixed back path |
+| Founder cargo ownership | `eg2-founding-blueprint` then `eg2-founding-module-choice` | Yes | Construction shows 6-unit founder cargo before Cache; after Cache it relabels as 12-unit site storage; the top ticker follows ledger availability without implying a second owner |
+| Cultivation prepared/action/sown | `cultivation-prepared` plus real right/left clicks | Yes | Prepared furrows, localized sow affordance, Food −1 and visibly distinct sown markers; HUD and Chronicle remain contained |
+| Construction, empty | No authorised project | After opening panel | Empty choices, long recipe text, close paths, focus |
+| Construction, underway | Active project with contributors | After preparing slot | Progress, pause/cancel distinction, scrolling |
+| Construction placement grid | `construction-placement-hover-invalid` fixture | Yes | Horizontal and vertical lines remain visible through blocked cells; hovered three-column blueprint is red with `[X]` blocker text before click; perspective remains shallow and pixel-stepped |
+| Building detail | Selected Shelter/Farm/Quarry | After opening detail | Back path, worker slots, production controls, no clipping |
+| Forest detail | Gatherable and depleted fixtures | After opening detail | Reserve/stock distinction and missing-input state |
+| Hero profile | Existing founder | After opening profile | Long profile values wrap/scroll; Back to city remains visible |
+| Offline report | Catch-up with maximum representative rows | After loading fixture | Bottom-right anchoring, compact rows, internal scrolling |
+| ESC menu | `pause-menu` fixture | Yes | Scrim, title, Resume, disabled Settings placeholder, reset action, focus, and close paths |
+| Reset confirmation | `pause-menu-reset` fixture | Yes | Consequence copy, destructive hierarchy, safe cancel path, and no clipping |
+| Expedition idle | Dispatch button visible, no active expedition | After opening panel | Title, supply cost, return copy, Dispatch enabled, Cancel hidden |
+| Expedition active | Active expedition in flight | After opening panel | Status text shows departure and return as world day/time, Cancel visible, Dispatch disabled, focus recoverable |
+| Expedition reusable components | `-ScenePath res://scenes/prototypes/ExpeditionHudComponentShowcase.tscn`; fixtures `expedition-components-default`, `expedition-components-focus-keyboard`, `expedition-components-focus-gamepad` | Yes | Four squad slots always render Founder/Locked/Locked/Locked; four Active Skills render Ready/Locked/Locked/Locked; all five octagon states and all three squad states remain legible; Locked carries `[X]` plus text; cooldown carries remaining time plus progress; the octagon does not deform at 1×/1.5×; keyboard and D-pad move focus through the same explicit horizontal cycle; the eight hidden TraitSide anchors do not affect layout |
+| Expedition live combat view | `expedition-live-travel`, `-encounter`, `-basic-attack`, `-skill-ready`, `-skill-cooldown`, `-auto-on`, `-auto-off`, `-ranged`, `-knockback`, `-objective`, `-return`; `expedition-live-early` aliases Encounter | Yes | Every fixture builds the real post-dawn Spirit Trail in an isolated world, opens its actual rail `VER`, and advances domain time to the requested state. The existing top status remains; Macro, city summary, expedition rail, primary/context/action docks are absent. The reference-converged fixed canvas keeps an 800×488 central battlefield, 228/224 px side columns, 441 px squad, 456×180 Skill strip and lower-right commands. Route reads City → Trail → Threat → Objective → Return; the stage projects real HP/positions/events and a physical provisional spirit trace. Global speed stays 2x. |
+| Expedition live ESC | `expedition-live-escape`; selects the prepared perspective, then injects `ui_cancel` | Headless transition check | Exactly one layer closes: Macro and its existing surfaces return, Menu stays closed, the active expedition remains active and global Fast speed is unchanged |
+| EG-5V first live combat | The eleven `expedition-live-*` route/combat states observe one real incremental and spatial session | Yes | Travel, Basic Attack, authoritative cooldown/AUTO, approach-to-range, no-kiting, knockback, post-victory objective and visible return are observable while the city HUD clock and selected 1x/2x/4x speed continue unchanged. No Traits, Chains, carriage, `SPACE` or advanced formation controls exist. |
+| Expedition returned | Active → Returned transition with one Stone deposited | After opening panel | Returned event visible in Chronicle, Expedition in City status, Dispatch re-enabled |
+| Proposal-06 expedition rail | `expedition-rail-empty`, `expedition-rail-outbound-en`, `expedition-rail-outbound-es`, `expedition-rail-encounter`, `expedition-rail-objective`, `expedition-rail-returning`, `expedition-rail-resolved`, `expedition-rail-cancelled`, `expedition-rail-focus`, `expedition-rail-rail-protagonist`, `expedition-rail-chronicle-roundtrip`, `offline-report` | Yes | The 236 px rail stays 8 px from the right at 1×/1.5× and uses the reclaimed lower-right space; EN/ES remain readable; only real active expeditions become cards, resolved/cancelled outcomes remain in the shared feed, and no queue appears. Chronicle and expedition sections use the same rail without an adjacent legacy surface. With an active expedition, default focus lands on `VER`; injected `ui_down` then reaches Details in visual order. `expedition-rail-rail-protagonist` proves a real header click reveals `VER`; `expedition-rail-chronicle-roundtrip` proves closing Chronicle returns those expedition controls. |
+| Wound recovery | `wound-recovery` fixture | Yes | Wound severity/time and Shelter/Food action remain visible; click removes the action, debits Food, and starts countdown |
+| World status indicators | `world-status-treatment` fixture plus a real pointer hover on a visible citizen | Yes | Hover bubble names the citizen and explains wound/treatment without permanent citizen clutter; full-storage badges remain persistent and legible |
+| Citizen click summary | `citizen-click-summary` fixture plus a real left-click on the citizen's hit rect | Yes | `SelectionInfoPanel` shows the citizen's name and an at-a-glance activity line (same affordance trees and buildings already get); proves the click path runs end-to-end, not just the hover bubble |
+| Pixel typography | `TypographySpecimen.tscn` | Yes | `W/w`, `O/o`, `M`, curves and diagonals use solid pixels only; no grayscale fringe or visibly unequal stroke caused by scaling |
+| Forest depleted | `forest-depleted` fixture drains all natural-resource reserves | After loading fixture | Tree sprites disappear; parcel slots remain reserved; HUD/Chronicle/attention all stay inside the viewport |
+| Migration | `migrant` fixture | Yes | Opaque reading surface, citizen count, Recruit/Close hierarchy, initial focus and no clipping |
+| Migrant cube variation | `migrant-cube` fixture (selects the first non-hero citizen, not the founder) | Yes | The three cube pairs in the detail block show the per-migrant `±8` shift introduced by `DEC-0019`, not the founder's vertex shape; the highest face derives from the migrant's cube and the natural-weapons row matches that expression |
+| Astral opening | `astral-start` fixture | Yes | No lineage leakage, four narrative choices at their natural height, visible focus, fragments and readable fade-in. The footer sits inside the safe area and no scrollbar appears: the view has no `ScrollContainer`, so overflow would silently walk the footer off-screen rather than clip |
+| Ground reveal | `astral-ground` fixture | Yes | Real board visible only through the configured 15% astral veil |
+| Founder identity | `astral-identity` fixture | Yes | Only the resulting lineage/sprite is revealed. The naming beat carries the portrait, the name field and the body-presentation pair and nothing else: the result copy has moved to its own step. The pair is one compact control of roughly 304 px, never an expanded pair spanning the safe area, and the selected option carries a check glyph as well as the `ButtonPrimary` palette. Footer stays inside the safe area with no scrollbar |
+| Founder card | `astral-founder-card` fixture | Yes | Shows exactly the seven fields the bible's final screen requires — name, body presentation, sprite (carried by the preceding step), lineage, elemental affinity, the three Cube axes, brief summary — and none of its seven forbidden ones; in particular **no weapon families**. Each axis prints both integers and the dominant pole stays identifiable in a desaturated copy of the capture. Footer contained, no scrollbar |
+| Resource + placement alignment | `macro-resource-placement-alignment` fixture | Yes | The Basic Shelter placement overlay opens over the opening resources; every visible asset (tree, branch bundle, plant fiber, small stone, wild food) is anchored to the same frontage cell the grid marks as `NaturalResource`. The underlay renders one uniform strip per `(row, frontage column)`, not three depth sub-cells with apparent independent state. Available strips sit next to resource strips without internal subdivision lines so the player cannot mistake a sub-cell for a real state. |
+| Weapon choice | `astral-weapon-choice` fixture | Yes | The two natural families the founder's physical expression reaches are offered as the only options; the title/body copy is the authored text, the selected family carries the `ButtonPrimary` palette and a check glyph, and the confirm button is enabled. Footer stays inside the safe area. The fixture pre-selects the first family so the captured frame proves the highlight state, not an empty radio. The hero profile surfaces that same family name on the next screen. |
+| Founder arrival | `founder-arrival` fixture | Yes | Fall targets the first free construction lot, impact placeholder remains aligned, title card is original and readable |
+| Ambient day/night | `time-midnight`, `time-dawn`, `time-noon`, `time-dusk` fixtures | Yes | Each fixture pins the tint to one moment regardless of the save's clock. `time-noon` must be pixel-identical to an untinted capture (white multiplies to identity). `time-midnight` must be visibly darker and cooler while every terrain band, tree and building still reads apart — a night that flattens the map into one hue is the regression this row exists to catch. In all four, the status strip, navigation buttons and Chronicle keep their authored colours |
+| First night, manifested | `firstnight-manifested` fixture: fresh city, founder just created, night at `Manifested` | Yes | The speech balloon is **on screen** with its first authored line and a quiet confirmation hint. A real click anywhere on it advances the stage. The fixture also proves the world-dialogue layer remains behind CitySummaryPanel and ExpeditionRail. This row exists because the entire first-night presentation once stayed inert behind a mis-resolved `NodePath` (`CityPrototype.cs`, fixed 2026-08-06). |
+| First-night balloon | `firstnight-strip` fixture (historical fixture name): founder manifested, spirit just arrived | Yes | The non-modal balloon follows the spirit on `OverlayLayers.WorldDialogue`, above the ambient tint and below persistent HUD/modal chrome. Text wraps within the balloon; its own click advances; clicks outside it still reach the world. |
+| First-night spirit visual | `firstnight-spirit` fixture: founder manifested with the campfire completed | Yes | The flame sits beside the founder before `CampfireBuilt` and on the campfire afterwards; its position derives from the world and the entire diegetic presentation remains behind persistent HUD surfaces. |
+| First-night embers | `firstnight-embers` fixture: city past the night with `SpiritDeparted` in the chronicle | Yes | A small orange translucent quadrilateral sits on the campfire's projected position; the spirit's inhabited ring is gone; the macro view's other terrain reads apart from the embers |
+| First-night spirit trail button | `firstnight-spirit-trail-button` fixture: same as embers, with `ExpeditionPanel` open | Yes | The `SpiritButton` is visible and enabled; the other two resource objective buttons stay enabled; the panel summary line covers the trail; clicking the button arms `SpiritTrailSearch` and re-renders the summary |
+
+Every applicable row must be checked at both official harness resolutions:
+1280×720 is the logical baseline and 1920×1080 is the standard full-HD scale.
+Changes to anchoring or safe-area behavior additionally require ultrawide, 4:3,
+or vertical viewports only as targeted exploratory checks when the change puts
+those shapes at risk.
+
+## Review record
+
+For each UI change, record:
+
+- commit or change identifier;
+- state names and manifest paths;
+- compared resolutions;
+- pass/fail for overflow, overlap, occlusion, focus, and close/back behavior;
+- reviewer and date;
+- any state deliberately left uncaptured, with the issue that carries it.
+
+Do not mark a visual acceptance criterion complete solely from `dotnet test` or
+Godot headless boot. Automated capture proves reproducibility; a person still
+signs composition and interaction until image-diff baselines are intentionally
+introduced.
+
+## Human sign-off checklist
+
+Written originally as the VS-5
+checklist, and VS-5 was discarded on 2026-07-31 — but the criteria never
+depended on that slice, only on the game having a UI. They are the standing
+list a person walks before signing a UI run; the audit that used to hold them
+now records *results*, which is a different job.
+
+A checked box here means nothing on its own. A box is signed in
+the § *Review record* below, against a dated run at both
+official resolutions.
+
+### Containment and reading order
+
+- 1280×720: no clipped panel, footer, close button, HUD chip or Chronicle.
+- 1920×1080: no excessive expansion, overlap or unreadable empty space.
+- Panels with long bodies keep their actions visible while the body scrolls.
+- Expedition phase/outcome, wound/treatment and territory copy remain legible
+  without exposing raw ticks.
+
+### Input and focus
+
+- Every modal closes through its visible close path and ESC.
+- Keyboard/gamepad focus reaches every critical action in the run.
+- Disabled actions expose a text reason, not colour alone.
+- Scrolling any panel never zooms the city behind it, including at the first
+  and last scroll row.
+- Selecting a citizen never starts follow; explicit follow tracks the selected
+  citizen; manual camera input releases follow coherently.
+- WASD/arrows never move the founder directly.
+
+### Citizen and city representation
+
+- Founder and recruited citizens travel visibly through the same route system
+  and do not teleport into a workplace.
+- Citizens disappear only after logical building entry and reconstruct at a
+  context-appropriate anchor after load.
+- Storage/food/schedule blockers produce a coherent wait/rest/leisure state,
+  not a frozen citizen at an entrance.
+- Multiple citizens never duplicate a carrier when switching macro/detail.
+- Routes remain visible and pass through every valid clearance-defined gap,
+  whether the adjacent obstacles are resources or constructions.
+
+### Complete-loop feedback
+
+- Prospect arrival and housing restriction are understandable.
+- Daily Food pressure is visible before it becomes a soft lock.
+- Expedition team, finite Food/Wood objectives, supplies and retreat posture
+  are discoverable.
+- Shelter detail makes recipes, missing inputs and durable stored state
+  legible; gathering explains a missing-tool blocker before movement.
+- Resource feedback follows the physical owner — founder before Cache, the
+  site afterwards — without adding a Chronicle row; the top ticker remains a
+  read-only ledger projection and never implies ownership.
+- Construction placement shows both axes of the frontage/depth grid, previews
+  `[OK]`/`[X]` before click, and never erases explanatory lines.
+- Encounter, return, wound and territory changes identify subject and cause.
+- Treatment communicates Food cost, duration and completion.
+- Save confirmation appears briefly and disappears.
+
+### Sign-off rule
+
+A UI flow is not complete because it compiles or appears in a headless scene.
+Closure requires the relevant matrix **plus** a real pointer/keyboard/gamepad
+path to its domain effect. Open a GitHub issue for any failed state.
+
+## Executed reviews
+
+| Date | State | Resolutions | Result |
+| --- | --- | --- | --- |
+| 2026-07-22 | `macro-current` | 1024×576, 1280×720, 1600×900 | Captures and dimensions valid. HUD, actions, plots, and Chronicle stay inside the viewport. Failed citizen-label composition: the status icon obscures the first character of persisted name `zeventh` at all three sizes (M-16). |
+| 2026-07-22 | `macro-m16-fixed` | 1024×576, 1280×720, 1600×900 | Pass. Persisted name `zeventh` is fully visible; the 16×16 contained icon and 6 px separation no longer overlap it. Harness also forces its Godot window to foreground before capture, preventing external-window contamination. |
+| 2026-07-22 | `macro-paused` | 1024×576, 1280×720, 1600×900 | Pass. The main control changes to the play action, the retained speed control is visibly disabled, and the status bar remains legible without overlaps. An initial `0.21,0.025` click missed the control and was discarded; the reviewed fixture uses `0.283,0.025`. |
+| 2026-07-22 | `construction-empty-pass2` | 1024×576, 1280×720, 1600×900 | Pass after fixes. The no-active-project choices fit without clipping, `View hero` retains its icon and label, the macro action changes immediately to `Close construction`, and Chronicle remains hidden behind the modal across live ticks. Intermediate captures exposed the blank packed-scene button and Chronicle refresh race and were rejected. |
+| 2026-07-22 | `construction-underway-pass` | 1024×576, 1280×720, 1600×900 | Pass after fixes. The active-project HUD uses the concise project/city chips and remains inside both edges; the preview is aspect-contained and no longer overlaps instructions; header, scrolling body, Pause/Resume, Cancel, and View hero remain reachable. Invalid multi-click manifests and non-equivalent modal states were rejected. |
+| 2026-07-23 | `shelter-detail-pass` | 1024×576, 1280×720, 1600×900 | Pass. Shelter art, resting citizen label, capacity summary, persistent status bar, and `Back to city` remain visible without overlap. An earlier black 1024×576 frame was rejected and recaptured after rebuilding. |
+| 2026-07-23 | `farm-detail`, `quarry-detail` | 1024×576, 1280×720, 1600×900 | Pass for layout. Production, stock, policy controls, assignment sidebar, available citizen action, and `Back to city` remain inside the viewport. Review also found that the runtime still exposes `Reactive policy` although the panel was documented as simplified; that product/code mismatch is not treated as a visual pass criterion. |
+| 2026-07-23 | `forest-detail` | 1024×576, 1280×720, 1600×900 | Pass for a gatherable Forest. Stock/reserve, foraging rate, production controls, assignment sidebar, and back path remain visible. A deterministic depleted-detail fixture is still required because depleted macro plots intentionally disable entry. |
+| 2026-07-23 | `hero-profile-fixed` | 1024×576, 1280×720, 1600×900 | Pass after fixing the profile scroll surface. The first capture exposed white copy on the global yellow `ScrollContainer` style and right-edge clipping at 1024×576. The profile now uses its dark reading surface, keeps a scrollbar gutter, wraps long copy, and preserves the fixed `Back to city` header. |
+| 2026-07-23 | `tutorial`, `tutorial-long` | 1024×576, 1280×720, 1600×900 | Historical pass, **superseded on 2026-08-05**. The layout was sound but the copy was not: its three hand-written steps asked for `1 wood` from the Forest plots and described status chips that no longer exist, while the real first construction is the Campfire (3 Branches + 2 Small Stone). `TutorialOverlay` and both fixtures were removed rather than rewritten, because a hand-written step list drifts again on the next increment. The authored guidance layer is reserved for the first-night dialogue surface, which needs a fresh signature. |
+| 2026-07-23 | `offline-report` | 1024×576, 1280×720, 1600×900 | Pass with a deterministic 80-event fixture. The first capture was overwritten by the live Chronicle refresh and was rejected. Capture mode now freezes the representative offline report; summary, decision rows, event list, scrollbar, header, and bottom-right anchoring remain inside the viewport. |
+| 2026-07-23 | `pause-menu`, `pause-menu-reset` | 1024×576, 1280×720, 1600×900 | Pass after rejecting the first capture, which exposed blank packed-scene `IconButton` content. The corrected menu shows its icon/label hierarchy, pauses the simulation, provides ESC/X/scrim close paths, and separates permanent reset behind an explicit confirmation. Capture mode suppresses persistence writes; no live slot was reset. |
+| 2026-07-23 | `orthogonal-terrain` | 1024×576, 1280×720, 1600×900 | Initial green capture rejected for excessive saturation and two atlas coordinates that rendered water tiles instead of trees. Brown-floor iteration was also rejected as too architectural. Final olive-ground capture uses only verified green/orange tree tiles; eight parcel boundaries, buildings, hero activity, macro actions, and Chronicle remain readable. |
+| 2026-07-23 | `resource-menu`, `resource-macro` | 1024×576, 1280×720, 1600×900 | Pass. Forest placeholder cards are gone. Interactive trees derive from current reserves, the contextual menu stays inside the viewport, and the new Menu action fits beside View hero and Construction. Gather and Close retain visible labels/icons. |
+| 2026-07-23 | `resource-gather` | 1024×576, 1280×720, 1600×900 | Historical pass in read-only capture mode. Its former status/Chronicle expectation was superseded on 2026-08-03 by physical-owner icon + amount feedback (following the founder before Cache); the fixture now requires a fresh visual signature. |
+| 2026-07-23 | `tree-click`, `construction-scroll-fixed` | 1024×576, 1280×720, 1600×900 | Pass. A physical click on the upper-left tree opens Gather/Close, proving the center layout no longer intercepts resource input. The construction fixture reaches the bottom of the scroll body, exposes Assigned/Available and fixed footer actions, and shows the founding shelter with one contributor. |
+| 2026-07-23 | `pixel-route-final`, `pixel-detail-retry` | 1024×576, 1280×720, 1600×900 | Pass. The in-flight gather route places the hero above-left of the Shelter instead of crossing its footprint. Shelter detail remains contained after removing its continuous fade and quantizing citizen carrier motion. The first detail attempt used a stale coordinate and was rejected. |
+| 2026-07-23 | `stable-tree-unit` | 1024×576, 1280×720, 1600×900 | Pass after arrival. The selected upper-left tree is absent while later tree slots remain in place. The citizen marker stays at the depleted slot after the gather-triggered refresh. Citizen marker and name now share one moving container. Capture mode migrated the loaded v6 fixture in memory without writing it. |
+| 2026-07-23 | `travel-refresh-guard`, `travel-refresh-arrival` | 1024×576, 1280×720, 1600×900 | Pass with Shelter and Farm complete and Quarry under construction. At 2 seconds the citizen remains mid-route despite project refresh events; at 6 seconds it has reached the upper-left resource slot. Active travel is no longer rebuilt by `CityMacroView.Refresh`. |
+| 2026-07-31 | `eg2-founding-blueprint`, `eg2-founding-module-choice`, `eg2-founding-blocked-cargo` | 1280×720, 1920×1080 | Pass with deterministic fresh-city fixtures. The localized Campfire cost and enabled Founding Site CTA fit; after Campfire, Bedroll and Cache remain simultaneously visible without Canopy being chosen automatically; a worst-case 6/6 Wild Food load in `AwaitingModule` exposes the localized cargo-return recovery action beside those module choices. Header, scroll body and fixed footer remain contained at both official resolutions. Authored module sprites remain pending art integration; the current Home placeholder is intentional. |
+| 2026-07-31 | `early-game-resources`, `early-game-resource-menu`, `early-game-resource-gather-signal` | 1280×720, 1920×1080 | Pass. Fresh fixture shows six mature trees and all 17 EG-A0 ground nodes. A real right-click on a Branches bundle opens the localized contextual action; confirming it routes the founder, removes that exact node and records `Branches +2` without changing Wood. Ground markers are intentional code-drawn placeholders pending authored sprites. |
+| 2026-07-23 | `resource-menu-current`, `physical-gather` | 1024×576, 1280×720, 1600×900 | Pass through the real menu button rather than the direct fixture. A physical click on Gather closes the resource menu and advances the marker/name container by roughly 24 px within 350 ms (three 8 px cadence steps at 1024×576), confirming the contextual signal reaches `TravelHeroTo`. |
+| 2026-07-24 | `expedition-idle`, `expedition-active`, `expedition-returned` | 1024×576, 1280×720, 1600×900 | Automated pass after rejecting the initial translucent panels. The dark modal surface keeps all copy readable; active state shows departure/return as world day and time and removes the leader from the city. The returned fixture initially froze the UI by replaying 14,400 ticks synchronously; its equivalent one-tick transition now completes the three-resolution matrix in 9.1 s and restores the leader. Human focus/close signature remains tracked by M-14. |
+| 2026-07-24 | `migrant-panel` | 1024×576, 1280×720, 1600×900 | Automated layout pass. Current population, recruitment copy, Recruit, and Close remain legible and contained on the same opaque modal surface. Human keyboard/gamepad signature remains tracked by M-14. |
+| 2026-07-25 | `forest-depleted` (headless) | n/a (fixture mode suppresses persistence) | The new `DrainAllForestsForVisualRegression` API in `CityWorldController` empties every natural resource patch through `WOG_VISUAL_CAPTURE` capture mode. The headless boot completes without C# or Godot errors. Windowed composition of the resulting empty macro view awaits an interactive desktop (50×50 client limitation). |
+| 2026-07-29 | `wound-recovery`, `wound-treatment-started` | 1024×576, 1280×720, 1600×900 | Historical three-size pass. The wound row and Shelter/Food treatment action remained contained; a physical click consumed 1 Food and started recovery. Capture mode suppressed persistence. |
+| 2026-07-29 | `wound-recovery`, `wound-treatment-started` | 1280×720, 1920×1080 | Pass under the new official two-resolution contract. The captured duration read “1 día de tratamiento restantes” instead of exposing ticks; a physical click consumed 1 Food, removed the action, and started recovery without overflow. A later locale-only grammar polish changed this to “tiempo de tratamiento: 1 día”; its recapture was blocked when the desktop harness reported a 50×50 client, so the final wording still needs a graphical signature. |
+| 2026-07-29 | `typography-pixel-perfect` | 1280×720, 1920×1080 | Pass through an in-engine viewport capture after forced reimport. Geist Pixel, Jersey 10, and Pixelify Sans render `W/w`, `O/o`, `M`, curves, diagonals, accents, and numerals with solid pixels. The title crop contains exactly two colors (background and glyph) at both resolutions; the former grayscale fringe is absent. The window-handle harness still intermittently reports 50×50, so this fixture writes the viewport image directly when given its capture argument. |
+| 2026-07-30 | `world-status`, `world-status-hover-paused`, `world-status-treatment` | 1280×720, 1920×1080 | Pass. Farm/Quarry full-storage badges remain visible without covering their buildings; a real pointer move exposed the contextual idle bubble at 1280×720; the deterministic treatment fixture exposed Tamara's moderate wound and one-day treatment at both official resolutions. The bubble remains transient and contained, while the building badges remain persistent. |
+| 2026-07-30 | `citizen-click-summary` input-boundary fix | n/a (scene-tree fix) | `GameUiShell` and `ScreenContent` now declare `mouse_filter = 2` (Ignore) in `CityPrototype.tscn`. Without that, the fullscreen layout container swallowed every pointer event over the macro world — `GuiGetHoveredControl()` returned `GameUiShell`, `_UnhandledInput` never fired, the citizen bubble blinked open then was hidden one frame later by `ClearWorldStatusHover`, and left-clicks on citizens never reached `TryClick`. Building/tree clicks looked like they worked because the visual-regression fixtures call `TryClick` directly. `MacroInputBoundaryTests` now guards the property on both nodes. The `citizen-click-summary` row still needs a real left-click capture before it can be signed off — code review alone is insufficient (see `verify-clicks-with-real-clicks`). |
+| 2026-07-31 | `camera-depth-third-row` | 1280×720, 1920×1080 | Pass. Manifest: `%TEMP%\wog-camera-depth-final\camera-depth-third-row-manifest.json`. The first street is absent after crossing the near plane, the second remains as a large foreground obstruction, the third is the focal band, and the remaining streets stay readable without overflow. This is a presentation stabilization, not a vertical-slice advance. |
+| 2026-07-31 | `cultivation-prepared`, `cultivation-action`, `cultivation-sown` | 1280×720, 1920×1080 | Pass with a deterministic fresh-city fixture. The prepared plot reads as empty furrows beside the Shelter; a real right-click opens the localized sow affordance; a real left-click consumes one Food (7→6), closes the action and adds three non-color-only sow markers. HUD, selection summary and Chronicle remain contained. Manifests: `%TEMP%\wog-cultivation-valid`, `%TEMP%\wog-cultivation-menu`, `%TEMP%\wog-cultivation-sown`. Invalid pre-fixture captures that fell back to the loaded slot were rejected. |
+| 2026-08-03 | `construction-placement-hover-invalid` | n/a (fixture and headless boot verified) | The fixture selects a domain-blocked three-column window before click so the complete grid and `[X]` feedback can be signed visually. Automated desktop capture was attempted but rejected because the Godot client reported 50×50 instead of 1280×720; no visual pass is claimed. |
+| 2026-08-03 | `terrarium-8x9-window` | 1280×720 direct viewport | Diagnostic pass. The 8×9 semantic envelope keeps the original pseudo-perspective instead of stretching all rows into the viewport. At minimum zoom (`1.30`, uniform), lower pivot and focus street 2, thirteen street bands render from approximately `y=712` to the upper usable edge at `y=80`: two foreground, the focus and ten receding bands. The founding three-column band is recentered within the nine columns; remaining rows wait for discrete camera movement. Capture: `%TEMP%\wog-terrarium-8x9-window-final.png`. The final sample was 15.201 ms, so lateral culling/batching remains open. |
+| 2026-08-06 | `astral-start`, `astral-ground`, `astral-identity`, `astral-founder-card` | 1280×720, 1920×1080 | Pass for containment after the onboarding layout rework. The identity step previously overflowed its 656 px budget by roughly 120 px and walked the footer off-screen; it now measures ~567 px with the footer inside the safe area at both resolutions. Choice buttons dropped from a forced 66 px to their natural 40 px, the `_narrative`/`_consequence` 92 px and 52 px floors are gone, empty rows hide instead of blanking, and two `ExpandFill` spacers absorb the slack so no row can push the footer out. The body-presentation pair is one 304 px control instead of two ~510 px expanded buttons, and its selected option carries a check glyph as well as the palette. The new `astral-founder-card` step renders the bible's seven fields with three `CubeAxisBar` rows and no weapon families. Manifests under `%TEMP%\wog-onboarding`. **Historical note:** those captures showed the then-current city status strip and `MacroActions` row through the translucent veil. `MacroActions` has since been deleted, and all macro-only summary/navigation/control siblings now start hidden until macro perspective activation. The shell-owned top status was not changed by that migration. |
+| 2026-08-06 | `firstnight-manifested` | 1280×720, 1920×1080 | **Root-cause fix verified, composition NOT signed.** `CityPrototype` was constructing `FirstNightScene` with `ControllerPath = "CityWorldController"`, but the node is added as a *child* of `CityPrototype`, so the path resolved to `FirstNightScene/CityWorldController` and never matched. `FirstNightScene._Ready` logged a warning and returned before subscribing, so the authored night never rendered and never advanced: no spirit, no dialogue, and `IsFirstNightActive` stayed permanently true, which also suppressed `DayBegan`/`NightBegan` and `ApplyResidentFoodRation` for the life of the save. Confirmed at runtime by the boot warning, which is gone after the fix. With the new fixture, the strip shows its first authored line and a real click on `Continuar` advances the stage and manifests the spirit ring at both resolutions. **Not signed:** this is the first time the strip has ever rendered, and it exposes its own defects — light body text on the yellow 9-slice is close to unreadable, the band's bottom border sits on the viewport edge, and the status strip picks up the same yellow fallback stylebox. Those need their own pass. The displayed-clock stall (`FirstNightState.DisplayedTick`) is still unwired; see the open question in `docs/systems/first-night.md` §9. |
+| 2026-08-06 | `astral-start`, `firstnight-manifested`, `pause-menu`, `migrant`, `policies`, `offline-report`, `macro-current`, `typography-pixel-perfect` | 1280×720, 1920×1080 | Pass. The yellow surface is gone from the game. Two causes were removed together: `default_theme.tres` mapped `ButtonText` — the default variation of ~80 % of buttons — to `kenney/9-slice/yellow.tres`, and `LineageThemeRegistry.DefaultPanelStyleboxPath` pointed at the same file while the active lineage started as `"default"`, an id that was never a key of `StyleboxByLineage`; every panel therefore resolved through the fallback until a hero existed. `"default"` now resolves explicitly to the neutral slate and is deliberately **not** a dictionary entry, so `AvailableLineages` still returns exactly eight. Button text flipped to cream on the dark surface; layout metrics are unchanged (`content_margin` 16/4 preserved), verified by comparing the onboarding captures before and after. `Capture-TypographySpecimen` reports `TitleCropColorCount: 2`, so the theme change introduced no antialiasing fringe. Also fixed here: `FirstNightScene` hosted the night on `CanvasLayer.Layer = 50`, but `OverlayLayers` is a **ZIndex** catalogue and a CanvasLayer outranks every ZIndex — the spirit and the strip were drawing over the onboarding (80), the pause menu (100) and the Notifier. The surfaces are now plain canvas roots at `OverlayLayers.Tutorial`, which the pause capture confirms: the spirit sits under the scrim. **Not signed:** bushes, branches and stones are still flat `ColorRect` markers rather than sprites, the fire spirit is still the placeholder ring, and building detail views still use a tiled `ancient_brown` texture instead of an orthogonal tiled floor. |
+| 2026-08-06 | `early-game-resources`, `time-noon`, `firstnight-manifested` (+ real click), `shelter-resources` | 1280×720, 1920×1080 | Pass. Ground resources are sprites instead of flat `DrawRect` markers: dry brush (Branches), green sprout (PlantFiber), grey rubble (SmallStone), berry bush (WildFood), verified at `time-noon` because the ambient night tint cools every grey toward blue and hides tile mistakes. It caught one: the first SmallStone coordinate `(44,10)` is a stack of silver ingots, not pebbles — the same failure mode as the water-instead-of-tree coordinates already recorded above. Atlas coordinates now live only in `Ui/TerrainAtlas.cs`; they were previously duplicated across `ResourceTree`, `DrawNaturalResourceUnit` and `SelectTree`. The fire spirit is a flickering flame re-projected every frame (its position used to be sampled only on a stage change, which is why it looked pinned to the viewport) and its dialogue is a balloon anchored over it — a real click on the balloon advances the stage and the next line appears with the tail still pointing at the flame. Building detail views draw an orthogonal tiled floor at integer ×4 scale. **Fixed during this review:** the balloon was drawing over the building detail panel, because the night sits at `OverlayLayers.Tutorial` above the HUD layer; the night's surfaces now hide whenever the selection is not the macro view. **Not signed:** the spirit is authored geometry, not art — no free-standing flame exists in the three packs; and the detail floor tile reads slightly brick-like, which is a tile choice worth revisiting when interiors get real art. |
+| 2026-08-06 | `firstnight-manifested` × 2 clicks (build stage), + Construction opened | 1280×720, 1920×1080 | Pass on four playtest defects. (1) The spirit fell silent after two lines: `ColdExplained` and `ShelterExplained` return `null` from the dialogue catalogue by design because they wait on a module, and nothing filled the gap, so the organic tutorial never taught anything. The balloon now carries a directive whose quantities come from `FoundingSiteRules.InputsFor` — verified against the Construction panel in the same run, which independently prints "Fogata — 3 ramas + 2 piedras pequeñas". (2) The balloon clamped to the top edge when it did not fit above the speaker and so covered the spirit; it now flips below and mirrors its tail. (3) The balloon stayed visible over the Construction modal — no modal changes `CityWorldController.Selection`, so the scene now also watches `ModalHost.Opened`/`Closed`; the capture with Construction open shows both balloon and flame gone. (4) Every gatherable raised the axe; the hover handler now tracks the hovered `ResourceType` and picks axe / pickaxe / grabbing hand. **Not verified visually:** the cursor itself — `Input.SetCustomMouseCursor` draws through the OS and the window capture does not include the pointer, so cursor art needs a human check at the desk. Two directive keys are reached through a ternary, which `Test-LocalizationCatalog` cannot see (known blind spot); they were confirmed on screen instead. |
+| 2026-08-06 | `firstnight-manifested` (opening beat) | 1280×720, 1920×1080 | Pass on the opening narration. The balloon no longer draws a tail at `Manifested`: `FirstNightRules.SpiritIsPresent` is false there, so the tail pointed at empty ground and a playtester read it as "the balloon appears but the spirit does not". Narration now renders tail-less; only stages with a present spirit get a speaker tail. `FirstNightEmbers` also stopped being a wireframe quadrilateral — a playtester asked whether the shape stamped on the terrain tile was a lineage sigil — and is now the atlas campfire sprite tinted toward ash. **Not verified visually: the embers.** No fixture reaches "night concluded with `SpiritDeparted` and a built Campfire"; `docs/engineering/visual-regression.md` lists a `firstnight-embers` row but `CityPrototype` has no such case, so that row has never been executable. The change is build- and boot-verified only. **Open, not code:** five of the six authored dialogue bodies are third-person narration about the spirit ("El espíritu se detiene, sorprendido"), not speech by it, so a speech balloon misrepresents them; classifying voice per node is a `narrative-lore` decision over 48 keys, not a presentation fix. |
+| 2026-08-06 | `early-game-resources`, `macro-current` (daylight) | 1280×720, 1920×1080 | Pass on world scale. `CitizenSpriteCarrier.MacroScale` went `0.25` → `0.5`: the quarter-scale inhabitant was chosen against placeholder terrain and read as a dwarf once the terrain art landed. Trees now draw in their two-tile form — the canopy extends above the resource rect while the trunk keeps its ground line, so the plot footprint and the click rect are unchanged. Assert the resulting hierarchy in daylight, where the ambient tint is not flattening values: **tree canopy > founder > bush > ground litter**. Note the trees and the wild-food bushes were never from different packs; they shared one square rect, which is why they measured the same. The two halves are drawn as separate 16×16 regions rather than one 16×33 slice, because the sheet's 1 px transparent gutter would otherwise cut a line across the trunk. |
+| 2026-08-06 | `macro-current` (daylight, live slot) | 1280×720 | Pass after removing a bonfire that rendered on top of the founder. `FirstNightScene` had always placed the campfire at `founderScreenPosition + (0,-32)` — a documented placeholder ("a future iteration can refine this") that put the fire on the citizen. It was invisible while `FirstNightEmbers` was a faint wireframe and became an obvious bonfire the moment the embers were given the atlas campfire sprite. `MacroStreetLiveView.GetBuildingGlobalPosition` now resolves a real anchor from `_clickableRects`, and `CityWorld.FoundingSiteBuildingId` supplies the id. **While the founding site is still a construction project there is no Building and the macro view exposes no anchor for a project, so the embers now draw nothing rather than guessing** — a fire in an invented place reads as world state and is worse than no fire. The fire spirit was also halved and lifted to `(34,-44)`: at the previous size it stood as tall as the founder on his own ground line, which is why two separate playtest reports called it "a campfire on the floor". **Open:** the embers are therefore unverifiable and effectively unreachable until the macro view publishes a project anchor; that plumbing is still owed. |
+| 2026-08-06 | `time-noon` (live slot) | 1280×720 | Pass on corrected ground-resource art, supplied by the designer as pack tile ids: Branches 654, WildFood 537, SmallStone 1251/1252/1253. Resolved with `TerrainAtlas.RegionOfId` — the sheet is 57 tiles wide and numbers row-major from zero, so `(id % 57, id / 57)`. **Both readings were rendered before committing to one**: Tiled's GIDs are this index plus one, and the two land a column apart, which for these ids is the difference between deadwood and a plain bush, and between a rock and a wooden crate. Base-zero was correct for all five. Stone now has three variants chosen from the unit identity, so a given stone keeps its shape across saves. Reviewed at noon because the night tint hides hue errors — the mistake this replaces (rubble that read as broken masonry, and before it a stack of silver ingots that read blue) was found exactly this way. |
+| 2026-08-06 | `macro-current` (live slot, night active past dawn) | 1280×720 | Pass on the held clock and the spirit's anchor. The status strip read `Día 1 · 08:56` with the authored night still running; it now reads `05:59` and holds there. `FirstNightState.DisplayedTick` had existed and been unit-tested since the night shipped with **zero production call sites** — `CityStatusSnapshot` and `TimeOfDayFilter` both read the raw tick, so the sun rose over a player the spirit was still teaching. The simulation tick is still never frozen: freezing it would halt construction and make the very module the night waits on unreachable. Also fixed: from `CampfireBuilt` onward the spirit jumped to the middle of the screen and hovered over nothing, because `SpiritAnchor` returned `_campfireScreenPosition` unconditionally and that field keeps its constructor default `(640,380)` while the founding site is still a project — a regression introduced the same day by making the embers refuse to guess their position. The anchor is now gated on `_hasCampfireAnchor` and falls back to the founder. |
+| 2026-08-06 | `firstnight-manifested` (opening narration) | 1280×720, 1920×1080 | Pass on dialogue attribution. Every node in `FireSpiritDialogueCatalog` declared `SpeakerId = "fire_spirit"`, including the five bodies written as third-person narration *about* the spirit — so the balloon had the spirit narrating itself ("El espíritu se detiene, sorprendido"). A `narrator` speaker now carries those; only `firstnight.shelter_built` is spoken aloud. Narration renders centred, tail-less and a shade dimmer; speech keeps the `DialogText` tier, ranged left, with a tail on the spirit. `FirstNightDialogueCatalogTests` asserted the old misattribution and was corrected, plus a new test guards that the night keeps **both** voices so the split cannot silently collapse. **Open, narrative:** whether specific beats should be rewritten *as* speech so the spirit behaves more like a character is still a `narrative-lore` call over 48 keys; this change only stops the game misattributing the copy that exists. |
+| 2026-08-06 | `time-noon`, `early-game-resources` | 1280×720 | **Partial.** The macro view now sorts obstacles and citizens on one axis: buildings and resources moved out of the view's own `_Draw()` into one `StreetBandLayer` per street, whose `ZIndex` comes from the same `DepthToZ(depth)` the citizen carriers now use. Before this they were incomparable — a `CanvasItem` emits its own commands before its children, so every citizen drew after the entire world regardless of depth. Ground stays in the view's own `_Draw()`, which is correct: terrain is always behind. Two regressions were found and fixed during the pass, both only visible in capture: helpers kept drawing onto `this` after gaining a canvas parameter, which silently blanked every tree ("Drawing is only allowed inside this node's `_draw()`"); and the new positive child z-indices outranked the HUD, so a tree on the nearest street drew over the Chronicle — the view now sits at `OverlayLayers.WorldDepthBase` so its whole child range stays under the ambient tint and the panels. **Not signed:** the decisive case — a founder occluded by a nearer tree and occluding a farther one in the same frame — has not been captured. No current fixture places the founder behind a nearer tree, so the ordering is implemented and the world renders correctly, but the acceptance row at "tree canopy > founder" is still unproven. A fixture that parks the founder mid-band is owed. |
+| 2026-08-06 | `time-noon` (live slot, Caelith founder) | 1280×720 | Pass. The ground stopped cycling `street % 3` across Grass/Dirt/Stone — the reason it read as three arbitrary bands — and now draws from a per-lineage `GroundBiome` (DEC-0017), presentation only. Reviewed at noon, where the tint cannot hide hue errors. Two things were caught here that code review would not have: the flower-strewn grass tiles are autotile members and each carries a corner of the neighbouring material, so tiling one shows the cut — scatter needs transparent props and is **not delivered**; and the first variant hash produced flat horizontal stripes, because `tileIndex * 3` vanishes modulo three variants and the choice collapsed onto the row. Variant selection now lives in `TerrainAtlas.VariantIndex`, a spatial hash that does not degenerate for any variant count. **Not signed:** only the Caelith biome has been seen — the live slot's founder. The other seven are wired from verified seam-free ids but none has been captured, and the palette re-opens the signed "olive-ground" decision recorded above, so it deserves a human look per biome. |
+| 2026-08-06 | `time-noon` (fresh Vaelun city, Sand biome) | 1280×720 | Pass on biome variety. Trees are now a per-biome set instead of two hard-coded columns: the six two-tile species (broadleaf and conifer in green, autumn and teal), a fruiting broadleaf, a bare dead tree and a single-tile cactus, chosen from the unit's identity so a given tree keeps its species across saves. Small stones went from three to six variants (1251-1253 bare, 1308-1310 mossy). The Sand biome capture shows cream ground, autumn conifers, dead trees rendering correctly as canopy-plus-trunk, and mossy rocks — visibly a different place from the Caelith city captured earlier, which is the point of the biomes. The selection panel now shows the trunk tile of the tree actually clicked rather than a generic green canopy. **Not verified:** the cactus. Its id is confirmed against a rendered sheet ((22,9) = 535, and the arithmetic cross-checks against the known-good WildFood id 537), and single-tile trees skip the canopy by construction, but no capture has yet contained one. |
+| 2026-08-06 | `biome-<lineage>` × 8 | 1280×720 | New fixture. `biome-ardhen`, `biome-eirune`, `biome-kovari`, `biome-myrven`, `biome-vaelun`, `biome-orveth`, `biome-caelith`, `biome-theryn` each build a fresh city founded by that lineage, because the founder's lineage is *inferred* by the onboarding scorer and never chosen — reaching a given palette otherwise means replaying twelve questions and hoping. Reviewing all eight side by side is what caught two things a single capture could not: an even mix of fills reads as a **checkerboard**, not ground, so ground variant selection is now deliberately lopsided (`GroundVariantIndex`, one material dominant with occasional patches, versus the uniform `VariantIndex` still used for trees and stones); and the magenta and teal fills are decorative tiles, not credible ground — a city floored in teal read as built on open water. Those two biomes are now green-dominant with different accents and tree sets. Assert per biome: one readable dominant material, patches that do not tile into a grid, and a tree set that belongs to the place. |
+| 2026-08-06 | `biome-kovari` | 1280×720 | Fix. The Kovari ground showed a curved bite out of every tile: `1026` is not a fill but an **inner-corner** piece of an autotile patch. The sheet has two things that look like fills — the solid swatch block (cols 5-9, rows 0-1), which really is flat, and the coloured *patch* blocks, which are 5×3 autotiles whose columns 0-1 are the four inner corners (each carrying a notch of the material underneath) and whose columns 2-4 are a 3×3 rounded blob. **Only the blob's centre tile is seam-free**: orange is `1086`, not `1026`. This is the same trap that made the earlier magenta and teal grounds unusable, and it is why the flower-strewn grass cannot be tiled either — every one of those is an autotile member. When taking a new ground id, render its whole 5×3 block, not the tile alone: a notch on one corner is invisible at single-tile zoom and obvious once repeated across a band. |
+| 2026-08-06 | `biome-kovari`, `firstnight-manifested` | 1280×720 | Fixture correctness, not appearance. The fixtures built their founder with `CitizenProfile.TryCreate` and a hand-picked list of aptitudes, professional affinities, personality traits, combat style, weapon preferences, political orientation and spiritual posture. A founder starts with none of those: `CitizenProfile.CreateFounder` — the production path — passes empty arrays for every one, because they are earned through a citizen's history, and `SpiritualPosture` is already `[Obsolete]` per DEC-0013. The fixtures now go through `CreateFounder`, so a captured city is representative of a real first run instead of one whose founder was born pre-qualified. Worth stating as a rule: **a fixture that has to invent earned state is testing a world the player cannot reach.** |
+| 2026-08-08 | `macro-current`, `construction-placement`, `construction-placement-escape`, primary/action/simulation input fixtures | 1280×720, 1920×1080 | Pass after an initial series of correctly rejected 50×50 clients. `PrimaryNavDock` measures `(358,632) 564×72` on the fixed logical canvas; moving the camera-mode world utility intact to `SimulationControls` leaves six complete short EN/ES labels, and the Chronicle now ends 16 px above both bottom surfaces. Placement replaces the primary dock with `ActionDock`; a real `ui_cancel` restores it. Real injected pointer events opened Hero, Construction, Menu, Expeditions, Policies and Citizens, toggled camera mode, confirmed/cancelled placement, paused and changed speed. Real D-pad-right events moved focus Hero → Construction, ActionDock Confirm → Cancel and SimulationControls Play/Pause → Speed. Manifests: `%TEMP%\wog-primary-nav-final`. |
+| 2026-08-08 | Final Proposal-06 macro HUD: default, selection, construction, expedition, placement, ESC, hero transition | 1280×720, 1920×1080 | Pass. The first complete frame exposed a missing bottom anchor that collapsed `ExpeditionRail` to a thin strip; the authored rail now spans its intended 236×568 logical slot. All compact HUD chrome uses the one-pixel `Hud*` family, including `ActionDock` and `ContextInspector`. The fixed world window between 240/236 px rails remains dominant; the dock and simulation cluster do not overlap either rail. Placement uses a deterministic mature-city fixture so first-night tutorial chrome cannot invalidate the HUD comparison. Real D-pad Confirm → Cancel and real ESC restoration pass at both sizes; a real Hero click proves macro-only surfaces deactivate on a full subscreen. Manifests: `%TEMP%\wog-final-macro-hud`. |
+| 2026-08-08 | `macro-current`, `offline-report`, `construction-scroll`, `expedition-idle`, `policies`, `migrant`, `pause-menu`, `shelter-resources`, `primary-nav-focus` | 1280×720, 1920×1080 | Pass. `PrimaryNavDock` is a measured and authored 300×52 icon-only dock; all six actions remain distinct and readable after normalizing SVG source fills for theme tinting, and the real D-pad fixture moves Hero → Construction without a geometry error. `ChroniclePanel` replaces the deleted adjacent full-log surface: the offline fixture starts at its welcome/attention summary, retains the bounded scrollbar and keeps the collapse action inside the rail. Construction and Pause no longer replace `HudSurface` with lineage component frames; connected modal/detail surfaces share compact HUD typography, button roles, progress and cards. The replacement matrix was inspected without the unrelated Windows crash dialog that invalidated the first attempt; its highest sampled frame was 36.20 ms, so no >40 ms spike occurred. Manifests: `%TEMP%\wog-hud-clean-final`, `%TEMP%\wog-primary-nav-compact-focus`. |
+| 2026-08-08 | `firstnight-manifested`, `macro-arrow-focus-isolation`, `pause-arrow-focus`, `construction-hero-route` | 1280×720, 1920×1080 | Pass. World dialogue uses the slot between ambient tint and HUD and clamps to the central corridor, so neither side rail is covered and the complete line remains readable. A physical Right key pans the camera without changing Hero dock focus; with Pause open, Down moves menu focus while camera position stays exact. A real View Hero pointer click waits for the Construction modal and scrim to finish closing before selecting the unobstructed profile. The capture harness reported isolated startup/frame spikes above 40 ms for the dialogue/arrow fixtures; this pass makes no performance claim. Manifests: `%TEMP%\wog-dialogue-layer-clean`, `%TEMP%\wog-input-modal-fixes`, `%TEMP%\wog-pause-arrow-focus`, `%TEMP%\wog-construction-hero-final`. |
+| 2026-08-09 | `macro-current` (HUD visual convergence) | 1280×720, 1920×1080 | Pass. `PrimaryNavDock` widened to 520×60 with five labelled destinations (Héroe, Obra, Exp, Norma, Gente) — menu moved out. `SimulationControls` shrunk to 76×32 holding only `PlayPauseButton` + `SpeedButton`; camera-mode moved to the new right-edge `UtilityCluster` inside `CityStatusPanel`, alongside the menu/pause open button. The dock widens per-button (`PerButtonWidth = 88`) so Spanish "Construir" and English "Construction" fit without ellipsis at the default `HudButton` content margins. Fixture-side `dockRect.Size != PrimaryNavDockSize` (constant `520,60`) replaces the literal `300,52` assertion. New structural guards: `PrimaryNavDock_NoLongerOwnsTheMenuButton`, `CityStatusPanel_ExposesUtilityClusterWithCameraAndMenuIconButtons`, `PauseMenu_OpenButtonPath_RedirectsToUtilityClusterMenu`, `SimulationControls_DropsTheCameraIconButton`. **Pending human sign-off** on the labelled dock and utility cluster at both official sizes. Manifests: `%TEMP%\wog-hud-convergence-before`, `%TEMP%\wog-hud-convergence-after`. | |
+| 2026-08-10 | `expedition-components-default`, `expedition-components-focus-keyboard`, `expedition-components-focus-gamepad` | 1280×720, 1920×1080 | Automated capture and agent visual inspection pass for the reusable component surface. The real octagons retain their proportions at 1×/1.5×; Empty/Locked/Ready/Cooldown/Disabled, HP/secondary bars and critical state remain contained; Locked uses `[X]` plus text and cooldown uses remaining time plus fill length. Injected physical Right and D-pad Right both move the focus frame from Ready slot 1 to Locked slot 2. No human product signature is claimed, and this is not a live expedition screen. The prototype emits no `[WOG-FRAME-TIME]` samples, so these manifests make no frame-budget claim. Manifests: `%TEMP%\wog-expedition-components-signed`, `%TEMP%\wog-expedition-components-final`, `%TEMP%\wog-expedition-components-final-text`. |
+| 2026-08-10 | `expedition-live-early` | 1280×720, 1920×1080 | Automated capture and agent inspection pass for the structural live perspective. A real injected pointer activates the rail's `VER`; the macro-only surfaces disappear without being freed, `CityStatusPanel` and global Fast speed survive, the non-branching route is in Encounter, the Founder/locked and Ready/locked strips remain intact, and two fixture-only enemy silhouettes stay on the right of the lateral stage. Threat remains explicitly “no medida” because no linked encounter source exists. AUTO/RETIRADA are disabled and no combat outcome is claimed. Manifest: `%TEMP%\wog-expedition-live-early-final2\expedition-live-early-manifest.json`. The subsequent review made only state-projection/focus and fixture-copy corrections: retreat now skips rather than completes Objective, rail focus follows `VER → Details`, and the fixture detail uses stable `Founder` instead of a save-local name. Their runtime fixtures pass; four attempts to refresh the same matrix were correctly rejected by the documented 50×50 bootstrap-window guard, so no newer graphical signature is claimed. |
+| 2026-08-10 | `expedition-live-early`, `expedition-rail-chronicle-roundtrip` | 1280×720, 1920×1080 requested | Spatial stage and rail round-trip runtime validation pass: 1168 tests cover deterministic movement/range/knockback and the headless rail fixture logs Chronicle close → expedition cards/`VER` restored. Two matrix attempts were rejected at the first 1280×720 edge because the harness attached to the documented 50×50 bootstrap client; no PNG was accepted or versioned and the previous valid layout signature remains authoritative. |
+| 2026-08-10 | `expedition-live-travel`, `-encounter`, `-basic-attack`, `-skill-ready`, `-skill-cooldown`, `-auto-on`, `-auto-off`, `-ranged`, `-knockback`, `-objective`, `-return` | 1280×720, 1920×1080 | All 22 local frames were accepted by the window-size guard and remained contained against the local `Expediton HUD reference.png` geometry. Fixtures use an isolated real dawn/Spirit Trail, actual `VER`, real session events and domain phase transitions; all 22 logs were clean and peak engine process time was 12.824 ms. PNG/log/frame-time artifacts remain unversioned under `%TEMP%\wog-spirit-trail-final`. |
+| 2026-08-11 | `citizen-in-transit` (new), `shelter-resources`, `city-summary-en`, `cultivation-prepared`, `top-status-en` | 1280×720, 1920×1080 | Pass. A2 (DEC-0023) moved arrival authority into the domain and re-paced the drawn route across the journey window, so the review question is whether the walk still reads as a walk. The new fixture leaves the founder mid-journey with the clock running; captured at 3/10/20/40 s it shows the founder progressively further along one route (`12:00` → `12:03` → `12:07`, panel reading *"Contributor travelling to the site"*), never arriving before the 30-tick window, and at `12:15` off the map with **At work 1** and the Farm progressing. The four pre-existing fixtures whose setup changed — they now advance the clock instead of asserting an arrival — render unchanged in substance: the shelter fixture still shows the founder settled indoors (*"1 ciudadano descansando aquí"*), and the city summary still shows one worker contributing. Two notes: the console Godot binary reproduced the known client-size race (`960x480`) where the windowed binary did not, so captures used `Godot_v4.7.1-stable_mono_win64.exe`; and the isolated startup frame spikes above 40 ms recorded on 2026-08-08 recurred, so this pass makes no performance claim either. Artifacts: `%TEMP%\wog-a2-transit-*`, `%TEMP%\wog-a2-*`. |

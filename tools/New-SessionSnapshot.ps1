@@ -140,20 +140,13 @@ $workingTree = Invoke-Probe "git status" {
 $schemaVersion = Invoke-Probe "save schema" {
     $savePath = Join-Path $repoRoot "src\WorldofGoses.Persistence\WorldSave.cs"
     if (-not (Test-Path $savePath)) {
-        # A6 relocated Persistence out of Domain; keep the legacy path as
+        # A6 relocated Persistence out of Domain; the legacy path stays as
         # a fallback so the snapshot survives the move-in-progress.
         $savePath = Join-Path $repoRoot "game\scripts\Domain\Persistence\WorldSave.cs"
     }
     $match = Select-String -LiteralPath $savePath -Pattern "CurrentVersion\s*=\s*(\d+)" | Select-Object -First 1
     if (-not $match) { throw "CurrentVersion not found in WorldSave.cs" }
     "WorldSave.CurrentVersion = $($match.Matches[0].Groups[1].Value)"
-}
-
-$activeIncrement = Invoke-Probe "active increment" {
-    $statusPath = Join-Path $repoRoot "docs\CURRENT_STATUS.md"
-    $match = Select-String -LiteralPath $statusPath -Pattern "^\*\*Active increment:\*\*\s*(.+)$" | Select-Object -First 1
-    if (-not $match) { throw "Active increment not found in CURRENT_STATUS.md" }
-    $match.Matches[0].Groups[1].Value.Trim()
 }
 
 # ---------------------------------------------------------------------------
@@ -302,7 +295,7 @@ $report.Add("Generated at $([DateTimeOffset]::Now.ToString('yyyy-MM-ddTHH:mm:ssz
 $report.Add("")
 $report.Add("This file is generated. Do not hand-edit it: the next session start")
 $report.Add("overwrites it. Narrative history belongs in CHANGELOG.md, the design")
-$report.Add("intent in docs/CURRENT_STATUS.md.")
+$report.Add("intent in docs/, and open work in GitHub Issues.")
 $report.Add("")
 $report.Add("Repository")
 $report.Add("----------")
@@ -314,7 +307,7 @@ $report.Add("Working tree    : $workingTree")
 $report.Add("")
 $report.Add("Game")
 $report.Add("----")
-$report.Add("Active increment: $activeIncrement")
+$report.Add("Open work       : GitHub Issues (gh issue list)")
 $report.Add("Save schema     : $schemaVersion")
 $report.Add("")
 $report.Add("Baseline")

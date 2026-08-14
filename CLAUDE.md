@@ -13,11 +13,15 @@ game is closed. There is no meta-progression between cities and no bonus
 for restarting. Expeditions are configured and automatic. All current
 names — including the project name itself — are provisional.
 
-Canonical design source: [`docs/world-of-goses-design-bible/`](docs/world-of-goses-design-bible/README.md).
-Process guide: [`docs/PRODUCT_DIRECTION.md`](docs/PRODUCT_DIRECTION.md).
-Current slice and next proof: [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
-Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-Repository conventions in full: [`docs/REPOSITORY_CONVENTIONS.md`](docs/REPOSITORY_CONVENTIONS.md).
+Documentation index: [`docs/README.md`](docs/README.md).
+System canon: [`docs/systems/`](docs/systems/) · product canon: [`docs/world/`](docs/world/).
+Review guide: [`docs/engineering/design-review.md`](docs/engineering/design-review.md).
+Architecture: [`docs/engineering/architecture.md`](docs/engineering/architecture.md).
+Repository conventions in full: [`docs/engineering/conventions.md`](docs/engineering/conventions.md).
+
+**Open work lives in GitHub Issues, not in the documentation.** `gh issue list`
+is the backlog; `docs/` explains only what exists. Never add a "pending",
+"next steps" or "implementation phases" section to a canonical document.
 
 ## 1. Routing
 
@@ -109,7 +113,7 @@ another line. They mirror `AGENTS.md` §3.
 - **Static styling belongs in Scene/Theme/StyleBox.** Semantic Theme type
   variation before a local override; `Container` before manual positioning;
   no static scene trees built in C#; no new global managers or event buses.
-  See `docs/ARCHITECTURE.md` §2 "Godot vs C#".
+  See `docs/engineering/architecture.md` §2 "Godot vs C#".
 - **No secret.** Never read, add, or commit secrets.
 - **No premature backend.** Local-only persistence.
 - **No unjustified dependencies.** Justify every NuGet / plugin / SDK.
@@ -139,7 +143,7 @@ another line. They mirror `AGENTS.md` §3.
 
 ## 4. Conventions
 
-For the full prose see [`docs/REPOSITORY_CONVENTIONS.md`](docs/REPOSITORY_CONVENTIONS.md).
+For the full prose see [`docs/engineering/conventions.md`](docs/engineering/conventions.md).
 One-paragraph summary:
 
 - C#: PascalCase types and methods, camelCase locals, `_camelCase` private
@@ -200,11 +204,11 @@ install global tools.
 
 ### 5.1 Session state
 
-`docs/session-state/` holds the *measured* baseline, as opposed to the
-hand-written claims in `CURRENT_STATUS.md`. The two drift: on 2026-08-03 the
-prose claimed 728 passing tests against a real 730, and 761 template IDs
-against a real 804. When they disagree, the measurement wins and the prose
-gets corrected in the same change.
+`docs/session-state/` holds the *measured* baseline. Never restate a build,
+test, schema or catalogue number in prose: hand-copied numbers drift, and they
+did — a document once claimed 728 passing tests against a real 730 and 761
+template ids against a real 804. When a document and the measurement disagree,
+the measurement wins and the prose loses the number entirely.
 
 ```powershell
 # Automatic at session start (SessionStart hook). Git and source only,
@@ -227,7 +231,7 @@ Then, in that same commit:
    Not a list of touched files; `git log` already owns that.
 
 The capture needs a real Godot window and can intermittently report a `50×50`
-client (`docs/VISUAL_REGRESSION.md`). The script records that failure and
+client (`docs/engineering/visual-regression.md`). The script records that failure and
 continues; it never blocks a session. Use `-SkipCapture` where no interactive
 desktop exists. Never hand-edit `STATE.txt` — the next session start
 overwrites it, and a state file you can write by hand proves nothing.
@@ -253,4 +257,4 @@ Stop and ask the user when you find:
 - A risk of invalidating saves without a migration strategy.
 - A need to remove or replace a central system.
 - A change to the persistent-injury / stamina question (see
-  [`docs/ai/DECISION_LOG.md`](docs/ai/DECISION_LOG.md) → DEC-0011).
+  [`docs/history/decisions.md`](docs/history/decisions.md) → DEC-0011).

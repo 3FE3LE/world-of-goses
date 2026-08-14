@@ -68,8 +68,8 @@ This agent has **mandatory** consultations, not optional:
 
 ## Working procedure
 
-1. Read `docs/world-of-goses-design-bible/05_EXPEDITIONS.md`.
-2. Read `docs/world-of-goses-design-bible/03_CITY_TERRITORY_AND_GROWTH.md`.
+1. Read `docs/systems/expeditions.md`.
+2. Read `docs/systems/city-and-territory.md`.
 3. Read the relevant code in `game/scripts/Domain/`: `Expedition.cs`,
    `ExpeditionStatus.cs`, `ExpeditionPhase.cs`,
    `ExpeditionEncounterOutcome.cs`, `ExpeditionRequest.cs`,

@@ -10,13 +10,12 @@ between cities and no bonus for restarting: to begin again, the player
 deletes the current city or uses a different account. The only thing that
 transfers between playthroughs is the player's accumulated knowledge.
 
-The canonical design source is the
-[design bible](docs/world-of-goses-design-bible/README.md). What the code
-does today and what the next slice is lives in
-[CURRENT_STATUS.md](docs/CURRENT_STATUS.md). The history of completed
-increments lives in [CHANGELOG.md](CHANGELOG.md). The contract for any
-agent or contributor is in [AGENTS.md](AGENTS.md) and
-[CLAUDE.md](CLAUDE.md).
+Documentation starts at the [docs index](docs/README.md): what each system is,
+why it exists and what its invariants are. Open work is in
+[GitHub Issues](https://github.com/3FE3LE/world-of-goses/issues), never in the
+documentation. The history of completed increments lives in
+[CHANGELOG.md](CHANGELOG.md), and the contract for any agent or contributor in
+[AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md).
 
 ---
 
@@ -104,7 +103,7 @@ The conceptual rule:
 > C# defines what is happening and why.
 
 Naming conventions, file layout, and import rules are detailed in
-[ART_PIPELINE.md](docs/ART_PIPELINE.md).
+[ART_PIPELINE.md](docs/presentation/art-pipeline.md).
 
 ---
 
@@ -117,7 +116,8 @@ world-of-goses/
 ├── README.md                 # this file
 ├── game/                     # the Godot project (engine + scripts + scenes + assets)
 ├── art/                      # Pixelorama sources and exports
-├── docs/                     # design bible, current status, architecture, conventions
+├── src/                      # engine-free .csproj files (Domain, Application, Persistence)
+├── docs/                     # systems, world, presentation, engineering, history
 ├── tests/WorldofGoses.Tests/ # xUnit suite (domain + UI composition)
 ├── scripts/                  # agent-context sync helpers
 └── tools/                    # snapshot, capture, localization, palette generators
@@ -132,7 +132,7 @@ and `game/scenes/`.
 ## Conventions
 
 The full prose lives in
-[REPOSITORY_CONVENTIONS.md](docs/REPOSITORY_CONVENTIONS.md). One-paragraph
+[docs/engineering/conventions.md](docs/engineering/conventions.md). One-paragraph
 summary:
 
 - **C#:** PascalCase types and methods, camelCase locals, `_camelCase`
@@ -151,7 +151,7 @@ summary:
   schema-versioned, atomic write with `.bak` sidecar. See
   `WorldSave.CurrentVersion`.
 - **UI:** every new screen, modal, button, chip, or row follows one of
-  the three patterns declared in [UI_PATTERNS.md](docs/UI_PATTERNS.md),
+  the three patterns declared in [UI_PATTERNS.md](docs/presentation/ui-patterns.md),
   with explicit `theme_type_variation`, signal-driven state binding, and
   the close-path matrix the modal/focus rules demand. Read it before
   authoring any UI.
@@ -182,7 +182,7 @@ contributors.
 
 - Read [AGENTS.md](AGENTS.md) and the documents in [docs/](docs/) before
   opening an issue or pull request.
-- Read [UI_PATTERNS.md](docs/UI_PATTERNS.md) before authoring any UI.
+- Read [UI_PATTERNS.md](docs/presentation/ui-patterns.md) before authoring any UI.
 - Keep changes small, verifiable, and aligned with the current prototype
   scope.
 - Do not commit secrets, API keys, tokens, signing keys, or

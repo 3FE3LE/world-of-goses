@@ -17,7 +17,7 @@
 > Routing contract: every agent lists its **primary** and **conditional**
 > skills under `.agents/agents/<id>/AGENT.md`. The local capability
 > adapter layer is documented in `CONTEXT_MAP.md` and in
-> [`SKILL_MIGRATION.md`](SKILL_MIGRATION.md). Engine API specifics are
+> the verified upstream provider. Engine API specifics are
 > delegated to the verified upstream provider installed by
 > `Install-GodotDotNetSkills.ps1`.
 
@@ -311,7 +311,7 @@ in a chat without the user naming an agent.
   not become classes; see DEC-0002).
 - *"the founder feels mandatory and we cannot lose them"* →
   `citizens-rpg` and `narrative-lore` (founder must not be eternal; see
-  bible/07).
+  systems/onboarding-and-founder).
 - *"the save file is huge and slow to load"* → `technical-foundation`.
 
 ---
@@ -322,7 +322,7 @@ Stop and ask the user when:
 
 - Two rows match and you cannot tell which is more specific.
 - A request would change a decision in
-  [`DECISION_LOG.md`](DECISION_LOG.md) (e.g. the wound / stamina
+  [`DECISION_LOG.md`](../history/decisions.md) (e.g. the wound / stamina
   question, DEC-0011).
 - A request would invalidate saves without a migration strategy.
 - A request would remove or replace a central system.
