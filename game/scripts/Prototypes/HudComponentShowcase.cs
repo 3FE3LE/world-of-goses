@@ -519,18 +519,24 @@ public partial class HudComponentShowcase : Control
         var type = Stack();
         foreach ((string variation, string sample) in new[]
                  {
-                     ("HudBrand", "HudBrand 20 — Geist Pixel"),
+                     ("HudBrand", "HudBrand 20 — Jacquard 12"),
                      ("HudHeader", "HudHeader 18 — Jersey 10"),
                      ("HudLabel", "HudLabel 16 — Jersey 10"),
-                     ("HudBody", "HudBody 16 — Pixelify Sans"),
-                     ("HudNumeric", "HudNumeric 16 — 1320 · 42% · 8/10"),
-                     ("HudCaption", "HudCaption 14 — Dia 17 · Aserradero completado"),
+                     ("HudBody", "HudBody 22 — Micro 5"),
+                     ("HudNumeric", "HudNumeric 22 — 1320 · 42% · 8/10"),
+                     ("HudCaption", "HudCaption 16 — Dia 17 · Aserradero completado"),
+                     // HudBadgeNumeric is deliberately absent: it is dark-on-amber
+                     // and would be invisible on this inset. The real HudBadge
+                     // above already shows it in the only surface it belongs to.
                  })
         {
             type.AddChild(new Label { Text = sample, ThemeTypeVariation = variation });
         }
         column.AddChild(Surface("HudInset", type));
-        column.AddChild(Caption("14 px is unapproved until it is read here at 1280x720."));
+        column.AddChild(Caption(
+            "Sizes are per-family, not comparable: Micro 5 at 22 and Jersey 10 at 16 "
+            + "both draw a ~9 px cap. The floor is 8.5 px of cap, and HudBadgeNumeric "
+            + "is the one row signed below it."));
 
         return column;
     }

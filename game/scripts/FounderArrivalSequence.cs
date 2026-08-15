@@ -136,7 +136,7 @@ public partial class FounderArrivalSequence : Control
         var content = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
         content.AddThemeConstantOverride("separation", Tokens.SpacingBase);
         margin.AddChild(content);
-        content.AddChild(LabelFor(founder.Name.ToUpperInvariant(), "ScreenTitle"));
+        content.AddChild(LabelFor(founder.Name.ToUpperInvariant(), "FounderName"));
         content.AddChild(LabelFor(
             $"{ProfileCatalog.Get(founder.Profile.Lineage).DisplayName} · Recién mortal",
             "SectionTitle"));

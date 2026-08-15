@@ -35,46 +35,81 @@ grow_vertical = 2
 
 [node name="Rows" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Margin/Rows"]
 layout_mode = 2
-theme_type_variation = &"ScreenTitle"
-text = "WOW · O0Q · MWMW · Exploración"
+theme_type_variation = &"GameTitle"
+text = "WOW · O0Q · MWMW"
 
-[node name="TitleLowercase" type="Label" parent="Margin/Rows"]
+[node name="ScreenTitleRow" type="Label" parent="Margin/Rows"]
 layout_mode = 2
-theme_type_variation = &"EventTitle"
-text = "wow · owo · nuevo mundo"
+theme_type_variation = &"ScreenTitle"
+text = "Jacquard 24 · 36 · wow owo Exploración"
 
-[node name="Section" type="Label" parent="Margin/Rows"]
+[node name="FounderNameRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"FounderName"
+text = "Jacquarda 9 · 32 · Rabata Burgoses"
+
+[node name="HudBrandRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"HudBrand"
+text = "Jacquard 12 · 20 · WOW owo O0Q 0123456789"
+
+[node name="PanelTitleRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"PanelTitle"
+text = "Jersey 15 · 26 · Bosque y refugio · ¿Añadir?"
+
+[node name="SectionTitleRow" type="Label" parent="Margin/Rows"]
 layout_mode = 2
 theme_type_variation = &"SectionTitle"
-text = "WOW · O0Q · MWMW · Bosque y refugio"
+text = "Jersey 15 · 22 · MWMW O0Q mínimo común"
 
 [node name="ButtonSample" type="Button" parent="Margin/Rows"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_type_variation = &"ButtonText"
-text = "wow · owo · volver al nuevo mundo"
+text = "Jersey 10 · 20 · volver al nuevo mundo"
 
-[node name="Body" type="Label" parent="Margin/Rows"]
+[node name="BodyRow" type="Label" parent="Margin/Rows"]
 layout_mode = 2
 theme_type_variation = &"BodyText"
-text = "WOW · O0Q · MWMW — El nuevo bosque volvió a producir madera."
+text = "Jersey 10 · 18 · El nuevo bosque volvió a producir madera. 0123456789"
 
-[node name="BodyLowercase" type="Label" parent="Margin/Rows"]
-layout_mode = 2
-theme_type_variation = &"BodyText"
-text = "wow · owo · mínimo común · corazón · información · 0123456789"
-
-[node name="BodySmall" type="Label" parent="Margin/Rows"]
+[node name="BodySmallRow" type="Label" parent="Margin/Rows"]
 layout_mode = 2
 theme_type_variation = &"BodySmall"
-text = "WOW wow O0Q owo MWMW — tamaño pequeño, curvas y diagonales"
+text = "Jersey 10 · 16 · mínimo común · corazón · ¡información! · ¿cuántos? · üñÁÉÍ"
+
+[node name="HudBodyRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"HudBody"
+text = "Micro 5 · 22 · Aserradero detenido por falta de piedra"
+
+[node name="HudNumericRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"HudNumeric"
+text = "Micro 5 · 22 · 1320 · 42% · 8/10 · -7 · +128 · 0123456789"
+
+[node name="HudCaptionRow" type="Label" parent="Margin/Rows"]
+layout_mode = 2
+theme_type_variation = &"HudCaption"
+text = "Jersey 10 · 16 · Día 17 · Aserradero completado · +3 madera"
+
+[node name="HudBadgeNumericRow" type="PanelContainer" parent="Margin/Rows"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"HudBadge"
+
+[node name="Count" type="Label" parent="Margin/Rows/HudBadgeNumericRow"]
+layout_mode = 2
+theme_type_variation = &"HudBadgeNumeric"
+text = "Micro 5 · 11 · 0123456789 · 42 · 7 · 128"
 
 [node name="Instructions" type="Label" parent="Margin/Rows"]
 layout_mode = 2
 theme_type_variation = &"BodySmall"
-text = "Revisar a zoom 100 %: cada trazo debe usar píxeles sólidos, sin columnas grises ni bordes difuminados."
+text = "Revisar a zoom 100 %: cada trazo debe usar píxeles sólidos, sin columnas grises ni bordes difuminados. La fila Micro 5 · 11 es la única firmada por debajo del suelo de altura de mayúscula."
 autowrap_mode = 2

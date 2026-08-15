@@ -147,10 +147,23 @@ public static class Tokens
     public const int HudBarHeightCard = 11;
 
     /// <summary>
-    /// Height of a count badge. Eighteen rather than sixteen because a 14 px
-    /// Pixelify line plus the frame's two-pixel slice does not fit in sixteen, and
-    /// a badge that clips its own number is worse than one two pixels taller.
+    /// Minimum height of a count badge.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Eighteen used to be the count's own requirement: a 14 px Pixelify line plus
+    /// the frame's two-pixel slice did not fit in sixteen. That reason is gone —
+    /// <c>HudBadgeNumeric</c> draws Micro 5 on its native 11 px grid, so the count
+    /// now fits in sixteen with room to spare.
+    /// </para>
+    /// <para>
+    /// The token stays at eighteen anyway because it is shared with
+    /// <see cref="HudStateBadge"/>, whose height is set by a 24 px
+    /// <see cref="IconInline"/> glyph rather than by its text. Lowering the number
+    /// is a change to that surface, not to this one, and it needs both re-measured
+    /// in a real capture rather than reasoned about here.
+    /// </para>
+    /// </remarks>
     public const int HudBadgeHeight = 18;
 
     /// <summary>

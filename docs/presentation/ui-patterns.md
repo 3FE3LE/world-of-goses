@@ -349,26 +349,61 @@ Domain events the UI must understand:
 When you add an axis (e.g. expeditions), add **one** signal set that
 the screen subscribes to; do not poll the world in `_process`.
 
-## 5. Theming — three-font hierarchy
+## 5. Theming — one collection, four roles
 
-The project ships **exactly three** font families and seventeen explicit
-Label/Button text variations, declared once in
-`game/assets/ui/default_theme.tres`. The
-rules:
+Every font the project ships is a **grid font**: its outlines sit on a whole
+number of design pixels, and the number in its name is the height of a capital
+in those pixels. Five of the six come from one collection, Soft Type by Sarah
+Cadigan-Fried, which is also where the long-standing Jersey 10 came from.
 
-1. **Geist Pixel** — identity, drama, era changes.
-   `GameTitle`, `ScreenTitle`, `EventTitle`.
-2. **Jersey 10** — structure, navigation, buttons, panel chrome,
-   sub-titles, building names.
-   `PanelTitle`, `SectionTitle`, `ButtonText`, `ButtonPrimary`,
-   `ButtonWarning`, `TabText`, `BuildingName`.
-3. **Pixelify Sans** — reading, content, tooltips, body, numbers.
-   `BodyText`, `BodySmall`, `ErrorText`, `TooltipText`, `DialogText`,
-   `TableText`, `NumericText`.
+The families and their roles, declared once in
+`game/assets/ui/default_theme.tres`:
+
+1. **Jacquard 24 / Jacquard 12** — identity, drama, era changes.
+   Jacquard 24 carries `GameTitle`, `ScreenTitle`, `EventTitle`;
+   Jacquard 12 carries `HudBrand`, where the coarser grid is the right one.
+2. **Jacquarda Bastarda 9** — the founder's own name, and nothing else.
+   `FounderName`. A bastarda blackletter reads as ceremony at 32 px and as
+   noise anywhere smaller.
+3. **Jersey 15 / Jersey 10** — structure and reading.
+   Jersey 15 carries the 22-26 px chrome: `PanelTitle`, `SectionTitle`,
+   `ButtonPrimary`, `BuildingName`. Jersey 10 carries everything from 14 to
+   20 px, both the structure tier (`ButtonText`, `ButtonWarning`, `TabText`,
+   `Hud*` chrome) and the reading tier (`BodyText`, `BodySmall`, `DialogText`,
+   `TooltipText`, `TableText`, `NumericText`, `ErrorText`).
+4. **Micro 5** — the compact HUD's reading and figures.
+   `HudBody`, `HudNumeric`, `HudProgress`, `HudBadgeNumeric`.
+
+### Sizes are per-family and are not comparable
+
+A `font_size` is an em, and these six fonts put very different amounts of
+letter inside one. Micro 5 at 22 px and Jersey 10 at 16 px both draw a cap of
+roughly 9-10 px; Jersey 10 at 22 px would draw 11.8. **Never move a size from
+one variation to another because the number looks familiar** — the number only
+means something next to its family.
+
+What decides a size is how close it lands to the family's native em, because
+the whole stack renders with `antialiasing=0`. Below roughly 0.7 px per design
+pixel a grid font does not get rough, it collapses: elements round to zero or
+merge with their neighbour. Measured native ems:
+
+| Family | Native em | Sizes it is used at | px per design pixel |
+| --- | ---: | --- | ---: |
+| Jacquard 24 | 43 | 36, 40, 48 | 0.84 – 1.12 |
+| Jacquard 12 | 21 | 20 | 0.95 |
+| Jacquarda Bastarda 9 | 13 | 32 | 2.46 |
+| Jersey 15 | 27 | 22, 26 | 0.81 – 0.96 |
+| Jersey 10 | 18.67 | 14 – 20 | 0.75 – 1.07 |
+| Micro 5 | 11 | 11, 22 | 1.00 / 2.00 |
+
+Micro 5 is the only family used exactly on its grid, which is why it holds the
+slots where there is no room to be wrong. Handjet was evaluated for the reading
+tier and rejected on this table: its native em is 34 px, so at a 16 px row it
+renders 0.47 px per element.
 
 Every Label and every Button MUST set one of these variations
 explicitly — never rely on the engine's default font. The base `Label`
-type in `default_theme.tres` carries Pixelify defaults so an
+type in `default_theme.tres` carries Jersey 10 defaults so an
 unannotated label still looks like the project.
 
 **There is no base `Button` registration** (verified 2026-08-07; this
@@ -382,25 +417,40 @@ that can re-check the affected surfaces, not with a chrome swap.
 ### 5.0 The compact HUD profile
 
 The HUD runs a **second, isolated type scale**. It is not a rescaling of the
-seventeen variations above and must never be merged with them: the screens are
+screen variations above and must never be merged with them: the screens are
 read while stopped, the HUD while playing, and the reference the HUD is built
 against (`art/references/Proposal 06 — minimalist workstation.png`) puts roughly
 twice as many rows on screen as the current screen scale allows.
 
-| Variation | Family | Size | Sized by |
-| --- | --- | ---: | --- |
-| `HudBrand` | Geist Pixel | 20 | the brand plate |
-| `HudHeader` | Jersey 10 | 18 | the 20 px header strip |
-| `HudLabel` | Jersey 10 | 16 | section and metric labels |
-| `HudBody` | Pixelify Sans | 16 | the 24 px row |
-| `HudNumeric` | Pixelify Sans | 16 | figures, right-aligned |
-| `HudCaption` | Pixelify Sans | 14 | log lines and deltas |
+Only three families are allowed here. The screen-scale faces — Jacquard 24,
+Jersey 15, Jacquarda Bastarda 9 — are drawn on grids too coarse for a HUD row:
+Jersey 15 at 16 px renders 0.59 px per design pixel and loses its stems.
+`HudTypography_StaysInsideTheCompactScaleFamilies` keeps them out.
 
-**14 px is the floor, and it is signed.** It was read in a real 1280×720
-capture of `HudComponentShowcase.tscn` before approval — solid pixels, no
-grayscale fringe — which is the only evidence that counts for a size below the
-project's previous 16 px minimum. `HudThemeVariationTests` enforces the floor;
-going under it needs its own capture and its own sign-off, not an edit.
+| Variation | Family | Size | Cap | Sized by |
+| --- | --- | ---: | ---: | --- |
+| `HudBrand` | Jacquard 12 | 20 | 11.4 | the brand plate |
+| `HudHeader` | Jersey 10 | 18 | 9.6 | the 20 px header strip |
+| `HudLabel` | Jersey 10 | 16 | 8.6 | section and metric labels |
+| `HudBody` | Micro 5 | 22 | 10.0 | the 24 px row |
+| `HudNumeric` | Micro 5 | 22 | 10.0 | figures, right-aligned |
+| `HudCaption` | Jersey 10 | 16 | 8.6 | log lines and deltas |
+| `HudProgress` | Micro 5 | 11 | 5.0 | the 11 px card bar |
+| `HudBadgeNumeric` | Micro 5 | 11 | 5.0 | the 18 px count pill |
+
+**The floor is 8.5 px of rendered cap, and it is signed.** It used to be
+written as "14 px", which was a `font_size` floor measured against Pixelify
+Sans; it stopped describing anything the moment the HUD carried families with
+different cap ratios, and the smallest text in the shipped profile was already
+Jersey 10 at 16 px — an 8.57 px cap — not the 9.8 px the number implied.
+`HudThemeVariationTests` now asserts rendered cap height and reads each ratio
+out of the font file, so a family swap cannot leave a stale constant behind.
+
+`HudProgress` and `HudBadgeNumeric` are the two slots deliberately below the
+floor, named in the test rather than pattern-matched. Both sit inside a box no
+ordinary HUD text has to fit — an 11 px bar and an 18 px pill — and Micro 5 on
+its native grid is the only face in the project that puts a legible figure
+there in whole pixels. Each carries its own capture.
 
 Changing a `Hud*` size does not touch a screen, and changing a screen size does
 not touch the HUD. `ScreenVariations_AreUnchangedByTheHudProfile` exists because

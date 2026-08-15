@@ -7,7 +7,7 @@ namespace WorldofGoses.Ui;
 /// Builds a tooltip <see cref="Control"/> that respects the project's
 /// typography guideline. The popup is a single semi-transparent
 /// cream-bordered <see cref="PanelContainer"/> with the project's
-/// Pixelify 16 px label inside — no 9-slice, no lineage texture, so it
+/// Jersey 10 16 px label inside — no 9-slice, no lineage texture, so it
 /// reads consistently across the city and never competes with the
 /// panel chrome the player is interacting with.
 ///

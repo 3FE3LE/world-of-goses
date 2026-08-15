@@ -17,7 +17,7 @@ namespace WorldofGoses;
 ///
 /// Inherits from <see cref="IconButton"/> for two reasons:
 /// - the persistent instance in <c>CityPrototype.tscn</c> needs the
-///   Pixelify tooltip override that <see cref="IconButton"/> provides,
+///   themed tooltip override that <see cref="IconButton"/> provides,
 /// - the inner Label needs the same ButtonText (Jersey 10) variation
 ///   so it does not fall back to the engine default font for typography
 ///   for the icon+label row.

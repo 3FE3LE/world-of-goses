@@ -14,11 +14,33 @@ This document records what currently exists under `art/`, what may enter
 | --- | ---: | --- |
 | `exports/` | 3 PNG, 31,657 bytes | Building placeholders already promoted through the art pipeline. |
 | `source/` | 2 documentation/source files | Current authored-source placeholders. |
-| `Geist_Pixel/` | 3 files, 3,663,243 bytes | Screen and display typography; already integrated. |
-| `Jersey_10/` | 2 files, 81,124 bytes | Headings and buttons; already integrated. |
-| `Pixelify_Sans/` | 7 files, 289,469 bytes | Body and tooltip typography; already integrated. |
+| `Jacquard_24/`, `Jacquard_12/` | 2 files each | Display titles and the HUD brand; integrated 2026-08-15. |
+| `Jacquarda_Bastarda_9/` | 2 files | The founder's name only; integrated 2026-08-15. |
+| `Jersey_15/`, `Jersey_10/` | 2 files each | Headings, buttons and reading text; already integrated. |
+| `Micro_5/` | 2 files | Compact HUD rows, figures and badge counts; integrated 2026-08-15. |
+
+Three font packages were **deleted on 2026-08-15**, not merely unwired:
+`Geist_Pixel/` (3 files, 3,663,243 bytes), replaced by Jacquard;
+`Pixelify_Sans/` (7 files, 289,469 bytes), replaced by Jersey 10 and Micro 5;
+and `Zilla_Slab/` (10 files, 2,478,924 bytes), evaluated as a Pixelify
+replacement and never adopted — it is a screen slab serif, incompatible with
+the project's `antialiasing=0` grid contract. The two retired faces are in
+git history; all three are OFL and re-downloadable from Google Fonts. Keeping
+dead sources under `art/` only invites a future session to re-import them.
 | `Kenney/` | 38 files, 36 images | Existing CC0 pixel UI kit; already used by the global theme. |
 | `Pixelarticons/` | 879 files, 877 SVG/images | MIT 24×24 icon catalog; selected icons are promoted individually. |
+
+Five of the six shipping faces come from one OFL collection, Soft Type by Sarah
+Cadigan-Fried, which is also where Jersey 10 always came from. Two neighbours
+were evaluated on 2026-08-15 and not imported:
+
+- **Handjet** (Rosetta / David Březina, OFL) — the only pixel face on Google
+  Fonts with a real weight axis, and rejected for it anyway: its native em is
+  34 px, so at the project's 14-18 px reading sizes it renders under half a
+  pixel per element and the glyphs collapse under `antialiasing=0`.
+- **Yarndings 12 / 20** (same collection, OFL) — pixel dingbats that could
+  complement the Pixelarticons in `Tokens.HudGlyphCell`. Deliberately out of
+  scope of the typography pass; worth its own issue, not a drive-by import.
 
 ### Newly downloaded archives
 

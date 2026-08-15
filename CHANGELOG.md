@@ -16,6 +16,68 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## Una sola colección tipográfica, y la rejilla como regla
+
+**2026-08-15** · presentación · tooling · schema v35 (sin cambio) · 1663 pruebas superadas
+
+**El jugador no gana una acción nueva; gana un juego que se lee como una sola
+pieza.** Toda la tipografía cambia. Salen **Geist Pixel** y **Pixelify Sans**;
+entran **Jacquard 24** y **Jacquard 12** para títulos y marca,
+**Jacquarda Bastarda 9** para el nombre del fundador,
+**Jersey 15** junto a la Jersey 10 que ya estaba, y **Micro 5** para el HUD
+compacto. Cinco de las seis caras son de la colección **Soft Type** de Sarah
+Cadigan-Fried — que es de donde salió Jersey 10 desde el principio, algo que
+nadie había notado hasta que se leyó la tabla `name` del `.ttf`. La pieza fuera
+de sitio nunca fue Jersey: era Geist Pixel, de Vercel.
+
+**El hallazgo que gobierna el resultado es una medición, no un gusto.** Todas
+son fuentes de rejilla, y el proyecto renderiza sin antialiasing. Midiendo el
+máximo común divisor de las coordenadas reales de los contornos —no la
+`capHeight` declarada, que en Jacquard 24 no cuadra con su rejilla— sale el em
+nativo de cada familia: Jacquard 24 en 43 px, Jersey 15 en 27, Jacquard 12 en
+21, Jersey 10 en 18,67, Jacquarda Bastarda 9 en 13, Micro 5 en 11. Por debajo
+de unos 0,7 px por píxel de diseño un glifo de rejilla no se vuelve áspero:
+se rompe. **Handjet se evaluó para el nivel de lectura y se descartó por esa
+tabla**, pese a ser la única pixel font de Google Fonts con eje de peso real:
+su em nativo es de 34 px, así que en una fila de 16 px rendiría 0,47 px por
+elemento. Micro 5 es la única familia que se usa exactamente sobre rejilla, y
+por eso ocupa los huecos donde no hay margen: la fila de 24 px, la barra de 11
+y la píldora de 18.
+
+**El suelo de legibilidad del HUD dejó de mentir.** Estaba escrito como «14 px»
+y medido contra Pixelify Sans; en cuanto el HUD mezcló familias con distinta
+proporción de mayúscula dejó de describir nada, y el texto más pequeño del
+perfil ya era Jersey 10 a 16 px —8,57 px de mayúscula— y no los 9,8 que el
+número sugería. Ahora `HudThemeVariationTests` afirma sobre **altura de
+mayúscula renderizada** y lee la proporción del propio archivo de fuente, de
+modo que cambiar una familia no puede dejar atrás una constante caducada.
+`HudProgress` y `HudBadgeNumeric` son las dos únicas ranuras firmadas por
+debajo del suelo, nombradas en el test y no reconocidas por patrón.
+
+Dos variaciones nuevas entran cableadas a superficies reales, no declaradas al
+aire: `FounderName` en la llegada del fundador y en su carta, y
+`HudBadgeNumeric` en el contador de `HudBadge`, que además se lleva al tema el
+color que antes era un override local.
+
+`game/assets/` adelgaza unos 2,7 MB: entran seis caras que suman 768 KB y sale,
+entre otras, la variable de Geist Pixel de 3,66 MB. En `art/` se borraron los
+tres paquetes que dejaron de usarse —Geist Pixel, Pixelify Sans y la Zilla Slab
+que se evaluó y nunca se adoptó—, unos 6,4 MB más. Todas son OFL y las dos
+retiradas siguen en el historial de git; un origen muerto bajo `art/` solo
+invita a que una sesión futura lo reimporte.
+
+**De propina, dos defectos del harness de captura.**
+`Capture-TypographySpecimen.ps1` nunca pasaba `--windowed` y ponía la escena
+después en vez de antes, y `TypographySpecimen` disparaba en un número fijo de
+frames — en un escritorio de 2560×1440 escribía en silencio una imagen de
+2560×1440 dentro de un archivo llamado `1280x720`. Ahora la escena fija su
+propia ventana por `DisplayServer`, igual que
+`VisualRegressionHarness.ApplyCaptureWindowSize`, y espera en segundos y no en
+frames. `Capture-VisualMatrix.ps1` sigue fallando de forma intermitente con
+`960x480`; queda anotado en `visual-regression.md` como trabajo aparte.
+
+---
+
 ## La documentación deja de ser un segundo backlog
 
 **2026-08-13** · documentación · tooling · schema v35 (sin cambio) · 1667 pruebas superadas

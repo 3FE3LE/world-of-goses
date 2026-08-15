@@ -18,7 +18,7 @@ namespace WorldofGoses.Ui;
 /// focus policy. All carry the project's typography (Jersey 10 via the
 /// <c>ButtonText</c> theme variation defined in
 /// <c>res://assets/ui/default_theme.tres</c>) and the engine's
-/// default popup respects the Pixelify base
+/// default popup respects the Jersey 10 base
 /// <c>Label</c> entry also defined there.
 /// </summary>
 public static class StandardButtons

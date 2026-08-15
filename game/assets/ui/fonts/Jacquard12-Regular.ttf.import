@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://b41wjd1ekopsn"
-path="res://.godot/imported/GeistPixel-Regular-VariableFont_ELSH.ttf-82f32e0bea472a6af0ea0ecc1e32cdd2.fontdata"
+uid="uid://c7cbjc4kfo8gf"
+path="res://.godot/imported/Jacquard12-Regular.ttf-a148185138a366069594252caec19f0d.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf"
-dest_files=["res://.godot/imported/GeistPixel-Regular-VariableFont_ELSH.ttf-82f32e0bea472a6af0ea0ecc1e32cdd2.fontdata"]
+source_file="res://assets/ui/fonts/Jacquard12-Regular.ttf"
+dest_files=["res://.godot/imported/Jacquard12-Regular.ttf-a148185138a366069594252caec19f0d.fontdata"]
 
 [params]
 

@@ -4,9 +4,12 @@ param()
 $ErrorActionPreference = "Stop"
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $fontImports = @(
-    "game/assets/ui/fonts/GeistPixel-Regular-VariableFont_ELSH.ttf.import",
+    "game/assets/ui/fonts/Jacquard24-Regular.ttf.import",
+    "game/assets/ui/fonts/Jacquard12-Regular.ttf.import",
+    "game/assets/ui/fonts/JacquardaBastarda9-Regular.ttf.import",
+    "game/assets/ui/fonts/Jersey15-Regular.ttf.import",
     "game/assets/ui/fonts/Jersey10-Regular.ttf.import",
-    "game/assets/ui/fonts/PixelifySans-Regular.ttf.import"
+    "game/assets/ui/fonts/Micro5-Regular.ttf.import"
 )
 $requiredSettings = @(
     "antialiasing=0",

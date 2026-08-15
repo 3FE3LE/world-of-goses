@@ -15,8 +15,15 @@ New-Item -ItemType Directory -Force -Path $resolvedOutput | Out-Null
 Add-Type -AssemblyName System.Drawing
 
 $resolutions = @(
-    [PSCustomObject]@{ Width = 1280; Height = 720; Crop = @(64, 52, 620, 38) },
-    [PSCustomObject]@{ Width = 1920; Height = 1080; Crop = @(96, 78, 930, 58) }
+    # The crop sits inside the cap band of the first row (GameTitle, Jacquard 24
+    # at 48 px), which is the only row guaranteed to contain nothing but the
+    # background colour and one glyph colour. Jacquard 24 puts its ascender at
+    # 1020/1290 em, so at 48 px the baseline lands 38 px below the 48 px top
+    # margin and the 28 px cap band runs from y=58 to y=86; the crop stays well
+    # inside it. The 1920x1080 pair is the same band times the 1.5 canvas_items
+    # scale, not an independently measured rectangle.
+    [PSCustomObject]@{ Width = 1280; Height = 720; Crop = @(64, 62, 620, 18) },
+    [PSCustomObject]@{ Width = 1920; Height = 1080; Crop = @(96, 93, 930, 27) }
 )
 $captures = @()
 
@@ -30,11 +37,21 @@ foreach ($resolution in $resolutions) {
     $arguments = @(
         "--path", $projectPath.Path,
         "--log-file", $logPath,
+        "res://scenes/prototypes/TypographySpecimen.tscn",
+        # Same argument order, and for the same reason, as Capture-VisualMatrix:
+        # the project ships fullscreen borderless (display/window/size/mode = 3),
+        # a fullscreen window ignores --resolution and takes the desktop's size,
+        # and this fixture was silently rendering 2560x1440 on a 2560x1440 desktop.
+        # --windowed has to come after the scene and before --resolution.
+        "--windowed",
         "--resolution", $slug,
         "--position", "0,0",
-        "res://scenes/prototypes/TypographySpecimen.tscn",
         "--",
-        "--wog-typography-output=$imagePath"
+        "--wog-typography-output=$imagePath",
+        # The scene shoots once the viewport reports this size, not on a fixed
+        # frame, so a window still settling out of fullscreen cannot be filed as
+        # a golden frame.
+        "--wog-typography-size=$slug"
     )
     $process = Start-Process -FilePath $resolvedGodot.Path -ArgumentList $arguments -PassThru
     try {

@@ -21,7 +21,7 @@ namespace WorldofGoses;
 ///   the result.
 ///
 /// Tooltips use Godot's native popup, whose internal Label inherits the
-/// project-wide Pixelify base theme.
+/// project-wide Jersey 10 base theme.
 /// </summary>
 [GlobalClass]
 public partial class IconButton : Button

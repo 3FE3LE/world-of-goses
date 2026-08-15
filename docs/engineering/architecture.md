@@ -1328,10 +1328,13 @@ components through the same-lineage `panel` before falling back to the existing
 project theme. `LineageThemeSignals` is the presentation-only autoload that
 notifies visible controls when the founder's persisted lineage changes.
 
-Fonts and icons remain independent of lineage. Geist Pixel is used for display
-titles, Jersey 10 for headings, and Pixelify Sans for controls and reading text.
-Pixelify Sans is imported with grayscale antialiasing, light hinting, disabled
-subpixel positioning, and fixed 1.0 oversampling. The reference viewport is
+Fonts and icons remain independent of lineage. Jacquard 24 and Jacquard 12 are
+used for display titles and the HUD brand, Jacquarda Bastarda 9 for the founder's
+name, Jersey 15 and Jersey 10 for headings, controls and reading text, and
+Micro 5 for the compact HUD's rows and figures. All six are grid fonts and all
+six are imported the same way: no antialiasing, light hinting, disabled subpixel
+positioning, and fixed 1.0 oversampling — enforced by
+`tools/Test-PixelFontImports.ps1`. The reference viewport is
 explicitly 1280×720 with `canvas_items` stretch and `expand` aspect handling.
 
 **Pixel-perfect rules**, which the rest of the presentation layer inherits:

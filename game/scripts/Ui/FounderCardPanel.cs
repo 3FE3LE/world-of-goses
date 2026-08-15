@@ -59,7 +59,7 @@ public partial class FounderCardPanel : PanelContainer
 
         LineageDefinition lineage = ProfileCatalog.Get(result.Lineage);
 
-        AddLabel(body, "ScreenTitle", founderName, HorizontalAlignment.Center);
+        AddLabel(body, "FounderName", founderName, HorizontalAlignment.Center);
         AddPair(
             body,
             translate("ui.astral.card.lineage"),

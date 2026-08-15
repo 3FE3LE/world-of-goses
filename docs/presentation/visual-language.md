@@ -23,15 +23,23 @@ Resolución lógica base:
 ## Tipografía
 
 ```text
-Geist Pixel
-Títulos y pantallas destacadas
+Jacquard 24 · Jacquard 12
+Títulos, pantallas destacadas y marca del HUD
 
-Jersey 10
-Subtítulos, encabezados y botones
+Jacquarda Bastarda 9
+El nombre del fundador, y nada más
 
-Pixelify Sans
-Párrafos, descripciones y tooltips
+Jersey 15 · Jersey 10
+Subtítulos, encabezados, botones, párrafos y tooltips
+
+Micro 5
+Lectura y cifras del HUD compacto
 ```
+
+Todas son fuentes de rejilla y se renderizan sin antialiasing. El tamaño de
+cada variación se deriva del em nativo de su familia, no se elige: por debajo
+de unos 0,7 px por píxel de diseño el glifo no se vuelve áspero, se rompe. La
+tabla medida vive en `ui-patterns.md` §5.
 
 ## Tres escalas visuales
 

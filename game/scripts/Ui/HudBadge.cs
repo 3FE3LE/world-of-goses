@@ -34,17 +34,19 @@ public partial class HudBadge : PanelContainer
         SizeFlagsVertical = SizeFlags.ShrinkCenter;
         MouseFilter = MouseFilterEnum.Ignore;
 
+        // HudBadgeNumeric rather than HudCaption: the count is the one HUD label
+        // that sits on a light surface, and it is the one that has to fit a count
+        // inside an 18 px pill rather than read as a line of prose. Both facts now
+        // live in the variation — Micro 5 at its native 11 px grid, dark on amber —
+        // instead of in a local colour override next to a mismatched font.
         _count = new Label
         {
             Text = text,
-            ThemeTypeVariation = "HudCaption",
+            ThemeTypeVariation = "HudBadgeNumeric",
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             MouseFilter = MouseFilterEnum.Ignore,
         };
-        // The badge is the only HUD label that sits on a light surface, so it
-        // cannot inherit HudCaption's colour, which is tuned for a dark one.
-        _count.AddThemeColorOverride("font_color", new Color(0.08f, 0.07f, 0.05f));
         AddChild(_count);
     }
 

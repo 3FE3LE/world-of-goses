@@ -252,7 +252,7 @@ public partial class HeroProfileView : Control
 
     /// <summary>
     /// The hero's name is the page's primary subject and follows the
-    /// bible's <c>ScreenTitle</c> tier (Geist Pixel, 36 px) rather than
+    /// bible's <c>ScreenTitle</c> tier (Jacquard 24, 36 px) rather than
     /// the panel-heading tier used by section labels below it. Preceded
     /// by a <c>user</c> icon so the page topic reads at a glance even
     /// when the text is partially scrolled. The 10-px gap keeps the
