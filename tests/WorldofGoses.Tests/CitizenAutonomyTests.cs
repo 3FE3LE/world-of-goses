@@ -24,7 +24,7 @@ public class CitizenAutonomyTests
         world.RegisterBuilding(quarry);
         Assert.True(world.TryAssignCitizen(quarry.Id, hero.Id).IsSuccess);
 
-        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks - 1; tick++)
+        for (int tick = 0; tick < hero.TransitDurationTicks - 1; tick++)
         {
             world.AdvanceWorldTick();
         }
@@ -52,7 +52,7 @@ public class CitizenAutonomyTests
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
 
         TestHelpers.AdvanceToNextProductionCycle(world);
-        for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick <= hero.TransitDurationTicks; tick++)
         {
             world.AdvanceWorldTick();
         }
@@ -77,7 +77,7 @@ public class CitizenAutonomyTests
         TestHelpers.PlaceAtAssignment(world, hero.Id);
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
         TestHelpers.AdvanceToNextProductionCycle(world);
-        for (int tick = 0; tick <= CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick <= hero.TransitDurationTicks; tick++)
         {
             world.AdvanceWorldTick();
         }
@@ -94,7 +94,7 @@ public class CitizenAutonomyTests
         Assert.Equal(quarry.Id, hero.CurrentAssignment);
         Assert.Equal(CitizenLocation.InTransit, hero.CurrentLocation);
 
-        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick < hero.TransitDurationTicks; tick++)
         {
             world.AdvanceWorldTick();
         }
@@ -151,7 +151,7 @@ public class CitizenAutonomyTests
         Assert.Equal(CitizenLocation.InTransit, restoredHero.CurrentLocation);
         Assert.Equal(liveHero.TransitStartedAtTick, restoredHero.TransitStartedAtTick);
 
-        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick < restoredHero.TransitDurationTicks; tick++)
         {
             live.AdvanceWorldTick();
             restored.AdvanceWorldTick();
@@ -182,7 +182,7 @@ public class CitizenAutonomyTests
         int foodDuringTravel = live.FoodStock;
 
         CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
-        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks - 1; tick++)
+        for (int tick = 0; tick < hero.TransitDurationTicks - 1; tick++)
         {
             restored.AdvanceWorldTick();
         }

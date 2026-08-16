@@ -25,13 +25,22 @@ internal sealed class CitizenAssignmentService
     /// </summary>
     private readonly Func<bool> _isLaborTime;
 
+    /// <summary>
+    /// How long a journey takes for this citizen, given the direction. This is
+    /// CityWorld.TravelTicksFor: the duration depends on where the buildings
+    /// are, and this service holds citizens and buildings but not the city's
+    /// parcel geometry.
+    /// </summary>
+    private readonly Func<Citizen, bool, int> _travelTicksFor;
+
     public CitizenAssignmentService(
         IDictionary<CitizenId, Citizen> citizens,
         IDictionary<BuildingId, Building> buildings,
         IDictionary<BuildingId, ConstructionProject> projects,
         Action<BuildingId> buildingChanged,
         Action<BuildingId> projectChanged,
-        Func<bool> isLaborTime)
+        Func<bool> isLaborTime,
+        Func<Citizen, bool, int> travelTicksFor)
     {
         _citizens = citizens;
         _buildings = buildings;
@@ -39,6 +48,7 @@ internal sealed class CitizenAssignmentService
         _buildingChanged = buildingChanged;
         _projectChanged = projectChanged;
         _isLaborTime = isLaborTime;
+        _travelTicksFor = travelTicksFor;
     }
 
     public AssignmentResult AssignToBuilding(
@@ -179,13 +189,13 @@ internal sealed class CitizenAssignmentService
             {
                 continue;
             }
-            citizen.BeginTravelHome(currentTick);
+            citizen.BeginTravelHome(currentTick, _travelTicksFor(citizen, true));
         }
     }
 
     private void MobiliseCitizen(Citizen citizen, int currentTick)
     {
-        if (_isLaborTime()) citizen.BeginTravelToAssignment(currentTick);
+        if (_isLaborTime()) citizen.BeginTravelToAssignment(currentTick, _travelTicksFor(citizen, false));
         else citizen.SetLocation(CitizenLocation.AtHome);
     }
 
@@ -194,7 +204,7 @@ internal sealed class CitizenAssignmentService
         bool workIsNeeded = building.ProductionEnabled && building.Stock < building.MaxStock;
         if (_isLaborTime() && workIsNeeded)
         {
-            citizen.BeginTravelToAssignment(currentTick);
+            citizen.BeginTravelToAssignment(currentTick, _travelTicksFor(citizen, false));
         }
         else
         {

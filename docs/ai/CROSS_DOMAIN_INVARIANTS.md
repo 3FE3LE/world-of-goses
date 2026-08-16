@@ -90,6 +90,10 @@ Source shorthand: a citation like *(systems/citizens)* means `docs/systems/citiz
   land: `ControlPower` is rolled against `ControlResistance` between a floor and
   a ceiling. No amount of any statistic makes a combatant immune to one.
   *(systems/statistics-and-combat §8.4)*
+- A journey's duration is derived from the distance between its endpoints and
+  the traveller's own `MovementSpeed`, never from a flat constant. Two journeys
+  of equal length cost the same whatever the activity is for.
+  *(systems/citizens, #58)*
 - An aptitude changes how fast a citizen learns a competency and never how much
   they produce. Two citizens at the same competency level do the same work.
   *(systems/citizens, world/vision pillar on lineage)*

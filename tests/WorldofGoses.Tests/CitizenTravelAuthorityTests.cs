@@ -73,7 +73,7 @@ public sealed class CitizenTravelAuthorityTests
     {
         (CityWorld world, Citizen hero, Building quarry) = AssignedWorld(8100);
         int arrivesAt = hero.TravelArrivalTick!.Value;
-        Assert.Equal(hero.TransitStartedAtTick!.Value + CityEconomyRules.AbstractTravelTicks, arrivesAt);
+        Assert.Equal(hero.TransitStartedAtTick!.Value + hero.TransitDurationTicks, arrivesAt);
 
         while (world.CurrentTick < arrivesAt - 1) world.AdvanceWorldTick();
         Assert.Equal(CitizenLocation.InTransit, hero.CurrentLocation);
@@ -91,8 +91,8 @@ public sealed class CitizenTravelAuthorityTests
         (CityWorld live, _, _) = AssignedWorld(8101);
         CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks * 2);
-        AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks * 2);
+        AdvanceLive(live, live.Hero!.TransitDurationTicks * 2);
+        AdvanceOffline(offline, offline.Hero!.TransitDurationTicks * 2);
 
         Assert.Equal(CitizenLocation.AtWork, live.Hero!.CurrentLocation);
         AssertSameWorld(live, offline);
@@ -108,11 +108,11 @@ public sealed class CitizenTravelAuthorityTests
         Citizen hero = live.Hero!;
         Assert.Null(hero.CurrentAssignment);
 
-        hero.BeginTravelHome(live.CurrentTick);
+        hero.BeginTravelHome(live.CurrentTick, CityEconomyRules.AbstractTravelTicks);
         CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
-        AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(live, hero.TransitDurationTicks);
+        AdvanceOffline(offline, hero.TransitDurationTicks);
 
         Assert.Equal(CitizenLocation.AtHome, live.Hero!.CurrentLocation);
         AssertSameWorld(live, offline);
@@ -135,8 +135,8 @@ public sealed class CitizenTravelAuthorityTests
         Assert.True(live.TryAssignCitizen(quarry.Id, live.Hero!.Id).IsSuccess);
         CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks * 3);
-        AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks * 3);
+        AdvanceLive(live, live.Hero!.TransitDurationTicks * 3);
+        AdvanceOffline(offline, offline.Hero!.TransitDurationTicks * 3);
 
         // The boundary turns the journey around rather than parking anyone at a
         // closed worksite, and the player's standing order survives it.
@@ -150,7 +150,7 @@ public sealed class CitizenTravelAuthorityTests
     {
         (CityWorld live, Citizen hero, _) = AssignedWorld(8104);
         int arrivesAt = hero.TravelArrivalTick!.Value;
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks / 3);
+        AdvanceLive(live, hero.TransitDurationTicks / 3);
 
         CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         Assert.Equal(CitizenLocation.InTransit, restored.Hero!.CurrentLocation);
@@ -159,8 +159,8 @@ public sealed class CitizenTravelAuthorityTests
         // and reloading does not shorten it either.
         Assert.Equal(arrivesAt, restored.Hero.TravelArrivalTick);
 
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
-        AdvanceOffline(restored, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(live, live.Hero!.TransitDurationTicks);
+        AdvanceOffline(restored, restored.Hero!.TransitDurationTicks);
 
         Assert.Equal(CitizenLocation.AtWork, live.Hero!.CurrentLocation);
         AssertSameWorld(live, restored);
@@ -180,7 +180,12 @@ public sealed class CitizenTravelAuthorityTests
         (CityWorld reference, _, _) = AssignedWorld(8105);
         CityWorld atSpeed = WorldPersistence.FromSave(WorldPersistence.Capture(reference));
 
-        int ticks = CityEconomyRules.AbstractTravelTicks * 2;
+        // Rounded up to a multiple of four so every multiplier divides it
+        // exactly. This test is about a tick meaning the same thing at any
+        // speed, not about how long a journey is, and a count that 4 does not
+        // divide would advance the batched world fewer ticks than the reference
+        // — which would fail for arithmetic rather than for the rule.
+        int ticks = ((reference.Hero!.TransitDurationTicks + 3) / 4) * 4;
         AdvanceLive(reference, ticks);
         // Whatever the multiplier, the world advances one tick per tick; the
         // multiplier only decides how much wall-clock time that took.
@@ -199,7 +204,7 @@ public sealed class CitizenTravelAuthorityTests
         (CityWorld live, Citizen hero, _) = AssignedWorld(8106);
         Building farm = live.Buildings.Values.First(building => building.Kind == BuildingKind.Farm);
         farm.ConfigureProductionPolicy(false, 0, farm.StorageCapacity);
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(live, live.Hero!.TransitDurationTicks);
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
 
         hero.ConsumeStamina(hero.CurrentStamina - (CitizenNeedsRules.InterruptAtStamina + 2));
@@ -210,8 +215,8 @@ public sealed class CitizenTravelAuthorityTests
         CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         int foodWhileWalking = live.FoodStock;
 
-        AdvanceLive(live, CityEconomyRules.AbstractTravelTicks);
-        AdvanceOffline(offline, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(live, live.Hero!.TransitDurationTicks);
+        AdvanceOffline(offline, offline.Hero!.TransitDurationTicks);
 
         // The meal belongs to the arrival, not to the departure: the walk home
         // costs nothing, and reaching the shelter costs exactly one Food.
@@ -224,11 +229,11 @@ public sealed class CitizenTravelAuthorityTests
     public void StandingOrder_IsReDispatchedAfterTheReturnJourneyEnds()
     {
         (CityWorld world, Citizen hero, Building quarry) = AssignedWorld(8107);
-        AdvanceLive(world, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(world, world.Hero!.TransitDurationTicks);
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
 
-        hero.BeginTravelHome(world.CurrentTick);
-        AdvanceLive(world, CityEconomyRules.AbstractTravelTicks);
+        hero.BeginTravelHome(world.CurrentTick, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(world, world.Hero!.TransitDurationTicks);
 
         // The order was never cancelled, so arriving home and being sent back
         // out happen on the same tick: the citizen is already walking to the
@@ -238,10 +243,10 @@ public sealed class CitizenTravelAuthorityTests
         Assert.False(hero.IsReturningHome);
         // The second journey is timed exactly like the first.
         Assert.Equal(
-            world.CurrentTick + CityEconomyRules.AbstractTravelTicks,
+            world.CurrentTick + world.Hero!.TransitDurationTicks,
             hero.TravelArrivalTick);
 
-        AdvanceLive(world, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(world, world.Hero!.TransitDurationTicks);
         Assert.Equal(CitizenLocation.AtWork, hero.CurrentLocation);
     }
 
@@ -258,8 +263,8 @@ public sealed class CitizenTravelAuthorityTests
         Citizen hero = world.Hero!;
         Assert.Equal(CitizenCommitmentKind.None, hero.Commitment.Kind);
 
-        hero.BeginTravelHome(world.CurrentTick);
-        AdvanceLive(world, CityEconomyRules.AbstractTravelTicks);
+        hero.BeginTravelHome(world.CurrentTick, CityEconomyRules.AbstractTravelTicks);
+        AdvanceLive(world, hero.TransitDurationTicks);
 
         Assert.Equal(CitizenLocation.AtHome, hero.CurrentLocation);
         Assert.Null(hero.TransitStartedAtTick);
@@ -276,7 +281,7 @@ public sealed class CitizenTravelAuthorityTests
     {
         CityWorld world = TestHelpers.WorldWithHome();
         Citizen hero = world.Hero!;
-        hero.BeginTravelHome(world.CurrentTick);
+        hero.BeginTravelHome(world.CurrentTick, CityEconomyRules.AbstractTravelTicks);
         int arrivesAt = hero.TravelArrivalTick!.Value;
 
         // Ask for far more time than the journey needs, through the path that

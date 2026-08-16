@@ -111,7 +111,7 @@ public class ExpeditionTeamTests
         IncorporateHeroes(world, availableMember, recoveringMember);
         Citizen recovering = world.GetCitizen(recoveringMember)!;
         recovering.ConsumeStamina(recovering.MaxStamina);
-        Assert.True(recovering.BeginVitalRecovery(world.CurrentTick));
+        Assert.True(recovering.BeginVitalRecovery(world.CurrentTick, CityEconomyRules.AbstractTravelTicks));
 
         ExpeditionStartResult result = world.StartExpedition(
             ExpeditionRequest.Reconnaissance(new[] { availableMember, recoveringMember }));

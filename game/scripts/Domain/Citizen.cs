@@ -257,7 +257,7 @@ public sealed class Citizen
         CurrentStamina = Math.Min(CurrentStamina, EffectiveMaxStamina);
     }
 
-    internal bool BeginWoundRecovery(BuildingId shelterId, int currentTick)
+    internal bool BeginWoundRecovery(BuildingId shelterId, int currentTick, int travelTicks)
     {
         if (Wound is null
             || Commitment.Kind is CitizenCommitmentKind.Expedition
@@ -269,7 +269,7 @@ public sealed class Citizen
         ResumeWorkNotBeforeTick = currentTick;
         if (CurrentLocation != CitizenLocation.AtHome)
         {
-            BeginTravelHome(currentTick);
+            BeginTravelHome(currentTick, travelTicks);
         }
         return true;
     }
@@ -294,7 +294,7 @@ public sealed class Citizen
         return true;
     }
 
-    internal bool BeginVitalRecovery(int currentTick)
+    internal bool BeginVitalRecovery(int currentTick, int travelTicks)
     {
         if (VitalStatus != CitizenVitalStatus.Stable) return false;
         if (Commitment.Kind is CitizenCommitmentKind.Expedition or CitizenCommitmentKind.Recovery)
@@ -302,7 +302,7 @@ public sealed class Citizen
             return false;
         }
         VitalStatus = CitizenVitalStatus.Recovering;
-        BeginTravelHome(currentTick);
+        BeginTravelHome(currentTick, travelTicks);
         return true;
     }
 
@@ -371,19 +371,54 @@ public sealed class Citizen
         IsReturningHome = travels && isReturningHome;
     }
 
-    internal void BeginTravelToAssignment(int currentTick)
+    /// <summary>
+    /// How long the journey in progress takes, in ticks.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Stamped when the journey starts, by whoever knows how far it is — this
+    /// class knows a citizen, not a city. It is a cached derivation and not a
+    /// durable fact: a save records that a citizen is in transit and when they
+    /// left, and the world recomputes this from the same geometry that produced
+    /// it (<see cref="CityTravel"/>).
+    /// </para>
+    /// <para>
+    /// Defaults to the old flat constant so a citizen constructed without a
+    /// world behind them — a fixture, a test — behaves exactly as before.
+    /// </para>
+    /// </remarks>
+    public int TransitDurationTicks { get; private set; } =
+        CityEconomyRules.AbstractTravelTicks;
+
+    internal void BeginTravelToAssignment(int currentTick, int travelTicks)
     {
         IsReturningHome = false;
         TransitStartedAtTick = currentTick;
+        TransitDurationTicks = NormalizeTravelTicks(travelTicks);
         SetLocation(CitizenLocation.InTransit);
     }
 
-    internal void BeginTravelHome(int currentTick)
+    internal void BeginTravelHome(int currentTick, int travelTicks)
     {
         IsReturningHome = true;
         TransitStartedAtTick = currentTick;
+        TransitDurationTicks = NormalizeTravelTicks(travelTicks);
         SetLocation(CitizenLocation.InTransit);
     }
+
+    /// <summary>
+    /// Restamps the journey in progress after the world recovers the geometry
+    /// it was measured from. No-op for a citizen who is not travelling.
+    /// </summary>
+    internal void RestampTravelDuration(int travelTicks)
+    {
+        if (CurrentLocation != CitizenLocation.InTransit) return;
+        if (TransitStartedAtTick is null) return;
+        TransitDurationTicks = NormalizeTravelTicks(travelTicks);
+    }
+
+    private static int NormalizeTravelTicks(int travelTicks) =>
+        travelTicks > 0 ? travelTicks : CityTravel.MinimumTravelTicks;
 
     /// <summary>
     /// World tick at which the current journey is due to end, or null when the
@@ -401,7 +436,7 @@ public sealed class Citizen
     /// </summary>
     public int? TravelArrivalTick =>
         CurrentLocation == CitizenLocation.InTransit && TransitStartedAtTick is int startedAt
-            ? startedAt + CityEconomyRules.AbstractTravelTicks
+            ? startedAt + TransitDurationTicks
             : null;
 
     internal bool AbstractTravelHasCompleted(int currentTick) =>

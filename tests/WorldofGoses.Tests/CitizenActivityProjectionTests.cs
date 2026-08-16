@@ -79,7 +79,7 @@ public sealed class CitizenActivityProjectionTests
         Citizen citizen = NewCitizen(1);
         citizen.TryCommitToBuilding(new BuildingId(1));
 
-        citizen.BeginTravelToAssignment(currentTick: 40);
+        citizen.BeginTravelToAssignment(currentTick: 40, CityEconomyRules.AbstractTravelTicks);
         Assert.Equal(CitizenLocation.InTransit, citizen.CurrentLocation);
         Assert.Equal(40, citizen.TransitStartedAtTick);
         Assert.False(citizen.IsReturningHome);
@@ -99,7 +99,7 @@ public sealed class CitizenActivityProjectionTests
         citizen.TryCommitToBuilding(new BuildingId(1));
         citizen.SetLocation(CitizenLocation.AtWork);
 
-        citizen.BeginTravelHome(currentTick: 90);
+        citizen.BeginTravelHome(currentTick: 90, CityEconomyRules.AbstractTravelTicks);
 
         Assert.Equal(CitizenLocation.InTransit, citizen.CurrentLocation);
         Assert.True(citizen.IsReturningHome);

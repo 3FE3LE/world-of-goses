@@ -688,6 +688,13 @@ internal static class WorldSaveApplier
             }
             if (expedition.Id >= world._nextExpeditionId) world._nextExpeditionId = expedition.Id + 1;
         }
+        // Buildings, placements, work orders and citizen locations are all back
+        // by now, which is everything a journey's length is measured from. The
+        // duration is a derivation and not a stored field, so it is recomputed
+        // here rather than read: a save reloaded mid-journey has to arrive on
+        // the same tick the session that wrote it would have.
+        world.RestampTravelDurations();
+
         if (save.PendingProspectSeed is int prospectSeed)
         {
             // The profile is regenerated, not stored, so every input the

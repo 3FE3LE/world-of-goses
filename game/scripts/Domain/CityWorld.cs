@@ -69,7 +69,8 @@ public sealed class CityWorld
             _projects,
             RaiseBuildingChanged,
             RaiseProjectChanged,
-            IsLaborTime);
+            IsLaborTime,
+            TravelTicksFor);
         _production = new BuildingProductionSimulation(
             _citizens,
             _log,
@@ -620,7 +621,7 @@ public sealed class CityWorld
         {
             return WoundRecoveryResult.Fail(WoundRecoveryOutcome.MissingFood);
         }
-        if (!citizen.BeginWoundRecovery(shelter.Id, _tick))
+        if (!citizen.BeginWoundRecovery(shelter.Id, _tick, TravelTicksFor(citizen, returningHome: true)))
         {
             throw new InvalidOperationException("Validated wound recovery could not begin.");
         }
@@ -3626,7 +3627,7 @@ public sealed class CityWorld
             if (!released || citizen.CurrentLocation == CitizenLocation.AtHome) continue;
             if (HasCompletedFirstShelter())
             {
-                citizen.BeginTravelHome(_tick);
+                citizen.BeginTravelHome(_tick, TravelTicksFor(citizen, returningHome: true));
             }
             else
             {
@@ -3655,7 +3656,7 @@ public sealed class CityWorld
                     projectId.Value);
                 if (released && citizen.CurrentLocation != CitizenLocation.AtHome)
                 {
-                    citizen.BeginTravelHome(_tick);
+                    citizen.BeginTravelHome(_tick, TravelTicksFor(citizen, returningHome: true));
                 }
             }
         }
@@ -3766,7 +3767,7 @@ public sealed class CityWorld
             if (citizen.Commitment.Kind != CitizenCommitmentKind.Expedition
                 && citizen.CurrentLocation != CitizenLocation.AtHome)
             {
-                citizen.BeginTravelHome(_tick);
+                citizen.BeginTravelHome(_tick, TravelTicksFor(citizen, returningHome: true));
             }
         }
         // The Home building's slot rendering reads CitizenLocation
@@ -3847,7 +3848,7 @@ public sealed class CityWorld
             {
                 continue;
             }
-            citizen.BeginTravelToAssignment(_tick);
+            citizen.BeginTravelToAssignment(_tick, TravelTicksFor(citizen, returningHome: false));
         }
     }
 
@@ -3892,7 +3893,7 @@ public sealed class CityWorld
             if (citizen.CurrentLocation == CitizenLocation.AtWork
                 && CitizenNeedsRules.RequiresRecovery(citizen))
             {
-                citizen.BeginVitalRecovery(_tick);
+                citizen.BeginVitalRecovery(_tick, TravelTicksFor(citizen, returningHome: true));
             }
         }
     }
@@ -3947,6 +3948,90 @@ public sealed class CityWorld
     /// citizens forever once <see cref="MobiliseForNight"/> had sent them home.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// How long this citizen's next journey takes, from the geometry the city
+    /// already stores and the citizen's own pace.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Replaces <see cref="CityEconomyRules.AbstractTravelTicks"/> at the point
+    /// a journey starts. That constant applied one duration to every distance,
+    /// which is why the same citizen looked slow walking to a nearby tree and
+    /// fast walking to a distant worksite.
+    /// </para>
+    /// <para>
+    /// A citizen with no home or no workplace gets the floor rather than zero:
+    /// an unknown endpoint is a real state and must not mean instant arrival.
+    /// </para>
+    /// </remarks>
+    internal int TravelTicksFor(Citizen citizen, bool returningHome)
+    {
+        ArgumentNullException.ThrowIfNull(citizen);
+        BuildingId? home = PrimaryHome?.Id;
+        BuildingId? workplace = citizen.WorkOrder?.TargetId;
+        BuildingId? from = returningHome ? workplace : home;
+        BuildingId? to = returningHome ? home : workplace;
+
+        return CityTravel.TravelTicks(
+            PlacementOf(from),
+            PlacementOf(to),
+            MovementSpeedOf(citizen));
+    }
+
+    /// <summary>
+    /// Restamps every in-flight journey after a restore.
+    /// </summary>
+    /// <remarks>
+    /// A journey's duration is a cached derivation, not a durable fact: the save
+    /// records that a citizen is in transit and when they left, and the length
+    /// of the trip is recomputed from the geometry that produced it. Without
+    /// this, a save reloaded mid-journey would fall back to the flat default and
+    /// arrive at a different tick than the session that wrote it — which is the
+    /// offline/live equivalence the whole travel model rests on.
+    /// <para>
+    /// Must run after buildings, placements, work orders and citizen locations
+    /// are all restored; it reads every one of them.
+    /// </para>
+    /// </remarks>
+    internal void RestampTravelDurations()
+    {
+        foreach (Citizen citizen in _citizens.Values)
+        {
+            if (citizen.CurrentLocation != CitizenLocation.InTransit) continue;
+            citizen.RestampTravelDuration(
+                TravelTicksFor(citizen, citizen.IsReturningHome));
+        }
+    }
+
+    private ParcelPlacement? PlacementOf(BuildingId? buildingId) =>
+        buildingId is BuildingId id
+            && _parcelPlacements.TryGetValue(id, out ParcelPlacement? placement)
+                ? placement
+                : null;
+
+    /// <summary>
+    /// The citizen's own walking pace, as the derived multiplier the statistics
+    /// system already produces.
+    /// </summary>
+    /// <remarks>
+    /// <c>MovementSpeed</c> existed and was read only by combat, so a citizen
+    /// built for <c>Reach</c> moved faster in a fight and at everyone else's
+    /// speed through their own city. Only the tempo family is computed here;
+    /// the offensive and defensive ones cost work this does not need.
+    /// </remarks>
+    private static double MovementSpeedOf(Citizen citizen) =>
+        TempoCalculator.Calculate(
+            citizen.CubeProfile,
+            citizen.EquipmentLoadout,
+            new StatCalculationContext(
+                StatisticsBalanceConfig.Default.MinimumSkillLevel,
+                StatisticsBalanceConfig.Default.NeutralConditionFactor,
+                citySupportFactor: 1.0,
+                StatisticsBalanceConfig.Default)).MovementSpeed.Value;
+
+    private static readonly TempoStatisticsCalculator TempoCalculator =
+        new(StatisticsBalanceConfig.Default);
+
     private void CompleteDueTravel(Citizen citizen)
     {
         if (!citizen.AbstractTravelHasCompleted(_tick)) return;
@@ -3971,7 +4056,7 @@ public sealed class CityWorld
             // A journey can come due just after the workday boundary. Do not
             // leave the citizen idle at the threshold: preserve the standing
             // order and reverse the physical journey.
-            citizen.BeginTravelHome(_tick);
+            citizen.BeginTravelHome(_tick, TravelTicksFor(citizen, returningHome: true));
             RaiseAssignmentChanged(assignmentId.Value);
             return;
         }
@@ -4057,7 +4142,7 @@ public sealed class CityWorld
             contextLocation = CitizenContextLocation.InTransit;
             contextBuildingId = null;
             startedAt = citizen.TransitStartedAtTick;
-            expectedAt = startedAt + CityEconomyRules.AbstractTravelTicks;
+            expectedAt = startedAt + citizen.TransitDurationTicks;
             nextTransition = expectedAt;
             originId = citizen.IsReturningHome ? workplaceId : shelterId;
             destinationId = citizen.IsReturningHome ? shelterId : workplaceId;
@@ -4242,7 +4327,7 @@ public sealed class CityWorld
                     projectId.Value);
                 if (released && c.CurrentLocation != CitizenLocation.AtHome)
                 {
-                    c.BeginTravelHome(_tick);
+                    c.BeginTravelHome(_tick, TravelTicksFor(c, returningHome: true));
                 }
             }
         }

@@ -175,6 +175,40 @@ documentos de linaje definen gramática visual y sonora pero ninguno dice cómo
 suena un nombre Kovari frente a uno Theryn, así que el repertorio es común a
 todos. Es un hueco de lore, no una decisión.
 
+## Cuánto se tarda en cruzar la ciudad
+
+La duración de un trayecto **sale de la distancia**, no al revés
+(`CityTravel`). Antes toda travesía costaba una constante fija, y como la
+distancia sí variaba, el mismo ciudadano parecía ir despacio a un sitio cercano
+y deprisa a uno lejano.
+
+```text
+duración = distancia_de_rejilla / MovementSpeed
+distancia_de_rejilla = columnas × coste_columna + filas × coste_fila
+```
+
+- La geometría es la que la ciudad ya guardaba: fila y banda de columnas por
+  edificio en `ParcelPlacement`.
+- Cruzar de calle cuesta más que avanzar por una frontada: es un movimiento en
+  profundidad y no un paso a lo largo.
+- **La velocidad es la del ciudadano.** `MovementSpeed` ya existía como stat
+  derivado de `Reach` y sólo lo leía el combate; alguien construido para
+  moverse ahora también cruza antes su propia ciudad.
+- Hay suelo y techo: ningún trayecto es instantáneo y ninguno deja a nadie
+  varado.
+- **Un extremo sin colocar conserva la duración plana antigua.** Medir nada y
+  llamarlo "aquí al lado" sería mentira mayor que la constante.
+
+La duración es una **derivación cacheada, no un dato durable**: el save guarda
+que alguien está en tránsito y cuándo salió, y el mundo la recalcula al cargar
+desde la misma geometría. Por eso una partida recargada a mitad de camino llega
+en el mismo tick que la sesión que la escribió.
+
+El dominio tiene coordenadas pero **no ruteo** — `StreetRoutePlanner` es
+presentación —, así que esto mide distancia cardinal de rejilla. El rodeo
+alrededor de un obstáculo lo absorbe la presentación dentro de la ventana que
+recibe. Ver [#58](https://github.com/3FE3LE/world-of-goses/issues/58).
+
 ## Cámara-sigue
 
 En el mundo macro y en las escenas detalladas caminables, seleccionar un

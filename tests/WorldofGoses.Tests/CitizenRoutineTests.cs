@@ -37,7 +37,7 @@ public sealed class CitizenRoutineTests
         Assert.Equal(world.PrimaryHome!.Id, routine.TransitOriginId);
         Assert.Equal(quarry.Id, routine.TransitDestinationId);
         Assert.Equal(world.CurrentTick, routine.ActivityStartedAtTick);
-        Assert.Equal(world.CurrentTick + CityEconomyRules.AbstractTravelTicks, routine.ExpectedCompletionTick);
+        Assert.Equal(world.CurrentTick + world.Hero!.TransitDurationTicks, routine.ExpectedCompletionTick);
     }
 
     [Fact]

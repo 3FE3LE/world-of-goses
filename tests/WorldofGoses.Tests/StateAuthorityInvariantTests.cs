@@ -105,7 +105,7 @@ public sealed class StateAuthorityInvariantTests
             int startedAt = Assert.IsType<int>(citizen.TransitStartedAtTick);
             Assert.InRange(startedAt, 0, world.CurrentTick);
             Assert.Equal(
-                startedAt + CityEconomyRules.AbstractTravelTicks,
+                startedAt + citizen.TransitDurationTicks,
                 citizen.TravelArrivalTick);
         }
     }

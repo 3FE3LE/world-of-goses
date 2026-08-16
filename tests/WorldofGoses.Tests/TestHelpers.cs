@@ -396,10 +396,25 @@ internal static class TestHelpers
     /// the arrival itself is what the test is about; use
     /// <see cref="PlaceAtAssignment"/> when it merely needs someone at work.
     /// </summary>
+    /// <remarks>
+    /// Runs until nobody is in transit rather than for a fixed count. A journey
+    /// no longer takes a constant number of ticks — it takes as long as the
+    /// distance and the traveller's pace say — so a fixed loop either overshot
+    /// a short trip, absorbing unrelated economy, or cut a long one short.
+    /// The bound is a runaway guard, not the expected duration.
+    /// </remarks>
     public static void SettleTravel(CityWorld world)
     {
-        for (int tick = 0; tick < CityEconomyRules.AbstractTravelTicks; tick++)
+        for (int tick = 0; tick < CityTravel.MaximumTravelTicks * 2; tick++)
         {
+            bool anyTravelling = false;
+            foreach (Citizen citizen in world.Citizens.Values)
+            {
+                if (citizen.CurrentLocation != CitizenLocation.InTransit) continue;
+                anyTravelling = true;
+                break;
+            }
+            if (!anyTravelling) return;
             world.AdvanceWorldTick();
         }
     }

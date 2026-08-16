@@ -16,6 +16,41 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## Ir lejos tarda más que ir cerca
+
+**2026-08-16** · ciudadanos · schema v36 (sin cambio) · 1792 pruebas superadas
+
+Un ciudadano parecía moverse a una velocidad al ir a recolectar y a otra al ser
+asignado a una construcción. No había dos sistemas de desplazamiento —
+presentación comparte acumulador, cadencia y función de avance para héroe y
+ciudadanos—, sino **una duración fija aplicada a distancias distintas**: toda
+travesía costaba treinta ticks. La duración era la constante y la distancia la
+variable, que es al revés, y de ahí que el mismo paso se leyera como arrastre
+hacia un sitio cercano y como esprint hacia uno lejano.
+
+Ahora la duración **sale de la distancia y del propio ciudadano**:
+
+```text
+duración = distancia_de_rejilla / MovementSpeed
+```
+
+La geometría no hubo que inventarla: la ciudad ya guardaba fila y banda de
+columnas por edificio en `ParcelPlacement`, y presentación ya las leía. Faltaba
+la función que las convierte en tiempo. Cruzar de calle cuesta más que avanzar
+por una frontada, hay suelo y techo, y un extremo que el mundo no sabe colocar
+conserva la duración plana antigua — medir nada y llamarlo "aquí al lado" sería
+mentira mayor que la constante.
+
+**Y `MovementSpeed` deja de ser sólo de combate.** Existía como stat derivado de
+`Reach` y lo leía únicamente la pelea, así que alguien construido para moverse
+corría en un encuentro y cruzaba su propia ciudad al paso de todos los demás.
+
+Calibrado para que un trayecto típico siga rondando los treinta ticks: cambia la
+**forma** de la economía —lo corto sale más barato y lo largo más caro— y no su
+escala. Es lo primero de
+[#58](https://github.com/3FE3LE/world-of-goses/issues/58); quedan el ritmo de
+presentación y la longitud real de las rutas de expedición.
+
 ## El viaje camina y el combate se desliza
 
 **2026-08-16** · presentación · schema v36 (sin cambio) · 1782 pruebas superadas
