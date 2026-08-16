@@ -1,0 +1,16 @@
+; Ashen — the ground caelith lands on. Still the Kenney placeholder sheet:
+; 16 px tiles on a 1 px gutter, 57 columns. An authored sheet replaces the
+; Atlas, TileSize, Separation and Columns here and nothing else.
+[gd_resource type="Resource" script_class="GroundAtlasProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Ui/GroundAtlasProfile.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://b8i1agyb62vag" path="res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png" id="2_atlas"]
+
+[resource]
+script = ExtResource("1_script")
+Atlas = ExtResource("2_atlas")
+TileSize = 16
+Separation = 1
+Columns = 57
+Fill = PackedInt32Array(64, 9, 8)
+Path = 6

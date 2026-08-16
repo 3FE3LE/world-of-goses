@@ -82,8 +82,34 @@ public static class FounderNarrativeScorer
                 answerIds,
                 believedFinalWordId,
                 preservedDetailId,
-                echoIds));
+                echoIds),
+            TopAptitudes(scores));
     }
+
+    /// <summary>
+    /// The aptitudes the answers scored highest on, ties broken by catalogue
+    /// order so the result is reproducible.
+    /// </summary>
+    /// <remarks>
+    /// The <see cref="FounderScoreAxis.Aptitude"/> axis was already being
+    /// accumulated in <c>scores</c> by the loop above — the questionnaire scores
+    /// it in more than thirty places — and then never read. This is the read.
+    /// </remarks>
+    private static IReadOnlyList<AptitudeId> TopAptitudes(
+        IReadOnlyDictionary<(FounderScoreAxis Axis, string Value), int> scores) =>
+        ProfileCatalog.Aptitudes
+            .Select((aptitude, index) => new
+            {
+                aptitude.Id,
+                Index = index,
+                Score = scores.GetValueOrDefault(
+                    (FounderScoreAxis.Aptitude, Normalize(aptitude.Id.Value))),
+            })
+            .OrderByDescending(entry => entry.Score)
+            .ThenBy(entry => entry.Index)
+            .Take(FounderOnboardingResult.AptitudeCount)
+            .Select(entry => entry.Id)
+            .ToArray();
 
     private static T Top<T>(
         FounderScoreAxis axis,

@@ -96,7 +96,9 @@ public sealed class CombatSpatialTests
     public void ActorReapproachesAfterKnockbackBreaksRange()
     {
         var balance = CombatBalanceConfig.Default with { KnockbackBaseDistance = 100 };
-        CombatantState attacker = Actor("attacker", CombatSide.Party, 100, speed: 1, range: 20, impulse: 100);
+        CombatantState attacker = Actor(
+            "attacker", CombatSide.Party, 100, speed: 1, range: 20,
+            impulse: 100, knocksDown: true);
         CombatantState target = Actor("target", CombatSide.Enemy, 140, speed: 0, range: 20, stability: 0);
         CombatEncounter encounter = CombatTestFactory.Encounter([attacker], [target], balance: balance);
 
@@ -286,7 +288,9 @@ public sealed class CombatSpatialTests
 
     private static double Knockback(double impulse, double stability)
     {
-        CombatantState attacker = Actor("attacker", CombatSide.Party, 100, speed: 0, range: 60, impulse: impulse);
+        CombatantState attacker = Actor(
+            "attacker", CombatSide.Party, 100, speed: 0, range: 60,
+            impulse: impulse, knocksDown: true);
         CombatantState target = Actor("target", CombatSide.Enemy, 140, speed: 0, range: 60, stability: stability);
         CombatEncounter encounter = CombatTestFactory.Encounter([attacker], [target]);
         double before = target.Spatial.PositionX;
@@ -301,6 +305,12 @@ public sealed class CombatSpatialTests
         return new CombatSession(CombatTestFactory.Encounter([party], [enemy], seed));
     }
 
+    /// <param name="knocksDown">
+    /// Whether this actor's technique carries the Knockdown expression. Only a
+    /// blow that lands Knockdown displaces anyone, so the knockback tests have
+    /// to ask for it explicitly; every other test here wants a combatant that
+    /// stays where the domain put it.
+    /// </param>
     private static CombatantState Actor(
         string id,
         CombatSide side,
@@ -308,12 +318,19 @@ public sealed class CombatSpatialTests
         double speed,
         double range,
         double stability = 50,
-        double impulse = 50) => CombatTestFactory.Combatant(
+        double impulse = 50,
+        bool knocksDown = false) => CombatTestFactory.Combatant(
             id,
             side,
             maxHealth: 100000,
             currentHealth: 100000,
-            techniques: [CombatTestFactory.Technique($"{id}.active", cooldown: 20)],
+            techniques:
+            [
+                CombatTestFactory.Technique(
+                    $"{id}.active",
+                    cooldown: 20,
+                    appliesStatus: knocksDown ? StatusEffectId.Knockdown : null),
+            ],
             spatial: Spatial(position, speed, range, side, stability, impulse));
 
     private static CombatSpatialState Spatial(

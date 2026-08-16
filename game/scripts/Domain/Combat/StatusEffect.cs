@@ -98,10 +98,16 @@ public sealed class StatusResolver
     }
 
     /// <summary>
-    /// Duration and threshold for a status, from central balance. Only Stunning
-    /// and Knockdown are behavioural in this slice; the rest are representable so
-    /// content can reference them without inventing four more systems.
+    /// Duration and threshold for a status, from central balance.
     /// </summary>
+    /// <remarks>
+    /// All six are behavioural. They used to fall through to <c>(1, 1)</c> with
+    /// only Stunning and Knockdown doing anything, which made the other four
+    /// labels: a technique could apply Bleeding and nothing anywhere would read
+    /// it. The six now cost different things — see <see cref="PreventsAction"/>,
+    /// <see cref="PreventsMovement"/>, <see cref="DamageOverTime"/> and the
+    /// end-of-encounter conversion of Fracture.
+    /// </remarks>
     public StatusEffect Create(StatusEffectId id, string sourceId, string targetId, int step)
     {
         (int duration, int threshold) = id switch
@@ -110,10 +116,27 @@ public sealed class StatusResolver
                 (_balance.StunningDurationSteps, _balance.StunningInterruptThreshold),
             StatusEffectId.Knockdown =>
                 (_balance.KnockdownDurationSteps, _balance.KnockdownThreshold),
-            _ => (1, 1),
+            StatusEffectId.Paralysis =>
+                (_balance.ParalysisDurationSteps, _balance.ParalysisThreshold),
+            StatusEffectId.Bleeding =>
+                (_balance.BleedingDurationSteps, _balance.BleedingThreshold),
+            StatusEffectId.Poisoning =>
+                (_balance.PoisoningDurationSteps, _balance.PoisoningThreshold),
+            StatusEffectId.Fracture =>
+                (_balance.FractureDurationSteps, _balance.FractureThreshold),
+            _ => throw new ArgumentOutOfRangeException(nameof(id), id, "Unknown status effect."),
         };
         return new StatusEffect(id, sourceId, targetId, 1, duration, threshold, step);
     }
+
+    /// <summary>Whether a second application of this status adds a stack.</summary>
+    /// <remarks>
+    /// Poisoning is the exception: reapplying it refreshes the duration but does
+    /// not deepen it. That is the whole shape of the effect — it cannot be piled
+    /// on to burst someone down, so its pressure is attrition you have to keep
+    /// renewing, which is what distinguishes it from Bleeding.
+    /// </remarks>
+    public static bool Stacks(StatusEffectId id) => id != StatusEffectId.Poisoning;
 
     /// <summary>
     /// Adds a status, stacking onto an existing one of the same id and refreshing
@@ -131,8 +154,11 @@ public sealed class StatusResolver
         {
             if (!merged && existing.Id == incoming.Id && existing.TargetId == incoming.TargetId)
             {
+                int stacks = Stacks(incoming.Id)
+                    ? existing.Stacks + incoming.Stacks
+                    : existing.Stacks;
                 next.Add(existing
-                    .WithStacks(existing.Stacks + incoming.Stacks)
+                    .WithStacks(stacks)
                     .WithDuration(Math.Max(existing.Duration, incoming.Duration)));
                 merged = true;
                 continue;
@@ -201,14 +227,133 @@ public sealed class StatusResolver
     /// Knockdown also costs the turn and additionally exposes the target, which
     /// <see cref="MitigationScale"/> reports.
     /// </summary>
+    /// <summary>
+    /// Whether the combatant loses its action this step.
+    /// </summary>
+    /// <remarks>
+    /// Stunning and Knockdown both cost the action, and that is deliberate — the
+    /// difference between them is what else they cost. Stunning takes the action
+    /// and nothing more: a stunned combatant holds its ground. Knockdown takes
+    /// the action <em>and</em> the position, because it is the one that throws
+    /// the target and leaves it prone.
+    /// </remarks>
     public bool PreventsAction(IReadOnlyList<StatusEffect> current) =>
         IsActive(current, StatusEffectId.Stunning) || IsActive(current, StatusEffectId.Knockdown);
 
     /// <summary>
-    /// Factor applied to the target's mitigation while it is knocked down. This is
-    /// how Knockdown alters exposure without introducing free movement into a
-    /// combat model that has no positions to move between.
+    /// Whether the combatant is held where it stands.
     /// </summary>
-    public double MitigationScale(IReadOnlyList<StatusEffect> current) =>
-        IsActive(current, StatusEffectId.Knockdown) ? _balance.KnockdownMitigationScale : 1.0;
+    /// <remarks>
+    /// Knockdown only. Paralysis used to root outright here, which made it read
+    /// as a third interrupt; it now scales the advance through
+    /// <see cref="Modifiers"/> instead — a severe slow rather than a stop — and
+    /// pays for its offensive value with a chance to seize the action. Being on
+    /// the floor is the one thing that truly stops movement.
+    /// </remarks>
+    public bool PreventsMovement(IReadOnlyList<StatusEffect> current) =>
+        IsActive(current, StatusEffectId.Knockdown);
+
+    /// <summary>
+    /// Health the statuses cost this step, split by what can reduce it.
+    /// </summary>
+    /// <remarks>
+    /// The split is the point. Bleeding is a physical wound: it scales with how
+    /// deep the cut went — its stacks — and armour still counts, so the caller
+    /// mitigates it. Poisoning is elemental corruption: a flat trickle that no
+    /// mitigation touches, which is why it is the smaller of the two per step and
+    /// the only one that refuses to stack.
+    /// </remarks>
+    public (double Mitigable, double Unmitigable) DamageOverTime(
+        IReadOnlyList<StatusEffect> current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        double mitigable = 0;
+        double unmitigable = 0;
+        foreach (StatusEffect status in current)
+        {
+            if (!status.IsActive) continue;
+            if (status.Id == StatusEffectId.Bleeding)
+                mitigable += _balance.BleedingDamagePerStack * status.Stacks;
+            else if (status.Id == StatusEffectId.Poisoning)
+                unmitigable += _balance.PoisoningDamagePerStep;
+        }
+        return (mitigable, unmitigable);
+    }
+
+    /// <summary>
+    /// Everything the active statuses multiply, gathered in one read.
+    /// </summary>
+    /// <remarks>
+    /// This replaced a single <c>MitigationScale</c> that only Knockdown moved,
+    /// and that only ever scaled both mitigations together. Once each expression
+    /// had to earn its place offensively, one number stopped being enough:
+    /// Fracture opens a physical window, Stunning an elemental one, and the two
+    /// have to be separable or the expressions collapse back into each other.
+    /// </remarks>
+    public StatusModifiers Modifiers(IReadOnlyList<StatusEffect> current)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        double physical = 1.0;
+        double elemental = 1.0;
+        double damageTaken = 1.0;
+        double movement = 1.0;
+
+        if (IsActive(current, StatusEffectId.Knockdown))
+        {
+            // Prone: exposed to everything, because nothing is being guarded.
+            physical *= _balance.KnockdownMitigationScale;
+            elemental *= _balance.KnockdownMitigationScale;
+        }
+        if (IsActive(current, StatusEffectId.Fracture))
+        {
+            physical *= _balance.FracturePhysicalMitigationScale;
+        }
+        if (IsActive(current, StatusEffectId.Stunning))
+        {
+            elemental *= _balance.StunningElementalMitigationScale;
+        }
+        if (IsActive(current, StatusEffectId.Paralysis))
+        {
+            movement *= _balance.ParalysisMovementSpeedScale;
+        }
+        if (IsActive(current, StatusEffectId.Poisoning))
+        {
+            damageTaken *= _balance.PoisoningDamageTakenScale;
+        }
+
+        return new StatusModifiers(physical, elemental, damageTaken, movement);
+    }
+
+    /// <summary>
+    /// Whether Paralysis seizes the action this step. Rolled, not certain.
+    /// </summary>
+    /// <remarks>
+    /// Kept apart from <see cref="PreventsAction"/> because it needs the
+    /// encounter's random source, and because it is a different promise: the two
+    /// statuses in <c>PreventsAction</c> always cost the action, this one
+    /// sometimes does.
+    /// </remarks>
+    public bool ParalysisSeizesAction(IReadOnlyList<StatusEffect> current, IRandomSource random)
+    {
+        ArgumentNullException.ThrowIfNull(random);
+        return IsActive(current, StatusEffectId.Paralysis)
+            && random.NextDouble() < _balance.ParalysisActionLossChance;
+    }
+}
+
+/// <summary>
+/// The multipliers the active statuses impose on a combatant.
+/// </summary>
+/// <remarks>
+/// Every field is a factor around 1.0, so an absent status is the identity and
+/// two statuses compose by multiplication rather than by whichever the caller
+/// happens to check first.
+/// </remarks>
+public readonly record struct StatusModifiers(
+    double PhysicalMitigationScale,
+    double ElementalMitigationScale,
+    double DamageTakenScale,
+    double MovementSpeedScale)
+{
+    public static StatusModifiers None { get; } = new(1, 1, 1, 1);
 }

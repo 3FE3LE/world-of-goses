@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using WorldofGoses.Domain;
 using WorldofGoses.Domain.Combat;
 using WorldofGoses.Prototypes;
 
@@ -30,15 +31,11 @@ public partial class ExpeditionStage : Control
     private const int CombatantHeight = 96;
     private const int GroundRatioPercent = 68;
     private const string CombatantScenePath = "res://scenes/Components/CombatantView.tscn";
-    private const string TerrainAtlasPath =
-        "res://assets/terrain/kenney/roguelike-rpg/roguelike_sheet_transparent.png";
-    // Which of these is the road decides how the whole stage reads.
-    // While the playable band was the row nearest the horizon (#27),
-    // 538's green covered it and the trodden earth covered everything
-    // else — a strip of grass at the skyline with the party walking on
-    // bare ground. The names now say what each one draws.
-    private const int TroddenPathTileId = 786; // worn earth, the road itself
-    private const int GroundCoverTileId = 538; // green cover either side of it
+    /// <summary>
+    /// Defensive cap on tiles per band, so a degenerate parallax factor cannot
+    /// turn one frame into an unbounded loop.
+    /// </summary>
+    private const int MaxTilesPerBand = 160;
 
     private readonly Dictionary<string, CombatantView> _views = new();
     private readonly List<PlacedParticipant> _placed = new();
@@ -54,12 +51,41 @@ public partial class ExpeditionStage : Control
         TextureFilter = TextureFilterEnum.Nearest;
         ClipContents = true;
         _combatantScene = ResourceLoader.Load<PackedScene>(CombatantScenePath);
-        EnsureTerrainAtlas();
         Resized += OnResized;
         QueueRedraw();
     }
 
     public override void _ExitTree() => Resized -= OnResized;
+
+    /// <summary>
+    /// The ground the path is made of — the same profile the macro city floor
+    /// draws from, so the two are literally the same terrain.
+    /// </summary>
+    /// <remarks>
+    /// The stage used to hold its own <c>res://</c> path to the Kenney sheet
+    /// and two hard-coded ids, 538 for cover and 786 for the road. That was a
+    /// second, biome-blind terrain implementation: the macro could paint an
+    /// authored Eirune meadow while the expedition painted Kenney green for
+    /// every lineage, forever. Null leaves the ground unpainted rather than
+    /// guessing a sheet.
+    /// </remarks>
+    public GroundAtlasProfile? GroundProfile { get; set; }
+
+    /// <summary>The visual identity of one citizen, as the stage needs it.</summary>
+    public sealed record CombatantAppearance(
+        LineageId Lineage, GenderId Gender, AppearanceVariantId Appearance);
+
+    /// <summary>
+    /// Resolves a party member's citizen id to the sprite it should wear.
+    /// Null, or a null result, leaves that combatant on the drawn placeholder.
+    /// </summary>
+    /// <remarks>
+    /// A delegate rather than a world reference: the stage projects combat
+    /// state and must not acquire a way to read the city. The owner —
+    /// <c>ExpeditionLiveView</c>, which already holds the controller — supplies
+    /// the lookup.
+    /// </remarks>
+    public Func<CitizenId, CombatantAppearance?>? AppearanceResolver { get; set; }
 
     public void Configure(
         IReadOnlyList<CombatParticipantState> party,
@@ -100,9 +126,14 @@ public partial class ExpeditionStage : Control
 
         var activeIds = new HashSet<string>(StringComparer.Ordinal);
         _placed.Clear();
+        bool isNewStep = step > _lastPresentedStep;
         ApplyParticipants(party, CombatSide.Party, activeIds, log, step);
         ApplyParticipants(enemies, CombatSide.Enemy, activeIds, log, step);
         RemoveMissing(activeIds);
+        // A second pass, because a shove needs both ends of the blow and the
+        // first pass runs once per side: while the party is being placed the
+        // enemies have no screen position yet.
+        if (isNewStep) ApplyHitReactions(party, enemies, log, step);
         _lastPresentedStep = Math.Max(_lastPresentedStep, step);
         QueueRedraw();
     }
@@ -111,7 +142,8 @@ public partial class ExpeditionStage : Control
         ExpeditionLiveSnapshot.Travel travel,
         string displayName,
         double? healthRatio,
-        int worldTick)
+        int worldTick,
+        CitizenId? travellerId = null)
     {
         // Travel.PositionX is the authoritative 1D world offset for
         // the expedition. The infinite-path recycler (#22) drives
@@ -127,16 +159,24 @@ public partial class ExpeditionStage : Control
         // nothing drew, while the founder was projected straight onto
         // screen X: the party crossed a world that never moved.
         _camera.FollowTravel(travel.PositionX, seed: worldTick);
+        // Where the walker is drawn is the camera's decision, not the stage's —
+        // see TravelDrawPositionX. The stage cannot be instantiated in a test,
+        // so anything it decides for itself is a decision no assertion reaches.
+        double drawnPositionX = _camera.TravelDrawPositionX;
         double maximumHealth = 100;
         double currentHealth = maximumHealth * Math.Clamp(healthRatio ?? 1, 0, 1);
+        // The traveller's citizen id, so the party wears its own character
+        // sprite while walking and not only once a fight starts. This was null,
+        // which is what made the drawn placeholder reappear the moment the
+        // encounter ended: AppearanceResolver has nothing to resolve without it.
         var founder = new CombatParticipantState(
             "travel.founder",
-            null,
+            travellerId,
             displayName,
             currentHealth,
             maximumHealth,
             false,
-            travel.PositionX,
+            drawnPositionX,
             0,
             12,
             travel.Facing,
@@ -222,20 +262,11 @@ public partial class ExpeditionStage : Control
         // asked, not inferred: IsPlayable is the same authority the
         // combatants and the objective resolve their Y through (#27).
         IReadOnlyList<ExpeditionPathBand> bands = ExpeditionPathComposition.Bands(anchor);
-        if (_terrainAtlas is not null)
+        if (GroundProfile is { Fill.Length: > 0 } profile && profile.Atlas is { } groundAtlas)
         {
             for (int i = bands.Count - 1; i >= 0; i--)
             {
-                ExpeditionPathBand band = bands[i];
-                SharedDepthBands.DrawStaircaseTrapezoid(
-                    this,
-                    band.ScreenYNear, band.ScreenYFar,
-                    band.LeftNear, band.RightNear,
-                    band.LeftFar, band.RightFar,
-                    _terrainAtlas,
-                    TerrainAtlas.RegionOfId(
-                        band.IsPlayable ? TroddenPathTileId : GroundCoverTileId),
-                    ExpeditionPathRenderer.PixelStep);
+                DrawGroundBand(bands[i], profile, groundAtlas, _camera.WorldOffsetUnits, anchor);
             }
         }
 
@@ -265,7 +296,10 @@ public partial class ExpeditionStage : Control
         // full-width line across it only cut one continuous surface in
         // half. The band already reads as the road because it is the
         // one wearing the trodden tile.
-        if (_terrainAtlas is null)
+        // Fallback silhouette for when no biome profile has been supplied —
+        // a fixture that configures the stage without a city behind it, for
+        // instance. It draws a horizon rather than leaving the frame empty.
+        if (GroundProfile?.Atlas is null)
         {
             int horizon = logicalSize.Y * GroundRatioPercent / 100;
             DrawLandscapeSilhouette(logicalSize, horizon, outline);
@@ -281,6 +315,94 @@ public partial class ExpeditionStage : Control
         Size.X > 1f && Size.Y > 1f
             ? ExpeditionPathAnchor.For(Size)
             : ExpeditionPathAnchor.Default;
+
+    /// <summary>
+    /// Paints one ground row as a run of individual tiles.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This used to be a single trapezoid per band with one tile region
+    /// stretched across it — one 32 px tile smeared over the full width of the
+    /// stage, which is why the path read as flat plastic next to a macro floor
+    /// made of actual tiles. The macro has always drawn a trapezoid per tile;
+    /// this now does the same, from the same profile, with the same spatial
+    /// hash choosing the variant, so the two surfaces are the same terrain and
+    /// not merely the same colour.
+    /// </para>
+    /// <para>
+    /// Tiles are indexed in world space, so a tile keeps its variant as the
+    /// path scrolls instead of shimmering. The row index is the band's depth,
+    /// which makes the pattern continuous across the parcel's nine rows.
+    /// </para>
+    /// </remarks>
+    private void DrawGroundBand(
+        ExpeditionPathBand band,
+        GroundAtlasProfile profile,
+        Texture2D atlas,
+        long worldOffsetUnits,
+        in ExpeditionPathAnchor anchor)
+    {
+        // Perspective at both edges, never the authored parallax factors.
+        // ParallaxFactorForDepth hands the fringe at depth -1 the authored
+        // ForegroundFactor of 1.40 while its far edge at depth 0 gets the
+        // perspective 1.0, so every tile in that row was sheared by the
+        // difference — the badly stretched extra row. A ground row is a
+        // rectangle in the world and both of its edges belong to the same
+        // projection; only props, which own no world coordinate, take an
+        // authored factor.
+        float factorNear = StreetDepthProjection.HorizontalScale(band.Depth);
+        float factorFar = StreetDepthProjection.HorizontalScale(band.Depth + 1f);
+        if (factorNear <= 0f || factorFar <= 0f) return;
+
+        // Whole parcels, snapped to parcel boundaries, centred on the one the
+        // party is on — so the composition is always a parcel in focus with
+        // complete neighbours either side and the seams land where the grid
+        // says, never mid-tile.
+        //
+        // The count is the chunk pool's own window rather than a number picked
+        // here, and it has to be that wide. Three parcels is 864 units, which
+        // covers the playable band at 864 px but only reaches 458 px on the
+        // furthest row, where the perspective factor is 0.53 — 340 px short of
+        // the stage. The terrain then reads as a floating trapezoid with
+        // diagonal edges instead of a plane. Seven parcels clears the widest
+        // row, and the dressing already windows the same seven.
+        const float tileUnits = MacroViewConstants.TileUnitPx;
+        const float parcelUnits = ExpeditionPathChunkPool.ChunkWidthUnits;
+        const int tilesPerParcel = (int)(parcelUnits / tileUnits);
+        const int parcelsDrawn = ExpeditionPathChunkPool.ChunkCount;
+        float centerX = anchor.CenterX;
+
+        long focusParcel = (long)Math.Floor(worldOffsetUnits / parcelUnits);
+        int firstTile = (int)((focusParcel - (parcelsDrawn / 2)) * tilesPerParcel);
+        int lastTile = firstTile + (parcelsDrawn * tilesPerParcel) - 1;
+        if (lastTile - firstTile > MaxTilesPerBand) lastTile = firstTile + MaxTilesPerBand;
+
+        int row = Mathf.RoundToInt(band.Depth);
+        for (int tile = firstTile; tile <= lastTile; tile++)
+        {
+            double nearWorld = tile * (double)tileUnits;
+            double farWorld = nearWorld + tileUnits;
+
+            // The playable band is the calle, so it wears the path tile; every
+            // other row is the biome's material. IsPlayable is asked, never
+            // re-derived from a row index (#27).
+            int tileId = band.IsPlayable
+                ? profile.Path
+                : profile.Fill[TerrainAtlas.GroundVariantIndex(tile, row, profile.Fill.Length)];
+
+            SharedDepthBands.DrawStaircaseTrapezoid(
+                this,
+                band.ScreenYNear, band.ScreenYFar,
+                ScreenX(nearWorld, factorNear), ScreenX(farWorld, factorNear),
+                ScreenX(nearWorld, factorFar), ScreenX(farWorld, factorFar),
+                atlas,
+                profile.RegionOfId(tileId),
+                ExpeditionPathRenderer.PixelStep);
+        }
+
+        float ScreenX(double worldX, float factor) =>
+            centerX + (float)((worldX - worldOffsetUnits) * factor);
+    }
 
     private void DrawRearDressing(Color ground, float playableY)
     {
@@ -330,16 +452,7 @@ public partial class ExpeditionStage : Control
         _ => ground.Lightened(0.28f),
     };
 
-    private Texture2D? _terrainAtlas;
     private readonly ExpeditionPathCamera _camera = new();
-
-    /// <summary>Custom <c>_Ready</c> extension: load the shared terrain
-    /// atlas once so the new depth-band rendering does not instantiate
-    /// it per <c>_Draw</c>. Visual-regression guard keeps the existing
-    /// legacy render path when no atlas is available so tests built
-    /// before the migration can still cover the silhouette.</summary>
-    private void EnsureTerrainAtlas() =>
-        _terrainAtlas ??= ResourceLoader.Load<Texture2D>(TerrainAtlasPath);
 
     private void ApplyParticipants(
         IReadOnlyList<CombatParticipantState> participants,
@@ -358,6 +471,18 @@ public partial class ExpeditionStage : Control
                 view.Name = SafeNodeName(participant.Id);
                 AddChild(view);
                 _views.Add(participant.Id, view);
+
+                // Party members are citizens and already have a character
+                // sprite; enemies carry no CitizenId and no art, so they keep
+                // the drawn placeholder. The stage resolves nothing itself —
+                // it has no world access and should not gain any — so the
+                // owner supplies the lookup.
+                if (participant.CitizenId is { } citizenId
+                    && AppearanceResolver?.Invoke(citizenId) is { } appearance)
+                {
+                    view.UseCharacterSprite(
+                        appearance.Lineage, appearance.Gender, appearance.Appearance);
+                }
             }
 
             int baselineOffset = ((index % 3) - 1) * 4;
@@ -384,6 +509,70 @@ public partial class ExpeditionStage : Control
                 animate,
                 step > _lastPresentedStep ? EventsFor(participant.Id, log, step) : Array.Empty<CombatLogEntry>());
         }
+    }
+
+    /// <summary>
+    /// Shoves everyone who was hit this step.
+    /// </summary>
+    /// <remarks>
+    /// Only Knockdown moves anyone in the domain, which is correct and which
+    /// also left a spear thrust looking like it landed on a statue. This is the
+    /// flinch: transient, presentational, and it decays back to the
+    /// authoritative position, so an encounter watched and an encounter resolved
+    /// offline end with everyone in the same place.
+    /// <para>
+    /// The magnitudes come from <see cref="HitReaction"/> rather than from here,
+    /// because this class is a <c>Control</c> and cannot be run in a test.
+    /// </para>
+    /// </remarks>
+    private void ApplyHitReactions(
+        IReadOnlyList<CombatParticipantState> party,
+        IReadOnlyList<CombatParticipantState> enemies,
+        IReadOnlyList<CombatLogEntry> log,
+        int step)
+    {
+        var strikers = new Dictionary<string, Striker>(StringComparer.Ordinal);
+        foreach (PlacedParticipant placed in _placed)
+        {
+            CombatParticipantState? participant = Find(placed.Id, party, enemies);
+            if (participant is null) continue;
+            strikers[placed.Id] = new Striker(
+                participant.Impulse,
+                ScreenXOf(placed));
+        }
+
+        foreach (PlacedParticipant placed in _placed)
+        {
+            CombatParticipantState? participant = Find(placed.Id, party, enemies);
+            if (participant is null) continue;
+            if (!_views.TryGetValue(placed.Id, out CombatantView? view)) continue;
+
+            view.ReactToHit(HitReaction.ForEvents(
+                placed.Id,
+                participant.Stability,
+                ScreenXOf(placed),
+                EventsFor(placed.Id, log, step),
+                strikers));
+        }
+    }
+
+    private float ScreenXOf(PlacedParticipant placed) =>
+        PlacementFor(placed.WorldX, ((placed.Index % 3) - 1) * 4).X;
+
+    private static CombatParticipantState? Find(
+        string id,
+        IReadOnlyList<CombatParticipantState> party,
+        IReadOnlyList<CombatParticipantState> enemies)
+    {
+        foreach (CombatParticipantState participant in party)
+        {
+            if (participant.Id == id) return participant;
+        }
+        foreach (CombatParticipantState participant in enemies)
+        {
+            if (participant.Id == id) return participant;
+        }
+        return null;
     }
 
     private Vector2I PlacementFor(double worldX, int baselineOffset)

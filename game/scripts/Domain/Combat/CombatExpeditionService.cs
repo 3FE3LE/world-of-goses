@@ -170,6 +170,15 @@ public sealed class CombatExpeditionService
             attackSpeed: applyOpeningTutorialBaseline
                 ? Math.Max(OpeningCombatBaseline.AttackSpeed, derived.Tempo.AttackSpeed.Value)
                 : derived.Tempo.AttackSpeed.Value,
+            // The tutorial baseline deliberately does not floor these four.
+            // It exists to stop the opening encounter killing a badly rolled
+            // founder, and neither evasion nor control does that: flooring them
+            // would hand the player a dodge and a control edge they did not
+            // build, in the one fight meant to teach what their build does.
+            physicalEvasion: derived.Tempo.PhysicalEvasion.Value,
+            elementalEvasion: derived.Tempo.ElementalEvasion.Value,
+            controlPower: derived.Tempo.ControlPower.Value,
+            controlResistance: derived.Tempo.ControlResistance.Value,
             elementalAffinity: citizen.CombatNature.ElementalAffinity,
             physicalExpression: citizen.CombatNature.PhysicalExpression,
             weaponFamily: usesOpeningBaseline ? null : weapon.Family,

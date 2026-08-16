@@ -18,6 +18,16 @@ public static class PixelMotion
     /// depth pan, the building-entry zoom — must double its step count to keep
     /// its duration, since ticks now arrive twice as often.
     /// </para>
+    ///
+    /// <para>
+    /// One deliberate exception: <b>combat</b>. The moment an expedition
+    /// encounter begins, the expedition camera drops the grid and moves
+    /// continuously, and it picks the grid back up when travel resumes — see
+    /// <see cref="Ui.ExpeditionMotionMode"/>. Impact reactions and camera pans
+    /// are readable only against continuous motion, and a fight is where the
+    /// game stops being a walk and asks to be watched. Nothing else in the game
+    /// is exempt.
+    /// </para>
     /// </summary>
     public const float CadenceSeconds = 1f / 24f;
 

@@ -37,7 +37,14 @@ internal static class CombatTestFactory
         WeaponFamily? weapon = null,
         IReadOnlyList<TechniqueDefinition>? techniques = null,
         CitizenId? citizenId = null,
-        CombatSpatialState? spatial = null) =>
+        CombatSpatialState? spatial = null,
+        double physicalEvasion = 0,
+        double elementalEvasion = 0,
+        double controlPower = 0,
+        // Zero by default, which disables the control roll entirely. Every
+        // fixture that does not care about control therefore keeps landing its
+        // expressions exactly as it did before the roll existed.
+        double controlResistance = 0) =>
         new(
             id,
             id,
@@ -56,7 +63,11 @@ internal static class CombatTestFactory
             expression,
             weapon,
             techniques ?? Array.Empty<TechniqueDefinition>(),
-            spatial: spatial);
+            spatial: spatial,
+            physicalEvasion: physicalEvasion,
+            elementalEvasion: elementalEvasion,
+            controlPower: controlPower,
+            controlResistance: controlResistance);
 
     /// <summary>A single-technique attacker, so a test controls exactly what fires.</summary>
     public static CombatantState AttackerWith(

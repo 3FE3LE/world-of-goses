@@ -61,6 +61,7 @@ public sealed class WorldSave
     ///   <item><description>v33 — active observable expedition combat persists its logical step and replayable AUTO/manual command history.</description></item>
     ///   <item><description>v34 — expeditions persist optional supply/reward resources and objective arrival; the active Spirit Trail migrates to no supply, Discovery outcome and a four-hour route without persisting placeholder equipment.</description></item>
     ///   <item><description>v35 — founder's equipped weapon gains an item-backed identity: every existing EquipmentLoadout.Weapon migrates to a WeaponItemInstance registered under an ItemInstanceId; founders without a weapon stay weaponless (they reach the opening baseline through the legacy compatibility path). Legacy saves therefore never lose a weapon, but neither can they retroactively grow one.</description></item>
+    ///   <item><description>v36 — a hosted prospect persists the tick it arrived on. The profile is still regenerated rather than stored, but it is now drawn from the founder, the arrival tick and the citizen id together, so the id alone no longer identifies the person. A pre-v36 save has no arrival tick and regenerates its pending prospect against tick zero: the prospect stays a valid person of the same lineage family, but is not guaranteed to be the exact one that was on screen when the save was written. Only an unaccepted prospect is affected, and only once.</description></item>
     /// </list>
     /// <para>
     /// The v30 note above described the combat expression as derived from the
@@ -70,7 +71,7 @@ public sealed class WorldSave
     /// date loads with a different expression than it used to.
     /// </para>
     /// </summary>
-    public const int CurrentVersion = 35;
+    public const int CurrentVersion = 36;
 
     public int Version { get; set; } = CurrentVersion;
 
@@ -113,6 +114,19 @@ public sealed class WorldSave
     public List<ResourceOpportunitySave> ResourceOpportunities { get; set; } = new();
     public int? PendingProspectSeed { get; set; }
     public string? PendingProspectName { get; set; }
+
+    /// <summary>
+    /// Tick the pending prospect was hosted on (schema v36). Null in older
+    /// saves, which regenerate their prospect against tick zero.
+    /// </summary>
+    /// <remarks>
+    /// The prospect's profile is regenerated on load rather than stored, so
+    /// every input the generator reads has to be here. The seed alone stopped
+    /// being enough once a migrant's identity started depending on the city and
+    /// the moment they arrived — which is the entire point of the change, since
+    /// the seed of the first migrant of any city is always 2.
+    /// </remarks>
+    public int? PendingProspectArrivalTick { get; set; }
 
     /// <summary>
     /// The authored first night (schema v31). Nullable because a world without a

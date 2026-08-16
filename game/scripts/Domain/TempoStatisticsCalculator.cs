@@ -34,7 +34,15 @@ public sealed class TempoStatisticsCalculator
             Curved("CriticalChance", cube, gear, effective, context, skill, new[] { CubeFace.Domain }, _balance.CriticalChanceMinimum, _balance.CriticalChanceMaximum),
             Curved("PhysicalEvasion", cube, gear, effective, context, skill, new[] { CubeFace.Impulse, CubeFace.Reach }, _balance.PhysicalEvasionMinimum, _balance.PhysicalEvasionMaximum),
             Curved("ElementalEvasion", cube, gear, effective, context, skill, new[] { CubeFace.Bond, CubeFace.Reach }, _balance.ElementalEvasionMinimum, _balance.ElementalEvasionMaximum),
-            Curved("MovementSpeed", cube, gear, effective, context, skill, new[] { CubeFace.Reach }, _balance.MovementSpeedMinimum, _balance.MovementSpeedMaximum));
+            Curved("MovementSpeed", cube, gear, effective, context, skill, new[] { CubeFace.Reach }, _balance.MovementSpeedMinimum, _balance.MovementSpeedMaximum),
+
+            // Domain is the will to impose a consequence and Body is what makes
+            // it bite: all six expressions are physical, so neither face alone
+            // explains landing one. Stability is the anchor that refuses it, and
+            // Body appears on both sides because enduring a fracture and causing
+            // one are the same tissue.
+            Curved("ControlPower", cube, gear, effective, context, skill, new[] { CubeFace.Domain, CubeFace.Body }, _balance.ControlPowerMinimum, _balance.ControlPowerMaximum),
+            Curved("ControlResistance", cube, gear, effective, context, skill, new[] { CubeFace.Stability, CubeFace.Body }, _balance.ControlResistanceMinimum, _balance.ControlResistanceMaximum));
     }
 
     private CalculatedStatistic Curved(

@@ -39,10 +39,17 @@ public sealed class CombatEncounterTests
         IReadOnlyList<StatusEffect> statuses = resolver.Apply(new List<StatusEffect>(), knockdown);
 
         Assert.True(resolver.PreventsAction(statuses));
-        // Knockdown alters exposure, not position: this model has nowhere to move.
+        // Knockdown exposes both windows at once — prone guards nothing — and,
+        // unlike the other two control effects, also takes the ground. The old
+        // comment here said the model "has nowhere to move"; it has since gained
+        // an authoritative PositionX, so it does.
+        Assert.True(resolver.PreventsMovement(statuses));
         Assert.Equal(
             CombatBalanceConfig.Default.KnockdownMitigationScale,
-            resolver.MitigationScale(statuses));
+            resolver.Modifiers(statuses).PhysicalMitigationScale);
+        Assert.Equal(
+            CombatBalanceConfig.Default.KnockdownMitigationScale,
+            resolver.Modifiers(statuses).ElementalMitigationScale);
 
         for (int step = 0; step < CombatBalanceConfig.Default.KnockdownDurationSteps; step++)
         {
@@ -50,7 +57,7 @@ public sealed class CombatEncounterTests
         }
 
         Assert.False(resolver.PreventsAction(statuses));
-        Assert.Equal(1.0, resolver.MitigationScale(statuses));
+        Assert.Equal(StatusModifiers.None, resolver.Modifiers(statuses));
     }
 
     [Fact]

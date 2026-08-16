@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Prototypes;
 
 namespace WorldofGoses.Ui;
 
@@ -20,7 +21,9 @@ namespace WorldofGoses.Ui;
 public readonly record struct ExpeditionPathAnchor(
     float CenterX,
     float BaseY,
-    float HalfWidthPx)
+    float HalfWidthPx,
+    float HorizonY,
+    float RowSpacingPx)
 {
     /// <summary>
     /// Fraction of the stage height the playable band sits at. Below
@@ -49,6 +52,8 @@ public readonly record struct ExpeditionPathAnchor(
         return new ExpeditionPathAnchor(
             CenterX: width * 0.5f,
             BaseY: height * BaseYRatio,
-            HalfWidthPx: width * HalfWidthRatio);
+            HalfWidthPx: width * HalfWidthRatio,
+            HorizonY: height * StreetDepthProjection.HorizonRatio,
+            RowSpacingPx: height * StreetDepthProjection.RowSpacingRatio);
     }
 }

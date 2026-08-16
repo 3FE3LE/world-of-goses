@@ -272,6 +272,28 @@ public partial class ExpeditionLiveView : Control
             "ui.expedition_live.phase",
             ExpeditionCompactCard.PhaseText(snapshot.Phase));
 
+        // The path is made of the city's own ground, resolved through the same
+        // per-lineage profile the macro floor uses. Loading it here rather than
+        // in the stage keeps the stage free of resource paths and of any way to
+        // reach the world.
+        _stage.GroundProfile = GD.Load<GroundAtlasProfile>(
+            TerrainAtlas.GroundProfilePathFor(snapshot.SiteLineage));
+
+        // The party's sprites come from the snapshot's own members rather than
+        // from a second read of the world: the snapshot is already the view's
+        // single source for who is on this expedition, and a lookup that could
+        // disagree with it would eventually draw the wrong person.
+        _stage.AppearanceResolver = citizenId =>
+        {
+            foreach (ExpeditionLiveSnapshot.Member member in snapshot.Members)
+            {
+                if (member.Id != citizenId) continue;
+                return new ExpeditionStage.CombatantAppearance(
+                    member.Lineage, member.Gender, member.Appearance);
+            }
+            return null;
+        };
+
         ConfigureRoute(snapshot.RouteSteps);
         ConfigureCitizen(snapshot);
         ConfigureSquad(snapshot);
@@ -296,7 +318,8 @@ public partial class ExpeditionLiveView : Control
                     ? UiText.Get("ui.expedition_live.founder_short")
                     : founder.Name,
                 founder.HealthRatio,
-                snapshot.CurrentTick);
+                snapshot.CurrentTick,
+                founder.Id);
         }
         else if (_fixtureShowsTwoEnemies)
         {

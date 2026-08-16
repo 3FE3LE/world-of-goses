@@ -12,8 +12,6 @@ public static class ExpeditionCombatSessionFactory
 {
     public const int LegacyRulesVersion = 1;
     public const int CurrentRulesVersion = 2;
-    private const double ProvisionalPhysicalTransfer = 1.0;
-    private const double ProvisionalElementalResonance = 1.0;
     private static readonly EnemyCatalog.EncounterTuning OpeningEncounterTuning = new(
         HealthFactor: 0.75,
         PowerFactor: 0.08);
@@ -33,10 +31,10 @@ public static class ExpeditionCombatSessionFactory
             startTick));
         var random = new DeterministicRandom(seed);
         IReadOnlyList<WeaponFamily> families = TechniqueCatalog.SliceWeaponFamilies;
-        return new WeaponChannelProfile(
-            families[random.NextInt(families.Count)],
-            ProvisionalPhysicalTransfer,
-            ProvisionalElementalResonance);
+        // The family is drawn, but its channels are not invented: a borrowed
+        // weapon is still a plain weapon of its family. Shipping 1.0/1.0 here
+        // made the drawn family cosmetic.
+        return WeaponFamilyChannels.ProfileFor(families[random.NextInt(families.Count)]);
     }
 
     /// <summary>

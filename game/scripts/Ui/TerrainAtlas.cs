@@ -127,7 +127,25 @@ public static class TerrainAtlas
     private static readonly TreeVariant DeadTree = new(TrunkId: 597, CanopyId: 540);
     private static readonly TreeVariant Cactus = new(TrunkId: 535);
 
-    public sealed record GroundBiome(int[] Fill, int Path, TreeVariant[] Trees);
+    /// <summary>
+    /// What a biome contributes on top of its ground. The ground itself — the
+    /// sheet, its grid, the fill and path ids — lives in a
+    /// <see cref="GroundAtlasProfile"/> resource, one per lineage, so that a
+    /// biome can be repainted on a different sheet without touching this file.
+    /// </summary>
+    public sealed record GroundBiome(TreeVariant[] Trees);
+
+    /// <summary>Where a lineage's ground profile resource lives.</summary>
+    /// <remarks>
+    /// Composed rather than listed because the eight are uniform, and
+    /// <c>GroundProfiles_ExistForEveryLineage</c> asserts every one resolves to
+    /// a file on disk — a missing profile is a failing test, not a blank floor.
+    /// </remarks>
+    public static string GroundProfilePathFor(LineageId lineage) =>
+        GroundProfileDirectory + lineage.Value.ToLowerInvariant() + GroundProfileSuffix;
+
+    public const string GroundProfileDirectory = "res://assets/terrain/biomes/";
+    public const string GroundProfileSuffix = "_ground.tres";
 
     /// <summary>
     /// Which fill variant a ground tile uses. A spatial hash with large
@@ -166,47 +184,46 @@ public static class TerrainAtlas
     private static int SpatialHash(int column, int row) =>
         ((column * 73856093) ^ (row * 19349663)) & int.MaxValue;
 
-    // Verified seam-free fills, by family:
-    //   green 5, 62, 66 · brown 6, 63 · grey 7, 64, 9 · cream 8, 65
-    //   orange 1086
+    // The ground ids these biomes used to carry now live in
+    // assets/terrain/biomes/<lineage>_ground.tres. The reasoning behind them
+    // has to survive the move, because it is what stops the next sheet from
+    // repeating the mistake:
     //
-    // Two different things in this sheet look like a fill and are not. The
-    // solid swatch block (cols 5-9, rows 0-1) really is flat. The coloured
+    // Two different things in the Kenney sheet look like a fill and are not.
+    // The solid swatch block (cols 5-9, rows 0-1) really is flat. The coloured
     // *patch* blocks are 5×3 autotiles: columns 0-1 hold the four inner
     // corners, each carrying a curved notch of the material underneath, and
     // columns 2-4 hold a 3×3 rounded blob. Only the blob's **centre** tiles —
     // (3, r+1) of each block — are seam-free. Orange 1026 was an inner corner
     // and its notch showed as a bite out of every tile; its real fill is 1086.
-    // The same trap took magenta 1197 and teal 466 out of these lists.
-    private static readonly GroundBiome Meadow = new(
-        new[] { 5, 62, 66 }, 6,
-        new[] { BroadleafGreen, ConiferGreen, Fruiting });
-    private static readonly GroundBiome Stone = new(
-        new[] { 7, 64, 9 }, 6,
-        new[] { ConiferTeal, DeadTree, BroadleafTeal });
-    private static readonly GroundBiome Arid = new(
-        new[] { 1086, 6, 63 }, 63,
-        new[] { Cactus, DeadTree, BroadleafAutumn });
-    private static readonly GroundBiome Sand = new(
-        new[] { 8, 65 }, 6,
-        new[] { Cactus, DeadTree, ConiferAutumn });
-    private static readonly GroundBiome Loam = new(
-        new[] { 6, 63, 5 }, 63,
-        new[] { BroadleafAutumn, ConiferAutumn, Fruiting });
-    private static readonly GroundBiome Ashen = new(
-        new[] { 64, 9, 8 }, 6,
-        new[] { ConiferTeal, DeadTree, ConiferGreen });
-    // Riverside meadow and mossy plateau. Both are green-dominant with a
-    // different accent, because the magenta and teal fills they used before
-    // are decorative tiles, not credible ground: a city floored in teal read
-    // as built on open water, and magenta as nowhere at all. Distinctness
-    // comes from the accent and the tree set instead of an exotic hue.
-    private static readonly GroundBiome Shallows = new(
-        new[] { 62, 5, 8 }, 6,
-        new[] { BroadleafTeal, ConiferTeal, BroadleafGreen });
-    private static readonly GroundBiome Bloom = new(
-        new[] { 66, 5, 7 }, 6,
-        new[] { BroadleafTeal, Fruiting, ConiferGreen });
+    // The same trap took magenta 1197 and teal 466 out of the lists.
+    //
+    // That class of mistake is now measurable rather than remembered:
+    // GroundAtlasTests repeats each declared fill against itself and rejects a
+    // tile whose opposite edges disagree. The eleven fills in use score 0-0.25;
+    // 1026, 1197 and 466 score 18, 18 and 61.
+    //
+    // Shallows and Bloom are both green-dominant with a different accent,
+    // because the magenta and teal fills they used before are decorative tiles,
+    // not credible ground: a city floored in teal read as built on open water,
+    // and magenta as nowhere at all. Distinctness comes from the accent and the
+    // tree set instead of an exotic hue.
+    private static readonly GroundBiome Meadow =
+        new(new[] { BroadleafGreen, ConiferGreen, Fruiting });
+    private static readonly GroundBiome Stone =
+        new(new[] { ConiferTeal, DeadTree, BroadleafTeal });
+    private static readonly GroundBiome Arid =
+        new(new[] { Cactus, DeadTree, BroadleafAutumn });
+    private static readonly GroundBiome Sand =
+        new(new[] { Cactus, DeadTree, ConiferAutumn });
+    private static readonly GroundBiome Loam =
+        new(new[] { BroadleafAutumn, ConiferAutumn, Fruiting });
+    private static readonly GroundBiome Ashen =
+        new(new[] { ConiferTeal, DeadTree, ConiferGreen });
+    private static readonly GroundBiome Shallows =
+        new(new[] { BroadleafTeal, ConiferTeal, BroadleafGreen });
+    private static readonly GroundBiome Bloom =
+        new(new[] { BroadleafTeal, Fruiting, ConiferGreen });
 
     /// <summary>
     /// The site the founder's fall deposited the city on, keyed by lineage.

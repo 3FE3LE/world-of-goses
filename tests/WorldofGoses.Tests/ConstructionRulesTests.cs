@@ -6,33 +6,56 @@ namespace WorldofGoses.Tests;
 
 public class ConstructionRulesTests
 {
+    /// <summary>
+    /// An aptitude is not output. Two citizens who have never built anything
+    /// contribute the same amount, however gifted one of them is.
+    /// </summary>
+    /// <remarks>
+    /// These two tests used to assert the opposite — that three matching
+    /// aptitudes added twelve work per interval at zero experience. That is an
+    /// automatic production advantage granted by identity, which the lineage
+    /// pillar forbids. What an aptitude buys now is the road to a level.
+    /// </remarks>
     [Fact]
-    public void Contribution_HeroWithTwoRelevantAptitudes_AddsEight()
+    public void Contribution_AptitudesAlone_ChangeNothing()
     {
-        var profile = NewProfile(AptitudeId.Observation, AptitudeId.ManualPrecision, AptitudeId.Empathy);
-        var hero = NewHeroCitizen(profile, constructionExperience: 0);
-
-        int contribution = ConstructionRules.ContributionPerWorkInterval(hero);
+        var gifted = NewHeroCitizen(
+            NewProfile(AptitudeId.Strength, AptitudeId.Observation, AptitudeId.ManualPrecision),
+            constructionExperience: 0);
+        var plain = NewHeroCitizen(
+            NewProfile(AptitudeId.Creativity, AptitudeId.RiskTolerance, AptitudeId.Adaptability),
+            constructionExperience: 0);
 
         Assert.Equal(
-            ConstructionRules.BaseContributionPerWorkInterval
-            + ConstructionRules.AptitudeBonusPerAptitude * 2,
-            contribution);
+            ConstructionRules.BaseContributionPerWorkInterval,
+            ConstructionRules.ContributionPerWorkInterval(gifted));
+        Assert.Equal(
+            ConstructionRules.ContributionPerWorkInterval(plain),
+            ConstructionRules.ContributionPerWorkInterval(gifted));
     }
 
+    /// <summary>
+    /// The same experience buys a higher construction level for a citizen whose
+    /// aptitudes suit the work — and so, at that moment, more contribution.
+    /// </summary>
     [Fact]
-    public void Contribution_ProfileWithThreeRelevantAptitudes_AddsTwelve()
+    public void Contribution_MatchingAptitudes_ReachTheNextLevelSooner()
     {
-        var profile = NewProfile(
-            AptitudeId.Strength, AptitudeId.Observation, AptitudeId.ManualPrecision);
-        var hero = NewHeroCitizen(profile, constructionExperience: 0);
+        // Strength and ManualPrecision both accelerate Construction; neither
+        // Creativity nor RiskTolerance does.
+        var gifted = NewHeroCitizen(
+            NewProfile(AptitudeId.Strength, AptitudeId.ManualPrecision, AptitudeId.Empathy),
+            constructionExperience: 7);
+        var plain = NewHeroCitizen(
+            NewProfile(AptitudeId.Creativity, AptitudeId.RiskTolerance, AptitudeId.Memory),
+            constructionExperience: 7);
 
-        int contribution = ConstructionRules.ContributionPerWorkInterval(hero);
-
-        Assert.Equal(
-            ConstructionRules.BaseContributionPerWorkInterval
-            + ConstructionRules.AptitudeBonusPerAptitude * 3,
-            contribution);
+        // Seven experience is one short of the unaided first level.
+        Assert.Equal(0, CityCompetency.LevelOf(plain, CompetencyId.Construction));
+        Assert.Equal(1, CityCompetency.LevelOf(gifted, CompetencyId.Construction));
+        Assert.True(
+            ConstructionRules.ContributionPerWorkInterval(gifted)
+            > ConstructionRules.ContributionPerWorkInterval(plain));
     }
 
     [Fact]
@@ -54,7 +77,6 @@ public class ConstructionRulesTests
         int contribution = ConstructionRules.ContributionPerWorkInterval(hero);
 
         int expected = ConstructionRules.BaseContributionPerWorkInterval
-            + ConstructionRules.AptitudeBonusPerAptitude * 3
             + ConstructionRules.CompetencyBonusCap;
         Assert.Equal(expected, contribution);
     }

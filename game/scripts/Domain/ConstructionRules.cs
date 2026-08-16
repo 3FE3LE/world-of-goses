@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace WorldofGoses.Domain;
@@ -73,8 +74,8 @@ public static class ConstructionRules
     /// <summary>Stamina paid by a contributing citizen per interval.</summary>
     public const int CostPerWorkInterval = 8;
 
-    /// <summary>Contribution bonus for every relevant personal aptitude present in the profile.</summary>
-    public const int AptitudeBonusPerAptitude = 4;
+    /// <summary>Contribution added per level of the Construction competency.</summary>
+    public const int BonusPerCompetencyLevel = 4;
 
     /// <summary>Cap on the construction-experience bonus.</summary>
     public const int CompetencyBonusCap = 12;
@@ -91,10 +92,11 @@ public static class ConstructionRules
         if (citizen is null) return 0;
         if (citizen.CurrentStamina < CostPerWorkInterval) return 0;
 
-        int experience = citizen.GetExperience(CompetencyId.Construction);
-        int bonus = CompetencyBonusAt(experience);
-        int aptitudeBonus = AptitudeBonus(citizen.Profile);
-        return BaseContributionPerWorkInterval + aptitudeBonus + bonus;
+        // Only what the citizen has learned pays out. Aptitudes used to add a
+        // flat bonus here, which made identity an automatic production
+        // advantage — the one thing the lineage pillar forbids. They now shorten
+        // the road to a level instead, inside CompetencyBonusFor.
+        return BaseContributionPerWorkInterval + CompetencyBonusFor(citizen);
     }
 
     /// <summary>Stamina cost per interval for a single contributor.</summary>
@@ -123,23 +125,22 @@ public static class ConstructionRules
     };
 
     /// <summary>Cap-aware competency bonus for a given accumulated experience value.</summary>
-    public static int CompetencyBonusAt(int experience)
-    {
-        int clamped = Math.Min(experience, 24);
-        return (clamped / 8) * 4;
-    }
+    /// <remarks>
+    /// Base learning speed. Use <see cref="CompetencyBonusFor"/> for a real
+    /// citizen, whose aptitudes may have got them here on less experience.
+    /// </remarks>
+    public static int CompetencyBonusAt(int experience) =>
+        BonusForLevel(CityCompetency.LevelFor(experience));
 
-    /// <summary>Bonus per matching personal aptitude present in the citizen's profile.</summary>
-    public static int AptitudeBonus(CitizenProfile profile)
-    {
-        if (profile is null) return 0;
-        int matches = 0;
-        foreach (var aptitude in profile.Aptitudes)
-        {
-            if (IsRelevantAptitude(aptitude)) matches++;
-        }
-        return matches * AptitudeBonusPerAptitude;
-    }
+    /// <summary>
+    /// Cap-aware competency bonus for a citizen, including how much their
+    /// aptitudes shortened the road to their current construction level.
+    /// </summary>
+    public static int CompetencyBonusFor(Citizen? citizen) =>
+        BonusForLevel(CityCompetency.LevelOf(citizen, CompetencyId.Construction));
+
+    private static int BonusForLevel(int level) =>
+        Math.Min(level * BonusPerCompetencyLevel, CompetencyBonusCap);
 
     /// <summary>Visual phase for the given progress ratio.</summary>
     public static ConstructionVisualPhase PhaseFor(int progress, int requiredWork)

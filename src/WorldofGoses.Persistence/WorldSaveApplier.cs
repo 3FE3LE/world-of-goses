@@ -690,12 +690,19 @@ internal static class WorldSaveApplier
         }
         if (save.PendingProspectSeed is int prospectSeed)
         {
+            // The profile is regenerated, not stored, so every input the
+            // generator reads has to be reconstructed here. The founder is
+            // already restored by this point, which is what makes the city
+            // half of the seed available.
+            int prospectTick = save.PendingProspectArrivalTick ?? 0;
+            int citySeed = MigrantGenerator.CitySeed(world.Hero);
             world.SetPendingProspectForRestore(new CitizenProspect(
                 prospectSeed,
                 string.IsNullOrWhiteSpace(save.PendingProspectName)
-                    ? CityWorld.MigrantNameForSeed(prospectSeed)
+                    ? MigrantGenerator.Name(citySeed, prospectTick, prospectSeed)
                     : save.PendingProspectName,
-                CityWorld.CreateMigrantProfile(prospectSeed)));
+                MigrantGenerator.Profile(citySeed, prospectTick, prospectSeed),
+                prospectTick));
         }
         else
         {

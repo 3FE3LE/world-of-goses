@@ -7,4 +7,10 @@ public sealed record TempoStatistics(
     CalculatedStatistic CriticalChance,
     CalculatedStatistic PhysicalEvasion,
     CalculatedStatistic ElementalEvasion,
-    CalculatedStatistic MovementSpeed);
+    CalculatedStatistic MovementSpeed,
+
+    /// <summary>How well this citizen makes a physical expression stick.</summary>
+    CalculatedStatistic ControlPower,
+
+    /// <summary>How well this citizen shrugs one off.</summary>
+    CalculatedStatistic ControlResistance);

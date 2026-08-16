@@ -124,7 +124,16 @@ public sealed class FounderNarrativeTests
         CitizenProfile profile = CitizenProfile.CreateFounder(result, GenderId.Masculine);
 
         Assert.Equal(result, profile.FounderOnboardingResult);
-        Assert.Empty(profile.Aptitudes);
+        // Aptitudes are canonical output, not legacy residue. DEC-0013 lists
+        // what onboarding must not produce — weapon preferences, professional
+        // affinities, combat style, political orientation, spiritual posture,
+        // leadership style, risk profile and traits — and aptitudes are not on
+        // it. They were emptied here anyway, so a founder was the only person
+        // in the city with none, while the questionnaire went on scoring the
+        // Aptitude axis in more than thirty places and discarding the result.
+        Assert.Equal(FounderOnboardingResult.AptitudeCount, profile.Aptitudes.Count);
+        Assert.Equal(result.Aptitudes, profile.Aptitudes);
+        Assert.Distinct(profile.Aptitudes);
 #pragma warning disable CS0618 // Intentional compatibility assertion for DEC-0013 fields.
         Assert.Empty(profile.ProfessionalAffinities);
         Assert.Empty(profile.WeaponPreferences);

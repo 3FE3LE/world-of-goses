@@ -140,9 +140,16 @@ public class ExpeditionPathParallaxTests
         // there was no parallax however well the ratios were covered.
         // Every factor now reaches the screen through
         // ExpeditionPathRenderer's world-to-screen rule.
+        // Scaled by PixelsPerUnit, which stopped being 1 when the playable band
+        // moved back to the calle: the band is normalised to draw 1:1, so the
+        // renderer's rule now carries that factor. The property under test is
+        // unchanged — a factor handed to WorldToScreenX reaches the screen
+        // through it — only the arithmetic it is compared against.
+        float unit = ExpeditionPathRenderer.PixelsPerUnit;
         var anchor = ExpeditionPathAnchor.For(new Vector2(800f, 460f));
         float withHelper = 400f
-            + (600f - ExpeditionPathParallax.LayerOffset(200, ExpeditionPathParallax.RearFactor));
+            + ((600f - ExpeditionPathParallax.LayerOffset(200, ExpeditionPathParallax.RearFactor))
+                * unit);
         float throughRenderer = ExpeditionPathRenderer.WorldToScreenX(
             600 / ExpeditionPathParallax.RearFactor,
             200,

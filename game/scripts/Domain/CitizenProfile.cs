@@ -84,7 +84,11 @@ public sealed class CitizenProfile
         return new CitizenProfile(
             onboardingResult.Lineage,
             gender,
-            Array.Empty<AptitudeId>(),
+            // Aptitudes are the one thing on this list DEC-0013 never forbade:
+            // they are how a person learns, not a profession they already hold.
+            // They were empty here anyway, because the scorer computed them and
+            // threw them away.
+            onboardingResult.Aptitudes.ToArray(),
             Array.Empty<ProfessionFamilyId>(),
             ToLegacyAffinity(onboardingResult.ElementalAffinity),
             new CombatStyleId(string.Empty),

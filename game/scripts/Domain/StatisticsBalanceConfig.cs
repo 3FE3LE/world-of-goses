@@ -65,6 +65,17 @@ public sealed record StatisticsBalanceConfig
     public double MovementSpeedMinimum { get; init; } = 0.80;
     public double MovementSpeedMaximum { get; init; } = 1.30;
 
+    // Control is a pair of opposed multipliers rather than a probability: the
+    // land chance comes from their ratio, so these share AttackSpeed's shape
+    // and not CriticalChance's. A combatant at the ceiling throwing an
+    // expression at one on the floor multiplies the base chance by 1.75; the
+    // reverse multiplies it by 0.57. Both ends are then clamped in
+    // CombatBalanceConfig, which owns what those numbers mean in a fight.
+    public double ControlPowerMinimum { get; init; } = 0.80;
+    public double ControlPowerMaximum { get; init; } = 1.40;
+    public double ControlResistanceMinimum { get; init; } = 0.80;
+    public double ControlResistanceMaximum { get; init; } = 1.40;
+
     public void Validate()
     {
         if (MinimumSkillLevel < 0 || MaximumSkillLevel < MinimumSkillLevel)
@@ -119,6 +130,12 @@ public sealed record StatisticsBalanceConfig
         ValidateOrdered(CriticalChanceMinimum, CriticalChanceMaximum, nameof(CriticalChanceMinimum));
         ValidateOrdered(PhysicalEvasionMinimum, PhysicalEvasionMaximum, nameof(PhysicalEvasionMinimum));
         ValidateOrdered(ElementalEvasionMinimum, ElementalEvasionMaximum, nameof(ElementalEvasionMinimum));
+        ValidateOrdered(ControlPowerMinimum, ControlPowerMaximum, nameof(ControlPowerMinimum));
+        ValidateOrdered(ControlResistanceMinimum, ControlResistanceMaximum, nameof(ControlResistanceMinimum));
+        // A resistance of zero would divide the land chance by zero; a power of
+        // zero would make control impossible for a whole build.
+        ValidatePositive(ControlPowerMinimum, nameof(ControlPowerMinimum));
+        ValidatePositive(ControlResistanceMinimum, nameof(ControlResistanceMinimum));
         ValidateOrdered(MovementSpeedMinimum, MovementSpeedMaximum, nameof(MovementSpeedMinimum));
         ValidateProbability(CooldownReductionMaximum, nameof(CooldownReductionMaximum));
         ValidateProbability(CriticalChanceMaximum, nameof(CriticalChanceMaximum));

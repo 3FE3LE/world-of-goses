@@ -21,11 +21,65 @@ public enum CombatLogKind
     TechniqueResolved,
     KnockbackApplied,
     StatusApplied,
+
+    /// <summary>
+    /// A status took health: a Bleeding or Poisoning tick, or the exertion a
+    /// Fracture charges its bearer. Distinct from <see cref="StatusApplied"/>,
+    /// which used to carry both — "you were poisoned" and "the poison bit"
+    /// were the same kind, told apart only by the actor and target happening
+    /// to be the same combatant.
+    /// </summary>
+    StatusDamage,
+
+    /// <summary>
+    /// A status was thrown and did not stick, because the target's Control
+    /// Resistance beat the attacker's Control Power.
+    /// </summary>
+    StatusResisted,
+
+    /// <summary>A technique was avoided outright and did nothing.</summary>
+    Evaded,
+
     ActionPrevented,
     CombatantDefeated,
     Retreated,
     EncounterEnded,
 }
+
+/// <summary>
+/// The measurable consequence of one log entry, in domain units.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Every number here used to be formatted into <see cref="CombatLogEntry.Detail"/>
+/// and, if anyone wanted it back, parsed out of a string whose format was
+/// nobody's contract. Presentation cannot draw a knockback arc off
+/// <c>"12.4"</c> without agreeing on a culture, a precision and a sign
+/// convention that no test pinned.
+/// </para>
+/// <para>
+/// <see cref="Detail"/> stays: it is the line a human reads in the chronicle or
+/// the debug log. This is the half a machine reads. Fields not relevant to a
+/// given <see cref="CombatLogKind"/> are zero.
+/// </para>
+/// </remarks>
+/// <param name="Displacement">
+/// Signed movement along the battlefield axis, in the same units as
+/// <see cref="CombatSpatialState.PositionX"/>. Positive is toward the maximum.
+/// </param>
+/// <param name="HealthDelta">
+/// Signed change to the subject's health. Negative is damage, so presentation
+/// never has to know which kinds happen to be harmful.
+/// </param>
+/// <param name="PhysicalShare">
+/// How much of the causing blow came from the body, in <c>[0, 1]</c>. This is
+/// what lets presentation dramatise a shove by the weapon's bluntness without
+/// the domain having to decide how the hit looked.
+/// </param>
+public readonly record struct CombatImpact(
+    double Displacement = 0,
+    double HealthDelta = 0,
+    double PhysicalShare = 0);
 
 /// <summary>One auditable line of an encounter. Presentation reacts to these.</summary>
 public sealed record CombatLogEntry(
@@ -34,7 +88,8 @@ public sealed record CombatLogEntry(
     string ActorId,
     string? TargetId,
     string Detail,
-    TechniqueResolution? Resolution = null);
+    TechniqueResolution? Resolution = null,
+    CombatImpact? Impact = null);
 
 /// <summary>Per-member automatic configuration. The player configures intent only.</summary>
 public sealed record CombatantPlan(
@@ -343,6 +398,8 @@ public sealed class CombatEncounter
         foreach (CombatantState combatant in AllCombatants())
             combatant.Spatial.BeginStep(combatant.IsDefeated);
 
+        ApplyDamageOverTime();
+
         foreach (CombatantState actor in TurnOrder())
         {
             if (Outcome != CombatOutcome.InProgress) return;
@@ -354,6 +411,17 @@ public sealed class CombatEncounter
                     _statuses.IsActive(actor.Statuses, StatusEffectId.Stunning)
                         ? "Stunning interrupted the action"
                         : "Knockdown cost the action");
+                continue;
+            }
+
+            // Paralysis is the probabilistic member of the control family: a
+            // long slow that sometimes seizes outright, against Stunning's brief
+            // certainty. Rolled from the encounter's own seeded source, so an
+            // unobserved resolution and a watched one produce the same fight.
+            if (_statuses.ParalysisSeizesAction(actor.Statuses, _random))
+            {
+                Record(CombatLogKind.ActionPrevented, actor.Id, null,
+                    "Paralysis seized the action");
                 continue;
             }
 
@@ -369,18 +437,34 @@ public sealed class CombatEncounter
             (IReadOnlyList<CombatantState> allies, IReadOnlyList<CombatantState> foes) = Sides(actor);
             CombatantState? approachTarget = ApproachTarget(actor, plan, foes);
             if (approachTarget is null) continue;
-            double moved = actor.Spatial.Approach(
-                approachTarget.Spatial,
-                actor.Spatial.MovementSpeed * _balance.MovementDistancePerSpeedPoint,
-                _balance.BattlefieldMinimumX,
-                _balance.BattlefieldMaximumX);
-            if (Math.Abs(moved) > double.Epsilon)
+
+            // Knockdown roots outright — you are on the floor. Paralysis does
+            // not: it scales the advance down hard, so a melee actor still
+            // closes, just far too slowly to reach anyone this step.
+            StatusModifiers modifiers = _statuses.Modifiers(actor.Statuses);
+            bool rooted = _statuses.PreventsMovement(actor.Statuses);
+            double moved = rooted
+                ? 0
+                : actor.Spatial.Approach(
+                    approachTarget.Spatial,
+                    actor.Spatial.MovementSpeed
+                        * _balance.MovementDistancePerSpeedPoint
+                        * modifiers.MovementSpeedScale,
+                    _balance.BattlefieldMinimumX,
+                    _balance.BattlefieldMaximumX);
+            if (rooted)
+            {
+                Record(CombatLogKind.ActionPrevented, actor.Id, approachTarget.Id,
+                    "Knockdown held the advance");
+            }
+            else if (Math.Abs(moved) > double.Epsilon)
             {
                 Record(
                     CombatLogKind.CombatantMoved,
                     actor.Id,
                     approachTarget.Id,
-                    moved.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+                    moved.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
+                    new CombatImpact(Displacement: moved));
             }
 
             IReadOnlyList<CombatantState> actionRangeFoes = FoesWithinRange(actor, foes);
@@ -425,6 +509,91 @@ public sealed class CombatEncounter
         }
     }
 
+    /// <summary>
+    /// Charges a fractured attacker for the bodily half of the blow it just threw.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Scaled by the resolution's own physical share, so the cost tracks how much
+    /// of the technique was body: a fractured combatant swinging a weapon pays in
+    /// full, and the same combatant channelling something purely elemental pays
+    /// nothing. Bone does not object to resonance.
+    /// </para>
+    /// <para>
+    /// This replaced a flat charge levied once per step on anyone who acted at
+    /// all, which — together with an attack-speed penalty and a physical window —
+    /// made Fracture three effects in one and plainly the strongest of the six.
+    /// Fracture now does two things: it opens the physical window, and it makes
+    /// the target's own physical attacks cost it.
+    /// </para>
+    /// </remarks>
+    private void ChargeFractureExertion(CombatantState actor, TechniqueResolution resolution)
+    {
+        if (!_statuses.IsActive(actor.Statuses, StatusEffectId.Fracture)) return;
+
+        double cost = _balance.FractureExertionDamage * resolution.PhysicalShare;
+        if (cost <= 0) return;
+
+        double paid = actor.ApplyResult(cost);
+        if (paid <= 0) return;
+
+        Record(
+            CombatLogKind.StatusDamage,
+            actor.Id,
+            actor.Id,
+            $"Fracture cost {paid:0.####} on a physical blow",
+            new CombatImpact(HealthDelta: -paid, PhysicalShare: resolution.PhysicalShare));
+        if (actor.IsDefeated)
+        {
+            Record(CombatLogKind.CombatantDefeated, actor.Id, null, "The fracture gave");
+        }
+    }
+
+    /// <summary>
+    /// Charges the two damage-over-time statuses before anyone acts.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// At the top of the step, not inside the turn order, so attrition does not
+    /// depend on where a combatant sits in the initiative: bleeding out is
+    /// something the encounter does to you, not something your turn does.
+    /// </para>
+    /// <para>
+    /// Bleeding passes through the target's physical mitigation and Poisoning
+    /// does not. That single asymmetry is what makes armour a real answer to one
+    /// and no answer at all to the other.
+    /// </para>
+    /// </remarks>
+    private void ApplyDamageOverTime()
+    {
+        foreach (CombatantState combatant in AllCombatants())
+        {
+            if (combatant.IsDefeated) continue;
+
+            (double mitigable, double unmitigable) = _statuses.DamageOverTime(combatant.Statuses);
+            if (mitigable <= 0 && unmitigable <= 0) continue;
+
+            double total = (mitigable * (1 - Math.Clamp(combatant.PhysicalMitigation, 0, 1)))
+                + unmitigable;
+            double applied = combatant.ApplyResult(total);
+            if (applied <= 0) continue;
+
+            Record(
+                CombatLogKind.StatusDamage,
+                combatant.Id,
+                combatant.Id,
+                applied.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
+                // Attrition has no blow behind it, so no physical share: the
+                // share describes a strike, and nothing struck here.
+                new CombatImpact(HealthDelta: -applied));
+
+            if (combatant.IsDefeated)
+            {
+                Record(CombatLogKind.CombatantDefeated, combatant.Id, null, "Bled out");
+            }
+        }
+    }
+
     private void ApplyBasicAttack(
         CombatantState actor,
         CombatantPlan plan,
@@ -466,10 +635,22 @@ public sealed class CombatEncounter
     {
         TechniqueResolution resolution =
             _techniques.Resolve(Step, technique, actor, target, _random);
-        target.ApplyResult(resolution.FinalResult);
+
         actor.Spatial.MarkActivity(logKind == CombatLogKind.BasicAttackResolved
             ? CombatSpatialActivity.BasicAttack
             : CombatSpatialActivity.ActiveSkill);
+
+        if (resolution.Evaded)
+        {
+            // The attacker still swung, so its own activity stands and its
+            // cooldown was already paid. The target simply was not there: no
+            // hit animation, no fracture exertion, no expression, no shove.
+            _log.Add(new CombatLogEntry(
+                Step, CombatLogKind.Evaded, actor.Id, target.Id, technique.Id, resolution));
+            return;
+        }
+
+        target.ApplyResult(resolution.FinalResult);
         target.Spatial.MarkActivity(target.IsDefeated
             ? CombatSpatialActivity.Defeated
             : CombatSpatialActivity.Hit);
@@ -481,13 +662,45 @@ public sealed class CombatEncounter
             technique.Id,
             resolution));
 
-        if (!target.IsDefeated && resolution.FinalResult > 0)
+        ChargeFractureExertion(actor, resolution);
+
+        // Statuses are resolved before the knockback, not after, because the
+        // knockback now depends on which of them actually stuck. Reading
+        // `resolution.AppliedStatuses` here would read what the technique
+        // *tried* to apply, and a resisted Knockdown would still shove.
+        bool knocksDown = false;
+        foreach (StatusEffectId status in resolution.AppliedStatuses)
         {
+            if (!TryApplyStatus(status, actor, target)) continue;
+            if (status == StatusEffectId.Knockdown) knocksDown = true;
+        }
+
+        // Only a blow that lands Knockdown moves anyone.
+        //
+        // Every damaging technique used to write PositionX, so a fight drifted
+        // across the battlefield on ordinary attrition and range became noise:
+        // two combatants trading jabs slid apart without either deciding to.
+        // Displacement is now a consequence of the expression, and Knockdown's
+        // natural weapons are the polearms — leverage, not concussion.
+        //
+        // The small shove every solid hit looks like it should produce is real,
+        // but it is a hit reaction and lives in presentation: transient, ending
+        // where the domain says the target still stands. Presentation can size
+        // it from the CombatImpact this records.
+        if (knocksDown && !target.IsDefeated && resolution.FinalResult > 0)
+        {
+            // Momentum is transferred by the bodily part of a blow and by
+            // nothing else. Without the physical share here a purely elemental
+            // blast displaced exactly as far as a spear thrust, because the
+            // formula only ever read Impulse against Stability.
             double resistance = actor.Spatial.Impulse + target.Spatial.Stability;
             double impulseShare = resistance <= 0 ? 0 : actor.Spatial.Impulse / resistance;
             double direction = target.Spatial.DirectionAwayFrom(actor.Spatial, target.Side);
             double displacement = target.Spatial.ApplyKnockback(
-                direction * _balance.KnockbackBaseDistance * impulseShare,
+                direction
+                    * _balance.KnockbackBaseDistance
+                    * impulseShare
+                    * resolution.PhysicalShare,
                 _balance.BattlefieldMinimumX,
                 _balance.BattlefieldMaximumX);
             if (Math.Abs(displacement) > double.Epsilon)
@@ -496,15 +709,11 @@ public sealed class CombatEncounter
                     CombatLogKind.KnockbackApplied,
                     actor.Id,
                     target.Id,
-                    displacement.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture));
+                    displacement.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
+                    new CombatImpact(
+                        Displacement: displacement,
+                        PhysicalShare: resolution.PhysicalShare));
             }
-        }
-
-        foreach (StatusEffectId status in resolution.AppliedStatuses)
-        {
-            StatusEffect effect = _statuses.Create(status, actor.Id, target.Id, Step);
-            target.ReplaceStatuses(_statuses.Apply(target.Statuses, effect));
-            Record(CombatLogKind.StatusApplied, actor.Id, target.Id, status.ToString());
         }
 
         if (target.IsDefeated)
@@ -512,6 +721,51 @@ public sealed class CombatEncounter
             Record(CombatLogKind.CombatantDefeated, target.Id, null,
                 target.Side == CombatSide.Party ? "Incapacitated" : "Defeated");
         }
+    }
+
+    /// <summary>
+    /// Throws one physical expression at a target and reports whether it stuck.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Expressions used to land every single time. That made the six of them
+    /// unconditional: there was no build that shrugged off a Knockdown, no
+    /// reason for a heavy, planted combatant to feel any different from a
+    /// fragile one under control pressure, and Control Power was a stat nobody
+    /// could spend anything on because nothing read it.
+    /// </para>
+    /// <para>
+    /// The roll is an opposed ratio of the two derived multipliers around a base
+    /// chance, then clamped: control is never certain and never impossible. See
+    /// <see cref="CombatBalanceConfig.BaseControlLandChance"/>.
+    /// </para>
+    /// <para>
+    /// A target with no Control Resistance at all is not rolled against. That is
+    /// not a special case for its own sake — it keeps a combatant nobody has
+    /// given control statistics to behaving exactly as before, so an encounter
+    /// built from bare parts stays reproducible against its old seed.
+    /// </para>
+    /// </remarks>
+    private bool TryApplyStatus(StatusEffectId status, CombatantState actor, CombatantState target)
+    {
+        if (target.ControlResistance > 0)
+        {
+            double power = Math.Max(actor.ControlPower, 0);
+            double chance = Math.Clamp(
+                _balance.BaseControlLandChance * power / target.ControlResistance,
+                _balance.MinimumControlLandChance,
+                _balance.MaximumControlLandChance);
+            if (_random.NextDouble() >= chance)
+            {
+                Record(CombatLogKind.StatusResisted, actor.Id, target.Id, status.ToString());
+                return false;
+            }
+        }
+
+        StatusEffect effect = _statuses.Create(status, actor.Id, target.Id, Step);
+        target.ReplaceStatuses(_statuses.Apply(target.Statuses, effect));
+        Record(CombatLogKind.StatusApplied, actor.Id, target.Id, status.ToString());
+        return true;
     }
 
     /// <summary>
@@ -600,6 +854,14 @@ public sealed class CombatEncounter
 
     private void Record(CombatLogKind kind, string actorId, string? targetId, string detail) =>
         _log.Add(new CombatLogEntry(Step, kind, actorId, targetId, detail));
+
+    private void Record(
+        CombatLogKind kind,
+        string actorId,
+        string? targetId,
+        string detail,
+        CombatImpact impact) =>
+        _log.Add(new CombatLogEntry(Step, kind, actorId, targetId, detail, Impact: impact));
 
     private void BeginIfNeeded()
     {

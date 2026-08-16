@@ -23,7 +23,8 @@ public sealed record ExpeditionLiveSnapshot(
     bool RetreatTriggered,
     IReadOnlyList<ExpeditionLiveSnapshot.Member> Members,
     ExpeditionLiveSnapshot.Combat? CombatState,
-    ExpeditionLiveSnapshot.Travel TravelState)
+    ExpeditionLiveSnapshot.Travel TravelState,
+    LineageId SiteLineage)
 {
     public enum RouteStepState
     {
@@ -33,13 +34,26 @@ public sealed record ExpeditionLiveSnapshot(
         Skipped = 3,
     }
 
+    /// <summary>
+    /// One expedition member as the live view needs them.
+    /// </summary>
+    /// <remarks>
+    /// The three visual-identity fields mirror <c>CityMacroSnapshot.CitizenItem</c>
+    /// and <c>BuildingDetailSnapshot.CitizenItem</c>, which is how every other
+    /// surface resolves a citizen to a sprite. Without them the combat stage had
+    /// no way to know who it was drawing and fell back to rectangles for the
+    /// party as well as for the enemies.
+    /// </remarks>
     public sealed record Member(
         CitizenId Id,
         string Name,
         double? HealthRatio,
         int CurrentStamina,
         int EffectiveMaxStamina,
-        WoundSeverity? WoundSeverity);
+        WoundSeverity? WoundSeverity,
+        LineageId Lineage,
+        GenderId Gender,
+        AppearanceVariantId Appearance);
 
     public sealed record Skill(
         bool Locked,
@@ -169,7 +183,10 @@ public sealed record ExpeditionLiveSnapshot(
                 healthRatio,
                 citizen.CurrentStamina,
                 citizen.EffectiveMaxStamina,
-                citizen.Wound?.Severity));
+                citizen.Wound?.Severity,
+                citizen.Profile.Lineage,
+                citizen.Profile.Gender,
+                citizen.AppearanceVariant));
         }
 
         Combat? combatProjection = null;
@@ -207,6 +224,14 @@ public sealed record ExpeditionLiveSnapshot(
                 combat.Log);
         }
 
+        // The ground the path is made of. The city sits on the site the
+        // founder's fall reached, and an expedition sets out from that site, so
+        // its terrain is the founder's biome — the same lookup the macro floor
+        // makes. Territory-to-territory transitions will need more than one
+        // biome per journey; that is a later question and deliberately not
+        // anticipated here.
+        LineageId siteLineage = world.Hero?.Profile.Lineage ?? LineageId.Ardhen;
+
         return new ExpeditionLiveSnapshot(
             expedition.Id,
             expedition.DisplayName,
@@ -233,6 +258,7 @@ public sealed record ExpeditionLiveSnapshot(
                 expedition.ResourceOpportunityKind == ResourceOpportunityKind.SpiritTrailSearch
                     && expedition.Phase is ExpeditionPhase.Objective
                         or ExpeditionPhase.Returning,
-                expedition.ObjectiveReachedAtTick.HasValue));
+                expedition.ObjectiveReachedAtTick.HasValue),
+            siteLineage);
     }
 }

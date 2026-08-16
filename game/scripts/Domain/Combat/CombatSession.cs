@@ -35,7 +35,22 @@ public sealed record CombatParticipantState(
     CombatFacing Facing,
     CombatSpatialActivity Activity,
     double LastDisplacement,
-    CombatStature Stature);
+    CombatStature Stature,
+
+    /// <summary>The force this combatant puts behind a blow.</summary>
+    /// <remarks>
+    /// Here for the same reason <see cref="AttackRange"/> and
+    /// <see cref="BodyRadius"/> are: presentation needs the combatant's physical
+    /// facts to draw them convincingly. Specifically, a hit reaction is sized by
+    /// the attacker's Impulse against the target's <see cref="Stability"/> —
+    /// the same ratio the domain uses for a real knockback — so that a shove
+    /// looks like it came from the blow that caused it. Presentation composes
+    /// that itself; the domain does not decide how a hit looks.
+    /// </remarks>
+    double Impulse = 0,
+
+    /// <summary>How well this combatant resists being moved.</summary>
+    double Stability = 0);
 
 public sealed record CombatSessionSnapshot(
     bool Active,
@@ -262,7 +277,9 @@ public sealed class CombatSession
         combatant.Spatial.Facing,
         combatant.Spatial.Activity,
         combatant.Spatial.LastDisplacement,
-        combatant.Stature);
+        combatant.Stature,
+        combatant.Spatial.Impulse,
+        combatant.Spatial.Stability);
 
     private static TechniqueDefinition? PrimaryActive(CombatantState combatant)
     {

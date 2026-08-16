@@ -16,6 +16,175 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## El viaje camina y el combate se desliza
+
+**2026-08-16** · presentación · schema v36 (sin cambio) · 1782 pruebas superadas
+
+La gramática de movimiento del juego es discreta y `PixelMotion` lo decía sin
+matices: "characters and the camera advance in whole steps, **never** by
+continuous interpolation". El viaje de expedición, sin embargo, no la cumplía:
+redondeaba el desplazamiento del mundo al píxel entero, y a 96 px/s una rejilla
+de un píxel es movimiento continuo con el error de redondeo quitado.
+
+Ahora el mundo avanza **de zancada en zancada**, la misma cadencia de 4 px que
+usa el caminante, y el caminante se dibuja en ese mismo offset cuantizado — si
+se proyectase en su posición cruda contra un offset escalonado, el suelo pegaría
+el tirón mientras el personaje se desliza por encima, que es la gramática
+invertida y se nota más que cualquiera de los dos movimientos por separado.
+
+**El combate es la excepción, y la única.** En cuanto empieza un encuentro la
+cámara suelta la rejilla y se mueve de forma continua, y la recupera cuando se
+reanuda el viaje. No es un ajuste que alguien pueda dejar encendido: sale de qué
+llamada hace el escenario, así que la vuelta a lo cuantizado no necesita que
+nadie se acuerde. El documento de lenguaje visual ya había reservado esta
+excepción para "un futuro sistema de combate"; ahora tiene nombre.
+
+**Y los golpes se sienten.** Sólo `Knockdown` mueve a nadie en el dominio, lo
+cual es correcto y dejaba una lanzada en el pecho con el objetivo clavado en el
+sitio. Un impacto ahora produce un **retroceso transitorio**, dimensionado con
+la misma razón que el derribo real — proporción física del golpe contra la
+estabilidad de quien lo recibe — que decae a cero y por tanto termina exactamente
+donde el dominio dice. Un golpe evadido o absorbido no empuja. Dos atacantes en
+lados opuestos se cancelan. Un encuentro mirado y otro resuelto sin mirar dejan
+a todos en el mismo sitio.
+
+Sin dependencias nuevas: el proyecto sigue sin `addons/` y sin una sola
+`PackageReference`.
+
+## Cada ciudad recibe a gente distinta
+
+**2026-08-16** · ciudadanos · schema v35 → v36 · 1782 pruebas superadas
+
+Reclutar era conocer siempre a la misma persona. Todos los ejes de un migrante
+salían de `seed % catálogo` sobre su id de ciudadano, y el id del primer
+migrante de cualquier ciudad nueva es siempre `2`: dos partidas distintas
+recibían al mismo linaje, el mismo cuerpo, la misma afinidad y el mismo nombre.
+Las tres aptitudes eran además tres entradas **consecutivas** del catálogo, así
+que un perfil sólo podía ser uno de diez tríos adyacentes de los ciento veinte
+que existen.
+
+Un migrante se deriva ahora del **fundador, el tick en que llega y su id**, cada
+eje de un stream independiente. No es azar libre: la progresión offline y la
+reproducción de una partida guardada exigen que el mundo se rehaga de lo que
+almacenó, así que sigue siendo función pura de una semilla — lo que cambia es
+que la semilla lleva la ciudad y el momento.
+
+**Y llega con oficio.** Tuvo una vida antes de la ciudad, así que trae
+experiencia previa en hasta tres competencias, nunca por encima de un nivel
+modesto. Aceptar a alguien pasa a ser una decisión —un cantero y un recolector
+valen cosas distintas el mismo día— en lugar de añadir otro trabajador en blanco.
+
+**Schema v35 → v36.** El save guardaba sólo el id del prospecto y regeneraba su
+perfil al cargar, así que el tick de llegada tuvo que empezar a persistirse. Un
+save v35 con un prospecto sin aceptar puede mostrar a otra persona al recargar:
+ese tick no es recuperable de nada más en el snapshot, e inventar uno plausible
+sería peor, porque afirmaría haber restaurado a la misma persona restaurando a
+otra. Un migrante ya aceptado es un ciudadano real con datos guardados y no se
+toca.
+
+## Las aptitudes dejan de dar trabajo y pasan a dar aprendizaje
+
+**2026-08-16** · ciudadanos · schema v36 (sin cambio) · 1782 pruebas superadas
+
+La única lectura mecánica de toda la lista de aptitudes era un bonus plano al
+trabajo de construcción por tick. Eso es una ventaja de producción automática
+concedida por la identidad, que es exactamente lo que el pilar de linaje
+prohíbe.
+
+Una aptitud ahora **acorta el camino a un nivel** en vez de aumentar la
+producción: divide la experiencia que cuesta subir. Dos ciudadanos con el mismo
+nivel de cantería pican lo mismo; el que tiene la aptitud llegó antes. Es lo que
+el documento de ciudadanos venía describiendo desde el principio — "aptitud:
+facilidad personal" — y también la forma que el pilar sí permite. Las
+competencias de ciudad ganan de paso un nivel derivado de la experiencia, que
+antes cada consumidor se inventaba en línea.
+
+**El fundador recupera las suyas.** El cuestionario del onboarding puntúa el eje
+de aptitud en más de treinta respuestas, el scorer las acumulaba todas y luego
+leía sólo linaje y elemento: estaban calculadas y se tiraban. DEC-0013 enumera
+lo que el onboarding no debe producir y las aptitudes nunca estuvieron en esa
+lista; se barrieron con el resto por arrastre, y el fundador acababa siendo la
+única persona de la ciudad que no aprendía nada más rápido que nadie.
+
+## El combate deja de tener seis etiquetas y pasa a tener seis mecánicas
+
+**2026-08-16** · combate · schema v36 (sin cambio) · 1782 pruebas superadas
+
+Las seis expresiones físicas existían como nombres. Ahora cada una hace algo
+distinto y ofensivo, en tres pares que se distinguen por textura y no por
+potencia: `Stunning` y `Fracture` abren la ventana elemental y la física,
+`Bleeding` y `Poisoning` son la misma presión leída al revés —una acumula y se
+mitiga, la otra ni acumula ni se mitiga—, y `Paralysis` y `Knockdown` controlan,
+una por probabilidad sostenida y la otra por certeza breve.
+
+**Sólo `Knockdown` mueve a nadie.** Cualquier técnica que hiciera daño escribía
+la posición autoritativa, así que un combate derivaba por el campo con el
+desgaste ordinario y la distancia acababa siendo algo que no había elegido
+ninguno de los dos. El desplazamiento es ahora consecuencia de una expresión, y
+se escala además por la proporción física del golpe: una descarga puramente
+elemental no transfiere momento.
+
+**Una expresión puede ser rechazada.** Antes aterrizaban siempre, así que no
+había construcción que aguantase un derribo ni razón para que un combatiente
+pesado se sintiera distinto de uno frágil. `ControlPower` contra
+`ControlResistance`, con suelo y techo: controlar nunca es seguro y nunca es
+imposible — un muro que el jugador no puede cruzar nunca no es dificultad, es
+una puerta cerrada.
+
+**La evasión se consume.** Ambos canales se calculaban y no los leía nadie, así
+que una construcción orientada a `Reach` compraba un número que el combate no
+consultaba. Un golpe evadido no ocurre: no critica, no se mitiga, no aplica
+expresión y no desplaza.
+
+**Las doce familias de arma dejan de ser intercambiables.** Todas repartían
+`1.0 / 1.0`, con lo que elegir Martillo u Orbe cambiaba el catálogo de técnicas y
+ni un número de cuánto se pega. Seis pares son canon y los otros seis se derivan
+de su pareja dentro de la banda sancionada; es un intercambio y nunca un total,
+así que ninguna familia es mejor que otra.
+
+Y cada línea del registro de combate lleva ahora su consecuencia medible en un
+**payload tipado** en lugar de un número formateado dentro de un texto, que es
+lo que la presentación necesita para dibujar sin acordar a ciegas una cultura,
+una precisión y un convenio de signo.
+
+## El suelo de cada bioma deja de vivir en el código
+
+**2026-08-15** · presentación · schema v35 (sin cambio) · 1704 pruebas superadas
+
+**Nada cambia en pantalla, y eso es el punto.** El suelo del macro se dibujaba
+desde una única hoja global: `TerrainAtlas` tenía una `const string AtlasPath`,
+un solo trío `TileSize`/`Stride`/`Columns` y los ids de relleno de los ocho
+biomas como enteros sueltos en C#. Un segundo tileset, cortado en otra rejilla,
+sencillamente no cabía — y el proyecto está a punto de recibir el primero.
+
+Ahora cada linaje tiene su **`GroundAtlasProfile`**, un recurso en
+`game/assets/terrain/biomes/<linaje>_ground.tres` que declara su hoja, su
+tamaño de tile, su gutter, sus columnas y sus roles. Cambiar el suelo de un
+bioma es editar ese recurso; los otros siete no se enteran aunque estén
+cortados en otra rejilla. La hoja es un `Texture2D` exportado y no una ruta en
+una constante, así que Godot rastrea la dependencia por `uid` y renombrar el
+PNG deja de romper nada.
+
+**El mordisco del tile 1026 ahora lo caza un test, no una persona.** Un relleno
+se repite cientos de veces, así que sus bordes opuestos tienen que coincidir;
+las bandas de color de una hoja suelen ser autotiles cuyas piezas llevan pegado
+un trozo del material vecino, y repetir una muestra el corte. Pasó dos veces
+—el naranja 1026 era una esquina interior, y por lo mismo se retiraron el
+magenta 1197 y el turquesa 466— y las dos se descubrieron mirando una captura.
+`GroundAtlasTests` mide la discontinuidad entre bordes opuestos leyendo el PNG
+a mano, sin runtime de Godot ni dependencias nuevas: los rellenos en uso
+puntúan entre 0 y 0,25 y el 1026 puntúa 21,15 contra una tolerancia de 2. Se
+verificó volviendo a meter el 1026 y comprobando que falla, no solo que pasa.
+
+El test cubre además que los ocho perfiles existan, que su hoja exista, que
+ningún id se salga de ella y que ninguno caiga en una celda vacía.
+
+Árboles y props siguen en la hoja compartida de Kenney: son otro trabajo de
+autoría sobre otra hoja, e inventarles el contrato antes de que exista el arte
+sería adivinar.
+
+---
+
 ## Una sola colección tipográfica, y la rejilla como regla
 
 **2026-08-15** · presentación · tooling · schema v35 (sin cambio) · 1663 pruebas superadas

@@ -267,11 +267,17 @@ public class MacroStreetLiveViewTests
         float pivotY = MacroStreetLiveView.CameraZoomPivotYForTests;
         float nearY = pivotY + zoom
             * (StreetDepthProjection.RowScreenY(-2f, 580f) - pivotY);
+        // Depth 10, the last band actually drawn — FarClipDepth is 11 and
+        // IsVisibleDepth is exclusive, so nothing renders at 11. This probed 11
+        // until the world moved to a 32 px grid, at which point the steeper row
+        // spacing put the clip bound exactly on the 200 px horizon. That is the
+        // clip meeting the horizon rather than a row disappearing into it, and
+        // asserting on a depth that never draws could not tell the difference.
         float farY = pivotY + zoom
-            * (StreetDepthProjection.RowScreenY(11f, 580f) - pivotY);
+            * (StreetDepthProjection.RowScreenY(10f, 580f) - pivotY);
 
         Assert.InRange(nearY, 704f, 716f);
-        Assert.InRange(farY, 72f, 88f);
+        Assert.InRange(farY, 210f, 225f);
     }
 
     [Fact]

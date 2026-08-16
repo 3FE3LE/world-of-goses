@@ -82,8 +82,24 @@ Source shorthand: a citation like *(systems/citizens)* means `docs/systems/citiz
   and includes the return. Its purpose is narrative trail-following, not a
   `1 Food → Wood` conversion. *(systems/expeditions, DEC-0022)*
 - A combatant advances only to enter `AttackRange`; once able to attack, it does
-  not kite backwards. Knockback may move it; `Stability` reduces displacement
-  and `Impulse` may increase it. *(systems/expeditions)*
+  not kite backwards. Only a blow that applies `Knockdown` moves it; `Stability`
+  reduces the displacement, `Impulse` may increase it and the physical share of
+  the blow scales it. The lesser shove of a solid hit is a presentation-only hit
+  reaction. *(systems/expeditions, systems/statistics-and-combat §2.3)*
+- A physical expression is never guaranteed to land and never impossible to
+  land: `ControlPower` is rolled against `ControlResistance` between a floor and
+  a ceiling. No amount of any statistic makes a combatant immune to one.
+  *(systems/statistics-and-combat §8.4)*
+- An aptitude changes how fast a citizen learns a competency and never how much
+  they produce. Two citizens at the same competency level do the same work.
+  *(systems/citizens, world/vision pillar on lineage)*
+- A migrant's identity is a pure function of the founder, the arrival tick and
+  the citizen id. Never free randomness — offline progression and save replay
+  require the world to reproduce from what it stored — and never the citizen id
+  alone, which is 2 for the first migrant of every city. *(systems/citizens)*
+- No weapon family is strictly better than another. `PhysicalTransfer` and
+  `ElementalResonance` are a trade within one sanctioned band, never a total to
+  raise. *(systems/statistics-and-combat §4.3)*
 - An expedition must affect the city, its citizens, or the territory.
 - Rewards cannot be limited to a timed conversion of resources.
 - Survivors return without equipment and with their wounds. The city must treat
@@ -190,7 +206,9 @@ Source shorthand: a citation like *(systems/citizens)* means `docs/systems/citiz
   sprites and pixel-art UI, no fractional edge coordinates. *(presentation/visual-language, engineering/architecture)*
 - Logical resolution 1280 x 720. *(presentation/visual-language, engineering/architecture)*
 - Motion uses a discrete cadence grammar. Camera and world navigation use
-  quantized steps, never smooth continuous 1:1 motion. *(presentation/visual-language)*
+  quantized steps, never smooth continuous 1:1 motion. The single exception is
+  expedition combat, which moves continuously from the first step of an
+  encounter until travel resumes. *(presentation/visual-language)*
 - Do not communicate a state by color alone.
 - UI is functionally shared across lineages. Lineage themes may change palette,
   borders, corners, fills, shadows, patterns, selection, micro-animations, and

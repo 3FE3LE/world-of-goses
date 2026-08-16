@@ -6,19 +6,58 @@
 - No 2.5D como dirección principal.
 - Bordes nítidos.
 - Sin antialiasing en sprites y UI pixel art.
-- Escala entera.
 - Filtro nearest.
 - Paletas controladas.
 - Iluminación coherente.
 - Diseño original.
 
-## Resolución
+## La rejilla de 32
+
+**El píxel de diseño del juego mide 32 unidades por tile.** Todo el arte se
+autora contra esa rejilla: un tile de suelo es 32 × 32, un lote estándar son
+3 × 3 tiles, y el resto de la escalera se deriva de ahí (ver
+[`art-pipeline.md`](art-pipeline.md) § *Escalera de tamaños*).
+
+De la rejilla sale la geometría del macro, no al revés:
+
+```text
+TileUnitPx = 32          un tile de suelo
+LotUnitPx  = 96          = 3 × TileUnitPx, un lote estándar
+zoom       = 1 · 2 · 3   enteros; 2 es el valor por defecto
+```
+
+Con eso, zoom 1 dibuja un píxel de origen por píxel lógico, zoom 2 lo dibuja
+como un bloque de 2 × 2 y zoom 3 como uno de 3 × 3. **El zoom no escala nunca
+la interfaz**: el HUD vive en `Control` sobre el lienzo lógico y no se entera
+de la cámara del mundo.
+
+## Resolución y escala entera
 
 Resolución lógica base:
 
 ```text
 1280 × 720
 ```
+
+`stretch/mode = canvas_items` con `aspect = expand`, así que el lienzo lógico
+son 1280 × 720 en toda resolución y la ventana lo reescala:
+
+| Pantalla | Factor | Entero |
+| --- | ---: | --- |
+| 1280 × 720 | ×1 | sí |
+| 1920 × 1080 | ×1,5 | **no** |
+| 2560 × 1440 | ×2 | sí |
+| 3840 × 2160 | ×3 | sí |
+
+**La escala entera es la regla dentro del lienzo lógico**, que es donde el arte
+y la UI se diseñan y se firman. Fuera de él, la única resolución común que cae
+en un factor fraccionario es 1080p, y se acepta: bajar la base para arreglarla
+—640 × 360 escalaría entero a 1080p— partiría en dos el espacio lógico y
+obligaría a rehacer todos los tokens de `Ui/Tokens.cs`, todos los tamaños
+tipográficos y todos los layouts. No compensa por una resolución.
+
+Las capturas oficiales de regresión visual siguen siendo 1280 × 720 y
+1920 × 1080; la primera es la que manda para juzgar el píxel.
 
 ## Tipografía
 
@@ -43,26 +82,33 @@ tabla medida vive en `ui-patterns.md` §5.
 
 ## Tres escalas visuales
 
+Las tres se miden contra la rejilla de 32. Las cifras anteriores —habitantes de
+4 a 8 píxeles, lienzo de 64 × 96— se escribieron para una escala de placeholder
+mucho menor: una persona de 6 px junto a un tile de 32 le llega al tobillo.
+
 ### Ciudad macro
 
 - Parcelas y edificios como foco.
-- Habitantes de 4 a 8 píxeles.
-- Siluetas ambientales.
-- Sin anatomía detallada.
+- Tile de suelo: 32 × 32. Lote estándar: 96 × 96.
+- Habitantes de 24 a 32 píxeles de alto — entre tres cuartos de tile y un tile.
+- Siluetas ambientales. Sin anatomía detallada: a zoom 2 un habitante ocupa
+  unos 64 px de pantalla y la lectura la da la silueta, no el rasgo.
 
 ### Escena de edificio
 
 - Ciudadanos reales asignados.
-- Canvas aproximado: 64 × 96.
+- Lienzo de personaje: 32 × 64 — dos tiles de alto, la misma rejilla que el
+  macro, para que el mismo sprite pueda servir en ambas escalas.
 - Animaciones moderadas.
 - Límite visual de trabajadores.
 
 ### Expedición
 
-- Sprites completos.
-- Vista lateral.
-- Canvas inicial orientativo: 96 × 96.
-- Mayor inversión en animación, equipo, heridas y efectos.
+- Sprites completos, vista lateral.
+- Lienzo de combatiente: 64 × 64. Es la escala donde se invierte en animación,
+  equipo, heridas y efectos, así que dobla la resolución del habitante de macro
+  en vez de compartirla.
+- Fondos por capas de parallax, no dibujados por código.
 
 ## Profundidad y desniveles
 
@@ -190,6 +236,28 @@ Posición, entrada y salida, brillo, sombras, opacidad, partículas, UI y efecto
   default, for any world navigation (camera included), so base movement
   stays visually consistent with how a future combat/ability system would
   likely telegraph its own motion.
+- **Expedition combat is that exception, and the only one.** While an
+  expedition is travelling, the world advances one 4 px locomotion step at a
+  time, the same cadence the walker's own gait uses; the moment an encounter
+  begins the camera drops the grid and moves continuously, and it picks the grid
+  back up when travel resumes. Impact reactions and camera pans are readable
+  only against continuous motion, and a fight is where the game stops being a
+  walk and asks to be watched.
+  - The switch is not a setting. It follows from which call the stage makes —
+    `FollowTravel` quantizes, `FrameEncounter` does not — so there is no mode
+    left enabled by mistake, and the return to stepping needs no second call.
+  - The travelling party is drawn at the camera's own quantized offset
+    (`TravelDrawPositionX`), never at the raw `Travel.PositionX`. Projecting the
+    raw value against a stepped offset inverts the grammar: the ground jumps
+    while the walker slides across it, which reads worse than either motion
+    alone.
+  - A struck combatant flinches (`HitReaction`): a transient shove away from
+    whoever hit it, sized by the bodily share of the blow against the target's
+    Stability, decaying to zero inside the step that caused it. It is drawn on
+    top of the authoritative position and never replaces it, so the figure
+    always settles where the domain says it is. It stays visibly smaller than
+    the displacement a Knockdown produces. An evaded or fully absorbed blow does
+    not flinch.
 - UI scrolling may remain smooth. Continuous character fades or subpixel
   locomotion require an explicit visual exception.
 

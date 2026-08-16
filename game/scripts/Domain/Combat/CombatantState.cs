@@ -28,6 +28,13 @@ public enum InjuryKind
     Contusion,
     OpenWound,
     TemporaryIncapacitation,
+
+    /// <summary>
+    /// A bone that gave. The only injury an encounter can hand out for a reason
+    /// other than how much health was lost: it comes from the Fracture status
+    /// still being active when the fight ends.
+    /// </summary>
+    Fracture,
 }
 
 /// <summary>
@@ -70,7 +77,11 @@ public sealed class CombatantState
         IReadOnlyList<TechniqueDefinition> techniques,
         double fatigue = 0,
         CombatSpatialState? spatial = null,
-        CombatStature stature = CombatStature.Standard)
+        CombatStature stature = CombatStature.Standard,
+        double physicalEvasion = 0,
+        double elementalEvasion = 0,
+        double controlPower = 0,
+        double controlResistance = 0)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Id is required.", nameof(id));
         if (maxHealth <= 0) throw new ArgumentOutOfRangeException(nameof(maxHealth));
@@ -98,6 +109,10 @@ public sealed class CombatantState
         Spatial = spatial ?? new CombatSpatialState(
             facing: side == CombatSide.Party ? CombatFacing.Right : CombatFacing.Left);
         Stature = stature;
+        PhysicalEvasion = Math.Clamp(physicalEvasion, 0, 1);
+        ElementalEvasion = Math.Clamp(elementalEvasion, 0, 1);
+        ControlPower = Math.Max(0, controlPower);
+        ControlResistance = Math.Max(0, controlResistance);
     }
 
     public string Id { get; }
@@ -116,6 +131,32 @@ public sealed class CombatantState
     public double GeneralDamageReduction { get; }
     public double CriticalChance { get; }
     public double AttackSpeed { get; }
+
+    /// <summary>
+    /// Chance to avoid a fully physical technique outright, in <c>[0, 1]</c>.
+    /// A hybrid technique is evaded on the blend of the two, weighted by its
+    /// own physical share — the same way its mitigation is blended, so a mixed
+    /// blow can never be resolved against whichever of the pair is lower.
+    /// </summary>
+    public double PhysicalEvasion { get; }
+
+    /// <summary>Chance to avoid a fully elemental technique outright.</summary>
+    public double ElementalEvasion { get; }
+
+    /// <summary>
+    /// This combatant's multiplier for making a physical expression stick.
+    /// Zero means "not measured", and an attacker with zero is not rolled
+    /// against a target that has resistance — see
+    /// <see cref="ControlResistance"/>.
+    /// </summary>
+    public double ControlPower { get; }
+
+    /// <summary>
+    /// This combatant's multiplier for shrugging a physical expression off.
+    /// Zero disables the roll entirely and every expression lands, which is
+    /// what a combatant assembled without control statistics gets.
+    /// </summary>
+    public double ControlResistance { get; }
     public ElementalAffinity ElementalAffinity { get; }
     public PhysicalExpression PhysicalExpression { get; }
     public WeaponFamily? WeaponFamily { get; }

@@ -241,9 +241,24 @@ foreach ($resolution in $resolutions) {
             Start-Sleep -Milliseconds 100
         } while (!$process.HasExited -and [DateTime]::UtcNow -lt $settleDeadline)
 
+        # Fatal only when there are clicks to place. Everything above is about
+        # coordinates: a normalized click is multiplied by this measurement, so
+        # a bootstrap rect puts the pointer nowhere near its target. The *frame*
+        # does not come from here at all — ViewportCaptureService grabs the
+        # engine's viewport, and the .done handshake below asserts the size the
+        # engine says it rendered, which is what actually stops a wrong-sized
+        # golden. Failing a click-free capture on a rect nothing reads was
+        # costing whole fixtures on machines where the window manager and the
+        # framebuffer disagree; this one reports 1280x720 to the engine and
+        # 960x480 to Win32 for the same window.
         if ($actualWidth -ne $resolution.Width -or $actualHeight -ne $resolution.Height) {
-            throw ("Godot client settled at ${actualWidth}x${actualHeight}, expected $slug " +
-                "for $StateName. Clicks and geometry cannot be derived from a bootstrap rect.")
+            if ($NormalizedClicks.Count -gt 0) {
+                throw ("Godot client settled at ${actualWidth}x${actualHeight}, expected $slug " +
+                    "for $StateName. Clicks cannot be derived from a bootstrap rect.")
+            }
+            Write-Warning ("Godot client reads ${actualWidth}x${actualHeight} rather than $slug " +
+                "for $StateName. No clicks were requested, so the capture continues; the frame " +
+                "is still checked against the size the engine reports having rendered.")
         }
 
         # The scene still needs a moment to compose once the window is the

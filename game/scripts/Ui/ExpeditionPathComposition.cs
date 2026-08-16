@@ -26,8 +26,18 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public static class ExpeditionPathComposition
 {
-    /// <summary>Depth the rear dressing stands on.</summary>
-    public const float RearPropDepth = 2f;
+    /// <summary>
+    /// Depth the rear dressing stands on: the lot depth immediately behind the
+    /// calle the party walks.
+    /// </summary>
+    /// <remarks>
+    /// Derived from the playable band rather than authored as <c>2f</c>, which
+    /// was behind the party only while the playable band was row 0. With the
+    /// band on the calle at row 3 that literal put every rear prop *in front*
+    /// of the group — <c>RearDressing_StaysBehindThePlayableBand</c> is the
+    /// test that says so.
+    /// </remarks>
+    public const float RearPropDepth = ExpeditionPathRenderer.PlayableDepth + 1f;
 
     /// <summary>How tall a rear prop is on the playable band's scale,
     /// before its own row's perspective shrinks it.</summary>

@@ -92,9 +92,11 @@ public sealed class CitizenEquipmentService
     /// opening cannot produce and nothing else knows how to resolve.
     /// </summary>
     /// <remarks>
-    /// The channels are the neutral prototype pair #26 sanctions. The family
-    /// is the real chosen one — that is the half that matters, and the half
-    /// <c>OpeningBaselineFor</c> used to invent at random.
+    /// The family is the real chosen one, and now the channels follow from it:
+    /// the starter weapon used to ship the neutral <c>1.0 / 1.0</c> pair, which
+    /// meant the founder's weapon choice changed which techniques they knew and
+    /// not one number about how hard they hit. It is a plain, unmodified weapon
+    /// of that family — see <see cref="WeaponFamilyChannels"/>.
     /// </remarks>
     public WeaponItemInstance MaterializeStarterWeapon(Citizen citizen, WeaponFamily family)
     {
@@ -102,21 +104,10 @@ public sealed class CitizenEquipmentService
         var weapon = new WeaponItemInstance(
             ItemInstanceId.NewId(),
             family,
-            new WeaponChannelProfile(
-                family,
-                PrototypePhysicalTransfer,
-                PrototypeElementalResonance),
+            WeaponFamilyChannels.ProfileFor(family),
             WeaponOrigin.FounderMaterialization);
         Acquire(citizen, weapon);
         EquipWeapon(citizen, weapon.Id);
         return weapon;
     }
-
-    /// <summary>
-    /// Neutral channels for a materialised prototype. Named here rather than
-    /// left inline so the weapon catalogue has one home when upgrades and
-    /// crafting arrive, and so no scene ever carries these numbers.
-    /// </summary>
-    public const double PrototypePhysicalTransfer = 1.0;
-    public const double PrototypeElementalResonance = 1.0;
 }

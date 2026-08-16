@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using WorldofGoses.Domain;
 using WorldofGoses.Prototypes;
 
 namespace WorldofGoses.Ui;
@@ -30,20 +31,34 @@ namespace WorldofGoses.Ui;
 /// </summary>
 public static class ExpeditionPathRenderer
 {
-    /// <summary>How many ground rows the stage paints behind and on
-    /// the playable band.</summary>
-    public const int RowCount = 6;
+    /// <summary>
+    /// How many ground rows the stage paints: one whole parcel, deep.
+    /// </summary>
+    /// <remarks>
+    /// A parcel is <c>LotsPerAxis</c> lots of <c>TilesPerStandardLot</c> tiles,
+    /// so nine rows — the same block the macro city is built from. It was six,
+    /// a number with no relationship to anything, which is part of why the path
+    /// and the city read as different places rather than the same world seen
+    /// from a different distance.
+    /// </remarks>
+    public const int RowCount = ParcelGrid.LotsPerAxis * ParcelGrid.TilesPerStandardLot;
 
     /// <summary>Step used by the pixel staircase trapezoid.</summary>
     public const float PixelStep = 2f;
 
     /// <summary>
-    /// The one band gameplay stands on. Depth 0 is the row nearest the
-    /// camera: <see cref="StreetDepthProjection.RowScreenY"/> anchors
-    /// depth 0 at the base and lets larger depths converge upward
-    /// toward the horizon.
+    /// The one band gameplay stands on: the calle in front of the parcel's
+    /// second row of lots.
     /// </summary>
-    public const float PlayableDepth = 0f;
+    /// <remarks>
+    /// Row 3 — the first tile of lot row 1 — because that is what a calle is in
+    /// the macro: <c>MacroStreetRenderer.DrawTiledFloor</c> paints three tile
+    /// rows per lot row and only row 0 of each is walkable, the band that wears
+    /// into a path. Rows 0-2 are therefore the lot row in front of the party,
+    /// 4-5 the depth of its own lot, and 6-8 the lot row behind. Larger depths
+    /// converge upward toward the horizon.
+    /// </remarks>
+    public const float PlayableDepth = ParcelGrid.TilesPerStandardLot;
 
     /// <summary>
     /// The fringe in front of the party. Negative depth is nearer than
@@ -52,10 +67,21 @@ public static class ExpeditionPathRenderer
     /// </summary>
     public const float ForegroundDepth = -1f;
 
-    /// <summary>How many world units one pixel of the playable band
-    /// covers. One, so the combat arena keeps the spread it had when
-    /// the stage normalised the battlefield onto the band.</summary>
-    public const float PixelsPerUnit = 1f;
+    /// <summary>
+    /// Screen pixels per world unit, normalised so the playable band draws 1:1.
+    /// </summary>
+    /// <remarks>
+    /// It was the literal <c>1f</c>, which happened to make the band 1:1 only
+    /// because the band was depth 0 and depth 0 has a horizontal scale of one.
+    /// Moving the band back to the calle at row 3 dropped its scale to 0.88³,
+    /// which would have narrowed the combat arena by a third and made the same
+    /// travel read a third slower — a perspective change smuggled in as a
+    /// geometry change. Dividing it out keeps the band's own spread exactly
+    /// what it was and leaves the rows in front larger and those behind
+    /// smaller, which is the whole point of moving it.
+    /// </remarks>
+    public static readonly float PixelsPerUnit =
+        1f / StreetDepthProjection.HorizontalScale(PlayableDepth);
 
     /// <summary>Whether <paramref name="depth"/> is the playable band.
     /// The single question every consumer asks; nobody re-derives the
@@ -68,7 +94,13 @@ public static class ExpeditionPathRenderer
     {
         if (depth < PlayableDepth) return ExpeditionPathLayer.Foreground;
         if (IsPlayableDepth(depth)) return ExpeditionPathLayer.Playable;
-        return depth >= RowCount - 2 ? ExpeditionPathLayer.Distance : ExpeditionPathLayer.Rear;
+        // The lot row behind the party's own is decoration and moves as a
+        // backdrop; the two rows between are still its lot's depth. Derived
+        // from the parcel rather than from `RowCount - 2`, so the boundary
+        // stays on a lot edge if the parcel ever changes shape.
+        return depth >= PlayableDepth + ParcelGrid.TilesPerStandardLot
+            ? ExpeditionPathLayer.Distance
+            : ExpeditionPathLayer.Rear;
     }
 
     /// <summary>
@@ -80,13 +112,21 @@ public static class ExpeditionPathRenderer
     /// the fringe own no world coordinate, so they take the authored
     /// factors from <see cref="ExpeditionPathParallax"/> instead.</para>
     /// </summary>
-    public static float ParallaxFactorForDepth(float depth) =>
-        LayerForDepth(depth) switch
-        {
-            ExpeditionPathLayer.Distance => ExpeditionPathParallax.DistanceFactor,
-            ExpeditionPathLayer.Foreground => ExpeditionPathParallax.ForegroundFactor,
-            _ => StreetDepthProjection.HorizontalScale(depth),
-        };
+    public static float ParallaxFactorForDepth(float depth)
+    {
+        // Every row of the parcel owns a world coordinate, so every one of them
+        // takes its own perspective compression and recedes at its own rate.
+        // Only the fringe in front of it does not exist in the world at all,
+        // and only that one takes an authored factor.
+        //
+        // This used to key off the layer, which was harmless while a single
+        // row sat in front of the playable band. With the band moved back to
+        // the calle — nine parcel rows, playable at 3 — rows 0-2 all became
+        // Foreground and would have slid at one flat authored speed, so three
+        // receding rows would have moved as one flat card.
+        if (depth < 0f) return ExpeditionPathParallax.ForegroundFactor;
+        return StreetDepthProjection.HorizontalScale(depth);
+    }
 
     /// <summary>
     /// Computes the screen Y of a depth-band row inside this stage.
@@ -95,7 +135,8 @@ public static class ExpeditionPathRenderer
     /// is which base Y to anchor the horizon to.
     /// </summary>
     public static float RowScreenY(float depth, in ExpeditionPathAnchor anchor) =>
-        StreetDepthProjection.RowScreenY(depth, anchor.BaseY);
+        StreetDepthProjection.RowScreenY(
+            depth, anchor.BaseY, anchor.HorizonY, anchor.RowSpacingPx);
 
     /// <summary>Screen Y of the playable band — the row party, enemies
     /// and the objective all stand on.</summary>

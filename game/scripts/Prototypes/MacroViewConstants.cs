@@ -22,15 +22,25 @@ internal static class MacroViewConstants
     public const float CenterX = 640f;
     public const float BaseY = 580f;
     public const float CameraZoomPivotY = 680f;
-    public const float LotUnitPx = 90f;
+    // A lot is three tiles across and the art grid is 32, so 96 rather than
+    // the 90 this carried while the world was drawn from 16 px placeholders.
+    // See visual-language.md, "La rejilla de 32": the geometry follows the art,
+    // not the other way round.
+    public const float LotUnitPx = 96f;
     public const int DefaultWorldParcelColumns = 5;
     public const int DefaultWorldParcelRows = 2;
 
-    // Quantized zoom: discrete steps, never a continuous drag/slider.
-    public const float ZoomStep = 0.15f;
-    public const float MinZoom = 1.3f;
-    public const float DefaultZoom = 1.45f;
-    public const float MaxZoom = 3.0f;
+    // Quantized zoom: discrete steps, never a continuous drag/slider — and now
+    // integer ones. At zoom 1 a source pixel is a logical pixel; at 2 it is a
+    // 2x2 block, at 3 a 3x3. The old 1.30/1.45/3.00 ladder in steps of 0.15
+    // drew 32 px art at 46.4 px, which is neither 1:1 nor a whole multiple of
+    // it, and contradicted the integer-scale rule the visual language already
+    // stated. Two is the default because it is where 32 px art reads at its
+    // full detail; one is the wide view.
+    public const float ZoomStep = 1f;
+    public const float MinZoom = 1f;
+    public const float DefaultZoom = 2f;
+    public const float MaxZoom = 3f;
 
     // Holding vertical pan repeats slowly at first, then gently accelerates.
     public const float VerticalPanInitialRepeatSeconds = 0.48f;
@@ -47,7 +57,10 @@ internal static class MacroViewConstants
     // the clicked building (same stepped cadence as citizen/camera motion —
     // never a continuous Tween).
     public const int BuildingEntryZoomSteps = 10;
-    public const float BuildingEntryZoomLevel = 1.75f;
+    // The closest rung, not a value between rungs: entering a building is the
+    // one moment the macro pushes past its default. It was 1.75 against a 1.45
+    // default; on an integer ladder the equivalent push is 2 -> 3.
+    public const float BuildingEntryZoomLevel = MaxZoom;
 
     // Floor tile grain. ParcelGrid.TilesPerStandardLot is 3, so a lot is
     // composed of 3×3 base tiles per row.

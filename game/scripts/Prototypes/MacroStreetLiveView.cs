@@ -4201,7 +4201,10 @@ public partial class MacroStreetLiveView : Node2D
     /// </summary>
     private void DrawTiledFloor(int street, float depth)
     {
-        TerrainAtlas.GroundBiome biome = _renderer.GroundBiome;
+        // The ground comes from the biome's own profile — its own sheet, its own
+        // grid — and no longer from the shared Kenney atlas the trees still use.
+        if (_renderer.GroundProfile is not { } profile) return;
+        if (profile.Atlas is not { } groundAtlas || profile.Fill.Length == 0) return;
         int totalTiles = Mathf.RoundToInt(2f * _lateralHalfWidthPx / TileUnitPx);
         int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         for (int tileRow = 0; tileRow < ParcelGrid.TilesPerStandardLot; tileRow++)
@@ -4233,7 +4236,7 @@ public partial class MacroStreetLiveView : Node2D
                 // `tileIndex * 3 % 3` is always zero and the choice collapses
                 // to the row — the ground came out in flat horizontal stripes.
                 int variant = TerrainAtlas.GroundVariantIndex(
-                    tileIndex, globalTileRow, biome.Fill.Length);
+                    tileIndex, globalTileRow, profile.Fill.Length);
                 // Only tileRow 0 (the calle's own walkable front band) can
                 // wear into a path — the lot depth behind it (tileRow 1/2)
                 // is never trodden, it's where buildings/trees sit.
@@ -4241,7 +4244,7 @@ public partial class MacroStreetLiveView : Node2D
                     yNear, yFar,
                     CenterX + leftGlobal * scaleNear, CenterX + rightGlobal * scaleNear,
                     CenterX + leftGlobal * scaleFar, CenterX + rightGlobal * scaleFar,
-                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Fill[variant]));
+                    groundAtlas, profile.RegionOfId(profile.Fill[variant]));
 
                 float wear = tileRow == 0 ? _renderer.WearAt(street, tileIndex) : 0f;
                 if (wear <= 0f) continue;
@@ -4256,7 +4259,7 @@ public partial class MacroStreetLiveView : Node2D
                     yNear, yFar,
                     CenterX + dirtLeft * scaleNear, CenterX + dirtRight * scaleNear,
                     CenterX + dirtLeft * scaleFar, CenterX + dirtRight * scaleFar,
-                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Path));
+                    groundAtlas, profile.RegionOfId(profile.Path));
             }
         }
     }

@@ -75,6 +75,7 @@ public static class WorldPersistence
             LastSeenAtUnixMillis = now.ToUnixTimeMilliseconds(),
             PendingProspectSeed = world.PendingProspect?.Seed,
             PendingProspectName = world.PendingProspect?.Name,
+            PendingProspectArrivalTick = world.PendingProspect?.ArrivalTick,
         };
         foreach ((ResourceType resource, int amount) in world.Resources.Entries()
             .Where(entry => entry.Location.Kind == ResourceLocationKind.CityInventory)
@@ -553,7 +554,11 @@ public static class WorldPersistence
                     memory.AnswerIds ?? new List<string>(),
                     memory.BelievedFinalWordId,
                     memory.PreservedDetailId,
-                    memory.EchoIds ?? new List<string>()));
+                    memory.EchoIds ?? new List<string>()),
+                // The aptitudes were already in the save as profile data; the
+                // reconstructed onboarding result has to carry them too, or a
+                // reloaded founder stops equalling the one that was stored.
+                save.Aptitudes.Select(value => new AptitudeId(value)).ToArray());
         }
 
         return CitizenProfile.Restore(
@@ -2164,6 +2169,7 @@ public static class WorldPersistence
                 32 => MigrateV32ToV33(save),
                 33 => MigrateV33ToV34(save),
                 34 => MigrateV34ToV35(save),
+                35 => MigrateV35ToV36(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -3210,6 +3216,42 @@ public static class WorldPersistence
     /// <c>OpeningBaselineFor</c> path is reserved for them — because
     /// no save should invent a weapon the player never chose.
     /// </summary>
+    /// <summary>
+    /// v35 → v36. Records the tick a hosted prospect arrived on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A prospect's profile is regenerated on load rather than stored, and the
+    /// generator now draws them from the founder, the arrival tick and the
+    /// citizen id together — previously it was the citizen id alone, which is
+    /// always 2 for a city's first migrant and so produced the same person in
+    /// every playthrough.
+    /// </para>
+    /// <para>
+    /// A v35 save never recorded that tick and it cannot be recovered: nothing
+    /// else in the snapshot says when the Town Hall took the prospect in. The
+    /// migration therefore leaves it null, and the applier regenerates against
+    /// tick zero. The consequence is bounded and worth naming: a save whose
+    /// prospect had not yet been accepted may show a different person after
+    /// loading. An accepted migrant is a real citizen with stored data and is
+    /// not touched, and a save with no pending prospect is unaffected entirely.
+    /// Inventing a plausible tick here would be worse — it would silently claim
+    /// to have restored the same person while restoring a different one.
+    /// </para>
+    /// </remarks>
+    public static WorldSave MigrateV35ToV36(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 35)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV35ToV36 expects version 35 but found {save.Version}.");
+        }
+        save.PendingProspectArrivalTick = null;
+        save.Version = 36;
+        return save;
+    }
+
     public static WorldSave MigrateV34ToV35(WorldSave save)
     {
         ArgumentNullException.ThrowIfNull(save);

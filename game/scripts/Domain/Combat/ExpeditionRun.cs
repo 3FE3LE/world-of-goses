@@ -277,6 +277,20 @@ public sealed class ExpeditionRun
     {
         foreach (CombatantState member in party)
         {
+            // Fracture is the one expression whose cost is not paid during the
+            // encounter. It does nothing to a step; what it does is still be
+            // active when the fight ends, and then it follows the citizen out.
+            // Checked before health, and independently of it, because a
+            // fractured arm does not care that the fight went well.
+            bool fractured = false;
+            foreach (StatusEffect status in member.Statuses)
+            {
+                if (status.Id != StatusEffectId.Fracture || !status.IsActive) continue;
+                fractured = true;
+                break;
+            }
+            if (fractured) member.AddInjury(InjuryKind.Fracture);
+
             if (member.IsDefeated)
             {
                 member.AddInjury(InjuryKind.TemporaryIncapacitation);

@@ -54,8 +54,11 @@ public class ExpeditionWorldScrollTests
             camera.FollowTravel(positionX, seed: 11);
             groundPositions.Add(ExpeditionPathRenderer.PlayableScreenX(
                 850, camera.WorldOffsetUnits, Anchor));
+            // Read the same property the stage reads. Recomputing the walker's
+            // position here would re-enact what the test believes the stage
+            // does, which is the exact failure this file's header describes.
             partyPositions.Add(ExpeditionPathRenderer.PlayableScreenX(
-                positionX, camera.WorldOffsetUnits, Anchor));
+                camera.TravelDrawPositionX, camera.WorldOffsetUnits, Anchor));
         }
 
         Assert.True(
@@ -63,9 +66,8 @@ public class ExpeditionWorldScrollTests
             "Eight hundred units of travel must move the world by roughly as much.");
         foreach (float partyX in partyPositions)
         {
-            // "A stable focus", made specific: within a pixel of the
-            // anchor's centre, the sub-unit remainder of PositionX
-            // being the only permitted anticipation.
+            // "A stable focus", made specific: the walker holds the anchor
+            // exactly, and it is the ground that steps past them.
             Assert.InRange(partyX, Anchor.CenterX - 1f, Anchor.CenterX + 1f);
         }
     }
@@ -88,9 +90,14 @@ public class ExpeditionWorldScrollTests
 
         Assert.True(near < far);
         Assert.True(arrived < near);
-        // Standing on it means standing on it: the marker meets the
-        // party at the focus.
-        Assert.Equal(Anchor.CenterX, arrived, precision: 3);
+        // Standing on it means standing on it — to within one step. In a world
+        // that advances a locomotion step at a time, an objective at an
+        // arbitrary world position cannot land on the grid, and pretending it
+        // does would mean un-quantizing the camera for one marker.
+        Assert.InRange(
+            arrived,
+            Anchor.CenterX - (float)ExpeditionPathCamera.StepUnits,
+            Anchor.CenterX + (float)ExpeditionPathCamera.StepUnits);
     }
 
     [Fact]
@@ -145,16 +152,21 @@ public class ExpeditionWorldScrollTests
     }
 
     [Fact]
-    public void ScrollIsQuantisedToWholeUnits()
+    public void ScrollIsQuantisedToWholeLocomotionSteps()
     {
-        // Travel arrives on ticks and the world is pixel art; the
-        // offset is a whole number of units so the ground steps rather
-        // than sliding sub-pixel.
+        // This asserted rounding to the nearest world unit, and called that
+        // "the ground steps rather than sliding sub-pixel". A one-pixel grid at
+        // 96 px/s is not a step, it is a slide with the rounding error taken
+        // out: the intent was right and the granularity was not. The offset now
+        // lands on the same cadence a character walks by.
         var camera = new ExpeditionPathCamera();
-        foreach (double positionX in new[] { 100.2, 100.5, 100.9, 101.4 })
+        foreach (double positionX in new[] { 100.2, 100.5, 100.9, 101.4, 103.9 })
         {
             camera.FollowTravel(positionX, seed: 1);
-            Assert.Equal(Math.Round(positionX), camera.WorldOffsetUnits);
+            Assert.Equal(0, camera.WorldOffset % ExpeditionPathCamera.StepUnits);
+            Assert.True(
+                Math.Abs(camera.WorldOffset - positionX) <= ExpeditionPathCamera.StepUnits / 2,
+                $"{positionX} snapped to {camera.WorldOffset}, further than half a step.");
         }
     }
 

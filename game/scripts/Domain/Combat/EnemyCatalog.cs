@@ -42,7 +42,11 @@ public sealed record EnemyDefinition(
     double Impulse,
     CombatStature Stature,
     ElementalAffinity Affinity,
-    PhysicalExpression Expression);
+    PhysicalExpression Expression,
+    double PhysicalEvasion,
+    double ElementalEvasion,
+    double ControlPower,
+    double ControlResistance);
 
 public static class EnemyCatalog
 {
@@ -66,7 +70,10 @@ public static class EnemyCatalog
             GeneralDamageReduction: 0.04, CriticalChance: 0.05, AttackSpeed: 1.00,
             MovementSpeed: 1.20, AttackRange: 34, BodyRadius: 14, Stability: 62, Impulse: 66,
             Stature: CombatStature.Tall,
-            Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture),
+            Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture,
+            // Plants its feet and swings. Nothing here dodges.
+            PhysicalEvasion: 0.04, ElementalEvasion: 0.02,
+            ControlPower: 1.10, ControlResistance: 1.15),
 
         [EnemyArchetype.RangedEnemy] = new EnemyDefinition(
             EnemyArchetype.RangedEnemy, "Thorn slinger",
@@ -75,7 +82,10 @@ public static class EnemyCatalog
             GeneralDamageReduction: 0.02, CriticalChance: 0.10, AttackSpeed: 1.20,
             MovementSpeed: 0.92, AttackRange: 250, BodyRadius: 11, Stability: 42, Impulse: 48,
             Stature: CombatStature.Standard,
-            Affinity: ElementalAffinity.Air, Expression: PhysicalExpression.Knockdown),
+            Affinity: ElementalAffinity.Air, Expression: PhysicalExpression.Knockdown,
+            // The one that is hard to hit and easy to control once you do.
+            PhysicalEvasion: 0.16, ElementalEvasion: 0.10,
+            ControlPower: 0.95, ControlResistance: 0.85),
 
         [EnemyArchetype.ResistantEnemy] = new EnemyDefinition(
             EnemyArchetype.ResistantEnemy, "Stone-shelled warden",
@@ -84,7 +94,12 @@ public static class EnemyCatalog
             GeneralDamageReduction: 0.12, CriticalChance: 0.05, AttackSpeed: 0.85,
             MovementSpeed: 0.72, AttackRange: 38, BodyRadius: 16, Stability: 82, Impulse: 58,
             Stature: CombatStature.Large,
-            Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture),
+            Affinity: ElementalAffinity.Earth, Expression: PhysicalExpression.Fracture,
+            // Sits at the resistance ceiling: the answer to a control build is
+            // an enemy control barely moves, not one it cannot touch. The floor
+            // in CombatBalanceConfig still lets every expression through.
+            PhysicalEvasion: 0.00, ElementalEvasion: 0.00,
+            ControlPower: 1.00, ControlResistance: 1.40),
 
         [EnemyArchetype.SupportEnemy] = new EnemyDefinition(
             EnemyArchetype.SupportEnemy, "Murmuring tender",
@@ -93,7 +108,11 @@ public static class EnemyCatalog
             GeneralDamageReduction: 0.03, CriticalChance: 0.05, AttackSpeed: 1.05,
             MovementSpeed: 0.82, AttackRange: 210, BodyRadius: 12, Stability: 50, Impulse: 44,
             Stature: CombatStature.Small,
-            Affinity: ElementalAffinity.Water, Expression: PhysicalExpression.Paralysis),
+            Affinity: ElementalAffinity.Water, Expression: PhysicalExpression.Paralysis,
+            // The controller of the four, and the most fragile under control
+            // itself. Its Paralysis is the reason a party feels this one.
+            PhysicalEvasion: 0.08, ElementalEvasion: 0.14,
+            ControlPower: 1.30, ControlResistance: 0.90),
     };
 
     public static EnemyDefinition Get(EnemyArchetype archetype) =>
@@ -150,6 +169,10 @@ public static class EnemyCatalog
                 definition.Stability,
                 definition.Impulse,
                 CombatFacing.Left),
-            stature: definition.Stature);
+            stature: definition.Stature,
+            physicalEvasion: definition.PhysicalEvasion,
+            elementalEvasion: definition.ElementalEvasion,
+            controlPower: definition.ControlPower,
+            controlResistance: definition.ControlResistance);
     }
 }

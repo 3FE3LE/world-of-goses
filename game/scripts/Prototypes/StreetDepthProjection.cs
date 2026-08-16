@@ -33,8 +33,25 @@ public static class StreetDepthProjection
     // it only consumes whatever screen coordinates these formulas produce.
     public const float VerticalDepthFactor = 0.90f;
     public const float HorizontalDepthFactor = 0.88f;
-    private const float BaseRowSpacingPx = 58f;
     private const float HorizonY = 200f;
+
+    /// <summary>
+    /// The incline: vertical throw between two adjacent streets as a fraction
+    /// of a lot's lateral size. This ratio <em>is</em> the apparent tilt of the
+    /// ground, and it is the thing to hold still.
+    /// </summary>
+    /// <remarks>
+    /// It used to be a bare <c>58f</c> next to a <c>LotUnitPx</c> of 90, which
+    /// meant the tilt was an accident of two independent numbers: moving the
+    /// world to a 32 px tile grid — lots of 96 rather than 90 — would have left
+    /// the ground 6.7% wider for the same depth step and flattened it, without
+    /// anything in the projection changing. Deriving the spacing from the lot
+    /// makes the incline survive any future change of world scale.
+    /// </remarks>
+    private const float ForeshorteningRatio = 58f / 90f;
+
+    private static float BaseRowSpacingPx =>
+        MacroViewConstants.LotUnitPx * ForeshorteningRatio;
 
     // Keep the focused street plus the two completed streets immediately in
     // front of it. The fourth foreground street crosses the near plane.
@@ -61,14 +78,44 @@ public static class StreetDepthProjection
     /// (a geometric series in <see cref="VerticalDepthFactor"/>) so they
     /// converge toward a horizon without ever reaching it.
     /// </summary>
-    public static float RowScreenY(float depth, float baseY)
+    public static float RowScreenY(float depth, float baseY) =>
+        RowScreenY(depth, baseY, HorizonY, BaseRowSpacingPx);
+
+    /// <summary>
+    /// The same projection against a caller's own horizon and row spacing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The macro owns the whole 1280x720 viewport, so its horizon and spacing
+    /// can be absolute pixel counts. The expedition path draws into a Control a
+    /// fraction of that size, and it derives its base Y from the Control's
+    /// height — but it was taking the macro's absolute 200 px horizon and its
+    /// absolute row spacing regardless. With six rows that happened to fit;
+    /// with the nine rows of a full parcel it does not, and on a 460 px stage
+    /// four of them collapsed onto the horizon line, decoration rows included.
+    /// </para>
+    /// <para>
+    /// A window onto the same world scales its projection with the window.
+    /// Passing both keeps the apparent incline identical while the whole thing
+    /// shrinks, which is what "the same terrain, seen through a smaller frame"
+    /// has to mean.
+    /// </para>
+    /// </remarks>
+    public static float RowScreenY(
+        float depth, float baseY, float horizonY, float baseRowSpacingPx)
     {
-        float totalSpacing = BaseRowSpacingPx
+        float totalSpacing = baseRowSpacingPx
             * VerticalDepthFactor
             * (1f - Mathf.Pow(VerticalDepthFactor, depth))
             / (1f - VerticalDepthFactor);
-        return Mathf.Max(baseY - totalSpacing, HorizonY);
+        return Mathf.Max(baseY - totalSpacing, horizonY);
     }
+
+    /// <summary>The macro's own horizon, as a fraction of its viewport.</summary>
+    public const float HorizonRatio = HorizonY / 720f;
+
+    /// <summary>The macro's own row spacing, as a fraction of its viewport.</summary>
+    public static readonly float RowSpacingRatio = BaseRowSpacingPx / 720f;
 
     /// <summary>
     /// Projects a point at <paramref name="depth"/> with

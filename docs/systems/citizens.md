@@ -62,6 +62,39 @@ Todos pueden desarrollar todas las competencias. La interfaz puede mostrar las t
 - **Experiencia:** práctica y eventos vividos.
 - **Oportunidad:** acceso a maestros, instituciones, herramientas, educación y tiempo.
 
+### Cómo se traduce mecánicamente
+
+Una aptitud **no produce nada**. Cambia lo que cuesta aprender:
+
+```text
+experiencia_para_subir_de_nivel = requisito_base / factor_de_aprendizaje
+```
+
+El factor sale de cuántas de las tres aptitudes del `Citizen` aceleran esa
+competencia (`AptitudeLearning`). Dos ciudadanos del mismo nivel de cantería
+pican lo mismo; el que tiene la aptitud llegó antes a ese nivel.
+
+Esto es lo que la define frente a la afinidad de linaje: **la aptitud es
+individual y el linaje no la determina**. Y es lo que la mantiene dentro del
+pilar, porque una ventaja automática de producción concedida por la identidad
+está prohibida, mientras que "facilidad personal para aprender" es exactamente
+lo que esta sección venía describiendo.
+
+Antes la única lectura mecánica de toda la lista de aptitudes era un bonus plano
+al trabajo de construcción por tick, que es justo la forma prohibida.
+
+Las competencias de ciudad tienen nivel derivado de la experiencia acumulada
+(`CityCompetency`); la experiencia es lo que se persiste, el nivel se calcula.
+Los valores viven en el dominio y son provisionales.
+
+### El fundador también tiene aptitudes
+
+El cuestionario del onboarding puntúa el eje de aptitud en más de treinta
+respuestas. Ese eje es salida canónica: DEC-0013 enumera lo que el onboarding
+**no** debe producir —preferencias de arma, afinidades profesionales, estilo de
+combate, orientación política, postura espiritual, estilo de liderazgo, perfil
+de riesgo y rasgos— y las aptitudes nunca estuvieron en esa lista.
+
 Ejemplo:
 
 ```text
@@ -113,6 +146,34 @@ CitizenView = representación visual temporal
 ```
 
 No debe existir un nodo Godot activo por ciudadano.
+
+## Quién llega a la ciudad
+
+Un migrante no se sortea con azar libre: la progresión offline y la reproducción
+de una partida guardada exigen que el mundo se rehaga a partir de lo que
+almacenó. Su identidad es **función pura de tres entradas** —el fundador, el
+tick en que fue hospedado y su id de ciudadano— y de ellas salen linaje, cuerpo,
+afinidad, cubo, aptitudes, nombre y oficios previos (`MigrantGenerator`).
+
+Las tres entradas son obligatorias juntas:
+
+- **El fundador** es lo único único por partida y fijo durante toda su vida. Sin
+  él en la semilla, dos ciudades distintas reciben exactamente a la misma
+  persona, porque el primer migrante de cualquier ciudad tiene siempre el id 2.
+- **El tick de llegada** distingue a dos migrantes de la misma ciudad y por eso
+  se persiste (esquema v36). Un save que lo pierde no puede regenerar a la misma
+  persona.
+- **El id de ciudadano** los distingue dentro del mismo tick.
+
+Un migrante **llega con oficio**. Tuvo una vida antes de la ciudad, así que trae
+experiencia previa en hasta tres competencias, nunca por encima de un nivel
+modesto: aceptar a uno es una decisión —un cantero y un recolector valen cosas
+distintas el mismo día— y no añadir otro trabajador en blanco idéntico.
+
+Lo que **no** hay todavía: convenciones de nombres por linaje. Los ocho
+documentos de linaje definen gramática visual y sonora pero ninguno dice cómo
+suena un nombre Kovari frente a uno Theryn, así que el repertorio es común a
+todos. Es un hueco de lore, no una decisión.
 
 ## Cámara-sigue
 

@@ -28,23 +28,49 @@ public class ExpeditionPathRendererTests
     [Fact]
     public void RowScreenY_ForwardsToStreetDepthProjection()
     {
+        // Through the anchor's own horizon and row spacing, not the macro's
+        // absolute ones: the path draws into a Control a fraction of the
+        // viewport, so it scales the projection with its window. What this
+        // still guards is that it forwards rather than reimplementing.
         float ourY = ExpeditionPathRenderer.RowScreenY(2f, Anchor);
-        float sharedY = StreetDepthProjection.RowScreenY(2f, Anchor.BaseY);
+        float sharedY = StreetDepthProjection.RowScreenY(
+            2f, Anchor.BaseY, Anchor.HorizonY, Anchor.RowSpacingPx);
         Assert.Equal(sharedY, ourY);
     }
 
+    /// <summary>
+    /// The playable band is the calle, with parcel rows on both sides of it.
+    /// </summary>
+    /// <remarks>
+    /// This used to assert that the playable band was the row nearest the
+    /// camera, which held while it was depth 0. It is now row 3 — the first
+    /// tile of the parcel's second lot row, the band that wears into a path in
+    /// the macro — so there are rows in front of the party as well as behind.
+    /// What still must never invert is the ordering: everything behind sits
+    /// higher on screen and everything in front sits lower, or "playable band"
+    /// silently means the horizon and the party walks on the sky.
+    /// </remarks>
     [Fact]
-    public void PlayableDepth_IsTheRowNearestTheCamera()
+    public void PlayableDepth_HasParcelRowsOnBothSidesOfIt()
     {
-        // Depth 0 is the near row: every other row sits higher on
-        // screen. If this inverts, "playable band" silently means the
-        // horizon and the party walks on the sky.
         float playableY = ExpeditionPathRenderer.PlayableScreenY(Anchor);
-        for (float depth = 1f; depth < ExpeditionPathRenderer.RowCount; depth += 1f)
+
+        for (float depth = ExpeditionPathRenderer.PlayableDepth + 1f;
+            depth < ExpeditionPathRenderer.RowCount;
+            depth += 1f)
         {
             Assert.True(
                 ExpeditionPathRenderer.RowScreenY(depth, Anchor) < playableY,
-                $"Depth {depth} should sit above the playable band.");
+                $"Depth {depth} is behind the party and should sit above the band.");
+        }
+
+        for (float depth = ExpeditionPathRenderer.ForegroundDepth;
+            depth < ExpeditionPathRenderer.PlayableDepth;
+            depth += 1f)
+        {
+            Assert.True(
+                ExpeditionPathRenderer.RowScreenY(depth, Anchor) > playableY,
+                $"Depth {depth} is in front of the party and should sit below the band.");
         }
     }
 
@@ -74,7 +100,12 @@ public class ExpeditionPathRendererTests
         Assert.Equal(
             ExpeditionPathLayer.Playable,
             ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.PlayableDepth));
-        Assert.Equal(ExpeditionPathLayer.Rear, ExpeditionPathRenderer.LayerForDepth(2f));
+        // Relative to the band, not the literal 2f this carried: with the
+        // playable band moved back to the calle, row 2 is in front of the party
+        // and the first rear row is the one immediately behind it.
+        Assert.Equal(
+            ExpeditionPathLayer.Rear,
+            ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.PlayableDepth + 1f));
         Assert.Equal(
             ExpeditionPathLayer.Distance,
             ExpeditionPathRenderer.LayerForDepth(ExpeditionPathRenderer.RowCount - 1f));
@@ -85,7 +116,8 @@ public class ExpeditionPathRendererTests
     {
         float distance = ExpeditionPathRenderer.ParallaxFactorForDepth(
             ExpeditionPathRenderer.RowCount - 1f);
-        float rear = ExpeditionPathRenderer.ParallaxFactorForDepth(2f);
+        float rear = ExpeditionPathRenderer.ParallaxFactorForDepth(
+            ExpeditionPathRenderer.PlayableDepth + 1f);
         float playable = ExpeditionPathRenderer.ParallaxFactorForDepth(
             ExpeditionPathRenderer.PlayableDepth);
         float foreground = ExpeditionPathRenderer.ParallaxFactorForDepth(
@@ -125,7 +157,7 @@ public class ExpeditionPathRendererTests
     {
         const long travelled = 400;
         float playableShift = ShiftFor(ExpeditionPathRenderer.PlayableDepth, travelled);
-        float rearShift = ShiftFor(2f, travelled);
+        float rearShift = ShiftFor(ExpeditionPathRenderer.PlayableDepth + 1f, travelled);
         float distanceShift = ShiftFor(ExpeditionPathRenderer.RowCount - 1f, travelled);
         float foregroundShift = ShiftFor(ExpeditionPathRenderer.ForegroundDepth, travelled);
 
@@ -154,7 +186,7 @@ public class ExpeditionPathRendererTests
     public void PlayableHorizontalScale_TracksTheSharedProjection()
     {
         Assert.Equal(
-            StreetDepthProjection.HorizontalScale(0f),
+            StreetDepthProjection.HorizontalScale(ExpeditionPathRenderer.PlayableDepth),
             ExpeditionPathRenderer.PlayableHorizontalScale());
     }
 

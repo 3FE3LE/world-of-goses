@@ -1,6 +1,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using WorldofGoses.Domain;
+using WorldofGoses.Prototypes;
 
 namespace WorldofGoses.Ui;
 
@@ -42,7 +44,17 @@ namespace WorldofGoses.Ui;
 public sealed class ExpeditionPathChunkPool
 {
     /// <summary>How wide each chunk is in world units.</summary>
-    public const float ChunkWidthUnits = 256f;
+    /// <summary>
+    /// One parcel wide, so a chunk boundary is a parcel boundary.
+    /// </summary>
+    /// <remarks>
+    /// This was 256, a round number unrelated to anything the world is built
+    /// from: a parcel is nine tiles of <c>TileUnitPx</c>, so 288. With 256 the
+    /// seams drifted across the parcel grid and the path could not read as the
+    /// city's own blocks laid end to end.
+    /// </remarks>
+    public const float ChunkWidthUnits =
+        ParcelGrid.LotsPerAxis * ParcelGrid.TilesPerStandardLot * MacroViewConstants.TileUnitPx;
 
     /// <summary>How many chunks the recycler keeps in flight.</summary>
     public const int ChunkCount = 7;

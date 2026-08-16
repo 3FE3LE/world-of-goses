@@ -33,6 +33,9 @@ public static class CombatConditionFactor
     {
         InjuryKind.Contusion => 0.04,
         InjuryKind.OpenWound => 0.12,
+        // Between an open wound and incapacitation: it does not take a citizen
+        // out of the roster, but it is the one injury that follows them home.
+        InjuryKind.Fracture => 0.20,
         InjuryKind.TemporaryIncapacitation => 0.30,
         _ => 0.0,
     };

@@ -697,6 +697,22 @@ public sealed class CityWorld
             displayName,
             appearanceSeed: nextId * 7,
             profile: PendingProspect.Profile);
+        // An arrival had a life before the city. Seeding the professions they
+        // already practised is what makes accepting one a decision — a mason
+        // and a forager are worth different things on the same day — instead of
+        // adding another identical blank worker.
+        foreach ((CompetencyId competency, int experience) in
+            MigrantGenerator.SeededExperience(
+                PendingProspect.Profile,
+                MigrantGenerator.CitySeed(Hero),
+                // The tick they were hosted on, never the tick the player got
+                // round to accepting them. Their working history happened
+                // before they knocked on the door.
+                PendingProspect.ArrivalTick,
+                PendingProspect.Seed))
+        {
+            migrant.AddExperience(competency, experience);
+        }
         _citizens.Add(migrant.Id, migrant);
         if (GameClock.IsDaytime(_tick))
         {
@@ -726,28 +742,26 @@ public sealed class CityWorld
             return MigrantOutcome.InvalidProfile;
         }
         int nextId = NextCitizenId();
-        CitizenProfile profile = CreateMigrantProfile(nextId);
+        int citySeed = MigrantGenerator.CitySeed(Hero);
+        CitizenProfile profile = MigrantGenerator.Profile(citySeed, _tick, nextId);
         string generatedName = string.IsNullOrWhiteSpace(name)
-            ? MigrantNameForSeed(nextId)
+            ? MigrantGenerator.Name(citySeed, _tick, nextId)
             : name;
         return TryHostExpeditionProspect(profile, generatedName, nextId);
     }
 
     /// <summary>
-    /// Picks a migrant's display name from <see cref="MigrantNames"/> using a
-    /// mix of <paramref name="seed"/> that is intentionally out of phase with
-    /// the lineage index (<c>seed % Lineages.Count</c>). The two cycles used
-    /// to share a length and a constant shift, so the same seed always paired
-    /// the same name with the same lineage — two migrants of one lineage
-    /// were statistically the same person.
-    ///
-    /// The mix runs unsigned so a seed large enough to overflow wraps into a
-    /// valid index instead of a negative one. Citizen ids never get near that,
-    /// but this is a public entry point and an unguarded index is a crash
-    /// waiting for the first caller who does not know that.
+    /// Picks a migrant's display name from the citizen id alone.
     /// </summary>
+    /// <remarks>
+    /// Kept for callers that have no city and no clock — fixtures, mostly. It
+    /// is a worse name source than <see cref="MigrantGenerator.Name"/>, which
+    /// folds in the founder and the arrival tick, because the first migrant of
+    /// every fresh city gets citizen id 2 and so this returns the same name in
+    /// every playthrough. Real arrivals go through the generator.
+    /// </remarks>
     public static string MigrantNameForSeed(int seed) =>
-        MigrantNames[unchecked((uint)(seed * 11 + 3)) % MigrantNames.Length];
+        MigrantGenerator.Name(citySeed: 0, arrivalTick: 0, citizenId: seed);
 
     public MigrantOutcome TryHostExpeditionProspect(CitizenProfile profile, string name)
     {
@@ -767,7 +781,7 @@ public sealed class CityWorld
             return MigrantOutcome.ProspectAlreadyWaiting;
         }
         string prospectName = string.IsNullOrWhiteSpace(name) ? $"Prospect {seed}" : name.Trim();
-        PendingProspect = new CitizenProspect(seed, prospectName, profile);
+        PendingProspect = new CitizenProspect(seed, prospectName, profile, _tick);
         return MigrantOutcome.Success;
     }
 

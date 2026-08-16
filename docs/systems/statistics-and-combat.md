@@ -122,6 +122,55 @@ La expresión física:
 - no agrega un multiplicador;
 - interpreta el resultado del canal físico cuando la técnica y el objeto lo permiten.
 
+#### Qué hace cada expresión
+
+Las seis son **ofensivas**: ninguna existe sólo para negar el turno del rival.
+Se agrupan en tres pares, y dentro de cada par las dos se distinguen por
+textura, no por potencia.
+
+| Par | Expresión | Qué hace |
+|---|---|---|
+| Control | `Stunning` | Impide la acción en curso durante poco tiempo y, mientras dura, abre una **ventana elemental**: el objetivo aturdido no sostiene su resonancia. |
+| Control | `Paralysis` | Frena mucho el desplazamiento durante bastante tiempo y, cada paso, tiene **probabilidad** de costar además la acción. Esa probabilidad es lo que impide que sea gratis contra un enemigo a distancia, al que un debuff de movimiento no le quita nada. |
+| Desgaste | `Bleeding` | Daño por paso **mitigable como físico**, que acumula por stacks. |
+| Desgaste | `Poisoning` | Daño por paso que **ignora la mitigación** y **no acumula**: refrescarlo es la única forma de mantenerlo. A cambio, mientras dura, todo el daño que recibe el objetivo se amplifica. |
+| Exposición | `Fracture` | Abre una **ventana física** y, además, cobra vida al objetivo cada vez que golpea, en proporción a cuánto de su propio golpe fue cuerpo. Usar un cuerpo roto duele. Necesita más de una aplicación para prender. |
+| Exposición | `Knockdown` | Interrumpe la acción, expone **ambas** ventanas a la vez —tumbado no se guarda nada— y es la **única** expresión que mueve al objetivo. |
+
+`Stunning` y `Fracture` son deliberadamente simétricas: la ventana elemental y
+la ventana física. `Bleeding` y `Poisoning` son la misma presión leída al revés:
+una acumula y se mitiga, la otra ni acumula ni se mitiga.
+
+Ninguna de las seis prende por el mero hecho de lanzarla: se tira
+`ControlPower` del atacante contra `ControlResistance` del objetivo (§8.4). Una
+expresión rechazada no aplica estado y, en el caso de `Knockdown`, tampoco
+desplaza.
+
+#### Sólo `Knockdown` desplaza
+
+El desplazamiento autoritativo —el que escribe `PositionX` en el dominio— lo
+paga únicamente un golpe que aplica `Knockdown`. La distancia sale de `Impulse`
+contra `Stability` y se escala además por la **proporción física del golpe**:
+una descarga puramente elemental no transfiere momento.
+
+El empujón menor que un impacto sólido *parece* que debería producir es real,
+pero es una **reacción de impacto y vive en presentación** (`HitReaction`):
+transitoria, decae a cero y por tanto termina exactamente donde el dominio dice
+que la figura está. Se dimensiona con la misma razón que el knockback real
+—proporción física del golpe × `Impulse` contra `Stability`— para que el
+empujón se parezca al golpe que lo causó, pero es **siempre visiblemente menor**
+que un derribo, o la expresión perdería lo que la hace valiosa. Un golpe evadido
+o absorbido no empuja nada. Nada de esto vuelve al dominio ni aplica estado, y
+un encuentro observado y otro resuelto sin mirar dejan a todos en el mismo
+sitio.
+
+Antes, cualquier técnica que hiciera daño escribía `PositionX`. El combate
+derivaba por el campo con el desgaste ordinario y la distancia de combate
+acababa siendo algo que no había elegido ninguno de los dos.
+
+Las duraciones, umbrales y magnitudes son provisionales y viven centralizadas en
+`CombatBalanceConfig`, en dominio determinista, nunca en la animación.
+
 ### 2.4 Correspondencia conceptual de las seis caras
 
 | Cara | Afinidad elemental | Expresión física |
@@ -316,6 +365,29 @@ Rango inicial sugerido:
 - `ElementalResonance` multiplica la capacidad expresada mediante Bond.
 - `ElementalResonance` es universal para Earth, Water, Fire, Air, Aether y Silence.
 - No existen resonancias específicas por elemento.
+- **Es un intercambio, nunca un total.** Una familia que transfiere bien el
+  cuerpo resuena mal, y al revés. Ninguna es mejor que otra.
+
+#### Canales de las doce familias
+
+Las dos familias naturales de una misma expresión se sitúan en lados opuestos
+del mismo intercambio. Seis pares son canon —son los perfiles de referencia de
+§9.1— y los otros seis se derivan de su pareja canónica dentro de la banda
+sancionada arriba:
+
+| Expresión | Familia | Physical | Elemental | | Familia | Physical | Elemental |
+|---|---|---:|---:|---|---|---:|---:|
+| Stunning | Mace | 1.15 | 0.85 | | **Orb** | **0.75** | **1.20** |
+| Bleeding | Sword | 1.10 | 0.90 | | **Daggers** | **1.05** | **0.95** |
+| Poisoning | **Bow** | **0.85** | **1.15** | | Darts | 0.80 | 1.20 |
+| Paralysis | **Whip** | **0.95** | **1.00** | | Gauntlets | 1.10 | 0.90 |
+| Fracture | **Hammer** | **1.20** | **0.75** | | Axe | 1.15 | 0.80 |
+| Knockdown | **Spear** | **1.10** | **1.00** | | Staff | 0.85 | 1.15 |
+
+En **negrita**, las canónicas. La tabla vive en `WeaponFamilyChannels`; el arma
+inicial que materializa el onboarding es un arma corriente de su familia y toma
+estos valores. Antes las doce compartían `1.0 / 1.0`, con lo que elegir familia
+cambiaba el catálogo de técnicas y ni un solo número de cuánto se pega.
 
 ### 4.4 Competencia aplicable
 
@@ -582,8 +654,43 @@ BaseScore
 | PhysicalEvasion | promedio de EffectiveImpulse y EffectiveReach | 0 % | 30 % |
 | ElementalEvasion | promedio de EffectiveBond y EffectiveReach | 0 % | 30 % |
 | MovementSpeed | EffectiveReach | 80 % | 130 % |
+| ControlPower | promedio de EffectiveDomain y EffectiveBody | 80 % | 140 % |
+| ControlResistance | promedio de EffectiveStability y EffectiveBody | 80 % | 140 % |
 
 Los caps son obligatorios. El equipo y la progresión acercan al límite, pero no lo superan.
+
+### 8.3 Evasión
+
+Un golpe evadido **no ocurre**: no critica, no se mitiga, no aplica expresión y
+no desplaza. La probabilidad se mezcla por la proporción física de la técnica,
+igual que la mitigación, de modo que un golpe híbrido nunca se resuelve contra
+la más baja de las dos evasiones.
+
+### 8.4 Control
+
+`ControlPower` y `ControlResistance` **no son probabilidades**: son un par de
+multiplicadores opuestos, y por eso comparten la forma de `AttackSpeed` y no la
+de `CriticalChance`. De su cociente sale si una expresión física prende:
+
+```text
+LandChance = clamp(
+    BaseControlLandChance × ControlPower / ControlResistance,
+    MinimumControlLandChance,
+    MaximumControlLandChance)
+```
+
+Tres reglas cierran el modelo:
+
+- **La base es alta.** Controlar es el sentido ofensivo de las seis
+  expresiones, así que lo esperable al lanzar una es que funcione;
+  `ControlResistance` recorta eso, no lo bloquea.
+- **Nunca es imposible.** El suelo garantiza que ninguna cantidad de
+  `Stability` vuelve inmune a un combatiente. Un muro que el jugador no puede
+  cruzar nunca no es dificultad, es una puerta cerrada.
+- **Nunca es seguro.** El techo deja siempre margen a fallar.
+
+`Body` aparece en los dos lados porque aguantar una fractura y provocarla son
+el mismo tejido. Las tres constantes viven en `CombatBalanceConfig`.
 
 ---
 

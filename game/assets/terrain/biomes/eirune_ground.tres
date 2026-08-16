@@ -1,0 +1,22 @@
+; Meadow — the ground eirune lands on, and the first authored sheet in the
+; project: 32 px tiles on a tight grid, no gutter, ten columns.
+;
+; Ids are Pixelorama's own, preserved by tools/Export-TilesetSheet.ps1, so the
+; tile numbered 1 in art/source/terrain/eirune_ground.pxo is the tile numbered 1
+; here. 1-3 are the grass fills and 29 the trodden dirt; the rest of the sheet
+; is edge pieces and plants, which GroundAtlasTests rejects here on sight —
+; edges carry a corner of the neighbouring material and plants carry
+; transparency, and neither survives being repeated across a floor.
+[gd_resource type="Resource" script_class="GroundAtlasProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Ui/GroundAtlasProfile.cs" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://bjgh8sqrretgp" path="res://assets/terrain/eirune_ground_sheet.png" id="2_atlas"]
+
+[resource]
+script = ExtResource("1_script")
+Atlas = ExtResource("2_atlas")
+TileSize = 32
+Separation = 0
+Columns = 10
+Fill = PackedInt32Array(1, 2, 3)
+Path = 29

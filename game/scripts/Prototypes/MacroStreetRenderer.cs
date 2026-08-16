@@ -65,6 +65,7 @@ internal sealed class MacroStreetRenderer
     private readonly Dictionary<int, CityMacroSnapshot.CitizenItem> _citizenStates = new();
     private readonly Dictionary<(int Row, int Column), ParcelTerritoryState> _parcelTerritory = new();
     private TerrainAtlas.GroundBiome _groundBiome = TerrainAtlas.BiomeFor(LineageId.Ardhen);
+    private GroundAtlasProfile? _groundProfile;
     private Texture2D? _terrainAtlas;
     private int _streetCount = 1;
     private float _lateralHalfWidthPx = MacroViewConstants.LotUnitPx;
@@ -193,10 +194,25 @@ internal sealed class MacroStreetRenderer
         set => _groundBiome = value;
     }
 
+    /// <summary>
+    /// The sheet, grid and tile roles the floor draws from. Null until a
+    /// lineage has been set; the floor draw skips rather than guessing, because
+    /// a floor drawn from the wrong sheet is worse than no floor.
+    /// </summary>
+    public GroundAtlasProfile? GroundProfile => _groundProfile;
+
     /// <summary>Convenience setter keyed by the founder's lineage. Used by
     /// the view's <c>EnsureHeroCarrier</c> hook.</summary>
-    public void SetGroundBiomeForLineage(LineageId lineage) =>
+    public void SetGroundBiomeForLineage(LineageId lineage)
+    {
         _groundBiome = TerrainAtlas.BiomeFor(lineage);
+        string path = TerrainAtlas.GroundProfilePathFor(lineage);
+        _groundProfile = GD.Load<GroundAtlasProfile>(path);
+        if (_groundProfile is null)
+        {
+            GD.PushError($"No ground profile at '{path}' for lineage '{lineage.Value}'.");
+        }
+    }
 
     // ---------- World envelope ----------
 
@@ -486,8 +502,10 @@ internal sealed class MacroStreetRenderer
         float depth,
         float cameraLateral)
     {
-        if (_terrainAtlas is null) return;
-        TerrainAtlas.GroundBiome biome = _groundBiome;
+        // The ground comes from the biome's own profile — its own sheet, its own
+        // grid — and no longer from the shared Kenney atlas the trees still use.
+        if (_groundProfile?.Atlas is not { } groundAtlas) return;
+        if (_groundProfile.Fill.Length == 0) return;
         int totalTiles = Mathf.RoundToInt(2f * _lateralHalfWidthPx / MacroViewConstants.TileUnitPx);
         int parcelRow = street / ParcelGrid.ConstructionRowsPerParcel;
         for (int tileRow = 0; tileRow < ParcelGrid.TilesPerStandardLot; tileRow++)
@@ -508,7 +526,7 @@ internal sealed class MacroStreetRenderer
                 float leftGlobal = tileCenterGlobal - MacroViewConstants.TileUnitPx * 0.5f - cameraLateral;
                 float rightGlobal = tileCenterGlobal + MacroViewConstants.TileUnitPx * 0.5f - cameraLateral;
                 int variant = TerrainAtlas.GroundVariantIndex(
-                    tileIndex, globalTileRow, biome.Fill.Length);
+                    tileIndex, globalTileRow, _groundProfile.Fill.Length);
                 DrawPixelStaircaseTrapezoid(
                     canvas,
                     yNear, yFar,
@@ -516,7 +534,7 @@ internal sealed class MacroStreetRenderer
                     MacroViewConstants.CenterX + rightGlobal * scaleNear,
                     MacroViewConstants.CenterX + leftGlobal * scaleFar,
                     MacroViewConstants.CenterX + rightGlobal * scaleFar,
-                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Fill[variant]));
+                    groundAtlas, _groundProfile.RegionOfId(_groundProfile.Fill[variant]));
 
                 float wear = tileRow == 0 ? WearAt(street, tileIndex) : 0f;
                 if (wear <= 0f) continue;
@@ -531,7 +549,7 @@ internal sealed class MacroStreetRenderer
                     MacroViewConstants.CenterX + dirtRight * scaleNear,
                     MacroViewConstants.CenterX + dirtLeft * scaleFar,
                     MacroViewConstants.CenterX + dirtRight * scaleFar,
-                    _terrainAtlas, TerrainAtlas.RegionOfId(biome.Path));
+                    groundAtlas, _groundProfile.RegionOfId(_groundProfile.Path));
             }
         }
     }

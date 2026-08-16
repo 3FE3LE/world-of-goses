@@ -34,7 +34,8 @@ public sealed record TechniqueResolution(
     bool CriticalResult,
     double FinalResult,
     ElementalAffinity ElementalNature,
-    IReadOnlyList<StatusEffectId> AppliedStatuses)
+    IReadOnlyList<StatusEffectId> AppliedStatuses,
+    bool Evaded = false)
 {
     /// <summary>Share of the raw result that came from the physical channel.</summary>
     public double PhysicalShare => RawTechniqueResult <= 0
@@ -95,23 +96,67 @@ public sealed class TechniqueResolver
         double elementalContribution = elementalPower * technique.ElementalCoefficient;
         double raw = physicalContribution + elementalContribution;
 
-        // Critical is a roll against the source's own derived chance.
-        bool critical = random.NextDouble() < source.CriticalChance;
-        double afterCritical = critical ? raw * _balance.CriticalMultiplier : raw;
-
         // A technique whose output is mostly physical is resisted by physical
         // mitigation, and vice versa. Blending by share keeps a hybrid technique
         // from picking whichever mitigation happens to be lower.
         double physicalShare = raw <= 0 ? 0 : physicalContribution / raw;
-        double exposure = _statuses.MitigationScale(target.Statuses);
-        double physicalMitigation = target.PhysicalMitigation * exposure;
-        double elementalMitigation = target.ElementalMitigation * exposure;
+
+        // Evasion is rolled first and ends the resolution: a blow that was not
+        // there cannot crit, cannot be mitigated and cannot apply an expression.
+        // Both evasion statistics were computed by the statistics service and
+        // read by nothing at all, so a Reach build bought a number the fight
+        // never consulted.
+        //
+        // No draw is taken when the chance is zero. That is what keeps a
+        // combatant assembled without evasion statistics reproducing its old
+        // seed exactly, instead of every existing encounter shifting because a
+        // roll nobody can fail was inserted into the sequence.
+        double evasion = Math.Clamp(
+            target.PhysicalEvasion * physicalShare + target.ElementalEvasion * (1 - physicalShare),
+            0,
+            1);
+        if (evasion > 0 && random.NextDouble() < evasion)
+        {
+            return new TechniqueResolution(
+                step,
+                technique.Id,
+                source.Id,
+                target.Id,
+                physicalPower,
+                elementalPower,
+                technique.PhysicalCoefficient,
+                technique.ElementalCoefficient,
+                physicalContribution,
+                elementalContribution,
+                raw,
+                PhysicalMitigation: 0,
+                ElementalMitigation: 0,
+                GeneralDamageReduction: 0,
+                CriticalResult: false,
+                FinalResult: 0,
+                source.ElementalAffinity,
+                Array.Empty<StatusEffectId>(),
+                Evaded: true);
+        }
+
+        // Critical is a roll against the source's own derived chance.
+        bool critical = random.NextDouble() < source.CriticalChance;
+        double afterCritical = critical ? raw * _balance.CriticalMultiplier : raw;
+
+        // The two windows are opened by different expressions and so are read
+        // separately: Fracture and Knockdown widen the physical one, Stunning
+        // and Knockdown the elemental one. A single shared exposure factor made
+        // Fracture and Stunning indistinguishable from the attacker's side.
+        StatusModifiers modifiers = _statuses.Modifiers(target.Statuses);
+        double physicalMitigation = target.PhysicalMitigation * modifiers.PhysicalMitigationScale;
+        double elementalMitigation = target.ElementalMitigation * modifiers.ElementalMitigationScale;
         double blendedMitigation =
             physicalMitigation * physicalShare + elementalMitigation * (1 - physicalShare);
 
         double final = afterCritical
             * (1 - target.GeneralDamageReduction)
-            * (1 - blendedMitigation);
+            * (1 - blendedMitigation)
+            * modifiers.DamageTakenScale;
         final = Math.Max(0, final);
 
         var applied = new List<StatusEffectId>();

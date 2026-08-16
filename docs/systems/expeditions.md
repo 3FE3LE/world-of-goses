@@ -117,10 +117,21 @@ entorno, y es determinista a partir de una semilla y del estado persistido.
 - **El desplazamiento es automático.** Un combatiente avanza sólo hasta entrar
   en su `AttackRange` y, una vez puede atacar, no retrocede para conservar
   rango: **un combatiente a distancia no kitea**.
-- **Knockback** puede desplazar a un combatiente ya en rango. `Stability`
-  reduce ese desplazamiento e `Impulse` puede aumentarlo. Los coeficientes son
-  provisionales y viven en `CombatBalanceConfig`, en dominio determinista,
+- **Knockback** puede desplazar a un combatiente ya en rango, pero **sólo lo
+  produce un golpe que aplica `Knockdown`**: es la consecuencia de una expresión
+  física, no de cualquier impacto. `Stability` reduce ese desplazamiento,
+  `Impulse` puede aumentarlo y la proporción física del golpe lo escala. El
+  empujón menor de un impacto sólido es una reacción de impacto de presentación
+  y no toca el dominio. Ver
+  [`statistics-and-combat.md`](statistics-and-combat.md) §2.3. Los coeficientes
+  son provisionales y viven en `CombatBalanceConfig`, en dominio determinista,
   nunca en la animación.
+- **Un golpe puede fallar.** El objetivo tira su evasión —mezclada por la
+  proporción física de la técnica— y un golpe evadido no ocurre: no critica, no
+  se mitiga, no aplica expresión y no desplaza.
+- **Una expresión física puede ser rechazada.** `ControlPower` del atacante
+  contra `ControlResistance` del objetivo. Nunca es seguro y nunca es
+  imposible. Ver [`statistics-and-combat.md`](statistics-and-combat.md) §8.4.
 - El motor no depende de nodos, escenas, animaciones ni frame rate:
   `CombatDebugPanel` y `ExpeditionLiveView` **observan** la misma sesión sin
   poseerla.

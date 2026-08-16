@@ -1058,8 +1058,13 @@ participant inside the deterministic `CombatSession`: `PositionX`, movement
 speed, attack range, controlled body radius, facing, Stability and Impulse.
 Actors only approach a target until its body envelopes are within
 `AttackRange`; there is no reverse/preferred-range branch, so ranged actors do
-not kite. Damage remains in `TechniqueResolver`; a resolved hit may displace its
-target through centralized Impulse/Stability knockback. Session replay rebuilds
+not kite. Damage remains in `TechniqueResolver`; a hit that applies `Knockdown`
+— and only such a hit — displaces its target through centralized
+Impulse/Stability knockback, scaled by the physical share of the blow — and only
+if that Knockdown survived the target's Control Resistance. Every measurable
+consequence of a log entry travels as a typed `CombatImpact` (displacement,
+signed health delta, physical share) beside the human-readable `Detail`, so
+presentation never parses a formatted number back out of a string. Session replay rebuilds
 the same spatial state from seed, steps and commands, so schema v34 needs no
 second serialized position stream. `ExpeditionStage` and `CombatantView` only
 project snapshots/events and may interpolate visual pixels; Godot positions,

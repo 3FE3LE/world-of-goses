@@ -42,14 +42,29 @@ public class StreetDepthProjectionTests
         }
     }
 
+    /// <summary>
+    /// The ground's apparent incline, guarded as a ratio rather than as a pixel
+    /// count.
+    /// </summary>
+    /// <remarks>
+    /// The tilt is how far a street advances up the screen relative to how wide
+    /// a lot is: a lot drawn 96 across and 55.7 tall reads as ground receding,
+    /// and the same lot drawn 96 across and 40 tall would read as a wall. This
+    /// used to assert the pixel step directly, which passed only for one world
+    /// scale — moving the world to a 32 px tile grid changed the step from 52.2
+    /// to 55.7 while the incline stayed identical, and the old assertion could
+    /// not tell those two facts apart. The ratio is the invariant; the pixels
+    /// follow whatever <c>LotUnitPx</c> is.
+    /// </remarks>
     [Fact]
-    public void AdjacentRows_UseAShallowVerticalStep()
+    public void AdjacentRows_KeepTheGroundsIncline()
     {
         const float baseY = 580f;
 
         float firstRowStep = baseY - StreetDepthProjection.RowScreenY(1f, baseY);
+        float incline = firstRowStep / MacroViewConstants.LotUnitPx;
 
-        Assert.InRange(firstRowStep, 51f, 53f);
+        Assert.InRange(incline, 0.57f, 0.59f);
     }
 
     [Fact]
