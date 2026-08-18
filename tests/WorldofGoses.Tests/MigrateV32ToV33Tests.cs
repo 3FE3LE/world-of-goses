@@ -61,8 +61,7 @@ public sealed class MigrateV32ToV33Tests
         CityWorld restored = WorldPersistence.FromSave(migrated);
         Assert.Null(restored.Hero!.EquipmentLoadout.Weapon);
 
-        int remaining = restored.Expeditions[expeditionId].EndTick - restored.CurrentTick;
-        WorldTimeAdvance.Advance(restored, remaining);
+        TestHelpers.AdvanceUntilExpeditionSettles(restored, expeditionId);
 
         Assert.Equal(ExpeditionStatus.Returned, restored.Expeditions[expeditionId].Status);
     }

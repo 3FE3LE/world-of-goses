@@ -227,9 +227,8 @@ public sealed class OpeningProgressLivenessTests
         WorldSave captured = WorldPersistence.Capture(source);
         CityWorld live = WorldPersistence.FromSave(captured);
         CityWorld offline = WorldPersistence.FromSave(captured);
-        int duration = live.Expeditions[expeditionId].EndTick - live.CurrentTick;
-
-        for (int tick = 0; tick < duration; tick++) live.AdvanceWorldTick();
+        int duration = TestHelpers.AdvanceUntilExpeditionSettles(
+            live, expeditionId, stepped: true);
         WorldTimeAdvance.Advance(offline, duration);
 
         Expedition liveExpedition = live.Expeditions[expeditionId];

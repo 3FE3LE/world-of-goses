@@ -377,6 +377,16 @@ public static class WorldPersistence
                 LeadCitizenId = expedition.LeadCitizenId.Value,
                 StartTick = expedition.StartTick,
                 EndTick = expedition.EndTick,
+                EstimatedEndTick = expedition.EstimatedEndTick,
+                EncounterStartedAtTick = expedition.EncounterStartedAtTick,
+                TimeEvents = expedition.TimeEvents
+                    .Select(entry => new ExpeditionTimeEventSave
+                    {
+                        Kind = entry.Kind.ToString(),
+                        Ticks = entry.Ticks,
+                        AtTick = entry.AtTick,
+                    })
+                    .ToList(),
                 SupplyResource = expedition.SupplyResource is { } sr
                     ? ResourceTypeSaveIds.ToId(sr)
                     : null,
@@ -1239,8 +1249,16 @@ public static class WorldPersistence
                 && (expedition.SupplyAmount != 0
                     || expedition.ReservationId.HasValue
                     || savedRewardKind != ExpeditionRewardKind.Discovery
-                    || expedition.EndTick - expedition.StartTick
-                        != ExpeditionTiming.SpiritTrailDurationTicks))
+                    // The estimate is the contract, not the arrival. It used to
+                    // compare EndTick, which encoded "the duration is a
+                    // constant" as a save invariant — so the first expedition
+                    // delayed by a fight that ran long would have thrown here
+                    // instead of loading. What must still hold is that the
+                    // trail was dispatched with the trail's own projection.
+                    || (expedition.EstimatedEndTick != 0
+                        && expedition.EstimatedEndTick - expedition.StartTick
+                            != ExpeditionTiming.SpiritTrailDurationTicks)
+                    || expedition.EndTick < expedition.StartTick))
             {
                 throw new InvalidOperationException(
                     $"Expedition {expedition.Id} has an invalid active Spirit Trail contract.");
@@ -2170,6 +2188,7 @@ public static class WorldPersistence
                 33 => MigrateV33ToV34(save),
                 34 => MigrateV34ToV35(save),
                 35 => MigrateV35ToV36(save),
+                36 => MigrateV36ToV37(save),
                 _ => throw new IncompatibleSaveVersionException(
                     save.Version,
                     WorldSave.CurrentVersion),
@@ -3239,6 +3258,33 @@ public static class WorldPersistence
     /// to have restored the same person while restoring a different one.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// v37 — an expedition's return can move, so it carries the estimate it was
+    /// dispatched with and the ledger of what changed it.
+    /// </summary>
+    /// <remarks>
+    /// A v36 expedition could not be delayed or hurried, so its arrival <em>was</em>
+    /// its estimate: copying <c>EndTick</c> across loses nothing and leaves the
+    /// delta at zero, which is the truth for a journey that never had events.
+    /// </remarks>
+    public static WorldSave MigrateV36ToV37(WorldSave save)
+    {
+        ArgumentNullException.ThrowIfNull(save);
+        if (save.Version != 36)
+        {
+            throw new InvalidOperationException(
+                $"MigrateV36ToV37 expects version 36 but found {save.Version}.");
+        }
+        foreach (ExpeditionSave expedition in save.Expeditions)
+        {
+            expedition.EstimatedEndTick = expedition.EndTick;
+            expedition.TimeEvents = new List<ExpeditionTimeEventSave>();
+            expedition.EncounterStartedAtTick = null;
+        }
+        save.Version = 37;
+        return save;
+    }
+
     public static WorldSave MigrateV35ToV36(WorldSave save)
     {
         ArgumentNullException.ThrowIfNull(save);

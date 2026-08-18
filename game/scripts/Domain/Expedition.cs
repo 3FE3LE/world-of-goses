@@ -31,7 +31,9 @@ public sealed class Expedition
         int partialReturn = 0,
         int carryCapacity = 0,
         int? objectiveReachedAtTick = null,
-        int combatRulesVersion = ExpeditionCombatSessionFactory.CurrentRulesVersion)
+        int combatRulesVersion = ExpeditionCombatSessionFactory.CurrentRulesVersion,
+        int? estimatedEndTick = null,
+        IReadOnlyList<ExpeditionTimeEvent>? timeEvents = null)
     {
         if (id.Value <= 0) throw new ArgumentOutOfRangeException(nameof(id));
         if (string.IsNullOrWhiteSpace(displayName)) throw new ArgumentException("Display name is required.", nameof(displayName));
@@ -89,6 +91,8 @@ public sealed class Expedition
         MemberIds = memberIds.ToArray();
         StartTick = startTick;
         EndTick = endTick;
+        EstimatedEndTick = estimatedEndTick ?? endTick;
+        if (timeEvents is { Count: > 0 }) _timeEvents.AddRange(timeEvents);
         SupplyRequirement = supplyRequirement;
         Reward = reward;
         ReservationId = reservationId;
@@ -109,6 +113,8 @@ public sealed class Expedition
         CombatRulesVersion = combatRulesVersion;
     }
 
+    private readonly List<ExpeditionTimeEvent> _timeEvents = new();
+
     public ExpeditionId Id { get; }
     public string DisplayName { get; }
     public IReadOnlyList<CitizenId> MemberIds { get; }
@@ -116,7 +122,46 @@ public sealed class Expedition
     /// <summary>The first member, kept for presentation that only needs one name (e.g. a compact list row).</summary>
     public CitizenId LeadCitizenId => MemberIds[0];
     public int StartTick { get; }
-    public int EndTick { get; }
+
+    /// <summary>
+    /// When the expedition is now expected back. It moves: the estimate is a
+    /// projection of pure travel, and what happens on the road is added to it.
+    /// </summary>
+    /// <remarks>
+    /// It used to be fixed at dispatch, which made an expedition a timer with a
+    /// known end rather than a journey. A fight that dragged could not cost
+    /// anything, and an empty road could not save anything — the only thing an
+    /// encounter could change was its own outcome.
+    /// </remarks>
+    public int EndTick { get; private set; }
+
+    /// <summary>
+    /// What the journey was projected to take at dispatch, from its distance
+    /// and the party's pace alone. Never moves, so the difference against
+    /// <see cref="EndTick"/> is exactly what the road cost.
+    /// </summary>
+    public int EstimatedEndTick { get; }
+
+    /// <summary>Ticks the road added (positive) or saved (negative).</summary>
+    public int EstimateDeltaTicks => EndTick - EstimatedEndTick;
+
+    /// <summary>Everything that moved the return, in the order it happened.</summary>
+    public IReadOnlyList<ExpeditionTimeEvent> TimeEvents => _timeEvents;
+
+    /// <summary>
+    /// Records something that cost or saved time, and moves the return with it.
+    /// </summary>
+    /// <remarks>
+    /// The return can be pushed but never pulled before the tick the event was
+    /// recorded on: an expedition cannot arrive in its own past, however
+    /// generous the road was.
+    /// </remarks>
+    public void RecordTimeEvent(ExpeditionTimeEventKind kind, int ticks, int atTick)
+    {
+        if (ticks == 0) return;
+        _timeEvents.Add(new ExpeditionTimeEvent(kind, ticks, atTick));
+        EndTick = Math.Max(atTick, EndTick + ticks);
+    }
     public ExpeditionSupplyRequirement SupplyRequirement { get; }
     public ResourceType? SupplyResource => SupplyRequirement.Resource;
     public int SupplyAmount => SupplyRequirement.Amount;
@@ -183,17 +228,38 @@ public sealed class Expedition
     /// One-way, one-time transition into the encounter. The incremental combat
     /// session may then span several world ticks before storing its outcome.
     /// </summary>
-    internal bool BeginEncounter()
+    internal bool BeginEncounter(int atTick)
     {
         if (Phase != ExpeditionPhase.Outbound) return false;
         Phase = ExpeditionPhase.Encounter;
+        EncounterStartedAtTick = atTick;
         return true;
     }
 
-    internal bool CompleteEncounter(ExpeditionEncounterOutcome outcome)
+    /// <summary>The tick the party stopped travelling to fight.</summary>
+    public int? EncounterStartedAtTick { get; private set; }
+
+    /// <summary>
+    /// Restores an in-flight encounter's start after a load, so a fight that
+    /// spans a save still charges the road for its whole length instead of only
+    /// the part that happened after reopening the game.
+    /// </summary>
+    internal void RestoreEncounterStart(int? atTick) => EncounterStartedAtTick = atTick;
+
+    /// <summary>
+    /// Closes the encounter and charges the road for it: whatever the fight
+    /// took is time the party did not spend walking, so the return moves by
+    /// exactly that much. A fight that dragged costs more than a short one,
+    /// with nothing rolled and nothing assumed.
+    /// </summary>
+    internal bool CompleteEncounter(ExpeditionEncounterOutcome outcome, int atTick)
     {
         if (Phase != ExpeditionPhase.Encounter || EncounterOutcome.HasValue) return false;
         EncounterOutcome = outcome;
+        if (EncounterStartedAtTick is int startedAt)
+        {
+            RecordTimeEvent(ExpeditionTimeEventKind.Encounter, atTick - startedAt, atTick);
+        }
         return true;
     }
 

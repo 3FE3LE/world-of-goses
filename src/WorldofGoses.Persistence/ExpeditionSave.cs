@@ -21,6 +21,23 @@ public sealed class ExpeditionSave
     public int LeadCitizenId { get; set; }
     public int StartTick { get; set; }
     public int EndTick { get; set; }
+
+    /// <summary>
+    /// What the journey was projected to take at dispatch. Zero on v36 and
+    /// earlier saves, where the return could not move and the estimate was
+    /// therefore the same number as <see cref="EndTick"/>;
+    /// <c>MigrateV36ToV37</c> copies it across.
+    /// </summary>
+    public int EstimatedEndTick { get; set; }
+
+    /// <summary>
+    /// Everything that moved the return. Empty on v36 and earlier, where
+    /// nothing could.
+    /// </summary>
+    public List<ExpeditionTimeEventSave> TimeEvents { get; set; } = new();
+
+    /// <summary>The tick an in-flight encounter began, if one is open.</summary>
+    public int? EncounterStartedAtTick { get; set; }
     public string? SupplyResource { get; set; }
     public int SupplyAmount { get; set; }
     public string? RewardResource { get; set; }

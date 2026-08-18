@@ -109,10 +109,10 @@ number of tiles; there is no "roughly this big".
 | Ground tile | 32 × 32 | one tile |
 | Loose ground prop (branch, stone, bush) | 32 × 32 | occupies one tile |
 | Tree, two tiles tall | 32 × 64 | authored as **one** canvas, not canopy and trunk apart |
-| Macro inhabitant | 32 × 64 | one tile wide, two tall; the figure occupies 24–32 px of it |
-| Standard-lot building | 96 × 96 | 3 × 3 tiles — `LotUnitPx` |
-| Double-frontage building | 192 × 96 | 6 × 3 tiles |
-| Expedition combatant | 64 × 64 | double the macro figure's density; see the third visual scale |
+| Citizen — macro, building scene and expedition alike | 64 × 64 | **one canvas for every scale.** The macro needs four directions, the expedition one mirrored side view; the size never changes, so the lateral clips serve both |
+| Bestiary creature | 64 × 64 or a whole multiple of it | shares the citizen's canvas so the shared reaction and effect clips register without adaptation |
+| Standard-lot building | 96 × 96 for one storey; taller only when the subject is taller | width comes from the footprint (3 × 3 tiles, `LotUnitPx`). One storey checks out at 96: a ~56 px citizen against a ~96 px sprite is the real 55–65 % of a single storey seen from outside. **Height is a separate axis** — raise it, in whole tiles, for more storeys or when the near-row roof plane needs the room |
+| Double-frontage building | 192 wide, same height rule | footprint 6 × 3 tiles |
 | Lineage emblem | 32 × 32 and 64 × 64 | inline hover glyph and card/banner |
 | UI icon | 32 × 32 | one tile, so an icon can sit in a world cell unchanged |
 

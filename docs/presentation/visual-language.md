@@ -82,33 +82,65 @@ tabla medida vive en `ui-patterns.md` §5.
 
 ## Tres escalas visuales
 
-Las tres se miden contra la rejilla de 32. Las cifras anteriores —habitantes de
-4 a 8 píxeles, lienzo de 64 × 96— se escribieron para una escala de placeholder
-mucho menor: una persona de 6 px junto a un tile de 32 le llega al tobillo.
+Las tres se miden contra la rejilla de 32. **El ciudadano mide lo mismo en las
+tres: un único lienzo de 64 × 64.** Lo que cambia entre escalas es cuántas
+direcciones necesita y cuántos clips recibe, nunca su tamaño.
+
+Las cifras anteriores —habitantes de 4 a 8 píxeles, lienzo detallado de 64 × 96,
+lienzo macro de 32 × 64 con la figura ocupando 24–32 px— se escribieron para
+escalas de placeholder distintas y llegaron a coexistir **contradiciéndose entre
+sí dentro de este mismo archivo**. Un ciudadano no tiene tres tamaños.
 
 ### Ciudad macro
 
 - Parcelas y edificios como foco.
-- Tile de suelo: 32 × 32. Lote estándar: 96 × 96.
-- Habitantes de 24 a 32 píxeles de alto — entre tres cuartos de tile y un tile.
-- Siluetas ambientales. Sin anatomía detallada: a zoom 2 un habitante ocupa
-  unos 64 px de pantalla y la lectura la da la silueta, no el rasgo.
+- Tile de suelo: 32 × 32. Huella de lote estándar: 96 × 96.
+- Lienzo de ciudadano: 64 × 64, en **cuatro direcciones**.
+- La lectura la da la silueta, no el rasgo.
 
 ### Escena de edificio
 
 - Ciudadanos reales asignados.
-- Lienzo de personaje: 32 × 64 — dos tiles de alto, la misma rejilla que el
-  macro, para que el mismo sprite pueda servir en ambas escalas.
+- Lienzo de ciudadano: 64 × 64 — **el mismo sprite que el macro**, sin reescalar.
 - Animaciones moderadas.
 - Límite visual de trabajadores.
 
 ### Expedición
 
 - Sprites completos, vista lateral.
-- Lienzo de combatiente: 64 × 64. Es la escala donde se invierte en animación,
-  equipo, heridas y efectos, así que dobla la resolución del habitante de macro
-  en vez de compartirla.
+- Lienzo de combatiente: 64 × 64, **una sola dirección, espejada** — el mismo
+  lienzo que el macro, del que reutiliza la locomoción lateral tal cual.
+- Es la escala donde se invierte en animación, equipo, heridas y efectos: **no
+  más resolución, más clips**.
 - Fondos por capas de parallax, no dibujados por código.
+
+**Proporción con los edificios.** Un edificio base de una planta corresponde a un
+techo interior de unos 2,2 m con una persona de ~1,75 m: la figura ocupa el **80 %
+del techo interior**, pero sólo un **55–65 % del volumen exterior visible**, porque
+la fachada añade suelo y alero y el tejado añade su propio plano. Con un ciudadano
+cuya altura dibujada típica ronda los 56 px de su lienzo de 64, eso sitúa un
+edificio de una planta en torno a **96 px de alto**, que es exactamente la cifra
+heredada. **La proporción de una planta ya es correcta.**
+
+Lo que sí es un eje independiente es el **alto del lienzo**, y por dos razones que
+no son «una planta se ve baja»:
+
+- Un edificio de más de una planta necesita más alto sin cambiar su huella.
+- El plano del tejado **se abre en las filas cercanas y se cierra en las lejanas**
+  (§Ciudad macro), así que el lienzo debe caber el frame más alto de la serie.
+
+Por tanto: la huella de un lote estándar sigue siendo 96 × 96; el ancho del lienzo
+sale de la huella, y el alto se mide contra la figura y se redondea a tile entero.
+Las dos proporciones que se miden son distintas y las dos deben cumplirse: figura
+contra fachada ≈ 75–85 %, figura contra sprite completo ≈ 55–65 %.
+
+**Los frames de un edificio son de perspectiva, no de animación.** El código
+reescala por profundidad (`HorizontalScale`, `ProjectedRowScreenY`), pero un
+reescalado no cambia el escorzo del tejado: una fila cercana ve su plano superior y
+una lejana casi no. La fachada se autora una vez y la escala el código; el **plano
+del tejado se autora una vez por fila de descanso de la ventana de cámara**. El
+número de frames lo acota la ventana (unas cuatro filas), nunca el tamaño del
+mundo.
 
 ## Profundidad y desniveles
 
@@ -190,12 +222,16 @@ respetan posiciones y escala entera ("Pixel perfect" en
 
 ## Unidad base
 
-```text
-Terreno: 64 × 64
-Habitante detallado: aproximadamente 64 × 96
-Habitante macro: 4 a 8 píxeles
-Edificios: múltiplos de 64
-```
+La rejilla es **32 unidades por tile**, y nada más se fija aquí. La escalera
+completa de tamaños —tile, prop, árbol, ciudadano, edificio, emblema, icono— vive
+en [`art-pipeline.md`](art-pipeline.md) § *Escalera de tamaños*, que es su única
+fuente.
+
+El bloque que ocupaba esta sección (`Terreno: 64 × 64`, `Habitante detallado:
+64 × 96`, `Habitante macro: 4 a 8 píxeles`, `Edificios: múltiplos de 64`) era
+anterior a la rejilla de 32 y contradecía la sección *Tres escalas visuales* en
+las cuatro líneas. Se retira en vez de actualizarse: una cifra escrita en dos
+sitios termina divergiendo en los dos.
 
 ## Anclaje
 

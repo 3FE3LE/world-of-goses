@@ -3188,12 +3188,17 @@ public sealed class CityWorld
             if (expedition.Status != ExpeditionStatus.Active) continue;
             int duration = expedition.EndTick - expedition.StartTick;
             if (duration <= 0) continue;
-            int elapsed = _tick - expedition.StartTick;
+            // Ticks walked, not ticks since dispatch. A leg boundary is a place
+            // on the road, and the party does not get closer to it while it is
+            // standing still fighting — so whatever the road charged comes off
+            // before comparing against the leg offsets, exactly as
+            // ExpeditionTiming.TravelPositionX does when it draws the same walk.
+            int elapsed = _tick - expedition.StartTick - expedition.EstimateDeltaTicks;
 
             if (expedition.Phase == ExpeditionPhase.Outbound
                 && elapsed >= ExpeditionTiming.EncounterOffsetTicks(expedition))
             {
-                expedition.BeginEncounter();
+                expedition.BeginEncounter(_tick);
                 if (UsesObservableCombat(expedition))
                 {
                     _combatSessions[expedition.Id] =
@@ -3254,7 +3259,7 @@ public sealed class CityWorld
         Expedition expedition,
         ExpeditionEncounterOutcome outcome)
     {
-        if (!expedition.CompleteEncounter(outcome)) return;
+        if (!expedition.CompleteEncounter(outcome, _tick)) return;
         _log.Record(
             _tick,
             WorldEventKind.ExpeditionEncounterResolved,
@@ -4602,16 +4607,32 @@ public sealed class CityWorld
         return tickCount;
     }
 
+    /// <summary>
+    /// The next tick this expedition needs the world to stop skipping on.
+    /// </summary>
+    /// <remarks>
+    /// Offline catch-up batches over quiescent stretches, so a boundary this
+    /// misses is a boundary that gets stamped late — and a live run and an
+    /// offline run then disagree about when the objective was reached.
+    /// <para>
+    /// The leg offsets are measured in ticks <em>walked</em>, so whatever the
+    /// road charged has to be added back to land on the wall-clock tick the
+    /// boundary actually falls on. Without it a delayed expedition reports a
+    /// boundary already in its past, the batcher skips straight over it, and
+    /// offline drifts from live by the length of a leg.
+    /// </para>
+    /// </remarks>
     private int ExpeditionTicksUntilNextBoundary(Expedition expedition)
     {
-        int duration = expedition.EndTick - expedition.StartTick;
+        int charged = expedition.EstimateDeltaTicks;
+        int travelDuration = Math.Max(1, expedition.EstimatedEndTick - expedition.StartTick);
         int boundaryTick = expedition.Phase switch
         {
-            ExpeditionPhase.Outbound => expedition.StartTick
+            ExpeditionPhase.Outbound => expedition.StartTick + charged
                 + ExpeditionTiming.EncounterOffsetTicks(expedition),
             ExpeditionPhase.Encounter or ExpeditionPhase.Retreating =>
-                expedition.StartTick + duration / 2,
-            ExpeditionPhase.Objective => expedition.StartTick
+                expedition.StartTick + charged + (travelDuration / 2),
+            ExpeditionPhase.Objective => expedition.StartTick + charged
                 + ExpeditionTiming.ObjectiveOffsetTicks(expedition),
             ExpeditionPhase.Returning => expedition.EndTick,
             _ => _tick,

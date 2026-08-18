@@ -52,6 +52,14 @@ internal sealed class CitizenJourneyPresenter
         public bool IsAmbient;
         public int NextAmbientDecisionTick;
         public int? PacingStartTick;
+
+        /// <summary>
+        /// How many ticks the domain gave <em>this</em> journey, i.e.
+        /// <c>TransitArrivalTick - TransitStartedAtTick</c>. Null until the
+        /// domain supplies both ends, in which case the pacing falls back to
+        /// the legacy flat window.
+        /// </summary>
+        public int? PacingDurationTicks;
         public int TotalSteps;
         public int StepsApplied;
 
@@ -90,6 +98,7 @@ internal sealed class CitizenJourneyPresenter
     private bool _heroAmbientRoute;
     private int _heroNextAmbientDecisionTick;
     private int? _routePacingStartTick;
+    private int? _routePacingDurationTicks;
     private int _routeTotalSteps;
     private int _routeStepsApplied;
     private BuildingId? _lastKnownAssignment;
@@ -254,6 +263,18 @@ internal sealed class CitizenJourneyPresenter
     {
         get => _routePacingStartTick;
         set => _routePacingStartTick = value;
+    }
+
+    /// <summary>
+    /// The founder's pacing window in ticks — how long the domain says
+    /// <em>this</em> journey lasts. It is the duration the route is stretched
+    /// over, and it was a flat constant for every distance until the domain
+    /// started deriving it.
+    /// </summary>
+    public int? RoutePacingDurationTicks
+    {
+        get => _routePacingDurationTicks;
+        set => _routePacingDurationTicks = value;
     }
 
     /// <summary>Total steps for the founder's planned route. The

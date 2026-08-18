@@ -16,6 +16,73 @@ baseline — not a list of touched files, `git log` already owns.
 
 ---
 
+## Los píxeles por tick, y una expedición que llega cuando llega
+
+**2026-08-17** · ciudadanos · expediciones · schema v36 → v37 · 1797 pruebas superadas
+
+La entrega anterior derivó la duración de un trayecto de su distancia, y el
+caracol siguió ahí. Faltaban las dos mitades que lo hacían visible.
+
+**La primera es que presentación nunca llegó a usarla.** Los cuatro sitios que
+pautan una ruta seguían pasando `CityEconomyRules.AbstractTravelTicks` — el
+treinta plano — mientras el dominio calculaba la duración buena y el snapshot ya
+publicaba los dos extremos de la ventana. El número derivado no tenía por dónde
+llegar a la vista. Recolectar se veía bien porque una recolección no es un
+trayecto de dominio: cae en la rama libre y camina a su cadencia. Asignar a una
+obra caía en la rama pautada y se estiraba sobre treinta ticks fijos, cerca o
+lejos.
+
+**La segunda es que la distancia por tick estaba elegida a mano.** Cruzar una
+columna de 32 px costaba cuatro ticks, y un tick es un segundo real a 1×
+(`GameClock.TicksPerInGameDay = 3600`, una hora real por día de juego). Eso son
+8 px/s contra los 96 px/s de la cadencia de presentación: de ahí que hubiera que
+estirar la ruta, y que el caminante fuera a un doceavo de su propio paso. Ahora
+`TicksPerColumn` y `TicksPerRow` se derivan de una sola constante,
+`WalkPixelsPerTick = 64`, y el suelo por trayecto baja de ocho ticks a uno —
+ocho, a la escala derivada, volvían a aplanar media ciudad en una única duración.
+
+`PixelMotion` distingue las dos marchas: 4 px cada 1/16 s caminando (64 px/s) y
+cada 1/24 s corriendo (96 px/s). **El invariante es el paso, nunca el ritmo.** Un
+paso fraccionario rompería la rejilla de píxel, y 24 Hz × 16 px resucitaría el
+tirón que quitó pasar de 12 Hz/8 px a 24 Hz/4 px.
+
+**La expedición tenía el mismo defecto en grande.** Su ruta abarcaba unos 750 px
+recorridos en 600 ticks: 1,25 px/tick, un cincuentavo de lo que la misma gente
+camina dentro de la ciudad. Ahora el sendero declara **longitud** y la duración
+es su consecuencia, con cada tramo derivado de lo que mide al paso de caminar.
+Medidos antes iban a 133, 63 y 124 px/tick para un grupo que camina a 64.
+
+Lo que un jugador gana: **una expedición deja de ser un temporizador con final
+conocido**. La llegada se mueve. Un combate que se alarga le cobra al camino
+exactamente lo que duró, y el tiempo parado peleando se descuenta de los ticks
+caminados, así que un retraso desplaza los tramos en vez de estirarlos — nadie
+vuelve a casa andando más despacio para cuadrar un reloj. La expedición guarda la
+estimación con la que salió, la llegada real, la diferencia y el registro
+ordenado de lo que la movió; la pantalla que lo mostrará es
+[#59](https://github.com/3FE3LE/world-of-goses/issues/59).
+
+El esquema sube a **v37** por esos tres campos. `MigrateV36ToV37` copia la
+llegada vieja como estimación: una expedición de v36 no podía retrasarse, así que
+su llegada *era* su estimación y el delta nace en cero, que es la verdad para un
+viaje sin eventos. Y la validación de carga que exigía `EndTick - StartTick`
+igual a la constante pasa a mirar la estimación — tal como estaba, la primera
+expedición retrasada por una pelea larga no habría degradado la partida, la
+habría hecho reventar al abrirla.
+
+Una rotura de determinismo cazada por el camino:
+`ExpeditionTicksUntilNextBoundary` calculaba el siguiente hito sin sumar el
+tiempo cobrado, así que tras un retraso el hito quedaba en el pasado y el batcher
+de progresión offline lo saltaba entero. La misma partida daba el objetivo en el
+tick 1509 en vivo y en el 1802 offline.
+
+Queda visible un salto de 64 px por tick en la vista de expedición: la cámara
+toma la posición nueva de una vez en lugar de caminar hacia ella. Eran 133 antes
+de esta entrega. Tiene issue propio porque la solución evidente —un bucle de
+frames en el escenario— choca con el guardián que prohíbe un segundo reloj en esa
+superficie.
+
+---
+
 ## Ir lejos tarda más que ir cerca
 
 **2026-08-16** · ciudadanos · schema v36 (sin cambio) · 1792 pruebas superadas

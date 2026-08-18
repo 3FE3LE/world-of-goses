@@ -658,7 +658,17 @@ internal static class WorldSaveApplier
                 expedition.PartialReturn,
                 expedition.CarryCapacity,
                 expedition.ObjectiveReachedAtTick,
-                expedition.CombatRulesVersion);
+                expedition.CombatRulesVersion,
+                expedition.EstimatedEndTick != 0 ? expedition.EstimatedEndTick : expedition.EndTick,
+                expedition.TimeEvents
+                    .Select(entry => new ExpeditionTimeEvent(
+                        Enum.TryParse(entry.Kind, true, out ExpeditionTimeEventKind kind)
+                            ? kind
+                            : ExpeditionTimeEventKind.Encounter,
+                        entry.Ticks,
+                        entry.AtTick))
+                    .ToArray());
+            restored.RestoreEncounterStart(expedition.EncounterStartedAtTick);
             world._expeditions.Add(restored.Id, restored);
             if (expedition.HasCombatSession)
             {

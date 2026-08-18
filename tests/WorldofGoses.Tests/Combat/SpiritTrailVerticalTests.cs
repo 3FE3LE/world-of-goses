@@ -198,7 +198,11 @@ public sealed class SpiritTrailVerticalTests
 
         WorldTimeAdvance.Advance(
             world,
-            expedition.StartTick + ExpeditionTiming.SpiritTrailObjectiveOffsetTicks
+            // The leg offset is measured in ticks walked, so the wall-clock
+            // boundary sits that far past the start plus whatever the road
+            // charged on the way — here, the encounter the party just fought.
+            expedition.StartTick + expedition.EstimateDeltaTicks
+                + ExpeditionTiming.SpiritTrailObjectiveOffsetTicks
                 - world.CurrentTick);
 
         Assert.Equal(ExpeditionPhase.Returning, expedition.Phase);
@@ -251,7 +255,8 @@ public sealed class SpiritTrailVerticalTests
         expedition = world.Expeditions[expeditionId];
         WorldTimeAdvance.Advance(
             world,
-            expedition.StartTick + ExpeditionTiming.SpiritTrailObjectiveOffsetTicks
+            expedition.StartTick + expedition.EstimateDeltaTicks
+                + ExpeditionTiming.SpiritTrailObjectiveOffsetTicks
                 - world.CurrentTick - 1);
         Assert.Equal(ExpeditionPhase.Objective, expedition.Phase);
         world = RoundTrip(world);

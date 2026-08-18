@@ -128,11 +128,17 @@ public sealed class CitizenTravelAuthorityTests
 
         // Leave less of the workday than the journey needs, so the trip is in
         // flight when the world crosses into night.
-        while (live.CurrentTick < GameClock.WorkdayEndTick - CityEconomyRules.AbstractTravelTicks / 2)
+        // Leave exactly one tick of workday, so any journey longer than a tick
+        // is still in flight when the boundary arrives. This used to reserve
+        // half of the flat thirty-tick constant; a distance-derived journey is
+        // far shorter than that and would land before the boundary it is
+        // supposed to straddle.
+        while (live.CurrentTick < GameClock.WorkdayEndTick - 1)
         {
             live.AdvanceWorldTick();
         }
         Assert.True(live.TryAssignCitizen(quarry.Id, live.Hero!.Id).IsSuccess);
+        Assert.True(live.Hero!.TransitDurationTicks >= 2);
         CityWorld offline = WorldPersistence.FromSave(WorldPersistence.Capture(live));
 
         AdvanceLive(live, live.Hero!.TransitDurationTicks * 3);

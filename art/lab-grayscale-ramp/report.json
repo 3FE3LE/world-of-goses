@@ -1,0 +1,148 @@
+{
+  "shades": 6,
+  "zones": [
+    "neutral",
+    "skin",
+    "hair",
+    "primary",
+    "secondary",
+    "accent"
+  ],
+  "lineages": [
+    "caelith",
+    "eirune",
+    "kovari"
+  ],
+  "bodies": [
+    {
+      "body": "male",
+      "frames": 2,
+      "size": "256x128",
+      "roundTripError": {
+        "caelith": {
+          "mean": 5.45,
+          "max": 94,
+          "pixels": 2004
+        },
+        "eirune": {
+          "mean": 6.19,
+          "max": 103,
+          "pixels": 2004
+        },
+        "kovari": {
+          "mean": 7.62,
+          "max": 132,
+          "pixels": 2004
+        }
+      },
+      "garmentSeparation": [
+        {
+          "pair": "caelith/eirune",
+          "meanDelta": 24.5,
+          "pixels": 796
+        },
+        {
+          "pair": "caelith/kovari",
+          "meanDelta": 29.3,
+          "pixels": 796
+        },
+        {
+          "pair": "eirune/kovari",
+          "meanDelta": 37.2,
+          "pixels": 796
+        }
+      ],
+      "zoneCount": [
+        {
+          "zone": "neutral",
+          "pixels": 184
+        },
+        {
+          "zone": "skin",
+          "pixels": 796
+        },
+        {
+          "zone": "hair",
+          "pixels": 228
+        },
+        {
+          "zone": "primary",
+          "pixels": 269
+        },
+        {
+          "zone": "secondary",
+          "pixels": 422
+        },
+        {
+          "zone": "accent",
+          "pixels": 105
+        }
+      ]
+    },
+    {
+      "body": "female",
+      "frames": 2,
+      "size": "256x128",
+      "roundTripError": {
+        "caelith": {
+          "mean": 5.27,
+          "max": 89,
+          "pixels": 1878
+        },
+        "eirune": {
+          "mean": 6.14,
+          "max": 121,
+          "pixels": 1878
+        },
+        "kovari": {
+          "mean": 9.05,
+          "max": 132,
+          "pixels": 1878
+        }
+      },
+      "garmentSeparation": [
+        {
+          "pair": "caelith/eirune",
+          "meanDelta": 24.8,
+          "pixels": 700
+        },
+        {
+          "pair": "caelith/kovari",
+          "meanDelta": 30.8,
+          "pixels": 700
+        },
+        {
+          "pair": "eirune/kovari",
+          "meanDelta": 38.6,
+          "pixels": 700
+        }
+      ],
+      "zoneCount": [
+        {
+          "zone": "neutral",
+          "pixels": 158
+        },
+        {
+          "zone": "skin",
+          "pixels": 645
+        },
+        {
+          "zone": "hair",
+          "pixels": 375
+        },
+        {
+          "zone": "primary",
+          "pixels": 204
+        },
+        {
+          "zone": "secondary",
+          "pixels": 395
+        },
+        {
+          "zone": "accent",
+          "pixels": 101
+        }
+      ]
+    }
+  ]
+}

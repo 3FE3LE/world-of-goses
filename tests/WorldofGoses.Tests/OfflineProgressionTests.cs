@@ -288,6 +288,8 @@ public class OfflineProgressionTests
 
         OfflineProgression.Apply(world, quarry.Id, ticksToApply: 10);
 
-        Assert.Equal(ProductionStopCause.WorkersRecovering, quarry.StopCause);
+        // The name of this test is the assertion: the food is locked out, so
+        // the stop is explained by the food and not by the recovery it blocks.
+        Assert.Equal(ProductionStopCause.WorkersBlockedNoFood, quarry.StopCause);
     }
 }

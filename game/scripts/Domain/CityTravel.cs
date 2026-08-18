@@ -31,34 +31,60 @@ namespace WorldofGoses.Domain;
 /// </remarks>
 public static class CityTravel
 {
-    /// <summary>
-    /// Ticks to cross one column of frontage at base speed.
-    /// </summary>
-    /// <remarks>
-    /// PROVISIONAL BALANCE. Calibrated so a typical cross-city trip lands near
-    /// the thirty ticks every trip used to cost, which keeps the economy
-    /// roughly where it was: what changes is that a short trip is now cheaper
-    /// and a long one dearer, not that everything got slower.
-    /// </remarks>
-    public const double TicksPerColumn = 4.0;
+    /// <summary>Pixels one grid column spans — one 32 px tile of frontage.</summary>
+    public const double ColumnPx = 32.0;
+
+    /// <summary>Pixels one construction row spans — one 96 px lot of depth.</summary>
+    public const double RowPx = 96.0;
 
     /// <summary>
-    /// Ticks to cross from one street to the next at base speed.
+    /// Pixels a citizen covers in one tick at walking pace. **This is the
+    /// constant that defines walking speed**, and everything else about travel
+    /// is derived from it.
     /// </summary>
     /// <remarks>
-    /// Dearer than a column because a street change is a depth move across a
-    /// carriageway rather than a step along a frontage.
+    /// <para>
+    /// A tick is one real second at 1× (<c>GameClock.TicksPerInGameDay</c> =
+    /// 3600, i.e. one real hour per in-game day), so 64 px per tick is the
+    /// 64 px/s that presentation draws at walking cadence. Domain and
+    /// presentation therefore agree by construction, and the drawn route no
+    /// longer has to be stretched or compressed to land on the arrival tick.
+    /// </para>
+    /// <para>
+    /// The pair it replaced —<c>TicksPerColumn = 4</c>,
+    /// <c>TicksPerRow = 10</c>— were chosen by hand to keep a cross-city trip
+    /// near the flat thirty ticks it used to cost. With a tick pinned to 24
+    /// seconds of in-game time, that made crossing one tile of frontage take
+    /// 96 in-game seconds, and every walker had to be slowed to a twelfth of
+    /// its own gait to fit.
+    /// </para>
     /// </remarks>
-    public const double TicksPerRow = 10.0;
+    public const double WalkPixelsPerTick = 64.0;
+
+    /// <summary>
+    /// Pixels a citizen covers in one tick at running pace — the other cadence
+    /// in <c>PixelMotion</c>, 4 px every 1/24 s. Running buys distance per
+    /// tick, never a different step.
+    /// </summary>
+    public const double RunPixelsPerTick = 96.0;
+
+    /// <summary>Ticks to cross one column of frontage at base speed.</summary>
+    public const double TicksPerColumn = ColumnPx / WalkPixelsPerTick;
+
+    /// <summary>Ticks to cross from one street to the next at base speed.</summary>
+    public const double TicksPerRow = RowPx / WalkPixelsPerTick;
 
     /// <summary>
     /// Floor on any journey, so two adjacent buildings still cost a walk.
     /// </summary>
     /// <remarks>
     /// Without it a citizen assigned next door would arrive on the tick they
-    /// left, and "travelling" would flicker rather than happen.
+    /// left, and "travelling" would flicker rather than happen. It was eight
+    /// while a column cost four ticks; at the derived rate eight ticks is half
+    /// a kilometre of frontage, and a floor that high would flatten most of a
+    /// city back into one duration — the very symptom this file exists to fix.
     /// </remarks>
-    public const int MinimumTravelTicks = 8;
+    public const int MinimumTravelTicks = 1;
 
     /// <summary>Ceiling, so a pathological layout cannot strand anyone.</summary>
     public const int MaximumTravelTicks = 240;

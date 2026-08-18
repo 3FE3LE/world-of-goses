@@ -75,7 +75,11 @@ public class CityWorldStaminaTests
         TestHelpers.AdvanceToNextProductionCycle(world);
 
         Assert.Equal(quarryStockBefore, quarry.Stock);
-        Assert.Equal(ProductionStopCause.WorkersRecovering, quarry.StopCause);
+        // The scenario locks food out on purpose, so the cause that explains the
+        // stop is the missing food, not the recovery it prevents. It reported
+        // WorkersRecovering only while travel took long enough that nobody had
+        // yet reached for a meal and failed to find one.
+        Assert.Equal(ProductionStopCause.WorkersBlockedNoFood, quarry.StopCause);
         // Farm is paused (no food produced), not exhausted — its
         // assigned worker never paid a cost this tick.
         Assert.Equal(ProductionStopCause.Paused, farm.StopCause);

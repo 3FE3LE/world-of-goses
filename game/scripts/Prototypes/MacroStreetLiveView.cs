@@ -1525,10 +1525,19 @@ public partial class MacroStreetLiveView : Node2D
         bool hasCitizenTravel = _journeys.Route is not null
             || _journeys.Journeys.Values.Any(journey => journey.Route is not null);
         if (!Visible && !hasCitizenTravel) return;
+        // Locomotion runs at the walking gait, compressed by the global
+        // simulation speed: at 4× the world advances four ticks per real
+        // second, so the walker must cover four ticks of ground in it. The
+        // camera keeps its own unscaled cadence below — panning is player
+        // input, not simulation, and speeding up the world must not speed up
+        // the hand on the controls.
+        float locomotionCadence = PixelMotion.CadenceFor(
+            PixelMotion.WalkCadenceSeconds,
+            (int)_controller.CurrentSpeed);
         _journeys.MotionAccumulator += (float)delta;
-        while (_journeys.MotionAccumulator >= PixelMotion.CadenceSeconds)
+        while (_journeys.MotionAccumulator >= locomotionCadence)
         {
-            _journeys.MotionAccumulator -= PixelMotion.CadenceSeconds;
+            _journeys.MotionAccumulator -= locomotionCadence;
             MotionTick(allowCameraInput: CanUseWorldNavigationInput);
             AdvanceCitizenJourneysTick();
         }
@@ -2442,7 +2451,7 @@ public partial class MacroStreetLiveView : Node2D
         _journeys.RouteIndex = 0;
         // Gathering is not a work assignment, so the domain holds no journey to
         // pace this against. Keep the plain cadence gait.
-        AnchorHeroRoutePacing(null);
+        AnchorHeroRoutePacing(null, null);
     }
 
     internal static bool IsDuplicateGatherRequest(
@@ -2487,7 +2496,7 @@ public partial class MacroStreetLiveView : Node2D
                 _journeys.RouteTotalSteps,
                 _controller.CurrentTick - startedAt,
                 _controller.CurrentTickPhase,
-                CityEconomyRules.AbstractTravelTicks));
+                _journeys.RoutePacingDurationTicks ?? CityEconomyRules.AbstractTravelTicks));
             return;
         }
         AdvanceHeroRouteOneStep();
@@ -3110,7 +3119,7 @@ public partial class MacroStreetLiveView : Node2D
             && _journeys.Route is null
             && !_journeys.PendingReturnHome)
         {
-            BeginWalkHome(heroState.TransitStartedAtTick);
+            BeginWalkHome(heroState.TransitStartedAtTick, heroState.TransitArrivalTick);
         }
         else if (ShouldBeginWorkRoute(
                 currentAssignment,
@@ -3124,7 +3133,7 @@ public partial class MacroStreetLiveView : Node2D
             // movement callback. If the domain still says InTransit after the
             // visual route disappeared, resume/reconcile instead of leaving
             // the citizen permanently assigned but non-productive.
-            BeginWalkToAssignment(unsettledWorkplace, heroState.TransitStartedAtTick);
+            BeginWalkToAssignment(unsettledWorkplace, heroState.TransitStartedAtTick, heroState.TransitArrivalTick);
         }
         _journeys.LastKnownHeroLocation = heroLocation;
         UpdateHeroVisual();
@@ -3350,6 +3359,7 @@ public partial class MacroStreetLiveView : Node2D
                 target,
                 citizen.IsReturningHome,
                 citizen.TransitStartedAtTick,
+                citizen.TransitArrivalTick,
                 _controller.CurrentTick);
         }
         ShowJourneyCarrier(journey, Vector2.Up);
@@ -3383,6 +3393,7 @@ public partial class MacroStreetLiveView : Node2D
         PlotBox target,
         bool returningHome,
         int? transitStartedAtTick,
+        int? transitArrivalTick,
         int currentTick)
     {
         journey.Carrier.CancelMotion();
@@ -3398,6 +3409,7 @@ public partial class MacroStreetLiveView : Node2D
         journey.RouteIndex = 0;
         journey.Walking = false;
         journey.PacingStartTick = transitStartedAtTick;
+        journey.PacingDurationTicks = PacingWindowTicks(transitStartedAtTick, transitArrivalTick);
         journey.TotalSteps = CountRouteSteps(journey.Route, journey.Street, journey.Lateral);
         journey.StepsApplied = 0;
         if (transitStartedAtTick is int startedAt && currentTick > startedAt)
@@ -3407,7 +3419,7 @@ public partial class MacroStreetLiveView : Node2D
                 journey.Street,
                 journey.Lateral,
                 currentTick - startedAt,
-                CityEconomyRules.AbstractTravelTicks);
+                journey.PacingDurationTicks ?? CityEconomyRules.AbstractTravelTicks);
             journey.Street = reconstructed.Street;
             journey.Lateral = reconstructed.Lateral;
             journey.DepthAnchor = reconstructed.Street;
@@ -3472,6 +3484,35 @@ public partial class MacroStreetLiveView : Node2D
     /// smooth between one-second ticks. Purely cosmetic; it can only move the
     /// citizen within a step of where whole ticks already put them.
     /// </param>
+    /// <summary>
+    /// The pacing window for one journey: how many ticks the domain gave it.
+    /// </summary>
+    /// <remarks>
+    /// The domain derives a journey's duration from its distance and the
+    /// traveller's pace, and publishes both ends of the window
+    /// (<c>TransitStartedAtTick</c>, <c>TransitArrivalTick</c>). Presentation
+    /// stretches the drawn route over that window; it does not decide it.
+    /// <para>
+    /// Until this existed, every site here paced against
+    /// <see cref="CityEconomyRules.AbstractTravelTicks"/> — the flat thirty —
+    /// so a journey the domain had already sized by distance was still drawn
+    /// over a constant. A short walk to a worksite crawled and a long one
+    /// sprinted, which is the symptom
+    /// <see href="https://github.com/3FE3LE/world-of-goses/issues/58">#58</see>
+    /// opened with. The flat value survives only as the fallback for a journey
+    /// whose ends the domain has not published.
+    /// </para>
+    /// </remarks>
+    internal static int PacingWindowTicks(int? startedAtTick, int? arrivalTick)
+    {
+        if (startedAtTick is not int startedAt || arrivalTick is not int arrival)
+        {
+            return CityEconomyRules.AbstractTravelTicks;
+        }
+        int window = arrival - startedAt;
+        return window > 0 ? window : CityEconomyRules.AbstractTravelTicks;
+    }
+
     internal static int PacedRouteSteps(
         int totalSteps,
         int elapsedTicks,
@@ -3540,7 +3581,7 @@ public partial class MacroStreetLiveView : Node2D
                         journey.TotalSteps,
                         currentTick - startedAt,
                         tickPhase,
-                        CityEconomyRules.AbstractTravelTicks));
+                        journey.PacingDurationTicks ?? CityEconomyRules.AbstractTravelTicks));
                 continue;
             }
             if (journey.DepthTarget.HasValue) continue;
@@ -3832,7 +3873,7 @@ public partial class MacroStreetLiveView : Node2D
     /// gather. Once the route completes, <see cref="CompleteRoute"/> just
     /// settles them into an idle "at work" pose instead of gathering wood.
     /// </summary>
-    private void BeginWalkToAssignment(BuildingId workplace, int? transitStartedAtTick = null)
+    private void BeginWalkToAssignment(BuildingId workplace, int? transitStartedAtTick = null, int? transitArrivalTick = null)
     {
         _journeys.HeroAmbientRoute = false;
         _journeys.HeroIsGatheringOutsideHome = false;
@@ -3863,7 +3904,7 @@ public partial class MacroStreetLiveView : Node2D
         int entranceStreet = WorkplaceEntranceStreet(target.Value.Street);
         _journeys.Route = PlanCitizenRoute(_journeys.HeroStreet, _journeys.HeroLateral, entranceStreet, target.Value.LateralOffset);
         _journeys.RouteIndex = 0;
-        AnchorHeroRoutePacing(transitStartedAtTick);
+        AnchorHeroRoutePacing(transitStartedAtTick, transitArrivalTick);
         LogCitizenTravel(
             "started",
             _controller.GetHeroId()!.Value,
@@ -3877,7 +3918,7 @@ public partial class MacroStreetLiveView : Node2D
     /// walks back to the Shelter instead of freezing wherever the previous
     /// workplace route was cancelled.
     /// </summary>
-    private void BeginWalkHome(int? transitStartedAtTick = null)
+    private void BeginWalkHome(int? transitStartedAtTick = null, int? transitArrivalTick = null)
     {
         _journeys.HeroAmbientRoute = false;
         _journeys.HeroIsGatheringOutsideHome = false;
@@ -3914,7 +3955,7 @@ public partial class MacroStreetLiveView : Node2D
             _journeys.HeroLateral,
             entranceStreet,
             shelter.Value.LateralOffset);
-        AnchorHeroRoutePacing(transitStartedAtTick);
+        AnchorHeroRoutePacing(transitStartedAtTick, transitArrivalTick);
         LogCitizenTravel(
             "started",
             _controller.GetHeroId()!.Value,
@@ -3928,14 +3969,16 @@ public partial class MacroStreetLiveView : Node2D
     /// is already part-elapsed (a load, or re-entering the view) — skips ahead
     /// to where the clock says the founder already is.
     /// </summary>
-    private void AnchorHeroRoutePacing(int? transitStartedAtTick)
+    private void AnchorHeroRoutePacing(int? transitStartedAtTick, int? transitArrivalTick)
     {
         _journeys.RoutePacingStartTick = null;
+        _journeys.RoutePacingDurationTicks = null;
         _journeys.RouteTotalSteps = 0;
         _journeys.RouteStepsApplied = 0;
         if (_journeys.Route is null || transitStartedAtTick is not int startedAt) return;
 
         _journeys.RoutePacingStartTick = startedAt;
+        _journeys.RoutePacingDurationTicks = PacingWindowTicks(transitStartedAtTick, transitArrivalTick);
         _journeys.RouteTotalSteps = CountRouteSteps(_journeys.Route, _journeys.HeroStreet, _journeys.HeroLateral);
         if (_controller.CurrentTick <= startedAt) return;
 
@@ -3944,7 +3987,7 @@ public partial class MacroStreetLiveView : Node2D
             _journeys.HeroStreet,
             _journeys.HeroLateral,
             _controller.CurrentTick - startedAt,
-            CityEconomyRules.AbstractTravelTicks);
+            _journeys.RoutePacingDurationTicks ?? CityEconomyRules.AbstractTravelTicks);
         _journeys.HeroStreet = reconstructed.Street;
         _journeys.HeroLateral = reconstructed.Lateral;
         _journeys.DepthAnchor = reconstructed.Street;
@@ -3976,7 +4019,7 @@ public partial class MacroStreetLiveView : Node2D
         _journeys.RouteIndex = 0;
         _journeys.HeroAmbientRoute = true;
         // Wandering answers to nothing in the domain; it keeps the cadence gait.
-        AnchorHeroRoutePacing(null);
+        AnchorHeroRoutePacing(null, null);
         _journeys.HeroNextAmbientDecisionTick = currentTick + 20 + phase % 31;
     }
 

@@ -418,4 +418,31 @@ internal static class TestHelpers
             world.AdvanceWorldTick();
         }
     }
+
+    /// <summary>
+    /// Advances until an expedition stops being active, instead of advancing to
+    /// the arrival tick it declared when the caller looked.
+    /// </summary>
+    /// <remarks>
+    /// An expedition's return moves now: an encounter charges the road for
+    /// however long it took. Reading EndTick once and advancing that many ticks
+    /// stops short by exactly the delay, which is the behaviour these tests
+    /// exist to allow rather than to forbid.
+    /// </remarks>
+    /// <returns>Ticks spent, so a paired offline world can be advanced by the same.</returns>
+    public static int AdvanceUntilExpeditionSettles(
+        CityWorld world,
+        ExpeditionId expeditionId,
+        int safetyTicks = 4000,
+        bool stepped = false)
+    {
+        for (int spent = 0; spent < safetyTicks; spent++)
+        {
+            if (world.Expeditions[expeditionId].Status != ExpeditionStatus.Active) return spent;
+            if (stepped) world.AdvanceWorldTick();
+            else WorldTimeAdvance.Advance(world, 1);
+        }
+        throw new InvalidOperationException(
+            $"Expedition {expeditionId.Value} still active after {safetyTicks} ticks.");
+    }
 }

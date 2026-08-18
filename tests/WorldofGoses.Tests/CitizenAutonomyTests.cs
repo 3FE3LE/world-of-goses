@@ -144,7 +144,14 @@ public class CitizenAutonomyTests
         liveQuarry.DepositIron(100);
         live.RegisterBuilding(liveQuarry);
         Assert.True(live.TryAssignCitizen(liveQuarry.Id, liveHero.Id).IsSuccess);
-        for (int tick = 0; tick < 11; tick++) live.AdvanceWorldTick();
+        // Part-way through this journey, whatever this journey happens to last.
+        // It was a hard-coded eleven ticks, which stopped being "part-way" the
+        // moment a duration started coming from the distance.
+        Assert.True(liveHero.TransitDurationTicks >= 2);
+        for (int tick = 0; tick < liveHero.TransitDurationTicks / 2; tick++)
+        {
+            live.AdvanceWorldTick();
+        }
 
         CityWorld restored = WorldPersistence.FromSave(WorldPersistence.Capture(live));
         Citizen restoredHero = restored.Hero!;

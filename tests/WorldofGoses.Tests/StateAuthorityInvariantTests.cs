@@ -195,9 +195,7 @@ public sealed class StateAuthorityInvariantTests
         Assert.Equal(CitizenCommitmentKind.Expedition, restoredHero.Commitment.Kind);
         Assert.Equal(workplace, restoredHero.CurrentAssignment);
 
-        WorldTimeAdvance.Advance(
-            restored,
-            restored.Expeditions[started.ExpeditionId!.Value].EndTick - restored.CurrentTick);
+        TestHelpers.AdvanceUntilExpeditionSettles(restored, started.ExpeditionId!.Value);
 
         Assert.NotEqual(CitizenCommitmentKind.Expedition, restoredHero.Commitment.Kind);
         Assert.Equal(workplace, restoredHero.CurrentAssignment);
@@ -411,9 +409,11 @@ public sealed class StateAuthorityInvariantTests
         WorldSave start = WorldPersistence.Capture(source);
         CityWorld live = WorldPersistence.FromSave(start);
         CityWorld offline = WorldPersistence.FromSave(start);
-        int duration = live.Expeditions[expeditionId].EndTick - live.CurrentTick;
-
-        for (int tick = 0; tick < duration; tick++) live.AdvanceWorldTick();
+        // The return moves as the road charges for it, so the live world walks
+        // until the expedition settles and the offline world is advanced by
+        // exactly the ticks that took. Both still cover the same span.
+        int duration = TestHelpers.AdvanceUntilExpeditionSettles(
+            live, expeditionId, stepped: true);
         WorldTimeAdvance.Advance(offline, duration);
 
         Assert.Equal(
@@ -432,9 +432,7 @@ public sealed class StateAuthorityInvariantTests
     {
         (CityWorld world, ExpeditionId expeditionId) =
             ExpeditionCombatSessionIntegrationTests.StartSpiritTrail();
-        WorldTimeAdvance.Advance(
-            world,
-            world.Expeditions[expeditionId].EndTick - world.CurrentTick);
+        TestHelpers.AdvanceUntilExpeditionSettles(world, expeditionId);
         Expedition expedition = world.Expeditions[expeditionId];
         Assert.Equal(ExpeditionStatus.Returned, expedition.Status);
         Assert.Equal(ExpeditionPhase.Resolved, expedition.Phase);
@@ -462,9 +460,7 @@ public sealed class StateAuthorityInvariantTests
             ExpeditionCombatSessionIntegrationTests.StartSpiritTrail();
         ResourceOpportunity opportunity = world.ResourceOpportunities.Values.Single(
             item => item.Kind == ResourceOpportunityKind.SpiritTrailSearch);
-        WorldTimeAdvance.Advance(
-            world,
-            world.Expeditions[expeditionId].EndTick - world.CurrentTick);
+        TestHelpers.AdvanceUntilExpeditionSettles(world, expeditionId);
         Assert.Equal(ResourceOpportunityState.Depleted, opportunity.State);
 
         // Neither the entity's own commands nor a fresh dispatch reopen it.
@@ -543,7 +539,7 @@ public sealed class StateAuthorityInvariantTests
                 if (from == to) continue;
                 Expedition expedition = NewExpeditionAt(from);
                 bool moved = to == ExpeditionPhase.Encounter
-                    ? expedition.BeginEncounter()
+                    ? expedition.BeginEncounter(atTick: 0)
                     : expedition.TryAdvancePhase(to);
 
                 Assert.Equal(legal.Contains((from, to)), moved);

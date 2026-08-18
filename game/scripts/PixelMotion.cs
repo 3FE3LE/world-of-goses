@@ -33,6 +33,38 @@ public static class PixelMotion
 
     public const float StepPixels = 4f;
 
+    /// <summary>
+    /// Walking cadence: the same 4 px step, arriving less often. 4 px ÷ 1/16 s
+    /// = 64 px/s, which is what <c>CityTravel.WalkPixelsPerTick</c> allots a
+    /// walker per tick. The invariant is the <b>step</b>, not the rate: a
+    /// fractional step would break the pixel grid, a slower rate does not.
+    /// </summary>
+    public const float WalkCadenceSeconds = 1f / 16f;
+
+    /// <summary>
+    /// Running cadence — 4 px ÷ 1/24 s = 96 px/s. Identical to
+    /// <see cref="CadenceSeconds"/>, which is the rate everything used before
+    /// walking and running were told apart.
+    /// </summary>
+    public const float RunCadenceSeconds = CadenceSeconds;
+
+    /// <summary>
+    /// The cadence for one gait, compressed by the global simulation speed.
+    /// </summary>
+    /// <remarks>
+    /// At 4× the world advances four ticks per real second, so a walker must
+    /// cover four ticks' worth of ground in that second or it falls behind its
+    /// own authoritative position and spends the view chasing itself. It is the
+    /// <b>rate</b> that scales and never the step: 24 Hz × 16 px would
+    /// resurrect exactly the jerk that moving from 12 Hz / 8 px to 24 Hz / 4 px
+    /// removed on 2026-08-06.
+    /// </remarks>
+    public static float CadenceFor(float baseCadenceSeconds, int simulationSpeedMultiplier)
+    {
+        int multiplier = simulationSpeedMultiplier > 0 ? simulationSpeedMultiplier : 1;
+        return baseCadenceSeconds / multiplier;
+    }
+
     public static Vector2 Snap(Vector2 value) =>
         new(Mathf.Round(value.X), Mathf.Round(value.Y));
 

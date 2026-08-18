@@ -71,7 +71,7 @@ public sealed class WorldSave
     /// date loads with a different expression than it used to.
     /// </para>
     /// </summary>
-    public const int CurrentVersion = 36;
+    public const int CurrentVersion = 37;
 
     public int Version { get; set; } = CurrentVersion;
 

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using WorldofGoses.Domain;
 using WorldofGoses.Persistence;
@@ -125,21 +126,23 @@ public sealed class CityTravelTests
     }
 
     /// <summary>
-    /// The calibration claim, checked rather than asserted in a comment: a
-    /// typical trip still lands near the thirty ticks every trip used to cost,
-    /// so this changes the shape of the economy and not its scale.
+    /// A journey lasts the pixels it spans divided by the pixels a walker
+    /// covers in a tick — nothing else. This replaces the old calibration
+    /// claim, which pinned a typical trip near the flat thirty ticks it used
+    /// to cost; that kept the economy still at the price of every walker
+    /// moving at a twelfth of its own gait.
     /// </summary>
     [Fact]
-    public void ATypicalTripStaysNearTheDurationItReplaced()
+    public void ADurationIsItsDistanceInPixelsDividedByWalkingPace()
     {
-        int typical = CityTravel.TravelTicks(
-            At(1, row: 0, startColumn: 0),
-            At(2, row: 1, startColumn: 6));
+        ParcelPlacement from = At(1, row: 0, startColumn: 0);
+        ParcelPlacement to = At(2, row: 1, startColumn: 6);
 
-        Assert.InRange(
-            typical,
-            CityEconomyRules.AbstractTravelTicks / 2,
-            CityEconomyRules.AbstractTravelTicks * 2);
+        double columns = 6 + ((2 - 1) / 2.0);
+        double expectedPx = (columns * CityTravel.ColumnPx) + CityTravel.RowPx;
+        int expectedTicks = (int)Math.Ceiling(expectedPx / CityTravel.WalkPixelsPerTick);
+
+        Assert.Equal(expectedTicks, CityTravel.TravelTicks(from, to));
     }
 
     // ---- Through the world -------------------------------------------------
@@ -162,14 +165,22 @@ public sealed class CityTravelTests
         // The two endpoints the world actually placed, measured directly.
         ParcelPlacement home = world.ParcelPlacements[world.PrimaryHome!.Id];
         ParcelPlacement work = world.ParcelPlacements[quarry.Id];
-        double impliedSpeed =
-            CityTravel.Distance(home, work) / hero.TransitDurationTicks;
-
         // The duration is the distance divided by a plausible walking pace, not
         // a constant that happens to be in range. MovementSpeed is capped to
-        // [0.8, 1.3] by the statistics balance, so the implied speed has to sit
-        // there — and a flat thirty would not, for this distance.
-        Assert.InRange(impliedSpeed, 0.8, 1.3);
+        // [0.8, 1.3] by the statistics balance, so the duration has to sit
+        // between what the fastest and the slowest walker would need — and a
+        // flat thirty would not, for this distance.
+        //
+        // Compared against the bracket rather than against an implied speed,
+        // because a journey is now a handful of ticks and TravelTicks ceils:
+        // one tick of rounding on a three-tick walk moves an implied speed by a
+        // third, which says nothing about the pace and everything about the
+        // grain of the clock.
+        double distance = CityTravel.Distance(home, work);
+        Assert.InRange(
+            hero.TransitDurationTicks,
+            (int)Math.Ceiling(distance / 1.3),
+            (int)Math.Ceiling(distance / 0.8));
         Assert.Equal(
             hero.TransitStartedAtTick!.Value + hero.TransitDurationTicks,
             hero.TravelArrivalTick);
